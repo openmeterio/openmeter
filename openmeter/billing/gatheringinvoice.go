@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
@@ -994,20 +993,22 @@ type UpdateGatheringInvoiceAdapterInput = GatheringInvoice
 type ListGatheringInvoicesInput struct {
 	pagination.Page
 
-	Namespaces         []string
-	ExcludedNamespaces []string
-	IDs                []string
-	Customers          []string
-	Currencies         []currencyx.FiatCode
-	OrderBy            api.InvoiceOrderBy
-	Order              sortx.Order
-	IncludeDeleted     bool
-	Expand             GatheringInvoiceExpands
-	CollectionAt       filter.FilterTime
+	Namespace      string
+	IDs            []string
+	Customers      []string
+	Currencies     []currencyx.FiatCode
+	OrderBy        api.InvoiceOrderBy
+	Order          sortx.Order
+	IncludeDeleted bool
+	Expand         GatheringInvoiceExpands
 }
 
 func (i ListGatheringInvoicesInput) Validate() error {
 	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
 
 	if !lo.IsEmpty(i.Page) {
 		if err := i.Page.Validate(); err != nil {
@@ -1019,13 +1020,27 @@ func (i ListGatheringInvoicesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expand: %w", err))
 	}
 
-	if !i.CollectionAt.IsEmpty() {
-		if err := i.CollectionAt.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("collectionAt: %w", err))
-		}
+	return errors.Join(errs...)
+}
+
+// ListCustomerIDsPendingCollectionInput configures retrieval of customers
+// with gathering invoices due for automatic collection.
+type ListCustomerIDsPendingCollectionInput struct {
+	Namespaces         []string
+	ExcludedNamespaces []string
+	InvoiceIDs         []string
+	CustomerIDs        []string
+	AsOf               time.Time
+}
+
+var _ models.Validator = (*ListCustomerIDsPendingCollectionInput)(nil)
+
+func (i ListCustomerIDsPendingCollectionInput) Validate() error {
+	if i.AsOf.IsZero() {
+		return models.NewGenericValidationError(errors.New("asOf time must not be zero"))
 	}
 
-	return errors.Join(errs...)
+	return nil
 }
 
 func NewFlatFeeGatheringLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) GatheringLine {

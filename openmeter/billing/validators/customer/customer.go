@@ -66,7 +66,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 	}
 
 	invoices, err := v.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{input.Namespace},
+		Namespace:  input.Namespace,
 		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &input.ID}},
 	})
 	if err != nil {

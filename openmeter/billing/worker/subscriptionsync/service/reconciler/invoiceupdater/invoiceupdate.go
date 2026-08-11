@@ -97,7 +97,7 @@ func (u *Updater) listInvoicesByID(ctx context.Context, namespace string, invoic
 	}
 
 	resp, err := u.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces:     []string{namespace},
+		Namespace:      namespace,
 		IDs:            invoiceIDs,
 		IncludeDeleted: true,
 	})

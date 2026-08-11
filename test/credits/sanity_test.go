@@ -3285,7 +3285,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace:  ns,
 			Customers:  []string{cust.ID},
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
@@ -3328,7 +3328,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 3)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace:  ns,
 			Customers:  []string{cust.ID},
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},

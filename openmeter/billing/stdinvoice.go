@@ -1169,7 +1169,7 @@ func (i GetStandardInvoiceByIdInput) Validate() error {
 type ListStandardInvoicesInput struct {
 	pagination.Page
 
-	Namespaces         []string
+	Namespace          string
 	IDs                []string
 	Statuses           []string
 	ExtendedStatuses   []StandardInvoiceStatus
@@ -1185,6 +1185,10 @@ type ListStandardInvoicesInput struct {
 
 func (i ListStandardInvoicesInput) Validate() error {
 	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
 
 	// Page is not validated here, as for internal use we don't want to use pagination unless
 	// explicitly requested.

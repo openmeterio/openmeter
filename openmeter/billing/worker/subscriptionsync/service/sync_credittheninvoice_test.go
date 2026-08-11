@@ -333,7 +333,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 		// - one credit-then-invoice usage-based charge is created
 		// - no ledger balances changed during provisioning
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespaces: []string{namespace},
+			Namespace:  namespace,
 			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Page: pagination.Page{
 				PageSize:   10,
@@ -761,9 +761,9 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsProratingGathering() {
 
 		// then there should be a gathering invoice
 		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{namespace},
-			Customers:  []string{customerEntity.ID},
-			Expand:     billing.GatheringInvoiceExpandAll,
+			Namespace: namespace,
+			Customers: []string{customerEntity.ID},
+			Expand:    billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 1)
@@ -815,9 +815,9 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsProratingGathering() {
 
 		// then there should be a gathering invoice
 		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{namespace},
-			Customers:  []string{customerEntity.ID},
-			Expand:     billing.GatheringInvoiceExpandAll,
+			Namespace: namespace,
+			Customers: []string{customerEntity.ID},
+			Expand:    billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 1)
@@ -2680,7 +2680,7 @@ func (s *CreditThenInvoiceTestSuite) TestDefactoZeroPrices() {
 		// - no gathering invoices are materialized
 		// - no credits or invoice amounts are booked to the ledger
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespaces: []string{s.Namespace},
+			Namespace:  s.Namespace,
 			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Page: pagination.Page{
 				PageSize:   10,
@@ -8531,6 +8531,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 
 	// in-arrears lines wont get synced with this deadline so we'll only have the in advance line on the draft invoice
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespace:  s.Namespace,
 		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 		Expand:     billing.InvoiceExpandAll,
 	})
@@ -8660,8 +8661,8 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 	s.assertCreditThenInvoiceBalances(startBalances)
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{s.Namespace},
-		Customers:  []string{s.Customer.ID},
+		Namespace: s.Namespace,
+		Customers: []string{s.Customer.ID},
 		Expand: billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
 			billing.GatheringInvoiceExpandDeletedLines,
@@ -8812,6 +8813,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 		s.assertCreditThenInvoiceBalances(startBalances)
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:  s.Namespace,
 			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Expand:     billing.InvoiceExpandAll,
 		})
@@ -9055,6 +9057,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 		s.assertCreditThenInvoiceBalances(afterInstantInvoiceBalances)
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			Namespace:  s.Namespace,
 			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Expand:     billing.InvoiceExpandAll,
 		})

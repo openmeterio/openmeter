@@ -181,8 +181,8 @@ func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, cust
 	s.T().Helper()
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerID},
+		Namespace: namespace,
+		Customers: []string{customerID},
 		Page: pagination.Page{
 			PageSize:   10,
 			PageNumber: 1,
@@ -202,8 +202,8 @@ func (s *SuiteBase) expectNoGatheringInvoice(ctx context.Context, namespace stri
 	s.T().Helper()
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerID},
+		Namespace: namespace,
+		Customers: []string{customerID},
 		Page: pagination.Page{
 			PageSize:   10,
 			PageNumber: 1,
@@ -974,8 +974,8 @@ func (s *SuiteBase) gatheringChargeLines(ctx context.Context, charge charges.Cha
 	s.NoError(err)
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{chargeID.Namespace},
-		Customers:  []string{customerID.ID},
+		Namespace: chargeID.Namespace,
+		Customers: []string{customerID.ID},
 		Page: pagination.Page{
 			PageSize:   100,
 			PageNumber: 1,

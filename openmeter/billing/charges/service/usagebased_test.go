@@ -759,7 +759,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 
 				if realizationVariant.expectRemainingGatheringLine {
 					gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-						Namespaces: []string{ns},
+						Namespace:  ns,
 						Customers:  []string{customer.ID},
 						Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 						Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
@@ -963,7 +963,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		partialRunID = currentRun.ID.ID
 
 		invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace: ns,
 		})
 		s.NoError(err)
 		s.Len(invoicesResult.Items, 1)
@@ -1003,7 +1003,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Equal(partialRunID, currentRun.ID.ID)
 
 		invoicesResult, listErr := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace: ns,
 		})
 		s.NoError(listErr)
 		s.Len(invoicesResult.Items, 1)
@@ -1383,7 +1383,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 
 		invoicesResult, listErr := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace: ns,
 		})
 		s.NoError(listErr)
 		s.Len(invoicesResult.Items, 1)

@@ -605,7 +605,7 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 				q = q.Where(billinginvoiceline.StatusIn(input.Statuses...))
 			}
 
-			tx.expandLineItemsWithDetailedLines(q)
+			tx.expandLineItemsWithDetailedLines(q, input.Namespace)
 		})
 
 		dbInvoices, err := query.All(ctx)
@@ -642,10 +642,10 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 }
 
 // expandLineItems is a helper function to expand the line items in the query, detailed lines are not included
-func (a *adapter) expandLineItems(q *db.BillingInvoiceLineQuery) *db.BillingInvoiceLineQuery {
+func (a *adapter) expandLineItems(q *db.BillingInvoiceLineQuery, namespace string) *db.BillingInvoiceLineQuery {
 	return q.WithFlatFeeLine().
 		WithUsageBasedLine().
-		WithTaxCode().
+		WithTaxCode(taxCodeInNamespace(namespace)).
 		WithLineUsageDiscounts(
 			func(q *db.BillingInvoiceLineUsageDiscountQuery) {
 				q.Where(billinginvoicelineusagediscount.DeletedAtIsNil())
@@ -659,8 +659,8 @@ func (a *adapter) expandLineItems(q *db.BillingInvoiceLineQuery) *db.BillingInvo
 }
 
 // expandLineItemsWithDetailedLines expands the invoice lines and their detailed lines if any exists
-func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery) *db.BillingInvoiceLineQuery {
-	q = a.expandLineItems(q)
+func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery, namespace string) *db.BillingInvoiceLineQuery {
+	q = a.expandLineItems(q, namespace)
 
 	q.WithDetailedLines(func(bilq *db.BillingInvoiceLineQuery) {
 		// We never include deleted detailed lines in the query, as we intent to keep them as history.
@@ -669,7 +669,7 @@ func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery
 		// prioritized for reuse or we will end up with INSERT conflicts due to the child unique reference id uniqueness constraint.
 		bilq = bilq.Where(billinginvoiceline.DeletedAtIsNil())
 
-		a.expandLineItems(bilq)
+		a.expandLineItems(bilq, namespace)
 	})
 
 	q.WithDetailedLinesV2(func(bilq *db.BillingStandardInvoiceDetailedLineQuery) {
@@ -723,7 +723,7 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 		query = query.Where(billinginvoiceline.DeletedAtIsNil())
 	}
 
-	query = a.expandLineItemsWithDetailedLines(query)
+	query = a.expandLineItemsWithDetailedLines(query, in.Namespace)
 
 	dbLines, err := query.All(ctx)
 	if err != nil {
@@ -803,7 +803,7 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			query = query.Where(billinginvoiceline.ChargeIDIsNil())
 		}
 
-		query = tx.expandLineItems(query)
+		query = tx.expandLineItems(query, in.Namespace)
 
 		dbLines, err := query.All(ctx)
 		if err != nil {
@@ -869,9 +869,9 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			Where(billinginvoicesplitlinegroup.Namespace(in.Namespace)).
 			Where(billinginvoicesplitlinegroup.SubscriptionID(in.SubscriptionID)).
 			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-				tx.expandLineItems(q)
+				tx.expandLineItems(q, in.Namespace)
 				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
+					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode(in.Namespace))
 				})
 			}).
 			Where(billinginvoicesplitlinegroup.DeletedAtIsNil()).

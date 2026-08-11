@@ -681,8 +681,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 	chargeID := flatFeeCharge.GetChargeID()
 
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{ns},
-		Customers:  []string{customer.ID},
+		Namespace: ns,
+		Customers: []string{customer.ID},
 		Expand: billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
 		},
@@ -1796,7 +1796,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.NoError(err)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace:  ns,
 			Customers:  []string{cust.ID},
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
@@ -2661,7 +2661,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		s.NoError(err)
 
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace:  ns,
 			Customers:  []string{cust.ID},
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
@@ -4063,7 +4063,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		// Then no gathering invoice is created (credit-only skips invoicing).
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace:  ns,
 			Customers:  []string{cust.ID},
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
@@ -4868,8 +4868,8 @@ func activeGatheringLinesForCharge(s *BaseSuite, namespace, customerID, chargeID
 	s.T().Helper()
 
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerID},
+		Namespace: namespace,
+		Customers: []string{customerID},
 		Expand: billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
 		},

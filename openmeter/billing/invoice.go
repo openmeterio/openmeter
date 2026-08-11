@@ -294,8 +294,8 @@ func (f InvoiceAvailableActionsFilter) Validate() error {
 type ListInvoicesInput struct {
 	pagination.Page
 
-	Namespaces []string
-	IDs        []string
+	Namespace string
+	IDs       []string
 	// CustomerID filters invoices by customer. Supports eq, neq, oeq (in) operators.
 	CustomerID *filter.FilterULID
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
@@ -324,6 +324,10 @@ type ListInvoicesInput struct {
 
 func (i ListInvoicesInput) Validate() error {
 	var outErr []error
+
+	if i.Namespace == "" {
+		outErr = append(outErr, errors.New("namespace is required"))
+	}
 
 	if i.CustomerID != nil {
 		if err := i.CustomerID.Validate(); err != nil {
@@ -359,8 +363,8 @@ func (i ListInvoicesInput) Validate() error {
 type ListInvoicesAdapterInput struct {
 	pagination.Page
 
-	Namespaces []string
-	IDs        []string
+	Namespace string
+	IDs       []string
 	// CustomerID filters invoices by customer. Supports eq, neq, oeq (in) operators.
 	CustomerID *filter.FilterULID
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
@@ -398,6 +402,10 @@ type ListInvoicesAdapterInput struct {
 
 func (i ListInvoicesAdapterInput) Validate() error {
 	var outErr []error
+
+	if i.Namespace == "" {
+		outErr = append(outErr, errors.New("namespace is required"))
+	}
 
 	if i.CustomerID != nil {
 		if err := i.CustomerID.Validate(); err != nil {

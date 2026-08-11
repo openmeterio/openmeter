@@ -223,7 +223,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				PageSize:   10,
 			},
 
-			Namespaces: []string{namespace},
+			Namespace:  namespace,
 			Customers:  []string{customerEntity.ID},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
@@ -319,7 +319,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		// Then we have a different invoice for HUF
 		hufInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{namespace},
+			Namespace:  namespace,
 			Customers:  []string{customerEntity.ID},
 			Expand:     billing.GatheringInvoiceExpandAll,
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.HUF)},
@@ -374,7 +374,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	s.T().Run("Expand scenarios", func(t *testing.T) {
 		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{namespace},
+			Namespace:  namespace,
 			Customers:  []string{customerEntity.ID},
 			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
 		})
@@ -545,7 +545,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		// We expect that the invoice can be listed by filtering to it's status_details_cache field
 		invoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-			Namespaces:         []string{namespace},
+			Namespace:          namespace,
 			HasAvailableAction: []billing.InvoiceAvailableActionsFilter{billing.InvoiceAvailableActionsFilterApprove},
 		})
 
@@ -639,8 +639,15 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	})
 }
 
-func (s *InvoicingTestSuite) TestListGatheringInvoices_CollectionAtFilterExcludesNilCollectionAt() {
-	namespace := s.GetUniqueNamespace("ns-gathering-collection-at-nil-failsafe")
+func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCustomersAcrossNamespaces() {
+	// given:
+	// - gathering invoices for the same customer in two currencies, including a legacy nil collection time
+	// - another collectable customer in a second namespace
+	// when:
+	// - customers pending collection are listed across both namespaces
+	// then:
+	// - each namespaced customer ID is returned exactly once
+	namespace := s.GetUniqueNamespace("gathering-pending-collection")
 	ctx := s.T().Context()
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
@@ -687,48 +694,53 @@ func (s *InvoicingTestSuite) TestListGatheringInvoices_CollectionAtFilterExclude
 	gatheringInvoice.NextCollectionAt = nil
 	require.NoError(s.T(), s.BillingAdapter.UpdateGatheringInvoice(ctx, gatheringInvoice))
 
-	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerEntity.ID},
-		CollectionAt: filter.FilterTime{
-			Lte: lo.ToPtr(time.Now()),
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(currency.HUF),
+		Lines: []billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Namespace:     namespace,
+				Period:        timeutil.ClosedPeriod{From: now.Add(-24 * time.Hour), To: now},
+				InvoiceAt:     now.Add(-time.Hour),
+				ManagedBy:     billing.ManuallyManagedLine,
+				Name:          "Test item - HUF",
+				PerUnitAmount: alpacadecimal.NewFromFloat(100),
+			}),
 		},
 	})
 	require.NoError(s.T(), err)
-	require.Empty(s.T(), invoices.Items)
+
+	secondNamespace := s.GetUniqueNamespace("gathering-pending-collection-second")
+	secondSandboxApp := s.InstallSandboxApp(s.T(), secondNamespace)
+	s.ProvisionBillingProfile(ctx, secondNamespace, secondSandboxApp.GetID())
+	secondCustomer := s.CreateTestCustomer(secondNamespace, "test-customer")
+	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: secondNamespace,
+		Customer:  secondCustomer,
+	})
+
+	customers, err := s.BillingService.ListCustomerIDsPendingCollection(ctx, billing.ListCustomerIDsPendingCollectionInput{
+		Namespaces: []string{namespace, secondNamespace},
+		AsOf:       now,
+	})
+	require.NoError(s.T(), err)
+	require.ElementsMatch(s.T(), []customer.CustomerID{
+		customerEntity.GetID(),
+		secondCustomer.GetID(),
+	}, customers)
 }
 
-func (s *InvoicingTestSuite) TestListGatheringInvoicesWithoutNamespaceFilter() {
-	namespace := s.GetUniqueNamespace("ns-gathering-list-without-namespace-filter")
+func (s *InvoicingTestSuite) TestListGatheringInvoicesRequiresNamespace() {
+	// given:
+	// - a gathering invoice list input without a namespace
+	// when:
+	// - gathering invoices are listed
+	// then:
+	// - the request is rejected before querying across namespaces
 	ctx := s.T().Context()
 
-	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
-	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: namespace,
-		CustomerMutate: customer.CustomerMutate{
-			Name:         "Test Customer",
-			Key:          lo.ToPtr("test-customer-key"),
-			PrimaryEmail: lo.ToPtr("test@test.com"),
-			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
-		},
-	})
-	require.NoError(s.T(), err)
-
-	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
-		Namespace: namespace,
-		Customer:  customerEntity,
-	})
-
-	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Customers: []string{customerEntity.ID},
-		Expand:    billing.GatheringInvoiceExpandAll,
-	})
-	require.NoError(s.T(), err)
-	require.Len(s.T(), invoices.Items, 1)
-	require.Equal(s.T(), namespace, invoices.Items[0].Namespace)
-	require.Equal(s.T(), customerEntity.ID, invoices.Items[0].CustomerID)
+	_, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{})
+	require.ErrorContains(s.T(), err, "namespace is required")
 }
 
 func (s *InvoicingTestSuite) TestInvoicingFlow() {
@@ -3525,7 +3537,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 	s.Run("fetch gathering invoice", func() {
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespaces:       []string{namespace},
+			Namespace:        namespace,
 			CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 			Expand: billing.InvoiceExpands{}.
@@ -3546,7 +3558,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(time.Minute))
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespaces:       []string{namespace},
+			Namespace:        namespace,
 			CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 			Expand: billing.InvoiceExpands{}.
@@ -3566,7 +3578,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 30, periodStart.Add(2*time.Minute))
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespaces:       []string{namespace},
+			Namespace:        namespace,
 			CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 			Expand: billing.InvoiceExpands{}.
@@ -3928,6 +3940,53 @@ func (s *InvoicingTestSuite) TestInvoicePendingLinesForceAsyncAdvance() {
 	invoice, err := s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
 	s.NoError(err)
 	s.NotEqual(billing.StandardInvoiceStatusDraftCreated, invoice.Status)
+}
+
+func (s *InvoicingTestSuite) TestListPendingAdvancementDoesNotResolveWorkflowReferences() {
+	// given:
+	// - an advanceable invoice whose workflow config is deliberately moved to another namespace
+	// when:
+	// - pending advancement candidates are listed
+	// then:
+	// - the invoice identity is returned without resolving its workflow or tax code
+	ctx := context.Background()
+	namespace := s.GetUniqueNamespace("pending-advancement")
+	s.ProvisionBillingProfile(ctx, namespace, s.InstallSandboxApp(s.T(), namespace).GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customerEntity,
+	})
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:          customerEntity.GetID(),
+		ForceAsyncAdvance: true,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_workflow_configs
+		 SET namespace = $1
+		 WHERE id = (
+			 SELECT workflow_config_id
+			 FROM billing_invoices
+			 WHERE namespace = $2 AND id = $3
+		 )`,
+		s.GetUniqueNamespace("pending-advancement-foreign"),
+		namespace,
+		invoices[0].ID,
+	)
+	s.Require().NoError(err)
+
+	candidates, err := s.BillingService.ListStandardInvoicesPendingAdvancement(ctx, billing.ListStandardInvoicesPendingAdvancementInput{
+		Namespaces: []string{namespace},
+		IDs:        []string{invoices[0].ID},
+		AsOf:       clock.Now().Add(time.Minute),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(candidates, 1)
+	s.Equal(invoices[0].GetInvoiceID(), candidates[0])
 }
 
 func (s *InvoicingTestSuite) TestProgressiveBillLate() {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -88,6 +89,84 @@ func (s *CustomerOverrideTestSuite) TestGetRejectsPersistedCrossNamespaceProfile
 
 	require.ErrorIs(s.T(), err, billing.ErrProfileNotFound)
 	require.Empty(s.T(), result)
+}
+
+func (s *CustomerOverrideTestSuite) TestGetRejectsPersistedCrossNamespaceTaxCode() {
+	// given:
+	// - a deliberately corrupted override that references a tax code in another namespace
+	// when:
+	// - the customer override is read
+	// then:
+	// - the foreign tax code is not returned and is reported as missing
+	ctx := context.Background()
+	customerNamespace := s.GetUniqueNamespace("customer-override-tax-customer")
+	taxNamespace := s.GetUniqueNamespace("customer-override-tax-code")
+	customerEntity := s.CreateTestCustomer(customerNamespace, "customer")
+	s.ProvisionBillingProfile(ctx, customerNamespace, s.InstallSandboxApp(s.T(), customerNamespace).GetID())
+	foreignTaxCode := s.ProvisionProviderDefaultTaxCode(ctx, taxNamespace)
+
+	_, err := s.DBClient.BillingCustomerOverride.Create().
+		SetNamespace(customerNamespace).
+		SetCustomerID(customerEntity.ID).
+		SetTaxCodeID(foreignTaxCode.ID).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	result, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customerEntity.GetID(),
+	})
+	require.True(s.T(), taxcode.IsTaxCodeNotFoundError(err))
+	require.Empty(s.T(), result)
+}
+
+func (s *CustomerOverrideTestSuite) TestBulkAssignValidatesReferencesAndDeduplicatesCustomers() {
+	// given:
+	// - customers and billing profiles in two namespaces
+	// when:
+	// - bulk assignment receives invalid references or a duplicated valid customer
+	// then:
+	// - invalid references write nothing and the valid customer is assigned once
+	ctx := context.Background()
+	targetNamespace := s.GetUniqueNamespace("customer-override-bulk-target")
+	foreignNamespace := s.GetUniqueNamespace("customer-override-bulk-foreign")
+	targetCustomer := s.CreateTestCustomer(targetNamespace, "target")
+	foreignCustomer := s.CreateTestCustomer(foreignNamespace, "foreign")
+	targetProfile := s.ProvisionBillingProfile(ctx, targetNamespace, s.InstallSandboxApp(s.T(), targetNamespace).GetID())
+	foreignProfile := s.ProvisionBillingProfile(ctx, foreignNamespace, s.InstallSandboxApp(s.T(), foreignNamespace).GetID())
+
+	err := s.BillingAdapter.BulkAssignCustomersToProfile(ctx, billing.BulkAssignCustomersToProfileInput{
+		ProfileID: foreignProfile.ProfileID(), CustomerIDs: []customer.CustomerID{targetCustomer.GetID()},
+	})
+	require.Error(s.T(), err)
+
+	err = s.BillingAdapter.BulkAssignCustomersToProfile(ctx, billing.BulkAssignCustomersToProfileInput{
+		ProfileID:   billing.ProfileID{Namespace: targetNamespace, ID: foreignProfile.ID},
+		CustomerIDs: []customer.CustomerID{targetCustomer.GetID()},
+	})
+	require.ErrorIs(s.T(), err, billing.ErrProfileNotFound)
+
+	err = s.BillingAdapter.BulkAssignCustomersToProfile(ctx, billing.BulkAssignCustomersToProfileInput{
+		ProfileID:   targetProfile.ProfileID(),
+		CustomerIDs: []customer.CustomerID{{Namespace: targetNamespace, ID: foreignCustomer.ID}},
+	})
+	require.ErrorIs(s.T(), err, billing.ErrCustomerNotFound)
+
+	override, err := s.BillingAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+		Customer: targetCustomer.GetID(),
+	})
+	require.NoError(s.T(), err)
+	require.Nil(s.T(), override)
+
+	err = s.BillingAdapter.BulkAssignCustomersToProfile(ctx, billing.BulkAssignCustomersToProfileInput{
+		ProfileID: targetProfile.ProfileID(), CustomerIDs: []customer.CustomerID{targetCustomer.GetID(), targetCustomer.GetID()},
+	})
+	require.NoError(s.T(), err)
+
+	override, err = s.BillingAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+		Customer: targetCustomer.GetID(),
+	})
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), targetProfile.ID, override.Profile.ID)
 }
 
 func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {

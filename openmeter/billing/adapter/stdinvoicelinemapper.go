@@ -295,7 +295,7 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 
 func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) *taxcode.TaxCode {
 	tc, err := dbLine.Edges.TaxCodeOrErr()
-	if err != nil {
+	if err != nil || tc.Namespace != dbLine.Namespace {
 		return nil
 	}
 	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)

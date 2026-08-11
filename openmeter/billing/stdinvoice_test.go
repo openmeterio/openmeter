@@ -12,6 +12,18 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestListStandardInvoicesInputValidateRequiresNamespace(t *testing.T) {
+	// given:
+	// - a standard invoice list input without a namespace
+	// when:
+	// - the input is validated
+	// then:
+	// - validation rejects the request
+	err := (ListStandardInvoicesInput{}).Validate()
+
+	require.ErrorContains(t, err, "namespace is required")
+}
+
 func TestSortLines(t *testing.T) {
 	lines := StandardLines{
 		{

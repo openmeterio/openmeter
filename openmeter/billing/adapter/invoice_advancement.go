@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -52,17 +50,13 @@ func invoicePendingAdvancementPredicate(filter billing.InvoicePendingAdvancement
 	)
 }
 
-func (a *adapter) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.StandardInvoice, error) {
+func (a *adapter) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.InvoiceID, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{Err: err}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.StandardInvoice, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.InvoiceID, error) {
 		query := tx.db.BillingInvoice.Query().
-			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
-				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
-			}).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode).
 			Where(
 				billinginvoice.DeletedAtIsNil(),
 				invoicePendingAdvancementPredicate(billing.InvoicePendingAdvancementFilter{
@@ -79,21 +73,21 @@ func (a *adapter) ListStandardInvoicesPendingAdvancement(ctx context.Context, in
 			query.Where(billinginvoice.IDIn(input.IDs...))
 		}
 
-		query.Order(billinginvoice.ByCreatedAt(entutils.GetOrdering(sortx.OrderDefault)...))
+		query.
+			Select(billinginvoice.FieldNamespace, billinginvoice.FieldID).
+			Order(billinginvoice.ByCreatedAt(entutils.GetOrdering(sortx.OrderDefault)...))
 
 		entities, err := query.All(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list standard invoices pending advancement: %w", err)
 		}
 
-		invoices := make([]billing.StandardInvoice, 0, len(entities))
+		invoices := make([]billing.InvoiceID, 0, len(entities))
 		for _, entity := range entities {
-			invoice, err := tx.mapStandardInvoiceFromDB(ctx, entity, billing.StandardInvoiceExpands{})
-			if err != nil {
-				return nil, fmt.Errorf("failed to map standard invoice pending advancement: %w", err)
-			}
-
-			invoices = append(invoices, invoice)
+			invoices = append(invoices, billing.InvoiceID{
+				Namespace: entity.Namespace,
+				ID:        entity.ID,
+			})
 		}
 
 		return invoices, nil

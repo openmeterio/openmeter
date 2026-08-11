@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sync"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 type InvoiceCollector struct {
@@ -25,57 +23,40 @@ type InvoiceCollector struct {
 	logger *slog.Logger
 }
 
-type ListCollectableInvoicesInput struct {
-	Namespaces   []string
-	InvoiceIDs   []string
-	Customers    []string
-	CollectionAt time.Time
+type ListCustomersToCollectInput struct {
+	Namespaces  []string
+	InvoiceIDs  []string
+	CustomerIDs []string
+	AsOf        time.Time
 }
 
-func (i ListCollectableInvoicesInput) Validate() error {
+func (i ListCustomersToCollectInput) Validate() error {
 	var errs []error
 
-	if i.CollectionAt.IsZero() {
-		errs = append(errs, fmt.Errorf("collectionAt time must not be zero"))
+	if i.AsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("asOf time must not be zero"))
 	}
 
 	return errors.Join(errs...)
 }
 
-func (a *InvoiceCollector) ListCollectableInvoices(ctx context.Context, params ListCollectableInvoicesInput) ([]billing.GatheringInvoice, error) {
+func (a *InvoiceCollector) ListCustomersToCollect(ctx context.Context, params ListCustomersToCollectInput) ([]customer.CustomerID, error) {
 	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	input := billing.ListGatheringInvoicesInput{
+	customers, err := a.gatheringInvoices.ListCustomerIDsPendingCollection(ctx, billing.ListCustomerIDsPendingCollectionInput{
 		Namespaces:         params.Namespaces,
 		ExcludedNamespaces: a.lockedNamespaces,
-		Customers:          params.Customers,
-		CollectionAt: filter.FilterTime{
-			Or: &[]filter.FilterTime{
-				{Lte: lo.ToPtr(params.CollectionAt)},
-				{Exists: lo.ToPtr(false)},
-			},
-		},
-	}
-	if len(params.InvoiceIDs) > 0 {
-		input.IDs = params.InvoiceIDs
-	}
-
-	resp, err := a.gatheringInvoices.ListGatheringInvoices(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list collectable invoices: %w", err)
-	}
-
-	nilCollectionAtInvoiceIDs := lo.FilterMap(resp.Items, func(invoice billing.GatheringInvoice, _ int) (string, bool) {
-		return invoice.ID, invoice.NextCollectionAt == nil
+		InvoiceIDs:         params.InvoiceIDs,
+		CustomerIDs:        params.CustomerIDs,
+		AsOf:               params.AsOf,
 	})
-
-	if len(nilCollectionAtInvoiceIDs) > 0 {
-		a.logger.WarnContext(ctx, "gathering invoices have nil next collection at; this may indicate legacy or inconsistent state", "invoice_ids", nilCollectionAtInvoiceIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list customers to collect: %w", err)
 	}
 
-	return resp.Items, nil
+	return customers, nil
 }
 
 type CollectCustomerInvoiceInput struct {
@@ -145,29 +126,18 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 
 	a.logger.InfoContext(ctx, "listing invoices waiting for collection")
 
-	invoices, err := a.ListCollectableInvoices(ctx, ListCollectableInvoicesInput{
-		Namespaces:   namespaces,
-		Customers:    customerIDFilter,
-		CollectionAt: time.Now(),
+	customerIDs, err := a.ListCustomersToCollect(ctx, ListCustomersToCollectInput{
+		Namespaces:  namespaces,
+		CustomerIDs: customerIDFilter,
+		AsOf:        time.Now(),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to list invoices to collect: %w", err)
+		return fmt.Errorf("failed to list customers to collect: %w", err)
 	}
 
-	if len(invoices) == 0 {
+	if len(customerIDs) == 0 {
 		return nil
 	}
-
-	customerIDs := lo.Map(invoices, func(i billing.GatheringInvoice, _ int) customer.CustomerID {
-		return customer.CustomerID{
-			Namespace: i.Namespace,
-			ID:        i.CustomerID,
-		}
-	})
-
-	customerIDs = lo.Filter(lo.Uniq(customerIDs), func(id customer.CustomerID, _ int) bool {
-		return !slices.Contains(a.lockedNamespaces, id.Namespace)
-	})
 
 	batches := [][]customer.CustomerID{
 		customerIDs,

@@ -128,7 +128,7 @@ func (u *updater) listInvoicesByID(ctx context.Context, namespace string, invoic
 	}
 
 	resp, err := u.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces:     []string{namespace},
+		Namespace:      namespace,
 		IDs:            invoiceIDs,
 		IncludeDeleted: true,
 	})
@@ -349,8 +349,8 @@ func (u *updater) resolveGatheringLineDeletesByChargeID(ctx context.Context, cus
 	}
 
 	invoices, err := u.billingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{customerID.Namespace},
-		Customers:  []string{customerID.ID},
+		Namespace: customerID.Namespace,
+		Customers: []string{customerID.ID},
 		Expand: billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
 		},
@@ -387,8 +387,8 @@ func (u *updater) resolveGatheringLineUpsertsByChargeID(ctx context.Context, cus
 	}
 
 	invoices, err := u.billingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{customerID.Namespace},
-		Customers:  []string{customerID.ID},
+		Namespace: customerID.Namespace,
+		Customers: []string{customerID.ID},
 		Expand: billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
 		},

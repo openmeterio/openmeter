@@ -148,8 +148,8 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 
 			// let's fetch the existing gathering invoices for the customer
 			existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-				Namespaces: []string{input.Customer.Namespace},
-				Customers:  []string{input.Customer.ID},
+				Namespace: input.Customer.Namespace,
+				Customers: []string{input.Customer.ID},
 				Expand: billing.GatheringInvoiceExpands{
 					billing.GatheringInvoiceExpandLines,
 				},

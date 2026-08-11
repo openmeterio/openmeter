@@ -171,7 +171,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.NoError(s.Service.SyncByView(ctx, subsView, clock.Now().AddDate(0, 1, 0)))
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Namespaces: []string{namespace},
+			Namespace:  namespace,
 			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Page: pagination.Page{
 				PageSize:   10,
@@ -480,9 +480,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProratingGathering() {
 
 		// then there should be a gathering invoice
 		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{namespace},
-			Customers:  []string{customerEntity.ID},
-			Expand:     billing.GatheringInvoiceExpandAll,
+			Namespace: namespace,
+			Customers: []string{customerEntity.ID},
+			Expand:    billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 1)
@@ -532,9 +532,9 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProratingGathering() {
 
 		// then there should be a gathering invoice
 		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{namespace},
-			Customers:  []string{customerEntity.ID},
-			Expand:     billing.GatheringInvoiceExpandAll,
+			Namespace: namespace,
+			Customers: []string{customerEntity.ID},
+			Expand:    billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 1)
@@ -1650,7 +1650,7 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 	s.NoError(s.Service.SyncByView(ctx, subView, asOf))
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{s.Namespace},
+		Namespace:  s.Namespace,
 		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 		Page: pagination.Page{
 			PageSize:   10,
@@ -4002,6 +4002,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 
 	// in-arrears lines wont get synced with this deadline so we'll only have the in advance line on the draft invoice
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespace:  s.Namespace,
 		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 		Expand:     billing.InvoiceExpandAll,
 	})
@@ -4083,8 +4084,8 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 	s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subsView, clock.Now()))
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{s.Namespace},
-		Customers:  []string{s.Customer.ID},
+		Namespace: s.Namespace,
+		Customers: []string{s.Customer.ID},
 		Expand: billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
 			billing.GatheringInvoiceExpandDeletedLines,
@@ -4169,6 +4170,7 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 	s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subsView, clock.Now().Add(time.Minute))) // time is frozen to start time (syncing in arrears upto which would sync nothing, and we want both the instant invoice for in advance as well as the gathering for UBP)
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespace:  s.Namespace,
 		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 		Expand:     billing.InvoiceExpandAll,
 	})

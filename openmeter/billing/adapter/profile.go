@@ -19,7 +19,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	dbcustomer "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -31,10 +33,17 @@ import (
 
 var _ billing.ProfileAdapter = (*adapter)(nil)
 
-// workflowConfigWithTaxCode is a reusable eager-load option that also loads the TaxCode edge
-// on BillingWorkflowConfig, enabling BackfillTaxConfig on the read path.
-var workflowConfigWithTaxCode = func(q *db.BillingWorkflowConfigQuery) {
-	q.WithTaxCode()
+func workflowConfigWithTaxCode(namespace string) func(*db.BillingWorkflowConfigQuery) {
+	return func(q *db.BillingWorkflowConfigQuery) {
+		q.Where(billingworkflowconfig.Namespace(namespace)).
+			WithTaxCode(taxCodeInNamespace(namespace))
+	}
+}
+
+func taxCodeInNamespace(namespace string) func(*db.TaxCodeQuery) {
+	return func(q *db.TaxCodeQuery) {
+		q.Where(taxcodedb.Namespace(namespace))
+	}
 }
 
 func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.BaseProfile, error) {
@@ -79,7 +88,7 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 		// Hack: we need to add the edges back
 		dbProfile.Edges.WorkflowConfig = dbWorkflowConfig
 
-		createdProfile, err := mapProfileFromDB(dbProfile)
+		createdProfile, err := tx.mapProfileFromDB(ctx, dbProfile)
 		if err != nil {
 			return nil, err
 		}
@@ -120,8 +129,13 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 	// mapWorkflowConfigFromDB can call BackfillTaxConfig without a full node re-fetch
 	// (which would break pointer aliasing for AnchoredAlignmentDetail).
 	if saved.TaxCodeID != nil {
-		tc, err := a.db.TaxCode.Get(ctx, *saved.TaxCodeID)
+		tc, err := a.db.TaxCode.Query().
+			Where(taxcodedb.Namespace(ns), taxcodedb.ID(*saved.TaxCodeID)).
+			Only(ctx)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return nil, taxcode.NewTaxCodeNotFoundError(*saved.TaxCodeID)
+			}
 			return nil, fmt.Errorf("fetching tax code edge after workflow config create: %w", err)
 		}
 		saved.Edges.TaxCode = tc
@@ -138,7 +152,7 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 	dbProfile, err := a.db.BillingProfile.Query().
 		Where(billingprofile.Namespace(input.Profile.Namespace)).
 		Where(billingprofile.ID(input.Profile.ID)).
-		WithWorkflowConfig(workflowConfigWithTaxCode).First(ctx)
+		WithWorkflowConfig(workflowConfigWithTaxCode(input.Profile.Namespace)).First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, billing.NotFoundError{
@@ -149,13 +163,13 @@ func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput)
 		return nil, err
 	}
 
-	return mapProfileFromDB(dbProfile)
+	return a.mapProfileFromDB(ctx, dbProfile)
 }
 
 func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesInput) (pagination.Result[billing.BaseProfile], error) {
 	query := a.db.BillingProfile.Query().
 		Where(billingprofile.Namespace(input.Namespace)).
-		WithWorkflowConfig(workflowConfigWithTaxCode)
+		WithWorkflowConfig(workflowConfigWithTaxCode(input.Namespace))
 
 	if !input.IncludeArchived {
 		query = query.Where(billingprofile.DeletedAtIsNil())
@@ -195,7 +209,7 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 			continue
 		}
 
-		profile, err := mapProfileFromDB(item)
+		profile, err := a.mapProfileFromDB(ctx, item)
 		if err != nil {
 			return response, fmt.Errorf("cannot map profile: %w", err)
 		}
@@ -218,7 +232,7 @@ func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 		Where(billingprofile.Namespace(input.Namespace)).
 		Where(billingprofile.Default(true)).
 		Where(billingprofile.DeletedAtIsNil()).
-		WithWorkflowConfig(workflowConfigWithTaxCode).
+		WithWorkflowConfig(workflowConfigWithTaxCode(input.Namespace)).
 		Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -228,7 +242,7 @@ func (a *adapter) GetDefaultProfile(ctx context.Context, input billing.GetDefaul
 		return nil, err
 	}
 
-	return mapProfileFromDB(dbProfile)
+	return a.mapProfileFromDB(ctx, dbProfile)
 }
 
 func (a *adapter) DeleteProfile(ctx context.Context, input billing.DeleteProfileInput) error {
@@ -302,7 +316,7 @@ func (a *adapter) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 
 		updatedProfile.Edges.WorkflowConfig = updatedWorkflowConfig
 
-		updatedProfileEntity, err := mapProfileFromDB(updatedProfile)
+		updatedProfileEntity, err := tx.mapProfileFromDB(ctx, updatedProfile)
 		if err != nil {
 			return nil, err
 		}
@@ -424,8 +438,13 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 	// Save never populates edges; manually fetch the TaxCode entity so that
 	// mapWorkflowConfigFromDB can call BackfillTaxConfig without a full node re-fetch.
 	if saved.TaxCodeID != nil {
-		tc, err := a.db.TaxCode.Get(ctx, *saved.TaxCodeID)
+		tc, err := a.db.TaxCode.Query().
+			Where(taxcodedb.Namespace(ns), taxcodedb.ID(*saved.TaxCodeID)).
+			Only(ctx)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return nil, taxcode.NewTaxCodeNotFoundError(*saved.TaxCodeID)
+			}
 			return nil, fmt.Errorf("fetching tax code edge after workflow config update: %w", err)
 		}
 		saved.Edges.TaxCode = tc
@@ -434,12 +453,12 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 	return saved, nil
 }
 
-func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterGetProfileResponse, error) {
+func (a *adapter) mapProfileFromDB(ctx context.Context, dbProfile *db.BillingProfile) (*billing.AdapterGetProfileResponse, error) {
 	if dbProfile == nil {
 		return nil, nil
 	}
 
-	wfConfig, err := mapWorkflowConfigFromDB(dbProfile.Edges.WorkflowConfig)
+	wfConfig, err := a.mapWorkflowConfigFromDB(ctx, dbProfile.Namespace, dbProfile.Edges.WorkflowConfig)
 	if err != nil {
 		return nil, fmt.Errorf("cannot map workflow config: %w", err)
 	}
@@ -483,7 +502,24 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterGetProfileR
 	}, nil
 }
 
-func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowConfig, error) {
+func (a *adapter) mapWorkflowConfigFromDB(ctx context.Context, namespace string, dbWC *db.BillingWorkflowConfig) (billing.WorkflowConfig, error) {
+	if dbWC == nil || dbWC.Namespace != namespace {
+		a.logger.ErrorContext(ctx, "billing workflow config namespace isolation violation",
+			"expected_namespace", namespace,
+		)
+		return billing.WorkflowConfig{}, models.NewGenericNotFoundError(fmt.Errorf("billing workflow config not found"))
+	}
+
+	if dbWC.TaxCodeID != nil &&
+		(dbWC.Edges.TaxCode == nil || dbWC.Edges.TaxCode.Namespace != namespace) {
+		a.logger.ErrorContext(ctx, "billing workflow config tax code namespace isolation violation",
+			"workflow_config_id", dbWC.ID,
+			"expected_namespace", namespace,
+			"tax_code_id", *dbWC.TaxCodeID,
+		)
+		return billing.WorkflowConfig{}, taxcode.NewTaxCodeNotFoundError(*dbWC.TaxCodeID)
+	}
+
 	collectionInterval, err := dbWC.LineCollectionPeriod.Parse()
 	if err != nil {
 		return billing.WorkflowConfig{}, fmt.Errorf("cannot parse collection.interval: %w", err)

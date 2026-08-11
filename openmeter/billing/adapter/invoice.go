@@ -49,10 +49,10 @@ func (a *adapter) GetStandardInvoiceById(ctx context.Context, in billing.GetStan
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
 				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
 			}).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode)
+			WithBillingWorkflowConfig(workflowConfigWithTaxCode(in.Invoice.Namespace))
 
 		if in.Expand.Has(billing.StandardInvoiceExpandLines) {
-			query = tx.expandInvoiceLineItems(query, in.Expand)
+			query = tx.expandInvoiceLineItems(query, in.Expand, in.Invoice.Namespace)
 		}
 
 		invoice, err := query.Only(ctx)
@@ -70,7 +70,7 @@ func (a *adapter) GetStandardInvoiceById(ctx context.Context, in billing.GetStan
 	})
 }
 
-func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand billing.StandardInvoiceExpands) *db.BillingInvoiceQuery {
+func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand billing.StandardInvoiceExpands, namespace string) *db.BillingInvoiceQuery {
 	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 		if !expand.Has(billing.StandardInvoiceExpandDeletedLines) {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
@@ -83,7 +83,7 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand b
 			billinginvoiceline.StatusIn(requestedStatuses...),
 		)
 
-		a.expandLineItemsWithDetailedLines(q)
+		a.expandLineItemsWithDetailedLines(q, namespace)
 	})
 }
 
@@ -132,11 +132,8 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
 				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
 			}).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode)
-
-		if len(input.Namespaces) > 0 {
-			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
-		}
+			WithBillingWorkflowConfig(workflowConfigWithTaxCode(input.Namespace)).
+			Where(billinginvoice.Namespace(input.Namespace))
 
 		query = filter.ApplyToQuery(query, input.CustomerID, billinginvoice.FieldCustomerID)
 		query = filter.ApplyToQuery(query, input.IssuedAt, billinginvoice.FieldIssuedAt)
@@ -216,7 +213,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 		if input.Expand.Has(billing.InvoiceExpandLines) {
 			query = tx.expandInvoiceLineItems(query, billing.
 				StandardInvoiceExpands{billing.StandardInvoiceExpandLines}.
-				SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines))
+				SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines), input.Namespace)
 		}
 
 		switch input.OrderBy {
@@ -435,7 +432,7 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 		existingInvoice, err := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.ID)).
 			Where(billinginvoice.Namespace(in.Namespace)).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode).
+			WithBillingWorkflowConfig(workflowConfigWithTaxCode(in.Namespace)).
 			Only(ctx)
 		if err != nil {
 			return in, err
@@ -707,7 +704,7 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 		ExpandedFields: expand,
 	}
 
-	workflowConfig, err := mapWorkflowConfigFromDB(invoice.Edges.BillingWorkflowConfig)
+	workflowConfig, err := a.mapWorkflowConfigFromDB(ctx, invoice.Namespace, invoice.Edges.BillingWorkflowConfig)
 	if err != nil {
 		return billing.StandardInvoice{}, err
 	}

@@ -69,7 +69,7 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 			}
 
 			req := ListBillingInvoicesRequest{
-				Namespaces:   []string{ns},
+				Namespace:    ns,
 				OnlyStandard: true,
 				Page:         page,
 				OrderBy:      orderBy,
