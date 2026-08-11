@@ -99,6 +99,8 @@ func ResolveCurrenciesForRateCards(
 		if reference.IsCostBasisResolved() {
 			if err := reference.Validate(); err != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
+			} else if err := validateResolvedCurrencyNamespace(resolver, reference); err != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
 			}
 
 			continue
@@ -178,7 +180,7 @@ func ResolveCurrency(ctx context.Context, resolver currencies.NamespacedCurrency
 	}
 
 	if reference.IsCostBasisResolved() {
-		return nil
+		return validateResolvedCurrencyNamespace(resolver, reference)
 	}
 
 	resolved, err := resolver.ResolveCurrency(ctx, currencies.CurrencyRef{
@@ -199,6 +201,19 @@ func ResolveCurrency(ctx context.Context, resolver currencies.NamespacedCurrency
 	}
 
 	*reference = r
+
+	return nil
+}
+
+func validateResolvedCurrencyNamespace(resolver currencies.NamespacedCurrencyResolver, reference *currencies.CurrencyReference) error {
+	if reference.IsFiat() || !reference.IsCostBasisResolved() {
+		return nil
+	}
+
+	resolved, ok := reference.CustomCurrency()
+	if !ok || resolved.Namespace != resolver.Namespace() {
+		return productcatalog.ErrCurrencyNotFound
+	}
 
 	return nil
 }

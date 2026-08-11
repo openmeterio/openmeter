@@ -10,11 +10,16 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	addonratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	customcurrencydb "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	featuredb "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	planaddondb "github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	ratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -31,11 +36,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			return pagination.Result[plan.Plan]{}, fmt.Errorf("invalid list Plans parameters: %w", err)
 		}
 
-		query := a.db.Plan.Query()
-
-		if len(params.Namespaces) > 0 {
-			query = query.Where(plandb.NamespaceIn(params.Namespaces...))
-		}
+		query := a.db.Plan.Query().Where(plandb.Namespace(params.Namespace))
 
 		var orFilters []predicate.Plan
 		if len(params.IDs) > 0 {
@@ -146,8 +147,8 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		// * ordering by StartAfter
 		// * with eager load RateCards
 		query = query.WithPhases(
-			planPhaseIncludeDeleted(false),
-			planPhaseEagerLoadRateCards(nil),
+			planPhaseIncludeDeleted(params.Namespace, false),
+			planPhaseEagerLoadRateCards(params.Namespace, nil),
 		)
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -208,6 +209,9 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid create Plan parameters: %w", err)
 		}
+		if err := a.validatePlanReferences(ctx, params.Namespace, params.Plan); err != nil {
+			return nil, fmt.Errorf("invalid create Plan references: %w", err)
+		}
 
 		if params.Version == 0 {
 			params.Version = 1
@@ -247,7 +251,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 					NamespacedModel: models.NamespacedModel{
 						Namespace: params.Namespace,
 					},
-					PlanID: p.ID,
+					PlanID: p.NamespacedID,
 					Phase: productcatalog.Phase{
 						PhaseMeta: productcatalog.PhaseMeta{
 							Key:         phase.Key,
@@ -404,17 +408,17 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 		// * ordering by StartAfter
 		// * with eager load RateCards
 		query = query.WithPhases(
-			planPhaseIncludeDeleted(false),
-			planPhaseEagerLoadRateCards(params.Expand.CustomCurrency),
+			planPhaseIncludeDeleted(params.Namespace, false),
+			planPhaseEagerLoadRateCards(params.Namespace, params.Expand.CustomCurrency),
 		)
 
 		if params.Expand.CustomCurrency != nil {
-			query = query.WithCustomCurrency(eagerLoadCustomCurrency(*params.Expand.CustomCurrency))
+			query = query.WithCustomCurrency(eagerLoadCustomCurrency(params.Namespace, *params.Expand.CustomCurrency))
 		}
 
 		if params.Expand.PlanAddons {
 			query = query.WithAddons(
-				planEagerLoadActiveAddons(params.Expand.CustomCurrency),
+				planEagerLoadActiveAddons(params.Namespace, params.Expand.CustomCurrency),
 			)
 		}
 
@@ -462,6 +466,11 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
+		if params.Phases != nil {
+			if err := a.validatePlanReferences(ctx, params.Namespace, productcatalog.Plan{Phases: *params.Phases}); err != nil {
+				return nil, fmt.Errorf("invalid update Plan references: %w", err)
+			}
+		}
 
 		if !params.Equal(*p) {
 			query := a.db.Plan.UpdateOneID(p.ID).
@@ -508,7 +517,9 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		}
 
 		// Delete all existing PlanPhases
-		_, err = a.db.PlanPhase.Delete().Where(phasedb.PlanID(p.ID)).Exec(ctx)
+		_, err = a.db.PlanPhase.Delete().
+			Where(phasedb.Namespace(params.Namespace), phasedb.PlanID(p.ID)).
+			Exec(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete PlanPhases: %w", err)
 		}
@@ -521,7 +532,7 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				NamespacedModel: models.NamespacedModel{
 					Namespace: params.Namespace,
 				},
-				PlanID: p.ID,
+				PlanID: p.NamespacedID,
 				Phase:  phase,
 			})
 			if err != nil {
@@ -538,67 +549,88 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 	return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)
 }
 
-func planPhaseIncludeDeleted(include bool) func(*entdb.PlanPhaseQuery) {
+func planPhaseIncludeDeleted(namespace string, include bool) func(*entdb.PlanPhaseQuery) {
 	if include {
-		return func(q *entdb.PlanPhaseQuery) {}
+		return func(q *entdb.PlanPhaseQuery) {
+			q.Where(phasedb.Namespace(namespace))
+		}
 	} else {
 		return func(q *entdb.PlanPhaseQuery) {
+			q.Where(phasedb.Namespace(namespace))
 			q.Where(phasedb.Or(phasedb.DeletedAtIsNil(), phasedb.DeletedAtGT(clock.Now().UTC())))
 		}
 	}
 }
 
-func planEagerLoadActiveAddons(currencyExpand *currencies.CurrencyExpandOptions) func(*entdb.PlanAddonQuery) {
+func planEagerLoadActiveAddons(namespace string, currencyExpand *currencies.CurrencyExpandOptions) func(*entdb.PlanAddonQuery) {
 	return func(paq *entdb.PlanAddonQuery) {
-		paq.Where(
+		paq.Where(planaddondb.Namespace(namespace),
 			planaddondb.Or(
 				planaddondb.DeletedAtIsNil(),
 				planaddondb.DeletedAtGT(clock.Now().UTC()),
 			),
 		).WithAddon(func(aq *entdb.AddonQuery) {
+			aq.Where(addondb.Namespace(namespace))
+
 			if currencyExpand != nil {
-				aq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
+				aq.WithCustomCurrency(eagerLoadCustomCurrency(namespace, *currencyExpand))
 			}
 
 			aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
-				arq.WithFeatures()
-				arq.WithTaxCode()
+				arq.Where(addonratecarddb.Namespace(namespace))
+
+				arq.WithFeatures(func(q *entdb.FeatureQuery) {
+					q.Where(featuredb.Namespace(namespace))
+				})
+				arq.WithTaxCode(func(q *entdb.TaxCodeQuery) {
+					q.Where(taxcodedb.Namespace(namespace))
+				})
 				if currencyExpand != nil {
-					arq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
+					arq.WithCustomCurrency(eagerLoadCustomCurrency(namespace, *currencyExpand))
 				}
 			})
 		})
 	}
 }
 
-func planPhaseEagerLoadRateCards(currencyExpand *currencies.CurrencyExpandOptions) func(*entdb.PlanPhaseQuery) {
+func planPhaseEagerLoadRateCards(namespace string, currencyExpand *currencies.CurrencyExpandOptions) func(*entdb.PlanPhaseQuery) {
 	return func(q *entdb.PlanPhaseQuery) {
 		q.WithRatecards(func(prcq *entdb.PlanRateCardQuery) {
-			prcq.Where(
+			prcq.Where(ratecarddb.Namespace(namespace),
 				ratecarddb.Or(
 					ratecarddb.DeletedAtIsNil(),
 					ratecarddb.DeletedAtGT(clock.Now().UTC()),
 				),
 			)
-			rateCardEagerLoadFeaturesFn(prcq)
-			rateCardEagerLoadTaxCodesFn(prcq)
+			rateCardEagerLoadFeatures(namespace)(prcq)
+			rateCardEagerLoadTaxCodes(namespace)(prcq)
 			if currencyExpand != nil {
-				prcq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
+				prcq.WithCustomCurrency(eagerLoadCustomCurrency(namespace, *currencyExpand))
 			}
 		})
 	}
 }
 
-var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
-	q.WithFeatures()
+func rateCardEagerLoadFeatures(namespace string) func(*entdb.PlanRateCardQuery) {
+	return func(q *entdb.PlanRateCardQuery) {
+		q.WithFeatures(func(q *entdb.FeatureQuery) {
+			q.Where(featuredb.Namespace(namespace))
+		})
+	}
 }
 
-var rateCardEagerLoadTaxCodesFn = func(q *entdb.PlanRateCardQuery) {
-	q.WithTaxCode()
+func rateCardEagerLoadTaxCodes(namespace string) func(*entdb.PlanRateCardQuery) {
+	return func(q *entdb.PlanRateCardQuery) {
+		q.WithTaxCode(func(q *entdb.TaxCodeQuery) {
+			q.Where(taxcodedb.Namespace(namespace))
+		})
+	}
 }
 
-func eagerLoadCustomCurrency(expand currencies.CurrencyExpandOptions) func(*entdb.CustomCurrencyQuery) {
+func eagerLoadCustomCurrency(namespace string, expand currencies.CurrencyExpandOptions) func(*entdb.CustomCurrencyQuery) {
 	return func(q *entdb.CustomCurrencyQuery) {
+		q.Where(customcurrencydb.Namespace(namespace))
+
 		if expand.CostBasis {
 			currencyadapter.WithCostBasis(q)
 		}
