@@ -50,14 +50,6 @@ type CustomerChargeAPIDeleteTestSuite struct {
 	BaseSuite
 }
 
-func (s *CustomerChargeAPIDeleteTestSuite) SetupSuite() {
-	s.BaseSuite.SetupSuite()
-}
-
-func (s *CustomerChargeAPIDeleteTestSuite) TearDownTest() {
-	s.BaseSuite.TearDownTest()
-}
-
 func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteCreatesOverrideForSupportedChargeTypes() {
 	// given
 	// - Future flat-fee and usage-based charges have subscription-owned base intents without API overrides.
