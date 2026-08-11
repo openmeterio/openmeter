@@ -3,6 +3,7 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
+import { voidCreditGrant } from '../funcs/customers.js'
 import { createSubscriptionAddon } from '../funcs/subscriptions.js'
 import {
   listApps,
@@ -31,6 +32,10 @@ import {
   createCostBasis,
 } from '../funcs/currencies.js'
 import { queryGovernanceAccess } from '../funcs/governance.js'
+import type {
+  VoidCreditGrantRequest,
+  VoidCreditGrantResponse,
+} from '../models/operations/customers.js'
 import type {
   CreateSubscriptionAddonRequest,
   CreateSubscriptionAddonResponse,
@@ -101,6 +106,11 @@ import type {
 export class Internal {
   constructor(private readonly _client: Client) {}
 
+  private _customers?: InternalCustomers
+  get customers(): InternalCustomers {
+    return (this._customers ??= new InternalCustomers(this._client))
+  }
+
   private _subscriptions?: InternalSubscriptions
   get subscriptions(): InternalSubscriptions {
     return (this._subscriptions ??= new InternalSubscriptions(this._client))
@@ -124,6 +134,50 @@ export class Internal {
   private _governance?: InternalGovernance
   get governance(): InternalGovernance {
     return (this._governance ??= new InternalGovernance(this._client))
+  }
+}
+
+export class InternalCustomers {
+  constructor(private readonly _client: Client) {}
+
+  private _credits?: InternalCustomersCredits
+  get credits(): InternalCustomersCredits {
+    return (this._credits ??= new InternalCustomersCredits(this._client))
+  }
+}
+
+export class InternalCustomersCredits {
+  constructor(private readonly _client: Client) {}
+
+  private _grants?: InternalCustomersCreditsGrants
+  get grants(): InternalCustomersCreditsGrants {
+    return (this._grants ??= new InternalCustomersCreditsGrants(this._client))
+  }
+}
+
+export class InternalCustomersCreditsGrants {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Void credit grant
+   *
+   * Void a credit grant, forfeiting the remaining unused balance.
+   *
+   * Voiding is a forward-looking, irreversible operation. Credits already consumed
+   * by usage remain unaffected — only the remaining balance is forfeited. The grant
+   * reads as `voided` status afterwards. Payment state is not adjusted when
+   * `payment_adjustment` is `none`, so invoice-backed or externally collected
+   * payments may still collect the original amount. Only `active` grants can be
+   * voided; voiding a pending, expired, or fully consumed grant returns a conflict.
+   * Retrying a successful void is an idempotent success.
+   *
+   * POST /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void
+   */
+  async void(
+    request: VoidCreditGrantRequest,
+    options?: RequestOptions,
+  ): Promise<VoidCreditGrantResponse> {
+    return unwrap(await voidCreditGrant(this._client, request, options))
   }
 }
 
