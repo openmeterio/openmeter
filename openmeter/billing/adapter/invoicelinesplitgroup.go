@@ -50,20 +50,7 @@ func (a *adapter) GetSplitLineGroupsForSubscription(ctx context.Context, in bill
 		}
 
 		groups, err := slicesx.MapWithErr(dbGroups, func(dbGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
-			group, err := tx.mapSplitLineGroupFromDB(dbGroup)
-			if err != nil {
-				return billing.SplitLineHierarchy{}, err
-			}
-
-			lines, err := tx.mapSplitLineHierarchyLinesFromDB(ctx, dbGroup.Edges.BillingInvoiceLines)
-			if err != nil {
-				return billing.SplitLineHierarchy{}, err
-			}
-
-			return billing.SplitLineHierarchy{
-				Group: group,
-				Lines: lines,
-			}, nil
+			return tx.mapSplitLineHierarchyFromDB(ctx, dbGroup)
 		})
 		if err != nil {
 			return nil, fmt.Errorf("mapping split line groups: %w", err)
