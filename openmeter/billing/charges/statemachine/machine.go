@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ErrUnsupportedOperation    = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))
+	ErrUnsupportedOperation    = models.NewGenericPreConditionFailedError(errors.New("unsupported operation"))
 	ErrUnhandledInvoicePatches = errors.New("unhandled invoice patches")
 )
 
