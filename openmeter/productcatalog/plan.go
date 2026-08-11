@@ -91,13 +91,7 @@ func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 // ValidatePlanVersioning validates the fields required before catalog versioning assigns a version.
 func ValidatePlanVersioning() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
-		return p.PlanMeta.validateVersioning()
-	}
-}
-
-func validatePlanMetaStructure() models.ValidatorFunc[Plan] {
-	return func(p Plan) error {
-		return p.PlanMeta.validateStructure()
+		return validatePlanMetaVersioning()(p.PlanMeta)
 	}
 }
 
@@ -288,7 +282,7 @@ func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 func ValidatePlanStructure() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return errors.Join(
-			validatePlanMetaStructure()(p),
+			validatePlanMetaStructure()(p.PlanMeta),
 			ValidatePlanPhases()(p),
 			ValidatePlanCurrencyCodes()(p),
 			ValidatePlanBillingCadenceLiteral()(p),
@@ -324,9 +318,10 @@ func (p Plan) Equal(o Plan) bool {
 }
 
 var (
-	_ models.Validator             = (*PlanMeta)(nil)
-	_ models.CustomValidator[Plan] = (*Plan)(nil)
-	_ models.Equaler[PlanMeta]     = (*PlanMeta)(nil)
+	_ models.Validator                 = (*PlanMeta)(nil)
+	_ models.CustomValidator[Plan]     = (*Plan)(nil)
+	_ models.CustomValidator[PlanMeta] = (*PlanMeta)(nil)
+	_ models.Equaler[PlanMeta]         = (*PlanMeta)(nil)
 )
 
 type PlanMeta struct {
@@ -362,47 +357,55 @@ type PlanMeta struct {
 
 // Validate validates the PlanMeta.
 func (p PlanMeta) Validate() error {
-	return models.NewNillableGenericValidationError(errors.Join(
-		p.validateStructure(),
-		p.validateVersioning(),
-	))
+	return p.ValidateWith(
+		validatePlanMetaStructure(),
+		validatePlanMetaVersioning(),
+	)
 }
 
-func (p PlanMeta) validateStructure() error {
-	var errs []error
-
-	if err := p.Currency.Validate(); err != nil {
-		errs = append(errs, models.ErrorWithFieldPrefix(
-			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-			err,
-		))
-	}
-
-	if err := p.EffectivePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
-	}
-
-	if p.Name == "" {
-		errs = append(errs, ErrResourceNameEmpty)
-	}
-
-	if p.BillingCadence.IsZero() {
-		errs = append(errs, fmt.Errorf("invalid BillingCadence: must not be empty"))
-	}
-
-	if err := p.ProRatingConfig.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid ProRatingConfig: %s", err))
-	}
-
-	return errors.Join(errs...)
+func (p PlanMeta) ValidateWith(validators ...models.ValidatorFunc[PlanMeta]) error {
+	return models.Validate(p, validators...)
 }
 
-func (p PlanMeta) validateVersioning() error {
-	if p.Key == "" {
-		return ErrResourceKeyEmpty
-	}
+func validatePlanMetaStructure() models.ValidatorFunc[PlanMeta] {
+	return func(p PlanMeta) error {
+		var errs []error
 
-	return nil
+		if err := p.Currency.Validate(); err != nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				err,
+			))
+		}
+
+		if err := p.EffectivePeriod.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
+		}
+
+		if p.Name == "" {
+			errs = append(errs, ErrResourceNameEmpty)
+		}
+
+		if p.BillingCadence.IsZero() {
+			errs = append(errs, fmt.Errorf("invalid BillingCadence: must not be empty"))
+		}
+
+		if err := p.ProRatingConfig.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid ProRatingConfig: %s", err))
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
+func validatePlanMetaVersioning() models.ValidatorFunc[PlanMeta] {
+	return func(p PlanMeta) error {
+		if p.Key == "" {
+			return ErrResourceKeyEmpty
+		}
+
+		return nil
+	}
 }
 
 // Equal returns true if the two PlanMetas are equal.
