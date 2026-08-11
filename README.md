@@ -214,10 +214,9 @@ query progress; Svix is used when webhook delivery is enabled. The
 [architecture guide](https://openmeter.io/docs/open-source/architecture)
 explains the complete runtime and data flow.
 
-For production, use the official
-[Helm chart for Kubernetes](https://openmeter.io/docs/open-source/kubernetes),
-operate stateful dependencies outside the chart, enable optional services for
-the capabilities you use, and pin OpenMeter to a release instead of `latest`.
+The official
+[Helm chart for Kubernetes](https://openmeter.io/docs/open-source/kubernetes)
+is intended for development deployments, not production.
 
 ## Project and community
 
