@@ -30,7 +30,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 
 		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("charge state trigger failed with: %w", err)
 		}
 		if !canAdvance {
 			return nil, nil
