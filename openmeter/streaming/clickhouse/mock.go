@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"io"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -27,6 +28,11 @@ func (m *MockClickHouse) Query(ctx context.Context, query string, queryArgs ...i
 func (m *MockClickHouse) QueryRow(ctx context.Context, query string, queryArgs ...interface{}) driver.Row {
 	callArgs := m.Called(ctx, query, queryArgs)
 	return callArgs.Get(0).(driver.Row)
+}
+
+func (m *MockClickHouse) QueryFormat(ctx context.Context, format string, query string, args ...any) (io.ReadCloser, error) {
+	callArgs := m.Called(ctx, format, query, args)
+	return callArgs.Get(0).(io.ReadCloser), callArgs.Error(1)
 }
 
 func (m *MockClickHouse) Select(ctx context.Context, dest any, query string, queryArgs ...any) error {
@@ -56,6 +62,11 @@ func (m *MockClickHouse) PrepareBatch(ctx context.Context, query string, options
 
 func (m *MockClickHouse) AsyncInsert(ctx context.Context, query string, wait bool, args ...interface{}) error {
 	callArgs := m.Called(ctx, query, wait, args)
+	return callArgs.Error(0)
+}
+
+func (m *MockClickHouse) InsertFormat(ctx context.Context, format string, query string, data io.Reader) error {
+	callArgs := m.Called(ctx, format, query, data)
 	return callArgs.Error(0)
 }
 
