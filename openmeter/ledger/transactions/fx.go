@@ -25,6 +25,8 @@ type ConvertCurrencyTemplate struct {
 	SourceCurrency currencies.CurrencyReference
 	TargetCurrency currencies.CurrencyReference
 	Features       []string
+	SourceChargeID *string
+	SpendChargeID  *string
 }
 
 func (t ConvertCurrencyTemplate) Validate() error {
@@ -84,6 +86,10 @@ func (t ConvertCurrencyTemplate) code() TransactionTemplateCode {
 }
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+	identity := ledger.EntryIdentityParts{
+		SourceChargeID: t.SourceChargeID,
+		SpendChargeID:  t.SpendChargeID,
+	}
 	costBasis := t.CostBasis
 	targetCostBasisCurrency := t.SourceCurrency.Code
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
@@ -139,21 +145,25 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 		entryInputs: []*EntryInput{
 			// Source currency
 			{
-				address: sourceAccount.Address(),
-				amount:  t.SourceAmount.Neg(),
+				address:  sourceAccount.Address(),
+				amount:   t.SourceAmount.Neg(),
+				identity: identity,
 			},
 			{
-				address: brokerageSource.Address(),
-				amount:  t.SourceAmount,
+				address:  brokerageSource.Address(),
+				amount:   t.SourceAmount,
+				identity: identity,
 			},
 			// Target currency
 			{
-				address: targetAccount.Address(),
-				amount:  t.TargetAmount,
+				address:  targetAccount.Address(),
+				amount:   t.TargetAmount,
+				identity: identity,
 			},
 			{
-				address: brokerageTarget.Address(),
-				amount:  t.TargetAmount.Neg(),
+				address:  brokerageTarget.Address(),
+				amount:   t.TargetAmount.Neg(),
+				identity: identity,
 			},
 		},
 	}, nil

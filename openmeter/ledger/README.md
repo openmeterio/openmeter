@@ -61,6 +61,10 @@ facts stored independently from the journal.
 - Entry identity records collection or correction linkage and source and spend
   charge provenance when present. Template codes and transaction annotations
   describe accounting meaning.
+- Credit-backed earnings recognition consumes only accrued buckets whose
+  source credit and spend charge are both present and distinct. Accrued value
+  with no source charge, or with the same source and spend charge, is
+  invoice-backed and remains deferred.
 
 The historical ledger makes a group atomic, but it does not deduplicate a
 repeated `CommitGroup` call. The initiating domain must make retries safe and

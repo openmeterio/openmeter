@@ -26,6 +26,8 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 		// - receivable and brokerage receive opposite legs in each currency
 		env := newTransactionsTestEnv(t)
 		costBasis := alpacadecimal.NewFromFloat(0.25)
+		sourceChargeID := testChargeID(1)
+		spendChargeID := testChargeID(2)
 		inputs := env.resolve(
 			t,
 			ConvertCurrencyTemplate{
@@ -35,6 +37,8 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 				CostBasis:      costBasis,
 				SourceCurrency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TargetCurrency: testCurrencyReference(currencyx.Code("ACME")),
+				SourceChargeID: &sourceChargeID,
+				SpendChargeID:  &spendChargeID,
 			},
 		)
 		require.Len(t, inputs, 1)
@@ -56,8 +60,8 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 
 			require.NotNil(t, route.CostBasis)
 			require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
-			require.Nil(t, entry.SourceChargeID())
-			require.Nil(t, entry.SpendChargeID())
+			require.Equal(t, sourceChargeID, *entry.SourceChargeID())
+			require.Equal(t, spendChargeID, *entry.SpendChargeID())
 			if route.Currency.Code == currencyx.Code("USD") {
 				require.Nil(t, route.CostBasisCurrency)
 			} else {
