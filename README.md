@@ -1,160 +1,233 @@
 <div align="center">
 
-![OpenMeter logo](assets/logo.png)
+<a href="https://openmeter.io">
+  <img src="assets/logo.png" width="100" alt="OpenMeter logo" />
+</a>
 
 # OpenMeter
 
-The open-source metering and billing platform
-for AI, agentic and DevTool monetization.
+**Meter usage. Enforce access. Bill customers. Keep the stack yours.**
 
-[Docs](https://openmeter.io/docs) |
-[Hosted](https://cloud.konghq.com/register?utm_campaign=metering_and_billing) |
-[Blog](https://openmeter.io/blog) |
-[Contributing](CONTRIBUTING.md)
+OpenMeter is open-source monetization infrastructure built for AI, API, and
+usage-based products. It turns high-volume events into real-time usage, powers
+access enforcement, and handles usage-based billing from pricing and
+subscriptions through credits and invoices.
+
+API-first and composable, it can own the path from raw usage to invoice—or only
+the parts your stack is missing—and work with the payment and tax providers you
+already use.
+
+[Quickstart](#quickstart) ·
+[Documentation](https://openmeter.io/docs) ·
+[API reference](https://openmeter.io/docs/api/open-source) ·
+[Community](https://github.com/openmeterio/openmeter/discussions)
 
 [![GitHub Release](https://img.shields.io/github/v/release/openmeterio/openmeter?style=flat-square)](https://github.com/openmeterio/openmeter/releases/latest)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/openmeterio/openmeter/ci.yaml?style=flat-square)](https://github.com/openmeterio/openmeter/actions/workflows/ci.yaml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/openmeterio/openmeter?style=flat-square)](https://goreportcard.com/report/github.com/openmeterio/openmeter)
-![GitHub Stars](https://img.shields.io/github/stars/openmeterio/openmeter?style=flat-square)
+[![License](https://img.shields.io/github/license/openmeterio/openmeter?style=flat-square)](LICENSE)
 
 </div>
 
----
+## How it fits together
 
-OpenMeter is a real-time metering and billing engine that
-helps you track usage, enforce limits, manage subscriptions,
-and automate invoicing — all in one platform. Ingest events
-via a simple API, define meters with flexible aggregations,
-and connect usage data to billing, entitlements, and
-customer-facing dashboards.
+![Usage events flow through OpenMeter's meters into queries, access decisions, and billing](assets/how-openmeter-works.svg)
 
-## Features
+## Is OpenMeter a fit?
 
-- **Usage Metering** — Ingest events in
-  [CloudEvents](https://cloudevents.io) format, define meters
-  with flexible aggregations (SUM, COUNT, AVG, MIN, MAX),
-  and query usage in real time.
-- **Usage-Based Billing** — Generate invoices from metered
-  usage. Supports tiered, graduated, and flat-fee pricing
-  with automated invoice lifecycle management.
-- **Usage Limits and Entitlements** — Enforce usage quotas
-  per feature with real-time balance tracking, boolean
-  feature flags, and grace periods.
-- **Product Catalog** — Define plans, add-ons, features, and
-  rate cards. Manage subscriptions with mid-cycle changes,
-  prorating, and alignment.
-- **Prepaid Credits** — Support paid or promotional credit grants
-  with priority-based burn-down and expiration.
-- **Customer Portal** — Token-based self-service dashboards
-  so your customers can see their own usage.
-- **Notifications** — Webhook-based alerts with configurable
-  rules and channels for usage thresholds and billing events.
-- **LLM Cost Tracking** — First-class support for metering
-  AI token usage and computing model-specific costs.
+| Question | Answer |
+| --- | --- |
+| **What is it best for?** | Products with usage-based or hybrid pricing, prepaid credits, or usage limits that need one source of truth for consumption. |
+| **What is it not?** | A bundled operator UI, payment processor, tax engine, or general-purpose accounting system. If you only need fixed recurring subscriptions, a direct payment-provider integration is usually simpler. |
+| **How mature is it?** | Releases are beta and can include breaking changes. The [OpenMeter metering engine](https://openmeter.io/) has run in production for years and processed billions of usage events. Review [releases](https://github.com/openmeterio/openmeter/releases) and [migration guides](docs/migration-guides) when upgrading. |
 
-## Getting Started
+## What OpenMeter provides
 
-### Cloud
+| Capability | What it covers |
+| --- | --- |
+| **[Meter usage](https://openmeter.io/docs/metering/overview)** | Ingest CloudEvents, attribute usage to customers, aggregate it in real time, and query it by time window or dimension. |
+| **[Model products and pricing](https://openmeter.io/docs/product-catalog/overview)** | Define versioned plans, features, add-ons, and flat, recurring, per-unit, tiered, package, or dynamic prices; then assign customer subscriptions. |
+| **[Control access](https://openmeter.io/docs/billing/entitlements/overview)** | Calculate feature access and usage-limit balances for your application to enforce, with one-time or recurring entitlement grants. |
+| **[Bill usage](https://openmeter.io/docs/billing/overview)** | Rate flat and usage-based charges, manage customer credit balances and subscription changes, and run the invoice lifecycle. |
+| **[Integrate](https://openmeter.io/docs/api/open-source)** | Use the OSS REST API and JavaScript, Python, or Go SDKs, send webhooks, and connect external invoicing providers. |
 
-The fastest way to start.
-[Start for free](https://cloud.konghq.com/register?utm_campaign=metering_and_billing)
-and begin metering and billing in minutes —
-no infrastructure to manage.
+## Quickstart
 
-### Self-Hosted
-
-Run OpenMeter locally with Docker Compose:
+The local evaluation stack requires [Git](https://git-scm.com/) and
+[Docker with Compose](https://docs.docker.com/compose/). Use `curl`, Node.js
+22+, or Python 3.9+ for the examples below.
 
 ```sh
-git clone git@github.com:openmeterio/openmeter.git
+git clone https://github.com/openmeterio/openmeter.git
 cd openmeter/quickstart
-docker compose up -d
+docker compose up -d --wait
 ```
 
-Then ingest your first event:
+The stack includes an `api_requests_total` meter. Choose a client below; each
+example sends one `request` event and queries its metered value.
+
+<details open>
+<summary><strong>Bash (curl)</strong></summary>
 
 ```sh
-curl -X POST http://localhost:48888/api/v1/events \
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -X POST http://localhost:48888/api/v1/events \
   -H 'Content-Type: application/cloudevents+json' \
   --data-raw '{
     "specversion": "1.0",
     "type": "request",
-    "id": "00001",
-    "time": "2026-07-07T00:00:00.001Z",
-    "source": "my-service",
-    "subject": "customer-1",
-    "data": { "method": "GET", "route": "/api/hello" }
+    "id": "readme-curl-1",
+    "source": "readme",
+    "subject": "readme-curl",
+    "data": { "method": "GET", "route": "/hello" }
   }'
+
+response=
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  response=$(curl -fsS 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=readme-curl')
+  printf '%s' "$response" | grep -q '"value":1' && break
+  sleep 1
+done
+printf '%s\n' "$response"
 ```
 
-Query your usage:
+</details>
+
+<details>
+<summary><strong>TypeScript SDK</strong></summary>
+
+Install the [OpenMeter TypeScript SDK](https://www.npmjs.com/package/@openmeter/sdk):
 
 ```sh
-curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?windowSize=HOUR' | jq
+npm install @openmeter/sdk tsx
 ```
 
-See the full [quickstart guide](/quickstart) for more details.
+Save as `quickstart.ts`, then run `npx tsx quickstart.ts`:
 
-### Deploy to Production
+```ts
+import { OpenMeter } from '@openmeter/sdk'
 
-Deploy to Kubernetes using our
-[Helm chart](https://openmeter.io/docs/deploy/kubernetes).
+const openmeter = new OpenMeter({ baseUrl: 'http://localhost:48888' })
 
-## SDKs
+const queryUsage = () =>
+  openmeter.meters.query('api_requests_total', {
+    subject: ['readme-typescript'],
+  })
 
-| Language             | Package                                                                        | Source                                             |
-|----------------------|--------------------------------------------------------------------------------|----------------------------------------------------|
-| Go                   | [openmeter](https://pkg.go.dev/github.com/openmeterio/openmeter/api/client/go) | [api/client/go](/api/client/go)                    |
-| JavaScript / Node.js | [@openmeter/sdk](https://www.npmjs.com/package/@openmeter/sdk)                 | [api/client/javascript](/api/client/javascript)    |
-| Python               | [openmeter](https://pypi.org/project/openmeter)                                | [api/client/python](/api/client/python)            |
+async function main() {
+  await openmeter.events.ingest({
+    type: 'request',
+    id: 'readme-typescript-1',
+    source: 'readme',
+    subject: 'readme-typescript',
+    data: { method: 'GET', route: '/hello' },
+  })
 
-Don't see your language? Use the
-[OpenAPI spec](https://github.com/openmeterio/openmeter/blob/main/api/openapi.yaml)
-directly or
-[request an SDK](https://github.com/openmeterio/openmeter/issues/new?assignees=&labels=area%2Fapi%2Ckind%2Ffeature&projects=&template=feature_request.yaml).
+  let usage = await queryUsage()
+  for (let attempt = 1; usage.data[0]?.value !== 1 && attempt < 10; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    usage = await queryUsage()
+  }
 
-## Architecture
+  if (usage.data[0]?.value !== 1) {
+    throw new Error('usage was not processed in time')
+  }
+  console.log(usage.data[0].value)
+}
 
-OpenMeter is built in Go with a stack optimized for
-high-volume event ingestion and real-time aggregation:
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
+```
 
-| Component                | Role                                                     |
-|--------------------------|----------------------------------------------------------|
-| **PostgreSQL** (Ent ORM) | Billing, subscriptions, entitlements, product catalog    |
-| **ClickHouse**           | Real-time usage aggregation and analytics                |
-| **Kafka**                | Event streaming and ingestion pipeline                   |
-| **TypeSpec**             | API-first design — OpenAPI spec and SDKs from TypeSpec   |
+</details>
 
-See [Architecture and data flow](docs/architecture.md) for a
-diagram of the runtime components and their primary interactions.
+<details>
+<summary><strong>Python SDK</strong></summary>
 
-## Community
-
-We'd love to have you involved:
-
-- **[Contributing](CONTRIBUTING.md)** — Start here if you
-  want to contribute code.
-- **[Code of Conduct](CODE_OF_CONDUCT.md)** — Our community
-  guidelines.
-- **[Blog](https://openmeter.io/blog)** — Product updates
-  and engineering deep dives.
-
-## Development
-
-Prerequisites: [Nix](https://nixos.org/download.html) and
-[direnv](https://direnv.net/docs/installation.html) are
-recommended. See [CONTRIBUTING.md](CONTRIBUTING.md) for
-detailed setup instructions.
+The Python SDK is in preview, so install it with pre-releases enabled:
 
 ```sh
-make up       # Start dependencies (Postgres, Kafka, ClickHouse)
-make server   # Run the API server with hot reload
-make test     # Run tests
-make lint     # Run linters
+python -m pip install --pre openmeter
 ```
+
+Save as `quickstart.py`, then run `python quickstart.py`:
+
+```python
+import time
+
+from openmeter import Client
+from openmeter.models import Event
+
+with Client(endpoint="http://localhost:48888") as openmeter:
+    openmeter.events.ingest_event(
+        Event(
+            id="readme-python-1",
+            source="readme",
+            specversion="1.0",
+            type="request",
+            subject="readme-python",
+            data={"method": "GET", "route": "/hello"},
+        )
+    )
+
+    for _ in range(10):
+        usage = openmeter.meters.query_json(
+            "api_requests_total",
+            subject=["readme-python"],
+        )
+        if usage.data and usage.data[0].value == 1:
+            break
+        time.sleep(1)
+    else:
+        raise RuntimeError("usage was not processed in time")
+
+    print(usage.data[0].value)
+```
+
+</details>
+
+Event processing is asynchronous. A successful example ends with a metered
+value of `1`.
+
+> [!NOTE]
+> This Compose setup is a local evaluation stack. It runs the OpenMeter API and
+> workers together with Kafka, ClickHouse, PostgreSQL, Redis, and Svix using
+> `latest` OpenMeter images; it is not a production topology.
+
+Continue with the [full OSS quickstart](quickstart/README.md), try a
+[metering example](https://openmeter.io/docs/metering/guides/common-examples),
+add [entitlements and usage limits](https://openmeter.io/docs/billing/entitlements/quickstart),
+or model [plans and subscriptions](https://openmeter.io/docs/product-catalog/overview).
+
+When you are done, remove the containers and their local data volumes:
+
+```sh
+docker compose down -v
+```
+
+## Running OpenMeter
+
+The core runtime is OpenMeter's API and worker processes plus Kafka,
+ClickHouse, and PostgreSQL. Redis is optional for distributed deduplication and
+query progress; Svix is used when webhook delivery is enabled. The
+[architecture guide](https://openmeter.io/docs/open-source/architecture)
+explains the complete runtime and data flow.
+
+The official
+[Helm chart for Kubernetes](https://openmeter.io/docs/open-source/kubernetes)
+is intended for development deployments, not production.
+
+## Project and community
+
+| Need | Go to |
+| --- | --- |
+| Ask a question or discuss an approach | [GitHub Discussions](https://github.com/openmeterio/openmeter/discussions) |
+| Report a reproducible bug or request a feature | [GitHub Issues](https://github.com/openmeterio/openmeter/issues) |
+| Track changes | [Releases](https://github.com/openmeterio/openmeter/releases) and [migration guides](docs/migration-guides) |
+| Report a vulnerability | [Security policy](SECURITY.md) |
+| Build or contribute | [Contributing guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) |
 
 ## License
 
-Licensed under [Apache 2.0](LICENSE).
-
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B38090%2Fgithub.com%2Fopenmeterio%2Fopenmeter.svg?type=large)](https://app.fossa.com/projects/custom%2B38090%2Fgithub.com%2Fopenmeterio%2Fopenmeter?ref=badge_large)
+OpenMeter is licensed under the [Apache License 2.0](LICENSE).

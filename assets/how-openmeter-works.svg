@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">How OpenMeter connects metering, access decisions, and billing</title>
+  <desc id="description">Usage events enter meters and branch into usage queries, entitlement access decisions enforced by the application, and rating and invoices sent to external payment and tax providers. Catalog and subscriptions feed access and billing, while the customer credit ledger feeds billing.</desc>
+
+  <defs>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#20252d"/>
+    </pattern>
+    <linearGradient id="canvas" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1014"/>
+      <stop offset="1" stop-color="#090b0e"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#11151a"/>
+      <stop offset="1" stop-color="#0e1115"/>
+    </linearGradient>
+    <linearGradient id="nodeFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171c23"/>
+      <stop offset="1" stop-color="#12161c"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" refX="12" refY="6.5" orient="auto">
+      <path d="M 1 1.5 L 12 6.5 L 1 11.5 Z" fill="#4f86ff"/>
+    </marker>
+    <marker id="arrow-gray" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" refX="10" refY="5.5" orient="auto">
+      <path d="M 1 1.2 L 10 5.5 L 1 9.8 Z" fill="#aeb6c2"/>
+    </marker>
+    <style>
+      .label     { fill: #f5f7fa; font: 600 19px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .7px; }
+      .label-sm  { fill: #f5f7fa; font: 600 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .5px; }
+      .label-xs  { fill: #f5f7fa; font: 600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: .4px; }
+      .eyebrow   { fill: #8b95a3; font: 600 12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 1.8px; }
+      .sub       { fill: #97a0ad; font: 400 14.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .legend    { fill: #8b95a3; font: 600 12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 1.4px; }
+      .node      { fill: url(#nodeFill); stroke: #3d4550; stroke-width: 1.5; }
+      .external  { fill: #101419; stroke: #59626f; stroke-width: 1.5; stroke-dasharray: 5 5; }
+      .usage     { fill: none; stroke: #4f86ff; stroke-width: 2.75; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow-blue); }
+      .domain    { fill: none; stroke: #aeb6c2; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow-gray); }
+      .port-blue { fill: #4f86ff; }
+      .port-gray { fill: #aeb6c2; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#canvas)"/>
+  <rect width="1600" height="900" fill="url(#grid)" opacity="0.6"/>
+
+  <!-- OpenMeter boundary -->
+  <rect x="280" y="48" width="1040" height="804" rx="32" fill="url(#panel)" stroke="#3f4752" stroke-width="1.5"/>
+
+  <!-- Header -->
+  <g transform="translate(676 92)">
+    <g transform="skewX(-25)">
+      <rect x="0" y="4" width="13" height="28" rx="1" fill="#f5f7fa"/>
+      <rect x="19" y="4" width="13" height="28" rx="1" fill="#f5f7fa"/>
+      <rect x="38" y="4" width="13" height="28" rx="1" fill="#f5f7fa"/>
+    </g>
+    <text x="78" y="27" class="label" style="font-size:22px; letter-spacing:5px;">OPENMETER</text>
+  </g>
+  <path d="M 316 162 H 1284" stroke="#242a33" stroke-width="1"/>
+
+  <!-- Usage flow: events -> meters -> queries / access decisions / rating -->
+  <path class="usage" d="M 244 400 H 316"/>
+  <path class="usage" d="M 486 400 H 1044"/>
+  <path class="usage" d="M 551 400 V 276 Q 551 256 571 256 H 617"/>
+  <path class="usage" d="M 551 400 V 770 Q 551 790 571 790 H 1044"/>
+
+  <!-- Product and balance context -->
+  <path class="domain" d="M 913 534 C 972 534, 985 430, 1044 430"/>
+  <path class="domain" d="M 913 578 C 976 578, 982 724, 1044 724"/>
+  <path class="domain" d="M 913 688 C 972 688, 985 758, 1044 758"/>
+
+  <!-- Boundary crossings -->
+  <path class="domain" d="M 1284 400 H 1356"/>
+  <path class="domain" d="M 1284 758 H 1356"/>
+
+  <!-- External input -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="356" width="204" height="88" rx="14" class="external"/>
+    <text x="142" y="406" class="label-sm" text-anchor="middle">USAGE EVENTS</text>
+  </g>
+
+  <!-- Core nodes -->
+  <g filter="url(#shadow)">
+    <rect x="316" y="352" width="170" height="96" rx="16" class="node"/>
+    <text x="401" y="407" class="label" text-anchor="middle">METERS</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="617" y="208" width="296" height="96" rx="16" class="node"/>
+    <text x="765" y="262" class="label-sm" text-anchor="middle">USAGE QUERIES</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="617" y="508" width="296" height="96" rx="16" class="node"/>
+    <text x="765" y="547" class="eyebrow" text-anchor="middle">PRODUCT MODEL</text>
+    <text x="765" y="571" class="label-xs" text-anchor="middle">CATALOG + SUBSCRIPTIONS</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="617" y="640" width="296" height="96" rx="16" class="node"/>
+    <text x="765" y="679" class="eyebrow" text-anchor="middle">BALANCE</text>
+    <text x="765" y="703" class="label-xs" text-anchor="middle">CUSTOMER CREDIT LEDGER</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1044" y="342" width="240" height="116" rx="16" class="node"/>
+    <text x="1164" y="390" class="eyebrow" text-anchor="middle">ENTITLEMENTS</text>
+    <text x="1164" y="416" class="label" text-anchor="middle">ACCESS DECISIONS</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1044" y="700" width="240" height="116" rx="16" class="node"/>
+    <text x="1164" y="751" class="label" text-anchor="middle">RATING +</text>
+    <text x="1164" y="778" class="label" text-anchor="middle">INVOICES</text>
+  </g>
+
+  <!-- External outputs -->
+  <g filter="url(#shadow)">
+    <rect x="1356" y="352" width="204" height="96" rx="14" class="external"/>
+    <text x="1458" y="394" class="label-xs" text-anchor="middle">YOUR APPLICATION</text>
+    <text x="1458" y="418" class="sub" text-anchor="middle">enforces access</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1356" y="710" width="204" height="96" rx="14" class="external"/>
+    <text x="1458" y="752" class="label-xs" text-anchor="middle">PAYMENT + TAX</text>
+    <text x="1458" y="776" class="sub" text-anchor="middle">external providers</text>
+  </g>
+
+  <!-- Connection ports -->
+  <circle cx="244" cy="400" r="4.5" class="port-blue"/>
+  <circle cx="486" cy="400" r="4.5" class="port-blue"/>
+  <circle cx="551" cy="400" r="6.5" class="port-blue"/>
+  <circle cx="913" cy="534" r="4" class="port-gray"/>
+  <circle cx="913" cy="578" r="4" class="port-gray"/>
+  <circle cx="913" cy="688" r="4" class="port-gray"/>
+  <circle cx="1284" cy="400" r="4" class="port-gray"/>
+  <circle cx="1284" cy="758" r="4" class="port-gray"/>
+
+  <!-- Legend -->
+  <g>
+    <path d="M 316 694 H 352" stroke="#4f86ff" stroke-width="2.75" stroke-linecap="round"/>
+    <text x="364" y="699" class="legend">METERED USAGE</text>
+    <path d="M 316 730 H 352" stroke="#aeb6c2" stroke-width="1.9" stroke-linecap="round"/>
+    <text x="364" y="735" class="legend">PRODUCT &amp; BALANCE</text>
+  </g>
+</svg>

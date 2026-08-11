@@ -1,176 +1,188 @@
-# Quickstart
+# OpenMeter OSS quickstart
+
+Run a complete local OpenMeter stack, send a usage event, and query its metered
+value.
 
 ## Prerequisites
 
-- Docker (with Compose)
-- curl
-- jq
+- [Docker with Compose](https://docs.docker.com/compose/)
+- [Git](https://git-scm.com/)
+- one of:
+  - Bash and `curl`
+  - Node.js 22+ and npm for TypeScript
+  - Python 3.9+ and pip for Python
 
-Clone the repository:
+## 1. Start OpenMeter
 
 ```sh
-git clone git@github.com:openmeterio/openmeter.git
+git clone https://github.com/openmeterio/openmeter.git
 cd openmeter/quickstart
+docker compose up -d --wait
 ```
 
-## 1. Launch OpenMeter
+The API is available at `http://localhost:48888`. The Compose stack also starts
+OpenMeter's workers and local Kafka, ClickHouse, PostgreSQL, Redis, and Svix
+dependencies.
 
-Launch OpenMeter and its dependencies via:
+> [!NOTE]
+> This setup uses `latest` OpenMeter images and development-grade dependencies.
+> It is intended for local evaluation, not production.
+
+## 2. Meter an event
+
+The included configuration defines an `api_requests_total` meter that counts
+events with type `request`. Choose a client; each example sends one event and
+polls until its asynchronous processing completes.
+
+<details open>
+<summary><strong>Bash (curl)</strong></summary>
 
 ```sh
-docker compose up -d
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -X POST http://localhost:48888/api/v1/events \
+  -H 'Content-Type: application/cloudevents+json' \
+  --data-raw '{
+    "specversion": "1.0",
+    "type": "request",
+    "id": "quickstart-curl-1",
+    "source": "quickstart",
+    "subject": "quickstart-curl",
+    "data": { "method": "GET", "route": "/hello" }
+  }'
+
+response=
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  response=$(curl -fsS 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=quickstart-curl')
+  printf '%s' "$response" | grep -q '"value":1' && break
+  sleep 1
+done
+printf '%s\n' "$response"
 ```
 
-## 2. Ingest usage event(s)
+The ingest prints `204`; the query response contains
+`"subject":"quickstart-curl"` and `"value":1`.
 
-Ingest usage events in [CloudEvents](https://cloudevents.io/) format:
+</details>
+
+<details>
+<summary><strong>TypeScript SDK</strong></summary>
+
+Install the [OpenMeter TypeScript SDK](https://www.npmjs.com/package/@openmeter/sdk):
 
 ```sh
-curl -X POST http://localhost:48888/api/v1/events \
--H 'Content-Type: application/cloudevents+json' \
---data-raw '
-{
-  "specversion" : "1.0",
-  "type": "request",
-  "id": "00001",
-  "time": "2026-07-07T00:00:00.001Z",
-  "source": "service-0",
-  "subject": "customer-1",
-  "data": {
-    "method": "GET",
-    "route": "/hello",
-    "duration_ms": 10
+npm install @openmeter/sdk tsx
+```
+
+Save as `quickstart.ts`, then run `npx tsx quickstart.ts`:
+
+```ts
+import { OpenMeter } from '@openmeter/sdk'
+
+const openmeter = new OpenMeter({ baseUrl: 'http://localhost:48888' })
+
+const queryUsage = () =>
+  openmeter.meters.query('api_requests_total', {
+    subject: ['quickstart-typescript'],
+  })
+
+async function main() {
+  await openmeter.events.ingest({
+    type: 'request',
+    id: 'quickstart-typescript-1',
+    source: 'quickstart',
+    subject: 'quickstart-typescript',
+    data: { method: 'GET', route: '/hello' },
+  })
+
+  let usage = await queryUsage()
+  for (let attempt = 1; usage.data[0]?.value !== 1 && attempt < 10; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    usage = await queryUsage()
   }
-}
-'
-```
 
-Note how ID is different:
-
-```sh
-curl -X POST http://localhost:48888/api/v1/events \
--H 'Content-Type: application/cloudevents+json' \
---data-raw '
-{
-  "specversion" : "1.0",
-  "type": "request",
-  "id": "00002",
-  "time": "2026-07-07T00:00:00.001Z",
-  "source": "service-0",
-  "subject": "customer-1",
-  "data": {
-    "method": "GET",
-    "route": "/hello",
-    "duration_ms": 20
+  if (usage.data[0]?.value !== 1) {
+    throw new Error('usage was not processed in time')
   }
+  console.log(usage.data[0].value)
 }
-'
+
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
 ```
 
-Note how ID and time are different:
+The script prints `1`.
+
+</details>
+
+<details>
+<summary><strong>Python SDK</strong></summary>
+
+The Python SDK is in preview, so install it with pre-releases enabled:
 
 ```sh
-curl -X POST http://localhost:48888/api/v1/events \
--H 'Content-Type: application/cloudevents+json' \
---data-raw '
-{
-  "specversion" : "1.0",
-  "type": "request",
-  "id": "00003",
-  "time": "2026-07-08T00:00:00.001Z",
-  "source": "service-0",
-  "subject": "customer-1",
-  "data": {
-    "method": "GET",
-    "route": "/hello",
-    "duration_ms": 30
-  }
-}
-'
+python -m pip install --pre openmeter
 ```
 
-## 3. Query Usage
+Save as `quickstart.py`, then run `python quickstart.py`:
 
-Query the usage hourly:
+```python
+import time
+
+from openmeter import Client
+from openmeter.models import Event
+
+with Client(endpoint="http://localhost:48888") as openmeter:
+    openmeter.events.ingest_event(
+        Event(
+            id="quickstart-python-1",
+            source="quickstart",
+            specversion="1.0",
+            type="request",
+            subject="quickstart-python",
+            data={"method": "GET", "route": "/hello"},
+        )
+    )
+
+    for _ in range(10):
+        usage = openmeter.meters.query_json(
+            "api_requests_total",
+            subject=["quickstart-python"],
+        )
+        if usage.data and usage.data[0].value == 1:
+            break
+        time.sleep(1)
+    else:
+        raise RuntimeError("usage was not processed in time")
+
+    print(usage.data[0].value)
+```
+
+The script prints `1.0`.
+
+</details>
+
+## 3. Explore
+
+Group usage by hour, method, and route:
 
 ```sh
-curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?windowSize=HOUR&groupBy=method&groupBy=route' | jq
+curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?windowSize=HOUR&groupBy=method&groupBy=route'
 ```
 
-```json
-{
-  "windowSize": "HOUR",
-  "data": [
-    {
-      "value": 2,
-      "windowStart": "2026-07-07T00:00:00Z",
-      "windowEnd": "2026-07-07T01:00:00Z",
-      "subject": null,
-      "groupBy": {
-        "method": "GET",
-        "route": "/hello"
-      }
-    },
-    {
-      "value": 1,
-      "windowStart": "2026-07-08T00:00:00Z",
-      "windowEnd": "2026-07-08T01:00:00Z",
-      "subject": null,
-      "groupBy": {
-        "method": "GET",
-        "route": "/hello"
-      }
-    }
-  ]
-}
-```
+Then continue with:
 
-Query the total usage for `customer-1`:
-
-```sh
-curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=customer-1' | jq
-```
-
-```json
-{
-  "data": [
-    {
-      "value": 3,
-      "windowStart": "2026-07-07T00:00:00Z",
-      "windowEnd": "2026-07-08T00:01:00Z",
-      "subject": "customer-1",
-      "groupBy": {}
-    }
-  ]
-}
-```
-
-## 4. Configure additional meter(s) _(optional)_
-
-In this example we will meter LLM token usage, groupped by AI model and prompt type.
-You can think about it how OpenAI [charges](https://openai.com/pricing) by tokens for ChatGPT.
-
-Configure how OpenMeter should process your usage events in this new `tokens_total` meter.
-
-```yaml
-# ...
-
-meters:
-  # Sample meter to count LLM Token Usage
-  - slug: tokens_total
-    description: AI Token Usage
-    eventType: prompt               # Filter events by type
-    aggregation: SUM
-    valueProperty: $.tokens         # JSONPath to parse usage value
-    groupBy:
-      model: $.model                # AI model used: gpt4-turbo, etc.
-      type: $.type                  # Prompt type: input, output, system
-
-```
+- how [meters and customer attribution](https://openmeter.io/docs/metering/overview) work
+- common [AI, API, and compute metering examples](https://openmeter.io/docs/metering/guides/common-examples)
+- [entitlements and usage limits](https://openmeter.io/docs/billing/entitlements/quickstart)
+- [plans, pricing, and subscriptions](https://openmeter.io/docs/product-catalog/overview)
+- the [OSS API reference](https://openmeter.io/docs/api/open-source)
+- the [Kubernetes deployment guide](https://openmeter.io/docs/open-source/kubernetes)
 
 ## Cleanup
 
-Once you are done, stop any running instances:
+Remove the quickstart containers and their data volumes:
 
 ```sh
 docker compose down -v
