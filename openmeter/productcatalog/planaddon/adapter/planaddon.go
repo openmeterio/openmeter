@@ -10,7 +10,6 @@ import (
 	planaddondb "github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -169,38 +168,10 @@ func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePl
 				params.Namespace, params.PlanID, params.AddonID, err)
 		}
 
-		planRow, err := a.db.Plan.Query().
-			Where(plandb.Namespace(params.Namespace), plandb.ID(params.PlanID)).
-			Only(ctx)
-		if err != nil {
-			if entdb.IsNotFound(err) {
-				return nil, plan.NewNotFoundError(plan.NotFoundErrorParams{
-					Namespace: params.Namespace,
-					ID:        params.PlanID,
-				})
-			}
-
-			return nil, fmt.Errorf("failed to resolve plan for plan add-on assignment: %w", err)
-		}
-
-		addonRow, err := a.db.Addon.Query().
-			Where(addondb.Namespace(params.Namespace), addondb.ID(params.AddonID)).
-			Only(ctx)
-		if err != nil {
-			if entdb.IsNotFound(err) {
-				return nil, addon.NewNotFoundError(addon.NotFoundErrorParams{
-					Namespace: params.Namespace,
-					ID:        params.AddonID,
-				})
-			}
-
-			return nil, fmt.Errorf("failed to resolve add-on for plan add-on assignment: %w", err)
-		}
-
 		planAddonRow, err := a.db.PlanAddon.Create().
 			SetNamespace(params.Namespace).
-			SetPlan(planRow).
-			SetAddon(addonRow).
+			SetPlanID(params.PlanID).
+			SetAddonID(params.AddonID).
 			SetAnnotations(params.Annotations).
 			SetFromPlanPhase(params.FromPlanPhase).
 			SetNillableMaxQuantity(params.MaxQuantity).

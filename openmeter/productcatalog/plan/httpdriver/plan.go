@@ -52,7 +52,7 @@ func (h *handler) ListPlans() ListPlansHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				Namespace:                        ns,
+				Namespaces:                       []string{ns},
 				IDs:                              lo.FromPtr(params.Id),
 				Keys:                             lo.FromPtr(params.Key),
 				KeyVersions:                      lo.FromPtr(params.KeyVersion),

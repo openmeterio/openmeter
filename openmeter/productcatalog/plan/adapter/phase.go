@@ -20,7 +20,7 @@ type createPhaseInput struct {
 	productcatalog.Phase
 
 	// PlanID identifies the Plan the Phase belongs to. See Key.
-	PlanID models.NamespacedID `json:"planId"`
+	PlanID string `json:"planId"`
 
 	// Index is the index of the phase in the plan.
 	Index int `json:"index"`
@@ -33,12 +33,8 @@ func (i createPhaseInput) Validate() error {
 		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
-	if i.Key == "" || i.PlanID.ID == "" {
+	if i.Key == "" || i.PlanID == "" {
 		errs = append(errs, errors.New("phase key or plan id must be provided"))
-	}
-
-	if i.Namespace != i.PlanID.Namespace {
-		errs = append(errs, errors.New("phase namespace must match plan namespace"))
 	}
 
 	if i.Name == "" {
@@ -64,7 +60,7 @@ func (a *adapter) createPhase(ctx context.Context, params createPhaseInput) (*pl
 			SetName(params.Name).
 			SetNillableDescription(params.Description).
 			SetMetadata(params.Metadata).
-			SetPlanID(params.PlanID.ID).
+			SetPlanID(params.PlanID).
 			SetIndex(uint8(params.Index)).
 			SetNillableDuration(params.Duration.ISOStringPtrOrNil()).
 			Save(ctx)
@@ -89,10 +85,7 @@ func (a *adapter) createPhase(ctx context.Context, params createPhaseInput) (*pl
 
 		planPhaseRow, err = a.db.PlanPhase.Query().
 			Where(phasedb.Namespace(params.Namespace), phasedb.ID(planPhaseRow.ID)).
-			WithRatecards(
-				rateCardEagerLoadFeatures(params.Namespace),
-				rateCardEagerLoadTaxCodes(params.Namespace),
-			).
+			WithRatecards(rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn).
 			First(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
