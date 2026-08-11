@@ -84,7 +84,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 response=
 for attempt in 1 2 3 4 5 6 7 8 9 10; do
   response=$(curl -fsS 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=readme-curl')
-  printf '%s' "$response" | grep -Eq '"value"[[:space:]]*:[[:space:]]*1[[:space:]]*[,}]' && break
+  printf '%s' "$response" | grep -q '"value":1' && break
   sleep 1
 done
 printf '%s\n' "$response"
