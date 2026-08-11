@@ -81,9 +81,23 @@ func (p Plan) HasCurrencyOverrides() bool {
 	})
 }
 
+// ValidatePlanMeta validates both the identity and structure of plan metadata.
 func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return p.PlanMeta.Validate()
+	}
+}
+
+// ValidatePlanVersioning validates the fields required before catalog versioning assigns a version.
+func ValidatePlanVersioning() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		return p.PlanMeta.validateVersioning()
+	}
+}
+
+func validatePlanMetaStructure() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		return p.PlanMeta.validateStructure()
 	}
 }
 
@@ -269,13 +283,24 @@ func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 	}
 }
 
+// ValidatePlanStructure validates the plan contents independently of its key and version.
+// This is the validation boundary for inline plans that are not persisted catalog resources.
+func ValidatePlanStructure() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		return p.ValidateWith(
+			validatePlanMetaStructure(),
+			ValidatePlanPhases(),
+			ValidatePlanCurrencyCodes(),
+			ValidatePlanBillingCadenceLiteral(),
+			ValidatePlanHasAlignedBillingCadences(),
+		)
+	}
+}
+
 func (p Plan) Validate() error {
 	return p.ValidateWith(
-		ValidatePlanMeta(),
-		ValidatePlanPhases(),
-		ValidatePlanCurrencyCodes(),
-		ValidatePlanBillingCadenceLiteral(),
-		ValidatePlanHasAlignedBillingCadences(),
+		ValidatePlanVersioning(),
+		ValidatePlanStructure(),
 	)
 }
 
@@ -337,6 +362,13 @@ type PlanMeta struct {
 
 // Validate validates the PlanMeta.
 func (p PlanMeta) Validate() error {
+	return models.NewNillableGenericValidationError(errors.Join(
+		p.validateStructure(),
+		p.validateVersioning(),
+	))
+}
+
+func (p PlanMeta) validateStructure() error {
 	var errs []error
 
 	if err := p.Currency.Validate(); err != nil {
@@ -348,10 +380,6 @@ func (p PlanMeta) Validate() error {
 
 	if err := p.EffectivePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
-	}
-
-	if p.Key == "" {
-		errs = append(errs, ErrResourceKeyEmpty)
 	}
 
 	if p.Name == "" {
@@ -366,7 +394,15 @@ func (p PlanMeta) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid ProRatingConfig: %s", err))
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return errors.Join(errs...)
+}
+
+func (p PlanMeta) validateVersioning() error {
+	if p.Key == "" {
+		return ErrResourceKeyEmpty
+	}
+
+	return nil
 }
 
 // Equal returns true if the two PlanMetas are equal.

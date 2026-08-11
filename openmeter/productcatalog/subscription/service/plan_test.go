@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -14,6 +15,24 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 )
+
+func TestPlanFromPlanInputUsesStructuralValidation(t *testing.T) {
+	input := subscriptiontestutils.GetExamplePlanInput(t)
+	input.Plan.Key = ""
+	input.Plan.Version = 0
+
+	customPlan, err := service.PlanFromPlanInput(input)
+	require.NoError(t, err)
+
+	plan, ok := customPlan.(*plansubscription.Plan)
+	require.True(t, ok)
+	require.Empty(t, plan.Key)
+	require.Zero(t, plan.Version)
+
+	input.Plan.Name = ""
+	_, err = service.PlanFromPlanInput(input)
+	require.ErrorIs(t, err, productcatalog.ErrResourceNameEmpty)
+}
 
 func TestDiscountPersisting(t *testing.T) {
 	logger := testutils.NewLogger(t)
