@@ -170,8 +170,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 	}
 
 	detailedLineBase := billing.DetailedLineBase{
-		InvoiceID:       dbLine.InvoiceID,
-		FeeLineConfigID: dbLine.Edges.FlatFeeLine.ID,
+		InvoiceID: dbLine.InvoiceID,
 		Base: stddetailedline.Base{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   dbLine.Namespace,
@@ -187,15 +186,18 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 				From: dbLine.PeriodStart.In(time.UTC),
 				To:   dbLine.PeriodEnd.In(time.UTC),
 			},
-			PerUnitAmount:  dbLine.Edges.FlatFeeLine.PerUnitAmount,
 			Quantity:       lo.FromPtr(dbLine.Quantity),
-			Category:       dbLine.Edges.FlatFeeLine.Category,
-			PaymentTerm:    dbLine.Edges.FlatFeeLine.PaymentTerm,
-			Index:          dbLine.Edges.FlatFeeLine.Index,
 			CreditsApplied: creditsApplied,
 			Totals:         totals.FromDB(dbLine),
 			ExternalIDs:    externalid.MapLineExternalIDFromDB(dbLine),
 		},
+	}
+	if dbLine.Edges.FlatFeeLine != nil {
+		detailedLineBase.FeeLineConfigID = dbLine.Edges.FlatFeeLine.ID
+		detailedLineBase.PerUnitAmount = dbLine.Edges.FlatFeeLine.PerUnitAmount
+		detailedLineBase.Category = dbLine.Edges.FlatFeeLine.Category
+		detailedLineBase.PaymentTerm = dbLine.Edges.FlatFeeLine.PaymentTerm
+		detailedLineBase.Index = dbLine.Edges.FlatFeeLine.Index
 	}
 
 	discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapStandardInvoiceLineAmountDiscountFromDB)
