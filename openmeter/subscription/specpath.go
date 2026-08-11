@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,6 +9,9 @@ import (
 	"github.com/samber/lo"
 )
 
+// SpecPath identifies a phase, item, or item version within a subscription spec.
+// It reserves "/" as the path separator but otherwise treats key segments as opaque;
+// productcatalog validation owns the validity of phase and item keys.
 type SpecPath string
 
 const (
@@ -24,19 +28,23 @@ const (
 	SpecPathTypeItemVersion SpecPathType = "item_version"
 )
 
-// Lets implement JSON Unmarshaler for Path
 func (p *SpecPath) UnmarshalJSON(data []byte) error {
-	if err := SpecPath(data).Validate(); err != nil {
-		return fmt.Errorf("path validation failed: %s", err)
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return fmt.Errorf("decode path: %w", err)
 	}
 
-	*p = SpecPath(data)
+	path := SpecPath(value)
+	if err := path.Validate(); err != nil {
+		return fmt.Errorf("path validation failed: %w", err)
+	}
+
+	*p = path
 	return nil
 }
 
-// Lets implement JSON Marshaler for Path
 func (p SpecPath) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, p)), nil
+	return json.Marshal(string(p))
 }
 
 func (p SpecPath) seg() []string {
@@ -62,7 +70,7 @@ func (p SpecPath) IsParentOf(other SpecPath) bool {
 	return true
 }
 
-// Lets implement validation for Path
+// Validate checks the path structure, not the contents of phase or item key segments.
 func (p SpecPath) Validate() error {
 	strVal := string(p)
 
