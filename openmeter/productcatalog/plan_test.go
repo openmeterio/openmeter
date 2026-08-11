@@ -36,6 +36,16 @@ func TestPlanValidationLayers(t *testing.T) {
 
 		require.ErrorIs(t, plan.Validate(), productcatalog.ErrResourceKeyEmpty)
 	})
+
+	t.Run("full validation wraps structural errors once", func(t *testing.T) {
+		plan := input.Plan
+		plan.Name = ""
+
+		err := plan.Validate()
+		require.Error(t, err)
+		require.True(t, models.IsGenericValidationError(err))
+		require.NotContains(t, err.Error(), "validation error: validation error:")
+	})
 }
 
 func TestCreatePlanInputValidationAllowsUnassignedVersion(t *testing.T) {

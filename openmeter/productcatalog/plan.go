@@ -287,12 +287,12 @@ func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 // This is the validation boundary for inline plans that are not persisted catalog resources.
 func ValidatePlanStructure() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
-		return p.ValidateWith(
-			validatePlanMetaStructure(),
-			ValidatePlanPhases(),
-			ValidatePlanCurrencyCodes(),
-			ValidatePlanBillingCadenceLiteral(),
-			ValidatePlanHasAlignedBillingCadences(),
+		return errors.Join(
+			validatePlanMetaStructure()(p),
+			ValidatePlanPhases()(p),
+			ValidatePlanCurrencyCodes()(p),
+			ValidatePlanBillingCadenceLiteral()(p),
+			ValidatePlanHasAlignedBillingCadences()(p),
 		)
 	}
 }
