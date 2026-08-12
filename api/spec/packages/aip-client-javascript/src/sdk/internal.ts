@@ -28,6 +28,7 @@ import {
   listCurrencies,
   createCustomCurrency,
   getCustomCurrency,
+  updateCustomCurrency,
   listCostBases,
   createCostBasis,
 } from '../funcs/currencies.js'
@@ -81,6 +82,8 @@ import type {
   CreateCustomCurrencyResponse,
   GetCustomCurrencyRequest,
   GetCustomCurrencyResponse,
+  UpdateCustomCurrencyRequest,
+  UpdateCustomCurrencyResponse,
   ListCostBasesRequest,
   ListCostBasesResponse,
   CreateCostBasisRequest,
@@ -588,6 +591,21 @@ export class InternalCurrencies {
     options?: RequestOptions,
   ): Promise<GetCustomCurrencyResponse> {
     return unwrap(await getCustomCurrency(this._client, request, options))
+  }
+
+  /**
+   * Update custom currency
+   *
+   * Replace the presentational attributes of a custom currency. The currency's code
+   * and precision are immutable and cannot be updated.
+   *
+   * PUT /openmeter/currencies/custom/{currencyId}
+   */
+  async updateCustomCurrency(
+    request: UpdateCustomCurrencyRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateCustomCurrencyResponse> {
+    return unwrap(await updateCustomCurrency(this._client, request, options))
   }
 
   /**

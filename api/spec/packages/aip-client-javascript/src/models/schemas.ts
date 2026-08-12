@@ -1037,6 +1037,46 @@ export const currencyExpand = z
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
 
+export const currencyCustomUpdate = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro. Omit it to clear the currency\'s symbol.',
+      ),
+    decimalMark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro. It must differ from the thousand separator.',
+      ),
+    thousandSeparator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro. It must differ from the decimal mark.',
+      ),
+  })
+
+  .describe(
+    'Update request for a custom currency. Only the presentational attributes of a currency can be changed. The code and the precision are immutable, because issued invoices, charges and ledger entries are denominated with them and changing them retroactively would misstate historical monetary records.',
+  )
+
 export const featureLlmTokenType = z
   .enum([
     'input',
@@ -6603,6 +6643,14 @@ export const getCustomCurrencyPathParams = z.object({
 
 export const getCustomCurrencyResponse = currencyCustom
 
+export const updateCustomCurrencyPathParams = z.object({
+  currencyId: ulid,
+})
+
+export const updateCustomCurrencyBody = currencyCustomUpdate
+
+export const updateCustomCurrencyResponse = currencyCustom
+
 export const listCostBasesPathParams = z.object({
   currencyId: ulid,
 })
@@ -7947,6 +7995,46 @@ export const currencyExpandWire = z
 
   .describe(
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
+  )
+
+export const currencyCustomUpdateWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro. Omit it to clear the currency\'s symbol.',
+      ),
+    decimal_mark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro. It must differ from the thousand separator.',
+      ),
+    thousand_separator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro. It must differ from the decimal mark.',
+      ),
+  })
+
+  .describe(
+    'Update request for a custom currency. Only the presentational attributes of a currency can be changed. The code and the precision are immutable, because issued invoices, charges and ledger entries are denominated with them and changing them retroactively would misstate historical monetary records.',
   )
 
 export const featureLlmTokenTypeWire = z
@@ -13552,6 +13640,14 @@ export const getCustomCurrencyPathParamsWire = z.object({
 })
 
 export const getCustomCurrencyResponseWire = currencyCustomWire
+
+export const updateCustomCurrencyPathParamsWire = z.object({
+  currencyId: ulidWire,
+})
+
+export const updateCustomCurrencyBodyWire = currencyCustomUpdateWire
+
+export const updateCustomCurrencyResponseWire = currencyCustomWire
 
 export const listCostBasesPathParamsWire = z.object({
   currencyId: ulidWire,

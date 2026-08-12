@@ -13,6 +13,7 @@ var errCustomCurrenciesDisabled = errors.New("custom currencies are not enabled 
 type Handler interface {
 	ListCurrencies() ListCurrenciesHandler
 	CreateCurrency() CreateCurrencyHandler
+	UpdateCurrency() UpdateCurrencyHandler
 	CreateCostBasis() CreateCostBasisHandler
 	ListCostBases() ListCostBasesHandler
 	GetCurrency() GetCurrencyHandler

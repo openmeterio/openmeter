@@ -19,6 +19,8 @@ import type {
   CreateCustomCurrencyResponse,
   GetCustomCurrencyRequest,
   GetCustomCurrencyResponse,
+  UpdateCustomCurrencyRequest,
+  UpdateCustomCurrencyResponse,
   ListCostBasesRequest,
   ListCostBasesResponse,
   CreateCostBasisRequest,
@@ -132,6 +134,51 @@ export function getCustomCurrency(
           assertValid(schemas.getCustomCurrencyResponseWire, data)
         }
         return fromWire(data, schemas.getCustomCurrencyResponse)
+      })
+  })
+}
+
+/**
+ * Update custom currency
+ *
+ * Replace the presentational attributes of a custom currency. The currency's code
+ * and precision are immutable and cannot be updated.
+ *
+ * PUT /openmeter/currencies/custom/{currencyId}
+ */
+export function updateCustomCurrency(
+  client: Client,
+  req: UpdateCustomCurrencyRequest,
+  options?: RequestOptions,
+): Promise<Result<UpdateCustomCurrencyResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      currencyId: req.currencyId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.updateCustomCurrencyPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.updateCustomCurrencyPathParamsWire, pathParams)
+    }
+    const path = `openmeter/currencies/custom/${(() => {
+      if (pathParams.currencyId === undefined) {
+        throw new Error('missing path parameter: currencyId')
+      }
+      return encodeURIComponent(String(pathParams.currencyId))
+    })()}`
+    const body = toWire(req.body, schemas.updateCustomCurrencyBody)
+    if (client._options.validate) {
+      assertValid(schemas.updateCustomCurrencyBodyWire, body)
+    }
+    return http(client)
+      .put(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.updateCustomCurrencyResponseWire, data)
+        }
+        return fromWire(data, schemas.updateCustomCurrencyResponse)
       })
   })
 }
