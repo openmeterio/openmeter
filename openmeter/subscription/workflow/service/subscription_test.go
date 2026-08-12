@@ -410,11 +410,11 @@ func TestEditRunning(t *testing.T) {
 				sID := deps.SubView.Subscription.NamespacedID
 
 				mSvc := subscriptiontestutils.MockService{
-					UpdateFn: func(ctx context.Context, id models.NamespacedID, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+					UpdateFn: func(ctx context.Context, id models.NamespacedID, spec subscription.SubscriptionSpec, options ...subscription.UpdateOption) (subscription.Subscription, error) {
 						// Let's validate that the spec is passed as is
 						assert.Equal(t, returnedSpec, spec, "expected spec to be equal to the returned spec")
 
-						return deps.Service.Update(ctx, id, spec)
+						return deps.Service.Update(ctx, id, spec, options...)
 					},
 					GetViewFn: func(ctx context.Context, id models.NamespacedID) (subscription.SubscriptionView, error) {
 						assert.Equal(t, sID, id, "expected id to be equal to the returned id")

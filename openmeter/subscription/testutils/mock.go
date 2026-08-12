@@ -12,7 +12,7 @@ import (
 
 type MockService struct {
 	CreateFn            func(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error)
-	UpdateFn            func(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error)
+	UpdateFn            func(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec, options ...subscription.UpdateOption) (subscription.Subscription, error)
 	DeleteFn            func(ctx context.Context, subscriptionID models.NamespacedID) error
 	CancelFn            func(ctx context.Context, subscriptionID models.NamespacedID, at subscription.Timing) (subscription.Subscription, error)
 	ContinueFn          func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
@@ -42,7 +42,7 @@ func (s *MockService) Create(ctx context.Context, namespace string, spec subscri
 }
 
 func (s *MockService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec, options ...subscription.UpdateOption) (subscription.Subscription, error) {
-	return s.UpdateFn(ctx, subscriptionID, target)
+	return s.UpdateFn(ctx, subscriptionID, target, options...)
 }
 
 func (s *MockService) Delete(ctx context.Context, subscriptionID models.NamespacedID) error {
