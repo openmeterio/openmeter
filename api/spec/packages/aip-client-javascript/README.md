@@ -44,6 +44,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Internal Customers](#internal-customers)
   - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Apps](#internal-apps)
+  - [Internal Currencies](#internal-currencies)
   - [Internal Notifications](#internal-notifications)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
@@ -518,6 +519,12 @@ they can change or be removed without notice or semver consideration.
 | Method                               | HTTP                                  | Description                                                                                                                          |
 | ------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `client.internal.apps.executeAction` | `POST /openmeter/apps/{appId}/action` | Execute an operator action on an installed app. The action must be listed in the app's `actions`; otherwise the request is rejected. |
+
+### Internal Currencies
+
+| Method                                            | HTTP                                            | Description                                                                                                                        |
+| ------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.currencies.updateCustomCurrency` | `PUT /openmeter/currencies/custom/{currencyId}` | Replace the presentational attributes of a custom currency. The currency's code and precision are immutable and cannot be updated. |
 
 ### Internal Notifications
 

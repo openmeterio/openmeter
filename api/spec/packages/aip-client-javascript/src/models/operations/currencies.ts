@@ -9,6 +9,7 @@ import type {
   CreateCostBasisRequest as CreateCostBasisRequestBody,
   CreateCurrencyCustomRequest,
   CurrencyCustom,
+  CurrencyCustomUpdate,
   CurrencyPagePaginatedResponse,
   ListCostBasesParamsFilter,
   ListCurrenciesParamsFilter,
@@ -53,6 +54,12 @@ export type GetCustomCurrencyRequest = {
   currencyId: string
 }
 export type GetCustomCurrencyResponse = CurrencyCustom
+
+export type UpdateCustomCurrencyRequest = AcceptDateStrings<{
+  currencyId: string
+  body: CurrencyCustomUpdate
+}>
+export type UpdateCustomCurrencyResponse = CurrencyCustom
 
 export interface ListCostBasesQuery {
   /**

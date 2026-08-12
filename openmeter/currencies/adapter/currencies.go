@@ -218,6 +218,34 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 	})
 }
 
+func (a *adapter) UpdateCurrency(ctx context.Context, params currencies.UpdateCurrencyInput) (currencies.Currency, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) {
+		// The request carries every mutable attribute, so the stored row does not
+		// need to be read first. The immutable code and precision are left alone.
+		curr, err := tx.db.CustomCurrency.UpdateOneID(params.ID).
+			Where(
+				customcurrency.Namespace(params.Namespace),
+				customcurrency.DeletedAtIsNil(),
+			).
+			SetName(params.Name).
+			SetOrClearSymbol(lo.EmptyableToPtr(params.Symbol)).
+			SetDecimalMark(params.DecimalMark).
+			SetThousandsSeparator(params.ThousandsSeparator).
+			Save(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return currencies.Currency{}, models.NewGenericNotFoundError(
+					fmt.Errorf("currency with id %s not found", params.ID),
+				)
+			}
+
+			return currencies.Currency{}, fmt.Errorf("failed to update currency: %w", err)
+		}
+
+		return FromDBCustomCurrency(curr)
+	})
+}
+
 func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.CostBasis, error) {
 		if params.EffectiveFrom == nil {
