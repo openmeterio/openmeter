@@ -173,6 +173,9 @@ func (c CustomerMutate) Validate() error {
 	return nil
 }
 
+// validateCustomerCurrency allows an unset currency or a fiat billing currency.
+// Subscription invoice currencies remain fiat even when priced items use custom
+// currencies, so custom currencies cannot be configured at the customer level.
 func validateCustomerCurrency(code *currencyx.Code) error {
 	if code == nil {
 		return nil
