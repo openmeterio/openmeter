@@ -117,8 +117,23 @@ func TestListEntitlementGrantsPagination(t *testing.T) {
 	})
 
 	t.Run("Should reject an unbounded query", func(t *testing.T) {
-		// when neither pagination mode is provided the result set would be unbounded
+		// given neither pagination mode, when the grants are listed
 		_, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), namespace, listParams())
-		require.EqualError(t, err, "either Page or Limit is required")
+
+		// then the request is rejected instead of returning every grant
+		require.EqualError(t, err, "validation error: either page or limit is required")
+	})
+
+	t.Run("Should reject a negative offset", func(t *testing.T) {
+		// given a bounded limit paired with a negative offset
+		params := listParams()
+		params.Limit = 1
+		params.Offset = -1
+
+		// when the grants are listed
+		_, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), namespace, params)
+
+		// then the offset is rejected rather than silently ignored by the repository
+		require.EqualError(t, err, "validation error: offset cannot be negative: -1")
 	})
 }

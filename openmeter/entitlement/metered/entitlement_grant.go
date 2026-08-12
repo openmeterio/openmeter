@@ -2,6 +2,7 @@ package meteredentitlement
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -35,30 +36,32 @@ type ListEntitlementGrantsParams struct {
 }
 
 func (p ListEntitlementGrantsParams) Validate() error {
+	var errs []error
+
 	// A zero Page selects the deprecated limit/offset mode, where the page fields carry no
 	// meaning. Exactly one of the two modes has to bound the result set, otherwise the
 	// query would be unbounded.
 	if p.Page.IsZero() {
 		if p.Limit < 1 {
-			return fmt.Errorf("either Page or Limit is required")
+			errs = append(errs, errors.New("either page or limit is required"))
 		}
 
 		if p.Offset < 0 {
-			return fmt.Errorf("offset cannot be negative")
+			errs = append(errs, fmt.Errorf("offset cannot be negative: %d", p.Offset))
 		}
 	} else if err := p.Page.Validate(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	if p.CustomerID == "" {
-		return fmt.Errorf("customerID is required")
+		errs = append(errs, errors.New("customerID is required"))
 	}
 
 	if p.EntitlementIDOrFeatureKey == "" {
-		return fmt.Errorf("entitlementIDOrFeatureKey is required")
+		errs = append(errs, errors.New("entitlementIDOrFeatureKey is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // CreateGrant creates a grant for a given entitlement

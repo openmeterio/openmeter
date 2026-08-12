@@ -762,8 +762,7 @@ func TestEntitlementWithLatestAggregation(t *testing.T) {
 func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 	client := initClient(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	customerKey := fmt.Sprintf("grant_paging_customer_%d", time.Now().UnixNano())
 	cust := CreateCustomerWithSubject(t, client, customerKey, customerKey+"-subject")
@@ -799,8 +798,8 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
 	}
 
-	// given three grants, each effective a minute apart so that ordering by effectiveAt is
-	// deterministic
+	// given three grants created in ascending amount order, so that ordering by createdAt makes
+	// the returned window identifiable by amount
 	grantCount := 3
 	firstEffectiveAt := time.Now().Truncate(time.Minute)
 
@@ -814,35 +813,46 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 	}
 
 	t.Run("Should honor pageSize", func(t *testing.T) {
+		// when a page smaller than the grant count is requested
 		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
 			PageSize: lo.ToPtr(2),
+			OrderBy:  lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:    lo.ToPtr(api.SortOrderASC),
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
 		require.NotNil(t, resp.JSON200)
 
+		// then the page is capped at the requested size while the count covers every grant
 		require.Len(t, resp.JSON200.Items, 2)
+		require.Equal(t, 1.0, resp.JSON200.Items[0].Amount)
+		require.Equal(t, 2.0, resp.JSON200.Items[1].Amount)
 		require.Equal(t, 1, resp.JSON200.Page)
 		require.Equal(t, 2, resp.JSON200.PageSize)
 		require.Equal(t, grantCount, resp.JSON200.TotalCount)
 	})
 
 	t.Run("Should honor page", func(t *testing.T) {
-		// when the last page of size two is requested, only the remaining grant is returned
+		// when the last page of size two is requested
 		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
 			Page:     lo.ToPtr(2),
 			PageSize: lo.ToPtr(2),
+			OrderBy:  lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:    lo.ToPtr(api.SortOrderASC),
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
 		require.NotNil(t, resp.JSON200)
 
+		// then only the grant left over from the first page is returned
 		require.Len(t, resp.JSON200.Items, 1)
+		require.Equal(t, 3.0, resp.JSON200.Items[0].Amount)
 		require.Equal(t, 2, resp.JSON200.Page)
 		require.Equal(t, grantCount, resp.JSON200.TotalCount)
 	})
 
 	t.Run("Should honor limit and offset", func(t *testing.T) {
+		// when the deprecated limit/offset mode skips the first grant
 		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
 			Limit:   lo.ToPtr(2),
 			Offset:  lo.ToPtr(1),
@@ -853,15 +863,25 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
 		require.NotNil(t, resp.JSON200)
 
+		// then the remaining grants are returned in order; this mode runs no count query, so
+		// the page metadata stays zeroed, matching /api/v2/grants
 		require.Len(t, resp.JSON200.Items, 2)
+		require.Equal(t, 2.0, resp.JSON200.Items[0].Amount)
+		require.Equal(t, 3.0, resp.JSON200.Items[1].Amount)
+		require.Zero(t, resp.JSON200.Page)
+		require.Zero(t, resp.JSON200.PageSize)
+		require.Zero(t, resp.JSON200.TotalCount)
 	})
 
 	t.Run("Should reject an invalid page", func(t *testing.T) {
+		// when a page index below the documented minimum is requested
 		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
 			Page:     lo.ToPtr(0),
 			PageSize: lo.ToPtr(2),
 		})
 		require.NoError(t, err)
+
+		// then the request is rejected rather than silently falling back to the first page
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", resp.Body)
 	})
 }
