@@ -141,6 +141,30 @@ func mutateFlatFeeIntentFields(fields *flatfee.IntentMutableFields, editFn func(
 	fields.PercentageDiscounts = fields.PercentageDiscounts.UpsertCorrelationID()
 }
 
+// setOverrideIntent replaces the complete mutable override snapshot while
+// preserving the charge's base intent.
+func (s *stateMachine) setOverrideIntent(ctx context.Context, patch flatfee.PatchSetOverride) error {
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	fields := patch.GetIntentMutableFields()
+	if err := s.mutateIntentLayer(ctx, target, func(current *flatfee.IntentMutableFields) {
+		*current = fields
+	}); err != nil {
+		return fmt.Errorf("setting flat-fee override intent: %w", err)
+	}
+
+	return nil
+}
+
+func (s *stateMachine) UnsupportedSetOverrideOperation(_ context.Context, _ flatfee.PatchSetOverride) error {
+	return models.NewGenericPreConditionFailedError(
+		fmt.Errorf("cannot set override for flat-fee charge in status %s; retry after billing advances", s.Charge.Status),
+	)
+}
+
 // rejectHiddenIntentTarget prevents lifecycle state machines from processing a
 // hidden source intent. When an override layer exists, the override is the
 // active customer-facing charge: it owns status transitions, realization runs,

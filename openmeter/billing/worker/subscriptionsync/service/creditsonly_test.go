@@ -778,6 +778,110 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 	})
 }
 
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverrideSurvivesSubscriptionCancellation() {
+	// given
+	// - Subscription sync owns a future credit-only usage charge whose customer has set a complete override.
+	// when:
+	// - The subscription is canceled mid-period and sync shrinks the hidden source intent.
+	// then:
+	// - The source period follows the subscription while the customer-facing override remains unchanged.
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	periodEnd := s.mustParseTime("2024-03-01T00:00:00Z")
+	cancelAt := s.mustParseTime("2024-02-15T00:00:00Z")
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	var subscriptionView subscription.SubscriptionView
+	var chargeID chargesmeta.ChargeID
+	var overrideFields usagebased.IntentMutableFields
+
+	s.Run("given a subscription-owned charge with a customer override", func() {
+		unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromFloat(1),
+		})
+		subscriptionView = s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Credits Only Usage Override",
+					Key:            "credits-only-usage-override",
+					Version:        1,
+					Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name:       s.APIRequestsTotalFeature.Key,
+								Key:        s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price:      unitPrice,
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				}},
+			},
+		}, startAt)
+
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, periodEnd))
+		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		})
+		s.NoError(err)
+		s.Require().Len(result.Items, 1)
+		charge, err := result.Items[0].AsUsageBasedCharge()
+		s.NoError(err)
+		chargeID = charge.GetChargeID()
+		overrideFields = charge.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+		overrideFields.Name = "customer usage override"
+		overrideFields.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromFloat(2),
+		})
+
+		_, err = s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   chargeID.ID,
+			UsageBased: &overrideFields,
+		})
+		s.NoError(err)
+	})
+
+	s.Run("when cancellation sync changes the source period", func() {
+		clock.SetTime(cancelAt)
+		model, err := s.SubscriptionService.Cancel(ctx, subscriptionView.Subscription.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		s.NoError(err)
+		canceledView, err := s.SubscriptionService.GetView(ctx, model.NamespacedID)
+		s.NoError(err)
+		s.NoError(s.Service.SyncByView(ctx, canceledView, cancelAt))
+	})
+
+	s.Run("then the override remains effective over the changed base", func() {
+		result, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+		s.NoError(err)
+		charge, err := result.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(cancelAt, charge.Intent.GetBaseIntent().ServicePeriod.To)
+		s.Equal(overrideFields, *charge.Intent.GetOverrideLayerMutableFields())
+		s.Equal(overrideFields, charge.Intent.GetEffectiveIntent().IntentMutableFields)
+	})
+}
+
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPeriodCancellation() {
 	// Given:
 	// - a subscription is created with credits_only settlement
