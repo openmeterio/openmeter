@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -25,43 +24,40 @@ import (
 var _ billing.Service = (*Service)(nil)
 
 type Service struct {
-	adapter            billing.Adapter
-	sequenceService    sequence.Service
-	customerService    customer.Service
-	appService         app.Service
-	taxCodeService     taxcode.Service
-	logger             *slog.Logger
-	invoiceCalculator  invoicecalc.Calculator
-	lineEngines        *engineRegistry
-	ratingService      rating.Service
-	featureService     feature.FeatureConnector
-	meterService       meter.Service
-	streamingConnector streaming.Connector
+	adapter           billing.Adapter
+	sequenceService   sequence.Service
+	customerService   customer.Service
+	appService        app.Service
+	taxCodeService    taxcode.Service
+	logger            *slog.Logger
+	invoiceCalculator invoicecalc.Calculator
+	lineEngines       *engineRegistry
+	ratingService     rating.Service
+	featureService    feature.FeatureConnector
+	meterService      meter.Service
 
 	publisher eventbus.Publisher
 
-	advancementStrategy          billing.AdvancementStrategy
-	fsNamespaceLockdown          []string
-	maxParallelQuantitySnapshots int
+	advancementStrategy billing.AdvancementStrategy
+	fsNamespaceLockdown []string
 
 	standardInvoiceHooks *billing.StandardInvoiceHooks
 }
 
 type Config struct {
-	Adapter                      billing.Adapter
-	SequenceService              sequence.Service
-	CustomerService              customer.Service
-	AppService                   app.Service
-	TaxCodeService               taxcode.Service
-	RatingService                rating.Service
-	Logger                       *slog.Logger
-	FeatureService               feature.FeatureConnector
-	MeterService                 meter.Service
-	StreamingConnector           streaming.Connector
-	Publisher                    eventbus.Publisher
-	AdvancementStrategy          billing.AdvancementStrategy
-	FSNamespaceLockdown          []string
-	MaxParallelQuantitySnapshots int
+	Adapter                 billing.Adapter
+	SequenceService         sequence.Service
+	CustomerService         customer.Service
+	AppService              app.Service
+	TaxCodeService          taxcode.Service
+	RatingService           rating.Service
+	LegacyBillingLineEngine *billinglineengine.Engine
+	Logger                  *slog.Logger
+	FeatureService          feature.FeatureConnector
+	MeterService            meter.Service
+	Publisher               eventbus.Publisher
+	AdvancementStrategy     billing.AdvancementStrategy
+	FSNamespaceLockdown     []string
 }
 
 func (c Config) Validate() error {
@@ -89,6 +85,10 @@ func (c Config) Validate() error {
 		return errors.New("rating service cannot be null")
 	}
 
+	if c.LegacyBillingLineEngine == nil {
+		return errors.New("legacy billing line engine cannot be null")
+	}
+
 	if c.Logger == nil {
 		return errors.New("logger cannot be null")
 	}
@@ -101,20 +101,12 @@ func (c Config) Validate() error {
 		return errors.New("meter repo cannot be null")
 	}
 
-	if c.StreamingConnector == nil {
-		return errors.New("streaming connector cannot be null")
-	}
-
 	if c.Publisher == nil {
 		return errors.New("publisher cannot be null")
 	}
 
 	if err := c.AdvancementStrategy.Validate(); err != nil {
 		return fmt.Errorf("validating advancement strategy: %w", err)
-	}
-
-	if c.MaxParallelQuantitySnapshots < 1 {
-		return errors.New("max parallel snapshots must be greater than 0")
 	}
 
 	return nil
@@ -126,35 +118,24 @@ func New(config Config) (*Service, error) {
 	}
 
 	svc := &Service{
-		adapter:                      config.Adapter,
-		sequenceService:              config.SequenceService,
-		customerService:              config.CustomerService,
-		appService:                   config.AppService,
-		taxCodeService:               config.TaxCodeService,
-		logger:                       config.Logger,
-		ratingService:                config.RatingService,
-		featureService:               config.FeatureService,
-		meterService:                 config.MeterService,
-		streamingConnector:           config.StreamingConnector,
-		publisher:                    config.Publisher,
-		advancementStrategy:          config.AdvancementStrategy,
-		fsNamespaceLockdown:          config.FSNamespaceLockdown,
-		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
-		invoiceCalculator:            invoicecalc.New(),
-		lineEngines:                  newEngineRegistry(),
-		standardInvoiceHooks:         models.NewServiceHookRegistry[billing.StandardInvoice](),
+		adapter:              config.Adapter,
+		sequenceService:      config.SequenceService,
+		customerService:      config.CustomerService,
+		appService:           config.AppService,
+		taxCodeService:       config.TaxCodeService,
+		logger:               config.Logger,
+		ratingService:        config.RatingService,
+		featureService:       config.FeatureService,
+		meterService:         config.MeterService,
+		publisher:            config.Publisher,
+		advancementStrategy:  config.AdvancementStrategy,
+		fsNamespaceLockdown:  config.FSNamespaceLockdown,
+		invoiceCalculator:    invoicecalc.New(),
+		lineEngines:          newEngineRegistry(),
+		standardInvoiceHooks: models.NewServiceHookRegistry[billing.StandardInvoice](),
 	}
 
-	invoiceEngine, err := billinglineengine.New(billinglineengine.Config{
-		SplitLineGroupAdapter: config.Adapter,
-		QuantitySnapshotter:   svc,
-		RatingService:         config.RatingService,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating invoice engine: %w", err)
-	}
-
-	if err := svc.RegisterLineEngine(invoiceEngine); err != nil {
+	if err := svc.RegisterLineEngine(config.LegacyBillingLineEngine); err != nil {
 		return nil, fmt.Errorf("registering invoice engine: %w", err)
 	}
 

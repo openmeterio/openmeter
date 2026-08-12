@@ -30,6 +30,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequence "github.com/openmeterio/openmeter/openmeter/billing/sequence"
@@ -71,10 +72,11 @@ type BaseSuite struct {
 	TestDB   *testutils.TestDB
 	DBClient *db.Client
 
-	BillingAdapter    billing.Adapter
-	BillingService    billing.Service
-	SequenceService   billingsequence.Service
-	InvoiceCalculator *invoicecalc.MockableInvoiceCalculator
+	BillingAdapter          billing.Adapter
+	BillingService          billing.Service
+	LegacyBillingLineEngine *billinglineengine.Engine
+	SequenceService         billingsequence.Service
+	InvoiceCalculator       *invoicecalc.MockableInvoiceCalculator
 
 	FeatureService         feature.FeatureConnector
 	FeatureRepo            feature.FeatureRepo
@@ -236,20 +238,30 @@ func (s *BaseSuite) setupSuite() {
 	require.NoError(t, err)
 	s.SequenceService = billingSequenceService
 
-	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:                      billingAdapter,
-		SequenceService:              billingSequenceService,
-		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		CustomerService:              s.CustomerService,
-		AppService:                   s.AppService,
-		Logger:                       slog.Default(),
+	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
+	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
+		SplitLineGroupAdapter:        billingAdapter,
+		RatingService:                billingRatingService,
 		FeatureService:               s.FeatureService,
-		MeterService:                 s.MeterAdapter,
 		StreamingConnector:           s.MockStreamingConnector,
-		Publisher:                    publisher,
-		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
-		TaxCodeService:               taxCodeService,
+	})
+	require.NoError(t, err)
+	s.LegacyBillingLineEngine = legacyBillingLineEngine
+
+	billingService, err := billingservice.New(billingservice.Config{
+		Adapter:                 billingAdapter,
+		SequenceService:         billingSequenceService,
+		RatingService:           billingRatingService,
+		LegacyBillingLineEngine: legacyBillingLineEngine,
+		CustomerService:         s.CustomerService,
+		AppService:              s.AppService,
+		Logger:                  slog.Default(),
+		FeatureService:          s.FeatureService,
+		MeterService:            s.MeterAdapter,
+		Publisher:               publisher,
+		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
+		TaxCodeService:          taxCodeService,
 	})
 	require.NoError(t, err)
 

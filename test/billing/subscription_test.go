@@ -52,6 +52,7 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 
 	service, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		BillingService:          s.BillingService,
+		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,

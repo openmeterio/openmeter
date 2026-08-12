@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -26,7 +27,8 @@ type FeatureFlags struct {
 }
 
 type Config struct {
-	BillingService billing.Service
+	BillingService          billing.Service
+	LegacyBillingLineEngine *billinglineengine.Engine
 	// ChargesService is required for credit-only sync and charge-based provisioning.
 	ChargesService                charges.Service
 	SubscriptionService           subscription.Service
@@ -41,6 +43,10 @@ type Config struct {
 func (c Config) Validate() error {
 	if c.BillingService == nil {
 		return fmt.Errorf("billing service is required")
+	}
+
+	if c.LegacyBillingLineEngine == nil {
+		return fmt.Errorf("legacy billing line engine is required")
 	}
 
 	if c.SubscriptionService == nil {
@@ -86,6 +92,7 @@ func New(config Config) (*Service, error) {
 	}
 	reconcilerSvc, err := reconciler.New(reconciler.Config{
 		BillingService:          config.BillingService,
+		LegacyBillingLineEngine: config.LegacyBillingLineEngine,
 		ChargesService:          config.ChargesService,
 		EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice,
 		Logger:                  config.Logger,

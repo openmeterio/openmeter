@@ -15,6 +15,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestConfigValidateReturnsAllErrors(t *testing.T) {
+	err := (Config{}).Validate()
+
+	require.True(t, models.IsGenericValidationError(err))
+	require.ErrorContains(t, err, "split line group adapter is required")
+	require.ErrorContains(t, err, "rating service is required")
+	require.ErrorContains(t, err, "feature service is required")
+	require.ErrorContains(t, err, "streaming connector is required")
+	require.ErrorContains(t, err, "max parallel quantity snapshots must be greater than 0")
+}
+
 func TestValidateLegacyLineOverrideRejectsSplitLinePeriodChange(t *testing.T) {
 	period := lineEngineOverrideTestPeriod()
 	line := standardLineForLineEngineOverrideTest(t, period)

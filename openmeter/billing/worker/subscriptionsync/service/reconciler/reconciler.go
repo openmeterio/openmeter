@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
@@ -29,6 +30,7 @@ type Reconciler interface {
 
 type Config struct {
 	BillingService          billing.Service
+	LegacyBillingLineEngine *billinglineengine.Engine
 	ChargesService          charges.Service
 	EnableCreditThenInvoice bool
 	Logger                  *slog.Logger
@@ -38,6 +40,10 @@ type Config struct {
 func (c Config) Validate() error {
 	if c.BillingService == nil {
 		return fmt.Errorf("billing service is required")
+	}
+
+	if c.LegacyBillingLineEngine == nil {
+		return fmt.Errorf("legacy billing line engine is required")
 	}
 
 	if c.Logger == nil {
@@ -70,10 +76,19 @@ func New(config Config) (*Service, error) {
 		return nil, err
 	}
 
+	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService:      config.BillingService,
+		QuantitySnapshotter: config.LegacyBillingLineEngine,
+		Logger:              config.Logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating invoice updater: %w", err)
+	}
+
 	return &Service{
 		billingService:          config.BillingService,
 		logger:                  config.Logger,
-		invoiceUpdater:          invoiceupdater.New(config.BillingService, config.Logger),
+		invoiceUpdater:          invoiceUpdater,
 		chargesService:          config.ChargesService,
 		enableCreditThenInvoice: config.EnableCreditThenInvoice && config.ChargesService != nil,
 		featureGate:             config.FeatureGate,
