@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -1136,7 +1137,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetValidatesOwnershipPayload
 			ChargeID:   flatFeeChargeID.ID,
 			FlatFee:    &fields,
 		})
-		require.ErrorContains(s.T(), err, "is not owned by customer")
+		require.True(s.T(), models.IsGenericNotFoundError(err))
+		require.ErrorContains(s.T(), err, "charge not found")
 	})
 
 	s.Run("when the payload type does not match the charge", func() {
