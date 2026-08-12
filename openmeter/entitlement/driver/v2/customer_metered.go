@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/strcase"
 )
 
 type (
@@ -49,6 +50,7 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				CustomerIDOrKey:           params.CustomerIDOrKey,
 				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
+				Params:                    params.Params,
 			}, nil
 		},
 		func(ctx context.Context, request ListCustomerEntitlementGrantsHandlerRequest) (ListCustomerEntitlementGrantsHandlerResponse, error) {
@@ -68,16 +70,26 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				)
 			}
 
-			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, meteredentitlement.ListEntitlementGrantsParams{
+			listParams := meteredentitlement.ListEntitlementGrantsParams{
 				CustomerID:                cus.ID,
 				EntitlementIDOrFeatureKey: request.EntitlementIdOrFeatureKey,
-				OrderBy:                   grant.OrderBy(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.OrderBy)), string(grant.OrderByDefault))),
+				IncludeDeleted:            lo.FromPtr(request.Params.IncludeDeleted),
+				OrderBy:                   grant.OrderBy(strcase.CamelToSnake(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.OrderBy)), string(grant.OrderByDefault)))),
 				Order:                     sortx.Order(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.Order)), string(sortx.OrderDefault))),
-				Page: pagination.NewPage(
-					lo.FromPtrOr(request.Params.Page, 1),
-					lo.FromPtrOr(request.Params.PageSize, 100),
-				),
-			})
+			}
+
+			// page/pageSize takes precedence over the deprecated limit/offset mode.
+			if request.Params.Page != nil || request.Params.PageSize != nil {
+				listParams.Page = pagination.NewPage(
+					lo.FromPtrOr(request.Params.Page, commonhttp.DefaultPage),
+					lo.FromPtrOr(request.Params.PageSize, commonhttp.DefaultPageSize),
+				)
+			} else {
+				listParams.Limit = lo.FromPtrOr(request.Params.Limit, commonhttp.DefaultPageSize)
+				listParams.Offset = lo.FromPtrOr(request.Params.Offset, 0)
+			}
+
+			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, listParams)
 			if err != nil {
 				return ListCustomerEntitlementGrantsHandlerResponse{}, err
 			}

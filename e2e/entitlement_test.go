@@ -755,3 +755,113 @@ func TestEntitlementWithLatestAggregation(t *testing.T) {
 		}, 2*time.Minute, time.Second)
 	})
 }
+
+// TestCustomerEntitlementGrantsPagination pins that the list endpoint honors the caller supplied
+// pagination. The handler used to drop every query parameter, capping callers at the first 100
+// grants with no way to reach the rest.
+func TestCustomerEntitlementGrantsPagination(t *testing.T) {
+	client := initClient(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	customerKey := fmt.Sprintf("grant_paging_customer_%d", time.Now().UnixNano())
+	cust := CreateCustomerWithSubject(t, client, customerKey, customerKey+"-subject")
+
+	apiMONTH := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+	featureKey := fmt.Sprintf("grant_paging_feature_%d", time.Now().UnixNano())
+	{
+		resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
+			Name:      "Grant Paging Test Feature",
+			MeterSlug: convert.ToPointer("entitlement_uc_meter"),
+			Key:       featureKey,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+	}
+
+	{
+		metered := api.EntitlementMeteredV2CreateInputs{
+			Type:       "metered",
+			FeatureKey: &featureKey,
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: *apiMONTH,
+			},
+		}
+		body := api.CreateCustomerEntitlementV2JSONRequestBody{}
+		require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(metered))
+
+		resp, err := client.CreateCustomerEntitlementV2WithResponse(ctx, cust.Id, body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+	}
+
+	// given three grants, each effective a minute apart so that ordering by effectiveAt is
+	// deterministic
+	grantCount := 3
+	firstEffectiveAt := time.Now().Truncate(time.Minute)
+
+	for i := 0; i < grantCount; i++ {
+		resp, err := client.CreateCustomerEntitlementGrantV2WithResponse(ctx, cust.Id, featureKey, api.CreateCustomerEntitlementGrantV2JSONRequestBody{
+			Amount:      float64(i + 1),
+			EffectiveAt: firstEffectiveAt.Add(time.Duration(i) * time.Minute),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+	}
+
+	t.Run("Should honor pageSize", func(t *testing.T) {
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			PageSize: lo.ToPtr(2),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		require.Len(t, resp.JSON200.Items, 2)
+		require.Equal(t, 1, resp.JSON200.Page)
+		require.Equal(t, 2, resp.JSON200.PageSize)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should honor page", func(t *testing.T) {
+		// when the last page of size two is requested, only the remaining grant is returned
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Page:     lo.ToPtr(2),
+			PageSize: lo.ToPtr(2),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		require.Len(t, resp.JSON200.Items, 1)
+		require.Equal(t, 2, resp.JSON200.Page)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should honor limit and offset", func(t *testing.T) {
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Limit:   lo.ToPtr(2),
+			Offset:  lo.ToPtr(1),
+			OrderBy: lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:   lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		require.Len(t, resp.JSON200.Items, 2)
+	})
+
+	t.Run("Should reject an invalid page", func(t *testing.T) {
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Page:     lo.ToPtr(0),
+			PageSize: lo.ToPtr(2),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", resp.Body)
+	})
+}

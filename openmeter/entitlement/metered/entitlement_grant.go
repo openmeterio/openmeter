@@ -25,11 +25,28 @@ type ListEntitlementGrantsParams struct {
 	EntitlementIDOrFeatureKey string
 	OrderBy                   grant.OrderBy
 	Order                     sortx.Order
+	IncludeDeleted            bool
 	Page                      pagination.Page
+
+	// Limit and Offset are only honored when Page is not set. They serve the deprecated
+	// limit/offset pagination mode of the HTTP APIs and, unlike Page, yield no total count.
+	Limit  int
+	Offset int
 }
 
 func (p ListEntitlementGrantsParams) Validate() error {
-	if err := p.Page.Validate(); err != nil {
+	// A zero Page selects the deprecated limit/offset mode, where the page fields carry no
+	// meaning. Exactly one of the two modes has to bound the result set, otherwise the
+	// query would be unbounded.
+	if p.Page.IsZero() {
+		if p.Limit < 1 {
+			return fmt.Errorf("either Page or Limit is required")
+		}
+
+		if p.Offset < 0 {
+			return fmt.Errorf("offset cannot be negative")
+		}
+	} else if err := p.Page.Validate(); err != nil {
 		return err
 	}
 
@@ -111,10 +128,12 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 	grants, err := e.grantRepo.ListGrants(ctx, grant.ListParams{
 		Namespace:      ent.Namespace,
 		OwnerID:        convert.ToPointer(ent.ID),
-		IncludeDeleted: false,
+		IncludeDeleted: params.IncludeDeleted,
 		OrderBy:        params.OrderBy,
 		Order:          params.Order,
 		Page:           params.Page,
+		Limit:          params.Limit,
+		Offset:         params.Offset,
 	})
 	if err != nil {
 		return def, err
