@@ -26,11 +26,13 @@ func (i resolveInitialCostBasisInput) Validate() error {
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if !i.CostBasis.IsEmpty() {
 		if err := i.CostBasis.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("cost basis: %w", err))
 		}
 	}
+
 	if i.ResolvedAt.IsZero() {
 		errs = append(errs, errors.New("resolved at is required"))
 	}
@@ -42,13 +44,14 @@ func (s *service) resolveInitialCostBasis(ctx context.Context, input resolveInit
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+
 	if input.CostBasis.IsEmpty() {
 		return nil, nil
 	}
 
 	switch input.CostBasis.Type() {
 	case creditpurchase.CostBasisTypeFiat:
-		// Fiat costbasis is resolved on read from the intent, it doesn't have a credit_purchase_cost_basis row.
+		// Fiat cost basis is reconstructed from immutable intent on read; it has no credit_purchase_cost_basis row.
 		return nil, nil
 	case creditpurchase.CostBasisTypeCustomCurrency:
 		customCostBasis, err := input.CostBasis.AsCustomCurrency()
@@ -102,7 +105,7 @@ func (s *stateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
 		return fmt.Errorf("resolving dynamic cost basis for credit purchase %s: %w", s.Charge.ID, err)
 	}
 
-	persisted, err := s.Adapter.SetResolvedCostBasis(ctx, creditpurchase.SetResolvedCostBasisInput{
+	persistedState, err := s.Adapter.SetResolvedCostBasis(ctx, creditpurchase.SetResolvedCostBasisAdapterInput{
 		ChargeID:          s.Charge.GetChargeID(),
 		ChargeCostBasisID: *s.Charge.State.ChargeCostBasisID,
 		State:             resolvedState,
@@ -111,11 +114,7 @@ func (s *stateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
 		return fmt.Errorf("persisting dynamic cost basis for credit purchase %s: %w", s.Charge.ID, err)
 	}
 
-	if persisted.State == nil {
-		return fmt.Errorf("persisted dynamic cost basis is unresolved for credit purchase %s", s.Charge.ID)
-	}
-
-	s.Charge.State.ResolvedCostBasis = persisted.State
+	s.Charge.State.ResolvedCostBasis = &persistedState
 
 	return nil
 }

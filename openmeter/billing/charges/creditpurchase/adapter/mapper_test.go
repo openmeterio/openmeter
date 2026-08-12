@@ -41,8 +41,8 @@ func TestFromDBCostBasis(t *testing.T) {
 		require.False(t, mapped.CostBasis.IsEmpty())
 		require.Nil(t, mapped.ChargeCostBasisID)
 		require.NotNil(t, mapped.ResolvedCostBasis)
-		require.Equal(t, rate, mapped.ResolvedCostBasis.CostBasis)
-		require.False(t, mapped.ResolvedCostBasis.ResolvedAt.IsZero())
+		require.Equal(t, rate.InexactFloat64(), mapped.ResolvedCostBasis.CostBasis.InexactFloat64())
+		require.Equal(t, createdAt, mapped.ResolvedCostBasis.ResolvedAt)
 	})
 
 	t.Run("dedicated custom currency maps persisted state", func(t *testing.T) {

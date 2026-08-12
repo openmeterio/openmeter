@@ -255,7 +255,7 @@ func TestCreateInputValidateRejectsExpiryWithoutEffectiveAt(t *testing.T) {
 	}
 }
 
-func TestCreateChargeInputValidateInitialCostBasisState(t *testing.T) {
+func TestCreateChargeAdapterInputValidateInitialCostBasisState(t *testing.T) {
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
@@ -266,7 +266,7 @@ func TestCreateChargeInputValidateInitialCostBasisState(t *testing.T) {
 		CostBasis:  alpacadecimal.NewFromInt(1),
 		ResolvedAt: period.From,
 	}
-	input := CreateChargeInput{CreateInput: CreateInput{
+	input := CreateChargeAdapterInput{CreateInput: CreateInput{
 		Namespace: "test",
 		Intent: Intent{
 			Intent: meta.Intent{
@@ -383,8 +383,8 @@ func TestCreateChargeInputValidateInitialCostBasisState(t *testing.T) {
 	})
 }
 
-func TestSetResolvedCostBasisInputValidate(t *testing.T) {
-	valid := SetResolvedCostBasisInput{
+func TestSetResolvedCostBasisAdapterInputValidate(t *testing.T) {
+	valid := SetResolvedCostBasisAdapterInput{
 		ChargeID: meta.ChargeID{
 			Namespace: "test",
 			ID:        "charge-1",

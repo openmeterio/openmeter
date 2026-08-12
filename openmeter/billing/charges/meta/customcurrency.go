@@ -26,12 +26,16 @@ type FiatOverage struct {
 // CalculateFiatAmount converts an amount using a resolved cost basis and
 // rounds the result to the settlement currency's precision.
 func CalculateFiatAmount(amount, resolvedCostBasis alpacadecimal.Decimal, fiatCurrency *currencyx.FiatCurrency) (alpacadecimal.Decimal, error) {
+	if fiatCurrency == nil {
+		return alpacadecimal.Zero, fmt.Errorf("fiat currency is required")
+	}
+
 	if amount.IsNegative() {
 		return alpacadecimal.Zero, fmt.Errorf("amount cannot be negative")
 	}
 
-	if resolvedCostBasis.IsZero() {
-		return alpacadecimal.Zero, fmt.Errorf("resolved cost basis cannot be zero")
+	if !resolvedCostBasis.IsPositive() {
+		return alpacadecimal.Zero, fmt.Errorf("resolved cost basis must be positive")
 	}
 
 	return fiatCurrency.RoundToPrecision(amount.Mul(resolvedCostBasis)), nil

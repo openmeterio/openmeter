@@ -199,11 +199,12 @@ deterministic resolved state at charge creation. Custom-currency credit reuses
 the shared manual, pinned, or dynamic cost-basis intent and its durable resolved
 state; the shared model remains custom-currency-only. Dynamic intent is
 persisted unresolved, then pinned to the rate effective at the purchase's
-service-period start by the credit-purchase state machine. Invoice-settled
-purchases enter billing with a provisional zero-value line. When billing creates
+service-period start by the credit-purchase state machine. Externally settled
+purchases resolve immediately before their credit grant. Invoice-settled
+purchases enter billing with a provisional zero-value line; when billing creates
 the standard invoice, the state machine resolves the cost basis before booking
-the credit grant; the line engine then requires that resolution and replaces the
-provisional amount with the resolved fiat value.
+the credit grant. The line engine then requires that resolution and replaces
+the provisional amount with the resolved fiat value.
 
 Persisted credit purchases read settlement and cost basis only from their
 dedicated fields. Fiat purchases persist their scalar rate on the charge row;

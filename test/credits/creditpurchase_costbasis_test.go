@@ -134,7 +134,7 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 		s.Require().NotNil(created.GatheringLineToCreate)
 		gatheringPrice, err := created.GatheringLineToCreate.Price.AsFlat()
 		s.Require().NoError(err)
-		s.Equal(alpacadecimal.Zero, gatheringPrice.Amount)
+		s.Require().Equal(float64(0), gatheringPrice.Amount.InexactFloat64())
 
 		_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: fixture.customerID,
@@ -146,12 +146,12 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 		persisted, err := s.MustGetChargeByID(chargeID).AsCreditPurchaseCharge()
 		s.Require().NoError(err)
 		s.Nil(persisted.State.ResolvedCostBasis)
-		s.Equal(alpacadecimal.Zero, s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
+		s.Require().Equal(float64(0), s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
 			Currency:          fixture.customCurrency.Reference(),
 			CostBasisCurrency: mo.Some(&fixture.settlementCurrency),
 			CostBasis:         mo.Some(&fixture.resolvedRate),
 			CreditPriority:    lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-		}))
+		}).InexactFloat64())
 	})
 
 	s.Run("when billing materializes the invoice line", func() {
@@ -171,18 +171,18 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 		s.Require().Len(lines, 1)
 		line := lines[0]
 		s.Equal(currencyx.FiatCode(fixture.settlementCurrency), line.Currency)
-		s.Equal(fixture.fiatAmount, line.Totals.Amount)
-		s.Equal(fixture.fiatAmount, line.Totals.Total)
+		s.Require().Equal(fixture.fiatAmount.InexactFloat64(), line.Totals.Amount.InexactFloat64())
+		s.Require().Equal(fixture.fiatAmount.InexactFloat64(), line.Totals.Total.InexactFloat64())
 		s.Require().Len(line.DetailedLines, 1)
-		s.Equal(fixture.creditAmount, line.DetailedLines[0].Quantity)
-		s.Equal(fixture.resolvedRate, line.DetailedLines[0].PerUnitAmount)
+		s.Require().Equal(fixture.creditAmount.InexactFloat64(), line.DetailedLines[0].Quantity.InexactFloat64())
+		s.Require().Equal(fixture.resolvedRate.InexactFloat64(), line.DetailedLines[0].PerUnitAmount.InexactFloat64())
 
 		charge, err := s.MustGetChargeByID(chargeID).AsCreditPurchaseCharge()
 		s.Require().NoError(err)
 		s.Equal(creditpurchase.StatusActivePaymentPending, charge.Status)
 		s.Require().NotNil(charge.Realizations.CreditGrantRealization)
 		s.Require().NotNil(charge.State.ResolvedCostBasis)
-		s.Equal(fixture.resolvedRate, charge.State.ResolvedCostBasis.CostBasis)
+		s.Require().Equal(fixture.resolvedRate.InexactFloat64(), charge.State.ResolvedCostBasis.CostBasis.InexactFloat64())
 		s.Equal(fixture.resolvedCurrencyCostBasisID, lo.FromPtr(charge.State.ResolvedCostBasis.CostBasisID))
 		s.Equal(fixture.servicePeriod.From, charge.State.ResolvedCostBasis.ResolvedAt)
 
@@ -191,18 +191,18 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 			CostBasisCurrency: mo.Some(&fixture.settlementCurrency),
 			CostBasis:         mo.Some(&fixture.resolvedRate),
 		}
-		s.Equal(fixture.creditAmount, s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
+		s.Require().Equal(fixture.creditAmount.InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
 			Currency:          customRoute.Currency,
 			CostBasisCurrency: customRoute.CostBasisCurrency,
 			CostBasis:         customRoute.CostBasis,
 			CreditPriority:    lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-		}))
-		s.Equal(fixture.creditAmount.Neg(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		}).InexactFloat64())
+		s.Require().Equal(fixture.creditAmount.Neg().InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       customRoute.Currency,
 			CostBasisCurrency:              customRoute.CostBasisCurrency,
 			CostBasis:                      customRoute.CostBasis,
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
-		}))
+		}).InexactFloat64())
 	})
 
 	s.Run("when the invoice payment is authorized", func() {
@@ -222,19 +222,19 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 		s.Equal(creditpurchase.StatusActivePaymentAuthorized, charge.Status)
 		s.Require().NotNil(charge.Realizations.InvoiceSettlement)
 		s.Equal(payment.StatusAuthorized, charge.Realizations.InvoiceSettlement.Status)
-		s.Equal(fixture.fiatAmount, charge.Realizations.InvoiceSettlement.FiatAmount)
+		s.Require().Equal(fixture.fiatAmount.InexactFloat64(), charge.Realizations.InvoiceSettlement.FiatAmount.InexactFloat64())
 
-		s.Equal(alpacadecimal.Zero, s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		s.Require().Equal(float64(0), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       fixture.customCurrency.Reference(),
 			CostBasisCurrency:              mo.Some(&fixture.settlementCurrency),
 			CostBasis:                      mo.Some(&fixture.resolvedRate),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
-		}))
-		s.Equal(fixture.fiatAmount.Neg(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		}).InexactFloat64())
+		s.Require().Equal(fixture.fiatAmount.Neg().InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       currencies.NewCurrencyReference(fixture.settlementCurrency),
 			CostBasis:                      mo.Some(&fixture.resolvedRate),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
-		}))
+		}).InexactFloat64())
 	})
 
 	s.Run("when the invoice payment is settled", func() {
@@ -253,23 +253,78 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 		s.Equal(creditpurchase.StatusFinal, charge.Status)
 		s.Require().NotNil(charge.Realizations.InvoiceSettlement)
 		s.Equal(payment.StatusSettled, charge.Realizations.InvoiceSettlement.Status)
-		s.Equal(fixture.fiatAmount, charge.Realizations.InvoiceSettlement.FiatAmount)
+		s.Require().Equal(fixture.fiatAmount.InexactFloat64(), charge.Realizations.InvoiceSettlement.FiatAmount.InexactFloat64())
 		s.Require().NotNil(charge.Realizations.InvoiceSettlement.Authorized)
 		s.Require().NotNil(charge.Realizations.InvoiceSettlement.Settled)
 
-		s.Equal(alpacadecimal.Zero, s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		s.Require().Equal(float64(0), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       currencies.NewCurrencyReference(fixture.settlementCurrency),
 			CostBasis:                      mo.Some(&fixture.resolvedRate),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
-		}))
-		s.Equal(fixture.fiatAmount.Neg(), s.MustWashBalance(namespace, fixture.settlementCurrency, mo.Some(&fixture.resolvedRate)))
-		s.Equal(fixture.creditAmount, s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
+		}).InexactFloat64())
+		s.Require().Equal(
+			fixture.fiatAmount.Neg().InexactFloat64(),
+			s.MustWashBalance(namespace, fixture.settlementCurrency, mo.Some(&fixture.resolvedRate)).InexactFloat64(),
+		)
+		s.Require().Equal(fixture.creditAmount.InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
 			Currency:          fixture.customCurrency.Reference(),
 			CostBasisCurrency: mo.Some(&fixture.settlementCurrency),
 			CostBasis:         mo.Some(&fixture.resolvedRate),
 			CreditPriority:    lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-		}))
+		}).InexactFloat64())
 	})
+}
+
+func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementResolutionFailureIsAtomic() {
+	// given:
+	// - an unresolved dynamic invoice credit purchase without a cost basis at its service-period start
+	// when:
+	// - billing attempts to materialize the invoice
+	// then:
+	// - invoice creation fails without resolving the cost basis or granting credits
+	t := s.T()
+	ctx := t.Context()
+	namespace := s.GetUniqueNamespace("dynamic-invoice-credit-purchase-resolution-failure")
+
+	customInvoicing := s.SetupCustomInvoicing(namespace)
+	_ = s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	fixture := s.provisionDynamicCreditPurchaseFixtureWithoutThresholdCostBasis(namespace)
+	created, err := s.creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
+		Namespace: namespace,
+		Intent:    fixture.newIntent(creditpurchase.NewInvoiceSettlement()),
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(created.GatheringLineToCreate)
+
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: fixture.customerID,
+		Currency: currencyx.FiatCode(fixture.settlementCurrency),
+		Lines:    []billing.GatheringLine{*created.GatheringLineToCreate},
+	})
+	s.Require().NoError(err)
+
+	asOf := clock.Now()
+	_, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: fixture.customerID,
+		AsOf:     &asOf,
+	})
+	s.Require().ErrorContains(err, "cost basis not found")
+
+	charge, err := s.MustGetChargeByID(created.Charge.GetChargeID()).AsCreditPurchaseCharge()
+	s.Require().NoError(err)
+	s.Equal(creditpurchase.StatusCreated, charge.Status)
+	s.Nil(charge.State.ResolvedCostBasis)
+	s.Nil(charge.Realizations.CreditGrantRealization)
+	s.Require().Equal(float64(0), s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
+		Currency:       fixture.customCurrency.Reference(),
+		CostBasis:      mo.None[*alpacadecimal.Decimal](),
+		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
+	}).InexactFloat64())
 }
 
 func (s *CreditPurchaseCostBasisSuite) TestDynamicExternalSettlementLifecycle() {
@@ -309,7 +364,7 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicExternalSettlementLifecycle() 
 		chargeID = charge.GetChargeID()
 		s.Equal(creditpurchase.StatusActivePaymentPending, charge.Status)
 		s.Require().NotNil(charge.State.ResolvedCostBasis)
-		s.Equal(fixture.resolvedRate, charge.State.ResolvedCostBasis.CostBasis)
+		s.Require().Equal(fixture.resolvedRate.InexactFloat64(), charge.State.ResolvedCostBasis.CostBasis.InexactFloat64())
 		s.Equal(fixture.resolvedCurrencyCostBasisID, lo.FromPtr(charge.State.ResolvedCostBasis.CostBasisID))
 		s.Equal(fixture.servicePeriod.From, charge.State.ResolvedCostBasis.ResolvedAt)
 		s.Require().NotNil(charge.Realizations.CreditGrantRealization)
@@ -318,19 +373,25 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicExternalSettlementLifecycle() 
 
 		persisted, err := s.MustGetChargeByID(chargeID).AsCreditPurchaseCharge()
 		s.Require().NoError(err)
-		s.Equal(charge.State.ResolvedCostBasis, persisted.State.ResolvedCostBasis)
-		s.Equal(fixture.creditAmount, s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
+		s.Require().NotNil(persisted.State.ResolvedCostBasis)
+		s.Require().Equal(
+			charge.State.ResolvedCostBasis.CostBasis.InexactFloat64(),
+			persisted.State.ResolvedCostBasis.CostBasis.InexactFloat64(),
+		)
+		s.Equal(charge.State.ResolvedCostBasis.CostBasisID, persisted.State.ResolvedCostBasis.CostBasisID)
+		s.Equal(charge.State.ResolvedCostBasis.ResolvedAt, persisted.State.ResolvedCostBasis.ResolvedAt)
+		s.Require().Equal(fixture.creditAmount.InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
 			Currency:          fixture.customCurrency.Reference(),
 			CostBasisCurrency: mo.Some(&fixture.settlementCurrency),
 			CostBasis:         mo.Some(&fixture.resolvedRate),
 			CreditPriority:    lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-		}))
-		s.Equal(fixture.creditAmount.Neg(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		}).InexactFloat64())
+		s.Require().Equal(fixture.creditAmount.Neg().InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       fixture.customCurrency.Reference(),
 			CostBasisCurrency:              mo.Some(&fixture.settlementCurrency),
 			CostBasis:                      mo.Some(&fixture.resolvedRate),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
-		}))
+		}).InexactFloat64())
 	})
 
 	s.Run("when the external payment is authorized", func() {
@@ -345,19 +406,19 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicExternalSettlementLifecycle() 
 		s.Equal(creditpurchase.StatusActivePaymentAuthorized, charge.Status)
 		s.Require().NotNil(charge.Realizations.ExternalPaymentSettlement)
 		s.Equal(payment.StatusAuthorized, charge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(fixture.fiatAmount, charge.Realizations.ExternalPaymentSettlement.FiatAmount)
+		s.Require().Equal(fixture.fiatAmount.InexactFloat64(), charge.Realizations.ExternalPaymentSettlement.FiatAmount.InexactFloat64())
 
-		s.Equal(alpacadecimal.Zero, s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		s.Require().Equal(float64(0), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       fixture.customCurrency.Reference(),
 			CostBasisCurrency:              mo.Some(&fixture.settlementCurrency),
 			CostBasis:                      mo.Some(&fixture.resolvedRate),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
-		}))
-		s.Equal(fixture.fiatAmount.Neg(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		}).InexactFloat64())
+		s.Require().Equal(fixture.fiatAmount.Neg().InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       currencies.NewCurrencyReference(fixture.settlementCurrency),
 			CostBasis:                      mo.Some(&fixture.resolvedRate),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
-		}))
+		}).InexactFloat64())
 	})
 
 	s.Run("when the external payment is settled", func() {
@@ -371,22 +432,25 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicExternalSettlementLifecycle() 
 		s.Equal(creditpurchase.StatusFinal, charge.Status)
 		s.Require().NotNil(charge.Realizations.ExternalPaymentSettlement)
 		s.Equal(payment.StatusSettled, charge.Realizations.ExternalPaymentSettlement.Status)
-		s.Equal(fixture.fiatAmount, charge.Realizations.ExternalPaymentSettlement.FiatAmount)
+		s.Require().Equal(fixture.fiatAmount.InexactFloat64(), charge.Realizations.ExternalPaymentSettlement.FiatAmount.InexactFloat64())
 		s.Require().NotNil(charge.Realizations.ExternalPaymentSettlement.Authorized)
 		s.Require().NotNil(charge.Realizations.ExternalPaymentSettlement.Settled)
 
-		s.Equal(alpacadecimal.Zero, s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		s.Require().Equal(float64(0), s.mustAccountBalance(fixture.customerAccounts.ReceivableAccount, ledger.RouteFilter{
 			Currency:                       currencies.NewCurrencyReference(fixture.settlementCurrency),
 			CostBasis:                      mo.Some(&fixture.resolvedRate),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
-		}))
-		s.Equal(fixture.fiatAmount.Neg(), s.MustWashBalance(namespace, fixture.settlementCurrency, mo.Some(&fixture.resolvedRate)))
-		s.Equal(fixture.creditAmount, s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
+		}).InexactFloat64())
+		s.Require().Equal(
+			fixture.fiatAmount.Neg().InexactFloat64(),
+			s.MustWashBalance(namespace, fixture.settlementCurrency, mo.Some(&fixture.resolvedRate)).InexactFloat64(),
+		)
+		s.Require().Equal(fixture.creditAmount.InexactFloat64(), s.mustAccountBalance(fixture.customerAccounts.FBOAccount, ledger.RouteFilter{
 			Currency:          fixture.customCurrency.Reference(),
 			CostBasisCurrency: mo.Some(&fixture.settlementCurrency),
 			CostBasis:         mo.Some(&fixture.resolvedRate),
 			CreditPriority:    lo.ToPtr(ledger.DefaultCustomerFBOPriority),
-		}))
+		}).InexactFloat64())
 	})
 }
 
@@ -405,6 +469,34 @@ type dynamicCreditPurchaseFixture struct {
 }
 
 func (s *CreditPurchaseCostBasisSuite) provisionDynamicCreditPurchaseFixture(namespace string) dynamicCreditPurchaseFixture {
+	s.T().Helper()
+
+	fixture := s.provisionDynamicCreditPurchaseFixtureWithoutThresholdCostBasis(namespace)
+	ctx := s.T().Context()
+
+	thresholdCostBasis, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
+		Namespace:     namespace,
+		CurrencyID:    fixture.customCurrency.ID,
+		FiatCode:      fixture.settlementCurrency,
+		Rate:          fixture.resolvedRate,
+		EffectiveFrom: lo.ToPtr(fixture.servicePeriod.From),
+	})
+	s.Require().NoError(err)
+	fixture.resolvedCurrencyCostBasisID = thresholdCostBasis.ID
+
+	_, err = s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
+		Namespace:     namespace,
+		CurrencyID:    fixture.customCurrency.ID,
+		FiatCode:      fixture.settlementCurrency,
+		Rate:          alpacadecimal.NewFromFloat(0.5),
+		EffectiveFrom: lo.ToPtr(fixture.servicePeriod.From.Add(10 * 24 * time.Hour)),
+	})
+	s.Require().NoError(err)
+
+	return fixture
+}
+
+func (s *CreditPurchaseCostBasisSuite) provisionDynamicCreditPurchaseFixtureWithoutThresholdCostBasis(namespace string) dynamicCreditPurchaseFixture {
 	s.T().Helper()
 
 	ctx := s.T().Context()
@@ -432,25 +524,6 @@ func (s *CreditPurchaseCostBasisSuite) provisionDynamicCreditPurchaseFixture(nam
 			DecimalMark:        ".",
 			ThousandsSeparator: ",",
 		},
-	})
-	s.Require().NoError(err)
-
-	thresholdCostBasis, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
-		Namespace:     namespace,
-		CurrencyID:    fixture.customCurrency.ID,
-		FiatCode:      fixture.settlementCurrency,
-		Rate:          fixture.resolvedRate,
-		EffectiveFrom: lo.ToPtr(fixture.servicePeriod.From),
-	})
-	s.Require().NoError(err)
-	fixture.resolvedCurrencyCostBasisID = thresholdCostBasis.ID
-
-	_, err = s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
-		Namespace:     namespace,
-		CurrencyID:    fixture.customCurrency.ID,
-		FiatCode:      fixture.settlementCurrency,
-		Rate:          alpacadecimal.NewFromFloat(0.5),
-		EffectiveFrom: lo.ToPtr(fixture.servicePeriod.From.Add(10 * 24 * time.Hour)),
 	})
 	s.Require().NoError(err)
 
@@ -499,6 +572,8 @@ func (s *CreditPurchaseCostBasisSuite) mustAccountBalance(account ledger.Account
 	return balance
 }
 
+// TODO: Use the production lineage service once advance lineage supports the
+// full identity of custom currencies instead of rejecting them.
 type creditPurchaseCostBasisLineage struct {
 	lineage.Service
 }

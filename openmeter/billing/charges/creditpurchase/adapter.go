@@ -27,8 +27,8 @@ type Adapter interface {
 }
 
 type ChargeAdapter interface {
-	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
-	SetResolvedCostBasis(ctx context.Context, input SetResolvedCostBasisInput) (costbasis.CostBasis, error)
+	CreateCharge(ctx context.Context, in CreateChargeAdapterInput) (Charge, error)
+	SetResolvedCostBasis(ctx context.Context, input SetResolvedCostBasisAdapterInput) (costbasis.State, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	MarkVoided(ctx context.Context, input MarkVoidedAdapterInput) (ChargeBase, error)
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
@@ -37,15 +37,15 @@ type ChargeAdapter interface {
 	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
 }
 
-type SetResolvedCostBasisInput struct {
+type SetResolvedCostBasisAdapterInput struct {
 	ChargeID          meta.ChargeID
 	ChargeCostBasisID string
 	State             costbasis.State
 }
 
-var _ models.Validator = SetResolvedCostBasisInput{}
+var _ models.Validator = SetResolvedCostBasisAdapterInput{}
 
-func (i SetResolvedCostBasisInput) Validate() error {
+func (i SetResolvedCostBasisAdapterInput) Validate() error {
 	var errs []error
 
 	if err := i.ChargeID.Validate(); err != nil {
@@ -63,7 +63,7 @@ func (i SetResolvedCostBasisInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type CreateChargeInput struct {
+type CreateChargeAdapterInput struct {
 	CreateInput
 
 	// InitialCostBasisState is persisted only for manual and pinned custom-currency
@@ -72,9 +72,9 @@ type CreateChargeInput struct {
 	InitialCostBasisState *costbasis.State
 }
 
-var _ models.Validator = (*CreateChargeInput)(nil)
+var _ models.Validator = (*CreateChargeAdapterInput)(nil)
 
-func (i CreateChargeInput) Validate() error {
+func (i CreateChargeAdapterInput) Validate() error {
 	var errs []error
 
 	if err := i.CreateInput.Validate(); err != nil {

@@ -102,7 +102,10 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseResolvesInitialCostBa
 			s.Require().NoError(err)
 			s.Require().NotNil(created.Charge.State.ChargeCostBasisID)
 			s.Require().NotNil(created.Charge.State.ResolvedCostBasis)
-			s.Equal(test.expectedRate, created.Charge.State.ResolvedCostBasis.CostBasis)
+			s.Require().Equal(
+				test.expectedRate.InexactFloat64(),
+				created.Charge.State.ResolvedCostBasis.CostBasis.InexactFloat64(),
+			)
 			s.Equal(test.expectedCurrencyCostBasis, created.Charge.State.ResolvedCostBasis.CostBasisID)
 			s.Equal(now.Truncate(time.Microsecond), created.Charge.State.ResolvedCostBasis.ResolvedAt.Truncate(time.Microsecond))
 
@@ -110,7 +113,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseResolvesInitialCostBa
 			s.Equal(currencyx.FiatCode(currency.USD), created.GatheringLineToCreate.Currency)
 			price, err := created.GatheringLineToCreate.Price.AsFlat()
 			s.Require().NoError(err)
-			s.Equal(test.expectedFiatAmount, price.Amount)
+			s.Require().Equal(test.expectedFiatAmount.InexactFloat64(), price.Amount.InexactFloat64())
 
 			persisted, err := s.Charges.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
 				Namespace: namespace,
@@ -120,7 +123,10 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseResolvesInitialCostBa
 			s.Require().Len(persisted, 1)
 			s.Equal(created.Charge.State.ChargeCostBasisID, persisted[0].State.ChargeCostBasisID)
 			s.Require().NotNil(persisted[0].State.ResolvedCostBasis)
-			s.Equal(created.Charge.State.ResolvedCostBasis.CostBasis, persisted[0].State.ResolvedCostBasis.CostBasis)
+			s.Require().Equal(
+				created.Charge.State.ResolvedCostBasis.CostBasis.InexactFloat64(),
+				persisted[0].State.ResolvedCostBasis.CostBasis.InexactFloat64(),
+			)
 			s.Equal(created.Charge.State.ResolvedCostBasis.CostBasisID, persisted[0].State.ResolvedCostBasis.CostBasisID)
 			s.Equal(
 				created.Charge.State.ResolvedCostBasis.ResolvedAt.Truncate(time.Microsecond),
@@ -303,17 +309,19 @@ func (s *CreditPurchaseTestSuite) TestSetResolvedDynamicCostBasisOverwritesExist
 		CostBasisID: lo.ToPtr(currencyCostBasis.ID),
 		ResolvedAt:  servicePeriodFrom.Add(time.Hour),
 	}
-	updated, err := s.CreditPurchaseAdapter.SetResolvedCostBasis(ctx, creditpurchase.SetResolvedCostBasisInput{
+	updated, err := s.CreditPurchaseAdapter.SetResolvedCostBasis(ctx, creditpurchase.SetResolvedCostBasisAdapterInput{
 		ChargeID:          created.Charge.GetChargeID(),
 		ChargeCostBasisID: *created.Charge.State.ChargeCostBasisID,
 		State:             replacement,
 	})
 	s.Require().NoError(err)
-	s.Equal(&replacement, updated.State)
+	s.Require().Equal(replacement.CostBasis.InexactFloat64(), updated.CostBasis.InexactFloat64())
+	s.Equal(replacement.CostBasisID, updated.CostBasisID)
+	s.Equal(replacement.ResolvedAt, updated.ResolvedAt)
 
 	wrongChargeID := created.Charge.GetChargeID()
 	wrongChargeID.ID = "another-charge"
-	_, err = s.CreditPurchaseAdapter.SetResolvedCostBasis(ctx, creditpurchase.SetResolvedCostBasisInput{
+	_, err = s.CreditPurchaseAdapter.SetResolvedCostBasis(ctx, creditpurchase.SetResolvedCostBasisAdapterInput{
 		ChargeID:          wrongChargeID,
 		ChargeCostBasisID: *created.Charge.State.ChargeCostBasisID,
 		State: costbasis.State{
@@ -330,7 +338,13 @@ func (s *CreditPurchaseTestSuite) TestSetResolvedDynamicCostBasisOverwritesExist
 	})
 	s.Require().NoError(err)
 	s.Require().Len(persisted, 1)
-	s.Equal(&replacement, persisted[0].State.ResolvedCostBasis)
+	s.Require().NotNil(persisted[0].State.ResolvedCostBasis)
+	s.Require().Equal(
+		replacement.CostBasis.InexactFloat64(),
+		persisted[0].State.ResolvedCostBasis.CostBasis.InexactFloat64(),
+	)
+	s.Equal(replacement.CostBasisID, persisted[0].State.ResolvedCostBasis.CostBasisID)
+	s.Equal(replacement.ResolvedAt, persisted[0].State.ResolvedCostBasis.ResolvedAt)
 }
 
 func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseLineEnginePreviewsUnresolvedCostBasisAsZero() {
@@ -395,7 +409,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseLineEnginePreviewsUnr
 	s.Require().Len(lines, 1)
 	price, err := lines[0].UsageBased.Price.AsFlat()
 	s.Require().NoError(err)
-	s.Equal(alpacadecimal.Zero, price.Amount)
+	s.Require().Equal(float64(0), price.Amount.InexactFloat64())
 	s.Empty(lines[0].DetailedLines)
 	persisted, err := s.Charges.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
 		Namespace: namespace,

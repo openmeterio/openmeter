@@ -41,13 +41,13 @@ func (a *adapter) loadCostBasisEdge(ctx context.Context, entity *entdb.ChargeCre
 	return nil
 }
 
-func (a *adapter) SetResolvedCostBasis(ctx context.Context, input creditpurchase.SetResolvedCostBasisInput) (costbasis.CostBasis, error) {
+func (a *adapter) SetResolvedCostBasis(ctx context.Context, input creditpurchase.SetResolvedCostBasisAdapterInput) (costbasis.State, error) {
 	if err := input.Validate(); err != nil {
-		return costbasis.CostBasis{}, err
+		return costbasis.State{}, err
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (costbasis.CostBasis, error) {
-		entity, err := tx.db.ChargeCreditPurchaseCostBasis.UpdateOneID(input.ChargeCostBasisID).
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (costbasis.State, error) {
+		_, err := tx.db.ChargeCreditPurchaseCostBasis.UpdateOneID(input.ChargeCostBasisID).
 			Where(
 				dbchargecreditpurchasecostbasis.Namespace(input.ChargeID.Namespace),
 				costBasisOwnedByCharge(input.ChargeID),
@@ -57,7 +57,7 @@ func (a *adapter) SetResolvedCostBasis(ctx context.Context, input creditpurchase
 			SetResolvedAt(input.State.ResolvedAt.UTC()).
 			Save(ctx)
 		if entdb.IsNotFound(err) {
-			return costbasis.CostBasis{}, models.NewGenericNotFoundError(
+			return costbasis.State{}, models.NewGenericNotFoundError(
 				fmt.Errorf(
 					"credit purchase cost basis not found [charge_id=%s,cost_basis_id=%s]",
 					input.ChargeID.ID,
@@ -66,7 +66,7 @@ func (a *adapter) SetResolvedCostBasis(ctx context.Context, input creditpurchase
 			)
 		}
 		if err != nil {
-			return costbasis.CostBasis{}, fmt.Errorf(
+			return costbasis.State{}, fmt.Errorf(
 				"setting resolved credit purchase cost basis [charge_id=%s,cost_basis_id=%s]: %w",
 				input.ChargeID.ID,
 				input.ChargeCostBasisID,
@@ -74,12 +74,10 @@ func (a *adapter) SetResolvedCostBasis(ctx context.Context, input creditpurchase
 			)
 		}
 
-		persisted, err := costbasis.Get(entity)
-		if err != nil {
-			return costbasis.CostBasis{}, fmt.Errorf("mapping resolved credit purchase cost basis: %w", err)
-		}
+		persistedState := input.State
+		persistedState.ResolvedAt = persistedState.ResolvedAt.UTC()
 
-		return persisted, nil
+		return persistedState, nil
 	})
 }
 

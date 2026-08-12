@@ -42,7 +42,7 @@ func TestBuildInvoiceCreditPurchaseGatheringLineUsesZeroForUnresolvedCostBasis(t
 	require.Equal(t, currencyx.FiatCode("USD"), line.Currency)
 	price, err := line.Price.AsFlat()
 	require.NoError(t, err)
-	require.Equal(t, alpacadecimal.Zero, price.Amount)
+	require.Equal(t, float64(0), price.Amount.InexactFloat64())
 }
 
 func TestInvoiceCreditPurchaseStateMachineRejectsMismatchedPaymentLine(t *testing.T) {

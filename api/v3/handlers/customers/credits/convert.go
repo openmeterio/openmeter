@@ -97,13 +97,17 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 
 	switch settlement.Type() {
 	case creditpurchase.SettlementTypeInvoice:
-		resolvedCostBasis, err := charge.GetResolvedCostBasis()
+		purchaseAmount, err := charge.GetFiatSettlementAmount()
 		if err != nil {
-			return nil, fmt.Errorf("getting resolved cost basis: %w", err)
+			return nil, fmt.Errorf("getting fiat settlement amount: %w", err)
 		}
 
-		costBasis := resolvedCostBasis.Rate.String()
-		purchaseAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
+		fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+		if err != nil {
+			return nil, fmt.Errorf("getting settlement fiat currency: %w", err)
+		}
+
+		costBasis := charge.State.ResolvedCostBasis.CostBasis.String()
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
 		if charge.Realizations.InvoiceSettlement != nil {
@@ -112,7 +116,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 
 		return &api.BillingCreditGrantPurchase{
 			Amount:           purchaseAmount.String(),
-			Currency:         api.CurrencyCode(resolvedCostBasis.FiatCurrency.GetFiatCode()),
+			Currency:         api.CurrencyCode(fiatCurrency.GetFiatCode()),
 			PerUnitCostBasis: &costBasis,
 			SettlementStatus: &settlementStatus,
 		}, nil
@@ -123,13 +127,17 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 			return nil, fmt.Errorf("getting external settlement: %w", err)
 		}
 
-		resolvedCostBasis, err := charge.GetResolvedCostBasis()
+		purchaseAmount, err := charge.GetFiatSettlementAmount()
 		if err != nil {
-			return nil, fmt.Errorf("getting resolved cost basis: %w", err)
+			return nil, fmt.Errorf("getting fiat settlement amount: %w", err)
 		}
 
-		costBasis := resolvedCostBasis.Rate.String()
-		purchaseAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
+		fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+		if err != nil {
+			return nil, fmt.Errorf("getting settlement fiat currency: %w", err)
+		}
+
+		costBasis := charge.State.ResolvedCostBasis.CostBasis.String()
 		availPolicy, err := toAPIBillingCreditAvailabilityPolicy(ext.InitialStatus)
 		if err != nil {
 			return nil, fmt.Errorf("converting availability policy: %w", err)
@@ -142,7 +150,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 
 		return &api.BillingCreditGrantPurchase{
 			Amount:             purchaseAmount.String(),
-			Currency:           api.CurrencyCode(resolvedCostBasis.FiatCurrency.GetFiatCode()),
+			Currency:           api.CurrencyCode(fiatCurrency.GetFiatCode()),
 			PerUnitCostBasis:   &costBasis,
 			AvailabilityPolicy: &availPolicy,
 			SettlementStatus:   &settlementStatus,

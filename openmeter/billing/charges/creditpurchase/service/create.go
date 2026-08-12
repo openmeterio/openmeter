@@ -35,7 +35,7 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		}
 
 		// Let's create the credit purchase charge
-		charge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeInput{
+		charge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeAdapterInput{
 			CreateInput:           input,
 			InitialCostBasisState: initialCostBasisState,
 		})

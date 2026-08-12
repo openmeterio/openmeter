@@ -121,12 +121,28 @@ func TestCalculateFiatAmount(t *testing.T) {
 		require.ErrorContains(t, err, "amount cannot be negative")
 	})
 
-	t.Run("rejects zero cost basis", func(t *testing.T) {
+	t.Run("rejects non-positive cost basis", func(t *testing.T) {
 		_, err := CalculateFiatAmount(
 			alpacadecimal.NewFromInt(1),
 			alpacadecimal.Zero,
 			fiatCurrency,
 		)
-		require.ErrorContains(t, err, "resolved cost basis cannot be zero")
+		require.ErrorContains(t, err, "resolved cost basis must be positive")
+
+		_, err = CalculateFiatAmount(
+			alpacadecimal.NewFromInt(1),
+			alpacadecimal.NewFromInt(-1),
+			fiatCurrency,
+		)
+		require.ErrorContains(t, err, "resolved cost basis must be positive")
+	})
+
+	t.Run("rejects missing fiat currency", func(t *testing.T) {
+		_, err := CalculateFiatAmount(
+			alpacadecimal.NewFromInt(1),
+			alpacadecimal.NewFromInt(1),
+			nil,
+		)
+		require.ErrorContains(t, err, "fiat currency is required")
 	})
 }

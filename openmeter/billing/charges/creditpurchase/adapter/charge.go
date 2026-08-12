@@ -62,7 +62,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 	})
 }
 
-func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeInput) (creditpurchase.Charge, error) {
+func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeAdapterInput) (creditpurchase.Charge, error) {
 	if err := in.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -146,7 +146,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 
 type applyCostBasisInput struct {
 	Create *db.ChargeCreditPurchaseCreate
-	Charge creditpurchase.CreateChargeInput
+	Charge creditpurchase.CreateChargeAdapterInput
 }
 
 var _ models.Validator = (*applyCostBasisInput)(nil)

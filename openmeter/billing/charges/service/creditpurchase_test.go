@@ -627,7 +627,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 		s.Equal(*line.ChargeID, chargeID.ID)
 	})
 
-	// The TestStandardInvoiceCreditPurchase test covers the full non-deferred invoicing path.
-	// This path only covers parts up to the point where the gathering line is created, as for
-	// invoice based triggers the lifecycle is governed by the invoicing line engine.
+	// Dynamic invoice lifecycle coverage exercises materialization and payment transitions.
+	// This test remains focused on the deferred path up to gathering-line creation.
 }
