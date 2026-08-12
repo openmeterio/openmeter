@@ -23,15 +23,15 @@ function client() {
 }
 
 describe('wire mapper (toWire/fromWire over real schemas)', () => {
-  it('preserves record keys and renames value fields (governance)', () => {
+  it('preserves record keys and renames value fields (entitlement access)', () => {
     const wire = { features: { my_user_feature: { has_access: true } } }
-    const camel = fromWire(wire, schemas.governanceQueryResult) as any
+    const camel = fromWire(wire, schemas.entitlementAccessQueryResult) as any
     expect(Object.keys(camel.features)[0]).toBe('my_user_feature')
     expect(camel.features.my_user_feature.hasAccess).toBe(true)
 
     const back = toWire(
       { features: { my_user_feature: { hasAccess: true } } },
-      schemas.governanceQueryResult,
+      schemas.entitlementAccessQueryResult,
     ) as any
     expect(Object.keys(back.features)[0]).toBe('my_user_feature')
     expect(back.features.my_user_feature.has_access).toBe(true)
@@ -42,7 +42,7 @@ describe('wire mapper (toWire/fromWire over real schemas)', () => {
     // not a data key — build it the way a real HTTP response body arrives
     // (JSON.parse always yields `__proto__` as an own enumerable property).
     const wire = JSON.parse('{"features":{"__proto__":{"has_access":true}}}')
-    const camel = fromWire(wire, schemas.governanceQueryResult) as any
+    const camel = fromWire(wire, schemas.entitlementAccessQueryResult) as any
     expect(Object.keys(camel.features)).toEqual(['__proto__'])
     expect(camel.features.__proto__.hasAccess).toBe(true)
     expect(Object.getPrototypeOf({})).toBe(Object.prototype)
@@ -54,7 +54,7 @@ describe('wire mapper (toWire/fromWire over real schemas)', () => {
     // object for consumers — instanceof checks, template literals, etc. — rather
     // than staying a `[Object: null prototype]` forever.
     const wire = { features: { my_user_feature: { has_access: true } } }
-    const camel = fromWire(wire, schemas.governanceQueryResult) as any
+    const camel = fromWire(wire, schemas.entitlementAccessQueryResult) as any
     expect(Object.getPrototypeOf(camel)).toBe(Object.prototype)
     expect(Object.getPrototypeOf(camel.features)).toBe(Object.prototype)
     expect(Object.getPrototypeOf(camel.features.my_user_feature)).toBe(
@@ -609,10 +609,10 @@ describe('generated wire schemas (snake_case, strict)', () => {
   })
 
   it('a record value model wire schema preserves user keys, snakeifies fields', () => {
-    expect(ok(schemas.governanceFeatureAccessWire, { has_access: true })).toBe(
+    expect(ok(schemas.entitlementFeatureAccessWire, { has_access: true })).toBe(
       true,
     )
-    expect(ok(schemas.governanceFeatureAccessWire, { hasAccess: true })).toBe(
+    expect(ok(schemas.entitlementFeatureAccessWire, { hasAccess: true })).toBe(
       false,
     )
   })

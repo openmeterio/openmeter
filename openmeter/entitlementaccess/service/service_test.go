@@ -17,7 +17,7 @@ import (
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/governance"
+	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -124,7 +124,7 @@ func setupTestDeps(t *testing.T) *testDeps {
 	}
 }
 
-func newTestService(t *testing.T, deps *testDeps) governance.Service {
+func newTestService(t *testing.T, deps *testDeps) entitlementaccess.Service {
 	t.Helper()
 
 	svc, err := New(Config{
@@ -259,14 +259,14 @@ func createMeteredFeatureAndEntitlement(t *testing.T, deps *testDeps, ns, featur
 
 // --- Tests ---
 
-func TestQueryAccess_UnknownCustomerKey(t *testing.T) {
+func TestQuery_UnknownCustomerKey(t *testing.T) {
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
 	svc := newTestService(t, deps)
 	ns := newTestNamespace(t)
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"ghost"},
 		PageSize:     testPageSize,
@@ -275,11 +275,11 @@ func TestQueryAccess_UnknownCustomerKey(t *testing.T) {
 
 	assert.Empty(t, res.Customers)
 	require.Len(t, res.Errors, 1)
-	assert.Equal(t, governance.QueryErrorCustomerNotFound, res.Errors[0].Code)
+	assert.Equal(t, entitlementaccess.QueryErrorCustomerNotFound, res.Errors[0].Code)
 	assert.Equal(t, "ghost", res.Errors[0].CustomerKey)
 }
 
-func TestQueryAccess_KnownCustomerNoEntitlements(t *testing.T) {
+func TestQuery_KnownCustomerNoEntitlements(t *testing.T) {
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
@@ -288,7 +288,7 @@ func TestQueryAccess_KnownCustomerNoEntitlements(t *testing.T) {
 
 	cust := createCustomer(t, deps, ns, "acme", []string{"acme"})
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{cust.GetUsageAttribution().SubjectKeys[0]},
 		PageSize:     testPageSize,
@@ -300,7 +300,7 @@ func TestQueryAccess_KnownCustomerNoEntitlements(t *testing.T) {
 	assert.Empty(t, res.Errors)
 }
 
-func TestQueryAccess_BooleanEntitlement_HasAccess(t *testing.T) {
+func TestQuery_BooleanEntitlement_HasAccess(t *testing.T) {
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
@@ -310,7 +310,7 @@ func TestQueryAccess_BooleanEntitlement_HasAccess(t *testing.T) {
 	cust := createCustomer(t, deps, ns, "acme", []string{"acme"})
 	createBooleanFeatureAndEntitlement(t, deps, ns, "premium", cust)
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme"},
 		FeatureKeys:  []string{"premium"},
@@ -327,7 +327,7 @@ func TestQueryAccess_BooleanEntitlement_HasAccess(t *testing.T) {
 	assert.Nil(t, fa.Reason)
 }
 
-func TestQueryAccess_FeatureNotFound(t *testing.T) {
+func TestQuery_FeatureNotFound(t *testing.T) {
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
@@ -336,7 +336,7 @@ func TestQueryAccess_FeatureNotFound(t *testing.T) {
 
 	createCustomer(t, deps, ns, "acme", []string{"acme"})
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme"},
 		FeatureKeys:  []string{"does-not-exist"},
@@ -350,10 +350,10 @@ func TestQueryAccess_FeatureNotFound(t *testing.T) {
 
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
-	assert.Equal(t, governance.ReasonCodeFeatureNotFound, fa.Reason.Code)
+	assert.Equal(t, entitlementaccess.ReasonCodeFeatureNotFound, fa.Reason.Code)
 }
 
-func TestQueryAccess_FeatureUnavailable(t *testing.T) {
+func TestQuery_FeatureUnavailable(t *testing.T) {
 	// Feature exists in org but customer has no entitlement for it.
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
@@ -364,7 +364,7 @@ func TestQueryAccess_FeatureUnavailable(t *testing.T) {
 	createCustomer(t, deps, ns, "acme", []string{"acme"})
 	createOrphanFeature(t, deps, ns, "enterprise")
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme"},
 		FeatureKeys:  []string{"enterprise"},
@@ -378,10 +378,10 @@ func TestQueryAccess_FeatureUnavailable(t *testing.T) {
 
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
-	assert.Equal(t, governance.ReasonCodeFeatureUnavailable, fa.Reason.Code)
+	assert.Equal(t, entitlementaccess.ReasonCodeFeatureUnavailable, fa.Reason.Code)
 }
 
-func TestQueryAccess_MultipleKeysSameCustomer(t *testing.T) {
+func TestQuery_MultipleKeysSameCustomer(t *testing.T) {
 	// Two input keys resolve to the same customer; result has one entry with both keys in Matched.
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
@@ -392,7 +392,7 @@ func TestQueryAccess_MultipleKeysSameCustomer(t *testing.T) {
 	// customer key = "acme", usage attribution subject key = "acme-sub"
 	createCustomer(t, deps, ns, "acme", []string{"acme-sub"})
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme", "acme-sub"},
 		PageSize:     testPageSize,
@@ -405,7 +405,7 @@ func TestQueryAccess_MultipleKeysSameCustomer(t *testing.T) {
 	assert.ElementsMatch(t, []string{"acme", "acme-sub"}, res.Customers[0].Matched)
 }
 
-func TestQueryAccess_MixedHitsAndMisses(t *testing.T) {
+func TestQuery_MixedHitsAndMisses(t *testing.T) {
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
@@ -415,7 +415,7 @@ func TestQueryAccess_MixedHitsAndMisses(t *testing.T) {
 	cust := createCustomer(t, deps, ns, "acme", []string{"acme"})
 	createBooleanFeatureAndEntitlement(t, deps, ns, "feature-a", cust)
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme", "unknown-key"},
 		FeatureKeys:  []string{"feature-a"},
@@ -425,11 +425,11 @@ func TestQueryAccess_MixedHitsAndMisses(t *testing.T) {
 
 	require.Len(t, res.Customers, 1)
 	require.Len(t, res.Errors, 1)
-	assert.Equal(t, governance.QueryErrorCustomerNotFound, res.Errors[0].Code)
+	assert.Equal(t, entitlementaccess.QueryErrorCustomerNotFound, res.Errors[0].Code)
 	assert.True(t, res.Customers[0].Features["feature-a"].HasAccess)
 }
 
-func TestQueryAccess_NoFeatureKeysReturnsAll(t *testing.T) {
+func TestQuery_NoFeatureKeysReturnsAll(t *testing.T) {
 	// When no feature keys are given, all org features are returned — including ones
 	// the customer has no entitlement for (marked feature-unavailable).
 	deps := setupTestDeps(t)
@@ -444,7 +444,7 @@ func TestQueryAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 	// feat-3 exists in the org but the customer has no entitlement for it.
 	createOrphanFeature(t, deps, ns, "feat-3")
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme"},
 		PageSize:     testPageSize,
@@ -460,10 +460,10 @@ func TestQueryAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 
 	assert.False(t, feat3.HasAccess)
 	require.NotNil(t, feat3.Reason)
-	assert.Equal(t, governance.ReasonCodeFeatureUnavailable, feat3.Reason.Code)
+	assert.Equal(t, entitlementaccess.ReasonCodeFeatureUnavailable, feat3.Reason.Code)
 }
 
-func TestQueryAccess_MeteredEntitlement_HasAccess(t *testing.T) {
+func TestQuery_MeteredEntitlement_HasAccess(t *testing.T) {
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
@@ -484,7 +484,7 @@ func TestQueryAccess_MeteredEntitlement_HasAccess(t *testing.T) {
 
 	clock.SetTime(now.Add(time.Hour))
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme"},
 		FeatureKeys:  []string{"premium"},
@@ -501,7 +501,7 @@ func TestQueryAccess_MeteredEntitlement_HasAccess(t *testing.T) {
 	assert.Nil(t, fa.Reason)
 }
 
-func TestQueryAccess_MeteredEntitlement_Exhausted(t *testing.T) {
+func TestQuery_MeteredEntitlement_Exhausted(t *testing.T) {
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
 
@@ -521,7 +521,7 @@ func TestQueryAccess_MeteredEntitlement_Exhausted(t *testing.T) {
 
 	clock.SetTime(now.Add(time.Hour))
 
-	res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 		Namespace:    ns,
 		CustomerKeys: []string{"acme"},
 		FeatureKeys:  []string{"premium"},
@@ -536,10 +536,10 @@ func TestQueryAccess_MeteredEntitlement_Exhausted(t *testing.T) {
 
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
-	assert.Equal(t, governance.ReasonCodeUsageLimitReached, fa.Reason.Code)
+	assert.Equal(t, entitlementaccess.ReasonCodeUsageLimitReached, fa.Reason.Code)
 }
 
-func TestQueryAccess_Pagination(t *testing.T) {
+func TestQuery_Pagination(t *testing.T) {
 	// given: 3 customers (c1, c2, c3 in creation order); pageSize=1
 	deps := setupTestDeps(t)
 	t.Cleanup(func() { deps.close(t) })
@@ -559,8 +559,8 @@ func TestQueryAccess_Pagination(t *testing.T) {
 
 	allKeys := []string{"c1", "c2", "c3"}
 
-	query := func(after, before *pagination.Cursor) governance.QueryResult {
-		res, err := svc.QueryAccess(t.Context(), governance.QueryAccessInput{
+	query := func(after, before *pagination.Cursor) entitlementaccess.QueryResult {
+		res, err := svc.Query(t.Context(), entitlementaccess.QueryInput{
 			Namespace:    ns,
 			CustomerKeys: allKeys,
 			PageSize:     1,

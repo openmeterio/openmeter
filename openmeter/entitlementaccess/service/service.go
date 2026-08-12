@@ -14,7 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/governance"
+	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
@@ -26,7 +26,7 @@ import (
 // Acceptable for prototype scale; revisit if feature counts grow large.
 const featureFetchLimit = 10_000
 
-// Config holds the collaborating services for the governance Service.
+// Config holds the collaborating services for the entitlement access Service.
 type Config struct {
 	Customer    customer.Service
 	Entitlement entitlement.Service
@@ -61,7 +61,7 @@ func (c Config) Validate() error {
 	return errors.Join(errs...)
 }
 
-func New(config Config) (governance.Service, error) {
+func New(config Config) (entitlementaccess.Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ type service struct {
 	metrics            queryMetrics
 }
 
-// queryMetrics holds the instruments for the governance query endpoint. These are unsampled
+// queryMetrics holds the instruments for the entitlement access query endpoint. These are unsampled
 // (unlike spans), so they back SLOs, alerting, and capacity dashboards. Per-request counts
 // are recorded as histogram observations rather than attributes to keep series cardinality
 // bounded; only low-cardinality enums are used as counter attributes.
@@ -108,8 +108,8 @@ type queryMetrics struct {
 
 func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	requests, err := meter.Int64Counter(
-		"openmeter.governance.query.requests",
-		metric.WithDescription("Number of governance access queries"),
+		"openmeter.entitlementaccess.query.requests",
+		metric.WithDescription("Number of entitlement access queries"),
 		metric.WithUnit("{request}"),
 	)
 	if err != nil {
@@ -117,7 +117,7 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	}
 
 	customersNotFound, err := meter.Int64Counter(
-		"openmeter.governance.query.customers_not_found",
+		"openmeter.entitlementaccess.query.customers_not_found",
 		metric.WithDescription("Number of customer keys that did not resolve to a customer"),
 		metric.WithUnit("{customer}"),
 	)
@@ -126,8 +126,8 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	}
 
 	featureAccess, err := meter.Int64Histogram(
-		"openmeter.governance.query.feature_access",
-		metric.WithDescription("Number of feature evaluations per governance query"),
+		"openmeter.entitlementaccess.query.feature_access",
+		metric.WithDescription("Number of feature evaluations per entitlement access query"),
 		metric.WithUnit("{evaluation}"),
 	)
 	if err != nil {
@@ -135,8 +135,8 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	}
 
 	customerKeys, err := meter.Int64Histogram(
-		"openmeter.governance.query.customer_keys",
-		metric.WithDescription("Number of customer keys requested per governance query"),
+		"openmeter.entitlementaccess.query.customer_keys",
+		metric.WithDescription("Number of customer keys requested per entitlement access query"),
 		metric.WithUnit("{key}"),
 	)
 	if err != nil {
@@ -151,9 +151,9 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	}, nil
 }
 
-var _ governance.Service = (*service)(nil)
+var _ entitlementaccess.Service = (*service)(nil)
 
-// QueryAccess evaluates feature access for a caller-supplied set of customer keys.
+// Query evaluates feature access for a caller-supplied set of customer keys.
 //
 // Pagination is in-memory, by design. The reason is the BOUND: the input is OAS-capped at
 // 100 keys (@maxItems), so the resolvable set is ≤100 — sorting and slicing it in memory is
@@ -179,10 +179,10 @@ var _ governance.Service = (*service)(nil)
 // Pagination would only need to move into the adapter (as a keyset query) if the contract
 // gained an unbounded mode — "all customers in a namespace", or dropping the 100-key cap.
 // Not the case today.
-func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessInput) (governance.QueryResult, error) {
-	fn := func(ctx context.Context) (governance.QueryResult, error) {
+func (s *service) Query(ctx context.Context, input entitlementaccess.QueryInput) (entitlementaccess.QueryResult, error) {
+	fn := func(ctx context.Context) (entitlementaccess.QueryResult, error) {
 		if err := input.Validate(); err != nil {
-			return governance.QueryResult{}, err
+			return entitlementaccess.QueryResult{}, err
 		}
 
 		span := trace.SpanFromContext(ctx)
@@ -197,7 +197,7 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 
 		customers, err := s.resolveCustomers(ctx, input)
 		if err != nil {
-			return governance.QueryResult{}, err
+			return entitlementaccess.QueryResult{}, err
 		}
 
 		// Sort by (CreatedAt, ID) for stable cursor pagination.
@@ -218,10 +218,10 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 
 		results, err := s.resolveAccess(ctx, input, paginatedCustomers.customers)
 		if err != nil {
-			return governance.QueryResult{}, err
+			return entitlementaccess.QueryResult{}, err
 		}
 
-		out := governance.QueryResult{
+		out := entitlementaccess.QueryResult{
 			Customers: results,
 			Errors:    customers.queryErrors,
 			HasPrev:   paginatedCustomers.hasPrev,
@@ -238,13 +238,13 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 		return out, nil
 	}
 
-	return tracex.Start[governance.QueryResult](ctx, s.tracer, "governance.QueryAccess").Wrap(fn)
+	return tracex.Start[entitlementaccess.QueryResult](ctx, s.tracer, "entitlement_access.Query").Wrap(fn)
 }
 
 // recordQueryMetrics emits the unsampled query metrics. namespace is a per-tenant label
 // (consistent with ingest/sink/balanceworker); per-request counts are histogram values, and
 // only low-cardinality enums (direction, all_org_features) are counter attributes.
-func (s *service) recordQueryMetrics(ctx context.Context, input governance.QueryAccessInput, out governance.QueryResult, notFound int) {
+func (s *service) recordQueryMetrics(ctx context.Context, input entitlementaccess.QueryInput, out entitlementaccess.QueryResult, notFound int) {
 	namespaceAttr := attribute.String("namespace", input.Namespace)
 
 	s.metrics.requests.Add(ctx, 1, metric.WithAttributes(
@@ -257,7 +257,7 @@ func (s *service) recordQueryMetrics(ctx context.Context, input governance.Query
 		s.metrics.customersNotFound.Add(ctx, int64(notFound), metric.WithAttributes(namespaceAttr))
 	}
 
-	featureAccessTotal := lo.SumBy(out.Customers, func(c governance.CustomerAccess) int {
+	featureAccessTotal := lo.SumBy(out.Customers, func(c entitlementaccess.CustomerAccess) int {
 		return len(c.Features)
 	})
 
@@ -273,13 +273,13 @@ type resolvedCustomer struct {
 
 type resolveCustomersResult struct {
 	resolvedCustomers map[string]*resolvedCustomer
-	queryErrors       []governance.QueryError
+	queryErrors       []entitlementaccess.QueryError
 }
 
 // resolveCustomers resolves the input keys to customers in a single bulk lookup, deduplicating
 // by customer ID. Keys that resolve to no customer are collected as customer-not-found query
 // errors rather than failing the whole request.
-func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAccessInput) (resolveCustomersResult, error) {
+func (s *service) resolveCustomers(ctx context.Context, input entitlementaccess.QueryInput) (resolveCustomersResult, error) {
 	fn := func(ctx context.Context) (resolveCustomersResult, error) {
 		span := trace.SpanFromContext(ctx)
 
@@ -299,16 +299,16 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 		}
 
 		customerMap := make(map[string]*resolvedCustomer)
-		var queryErrors []governance.QueryError
+		var queryErrors []entitlementaccess.QueryError
 
 		// Iterate the input keys in order so matched keys and not-found errors keep input ordering.
 		for _, key := range input.CustomerKeys {
 			cus := keyToCustomer[key]
 
 			if cus == nil {
-				queryErrors = append(queryErrors, governance.QueryError{
+				queryErrors = append(queryErrors, entitlementaccess.QueryError{
 					CustomerKey: key,
-					Code:        governance.QueryErrorCustomerNotFound,
+					Code:        entitlementaccess.QueryErrorCustomerNotFound,
 					Message:     "customer not found",
 				})
 				continue
@@ -335,7 +335,7 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 		}, nil
 	}
 
-	return tracex.Start[resolveCustomersResult](ctx, s.tracer, "governance.resolveCustomers").Wrap(fn)
+	return tracex.Start[resolveCustomersResult](ctx, s.tracer, "entitlementaccess.resolveCustomers").Wrap(fn)
 }
 
 // resolveAccess resolves entitlement access for each customer on the current page and maps it
@@ -343,8 +343,8 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 //
 // When no feature filter is given, the org-wide feature list is namespace-scoped, so it is
 // fetched once for the whole page rather than per customer.
-func (s *service) resolveAccess(ctx context.Context, input governance.QueryAccessInput, customers []*resolvedCustomer) ([]governance.CustomerAccess, error) {
-	fn := func(ctx context.Context) ([]governance.CustomerAccess, error) {
+func (s *service) resolveAccess(ctx context.Context, input entitlementaccess.QueryInput, customers []*resolvedCustomer) ([]entitlementaccess.CustomerAccess, error) {
+	fn := func(ctx context.Context) ([]entitlementaccess.CustomerAccess, error) {
 		allOrgFeatures := len(input.FeatureKeys) == 0
 
 		span := trace.SpanFromContext(ctx)
@@ -372,7 +372,7 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 		}
 
 		now := clock.Now()
-		results := make([]governance.CustomerAccess, 0, len(customers))
+		results := make([]entitlementaccess.CustomerAccess, 0, len(customers))
 		absentFeatureLookups := 0
 		featureAccessTotal := 0
 
@@ -390,7 +390,7 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 			absentFeatureLookups += featureAccessResult.absentLookups
 			featureAccessTotal += len(featureAccessResult.featureAccess)
 
-			results = append(results, governance.CustomerAccess{
+			results = append(results, entitlementaccess.CustomerAccess{
 				Customer:  rc.customer,
 				Matched:   rc.matched,
 				Features:  featureAccessResult.featureAccess,
@@ -406,11 +406,11 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 		return results, nil
 	}
 
-	return tracex.Start[[]governance.CustomerAccess](ctx, s.tracer, "governance.resolveAccess").Wrap(fn)
+	return tracex.Start[[]entitlementaccess.CustomerAccess](ctx, s.tracer, "entitlementaccess.resolveAccess").Wrap(fn)
 }
 
 // paginationDirection reports the pagination mode for span attribution.
-func paginationDirection(input governance.QueryAccessInput) string {
+func paginationDirection(input entitlementaccess.QueryInput) string {
 	switch {
 	case input.Before != nil:
 		return "before"
@@ -435,7 +435,7 @@ type paginationResult struct {
 
 // paginate applies cursor pagination over the sorted customers and reports whether adjacent
 // pages exist. Exactly one of input.After / input.Before may be set (enforced by Validate).
-func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) paginationResult {
+func paginate(customers []*resolvedCustomer, input entitlementaccess.QueryInput) paginationResult {
 	if input.Before != nil {
 		// Backward: take the last pageSize items strictly before the cursor.
 		bc := *input.Before
@@ -499,7 +499,7 @@ func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) 
 }
 
 type buildFeatureAccessResult struct {
-	featureAccess map[string]governance.FeatureAccess
+	featureAccess map[string]entitlementaccess.FeatureAccess
 	absentLookups int
 }
 
@@ -511,16 +511,16 @@ type buildFeatureAccessResult struct {
 // pre-fetched orgFeatures slice (namespace-wide, resolved once by the caller) is used; features
 // the customer has no entitlement for are marked feature-unavailable.
 func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys []string, orgFeatures []feature.Feature, access entitlement.Access) (buildFeatureAccessResult, error) {
-	result := make(map[string]governance.FeatureAccess)
+	result := make(map[string]entitlementaccess.FeatureAccess)
 
 	if len(featureKeys) == 0 {
 		for _, f := range orgFeatures {
 			if ev, ok := access.Entitlements[f.Key]; ok {
 				result[f.Key] = mapEntitlementToAccess(ev.Value)
 			} else {
-				result[f.Key] = governance.FeatureAccess{
+				result[f.Key] = entitlementaccess.FeatureAccess{
 					HasAccess: false,
-					Reason:    governance.AccessReasonFeatureUnavailable,
+					Reason:    entitlementaccess.AccessReasonFeatureUnavailable,
 				}
 			}
 		}
@@ -586,29 +586,29 @@ func (s *service) listOrgFeatures(ctx context.Context, ns string) ([]feature.Fea
 		return res.Items, nil
 	}
 
-	return tracex.Start[[]feature.Feature](ctx, s.tracer, "governance.listOrgFeatures").Wrap(fn)
+	return tracex.Start[[]feature.Feature](ctx, s.tracer, "entitlementaccess.listOrgFeatures").Wrap(fn)
 }
 
 // resolveAbsentFeature determines why a requested feature key is absent from GetAccess results:
 // either the feature doesn't exist in the org (feature-not-found) or the customer has no
 // entitlement for it (feature-unavailable).
-func (s *service) resolveAbsentFeature(ctx context.Context, ns, featureKey string) (governance.FeatureAccess, error) {
+func (s *service) resolveAbsentFeature(ctx context.Context, ns, featureKey string) (entitlementaccess.FeatureAccess, error) {
 	_, err := s.featureConnector.GetFeature(ctx, ns, featureKey, feature.IncludeArchivedFeatureFalse)
 	if err != nil {
 		var fne *feature.FeatureNotFoundError
 
 		if errors.As(err, &fne) || models.IsGenericNotFoundError(err) {
-			return governance.FeatureAccess{
+			return entitlementaccess.FeatureAccess{
 				HasAccess: false,
-				Reason:    governance.AccessReasonFeatureNotFound,
+				Reason:    entitlementaccess.AccessReasonFeatureNotFound,
 			}, nil
 		}
 
-		return governance.FeatureAccess{}, fmt.Errorf("failed to get feature %q: %w", featureKey, err)
+		return entitlementaccess.FeatureAccess{}, fmt.Errorf("failed to get feature %q: %w", featureKey, err)
 	}
 
-	return governance.FeatureAccess{
+	return entitlementaccess.FeatureAccess{
 		HasAccess: false,
-		Reason:    governance.AccessReasonFeatureUnavailable,
+		Reason:    entitlementaccess.AccessReasonFeatureUnavailable,
 	}, nil
 }

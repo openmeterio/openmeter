@@ -54,7 +54,7 @@ export type * from './models/operations/plans.js'
 export type * from './models/operations/addons.js'
 export type * from './models/operations/planAddons.js'
 export type * from './models/operations/defaults.js'
-export type * from './models/operations/governance.js'
+export type * from './models/operations/entitlementAccess.js'
 
 export type {
   Labels,
@@ -92,8 +92,8 @@ export type {
   LlmCostProvider,
   LlmCostModel,
   ProductCatalogValidationError,
-  GovernanceQueryRequestCustomers,
-  GovernanceQueryRequestFeatures,
+  EntitlementAccessQueryRequestCustomers,
+  EntitlementAccessQueryRequestFeatures,
   QueryFilterInteger,
   QueryFilterFloat,
   QueryFilterBoolean,
@@ -211,9 +211,9 @@ export type {
   InvoiceLineUsageDiscount,
   InvoiceLineBaseDiscount,
   ListCurrenciesParamsFilter,
-  GovernanceQueryRequest,
-  GovernanceFeatureAccessReason,
-  GovernanceQueryError,
+  EntitlementAccessQueryRequest,
+  EntitlementFeatureAccessReason,
+  EntitlementAccessQueryError,
   AppCustomerData,
   UpsertAppCustomerDataRequest,
   CreditAdjustment,
@@ -269,7 +269,7 @@ export type {
   InvoiceStatusDetails,
   InvoiceLineDiscounts,
   UpdateBillingInvoiceWorkflow,
-  GovernanceFeatureAccess,
+  EntitlementFeatureAccess,
   CustomerData,
   UpsertCustomerBillingDataRequest,
   CreditBalances,
@@ -301,7 +301,7 @@ export type {
   InvoiceWorkflowSettings,
   InvoiceDetailedLine,
   UpdateInvoiceWorkflowSettings,
-  GovernanceQueryResult,
+  EntitlementAccessQueryResult,
   Feature,
   CreditGrantPagePaginatedResponse,
   CurrencyPagePaginatedResponse,
@@ -309,7 +309,7 @@ export type {
   InvoiceBase,
   CustomerStripeCreateCheckoutSessionRequest,
   WorkflowCollectionSettings,
-  GovernanceQueryResponse,
+  EntitlementAccessQueryResponse,
   ChargeFlatFee,
   ChargeUsageBasedSystemIntent,
   CreateChargeUsageBasedRequest,
@@ -394,7 +394,7 @@ export type {
   SubscriptionCreateInput,
   UnitConfigInput,
   WorkflowInvoicingSettingsInput,
-  GovernanceQueryRequestInput,
+  EntitlementAccessQueryRequestInput,
   SubscriptionInput,
   IngestedEventInput,
   SubscriptionCancelInput,

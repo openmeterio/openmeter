@@ -105,7 +105,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		// When enabled globally (EnableOperationSpans), start an application-level span
 		// named after the operation, as a child of the otelhttp server span. The server
 		// span stays route-named; this one carries the operation identity (e.g.
-		// "query-governance-access") and exposes the handler-vs-middleware timing split.
+		// "query-entitlement-access") and exposes the handler-vs-middleware timing split.
 		// Off by default: it adds a span to every operation request API-wide, so it is
 		// gated by a single startup toggle rather than enabled unconditionally.
 		if operationSpansEnabled.Load() {

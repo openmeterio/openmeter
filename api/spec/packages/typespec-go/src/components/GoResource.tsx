@@ -908,7 +908,7 @@ function listParamsName(program: Program, operation: GoOperation): string {
 /**
  * All-iterators surface only the page elements, so they are emitted only for
  * the canonical {data, meta} page envelope. Any extra response field (for
- * example GovernanceQueryResponse.errors, which reports partial failures)
+ * example EntitlementAccessQueryResponse.errors, which reports partial failures)
  * would be silently dropped from the iteration; such operations only get the
  * plain method that returns the full envelope.
  */

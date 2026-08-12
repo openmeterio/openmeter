@@ -38,7 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	governanceservice "github.com/openmeterio/openmeter/openmeter/governance/service"
+	entitlementaccessservice "github.com/openmeterio/openmeter/openmeter/entitlementaccess/service"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -743,15 +743,15 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 	// Create subject service
 	subjectService := &NoopSubjectService{}
 
-	// Create governance service from the noop collaborators
-	governanceService, err := governanceservice.New(governanceservice.Config{
+	// Create entitlement access service from the noop collaborators
+	entitlementAccessService, err := entitlementaccessservice.New(entitlementaccessservice.Config{
 		Customer:    customerService,
 		Entitlement: &NoopEntitlementConnector{},
 		Feature:     featureService,
 		Tracer:      noop.NewTracerProvider().Tracer("test"),
 		Meter:       metricnoop.NewMeterProvider().Meter("test"),
 	})
-	assert.NoError(t, err, "failed to create governance service")
+	assert.NoError(t, err, "failed to create entitlement access service")
 
 	config := &Config{
 		RouterConfig: router.Config{
@@ -769,7 +769,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
 			ErrorHandler:                errorsx.NopHandler{},
 			FeatureConnector:            featureService,
-			GovernanceService:           governanceService,
+			EntitlementAccessService:    entitlementAccessService,
 			GrantConnector:              &NoopGrantConnector{},
 			// Use the grant repo
 			GrantRepo:          grantRepo,

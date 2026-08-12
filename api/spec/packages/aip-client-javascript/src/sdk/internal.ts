@@ -31,7 +31,7 @@ import {
   listCostBases,
   createCostBasis,
 } from '../funcs/currencies.js'
-import { queryGovernanceAccess } from '../funcs/governance.js'
+import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
 import type {
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
@@ -87,9 +87,9 @@ import type {
   CreateCostBasisResponse,
 } from '../models/operations/currencies.js'
 import type {
-  QueryGovernanceAccessRequest,
-  QueryGovernanceAccessResponse,
-} from '../models/operations/governance.js'
+  QueryEntitlementAccessRequest,
+  QueryEntitlementAccessResponse,
+} from '../models/operations/entitlementAccess.js'
 import type {
   App,
   AppCatalogItem,
@@ -131,9 +131,11 @@ export class Internal {
     return (this._currencies ??= new InternalCurrencies(this._client))
   }
 
-  private _governance?: InternalGovernance
-  get governance(): InternalGovernance {
-    return (this._governance ??= new InternalGovernance(this._client))
+  private _entitlementAccess?: InternalEntitlementAccess
+  get entitlementAccess(): InternalEntitlementAccess {
+    return (this._entitlementAccess ??= new InternalEntitlementAccess(
+      this._client,
+    ))
   }
 }
 
@@ -641,11 +643,11 @@ export class InternalCurrencies {
   }
 }
 
-export class InternalGovernance {
+export class InternalEntitlementAccess {
   constructor(private readonly _client: Client) {}
 
   /**
-   * Query governance access
+   * Query entitlement access
    *
    * Query feature access for a list of customers.
    *
@@ -656,12 +658,12 @@ export class InternalGovernance {
    * _Designed to be called on a fixed refresh interval and the query response is
    * intended to be cached._
    *
-   * POST /openmeter/governance/query
+   * POST /openmeter/entitlement-access/query
    */
-  async queryAccess(
-    request: QueryGovernanceAccessRequest,
+  async query(
+    request: QueryEntitlementAccessRequest,
     options?: RequestOptions,
-  ): Promise<QueryGovernanceAccessResponse> {
-    return unwrap(await queryGovernanceAccess(this._client, request, options))
+  ): Promise<QueryEntitlementAccessResponse> {
+    return unwrap(await queryEntitlementAccess(this._client, request, options))
   }
 }

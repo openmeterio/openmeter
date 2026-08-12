@@ -10,27 +10,27 @@ import (
 )
 
 type Client struct {
-	baseURL       *url.URL
-	httpClient    *http.Client
-	token         string
-	userAgent     string
-	Events        *EventsService
-	Meters        *MetersService
-	Customers     *CustomersService
-	Entitlements  *EntitlementsService
-	Subscriptions *SubscriptionsService
-	Apps          *AppsService
-	Billing       *BillingService
-	Invoices      *InvoicesService
-	Tax           *TaxService
-	Currencies    *CurrenciesService
-	Features      *FeaturesService
-	LLMCost       *LLMCostService
-	Plans         *PlansService
-	Addons        *AddonsService
-	PlanAddons    *PlanAddonsService
-	Defaults      *DefaultsService
-	Governance    *GovernanceService
+	baseURL           *url.URL
+	httpClient        *http.Client
+	token             string
+	userAgent         string
+	Events            *EventsService
+	Meters            *MetersService
+	Customers         *CustomersService
+	Entitlements      *EntitlementsService
+	Subscriptions     *SubscriptionsService
+	Apps              *AppsService
+	Billing           *BillingService
+	Invoices          *InvoicesService
+	Tax               *TaxService
+	Currencies        *CurrenciesService
+	Features          *FeaturesService
+	LLMCost           *LLMCostService
+	Plans             *PlansService
+	Addons            *AddonsService
+	PlanAddons        *PlanAddonsService
+	Defaults          *DefaultsService
+	EntitlementAccess *EntitlementAccessService
 }
 
 func New(baseURL string, opts ...Option) (*Client, error) {
@@ -76,7 +76,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.Addons = &AddonsService{client: c}
 	c.PlanAddons = &PlanAddonsService{client: c}
 	c.Defaults = &DefaultsService{client: c}
-	c.Governance = &GovernanceService{client: c}
+	c.EntitlementAccess = &EntitlementAccessService{client: c}
 	c.Customers.Billing = &CustomersBillingService{client: c}
 	c.Customers.Credits = &CustomersCreditsService{client: c}
 	c.Customers.Charges = &CustomersChargesService{client: c}

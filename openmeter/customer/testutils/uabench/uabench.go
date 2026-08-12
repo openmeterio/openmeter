@@ -19,7 +19,7 @@ const (
 
 	defaultCustomers = 100_000
 
-	// BulkKeyCount mirrors the governance QueryAccess OAS cap (@maxItems(100) on customer.keys),
+	// BulkKeyCount mirrors the entitlement access Query OAS cap (@maxItems(100) on customer.keys),
 	// the primary bulk consumer's realistic upper bound.
 	BulkKeyCount = 100
 )
@@ -43,7 +43,7 @@ func CustomerCount(tb testing.TB) int {
 
 // BulkKeys builds a realistic mixed bulk key set of BulkKeyCount keys: half resolve via a direct
 // customer-key match, half via a subject-key match on a disjoint customer range, mirroring how
-// governance resolves customer keys and subject keys through the same call. Requires
+// entitlement access resolves customer keys and subject keys through the same call. Requires
 // customerCount >= 2*BulkKeyCount.
 func BulkKeys(customerCount int) []string {
 	half := BulkKeyCount / 2

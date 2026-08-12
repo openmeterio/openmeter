@@ -4,14 +4,14 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "../common/error.tsp";
 import "../shared/index.tsp";
-import "./governance.tsp";
+import "./entitlement-access.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
-namespace Governance;
+namespace EntitlementAccess;
 
-interface GovernanceOperations {
+interface EntitlementAccessOperations {
   /**
    * Query feature access for a list of customers.
    *
@@ -27,9 +27,10 @@ interface GovernanceOperations {
   @extension(Shared.PrivateExtension, true)
   @post
   @route("/query")
-  @operationId("query-governance-access")
-  @summary("Query governance access")
-  query(...Common.CursorPaginationQuery, @body _: GovernanceQueryRequest):
-    | GovernanceQueryResponse
-    | Common.ErrorResponses;
+  @operationId("query-entitlement-access")
+  @summary("Query entitlement access")
+  query(
+    ...Common.CursorPaginationQuery,
+    @body _: EntitlementAccessQueryRequest,
+  ): EntitlementAccessQueryResponse | Common.ErrorResponses;
 }

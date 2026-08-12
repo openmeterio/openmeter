@@ -177,7 +177,7 @@ func main() {
 			EntitlementBalanceConnector: app.EntitlementRegistry.MeteredEntitlement,
 			EntitlementConnector:        app.EntitlementRegistry.Entitlement,
 			FeatureConnector:            app.FeatureConnector,
-			GovernanceService:           app.GovernanceService,
+			EntitlementAccessService:    app.EntitlementAccessService,
 			GrantConnector:              app.EntitlementRegistry.Grant,
 			GrantRepo:                   app.EntitlementRegistry.GrantRepo,
 			IngestService:               app.IngestService,

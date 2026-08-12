@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/governance"
+	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -578,7 +578,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	governanceService, err := common.NewGovernanceService(customerService, entitlement, tracer, meter)
+	entitlementaccessService, err := common.NewEntitlementAccessService(customerService, entitlement, tracer, meter)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -862,7 +862,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		EntitlementRegistry:              entitlement,
 		FeatureConnector:                 featureConnector,
 		FeatureFlags:                     ffxService,
-		GovernanceService:                governanceService,
+		EntitlementAccessService:         entitlementaccessService,
 		IngestCollector:                  ingestCollector,
 		IngestService:                    ingestService,
 		KafkaProducer:                    producer,
@@ -935,7 +935,7 @@ type Application struct {
 	EntitlementRegistry              *registry.Entitlement
 	FeatureConnector                 feature.FeatureConnector
 	FeatureFlags                     ffx.Service
-	GovernanceService                governance.Service
+	EntitlementAccessService         entitlementaccess.Service
 	IngestCollector                  ingest.Collector
 	IngestService                    ingest.Service
 	KafkaProducer                    *kafka2.Producer

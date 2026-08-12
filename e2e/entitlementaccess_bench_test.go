@@ -14,8 +14,8 @@ import (
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
-// BenchmarkGovernanceQuery measures end-to-end latency of
-// POST /api/v3/openmeter/governance/query against a running stack
+// BenchmarkEntitlementAccessQuery measures end-to-end latency of
+// POST /api/v3/openmeter/entitlement-access/query against a running stack
 // (OPENMETER_ADDRESS). It is a benchmark, so it only runs under `go test -bench`;
 // a plain `go test ./e2e/...` skips it entirely.
 //
@@ -37,7 +37,7 @@ import (
 //
 // Seeding is heavy (100x100 = ~10k entitlement creates over HTTP) and runs once
 // per sub-benchmark, outside the timed loop.
-func BenchmarkGovernanceQuery(b *testing.B) {
+func BenchmarkEntitlementAccessQuery(b *testing.B) {
 	client := initClient(b) // skips when OPENMETER_ADDRESS is unset
 	v3 := newV3Client(b)
 
@@ -68,16 +68,16 @@ func BenchmarkGovernanceQuery(b *testing.B) {
 
 	for _, s := range sizes {
 		b.Run(s.name, func(b *testing.B) {
-			custKeys, featKeys := seedGovernanceFixture(b, client, s.customers, s.features)
+			custKeys, featKeys := seedEntitlementAccessFixture(b, client, s.customers, s.features)
 
-			reqBody := v3sdk.GovernanceQueryRequest{
-				Customer: v3sdk.GovernanceQueryRequestCustomers{Keys: custKeys},
-				Feature:  &v3sdk.GovernanceQueryRequestFeatures{Keys: featKeys},
+			reqBody := v3sdk.EntitlementAccessQueryRequest{
+				Customer: v3sdk.EntitlementAccessQueryRequestCustomers{Keys: custKeys},
+				Feature:  &v3sdk.EntitlementAccessQueryRequestFeatures{Keys: featKeys},
 			}
 
 			// Warm-up + correctness gate: a wrong result (e.g. missing customers)
 			// would make the latency number meaningless.
-			resp, err := v3.Governance.QueryAccess(b.Context(), reqBody, v3sdk.GovernanceQueryResultListParams{})
+			resp, err := v3.EntitlementAccess.Query(b.Context(), reqBody, v3sdk.EntitlementAccessQueryResultListParams{})
 			v3.requireStatus(http.StatusOK, err)
 			require.Lenf(b, resp.Data, s.customers, "expected %d resolved customers", s.customers)
 			require.Lenf(b, resp.Data[0].Features, s.features, "expected %d features per customer", s.features)
@@ -85,11 +85,11 @@ func BenchmarkGovernanceQuery(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if _, err := v3.Governance.QueryAccess(b.Context(), reqBody, v3sdk.GovernanceQueryResultListParams{}); err != nil {
-					b.Fatalf("governance query failed: %v", err)
+				if _, err := v3.EntitlementAccess.Query(b.Context(), reqBody, v3sdk.EntitlementAccessQueryResultListParams{}); err != nil {
+					b.Fatalf("entitlement access query failed: %v", err)
 				}
 				if s := v3.statuses.last(); s != http.StatusOK {
-					b.Fatalf("governance query returned %d", s)
+					b.Fatalf("entitlement access query returned %d", s)
 				}
 			}
 			b.StopTimer()
@@ -97,12 +97,12 @@ func BenchmarkGovernanceQuery(b *testing.B) {
 	}
 }
 
-// seedGovernanceFixture creates nFeatures boolean features and nCustomers
+// seedEntitlementAccessFixture creates nFeatures boolean features and nCustomers
 // customers, granting each customer a boolean entitlement for every feature
 // (nCustomers x nFeatures entitlements). Keys carry a per-run unique prefix so
 // repeated runs against the same database do not collide. Returns the customer
 // keys and feature keys to query.
-func seedGovernanceFixture(b *testing.B, client *api.ClientWithResponses, nCustomers, nFeatures int) (custKeys, featKeys []string) {
+func seedEntitlementAccessFixture(b *testing.B, client *api.ClientWithResponses, nCustomers, nFeatures int) (custKeys, featKeys []string) {
 	b.Helper()
 	ctx := b.Context()
 	run := uniqueKey("gov_bench")

@@ -389,7 +389,7 @@ export interface ProductCatalogValidationError {
 }
 
 /** List of customer identifiers to evaluate access for. */
-export interface GovernanceQueryRequestCustomers {
+export interface EntitlementAccessQueryRequestCustomers {
   /**
    * Each entry can be a customer `key` or a usage-attribution subject `key`.
    * Identifiers that cannot be resolved to a customer are reported in the response
@@ -403,7 +403,7 @@ export interface GovernanceQueryRequestCustomers {
  * available in the organization are returned. Providing this list is recommended
  * to reduce the response size and the load on the backend services.
  */
-export interface GovernanceQueryRequestFeatures {
+export interface EntitlementAccessQueryRequestFeatures {
   /** List of feature keys to evaluate access for. */
   keys: string[]
 }
@@ -2224,7 +2224,7 @@ export interface ListCurrenciesParamsFilter {
 }
 
 /** Query to evaluate feature access for a list of customers. */
-export interface GovernanceQueryRequest {
+export interface EntitlementAccessQueryRequest {
   /**
    * Whether to include credit balance availability for each resolved customer. When
    * true, each feature evaluation includes credit balance checks.
@@ -2232,12 +2232,12 @@ export interface GovernanceQueryRequest {
    * Defaults to `false`.
    */
   includeCredits: boolean
-  customer: GovernanceQueryRequestCustomers
-  feature?: GovernanceQueryRequestFeatures
+  customer: EntitlementAccessQueryRequestCustomers
+  feature?: EntitlementAccessQueryRequestFeatures
 }
 
 /** Reason a feature is not accessible to a customer. */
-export interface GovernanceFeatureAccessReason {
+export interface EntitlementFeatureAccessReason {
   /** Machine-readable error code. */
   code:
     | 'unknown'
@@ -2251,8 +2251,8 @@ export interface GovernanceFeatureAccessReason {
   attributes?: Record<string, unknown>
 }
 
-/** Query error within a partially successful governance query response. */
-export interface GovernanceQueryError {
+/** Query error within a partially successful entitlement access query response. */
+export interface EntitlementAccessQueryError {
   /** Machine-readable error code. */
   code: 'unknown' | 'customer_not_found'
   /** Human-readable description of the error. */
@@ -3399,7 +3399,7 @@ export interface UpdateBillingInvoiceWorkflow {
 }
 
 /** Access status for a single feature. */
-export interface GovernanceFeatureAccess {
+export interface EntitlementFeatureAccess {
   /**
    * Whether the customer currently has access to the feature.
    *
@@ -3413,7 +3413,7 @@ export interface GovernanceFeatureAccess {
    * Optional reason when the customer does not have access to the feature. Populated
    * when `has_access` is `false`.
    */
-  reason?: GovernanceFeatureAccessReason
+  reason?: EntitlementFeatureAccessReason
 }
 
 /** Billing customer data. */
@@ -4163,7 +4163,7 @@ export interface UpdateInvoiceWorkflowSettings {
 }
 
 /** Access evaluation result for a single resolved customer. */
-export interface GovernanceQueryResult {
+export interface EntitlementAccessQueryResult {
   /**
    * The list of identifiers from the request that resolved to this customer. Each
    * entry is either the customer `key` or one of its usage-attribution subject
@@ -4181,7 +4181,7 @@ export interface GovernanceQueryResult {
    * Map keys are the feature keys requested in `feature.keys`, or every feature
    * `key` available in the organization when the feature filter was omitted.
    */
-  features: Record<string, GovernanceFeatureAccess>
+  features: Record<string, EntitlementFeatureAccess>
   /**
    * Timestamp of the most recent change to the customer's access state reflected in
    * this result.
@@ -4372,12 +4372,12 @@ export interface WorkflowCollectionSettings {
   interval: string
 }
 
-/** Response of the governance query. */
-export interface GovernanceQueryResponse {
+/** Response of the entitlement access query. */
+export interface EntitlementAccessQueryResponse {
   /** Access evaluation results, one entry per resolved customer. */
-  data: GovernanceQueryResult[]
+  data: EntitlementAccessQueryResult[]
   /** Partial errors encountered while processing the request. */
-  errors: GovernanceQueryError[]
+  errors: EntitlementAccessQueryError[]
   /**
    * Pagination metadata. The endpoint may return a partial response if the full
    * response would exceed server-side limits.
@@ -6016,7 +6016,7 @@ export interface WorkflowInvoicingSettingsInput {
 }
 
 /** Query to evaluate feature access for a list of customers. */
-export interface GovernanceQueryRequestInput {
+export interface EntitlementAccessQueryRequestInput {
   /**
    * Whether to include credit balance availability for each resolved customer. When
    * true, each feature evaluation includes credit balance checks.
@@ -6024,8 +6024,8 @@ export interface GovernanceQueryRequestInput {
    * Defaults to `false`.
    */
   includeCredits?: boolean
-  customer: GovernanceQueryRequestCustomers
-  feature?: GovernanceQueryRequestFeatures
+  customer: EntitlementAccessQueryRequestCustomers
+  feature?: EntitlementAccessQueryRequestFeatures
 }
 
 /** Subscription. */
