@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -19,7 +20,16 @@ type setOverrideMutableFieldsForTest struct {
 }
 
 func (f setOverrideMutableFieldsForTest) Clone() setOverrideMutableFieldsForTest {
-	return f
+	var deletedAt *time.Time
+	if f.DeletedAt != nil {
+		deletedAt = lo.ToPtr(*f.DeletedAt)
+	}
+
+	return setOverrideMutableFieldsForTest{
+		Name:      f.Name,
+		DeletedAt: deletedAt,
+		Invalid:   f.Invalid,
+	}
 }
 
 func (f setOverrideMutableFieldsForTest) GetIntentDeletedAt() *time.Time {

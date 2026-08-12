@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -141,7 +142,7 @@ func (s *service) SetCustomerChargeOverride(ctx context.Context, input charges.S
 	}
 
 	if customerID.ID != input.CustomerID {
-		return charges.Charge{}, fmt.Errorf("charge %s is not owned by customer %s", input.ChargeID, input.CustomerID)
+		return charges.Charge{}, models.NewGenericNotFoundError(errors.New("charge not found"))
 	}
 
 	var patch charges.Patch
