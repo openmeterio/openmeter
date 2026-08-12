@@ -149,6 +149,30 @@ func (s *CurrenciesService) GetCustomCurrency(ctx context.Context, currencyID st
 	return &out, nil
 }
 
+// Replace the presentational attributes of a custom currency. The currency's code
+// and precision are immutable and cannot be updated.
+func (s *CurrenciesService) UpdateCustomCurrency(ctx context.Context, currencyID string, request CurrencyCustomUpdate) (*CurrencyCustom, error) {
+	if currencyID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "currencyID", ErrEmptyID)
+	}
+
+	path := "/openmeter/currencies/custom/{currencyId}"
+
+	path = replacePathParam(path, "currencyId", currencyID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPut, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out CurrencyCustom
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // List cost bases for a currency. For custom currencies, there can be multiple
 // cost bases with different `effective_from` dates.
 func (s *CurrenciesService) ListCostBases(ctx context.Context, currencyID string, params CostBasisListParams) (*CostBasisPagePaginatedResponse, error) {

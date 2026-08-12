@@ -455,13 +455,14 @@ they can change or be removed without notice or semver consideration.
 
 ### Internal Currencies
 
-| Method                                            | HTTP                                                        | Description                                                                                                                    |
-| ------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `client.internal.currencies.list`                 | `GET /openmeter/currencies`                                 | List currencies supported by the billing system.                                                                               |
-| `client.internal.currencies.createCustomCurrency` | `POST /openmeter/currencies/custom`                         | Create a custom currency. This operation allows defining your own custom currency for billing purposes.                        |
-| `client.internal.currencies.getCustomCurrency`    | `GET /openmeter/currencies/custom/{currencyId}`             | Get a custom currency.                                                                                                         |
-| `client.internal.currencies.listCostBases`        | `GET /openmeter/currencies/custom/{currencyId}/cost-bases`  | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates. |
-| `client.internal.currencies.createCostBasis`      | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency.                                                                                            |
+| Method                                            | HTTP                                                        | Description                                                                                                                        |
+| ------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.currencies.list`                 | `GET /openmeter/currencies`                                 | List currencies supported by the billing system.                                                                                   |
+| `client.internal.currencies.createCustomCurrency` | `POST /openmeter/currencies/custom`                         | Create a custom currency. This operation allows defining your own custom currency for billing purposes.                            |
+| `client.internal.currencies.getCustomCurrency`    | `GET /openmeter/currencies/custom/{currencyId}`             | Get a custom currency.                                                                                                             |
+| `client.internal.currencies.updateCustomCurrency` | `PUT /openmeter/currencies/custom/{currencyId}`             | Replace the presentational attributes of a custom currency. The currency's code and precision are immutable and cannot be updated. |
+| `client.internal.currencies.listCostBases`        | `GET /openmeter/currencies/custom/{currencyId}/cost-bases`  | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates.     |
+| `client.internal.currencies.createCostBasis`      | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency.                                                                                                |
 
 ### Internal PlanAddons
 
