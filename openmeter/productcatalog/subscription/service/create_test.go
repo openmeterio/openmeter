@@ -235,7 +235,7 @@ func TestCreateInlineCreditOnlyPlanSkipsCurrencyCostBasis(t *testing.T) {
 	// when:
 	// - the plan subscription service validates the inline plan
 	// then:
-	// - product-catalog validation rejects it before subscription validation can waive cost basis
+	// - creation succeeds because credit-only settlement does not require a cost basis
 	now := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
