@@ -95,6 +95,10 @@ func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, curr
 	out := make(CorrectionRequest, 0, len(allocationsWithCorrections))
 	amountToCorrect := amount.Abs()
 	for _, allocationWithCorrections := range allocationsWithCorrections {
+		if amountToCorrect.IsZero() {
+			break
+		}
+
 		if allocationWithCorrections.RemainingAmount.IsZero() {
 			continue
 		}

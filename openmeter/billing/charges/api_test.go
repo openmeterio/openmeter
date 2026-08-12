@@ -203,3 +203,55 @@ func TestSetCustomerChargeOverrideInputValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestClearCustomerChargeOverrideInputValidate(t *testing.T) {
+	validInput := ClearCustomerChargeOverrideInput{
+		Namespace:  "namespace",
+		CustomerID: "customer-id",
+		ChargeID:   "charge-id",
+	}
+
+	tests := []struct {
+		name   string
+		mutate func(*ClearCustomerChargeOverrideInput)
+	}{
+		{
+			name: "valid",
+		},
+		{
+			name: "missing namespace",
+			mutate: func(input *ClearCustomerChargeOverrideInput) {
+				input.Namespace = ""
+			},
+		},
+		{
+			name: "missing customer ID",
+			mutate: func(input *ClearCustomerChargeOverrideInput) {
+				input.CustomerID = ""
+			},
+		},
+		{
+			name: "missing charge ID",
+			mutate: func(input *ClearCustomerChargeOverrideInput) {
+				input.ChargeID = ""
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			input := validInput
+			if test.mutate != nil {
+				test.mutate(&input)
+			}
+
+			err := input.Validate()
+			if test.mutate != nil {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}

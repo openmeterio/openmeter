@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -687,21 +688,13 @@ type CustomerChargeAPISetOverrideTestSuite struct {
 	BaseSuite
 }
 
-func (s *CustomerChargeAPISetOverrideTestSuite) SetupSuite() {
-	s.BaseSuite.SetupSuite()
-}
-
-func (s *CustomerChargeAPISetOverrideTestSuite) TearDownTest() {
-	s.BaseSuite.TearDownTest()
-}
-
-func (s *CustomerChargeAPISetOverrideTestSuite) TestSetCreatesAndReplacesOverrideForSupportedChargeTypes() {
+func (s *CustomerChargeAPISetOverrideTestSuite) TestSetCreatesReplacesAndClearsOverrideForSupportedChargeTypes() {
 	// given
 	// - Future subscription-managed flat-fee and usage-based charges expose their base mutable snapshots.
 	// when:
-	// - The customer sets and then replaces a complete override snapshot for each charge.
+	// - The customer sets, replaces, and clears a complete override snapshot for each charge.
 	// then:
-	// - The latest override is effective while each immutable subscription-owned base remains unchanged.
+	// - The latest override is effective until Clear restores each unchanged subscription-owned base.
 	ctx := s.T().Context()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2027-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -847,15 +840,64 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetCreatesAndReplacesOverrid
 		require.Equal(s.T(), usageBasedOverride, *usageBased.Intent.GetOverrideLayerMutableFields())
 		require.Equal(s.T(), usageBasedOverride, usageBased.Intent.GetEffectiveIntent().IntentMutableFields)
 	})
+
+	s.Run("when clearing the overrides", func() {
+		flatFeeResult, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   flatFeeChargeID.ID,
+		})
+		require.NoError(s.T(), err)
+		flatFee, err := flatFeeResult.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), flatfee.StatusCreated, flatFee.Status)
+
+		usageBasedResult, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   usageBasedChargeID.ID,
+		})
+		require.NoError(s.T(), err)
+		usageBased, err := usageBasedResult.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), usagebased.StatusCreated, usageBased.Status)
+	})
+
+	s.Run("then the base intents become effective", func() {
+		flatFeeResult := s.mustGetChargeByID(flatFeeChargeID)
+		flatFee, err := flatFeeResult.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), flatfee.StatusCreated, flatFee.Status)
+		require.Nil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), flatFeeBase, flatFee.Intent.GetEffectiveIntent().IntentMutableFields)
+
+		usageBasedResult := s.mustGetChargeByID(usageBasedChargeID)
+		usageBased, err := usageBasedResult.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), usagebased.StatusCreated, usageBased.Status)
+		require.Nil(s.T(), usageBased.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), usageBasedBase, usageBased.Intent.GetEffectiveIntent().IntentMutableFields)
+	})
+
+	s.Run("when clearing charges without overrides", func() {
+		for _, chargeID := range []meta.ChargeID{flatFeeChargeID, usageBasedChargeID} {
+			_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+				Namespace:  namespace,
+				CustomerID: customerID,
+				ChargeID:   chargeID.ID,
+			})
+			require.NoError(s.T(), err)
+		}
+	})
 }
 
 func (s *CustomerChargeAPISetOverrideTestSuite) TestSetDeleteOrdering() {
 	// given
 	// - Subscription-managed flat-fee and usage-based charges have customer overrides.
 	// when:
-	// - The customer deletes the charges and then attempts to set another override.
+	// - The customer deletes the charges, fails to set another override, clears deletion, and sets again.
 	// then:
-	// - Delete marks the existing override as deleted, and Set cannot implicitly restore it.
+	// - Only Clear restores the live bases and makes a subsequent Set valid.
 	ctx := s.T().Context()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2027-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -1041,15 +1083,237 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetDeleteOrdering() {
 		actualUsageBasedOverride.IntentDeletedAt = nil
 		require.Equal(s.T(), usageBasedOverride, actualUsageBasedOverride)
 	})
+
+	s.Run("when clearing the deleted overrides", func() {
+		for _, chargeID := range []meta.ChargeID{flatFeeChargeID, usageBasedChargeID} {
+			_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+				Namespace:  namespace,
+				CustomerID: customerID,
+				ChargeID:   chargeID.ID,
+			})
+			require.NoError(s.T(), err)
+		}
+	})
+
+	s.Run("then the live bases are restored", func() {
+		flatFeeResult := s.mustGetChargeByID(flatFeeChargeID)
+		flatFee, err := flatFeeResult.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), flatfee.StatusCreated, flatFee.Status)
+		require.Nil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), flatFeeBase, flatFee.Intent.GetEffectiveIntent().IntentMutableFields)
+
+		usageBasedResult := s.mustGetChargeByID(usageBasedChargeID)
+		usageBased, err := usageBasedResult.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), usagebased.StatusCreated, usageBased.Status)
+		require.Nil(s.T(), usageBased.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), usageBasedBase, usageBased.Intent.GetEffectiveIntent().IntentMutableFields)
+	})
+
+	s.Run("when setting overrides after Clear", func() {
+		_, err := s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   flatFeeChargeID.ID,
+			FlatFee:    &flatFeeOverride,
+		})
+		require.NoError(s.T(), err)
+
+		_, err = s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   usageBasedChargeID.ID,
+			UsageBased: &usageBasedOverride,
+		})
+		require.NoError(s.T(), err)
+	})
+
+	s.Run("then the new overrides are effective", func() {
+		flatFeeResult := s.mustGetChargeByID(flatFeeChargeID)
+		flatFee, err := flatFeeResult.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		actualFlatFeeOverride := flatFee.Intent.GetOverrideLayerMutableFields()
+		require.NotNil(s.T(), actualFlatFeeOverride)
+		require.Equal(s.T(), flatFeeOverride, *actualFlatFeeOverride)
+
+		usageBasedResult := s.mustGetChargeByID(usageBasedChargeID)
+		usageBased, err := usageBasedResult.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		actualUsageBasedOverride := usageBased.Intent.GetOverrideLayerMutableFields()
+		require.NotNil(s.T(), actualUsageBasedOverride)
+		require.Equal(s.T(), usageBasedOverride, *actualUsageBasedOverride)
+	})
 }
 
-func (s *CustomerChargeAPISetOverrideTestSuite) TestSetValidatesOwnershipPayloadAndChargeType() {
+func (s *CustomerChargeAPISetOverrideTestSuite) TestClearOverrideAppliesHiddenBaseDeletion() {
+	// given
+	// - Subscription reconciliation deletes the hidden bases of overridden flat-fee and usage-based charges.
+	// when:
+	// - The customer clears the still-live overrides.
+	// then:
+	// - The override layers are removed and both charges complete their normal deleted lifecycle.
+	ctx := s.T().Context()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2027-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2027-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	var namespace string
+	var customerID string
+	var customerNamespacedID customer.CustomerID
+	var flatFeeChargeID meta.ChargeID
+	var usageBasedChargeID meta.ChargeID
+	var flatFeeOverride flatfee.IntentMutableFields
+	var usageBasedOverride usagebased.IntentMutableFields
+
+	s.Run("given overridden charges whose hidden bases are deleted", func() {
+		namespace = s.GetUniqueNamespace("charges-service-api-clear-hidden-base-delete")
+		s.ProvisionDefaultTaxCodes(ctx, namespace)
+		customerEntity := s.CreateTestCustomer(namespace, "api-clear-hidden-base-delete")
+		customerID = customerEntity.ID
+		customerNamespacedID = customerEntity.GetID()
+		feature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithManualApproval())
+		s.FlatFeeTestHandler.onAllocateCredits = func(context.Context, flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+			return nil, nil
+		}
+
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: namespace,
+			Intents: charges.ChargeIntents{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       customerNamespacedID,
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(10),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              "flat-fee-base",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "api-clear-hidden-base-delete-flat-fee",
+				}),
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:          customerNamespacedID,
+					currency:          USD,
+					servicePeriod:     servicePeriod,
+					settlementMode:    productcatalog.CreditOnlySettlementMode,
+					price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+					featureKey:        feature.Feature.Key,
+					name:              "usage-based-base",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "api-clear-hidden-base-delete-usage-based",
+				}),
+			},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), created, 2)
+
+		for _, charge := range created {
+			switch charge.Type() {
+			case meta.ChargeTypeFlatFee:
+				flatFee, err := charge.AsFlatFeeCharge()
+				require.NoError(s.T(), err)
+				flatFeeChargeID = flatFee.GetChargeID()
+				flatFeeOverride = flatFee.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+				flatFeeOverride.Name = "flat-fee-override"
+				flatFeeOverride.AmountBeforeProration = alpacadecimal.NewFromInt(20)
+				_, err = s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+					Namespace:  namespace,
+					CustomerID: customerID,
+					ChargeID:   flatFeeChargeID.ID,
+					FlatFee:    &flatFeeOverride,
+				})
+				require.NoError(s.T(), err)
+			case meta.ChargeTypeUsageBased:
+				usageBased, err := charge.AsUsageBasedCharge()
+				require.NoError(s.T(), err)
+				usageBasedChargeID = usageBased.GetChargeID()
+				usageBasedOverride = usageBased.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+				usageBasedOverride.Name = "usage-based-override"
+				usageBasedOverride.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(2)})
+				_, err = s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+					Namespace:  namespace,
+					CustomerID: customerID,
+					ChargeID:   usageBasedChargeID.ID,
+					UsageBased: &usageBasedOverride,
+				})
+				require.NoError(s.T(), err)
+			}
+		}
+
+		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+			ChangeSource: billing.ChangeSourceSystem,
+			Policy:       meta.RefundAsCreditsDeletePolicy,
+		})
+		require.NoError(s.T(), err)
+		require.NoError(s.T(), s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: customerNamespacedID,
+			PatchesByChargeID: map[string]charges.Patch{
+				flatFeeChargeID.ID:    deletePatch,
+				usageBasedChargeID.ID: deletePatch,
+			},
+		}))
+	})
+
+	s.Run("then the live overrides hide the deleted bases", func() {
+		flatFeeResult := s.mustGetChargeByID(flatFeeChargeID)
+		flatFee, err := flatFeeResult.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), flatfee.StatusCreated, flatFee.Status)
+		require.NotNil(s.T(), flatFee.Intent.GetBaseIntent().IntentDeletedAt)
+		require.Equal(s.T(), flatFeeOverride, *flatFee.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), flatFeeOverride, flatFee.Intent.GetEffectiveIntent().IntentMutableFields)
+
+		usageBasedResult := s.mustGetChargeByID(usageBasedChargeID)
+		usageBased, err := usageBasedResult.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), usagebased.StatusCreated, usageBased.Status)
+		require.NotNil(s.T(), usageBased.Intent.GetBaseIntent().IntentDeletedAt)
+		require.Equal(s.T(), usageBasedOverride, *usageBased.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), usageBasedOverride, usageBased.Intent.GetEffectiveIntent().IntentMutableFields)
+	})
+
+	s.Run("when clearing the live overrides", func() {
+		for _, chargeID := range []meta.ChargeID{flatFeeChargeID, usageBasedChargeID} {
+			_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+				Namespace:  namespace,
+				CustomerID: customerID,
+				ChargeID:   chargeID.ID,
+			})
+			require.NoError(s.T(), err)
+		}
+	})
+
+	s.Run("then the deleted bases complete their lifecycle", func() {
+		flatFeeResult := s.mustGetChargeByID(flatFeeChargeID)
+		flatFee, err := flatFeeResult.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), flatfee.StatusDeleted, flatFee.Status)
+		require.Nil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields())
+		require.NotNil(s.T(), flatFee.Intent.GetEffectiveIntent().IntentDeletedAt)
+
+		usageBasedResult := s.mustGetChargeByID(usageBasedChargeID)
+		usageBased, err := usageBasedResult.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), usagebased.StatusDeleted, usageBased.Status)
+		require.Nil(s.T(), usageBased.Intent.GetOverrideLayerMutableFields())
+		require.NotNil(s.T(), usageBased.Intent.GetEffectiveIntent().IntentDeletedAt)
+	})
+}
+
+func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearValidateOwnershipPayloadAndChargeType() {
 	// given
 	// - Supported customer charges and an out-of-scope credit purchase exist without overrides.
 	// when:
-	// - A non-owner, mismatched payload, or credit-purchase override request is submitted.
+	// - Invalid Set or Clear requests are submitted, followed by Clear on a charge without an override.
 	// then:
-	// - The facade rejects each request before mutating any charge intent.
+	// - Invalid requests cannot mutate charge intent, while absent-override Clear is idempotent.
 	ctx := s.T().Context()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2027-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -1166,6 +1430,25 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetValidatesOwnershipPayload
 		require.ErrorContains(s.T(), err, "credit purchase charges is not supported")
 	})
 
+	s.Run("when a different customer clears an override", func() {
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: otherCustomerID,
+			ChargeID:   flatFeeChargeID.ID,
+		})
+		require.True(s.T(), models.IsGenericNotFoundError(err))
+		require.ErrorContains(s.T(), err, "charge not found")
+	})
+
+	s.Run("when clearing an override on a credit purchase", func() {
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   creditPurchaseChargeID.ID,
+		})
+		require.ErrorContains(s.T(), err, "credit purchase charges is not supported")
+	})
+
 	s.Run("then no rejected request created an override", func() {
 		flatFeeCharge := s.mustGetChargeByID(flatFeeChargeID)
 		flatFee, err := flatFeeCharge.AsFlatFeeCharge()
@@ -1177,15 +1460,27 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetValidatesOwnershipPayload
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), creditPurchase.Realizations.CreditGrantRealization)
 	})
+
+	s.Run("when the owner clears a charge without an override", func() {
+		result, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   flatFeeChargeID.ID,
+		})
+		require.NoError(s.T(), err)
+		flatFee, err := result.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Nil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields())
+	})
 }
 
-func (s *CustomerChargeAPISetOverrideTestSuite) TestSetReconcilesRealizedFlatFeeCredits() {
+func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearReconcileRealizedFlatFeeCredits() {
 	// given
 	// - A subscription-managed credit-only flat fee has allocated its original amount.
 	// when:
-	// - The customer sets an override with a larger amount.
+	// - The customer sets an override with a larger amount and then clears it.
 	// then:
-	// - The base remains unchanged and the current run receives only the additional allocation.
+	// - Credit realizations first allocate and then correct only the delta to the effective amount.
 	ctx := s.T().Context()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2027-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -1198,6 +1493,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetReconcilesRealizedFlatFee
 	var customerID string
 	var chargeID meta.ChargeID
 	var allocationAmounts []float64
+	var correctionAmounts []float64
 
 	s.Run("given a realized credit-only flat-fee charge", func() {
 		namespace = s.GetUniqueNamespace("charges-service-api-set-flat-fee-credit")
@@ -1214,6 +1510,18 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetReconcilesRealizedFlatFee
 					TransactionGroupID: ulid.Make().String(),
 				},
 			}}, nil
+		}
+		s.FlatFeeTestHandler.onCorrectCreditAllocations = func(_ context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
+			return lo.Map(input.Corrections, func(item creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
+				correctionAmounts = append(correctionAmounts, item.Amount.InexactFloat64())
+				return creditrealization.CreateCorrectionInput{
+					Amount:                item.Amount,
+					CorrectsRealizationID: item.Allocation.ID,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				}
+			}), nil
 		}
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -1267,15 +1575,38 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetReconcilesRealizedFlatFee
 		require.Len(s.T(), flatFee.Realizations.CurrentRun.CreditRealizations, 2)
 		require.Equal(s.T(), float64(20), flatFee.Realizations.CurrentRun.CreditRealizations.Sum().InexactFloat64())
 	})
+
+	s.Run("when clearing the larger override", func() {
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   chargeID.ID,
+		})
+		require.NoError(s.T(), err)
+	})
+
+	s.Run("then credits are corrected back to the base amount", func() {
+		charge := s.mustGetChargeByID(chargeID)
+		flatFee, err := charge.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), flatfee.StatusFinal, flatFee.Status)
+		require.Nil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), float64(10), flatFee.Intent.GetEffectiveIntent().AmountBeforeProration.InexactFloat64())
+		require.Equal(s.T(), float64(10), flatFee.State.AmountAfterProration.InexactFloat64())
+		require.NotNil(s.T(), flatFee.Realizations.CurrentRun)
+		require.Len(s.T(), flatFee.Realizations.CurrentRun.CreditRealizations, 3)
+		require.Equal(s.T(), float64(10), flatFee.Realizations.CurrentRun.CreditRealizations.Sum().InexactFloat64())
+		require.Equal(s.T(), []float64{-10}, correctionAmounts)
+	})
 }
 
-func (s *CustomerChargeAPISetOverrideTestSuite) TestSetUpdatesInvoiceBackedGatheringLines() {
+func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearUpdateInvoiceBackedGatheringLines() {
 	// given
 	// - Active invoice-backed flat-fee and usage-based charges have mutable gathering lines.
 	// when:
-	// - The customer changes each charge's complete mutable snapshot before realization.
+	// - The customer sets and then clears each charge's complete mutable snapshot before realization.
 	// then:
-	// - Billing keeps one gathering line per charge and updates it from the effective override.
+	// - Billing keeps one gathering line per charge and updates it from the currently effective intent.
 	ctx := s.T().Context()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2027-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -1390,15 +1721,182 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetUpdatesInvoiceBackedGathe
 		require.NoError(s.T(), err)
 		require.Equal(s.T(), float64(2), unitPrice.Amount.InexactFloat64())
 	})
+
+	s.Run("when clearing the invoice-backed overrides", func() {
+		for _, chargeID := range []meta.ChargeID{flatFeeChargeID, usageBasedChargeID} {
+			_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+				Namespace:  namespace,
+				CustomerID: customerID,
+				ChargeID:   chargeID.ID,
+			})
+			require.NoError(s.T(), err)
+		}
+	})
+
+	s.Run("then the flat-fee gathering line reflects the restored base", func() {
+		flatFeeResult := s.mustGetChargeByID(flatFeeChargeID)
+		flatFee, err := flatFeeResult.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), flatfee.StatusActive, flatFee.Status)
+		require.Nil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields())
+		flatFeeLines := activeGatheringLinesForCharge(&s.BaseSuite, namespace, customerID, flatFeeChargeID.ID)
+		require.Len(s.T(), flatFeeLines, 1)
+		require.Equal(s.T(), "flat-fee-base", flatFeeLines[0].Name)
+		flatPrice, err := flatFeeLines[0].Price.AsFlat()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), float64(10), flatPrice.Amount.InexactFloat64())
+	})
+
+	s.Run("then the usage-based gathering line reflects the restored base", func() {
+		usageBasedResult := s.mustGetChargeByID(usageBasedChargeID)
+		usageBased, err := usageBasedResult.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), usagebased.StatusActive, usageBased.Status)
+		require.Nil(s.T(), usageBased.Intent.GetOverrideLayerMutableFields())
+		usageBasedLines := activeGatheringLinesForCharge(&s.BaseSuite, namespace, customerID, usageBasedChargeID.ID)
+		require.Len(s.T(), usageBasedLines, 1)
+		require.Equal(s.T(), "usage-based-base", usageBasedLines[0].Name)
+		unitPrice, err := usageBasedLines[0].Price.AsUnit()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), float64(1), unitPrice.Amount.InexactFloat64())
+	})
 }
 
-func (s *CustomerChargeAPISetOverrideTestSuite) TestSetVoidsUsageBasedCreditRealizationHistory() {
+func (s *CustomerChargeAPISetOverrideTestSuite) TestClearFlatFeeInvoiceOverridePreservesPaidHistoryAndRestartsGathering() {
+	// given
+	// - A flat-fee override has immutable paid invoice and payment history while its live base differs.
+	// when:
+	// - The customer clears the override.
+	// then:
+	// - The run becomes audit history, paid billing remains, and fresh gathering work uses the base intent.
+	ctx := s.T().Context()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2027-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2027-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	var namespace string
+	var customerID string
+	var chargeID meta.ChargeID
+	var baseFields flatfee.IntentMutableFields
+	var invoiceID billing.InvoiceID
+	var lineID billing.LineID
+
+	s.Run("given a paid realization of the override", func() {
+		namespace = s.GetUniqueNamespace("charges-service-api-clear-paid-flat-fee")
+		s.ProvisionDefaultTaxCodes(ctx, namespace)
+		customer := s.CreateTestCustomer(namespace, "api-clear-paid-flat-fee")
+		customerID = customer.ID
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), billingtest.WithManualApproval())
+
+		s.FlatFeeTestHandler.onAllocateCredits = func(context.Context, flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+			return nil, nil
+		}
+		s.FlatFeeTestHandler.onInvoiceUsageAccrued = newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]().Handler(s.T())
+		s.FlatFeeTestHandler.onPaymentAuthorized = newCountedLedgerTransactionCallback[flatfee.OnPaymentAuthorizedInput]().Handler(s.T())
+		s.FlatFeeTestHandler.onPaymentSettled = newCountedLedgerTransactionCallback[flatfee.OnPaymentSettledInput]().Handler(s.T())
+
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: namespace,
+			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       customer.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(10),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-base",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "api-clear-paid-flat-fee",
+			})},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), created, 1)
+		chargeID = lo.Must(created[0].GetChargeID())
+		flatFee, err := created[0].AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		baseFields = flatFee.Intent.GetBaseIntent().IntentMutableFields.Clone()
+		overrideFields := baseFields.Clone()
+		overrideFields.Name = "flat-fee-override"
+		overrideFields.AmountBeforeProration = alpacadecimal.NewFromInt(20)
+		_, err = s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   chargeID.ID,
+			FlatFee:    &overrideFields,
+		})
+		require.NoError(s.T(), err)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customer.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), invoices, 1)
+		require.Len(s.T(), invoices[0].Lines.OrEmpty(), 1)
+		invoice, err := s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.StandardInvoiceStatusPaid, invoice.Status)
+		require.Len(s.T(), invoice.Lines.OrEmpty(), 1)
+		invoiceID = invoice.GetInvoiceID()
+		lineID = invoice.Lines.OrEmpty()[0].GetLineID()
+	})
+
+	s.Run("when clearing the paid override", func() {
+		result, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   chargeID.ID,
+		})
+		require.NoError(s.T(), err)
+		flatFee, err := result.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		s.Equal(flatfee.StatusActive, flatFee.Status)
+	})
+
+	s.Run("then paid history is detached and base gathering restarts", func() {
+		charge := s.mustGetChargeByID(chargeID)
+		flatFee, err := charge.AsFlatFeeCharge()
+		require.NoError(s.T(), err)
+		require.Nil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), baseFields, flatFee.Intent.GetEffectiveIntent().IntentMutableFields)
+		require.Nil(s.T(), flatFee.Realizations.CurrentRun)
+		require.Len(s.T(), flatFee.Realizations.PriorRuns, 1)
+
+		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoiceID,
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.StandardInvoiceStatusPaid, invoice.Status)
+		require.Len(s.T(), invoice.Lines.OrEmpty(), 1)
+		require.Equal(s.T(), lineID, invoice.Lines.OrEmpty()[0].GetLineID())
+		require.Nil(s.T(), invoice.Lines.OrEmpty()[0].DeletedAt)
+		require.Len(s.T(), invoice.ValidationIssues, 1)
+		require.Equal(s.T(), billing.ImmutableInvoiceHandlingNotSupportedErrorCode, invoice.ValidationIssues[0].Code)
+
+		lines := activeGatheringLinesForCharge(&s.BaseSuite, namespace, customerID, chargeID.ID)
+		require.Len(s.T(), lines, 1)
+		require.Equal(s.T(), baseFields.Name, lines[0].Name)
+		price, err := lines[0].Price.AsFlat()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), baseFields.AmountBeforeProration.InexactFloat64(), price.Amount.InexactFloat64())
+		require.Equal(s.T(), flatfee.StatusActive, flatFee.Status)
+	})
+}
+
+func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRebuildUsageBasedCreditRealizationHistory() {
 	// given
 	// - A subscription-managed credit-only usage charge has mutable realization history.
 	// when:
-	// - The customer replaces its effective period and price with an override.
+	// - The customer replaces its effective period and price with an override and then clears it.
 	// then:
-	// - The old run is voided and the active charge is rescheduled from the override without changing its base.
+	// - Mutable runs are voided as each effective snapshot is replaced, while the base remains unchanged.
 	ctx := s.T().Context()
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2026-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
@@ -1533,15 +2031,41 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetVoidsUsageBasedCreditReal
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), run.DeletedAt)
 	})
+
+	s.Run("when clearing the usage-based override", func() {
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   chargeID.ID,
+		})
+		require.NoError(s.T(), err)
+	})
+
+	s.Run("then the base is effective with rebuilt mutable history", func() {
+		charge, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargeID,
+			Expands:  meta.Expands{meta.ExpandRealizations, meta.ExpandDeletedRealizations},
+		})
+		require.NoError(s.T(), err)
+		usageBased, err := charge.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Nil(s.T(), usageBased.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), servicePeriod, usageBased.Intent.GetEffectiveServicePeriod())
+		require.NotContains(s.T(), []usagebased.Status{usagebased.StatusActiveClearOverride, usagebased.StatusDeletedClearOverride}, usageBased.Status)
+
+		originalRun, err := usageBased.Realizations.GetByID(runID.ID)
+		require.NoError(s.T(), err)
+		require.NotNil(s.T(), originalRun.DeletedAt)
+	})
 }
 
-func (s *CustomerChargeAPISetOverrideTestSuite) TestSetRejectsUsageBasedInvoiceOverrideAfterRealizationStarts() {
+func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRejectUsageBasedInvoiceOverrideAfterRealizationStarts() {
 	// given
-	// - A credit-then-invoice usage charge has started an invoice realization without an override.
+	// - A credit-then-invoice usage charge with an override has started an invoice realization.
 	// when:
-	// - The customer attempts to replace its mutable snapshot.
+	// - The customer attempts to replace or clear its mutable snapshot.
 	// then:
-	// - The operation fails atomically because historical usage rerating is unsupported.
+	// - Both operations fail atomically because historical usage rerating is unsupported.
 	ctx := s.T().Context()
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2026-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
@@ -1555,6 +2079,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetRejectsUsageBasedInvoiceO
 	var customerID string
 	var chargeID meta.ChargeID
 	var baseFields usagebased.IntentMutableFields
+	var overrideFields usagebased.IntentMutableFields
 
 	s.Run("given an invoice realization has started", func() {
 		namespace = s.GetUniqueNamespace("charges-service-api-set-usage-invoice-realized")
@@ -1588,6 +2113,20 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetRejectsUsageBasedInvoiceO
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
 		chargeID = lo.Must(created[0].GetChargeID())
+		charge := s.mustGetChargeByID(chargeID)
+		usageBased, err := charge.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		baseFields = usageBased.Intent.GetBaseIntent().IntentMutableFields.Clone()
+		overrideFields = baseFields.Clone()
+		overrideFields.Name = "usage-based-override"
+		overrideFields.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(2)})
+		_, err = s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   chargeID.ID,
+			UsageBased: &overrideFields,
+		})
+		require.NoError(s.T(), err)
 
 		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(context.Context, usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 			return nil, nil
@@ -1606,16 +2145,16 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetRejectsUsageBasedInvoiceO
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices, 1)
 
-		charge := s.mustGetChargeByID(chargeID)
-		usageBased, err := charge.AsUsageBasedCharge()
+		charge = s.mustGetChargeByID(chargeID)
+		usageBased, err = charge.AsUsageBasedCharge()
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), usageBased.State.CurrentRealizationRunID)
 		require.NotEmpty(s.T(), usageBased.Realizations)
-		baseFields = usageBased.Intent.GetBaseIntent().IntentMutableFields.Clone()
+		require.Equal(s.T(), overrideFields, *usageBased.Intent.GetOverrideLayerMutableFields())
 	})
 
 	s.Run("when setting an override after realization starts", func() {
-		fields := baseFields.Clone()
+		fields := overrideFields.Clone()
 		fields.Name = "should-not-apply"
 
 		_, err := s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
@@ -1628,12 +2167,22 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetRejectsUsageBasedInvoiceO
 		require.ErrorContains(s.T(), err, "cannot set override for usage-based charge")
 	})
 
-	s.Run("then the charge remains on its base intent", func() {
+	s.Run("when clearing the override after realization starts", func() {
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   chargeID.ID,
+		})
+		// TODO: enable this once we have corrections and credit notes implemented.
+		require.ErrorContains(s.T(), err, "cannot clear override for usage-based charge")
+	})
+
+	s.Run("then the charge remains on its original override", func() {
 		charge := s.mustGetChargeByID(chargeID)
 		usageBased, err := charge.AsUsageBasedCharge()
 		require.NoError(s.T(), err)
 		require.Equal(s.T(), baseFields, usageBased.Intent.GetBaseIntent().IntentMutableFields)
-		require.Nil(s.T(), usageBased.Intent.GetOverrideLayerMutableFields())
+		require.Equal(s.T(), overrideFields, *usageBased.Intent.GetOverrideLayerMutableFields())
 		require.NotNil(s.T(), usageBased.State.CurrentRealizationRunID)
 	})
 }

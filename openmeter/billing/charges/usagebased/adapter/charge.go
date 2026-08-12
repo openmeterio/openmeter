@@ -144,11 +144,13 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		if err := charge.Intent.MutateEffective(func(intentMutableFields *usagebased.IntentMutableFields) error {
-			intentMutableFields.IntentDeletedAt = lo.ToPtr(clock.Now())
-			return nil
-		}); err != nil {
-			return err
+		if charge.Intent.GetDeletedAt() == nil {
+			if err := charge.Intent.MutateEffective(func(intentMutableFields *usagebased.IntentMutableFields) error {
+				intentMutableFields.IntentDeletedAt = lo.ToPtr(clock.Now())
+				return nil
+			}); err != nil {
+				return err
+			}
 		}
 
 		charge.DeletedAt = charge.GetIntentDeletedAt()

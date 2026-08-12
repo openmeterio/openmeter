@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -51,8 +53,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActive,
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverride), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(argAsPeriodPatch[meta.PatchExtend](s.patchCreatedChargePeriod))).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(argAsPeriodPatch[meta.PatchShrink](s.patchCreatedChargePeriod))).
 		OnActive(
@@ -65,8 +69,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActiveRealizationStarted,
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverride), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -81,8 +87,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusActiveRealizationWaitingForCollection,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, usagebased.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -95,8 +103,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActiveRealizationProcessing,
 			s.IsAfterCollectionPeriod,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, usagebased.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		// TODO: Transition to a failed state if the collection period end is not set
@@ -107,8 +117,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusActiveRealizationCompleted,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		OnActive(
 			s.FinalizeRealizationRun,
 		)
@@ -118,20 +130,34 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusFinal,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, usagebased.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
 
 	s.Configure(usagebased.StatusFinal).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, usagebased.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(s.ClearAdvanceAfter)
 
 	s.Configure(usagebased.StatusDeleted).
-		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		Permit(meta.TriggerClearOverride, usagebased.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverrideFromDeletedBase), statelessx.BoolFn(s.IsBaseIntentDeleted))
+
+	s.Configure(usagebased.StatusActiveClearOverride).
+		PermitDynamic(meta.TriggerNext, s.ResolveStateAfterClearOverride).
+		OnActive(s.ActiveClearOverride)
+
+	s.Configure(usagebased.StatusDeletedClearOverride).
+		Permit(meta.TriggerNext, usagebased.StatusDeleted).
+		OnActive(s.ClearDeletedChargeOverride)
 }
 
 func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
@@ -155,6 +181,51 @@ func (s *CreditsOnlyStateMachine) SetOverride(ctx context.Context, patch usageba
 	return s.persistActivePeriodPatch(ctx)
 }
 
+func (s *CreditsOnlyStateMachine) ClearOverride(ctx context.Context, _ meta.PatchClearOverride) error {
+	return s.ActiveClearOverride(ctx)
+}
+
+func (s *CreditsOnlyStateMachine) ActiveClearOverride(ctx context.Context) error {
+	if err := s.clearOverrideIntent(ctx); err != nil {
+		return err
+	}
+
+	if s.Charge.Intent.GetBaseIntent().IntentDeletedAt != nil {
+		return errors.New("clearing usage-based override unexpectedly restored a deleted base intent")
+	}
+
+	if err := s.voidAllRuns(ctx); err != nil {
+		return err
+	}
+
+	s.Charge.State.CurrentRealizationRunID = nil
+	return nil
+}
+
+func (s *CreditsOnlyStateMachine) ResolveStateAfterClearOverride(_ context.Context, _ ...any) (stateless.State, error) {
+	if clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().From) {
+		return usagebased.StatusCreated, nil
+	}
+
+	return usagebased.StatusActive, nil
+}
+
+func (s *CreditsOnlyStateMachine) ClearDeletedChargeOverride(ctx context.Context) error {
+	if err := s.clearOverrideIntent(ctx); err != nil {
+		return err
+	}
+
+	if s.Charge.Intent.GetDeletedAt() == nil {
+		return errors.New("clearing usage-based override did not restore a deleted base intent")
+	}
+
+	if err := s.reconcileDeletedCharge(ctx, meta.RefundAsCreditsDeletePolicy); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
 	deletedAt := lo.ToPtr(clock.Now())
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
@@ -174,8 +245,15 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 	}
 
 	s.Charge.Status = usagebased.StatusDeleted
+	if err := s.reconcileDeletedCharge(ctx, patch.GetPolicy()); err != nil {
+		return err
+	}
 
-	if patch.GetPolicy().CreditRefundPolicy == meta.CreditRefundPolicyCorrect {
+	return nil
+}
+
+func (s *CreditsOnlyStateMachine) reconcileDeletedCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
+	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect {
 		for _, run := range s.Charge.Realizations {
 			if _, err := s.Runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
 				Charge:             s.Charge,
@@ -193,7 +271,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 	}
 
 	if err := s.RefetchCharge(ctx); err != nil {
-		return fmt.Errorf("get charge: %w", err)
+		return fmt.Errorf("refetch deleted charge: %w", err)
 	}
 
 	return nil

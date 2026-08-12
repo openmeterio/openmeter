@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -44,8 +46,10 @@ func NewCreditsOnlyStateMachine(config StateMachineConfig) (*CreditsOnlyStateMac
 func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
 		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsAfterInvoiceAt)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverride), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -54,8 +58,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 
 	s.Configure(flatfee.StatusActive).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsAfterBookedAt)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverride), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -63,8 +69,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 		)
 
 	s.Configure(flatfee.StatusFinal).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverride), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -75,7 +83,17 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 		)
 
 	s.Configure(flatfee.StatusDeleted).
-		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverrideFromDeletedBase), statelessx.BoolFn(s.IsBaseIntentDeleted))
+
+	s.Configure(flatfee.StatusActiveClearOverride).
+		PermitDynamic(meta.TriggerNext, s.ResolveStateAfterClearOverride).
+		OnActive(s.ActiveClearOverride)
+
+	s.Configure(flatfee.StatusDeletedClearOverride).
+		Permit(meta.TriggerNext, flatfee.StatusDeleted).
+		OnActive(s.ClearDeletedChargeOverride)
 }
 
 func (s *CreditsOnlyStateMachine) IsAfterBookedAt() bool {
@@ -109,6 +127,65 @@ func (s *CreditsOnlyStateMachine) SetOverride(ctx context.Context, patch flatfee
 	}
 
 	return s.reconcileCurrentRunCredits(ctx, ratingResult)
+}
+
+func (s *CreditsOnlyStateMachine) ClearOverride(ctx context.Context, _ meta.PatchClearOverride) error {
+	return s.ActiveClearOverride(ctx)
+}
+
+func (s *CreditsOnlyStateMachine) ActiveClearOverride(ctx context.Context) error {
+	cleared, err := s.clearOverrideIntent(ctx)
+	if err != nil {
+		return err
+	}
+	if !cleared {
+		return nil
+	}
+	if s.Charge.Intent.GetDeletedAt() != nil {
+		return errors.New("clearing flat-fee override unexpectedly restored a deleted base intent")
+	}
+
+	ratingResult, err := s.rateEffectiveIntent()
+	if err != nil {
+		return err
+	}
+	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
+
+	if s.Charge.Realizations.CurrentRun != nil {
+		if err := s.reconcileCurrentRunCredits(ctx, ratingResult); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *CreditsOnlyStateMachine) ResolveStateAfterClearOverride(_ context.Context, _ ...any) (stateless.State, error) {
+	if s.IsAfterBookedAt() {
+		return flatfee.StatusFinal, nil
+	}
+
+	if s.IsAfterInvoiceAt() {
+		return flatfee.StatusActive, nil
+	}
+
+	return flatfee.StatusCreated, nil
+}
+
+func (s *CreditsOnlyStateMachine) ClearDeletedChargeOverride(ctx context.Context) error {
+	cleared, err := s.clearOverrideIntent(ctx)
+	if err != nil {
+		return err
+	}
+	if !cleared {
+		return nil
+	}
+
+	if s.Charge.Intent.GetDeletedAt() == nil {
+		return errors.New("clearing flat-fee override did not restore a deleted base intent")
+	}
+
+	return s.reconcileDeletedCharge(ctx, meta.RefundAsCreditsDeletePolicy)
 }
 
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
@@ -307,8 +384,15 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 	}
 
 	s.Charge.Status = flatfee.StatusDeleted
+	if err := s.reconcileDeletedCharge(ctx, patch.GetPolicy()); err != nil {
+		return err
+	}
 
-	if patch.GetPolicy().CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
+	return nil
+}
+
+func (s *CreditsOnlyStateMachine) reconcileDeletedCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
+	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
 		currency := s.Charge.Intent.GetCurrency()
 
 		if _, err := s.Realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
@@ -326,7 +410,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 	}
 
 	if err := s.RefetchCharge(ctx); err != nil {
-		return fmt.Errorf("get charge: %w", err)
+		return fmt.Errorf("refetch deleted charge: %w", err)
 	}
 
 	return nil

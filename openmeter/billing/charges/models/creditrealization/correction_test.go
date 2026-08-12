@@ -157,6 +157,22 @@ func TestCreateCorrectionRequest(t *testing.T) {
 		assert.Equal(t, -3.0, cr[0].Amount.InexactFloat64())
 	})
 
+	t.Run("exact revert stops before the next allocation", func(t *testing.T) {
+		b := newAllocationBuilder()
+		a1 := b.build(10)
+		a2 := b.build(10)
+
+		cr, err := Realizations{a1, a2}.CreateCorrectionRequest(
+			alpacadecimal.NewFromFloat(-10),
+			testCurrency(t),
+		)
+
+		require.NoError(t, err)
+		require.Len(t, cr, 1)
+		assert.Equal(t, a2.ID, cr[0].Allocation.ID)
+		assert.Equal(t, -10.0, cr[0].Amount.InexactFloat64())
+	})
+
 	t.Run("full revert spanning multiple allocations in reverse order", func(t *testing.T) {
 		b := newAllocationBuilder()
 		a1 := b.build(5)
