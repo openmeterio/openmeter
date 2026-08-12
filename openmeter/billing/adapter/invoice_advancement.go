@@ -50,12 +50,12 @@ func invoicePendingAdvancementPredicate(filter billing.InvoicePendingAdvancement
 	)
 }
 
-func (a *adapter) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.InvoiceID, error) {
+func (a *adapter) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.InvoiceAdvancementCandidate, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{Err: err}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.InvoiceID, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.InvoiceAdvancementCandidate, error) {
 		query := tx.db.BillingInvoice.Query().
 			Where(
 				billinginvoice.DeletedAtIsNil(),
@@ -74,7 +74,7 @@ func (a *adapter) ListStandardInvoicesPendingAdvancement(ctx context.Context, in
 		}
 
 		query.
-			Select(billinginvoice.FieldNamespace, billinginvoice.FieldID).
+			Select(billinginvoice.FieldNamespace, billinginvoice.FieldID, billinginvoice.FieldCustomerID).
 			Order(billinginvoice.ByCreatedAt(entutils.GetOrdering(sortx.OrderDefault)...))
 
 		entities, err := query.All(ctx)
@@ -82,11 +82,14 @@ func (a *adapter) ListStandardInvoicesPendingAdvancement(ctx context.Context, in
 			return nil, fmt.Errorf("failed to list standard invoices pending advancement: %w", err)
 		}
 
-		invoices := make([]billing.InvoiceID, 0, len(entities))
+		invoices := make([]billing.InvoiceAdvancementCandidate, 0, len(entities))
 		for _, entity := range entities {
-			invoices = append(invoices, billing.InvoiceID{
-				Namespace: entity.Namespace,
-				ID:        entity.ID,
+			invoices = append(invoices, billing.InvoiceAdvancementCandidate{
+				InvoiceID: billing.InvoiceID{
+					Namespace: entity.Namespace,
+					ID:        entity.ID,
+				},
+				CustomerID: entity.CustomerID,
 			})
 		}
 

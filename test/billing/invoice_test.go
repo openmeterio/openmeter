@@ -643,10 +643,11 @@ func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCu
 	// given:
 	// - gathering invoices for the same customer in two currencies, including a legacy nil collection time
 	// - another collectable customer in a second namespace
+	// - an invoice workflow reference that cannot be resolved in its namespace
 	// when:
 	// - customers pending collection are listed across both namespaces
 	// then:
-	// - each namespaced customer ID is returned exactly once
+	// - each namespaced customer ID is returned exactly once without resolving invoice dependencies
 	namespace := s.GetUniqueNamespace("gathering-pending-collection")
 	ctx := s.T().Context()
 
@@ -718,6 +719,20 @@ func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCu
 		Namespace: secondNamespace,
 		Customer:  secondCustomer,
 	})
+
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_workflow_configs
+		 SET namespace = $1
+		 WHERE id = (
+			 SELECT workflow_config_id
+			 FROM billing_invoices
+			 WHERE namespace = $2 AND id = $3
+		 )`,
+		s.GetUniqueNamespace("gathering-pending-collection-foreign"),
+		namespace,
+		res.Invoice.ID,
+	)
+	require.NoError(s.T(), err)
 
 	customers, err := s.BillingService.ListCustomerIDsPendingCollection(ctx, billing.ListCustomerIDsPendingCollectionInput{
 		Namespaces: []string{namespace, secondNamespace},
@@ -3948,7 +3963,7 @@ func (s *InvoicingTestSuite) TestListPendingAdvancementDoesNotResolveWorkflowRef
 	// when:
 	// - pending advancement candidates are listed
 	// then:
-	// - the invoice identity is returned without resolving its workflow or tax code
+	// - the invoice and customer identities are returned without resolving its workflow or tax code
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("pending-advancement")
 	s.ProvisionBillingProfile(ctx, namespace, s.InstallSandboxApp(s.T(), namespace).GetID())
@@ -3986,7 +4001,8 @@ func (s *InvoicingTestSuite) TestListPendingAdvancementDoesNotResolveWorkflowRef
 	})
 	s.Require().NoError(err)
 	s.Require().Len(candidates, 1)
-	s.Equal(invoices[0].GetInvoiceID(), candidates[0])
+	s.Equal(invoices[0].GetInvoiceID(), candidates[0].InvoiceID)
+	s.Equal(customerEntity.ID, candidates[0].CustomerID)
 }
 
 func (s *InvoicingTestSuite) TestProgressiveBillLate() {

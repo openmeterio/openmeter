@@ -1124,6 +1124,13 @@ type ListStandardInvoicesPendingAdvancementInput struct {
 	MinimumAge time.Duration
 }
 
+// InvoiceAdvancementCandidate contains the identifiers required to dispatch an
+// invoice advancement without resolving the invoice's workflow dependencies.
+type InvoiceAdvancementCandidate struct {
+	InvoiceID  InvoiceID
+	CustomerID string
+}
+
 var _ models.Validator = (*ListStandardInvoicesPendingAdvancementInput)(nil)
 
 func (i ListStandardInvoicesPendingAdvancementInput) Validate() error {

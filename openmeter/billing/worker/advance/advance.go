@@ -31,7 +31,7 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 		return fmt.Errorf("failed to list invoices to advance: %w", err)
 	}
 
-	batches := [][]billing.InvoiceID{
+	batches := [][]billing.InvoiceAdvancementCandidate{
 		invoices,
 	}
 	if batchSize > 0 {
@@ -48,15 +48,15 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 
 	for _, batch := range batches {
 		var wg sync.WaitGroup
-		for _, invoice := range batch {
+		for _, candidate := range batch {
 			wg.Add(1)
 
 			go func() {
 				defer wg.Done()
 
-				_, err = a.AdvanceInvoice(ctx, invoice)
+				_, err := a.AdvanceInvoice(ctx, candidate.InvoiceID)
 				if err != nil {
-					err = fmt.Errorf("failed to auto-advance invoice [namespace=%s id=%s]: %w", invoice.Namespace, invoice.ID, err)
+					err = fmt.Errorf("failed to auto-advance invoice [namespace=%s id=%s]: %w", candidate.InvoiceID.Namespace, candidate.InvoiceID.ID, err)
 				}
 
 				errChan <- err
@@ -75,7 +75,7 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 	return errors.Join(errs...)
 }
 
-func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.InvoiceID, error) {
+func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.InvoiceAdvancementCandidate, error) {
 	invoices, err := a.invoice.ListStandardInvoicesPendingAdvancement(ctx, billing.ListStandardInvoicesPendingAdvancementInput{
 		Namespaces: namespaces,
 		IDs:        ids,
