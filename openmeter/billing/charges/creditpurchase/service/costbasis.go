@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -16,7 +14,7 @@ import (
 
 type resolveInitialCostBasisInput struct {
 	Currency   currencies.Currency
-	CostBasis  *creditpurchase.CostBasis
+	CostBasis  creditpurchase.CostBasis
 	ResolvedAt time.Time
 }
 
@@ -28,7 +26,7 @@ func (i resolveInitialCostBasisInput) Validate() error {
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
-	if i.CostBasis != nil {
+	if !i.CostBasis.IsEmpty() {
 		if err := i.CostBasis.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("cost basis: %w", err))
 		}
@@ -44,29 +42,17 @@ func (s *service) resolveInitialCostBasis(ctx context.Context, input resolveInit
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
-	if input.CostBasis == nil {
+	if input.CostBasis.IsEmpty() {
 		return nil, nil
 	}
 
 	switch input.CostBasis.Type() {
 	case creditpurchase.CostBasisTypeFiat:
-		fiatCostBasis, err := input.CostBasis.AsFiat()
-		if err != nil {
-			return nil, fmt.Errorf("getting fiat cost basis: %w", err)
-		}
-
-		return lo.ToPtr(costbasis.State{
-			CostBasis:  fiatCostBasis.Rate,
-			ResolvedAt: input.ResolvedAt,
-		}), nil
+		return nil, nil
 	case creditpurchase.CostBasisTypeCustomCurrency:
 		customCostBasis, err := input.CostBasis.AsCustomCurrency()
 		if err != nil {
 			return nil, fmt.Errorf("getting custom-currency cost basis: %w", err)
-		}
-
-		if customCostBasis.Kind() == costbasis.ModeDynamic {
-			return nil, errors.New("dynamic cost basis is not supported for credit purchases")
 		}
 
 		resolvedCostBasis, err := s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
@@ -82,4 +68,53 @@ func (s *service) resolveInitialCostBasis(ctx context.Context, input resolveInit
 	default:
 		return nil, fmt.Errorf("unsupported credit purchase cost basis type: %s", input.CostBasis.Type())
 	}
+}
+
+// ResolveDynamicCostBasis pins the cost basis effective at the purchase's
+// service-period start before the first monetary effect.
+func (s *stateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
+	if s.Charge.Intent.CostBasis.Type() != creditpurchase.CostBasisTypeCustomCurrency {
+		return nil
+	}
+
+	intent, err := s.Charge.Intent.CostBasis.AsCustomCurrency()
+	if err != nil {
+		return fmt.Errorf("getting custom-currency cost basis: %w", err)
+	}
+
+	if intent.Kind() != costbasis.ModeDynamic || s.Charge.State.ResolvedCostBasis != nil {
+		return nil
+	}
+
+	if s.Charge.State.ChargeCostBasisID == nil {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("charge cost basis reference is missing for credit purchase %s", s.Charge.ID),
+		)
+	}
+
+	resolvedState, err := s.CostBasisResolver.ResolveDynamicState(ctx, costbasis.ResolveDynamicStateInput{
+		CurrencyID:        s.Charge.Intent.Currency.NamespacedID,
+		Intent:            intent,
+		ServicePeriodFrom: s.Charge.Intent.ServicePeriod.From,
+	})
+	if err != nil {
+		return fmt.Errorf("resolving dynamic cost basis for credit purchase %s: %w", s.Charge.ID, err)
+	}
+
+	persisted, err := s.Adapter.SetResolvedCostBasis(ctx, creditpurchase.SetResolvedCostBasisInput{
+		ChargeID:          s.Charge.GetChargeID(),
+		ChargeCostBasisID: *s.Charge.State.ChargeCostBasisID,
+		State:             resolvedState,
+	})
+	if err != nil {
+		return fmt.Errorf("persisting dynamic cost basis for credit purchase %s: %w", s.Charge.ID, err)
+	}
+
+	if persisted.State == nil {
+		return fmt.Errorf("persisted dynamic cost basis is unresolved for credit purchase %s", s.Charge.ID)
+	}
+
+	s.Charge.State.ResolvedCostBasis = persisted.State
+
+	return nil
 }

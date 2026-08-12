@@ -38,7 +38,8 @@ func TestFromDBCostBasis(t *testing.T) {
 			CreatedAt:      createdAt,
 		}, currenciestestutils.NewFiatCurrency(t, "USD"))
 		require.NoError(t, err)
-		require.NotNil(t, mapped.CostBasis)
+		require.False(t, mapped.CostBasis.IsEmpty())
+		require.Nil(t, mapped.ChargeCostBasisID)
 		require.NotNil(t, mapped.ResolvedCostBasis)
 		require.Equal(t, rate, mapped.ResolvedCostBasis.CostBasis)
 		require.False(t, mapped.ResolvedCostBasis.ResolvedAt.IsZero())
@@ -70,13 +71,44 @@ func TestFromDBCostBasis(t *testing.T) {
 			},
 		}, customCurrency)
 		require.NoError(t, err)
-		require.NotNil(t, mapped.CostBasis)
+		require.False(t, mapped.CostBasis.IsEmpty())
+		require.Equal(t, &costBasisID, mapped.ChargeCostBasisID)
 		require.NotNil(t, mapped.ResolvedCostBasis)
 		require.Equal(t, resolvedAt, mapped.ResolvedCostBasis.ResolvedAt)
 
 		intent, err := mapped.CostBasis.AsCustomCurrency()
 		require.NoError(t, err)
 		require.Equal(t, costbasis.ModeManual, intent.Kind())
+	})
+
+	t.Run("dedicated dynamic custom currency maps unresolved state", func(t *testing.T) {
+		customCurrency := currenciestestutils.NewCustomCurrency(t, "TOKENS", 2)
+		customCurrency.Namespace = "ns"
+		costBasisID := "01J00000000000000000000000"
+
+		mapped, err := fromDBCostBasis(&db.ChargeCreditPurchase{
+			SettlementType: &invoiceSettlementType,
+			CostBasisID:    &costBasisID,
+			Edges: db.ChargeCreditPurchaseEdges{
+				CostBasis: &db.ChargeCreditPurchaseCostBasis{
+					ID:           costBasisID,
+					Namespace:    customCurrency.Namespace,
+					Mode:         costbasis.ModeDynamic,
+					FiatCurrency: fiatCode,
+					CurrencyID:   customCurrency.ID,
+					CreatedAt:    createdAt,
+					UpdatedAt:    createdAt,
+				},
+			},
+		}, customCurrency)
+		require.NoError(t, err)
+		require.False(t, mapped.CostBasis.IsEmpty())
+		require.Equal(t, &costBasisID, mapped.ChargeCostBasisID)
+		require.Nil(t, mapped.ResolvedCostBasis)
+
+		intent, err := mapped.CostBasis.AsCustomCurrency()
+		require.NoError(t, err)
+		require.Equal(t, costbasis.ModeDynamic, intent.Kind())
 	})
 }
 

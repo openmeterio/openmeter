@@ -240,32 +240,12 @@ func getIntent(dbEntity Getter) (Intent, error) {
 		return Intent{}, fmt.Errorf("map fiat currency: %w", err)
 	}
 
-	switch dbEntity.GetMode() {
-	case ModeDynamic:
-		return NewIntent(DynamicIntent{FiatCurrency: fiatCurrency}), nil
-	case ModePinned:
-		currencyCostBasisID := dbEntity.GetCurrencyCostBasisID()
-		if currencyCostBasisID == nil {
-			return Intent{}, errors.New("currency cost basis ID is required")
-		}
-
-		return NewIntent(PinnedIntent{
-			FiatCurrency:        fiatCurrency,
-			CurrencyCostBasisID: *currencyCostBasisID,
-		}), nil
-	case ModeManual:
-		manualRate := dbEntity.GetManualRate()
-		if manualRate == nil {
-			return Intent{}, errors.New("manual rate is required")
-		}
-
-		return NewIntent(ManualIntent{
-			FiatCurrency: fiatCurrency,
-			Rate:         *manualRate,
-		}), nil
-	default:
-		return Intent{}, fmt.Errorf("invalid cost basis mode: %s", dbEntity.GetMode())
-	}
+	return NewIntentFromFields(NewIntentFromFieldsInput{
+		Mode:                dbEntity.GetMode(),
+		FiatCurrency:        fiatCurrency,
+		CurrencyCostBasisID: dbEntity.GetCurrencyCostBasisID(),
+		Rate:                dbEntity.GetManualRate(),
+	})
 }
 
 func getState(dbEntity Getter) (*State, error) {

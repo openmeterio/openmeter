@@ -189,15 +189,21 @@ Payment-backed credit purchases grant credits before entering payment pending,
 then record authorization and settlement as separate state-machine transitions.
 Invoice settlement requires billing's authorization callback before settlement;
 external settlement additionally supports a direct-paid path that records both
-facts in order.
+facts in order. An invoice-settled credit purchase has one standard invoice
+line; duplicate lines for the same charge are rejected before lifecycle events
+because the transition and its payment realization are bound to that line.
 
 Payment-backed credit purchases also carry a charge-level cost basis. Fiat
 credit uses a fixed scalar intent in the charge currency and materializes its
 deterministic resolved state at charge creation. Custom-currency credit reuses
-the shared manual or pinned cost-basis intent and its durable resolved state;
-the shared model remains custom-currency-only. Dynamic intent is representable
-but credit purchases reject it until their lifecycle can resolve the rate
-before monetary realization.
+the shared manual, pinned, or dynamic cost-basis intent and its durable resolved
+state; the shared model remains custom-currency-only. Dynamic intent is
+persisted unresolved, then pinned to the rate effective at the purchase's
+service-period start by the credit-purchase state machine. Invoice-settled
+purchases enter billing with a provisional zero-value line. When billing creates
+the standard invoice, the state machine resolves the cost basis before booking
+the credit grant; the line engine then requires that resolution and replaces the
+provisional amount with the resolved fiat value.
 
 Persisted credit purchases read settlement and cost basis only from their
 dedicated fields. Fiat purchases persist their scalar rate on the charge row;

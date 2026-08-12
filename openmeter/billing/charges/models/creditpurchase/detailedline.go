@@ -158,6 +158,8 @@ func (i WithDetailedLinesInput) Validate() error {
 
 	if i.Line == nil {
 		errs = append(errs, errors.New("line is required"))
+	} else if i.Line.UsageBased == nil {
+		errs = append(errs, errors.New("line price is required"))
 	}
 
 	if i.Name == "" {
@@ -200,7 +202,7 @@ func (i WithDetailedLinesInput) Validate() error {
 }
 
 // WithDetailedLines returns a cloned invoice line populated from an
-// already-resolved credit valuation while preserving detailed-line identity.
+// already-resolved credit cost basis while preserving detailed-line identity.
 func WithDetailedLines(input WithDetailedLinesInput) (*billing.StandardLine, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
@@ -228,6 +230,10 @@ func WithDetailedLines(input WithDetailedLinesInput) (*billing.StandardLine, err
 
 	line.DetailedLines = line.DetailedLinesWithIDReuse(billing.DetailedLines{detailedLine})
 	line.Totals = line.DetailedLines.SumTotals().RoundToPrecision(input.FiatCurrency)
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+		Amount:      input.FiatAmount,
+		PaymentTerm: productcatalog.InAdvancePaymentTerm,
+	})
 
 	if !line.Totals.Total.Equal(input.FiatAmount) {
 		return nil, fmt.Errorf(

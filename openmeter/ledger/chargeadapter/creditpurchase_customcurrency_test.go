@@ -306,7 +306,8 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalChargeCustomCurrency(
 	charge.ID = "credit-purchase-cc-promo"
 	charge.Intent.Name = "Promotional Credit Purchase (custom currency)"
 	charge.Intent.Settlement = chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{})
-	charge.Intent.CostBasis = nil
+	charge.Intent.CostBasis = chargecreditpurchase.CostBasis{}
+	charge.State.ChargeCostBasisID = nil
 	charge.State.ResolvedCostBasis = nil
 
 	return charge
@@ -534,13 +535,14 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 						InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
 					}),
 				},
-				CostBasis: lo.ToPtr(chargecreditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
+				CostBasis: chargecreditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
 					FiatCurrency: fiatCurrency,
 					Rate:         costBasis,
-				}))),
+				})),
 			},
 			Status: chargecreditpurchase.StatusCreated,
 			State: chargecreditpurchase.State{
+				ChargeCostBasisID: lo.ToPtr("credit-purchase-cost-basis-cc"),
 				ResolvedCostBasis: &chargecostbasis.State{
 					CostBasis:  costBasis,
 					ResolvedAt: now,

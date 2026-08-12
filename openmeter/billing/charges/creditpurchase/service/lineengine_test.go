@@ -19,6 +19,22 @@ func TestLineEngineDoesNotImplementLineCalculator(t *testing.T) {
 	require.False(t, implementsLineCalculator)
 }
 
+func TestPopulateInvoiceCreditPurchaseStandardLineRejectsUnresolvedCostBasis(t *testing.T) {
+	// given: an invoice credit purchase whose lifecycle left its cost basis unresolved
+	charge := newInvoiceStateMachineTestCharge(t, creditpurchase.StatusActivePaymentPending)
+	charge.State.ResolvedCostBasis = nil
+	line := newInvoiceStateMachineTestLine(t, charge, alpacadecimal.Zero).Line
+
+	// when: the line engine attempts to finalize the provisional standard line
+	_, err := populateInvoiceCreditPurchaseStandardLine(populateInvoiceCreditPurchaseStandardLineInput{
+		Line:   line,
+		Charge: charge,
+	})
+
+	// then: the unresolved lifecycle state is rejected instead of being priced
+	require.ErrorContains(t, err, "cost basis is unresolved")
+}
+
 func TestGetChargesForStandardLinesInputValidate(t *testing.T) {
 	charge := newInvoiceStateMachineTestCharge(t, creditpurchase.StatusCreated)
 	lineWithHeader := newInvoiceStateMachineTestLine(t, charge, alpacadecimal.NewFromInt(50))
@@ -29,6 +45,20 @@ func TestGetChargesForStandardLinesInputValidate(t *testing.T) {
 	}
 
 	require.NoError(t, input.Validate())
+
+	t.Run("rejects multiple lines for the same charge", func(t *testing.T) {
+		// given: two otherwise valid invoice lines referencing one credit purchase
+		duplicateLine := *lineWithHeader.Line
+		duplicateLine.ID = "line-2"
+		duplicateInput := input
+		duplicateInput.Lines = billing.StandardLines{lineWithHeader.Line, &duplicateLine}
+
+		// when: the line event input is validated
+		err := duplicateInput.Validate()
+
+		// then: the charge cannot receive the same lifecycle trigger twice
+		require.ErrorContains(t, err, "is referenced by multiple standard lines")
+	})
 
 	input.Invoice.Namespace = ""
 	input.Lines[0].ChargeID = nil

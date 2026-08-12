@@ -97,3 +97,36 @@ func TestConvertCustomCurrencyOverageToFiat(t *testing.T) {
 		require.ErrorContains(t, err, "resolved cost basis is required")
 	})
 }
+
+func TestCalculateFiatAmount(t *testing.T) {
+	fiatCurrency, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	t.Run("converts and rounds to fiat precision", func(t *testing.T) {
+		amount, err := CalculateFiatAmount(
+			alpacadecimal.NewFromFloat(1.23),
+			alpacadecimal.NewFromFloat(1.5),
+			fiatCurrency,
+		)
+		require.NoError(t, err)
+		require.Equal(t, float64(1.85), amount.InexactFloat64())
+	})
+
+	t.Run("rejects negative amount", func(t *testing.T) {
+		_, err := CalculateFiatAmount(
+			alpacadecimal.NewFromInt(-1),
+			alpacadecimal.NewFromInt(1),
+			fiatCurrency,
+		)
+		require.ErrorContains(t, err, "amount cannot be negative")
+	})
+
+	t.Run("rejects zero cost basis", func(t *testing.T) {
+		_, err := CalculateFiatAmount(
+			alpacadecimal.NewFromInt(1),
+			alpacadecimal.Zero,
+			fiatCurrency,
+		)
+		require.ErrorContains(t, err, "resolved cost basis cannot be zero")
+	})
+}

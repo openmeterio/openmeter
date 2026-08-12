@@ -23,6 +23,20 @@ type FiatOverage struct {
 	Amount   alpacadecimal.Decimal
 }
 
+// CalculateFiatAmount converts an amount using a resolved cost basis and
+// rounds the result to the settlement currency's precision.
+func CalculateFiatAmount(amount, resolvedCostBasis alpacadecimal.Decimal, fiatCurrency *currencyx.FiatCurrency) (alpacadecimal.Decimal, error) {
+	if amount.IsNegative() {
+		return alpacadecimal.Zero, fmt.Errorf("amount cannot be negative")
+	}
+
+	if resolvedCostBasis.IsZero() {
+		return alpacadecimal.Zero, fmt.Errorf("resolved cost basis cannot be zero")
+	}
+
+	return fiatCurrency.RoundToPrecision(amount.Mul(resolvedCostBasis)), nil
+}
+
 // ConvertCustomCurrencyOverageToFiat converts the post-allocation total of a
 // custom-currency realization into its invoice currency using the persisted
 // cost basis.
@@ -64,10 +78,17 @@ func ConvertCustomCurrencyOverageToFiat(input ConvertCustomCurrencyOverageToFiat
 		return FiatOverage{}, fmt.Errorf("resolved cost basis: %w", err)
 	}
 
+	fiatAmount, err := CalculateFiatAmount(
+		input.Totals.Total,
+		input.ResolvedCostBasis.CostBasis,
+		fiatCurrency,
+	)
+	if err != nil {
+		return FiatOverage{}, fmt.Errorf("calculate fiat amount: %w", err)
+	}
+
 	return FiatOverage{
 		Currency: fiatCurrency,
-		Amount: fiatCurrency.RoundToPrecision(
-			input.Totals.Total.Mul(input.ResolvedCostBasis.CostBasis),
-		),
+		Amount:   fiatAmount,
 	}, nil
 }

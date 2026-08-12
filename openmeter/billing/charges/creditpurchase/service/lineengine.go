@@ -46,8 +46,9 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 	return e.buildInvoiceCreditPurchaseStandardLines(ctx, input)
 }
 
-// buildInvoiceCreditPurchaseStandardLines preserves the purchased credit
-// quantity and its resolved cost basis instead of rerating the fiat line total.
+// buildInvoiceCreditPurchaseStandardLines preserves unresolved gathering lines
+// as provisional zero-value lines. Resolved charges can be fully represented
+// without lifecycle side effects, including in previews.
 func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
@@ -67,8 +68,9 @@ func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context
 		return nil, err
 	}
 
-	for idx, stdLine := range stdLines {
+	return lo.MapErr(stdLines, func(stdLine *billing.StandardLine, _ int) (*billing.StandardLine, error) {
 		charge, ok := chargesByID[*stdLine.ChargeID]
+
 		if !ok {
 			return nil, fmt.Errorf("credit purchase charge[%s] not found for line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
@@ -77,33 +79,17 @@ func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context
 			return nil, fmt.Errorf("credit purchase charge[%s] is not invoice settled", charge.ID)
 		}
 
-		resolvedCostBasis, err := charge.GetResolvedCostBasis()
-		if err != nil {
-			return nil, fmt.Errorf("getting resolved cost basis for credit purchase charge[%s]: %w", charge.ID, err)
+		// If costbasis is not yet resolved, we should not try to populate the detailed lines until
+		// we have resolved the costbasis (later in the lifecycle).
+		if charge.State.ResolvedCostBasis == nil {
+			return stdLine, nil
 		}
 
-		fiatAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
-		stdLineWithDetails, err := creditpurchasemodels.WithDetailedLines(creditpurchasemodels.WithDetailedLinesInput{
-			Line:              stdLine,
-			Name:              stdLine.Name,
-			CreditCurrency:    charge.Intent.Currency,
-			CreditAmount:      charge.Intent.CreditAmount,
-			ResolvedCostBasis: resolvedCostBasis.Rate,
-			FiatCurrency:      resolvedCostBasis.FiatCurrency,
-			FiatAmount:        fiatAmount,
+		return populateInvoiceCreditPurchaseStandardLine(populateInvoiceCreditPurchaseStandardLineInput{
+			Line:   stdLine,
+			Charge: charge,
 		})
-		if err != nil {
-			return nil, fmt.Errorf("populating credit purchase standard line[%s]: %w", stdLine.ID, err)
-		}
-
-		if err := stdLineWithDetails.Validate(); err != nil {
-			return nil, fmt.Errorf("validating credit purchase standard line[%s]: %w", stdLine.ID, err)
-		}
-
-		stdLines[idx] = stdLineWithDetails
-	}
-
-	return stdLines, nil
+	})
 }
 
 type getChargesForStandardLinesInput struct {
@@ -158,6 +144,18 @@ func (i getChargesForStandardLinesInput) Validate() error {
 		}
 	}
 
+	chargeIDs := lo.FilterMap(i.Lines, func(stdLine *billing.StandardLine, _ int) (string, bool) {
+		if stdLine == nil || stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
+			return "", false
+		}
+
+		return *stdLine.ChargeID, true
+	})
+
+	for _, chargeID := range lo.FindDuplicates(chargeIDs) {
+		errs = append(errs, fmt.Errorf("credit purchase charge[%s] is referenced by multiple standard lines", chargeID))
+	}
+
 	if err := i.Expands.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
@@ -170,17 +168,9 @@ func (e *LineEngine) getChargesForStandardLines(ctx context.Context, input getCh
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	chargeIDs := make([]string, 0, len(input.Lines))
-	seenChargeIDs := make(map[string]struct{}, len(input.Lines))
-
-	for _, stdLine := range input.Lines {
-		if _, ok := seenChargeIDs[*stdLine.ChargeID]; ok {
-			continue
-		}
-
-		seenChargeIDs[*stdLine.ChargeID] = struct{}{}
-		chargeIDs = append(chargeIDs, *stdLine.ChargeID)
-	}
+	chargeIDs := lo.Map(input.Lines, func(stdLine *billing.StandardLine, _ int) string {
+		return *stdLine.ChargeID
+	})
 
 	charges, err := e.service.GetByIDs(ctx, creditpurchase.GetByIDsInput{
 		Namespace: input.Invoice.Namespace,
@@ -205,11 +195,17 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	if err := e.fireInvoiceLifecycleTriggerForLines(ctx, meta.TriggerInvoiceCreated, input); err != nil {
+	updatedCharges, err := e.fireInvoiceLifecycleTriggerForLines(ctx, meta.TriggerInvoiceCreated, input)
+	if err != nil {
 		return nil, err
 	}
 
-	return input.Lines, nil
+	return lo.MapErr(input.Lines, func(stdLine *billing.StandardLine, idx int) (*billing.StandardLine, error) {
+		return populateInvoiceCreditPurchaseStandardLine(populateInvoiceCreditPurchaseStandardLineInput{
+			Line:   stdLine,
+			Charge: updatedCharges[idx],
+		})
+	})
 }
 
 func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) error {
@@ -237,7 +233,8 @@ func (e *LineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPa
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	return e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerAuthorized, input)
+	_, err := e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerAuthorized, input)
+	return err
 }
 
 func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPaymentSettledInput) error {
@@ -245,23 +242,25 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	return e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerPaid, input)
+	_, err := e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerPaid, input)
+	return err
 }
 
-func (e *LineEngine) fireInvoiceLifecycleTriggerForLines(ctx context.Context, trigger meta.Trigger, input billing.StandardLineEventInput) error {
+func (e *LineEngine) fireInvoiceLifecycleTriggerForLines(ctx context.Context, trigger meta.Trigger, input billing.StandardLineEventInput) ([]creditpurchase.Charge, error) {
 	chargesByID, err := e.getChargesForStandardLines(ctx, getChargesForStandardLinesInput{
 		Invoice: input.Invoice,
 		Lines:   input.Lines,
 		Expands: meta.Expands{meta.ExpandRealizations},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, stdLine := range input.Lines {
+	return lo.MapErr(input.Lines, func(stdLine *billing.StandardLine, _ int) (creditpurchase.Charge, error) {
 		charge, ok := chargesByID[*stdLine.ChargeID]
+
 		if !ok {
-			return fmt.Errorf("credit purchase charge[%s] not found for line[%s]", *stdLine.ChargeID, stdLine.ID)
+			return creditpurchase.Charge{}, fmt.Errorf("credit purchase charge[%s] not found for line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
 		updatedCharge, err := e.service.handleInvoiceLifecycleTrigger(ctx, HandleInvoiceLifecycleTriggerInput{
@@ -273,13 +272,76 @@ func (e *LineEngine) fireInvoiceLifecycleTriggerForLines(ctx context.Context, tr
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("triggering %s for credit purchase charge[%s]: %w", trigger, charge.ID, err)
+			return creditpurchase.Charge{}, fmt.Errorf("triggering %s for credit purchase charge[%s]: %w", trigger, charge.ID, err)
 		}
 
-		// Multiple lines can reference the same charge. Keep its post-transition state
-		// so subsequent triggers do not evaluate stale lifecycle data.
-		chargesByID[updatedCharge.ID] = updatedCharge
+		return updatedCharge, nil
+	})
+}
+
+type populateInvoiceCreditPurchaseStandardLineInput struct {
+	Line   *billing.StandardLine
+	Charge creditpurchase.Charge
+}
+
+var _ models.Validator = populateInvoiceCreditPurchaseStandardLineInput{}
+
+func (i populateInvoiceCreditPurchaseStandardLineInput) Validate() error {
+	var errs []error
+
+	if i.Line == nil {
+		errs = append(errs, errors.New("standard line is required"))
 	}
 
-	return nil
+	if err := i.Charge.GetChargeID().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// populateInvoiceCreditPurchaseStandardLine replaces a provisional line with
+// the purchased quantity, pinned unit cost basis, and resulting fiat totals.
+func populateInvoiceCreditPurchaseStandardLine(input populateInvoiceCreditPurchaseStandardLineInput) (*billing.StandardLine, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	charge := input.Charge
+
+	if charge.State.ResolvedCostBasis == nil {
+		return nil, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
+		)
+	}
+
+	fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+	if err != nil {
+		return nil, fmt.Errorf("getting settlement fiat currency for credit purchase charge[%s]: %w", charge.ID, err)
+	}
+
+	fiatAmount, err := charge.GetFiatSettlementAmount()
+	if err != nil {
+		return nil, fmt.Errorf("getting fiat settlement amount for credit purchase charge[%s]: %w", charge.ID, err)
+	}
+
+	resolvedCostBasis := charge.State.ResolvedCostBasis.CostBasis
+	stdLineWithDetails, err := creditpurchasemodels.WithDetailedLines(creditpurchasemodels.WithDetailedLinesInput{
+		Line:              input.Line,
+		Name:              input.Line.Name,
+		CreditCurrency:    charge.Intent.Currency,
+		CreditAmount:      charge.Intent.CreditAmount,
+		ResolvedCostBasis: resolvedCostBasis,
+		FiatCurrency:      fiatCurrency,
+		FiatAmount:        fiatAmount,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("populating credit purchase standard line[%s]: %w", input.Line.ID, err)
+	}
+
+	if err := stdLineWithDetails.Validate(); err != nil {
+		return nil, fmt.Errorf("validating credit purchase standard line[%s]: %w", input.Line.ID, err)
+	}
+
+	return stdLineWithDetails, nil
 }

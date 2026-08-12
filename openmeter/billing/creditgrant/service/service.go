@@ -369,12 +369,12 @@ func toIntent(input creditgrant.CreateInput) (creditpurchase.Intent, error) {
 		return creditpurchase.Intent{}, fmt.Errorf("build fiat currency: %w", err)
 	}
 
-	var costBasis *creditpurchase.CostBasis
+	var costBasis creditpurchase.CostBasis
 	if input.FundingMethod != creditgrant.FundingMethodNone {
 		// TODO: map custom-currency grants to the shared custom-currency cost-basis intent.
-		costBasis = lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+		costBasis = creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 			Rate: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
-		}))
+		})
 	}
 
 	intent := creditpurchase.Intent{

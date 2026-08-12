@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
@@ -834,9 +833,9 @@ func TestIsPendingCreditGrantAt(t *testing.T) {
 						CreditAmount: alpacadecimal.NewFromInt(10),
 						Settlement:   creditpurchase.NewInvoiceSettlement(),
 					},
-					CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+					CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 						Rate: alpacadecimal.NewFromInt(1),
-					})),
+					}),
 				},
 				State: creditpurchase.State{
 					ResolvedCostBasis: &costbasis.State{

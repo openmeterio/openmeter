@@ -77,11 +77,18 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}
 	charge := input.Charge
 
-	resolvedCostBasis, err := charge.GetResolvedCostBasis()
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get resolved cost basis: %w", err)
+	if charge.State.ResolvedCostBasis == nil {
+		return ledgertransaction.GroupReference{}, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
+		)
 	}
-	costBasis := resolvedCostBasis.Rate
+
+	fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement fiat currency: %w", err)
+	}
+
+	costBasis := charge.State.ResolvedCostBasis.CostBasis
 
 	customerID := customer.CustomerID{
 		Namespace: charge.Namespace,
@@ -90,7 +97,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
-	settlementCurrency := currencyx.Code(resolvedCostBasis.FiatCurrency.GetFiatCode())
+	settlementCurrency := currencyx.Code(fiatCurrency.GetFiatCode())
 
 	var templates []transactions.TransactionTemplate
 	if charge.Intent.Currency.IsCustom() || !input.FiatAmount.Equal(charge.Intent.CreditAmount) {
@@ -156,11 +163,18 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	}
 	charge := input.Charge
 
-	resolvedCostBasis, err := charge.GetResolvedCostBasis()
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get resolved cost basis: %w", err)
+	if charge.State.ResolvedCostBasis == nil {
+		return ledgertransaction.GroupReference{}, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
+		)
 	}
-	costBasis := resolvedCostBasis.Rate
+
+	fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement fiat currency: %w", err)
+	}
+
+	costBasis := charge.State.ResolvedCostBasis.CostBasis
 
 	customerID := customer.CustomerID{
 		Namespace: charge.Namespace,
@@ -169,7 +183,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
-	settlementCurrency := currencyx.Code(resolvedCostBasis.FiatCurrency.GetFiatCode())
+	settlementCurrency := currencyx.Code(fiatCurrency.GetFiatCode())
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -237,14 +251,20 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			costBasisPtr = lo.ToPtr(alpacadecimal.Zero)
 		}
 	} else {
-		resolvedCostBasis, err := charge.GetResolvedCostBasis()
-		if err != nil {
-			return ledgertransaction.GroupReference{}, fmt.Errorf("get resolved cost basis: %w", err)
+		if charge.State.ResolvedCostBasis == nil {
+			return ledgertransaction.GroupReference{}, models.NewGenericPreConditionFailedError(
+				fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
+			)
 		}
 
-		costBasisPtr = &resolvedCostBasis.Rate
+		costBasisPtr = &charge.State.ResolvedCostBasis.CostBasis
 		if charge.Intent.Currency.IsCustom() {
-			costBasisCurrency = lo.ToPtr(currencyx.Code(resolvedCostBasis.FiatCurrency.GetFiatCode()))
+			fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+			if err != nil {
+				return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement fiat currency: %w", err)
+			}
+
+			costBasisCurrency = lo.ToPtr(currencyx.Code(fiatCurrency.GetFiatCode()))
 		}
 	}
 	customerID := customer.CustomerID{

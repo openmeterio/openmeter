@@ -58,6 +58,42 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
+func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
+	if charge.Realizations.CreditGrantRealization != nil && charge.Realizations.CreditGrantRealization.TransactionGroupID != "" {
+		return creditpurchase.Charge{}, fmt.Errorf("promotional credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
+	}
+
+	ledgerTransactionGroupReference, err := s.handler.OnPromotionalCreditPurchase(ctx, charge)
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	grantRealization, err := s.adapter.CreateCreditGrant(ctx, charge.GetChargeID(), creditpurchase.CreateCreditGrantInput{
+		TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+		GrantedAt:          clock.Now(),
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	charge.Realizations.CreditGrantRealization = &grantRealization
+
+	if ledgerTransactionGroupReference.TransactionGroupID != "" {
+		if err := s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+			Namespace:                 charge.Namespace,
+			CustomerID:                charge.Intent.CustomerID,
+			Currency:                  charge.Intent.Currency,
+			Amount:                    charge.Intent.CreditAmount,
+			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
+		}); err != nil {
+			return creditpurchase.Charge{}, err
+		}
+	}
+
+	return charge, nil
+}
+
 func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
 	if err := charge.Intent.Settlement.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
@@ -239,12 +275,10 @@ func (s *Service) AuthorizeExternalPayment(ctx context.Context, charge creditpur
 		return creditpurchase.Charge{}, err
 	}
 
-	resolvedCostBasis, err := charge.GetResolvedCostBasis()
+	fiatAmount, err := charge.GetFiatSettlementAmount()
 	if err != nil {
-		return creditpurchase.Charge{}, err
+		return creditpurchase.Charge{}, fmt.Errorf("getting fiat settlement amount: %w", err)
 	}
-
-	fiatAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
 
 	eventAt := clock.Now()
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{

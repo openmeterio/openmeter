@@ -28,6 +28,7 @@ type Adapter interface {
 
 type ChargeAdapter interface {
 	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
+	SetResolvedCostBasis(ctx context.Context, input SetResolvedCostBasisInput) (costbasis.CostBasis, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	MarkVoided(ctx context.Context, input MarkVoidedAdapterInput) (ChargeBase, error)
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
@@ -36,10 +37,39 @@ type ChargeAdapter interface {
 	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
 }
 
+type SetResolvedCostBasisInput struct {
+	ChargeID          meta.ChargeID
+	ChargeCostBasisID string
+	State             costbasis.State
+}
+
+var _ models.Validator = SetResolvedCostBasisInput{}
+
+func (i SetResolvedCostBasisInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if i.ChargeCostBasisID == "" {
+		errs = append(errs, errors.New("charge cost basis ID is required"))
+	}
+
+	if err := i.State.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("state: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type CreateChargeInput struct {
 	CreateInput
 
-	ResolvedCostBasis *costbasis.State
+	// InitialCostBasisState is persisted only for manual and pinned custom-currency
+	// cost bases. Fiat state is reconstructed from immutable charge-row fields,
+	// while dynamic custom-currency state is resolved at realization time.
+	InitialCostBasisState *costbasis.State
 }
 
 var _ models.Validator = (*CreateChargeInput)(nil)
@@ -51,46 +81,27 @@ func (i CreateChargeInput) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if i.ResolvedCostBasis != nil {
-		if err := i.ResolvedCostBasis.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("resolved cost basis: %w", err))
-		}
-	}
-
-	dynamicCostBasis := false
-	if i.Intent.CostBasis != nil && i.Intent.CostBasis.Type() == CostBasisTypeCustomCurrency {
-		customCostBasis, err := i.Intent.CostBasis.AsCustomCurrency()
-		if err == nil {
-			dynamicCostBasis = customCostBasis.Kind() == costbasis.ModeDynamic
-		}
-	}
-
 	switch i.Intent.Settlement.Type() {
 	case SettlementTypePromotional:
-		if i.ResolvedCostBasis != nil {
-			errs = append(errs, errors.New("promotional credit purchase cannot have resolved cost-basis state"))
+		if i.InitialCostBasisState != nil {
+			errs = append(errs, errors.New("promotional credit purchase cannot have initial cost-basis state"))
 		}
 	case SettlementTypeInvoice, SettlementTypeExternal:
-		if dynamicCostBasis {
-			// TODO: Support dynamic cost basis once credit-purchase lifecycle
-			// resolution can pin the rate before the first monetary realization.
-			errs = append(errs, errors.New("dynamic cost basis is not supported for credit purchases"))
-		} else if i.ResolvedCostBasis == nil {
-			errs = append(errs, errors.New("payment-backed credit purchase requires resolved cost-basis state"))
-		}
-	}
-
-	if i.ResolvedCostBasis != nil && i.Intent.CostBasis != nil && i.Intent.CostBasis.Type() == CostBasisTypeFiat {
-		fiatCostBasis, err := i.Intent.CostBasis.AsFiat()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("fiat cost basis: %w", err))
-		} else {
-			if i.ResolvedCostBasis.CostBasisID != nil {
-				errs = append(errs, errors.New("fiat resolved cost basis cannot reference a currency cost basis"))
+		switch i.Intent.CostBasis.Type() {
+		case CostBasisTypeFiat:
+			if i.InitialCostBasisState != nil {
+				errs = append(errs, errors.New("fiat credit purchase cannot have initial cost-basis state"))
 			}
-
-			if !i.ResolvedCostBasis.CostBasis.Equal(fiatCostBasis.Rate) {
-				errs = append(errs, errors.New("fiat resolved cost basis must match the intent rate"))
+		case CostBasisTypeCustomCurrency:
+			switch i.Intent.CostBasis.GetCustomCurrencyModeOrEmpty() {
+			case costbasis.ModeDynamic:
+				if i.InitialCostBasisState != nil {
+					errs = append(errs, errors.New("dynamic credit purchase cannot have initial cost-basis state"))
+				}
+			case costbasis.ModeManual, costbasis.ModePinned:
+				if i.InitialCostBasisState == nil {
+					errs = append(errs, errors.New("manual or pinned credit purchase requires initial cost-basis state"))
+				}
 			}
 		}
 	}

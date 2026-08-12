@@ -125,9 +125,9 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 					settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 						InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 					}),
-					costBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+					costBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 						Rate: costBasis,
-					})),
+					}),
 				}),
 			},
 		})
@@ -406,7 +406,7 @@ type createCreditPurchaseIntentInput struct {
 	amount        alpacadecimal.Decimal
 	servicePeriod timeutil.ClosedPeriod
 	settlement    creditpurchase.Settlement
-	costBasis     *creditpurchase.CostBasis
+	costBasis     creditpurchase.CostBasis
 }
 
 func (s *StripeInvoiceTestSuite) createCreditPurchaseIntent(input createCreditPurchaseIntentInput) charges.ChargeIntent {

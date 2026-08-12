@@ -70,8 +70,6 @@ func New(config Config) (creditpurchase.Service, error) {
 
 	return &service{
 		adapter:           config.Adapter,
-		handler:           config.Handler,
-		lineage:           config.Lineage,
 		metaAdapter:       config.MetaAdapter,
 		realizations:      realizations,
 		costbasisResolver: costbasisResolver,
@@ -81,8 +79,6 @@ func New(config Config) (creditpurchase.Service, error) {
 type service struct {
 	adapter      creditpurchase.Adapter
 	metaAdapter  meta.Adapter
-	handler      creditpurchase.Handler
-	lineage      lineage.Service
 	realizations *creditpurchaserealizations.Service
 
 	costbasisResolver costbasis.Resolver

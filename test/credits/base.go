@@ -779,15 +779,15 @@ type CreateCreditPurchaseIntentInput struct {
 	Priority       *int
 	ServicePeriod  timeutil.ClosedPeriod
 	Settlement     creditpurchase.Settlement
-	CostBasis      *creditpurchase.CostBasis
+	CostBasis      creditpurchase.CostBasis
 	FeatureFilters creditpurchase.FeatureFilters
 	TaxConfig      productcatalog.TaxCodeConfig
 }
 
-func newFiatCreditPurchaseCostBasis(rate alpacadecimal.Decimal) *creditpurchase.CostBasis {
-	return lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+func newFiatCreditPurchaseCostBasis(rate alpacadecimal.Decimal) creditpurchase.CostBasis {
+	return creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 		Rate: rate,
-	}))
+	})
 }
 
 func (i CreateCreditPurchaseIntentInput) Validate() error {

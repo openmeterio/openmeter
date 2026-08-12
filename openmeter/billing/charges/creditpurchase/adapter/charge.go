@@ -158,7 +158,7 @@ func (i applyCostBasisInput) Validate() error {
 		errs = append(errs, errors.New("create is required"))
 	}
 
-	if i.Charge.Intent.CostBasis == nil {
+	if i.Charge.Intent.CostBasis.IsEmpty() {
 		errs = append(errs, errors.New("payment-backed credit purchase requires a cost basis"))
 	}
 
@@ -192,7 +192,7 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 			},
 			CurrencyID: in.Charge.Intent.Currency.ID,
 			Intent:     customCostBasis,
-			State:      in.Charge.ResolvedCostBasis,
+			State:      in.Charge.InitialCostBasisState,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("building custom-currency cost basis: %w", err)
@@ -201,14 +201,6 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 		createdCostBasis, err := costBasisCreate.Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("creating custom-currency cost basis: %w", err)
-		}
-
-		mappedCostBasis, err := costbasis.Get(createdCostBasis)
-		if err != nil {
-			return nil, fmt.Errorf("mapping created custom-currency cost basis: %w", err)
-		}
-		if mappedCostBasis.State == nil {
-			return nil, errors.New("created custom-currency cost basis is unresolved")
 		}
 
 		in.Create.SetCostBasisID(createdCostBasis.ID)
