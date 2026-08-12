@@ -48,6 +48,7 @@ func (s *service) resolveInitialCostBasis(ctx context.Context, input resolveInit
 
 	switch input.CostBasis.Type() {
 	case creditpurchase.CostBasisTypeFiat:
+		// Fiat costbasis is resolved on read from the intent, it doesn't have a credit_purchase_cost_basis row.
 		return nil, nil
 	case creditpurchase.CostBasisTypeCustomCurrency:
 		customCostBasis, err := input.CostBasis.AsCustomCurrency()
