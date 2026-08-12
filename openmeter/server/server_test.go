@@ -1915,7 +1915,7 @@ func (n NoopBillingService) ListStandardInvoices(ctx context.Context, input bill
 	return billing.ListStandardInvoicesResponse{}, nil
 }
 
-func (n NoopBillingService) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.InvoiceID, error) {
+func (n NoopBillingService) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.InvoiceAdvancementCandidate, error) {
 	return nil, nil
 }
 

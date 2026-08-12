@@ -103,8 +103,8 @@ type StandardInvoiceService interface {
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	// ListStandardInvoices lists standard invoices
 	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
-	// ListStandardInvoicesPendingAdvancement lists standard invoice IDs due for automatic advancement.
-	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]InvoiceID, error)
+	// ListStandardInvoicesPendingAdvancement lists the identifiers required to dispatch automatic advancement.
+	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]InvoiceAdvancementCandidate, error)
 	// CreateStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 	CreateStandardInvoiceFromGatheringLines(ctx context.Context, input CreateStandardInvoiceFromGatheringLinesInput) (*StandardInvoice, error)
 	// RegisterStandardInvoiceHooks registers hooks for standard invoice lifecycle events

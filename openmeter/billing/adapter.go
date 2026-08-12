@@ -76,7 +76,7 @@ type StandardInvoiceAdapter interface {
 	GetStandardLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (StandardLines, error)
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceAdapterInput) (StandardInvoice, error)
-	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]InvoiceID, error)
+	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]InvoiceAdvancementCandidate, error)
 	CountStandardInvoicesPendingAdvancement(ctx context.Context, input CountStandardInvoicesPendingAdvancementInput) (int64, error)
 }
 
