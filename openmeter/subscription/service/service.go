@@ -10,7 +10,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	productcatalogfeatureresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionvalidators "github.com/openmeterio/openmeter/openmeter/subscription/validators/subscription"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -50,8 +52,14 @@ func New(conf ServiceConfig) (subscription.Service, error) {
 		return nil, errors.New("currency resolver is required")
 	}
 
+	featureResolver, err := productcatalogfeatureresolver.New(conf.FeatureService)
+	if err != nil {
+		return nil, fmt.Errorf("creating feature resolver: %w", err)
+	}
+
 	svc := &service{
-		ServiceConfig: conf,
+		ServiceConfig:   conf,
+		featureResolver: featureResolver,
 	}
 
 	val, err := subscriptionvalidators.NewSubscriptionUniqueConstraintValidator(subscriptionvalidators.SubscriptionUniqueConstraintValidatorConfig{
@@ -74,6 +82,7 @@ var _ subscription.Service = &service{}
 
 type service struct {
 	ServiceConfig
+	featureResolver productcatalog.FeatureResolver
 
 	mu sync.RWMutex
 }

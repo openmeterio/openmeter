@@ -1,6 +1,7 @@
 package productcatalog
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -14,6 +15,66 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestValidateRateCardsWithFeaturesIgnoreArchived(t *testing.T) {
+	archivedAt := time.Now().Add(-time.Minute)
+	feat := &feature.Feature{
+		Namespace:  "test",
+		ID:         "feature-id",
+		Key:        "feature-key",
+		ArchivedAt: &archivedAt,
+	}
+	resolver := staticNamespacedFeatureResolver{feature: feat}
+	rateCards := RateCards{
+		&FlatFeeRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:        feat.Key,
+				Name:       "Feature only",
+				FeatureID:  &feat.ID,
+				FeatureKey: &feat.Key,
+			},
+		},
+	}
+
+	t.Run("rejects archived feature by default", func(t *testing.T) {
+		// given: a rate card referencing an archived feature
+		// when: feature validation uses the default archival policy
+		// then: the archived feature is rejected
+		err := ValidateRateCardsWithFeatures(
+			t.Context(),
+			resolver,
+		)(rateCards)
+		require.ErrorIs(t, err, ErrRateCardFeatureArchived)
+	})
+
+	t.Run("allows archived feature when ignored", func(t *testing.T) {
+		// given: a rate card referencing an archived feature
+		// when: the caller explicitly ignores archival state
+		// then: identity and feature-shape validation still succeed
+		err := ValidateRateCardsWithFeatures(
+			t.Context(),
+			resolver,
+			ValidateRateCardsWithFeaturesOptions{IgnoreArchived: true},
+		)(rateCards)
+		require.NoError(t, err)
+	})
+}
+
+type staticNamespacedFeatureResolver struct {
+	feature *feature.Feature
+}
+
+func (r staticNamespacedFeatureResolver) Resolve(context.Context, *string, *string) (*feature.Feature, error) {
+	return r.feature, nil
+}
+
+func (r staticNamespacedFeatureResolver) BatchResolve(context.Context, ...string) (map[string]*feature.Feature, error) {
+	return nil, nil
+}
+
+func (r staticNamespacedFeatureResolver) Namespace() string {
+	return r.feature.Namespace
+}
 
 func TestRateCardJSONRoundTrip(t *testing.T) {
 	managedCurrency := mustManagedCustomCurrency(t, "01J00000000000000000000000", "CREDITS")
