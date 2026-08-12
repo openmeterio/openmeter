@@ -17,9 +17,10 @@ import (
 )
 
 type StartCreditThenInvoiceRunInput struct {
-	Charge    flatfee.Charge
-	LineID    string
-	InvoiceID string
+	Charge            flatfee.Charge
+	SourceBalanceAsOf time.Time
+	LineID            string
+	InvoiceID         string
 }
 
 func (i StartCreditThenInvoiceRunInput) Validate() error {
@@ -27,6 +28,10 @@ func (i StartCreditThenInvoiceRunInput) Validate() error {
 
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if i.SourceBalanceAsOf.IsZero() {
+		errs = append(errs, errors.New("source balance as of is required"))
 	}
 
 	if i.LineID == "" {
@@ -93,6 +98,7 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 				Charge:                 charge,
 				ServicePeriod:          rateableIntent.ServicePeriod,
 				BookedAt:               flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), rateableIntent.ServicePeriod),
+				SourceBalanceAsOf:      in.SourceBalanceAsOf,
 				PreTaxAmountToAllocate: creditAllocationTarget,
 			}
 			if err := handlerInput.Validate(); err != nil {
@@ -171,6 +177,8 @@ type ReconcileRunToIntentInput struct {
 	// AllocateAt is used as the ledger timestamp when reconciliation needs to
 	// allocate or correct credit rows.
 	AllocateAt time.Time
+	// SourceBalanceAsOf is the cutoff used when selecting credit balances for new allocations.
+	SourceBalanceAsOf time.Time
 }
 
 func (i ReconcileRunToIntentInput) Validate() error {
@@ -186,6 +194,10 @@ func (i ReconcileRunToIntentInput) Validate() error {
 
 	if i.AllocateAt.IsZero() {
 		errs = append(errs, errors.New("allocate at is required"))
+	}
+
+	if i.SourceBalanceAsOf.IsZero() {
+		errs = append(errs, errors.New("source balance as of is required"))
 	}
 
 	if i.Run.LineID == nil || *i.Run.LineID == "" {
@@ -231,6 +243,7 @@ func (s *Service) ReconcileRunToIntent(ctx context.Context, in ReconcileRunToInt
 			Charge:             in.Charge,
 			Run:                run,
 			AllocateAt:         in.AllocateAt,
+			SourceBalanceAsOf:  in.SourceBalanceAsOf,
 			TargetAmount:       creditAllocationTarget,
 			CurrencyCalculator: currency,
 		})

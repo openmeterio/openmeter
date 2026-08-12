@@ -224,6 +224,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 
 	result, err := s.Realizations.AllocateCreditsOnly(ctx, flatfeerealizations.AllocateCreditsOnlyInput{
 		Charge:             s.Charge,
+		SourceBalanceAsOf:  clock.Now(),
 		Totals:             ratingResult.Totals,
 		CurrencyCalculator: currency,
 	})
@@ -320,6 +321,7 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 		Charge:             s.Charge,
 		Run:                run,
 		AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
+		SourceBalanceAsOf:  clock.Now(),
 		TargetAmount:       creditAllocationTarget,
 		CurrencyCalculator: currency,
 	})

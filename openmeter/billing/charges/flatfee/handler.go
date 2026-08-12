@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -21,7 +22,10 @@ import (
 type OnAllocateCreditsInput struct {
 	Charge        Charge                `json:"charge"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
-	BookedAt      time.Time             `json:"bookedAt"`
+	// BookedAt is the economic timestamp of the resulting ledger transaction.
+	BookedAt time.Time `json:"bookedAt"`
+	// SourceBalanceAsOf is the cutoff for balances eligible to fund the allocation.
+	SourceBalanceAsOf time.Time `json:"sourceBalanceAsOf"`
 	// PreTaxAmountToAllocate is the pre-tax amount to allocate from credits.
 	// The input charge's settlement mode governs whether this may create a negative balance.
 	PreTaxAmountToAllocate alpacadecimal.Decimal `json:"preTaxAmountToAllocate"`
@@ -40,6 +44,10 @@ func (i OnAllocateCreditsInput) Validate() error {
 
 	if i.BookedAt.IsZero() {
 		errs = append(errs, fmt.Errorf("booked at is required"))
+	}
+
+	if i.SourceBalanceAsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("source balance as of is required"))
 	}
 
 	if i.PreTaxAmountToAllocate.IsNegative() {
@@ -193,6 +201,115 @@ func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type AllocateFiatOverageCreditsInput struct {
+	Charge Charge         `json:"charge"`
+	Run    RealizationRun `json:"run"`
+
+	BookedAt          time.Time `json:"bookedAt"`
+	SourceBalanceAsOf time.Time `json:"sourceBalanceAsOf"`
+
+	// AmountToAllocate is denominated in the settlement fiat currency.
+	AmountToAllocate alpacadecimal.Decimal `json:"amountToAllocate"`
+}
+
+func (i AllocateFiatOverageCreditsInput) GetFiatCurrency() (*currencyx.FiatCurrency, error) {
+	costBasisIntent := i.Charge.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return nil, errors.New("cost basis intent is required")
+	}
+
+	return costBasisIntent.GetFiatCurrency()
+}
+
+func (i AllocateFiatOverageCreditsInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if !i.Charge.Intent.GetCurrency().IsCustom() {
+		errs = append(errs, errors.New("charge currency must be custom"))
+	}
+
+	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		errs = append(errs, errors.New("settlement mode must be credit_then_invoice"))
+	}
+
+	if _, err := i.GetFiatCurrency(); err != nil {
+		errs = append(errs, fmt.Errorf("fiat currency: %w", err))
+	}
+
+	if i.BookedAt.IsZero() {
+		errs = append(errs, errors.New("booked at is required"))
+	}
+
+	if i.SourceBalanceAsOf.IsZero() {
+		errs = append(errs, errors.New("source balance as of is required"))
+	}
+
+	if !i.AmountToAllocate.IsPositive() {
+		errs = append(errs, errors.New("amount to allocate must be positive"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type CorrectFiatOverageCreditAllocationsInput struct {
+	Charge   Charge         `json:"charge"`
+	Run      RealizationRun `json:"run"`
+	BookedAt time.Time      `json:"bookedAt"`
+
+	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
+	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
+}
+
+func (i CorrectFiatOverageCreditAllocationsInput) GetFiatCurrency() (*currencyx.FiatCurrency, error) {
+	costBasisIntent := i.Charge.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return nil, errors.New("cost basis intent is required")
+	}
+
+	return costBasisIntent.GetFiatCurrency()
+}
+
+func (i CorrectFiatOverageCreditAllocationsInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if !i.Charge.Intent.GetCurrency().IsCustom() {
+		errs = append(errs, errors.New("charge currency must be custom"))
+	}
+
+	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		errs = append(errs, errors.New("settlement mode must be credit_then_invoice"))
+	}
+
+	fiatCurrency, err := i.GetFiatCurrency()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("fiat currency: %w", err))
+	} else if err := i.Corrections.ValidateWith(fiatCurrency); err != nil {
+		errs = append(errs, fmt.Errorf("corrections: %w", err))
+	}
+
+	if i.BookedAt.IsZero() {
+		errs = append(errs, errors.New("booked at is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type PaymentEventInput struct {
 	Charge     Charge                `json:"charge"`
 	Run        RealizationRun        `json:"run"`
@@ -240,6 +357,12 @@ type Handler interface {
 
 	// OnCorrectCreditAllocations is called when a credit allocation needs to be corrected.
 	OnCorrectCreditAllocations(ctx context.Context, input CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
+
+	// OnAllocateFiatOverageCredits allocates settlement-fiat credits against a custom-currency overage.
+	OnAllocateFiatOverageCredits(ctx context.Context, input AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error)
+
+	// OnCorrectFiatOverageCreditAllocations corrects settlement-fiat allocations for a custom-currency overage.
+	OnCorrectFiatOverageCreditAllocations(ctx context.Context, input CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
 
 	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized.
 	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)

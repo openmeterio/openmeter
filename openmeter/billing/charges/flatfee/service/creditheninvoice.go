@@ -608,9 +608,10 @@ func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, in
 	}
 
 	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
-		Charge:    s.Charge,
-		LineID:    input.Line.ID,
-		InvoiceID: input.Invoice.ID,
+		Charge:            s.Charge,
+		SourceBalanceAsOf: clock.Now(),
+		LineID:            input.Line.ID,
+		InvoiceID:         input.Invoice.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("start credit-then-invoice run: %w", err)
@@ -662,9 +663,10 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 	line.ID = input.Line.ID
 
 	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
-		Charge:    s.Charge,
-		LineID:    line.ID,
-		InvoiceID: input.Invoice.ID,
+		Charge:            s.Charge,
+		SourceBalanceAsOf: clock.Now(),
+		LineID:            line.ID,
+		InvoiceID:         input.Invoice.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("start attached credit-then-invoice run: %w", err)
@@ -919,9 +921,10 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		// Rerate and reconcile it first, then project the resulting charge state
 		// onto the billing-owned line identity.
 		result, err := s.Realizations.ReconcileRunToIntent(ctx, flatfeerealizations.ReconcileRunToIntentInput{
-			Charge:     s.Charge,
-			Run:        *currentRun,
-			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Intent.GetEffectiveServicePeriod()),
+			Charge:            s.Charge,
+			Run:               *currentRun,
+			AllocateAt:        flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Intent.GetEffectiveServicePeriod()),
+			SourceBalanceAsOf: clock.Now(),
 		})
 		if err != nil {
 			return fmt.Errorf("reconcile run to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)

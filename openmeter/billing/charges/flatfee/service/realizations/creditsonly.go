@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
@@ -18,6 +19,7 @@ import (
 
 type AllocateCreditsOnlyInput struct {
 	Charge             flatfee.Charge
+	SourceBalanceAsOf  time.Time
 	Totals             totals.Totals
 	CurrencyCalculator currencyx.Currency
 }
@@ -31,6 +33,10 @@ func (i AllocateCreditsOnlyInput) Validate() error {
 
 	if err := i.Totals.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
+	}
+
+	if i.SourceBalanceAsOf.IsZero() {
+		errs = append(errs, errors.New("source balance as of is required"))
 	}
 
 	if i.CurrencyCalculator == nil {
@@ -62,6 +68,7 @@ func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnl
 			Charge:                 in.Charge,
 			ServicePeriod:          servicePeriod,
 			BookedAt:               flatfee.UsageBookedAt(in.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
+			SourceBalanceAsOf:      in.SourceBalanceAsOf,
 			PreTaxAmountToAllocate: amountToAllocate,
 		}
 		if err := input.Validate(); err != nil {

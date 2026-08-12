@@ -133,6 +133,17 @@ func TestOnAllocateCredits(t *testing.T) {
 		require.Nil(t, realizations)
 	})
 
+	t.Run("source balance as of is required", func(t *testing.T) {
+		env := newFlatFeeHandlerTestEnv(t)
+
+		input := env.newAssignmentInput(alpacadecimal.NewFromInt(30))
+		input.SourceBalanceAsOf = time.Time{}
+
+		realizations, err := env.handler.OnAllocateCredits(t.Context(), input)
+		require.ErrorContains(t, err, "source balance as of is required")
+		require.Nil(t, realizations)
+	})
+
 	t.Run("in arrears books credit allocation at service period end", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
@@ -739,6 +750,7 @@ func (e *flatFeeHandlerTestEnv) newAllocateCreditsInputForCharge(charge chargefl
 		Charge:                 charge,
 		ServicePeriod:          charge.Intent.GetEffectiveServicePeriod(),
 		BookedAt:               chargeflatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), charge.Intent.GetEffectiveServicePeriod()),
+		SourceBalanceAsOf:      e.Now(),
 		PreTaxAmountToAllocate: amount,
 	}
 }
@@ -794,6 +806,7 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 		},
 		ServicePeriod:          servicePeriod,
 		BookedAt:               chargeflatfee.UsageBookedAt(productcatalog.InAdvancePaymentTerm, servicePeriod),
+		SourceBalanceAsOf:      now,
 		PreTaxAmountToAllocate: amount,
 	}
 }

@@ -22,6 +22,7 @@ type ReconcileCreditRealizationsInput struct {
 	Charge             flatfee.Charge
 	Run                flatfee.RealizationRun
 	AllocateAt         time.Time
+	SourceBalanceAsOf  time.Time
 	TargetAmount       alpacadecimal.Decimal
 	CurrencyCalculator currencyx.Currency
 }
@@ -39,6 +40,10 @@ func (i ReconcileCreditRealizationsInput) Validate() error {
 
 	if i.AllocateAt.IsZero() {
 		errs = append(errs, errors.New("allocate at is required"))
+	}
+
+	if i.SourceBalanceAsOf.IsZero() {
+		errs = append(errs, errors.New("source balance as of is required"))
 	}
 
 	if i.TargetAmount.IsNegative() {
@@ -94,6 +99,7 @@ func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealiz
 			Charge:                 in.Charge,
 			ServicePeriod:          in.Run.ServicePeriod,
 			BookedAt:               in.AllocateAt,
+			SourceBalanceAsOf:      in.SourceBalanceAsOf,
 			PreTaxAmountToAllocate: delta,
 		}
 		if err := handlerInput.Validate(); err != nil {
