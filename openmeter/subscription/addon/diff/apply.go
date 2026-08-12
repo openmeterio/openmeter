@@ -120,11 +120,8 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 					continue
 				}
 
-				if itemMeta.Price != nil && addonMeta.Price != nil {
-					addonCurrency := addonMeta.EffectiveCurrency(d.addon.Addon.Currency)
-					if itemMeta.Currency == nil || !itemMeta.Currency.Equal(addonCurrency) {
-						return fmt.Errorf("add-on rate card %s: %w", rc.AddonRateCard.Key(), productcatalog.ErrPlanAddonCurrencyMismatch)
-					}
+				if err := validateAddonCurrencyCompatibility(itemMeta, addonMeta, d.addon.Addon.Currency); err != nil {
+					return fmt.Errorf("add-on rate card %s: %w", rc.AddonRateCard.Key(), err)
 				}
 
 				// We need to split the item:
@@ -220,6 +217,26 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 
 		return nil
 	})
+}
+
+// validateAddonCurrencyCompatibility prevents two priced rate cards from being
+// layered unless they resolve to the same effective currency. An unpriced base
+// or add-on rate card does not establish a currency conflict.
+func validateAddonCurrencyCompatibility(
+	itemMeta productcatalog.RateCardMeta,
+	addonMeta productcatalog.RateCardMeta,
+	addonDefaultCurrency currencies.CurrencyReference,
+) error {
+	if itemMeta.Price == nil || addonMeta.Price == nil {
+		return nil
+	}
+
+	addonCurrency := addonMeta.EffectiveCurrency(addonDefaultCurrency)
+	if itemMeta.Currency == nil || !itemMeta.Currency.Equal(addonCurrency) {
+		return productcatalog.ErrPlanAddonCurrencyMismatch
+	}
+
+	return nil
 }
 
 // materializeAddonRateCardCurrency records only the add-on currency information
