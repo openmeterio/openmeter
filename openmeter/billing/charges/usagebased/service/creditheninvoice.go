@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -339,7 +340,7 @@ func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context)
 	}
 
 	if s.Charge.Intent.GetBaseIntent().IntentDeletedAt != nil {
-		return fmt.Errorf("clearing usage-based override unexpectedly restored a deleted base intent")
+		return errors.New("clearing usage-based override unexpectedly restored a deleted base intent")
 	}
 
 	if err := s.updateGatheringLineForEffectiveIntent(); err != nil {
@@ -363,7 +364,7 @@ func (s *CreditThenInvoiceStateMachine) ClearDeletedChargeOverride(ctx context.C
 	}
 
 	if s.Charge.Intent.GetDeletedAt() == nil {
-		return fmt.Errorf("clearing usage-based override did not restore a deleted base intent")
+		return errors.New("clearing usage-based override did not restore a deleted base intent")
 	}
 
 	if err := s.reconcileDeletedCharge(ctx); err != nil {

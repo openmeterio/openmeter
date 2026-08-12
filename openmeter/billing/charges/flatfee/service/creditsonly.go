@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/qmuntal/stateless"
@@ -141,7 +142,7 @@ func (s *CreditsOnlyStateMachine) ActiveClearOverride(ctx context.Context) error
 		return nil
 	}
 	if s.Charge.Intent.GetDeletedAt() != nil {
-		return fmt.Errorf("clearing flat-fee override unexpectedly restored a deleted base intent")
+		return errors.New("clearing flat-fee override unexpectedly restored a deleted base intent")
 	}
 
 	ratingResult, err := s.rateEffectiveIntent()
@@ -181,7 +182,7 @@ func (s *CreditsOnlyStateMachine) ClearDeletedChargeOverride(ctx context.Context
 	}
 
 	if s.Charge.Intent.GetDeletedAt() == nil {
-		return fmt.Errorf("clearing flat-fee override did not restore a deleted base intent")
+		return errors.New("clearing flat-fee override did not restore a deleted base intent")
 	}
 
 	return s.reconcileDeletedCharge(ctx, meta.RefundAsCreditsDeletePolicy)

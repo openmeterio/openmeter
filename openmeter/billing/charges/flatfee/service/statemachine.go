@@ -190,7 +190,7 @@ func (s *stateMachine) ClearOverrideFromDeletedBase(ctx context.Context, _ meta.
 	}
 
 	if s.Charge.Intent.GetDeletedAt() == nil {
-		return fmt.Errorf("clearing flat-fee override did not restore the deleted base intent")
+		return errors.New("clearing flat-fee override did not restore the deleted base intent")
 	}
 
 	return nil

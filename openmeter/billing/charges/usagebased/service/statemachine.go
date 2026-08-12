@@ -222,7 +222,7 @@ func (s *stateMachine) UnsupportedSetOverrideOperation(_ context.Context, _ usag
 // reconciling the restored intent's lifecycle, including deletion.
 func (s *stateMachine) clearOverrideIntent(ctx context.Context) error {
 	if !s.Charge.Intent.HasOverrideLayer() {
-		return fmt.Errorf("clearing usage-based override intent: override intent is required")
+		return errors.New("clearing usage-based override intent: override intent is required")
 	}
 
 	base, err := s.Adapter.DeleteChargeOverride(ctx, s.Charge.ChargeBase)
@@ -248,7 +248,7 @@ func (s *stateMachine) ClearOverrideFromDeletedBase(ctx context.Context, _ meta.
 	}
 
 	if s.Charge.Intent.GetDeletedAt() == nil {
-		return fmt.Errorf("clearing usage-based override did not restore the deleted base intent")
+		return errors.New("clearing usage-based override did not restore the deleted base intent")
 	}
 
 	return nil

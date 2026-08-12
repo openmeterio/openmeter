@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -190,7 +191,7 @@ func (s *CreditsOnlyStateMachine) ActiveClearOverride(ctx context.Context) error
 	}
 
 	if s.Charge.Intent.GetBaseIntent().IntentDeletedAt != nil {
-		return fmt.Errorf("clearing usage-based override unexpectedly restored a deleted base intent")
+		return errors.New("clearing usage-based override unexpectedly restored a deleted base intent")
 	}
 
 	if err := s.voidAllRuns(ctx); err != nil {
@@ -215,7 +216,7 @@ func (s *CreditsOnlyStateMachine) ClearDeletedChargeOverride(ctx context.Context
 	}
 
 	if s.Charge.Intent.GetDeletedAt() == nil {
-		return fmt.Errorf("clearing usage-based override did not restore a deleted base intent")
+		return errors.New("clearing usage-based override did not restore a deleted base intent")
 	}
 
 	if err := s.reconcileDeletedCharge(ctx, meta.RefundAsCreditsDeletePolicy); err != nil {

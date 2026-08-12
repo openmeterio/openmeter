@@ -166,7 +166,7 @@ func (s *service) SetCustomerChargeOverride(ctx context.Context, input charges.S
 			IntentMutableFields: *input.UsageBased,
 		})
 	case meta.ChargeTypeCreditPurchase:
-		return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("setting overrides for credit purchase charges is not supported"))
+		return charges.Charge{}, models.NewGenericValidationError(errors.New("setting overrides for credit purchase charges is not supported"))
 	default:
 		return charges.Charge{}, fmt.Errorf("unsupported charge type: %s", existing.Type())
 	}
@@ -211,13 +211,13 @@ func (s *service) ClearCustomerChargeOverride(ctx context.Context, input charges
 	}
 
 	if customerID.ID != input.CustomerID {
-		return charges.Charge{}, fmt.Errorf("charge %s is not owned by customer %s", input.ChargeID, input.CustomerID)
+		return charges.Charge{}, models.NewGenericNotFoundError(errors.New("charge not found"))
 	}
 
 	switch existing.Type() {
 	case meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased:
 	case meta.ChargeTypeCreditPurchase:
-		return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("clearing overrides for credit purchase charges is not supported"))
+		return charges.Charge{}, models.NewGenericValidationError(errors.New("clearing overrides for credit purchase charges is not supported"))
 	default:
 		return charges.Charge{}, fmt.Errorf("unsupported charge type: %s", existing.Type())
 	}

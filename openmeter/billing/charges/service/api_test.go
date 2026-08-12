@@ -688,14 +688,6 @@ type CustomerChargeAPISetOverrideTestSuite struct {
 	BaseSuite
 }
 
-func (s *CustomerChargeAPISetOverrideTestSuite) SetupSuite() {
-	s.BaseSuite.SetupSuite()
-}
-
-func (s *CustomerChargeAPISetOverrideTestSuite) TearDownTest() {
-	s.BaseSuite.TearDownTest()
-}
-
 func (s *CustomerChargeAPISetOverrideTestSuite) TestSetCreatesReplacesAndClearsOverrideForSupportedChargeTypes() {
 	// given
 	// - Future subscription-managed flat-fee and usage-based charges expose their base mutable snapshots.
@@ -1444,7 +1436,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearValidateOwnership
 			CustomerID: otherCustomerID,
 			ChargeID:   flatFeeChargeID.ID,
 		})
-		require.ErrorContains(s.T(), err, "is not owned by customer")
+		require.True(s.T(), models.IsGenericNotFoundError(err))
+		require.ErrorContains(s.T(), err, "charge not found")
 	})
 
 	s.Run("when clearing an override on a credit purchase", func() {

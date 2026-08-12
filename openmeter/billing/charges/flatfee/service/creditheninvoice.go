@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -258,7 +259,7 @@ func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context)
 		return nil
 	}
 	if s.Charge.Intent.GetDeletedAt() != nil {
-		return fmt.Errorf("clearing flat-fee override unexpectedly restored a deleted base intent")
+		return errors.New("clearing flat-fee override unexpectedly restored a deleted base intent")
 	}
 
 	amountAfterProration, err := s.Charge.Intent.CalculateAmountAfterProration()
@@ -329,7 +330,7 @@ func (s *CreditThenInvoiceStateMachine) ClearDeletedChargeOverride(ctx context.C
 	}
 
 	if s.Charge.Intent.GetDeletedAt() == nil {
-		return fmt.Errorf("clearing flat-fee override did not restore a deleted base intent")
+		return errors.New("clearing flat-fee override did not restore a deleted base intent")
 	}
 
 	return s.reconcileDeletedCharge(ctx)
