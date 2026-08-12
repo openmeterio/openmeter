@@ -164,4 +164,10 @@ func TestSubscriptionCustomCurrencySemanticsMigrationRequiresBackfill(t *testing
 	err = db.QueryRow(`SELECT to_regclass('subscription_cost_basis_pins')::text`).Scan(&pinTable)
 	require.NoError(t, err)
 	require.Nil(t, pinTable)
+
+	_, err = db.Exec(`UPDATE subscription_items SET currency = NULL WHERE id = $1`, itemID)
+	require.NoError(t, err, "the restored constraint must allow legacy priced items without currency")
+
+	_, err = db.Exec(`UPDATE subscription_items SET price = NULL, currency = 'USD' WHERE id = $1`, itemID)
+	require.Error(t, err, "the restored constraint must reject currency on unpriced items")
 }
