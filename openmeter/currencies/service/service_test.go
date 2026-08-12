@@ -120,6 +120,119 @@ func TestCurrenciesService(t *testing.T) {
 				assert.Contains(t, err.Error(), "name is required")
 			})
 
+			t.Run("Update", func(t *testing.T) {
+				// given:
+				// - a dedicated custom currency so sibling subtests keep their fixture
+				updatable, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+					Namespace: namespace,
+					CurrencyDetails: currencyx.CurrencyDetails{
+						Code:               "EDITABLE",
+						Name:               "Editable",
+						Symbol:             "E",
+						Precision:          3,
+						DecimalMark:        ".",
+						ThousandsSeparator: ",",
+					},
+				})
+				require.NoError(t, err)
+
+				t.Run("PresentationalAttributes", func(t *testing.T) {
+					// when:
+					// - every presentational attribute is replaced
+					result, err := env.Service.UpdateCurrency(t.Context(), currencies.UpdateCurrencyInput{
+						NamespacedID:       updatable.NamespacedID,
+						Name:               "Editable Renamed",
+						Symbol:             "€",
+						DecimalMark:        ",",
+						ThousandsSeparator: ".",
+					})
+
+					// then:
+					// - the new values are persisted and the immutable code and precision are intact
+					require.NoError(t, err)
+					assert.Equal(t, currencyx.CurrencyDetails{
+						Code:               "EDITABLE",
+						Name:               "Editable Renamed",
+						Symbol:             "€",
+						Precision:          3,
+						DecimalMark:        ",",
+						ThousandsSeparator: ".",
+					}, result.Details())
+				})
+
+				t.Run("OmittedSymbolIsCleared", func(t *testing.T) {
+					// given:
+					// - a currency that currently carries a symbol
+					// when:
+					// - a replacement without a symbol is submitted
+					result, err := env.Service.UpdateCurrency(t.Context(), currencies.UpdateCurrencyInput{
+						NamespacedID:       updatable.NamespacedID,
+						Name:               "Editable Again",
+						DecimalMark:        ",",
+						ThousandsSeparator: ".",
+					})
+
+					// then:
+					// - the symbol is removed, since the request replaces the whole representation
+					require.NoError(t, err)
+					assert.Equal(t, "Editable Again", result.Details().Name)
+					assert.Empty(t, result.Details().Symbol)
+				})
+
+				t.Run("SeparatorCollision", func(t *testing.T) {
+					// when:
+					// - the decimal mark and the thousands separator are the same character
+					_, err := env.Service.UpdateCurrency(t.Context(), currencies.UpdateCurrencyInput{
+						NamespacedID:       updatable.NamespacedID,
+						Name:               "Editable",
+						DecimalMark:        ".",
+						ThousandsSeparator: ".",
+					})
+
+					// then:
+					// - the request is rejected because formatted amounts would be ambiguous
+					require.Error(t, err)
+					assert.True(t, models.IsGenericValidationError(err))
+					assert.Contains(t, err.Error(), "must differ")
+				})
+
+				t.Run("Invalid", func(t *testing.T) {
+					// when:
+					// - the name is missing and the decimal mark is multi-character
+					_, err := env.Service.UpdateCurrency(t.Context(), currencies.UpdateCurrencyInput{
+						NamespacedID:       updatable.NamespacedID,
+						DecimalMark:        "..",
+						ThousandsSeparator: ",",
+					})
+
+					// then:
+					// - validation fails before any write is issued
+					require.Error(t, err)
+					assert.True(t, models.IsGenericValidationError(err))
+					assert.Contains(t, err.Error(), "name is required")
+					assert.Contains(t, err.Error(), "decimal_mark must be exactly one character")
+				})
+
+				t.Run("NotFound", func(t *testing.T) {
+					// when:
+					// - an unknown currency id is updated
+					_, err := env.Service.UpdateCurrency(t.Context(), currencies.UpdateCurrencyInput{
+						NamespacedID: models.NamespacedID{
+							Namespace: namespace,
+							ID:        "01K0000000000000000000000",
+						},
+						Name:               "Nope",
+						DecimalMark:        ".",
+						ThousandsSeparator: ",",
+					})
+
+					// then:
+					// - the request is rejected as not found
+					require.Error(t, err)
+					assert.True(t, models.IsGenericNotFoundError(err))
+				})
+			})
+
 			t.Run("CostBasis", func(t *testing.T) {
 				// given:
 				// - the newly created custom currency

@@ -90,4 +90,19 @@ interface CurrenciesCustomOperations {
   get(@path currencyId: Shared.ULID):
     | Shared.GetResponse<CurrencyCustom>
     | Common.ErrorResponses;
+
+  /**
+   * Replace the presentational attributes of a custom currency. The currency's code
+   * and precision are immutable and cannot be updated.
+   */
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @put
+  @route("/{currencyId}")
+  @operationId("update-custom-currency")
+  @summary("Update custom currency")
+  update(@path currencyId: Shared.ULID, @body body: CurrencyCustomUpdate):
+    | Shared.UpdateResponse<CurrencyCustom>
+    | Common.ErrorResponses
+    | Common.NotFound;
 }
