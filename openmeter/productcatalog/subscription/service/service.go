@@ -55,7 +55,7 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("customer service is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type service struct {
