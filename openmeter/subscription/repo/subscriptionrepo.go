@@ -160,37 +160,26 @@ func (r *subscriptionRepo) CreateCostBasisPins(ctx context.Context, inputs []sub
 		return nil
 	}
 
+	var errs []error
+	for idx, input := range inputs {
+		if err := input.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("input[%d]: %w", idx, err))
+		}
+	}
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
 	return entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, repo *subscriptionRepo) error {
 		builders := make([]*db.SubscriptionCostBasisPinCreate, 0, len(inputs))
-		var errs []error
 
-		for idx, input := range inputs {
-			if input.Namespace == "" {
-				errs = append(errs, fmt.Errorf("input[%d]: namespace is required", idx))
-			}
-			if input.SubscriptionID == "" {
-				errs = append(errs, fmt.Errorf("input[%d]: subscription ID is required", idx))
-			}
-			if input.CustomCurrencyID == "" {
-				errs = append(errs, fmt.Errorf("input[%d]: custom currency ID is required", idx))
-			}
-			if input.CostBasisID == "" {
-				errs = append(errs, fmt.Errorf("input[%d]: cost basis ID is required", idx))
-			}
-			if err := input.InvoiceCurrency.Validate(); err != nil || !input.InvoiceCurrency.IsFiat() {
-				errs = append(errs, fmt.Errorf("input[%d]: invalid invoice currency %q", idx, input.InvoiceCurrency))
-			}
-
+		for _, input := range inputs {
 			builders = append(builders, repo.db.SubscriptionCostBasisPin.Create().
 				SetNamespace(input.Namespace).
 				SetSubscriptionID(input.SubscriptionID).
 				SetCustomCurrencyID(input.CustomCurrencyID).
 				SetInvoiceCurrency(input.InvoiceCurrency).
 				SetCostBasisID(input.CostBasisID))
-		}
-
-		if err := errors.Join(errs...); err != nil {
-			return err
 		}
 
 		if _, err := repo.db.SubscriptionCostBasisPin.CreateBulk(builders...).Save(ctx); err != nil {
