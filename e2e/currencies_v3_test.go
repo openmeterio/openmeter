@@ -152,7 +152,8 @@ func TestV3CustomCurrencyUpdate(t *testing.T) {
 
 		// then:
 		// - the request fails because formatted amounts would be ambiguous
-		c.requireStatus(http.StatusBadRequest, err)
+		problem := requireProblem(t, err, http.StatusBadRequest)
+		assertProblemDetail(t, problem, "decimal_mark and thousands_separator must differ")
 	})
 
 	t.Run("a missing name is rejected", func(t *testing.T) {
@@ -165,7 +166,11 @@ func TestV3CustomCurrencyUpdate(t *testing.T) {
 
 		// then:
 		// - the request is rejected, since PUT replaces the whole representation
-		c.requireStatus(http.StatusBadRequest, err)
+		// The TypeSpec minLength on name rejects this before the domain
+		// validator's own "name is required" check is reached.
+		problem := requireProblem(t, err, http.StatusBadRequest)
+		assertInvalidParameterRule(t, problem, "min_length")
+		assertProblemDetail(t, problem, "name [min_length]")
 	})
 }
 
