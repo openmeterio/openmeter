@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/servicehooks"
 )
 
 type Service interface {
@@ -25,10 +26,17 @@ type AppService interface {
 	UpdateAppStatus(ctx context.Context, input UpdateAppStatusInput) error
 	UpdateApp(ctx context.Context, input UpdateAppInput) (App, error)
 	ListApps(ctx context.Context, input ListAppInput) (pagination.Result[App], error)
+	RegisterUninstallHook(name string, hook servicehooks.Hook[AppUninstallEvent]) error
 	UninstallApp(ctx context.Context, input UninstallAppInput) error
 
 	// Customer data
 	ListCustomerData(ctx context.Context, input ListCustomerInput) (pagination.Result[CustomerApp], error)
 	EnsureCustomer(ctx context.Context, input EnsureCustomerInput) error
 	DeleteCustomer(ctx context.Context, input DeleteCustomerInput) error
+}
+
+// AppUninstallEvent contains the installed app state available to synchronous
+// validators before provider-specific resources are removed.
+type AppUninstallEvent struct {
+	App AppBase
 }

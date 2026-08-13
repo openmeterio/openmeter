@@ -238,12 +238,6 @@ func (h *handler) UninstallApp() UninstallAppHandler {
 			}, nil
 		},
 		func(ctx context.Context, request UninstallAppRequest) (UninstallAppResponse, error) {
-			// Check if the app is not used by any billing profile
-
-			if err := h.billingService.IsAppUsed(ctx, request); err != nil {
-				return nil, err
-			}
-
 			// Uninstall app
 			err := h.service.UninstallApp(ctx, request)
 			if err != nil {

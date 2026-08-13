@@ -130,3 +130,6 @@ asynchronously; webhook delivery is not part of the invoice lifecycle.
 - line engines cannot silently change the identity or count of callback output
 - immutable invoice drift is recorded as validation issues rather than
   rewriting customer-visible history
+- an app referenced by a non-final invoice cannot be uninstalled, because its
+  provider-specific resources are required to complete that invoice's
+  snapshotted workflow

@@ -48,6 +48,10 @@ func TestAppStripe(t *testing.T) {
 			testSuite.TestUninstall(ctx, t)
 		})
 
+		t.Run("UninstallInUse", func(t *testing.T) {
+			testSuite.TestUninstallInUse(ctx, t)
+		})
+
 		t.Run("CustomerData", func(t *testing.T) {
 			testSuite.TestCustomerData(ctx, t)
 		})

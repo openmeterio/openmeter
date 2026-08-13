@@ -182,6 +182,32 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 	require.True(t, app.IsAppNotFoundError(err), "get after uninstall must return app not found error")
 }
 
+// TestUninstallInUse verifies that billing usage prevents provider cleanup.
+func (s *AppHandlerTestSuite) TestUninstallInUse(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Given an installed Stripe app referenced by a billing profile.
+	testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	_, err = s.Env.Billing().CreateProfile(ctx, stripeBillingProfileInput(t, s.namespace, testApp.GetID()))
+	require.NoError(t, err, "create billing profile must not return error")
+
+	// Isolate provider-cleanup calls made by this test from the shared test environment.
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().Calls = nil
+
+	// When uninstalling through the app service, billing vetoes the operation.
+	err = s.Env.App().UninstallApp(ctx, testApp.GetID())
+	require.True(t, models.IsGenericConflictError(err), "uninstalling an app in use must return conflict error")
+
+	// Then no provider resource is removed and the app remains installed.
+	s.Env.StripeAppClient().AssertNotCalled(t, "DeleteWebhook", mock.Anything)
+	installedApp, err := s.Env.App().GetApp(ctx, testApp.GetID())
+	require.NoError(t, err, "get after rejected uninstall must not return error")
+	require.Equal(t, testApp.GetID(), installedApp.GetID())
+}
+
 // TestCustomerData tests stripe app behavior when adding customer data
 func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)
@@ -397,22 +423,16 @@ func (s *AppHandlerTestSuite) TestCustomerData(ctx context.Context, t *testing.T
 	require.Equal(t, testApp.GetID(), listCustomerData.Items[0].App.GetID(), "App ID must match")
 }
 
-// TestCustomerValidate tests stripe app behavior when validating a customer
-func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testing.T) {
-	// Create test app
-	testApp, testCustomer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
-	require.NoError(t, err, "setup fixture must not return error")
+func stripeBillingProfileInput(t *testing.T, namespace string, appID app.AppID) billing.CreateProfileInput {
+	t.Helper()
 
-	// Create default billing profile
-	billingProfile, err := s.Env.Billing().CreateProfile(ctx, billing.CreateProfileInput{
-		Namespace: s.namespace,
+	return billing.CreateProfileInput{
+		Namespace: namespace,
 		Default:   true,
 		Name:      "Awesome Default Profile",
-
 		Metadata: map[string]string{
 			"key": "value",
 		},
-
 		WorkflowConfig: billing.WorkflowConfig{
 			Collection: billing.CollectionConfig{
 				Alignment: billing.AlignmentKindSubscription,
@@ -432,7 +452,6 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 				Enforced: false,
 			},
 		},
-
 		Supplier: billing.SupplierContact{
 			Name: "Awesome Supplier",
 			Address: models.Address{
@@ -445,13 +464,22 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 				PhoneNumber: lo.ToPtr("1234567890"),
 			},
 		},
-
 		Apps: billing.CreateProfileAppsInput{
-			Invoicing: testApp.GetID(),
-			Payment:   testApp.GetID(),
-			Tax:       testApp.GetID(),
+			Invoicing: appID,
+			Payment:   appID,
+			Tax:       appID,
 		},
-	})
+	}
+}
+
+// TestCustomerValidate tests stripe app behavior when validating a customer
+func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testing.T) {
+	// Create test app
+	testApp, testCustomer, _, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	// Create default billing profile
+	billingProfile, err := s.Env.Billing().CreateProfile(ctx, stripeBillingProfileInput(t, s.namespace, testApp.GetID()))
 	require.NoError(t, err, "Create billing profile must not return error")
 
 	// Create customer without stripe data

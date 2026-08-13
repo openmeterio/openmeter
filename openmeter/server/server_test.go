@@ -73,6 +73,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/ref"
+	"github.com/openmeterio/openmeter/pkg/servicehooks"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -1330,6 +1331,10 @@ func (n NoopAppService) UpdateApp(ctx context.Context, input app.UpdateAppInput)
 
 func (n NoopAppService) ListApps(ctx context.Context, input app.ListAppInput) (pagination.Result[app.App], error) {
 	return pagination.Result[app.App]{}, nil
+}
+
+func (n NoopAppService) RegisterUninstallHook(name string, hook servicehooks.Hook[app.AppUninstallEvent]) error {
+	return nil
 }
 
 func (n NoopAppService) UninstallApp(ctx context.Context, input app.UninstallAppInput) error {
