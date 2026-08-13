@@ -78,6 +78,9 @@ type RateCardMeta struct {
 	// Metadata a set of key/value pairs describing metadata for the RateCard
 	Metadata models.Metadata `json:"metadata,omitempty"`
 
+	// Annotations contains internal metadata for the RateCard.
+	Annotations models.Annotations `json:"annotations,omitempty"`
+
 	// FeatureKey is the key of the feature assigned to the RateCard
 	FeatureKey *string `json:"featureKey,omitempty"`
 
@@ -146,6 +149,13 @@ func (r RateCardMeta) Clone() RateCardMeta {
 		}
 	}
 
+	clonedAnnotations, err := r.Annotations.Clone()
+	if err == nil {
+		clone.Annotations = clonedAnnotations
+	} else {
+		clone.Annotations = r.Annotations
+	}
+
 	if r.FeatureKey != nil {
 		key := *r.FeatureKey
 		clone.FeatureKey = &key
@@ -197,6 +207,10 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 	}
 
 	if lo.FromPtr(r.Description) != lo.FromPtr(v.Description) {
+		return false
+	}
+
+	if !r.Annotations.Equal(v.Annotations) {
 		return false
 	}
 

@@ -118,6 +118,7 @@ func rateCardBulkCreate(c *entdb.PlanRateCardClient, rateCards productcatalog.Ra
 			SetName(rateCardEntity.Name).
 			SetNillableDescription(rateCardEntity.Description).
 			SetMetadata(rateCardEntity.Metadata).
+			SetAnnotations(rateCardEntity.Annotations).
 			SetNillableFeatureKey(rateCardEntity.FeatureKey).
 			SetNillableFeaturesID(rateCardEntity.FeatureID).
 			SetEntitlementTemplate(rateCardEntity.EntitlementTemplate).

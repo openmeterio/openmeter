@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // AddonRateCardCreate is the builder for creating a AddonRateCard entity.
@@ -155,6 +156,12 @@ func (_c *AddonRateCardCreate) SetNillableFeatureKey(v *string) *AddonRateCardCr
 	if v != nil {
 		_c.SetFeatureKey(*v)
 	}
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *AddonRateCardCreate) SetAnnotations(v models.Annotations) *AddonRateCardCreate {
+	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -516,6 +523,10 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(addonratecard.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = &value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(addonratecard.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.EntitlementTemplate(); ok {
 		vv, err := addonratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
@@ -813,6 +824,24 @@ func (u *AddonRateCardUpsert) UpdateFeatureKey() *AddonRateCardUpsert {
 // ClearFeatureKey clears the value of the "feature_key" field.
 func (u *AddonRateCardUpsert) ClearFeatureKey() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldFeatureKey)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *AddonRateCardUpsert) SetAnnotations(v models.Annotations) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateAnnotations() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *AddonRateCardUpsert) ClearAnnotations() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldAnnotations)
 	return u
 }
 
@@ -1201,6 +1230,27 @@ func (u *AddonRateCardUpsertOne) UpdateFeatureKey() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearFeatureKey() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearFeatureKey()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *AddonRateCardUpsertOne) SetAnnotations(v models.Annotations) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateAnnotations() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *AddonRateCardUpsertOne) ClearAnnotations() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearAnnotations()
 	})
 }
 
@@ -1788,6 +1838,27 @@ func (u *AddonRateCardUpsertBulk) UpdateFeatureKey() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearFeatureKey() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearFeatureKey()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *AddonRateCardUpsertBulk) SetAnnotations(v models.Annotations) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateAnnotations() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *AddonRateCardUpsertBulk) ClearAnnotations() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

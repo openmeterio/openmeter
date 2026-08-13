@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // AddonRateCardUpdate is the builder for updating AddonRateCard entities.
@@ -164,6 +165,18 @@ func (_u *AddonRateCardUpdate) SetNillableFeatureKey(v *string) *AddonRateCardUp
 // ClearFeatureKey clears the value of the "feature_key" field.
 func (_u *AddonRateCardUpdate) ClearFeatureKey() *AddonRateCardUpdate {
 	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *AddonRateCardUpdate) SetAnnotations(v models.Annotations) *AddonRateCardUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *AddonRateCardUpdate) ClearAnnotations() *AddonRateCardUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -521,6 +534,12 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(addonratecard.FieldFeatureKey, field.TypeString)
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(addonratecard.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(addonratecard.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := addonratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
@@ -848,6 +867,18 @@ func (_u *AddonRateCardUpdateOne) SetNillableFeatureKey(v *string) *AddonRateCar
 // ClearFeatureKey clears the value of the "feature_key" field.
 func (_u *AddonRateCardUpdateOne) ClearFeatureKey() *AddonRateCardUpdateOne {
 	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *AddonRateCardUpdateOne) SetAnnotations(v models.Annotations) *AddonRateCardUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *AddonRateCardUpdateOne) ClearAnnotations() *AddonRateCardUpdateOne {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -1234,6 +1265,12 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	}
 	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(addonratecard.FieldFeatureKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(addonratecard.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(addonratecard.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := addonratecard.ValueScanner.EntitlementTemplate.Value(value)

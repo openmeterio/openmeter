@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // PlanRateCardCreate is the builder for creating a PlanRateCard entity.
@@ -155,6 +156,12 @@ func (_c *PlanRateCardCreate) SetNillableFeatureKey(v *string) *PlanRateCardCrea
 	if v != nil {
 		_c.SetFeatureKey(*v)
 	}
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *PlanRateCardCreate) SetAnnotations(v models.Annotations) *PlanRateCardCreate {
+	_c.mutation.SetAnnotations(v)
 	return _c
 }
 
@@ -516,6 +523,10 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 		_spec.SetField(planratecard.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = &value
 	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(planratecard.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.EntitlementTemplate(); ok {
 		vv, err := planratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
@@ -813,6 +824,24 @@ func (u *PlanRateCardUpsert) UpdateFeatureKey() *PlanRateCardUpsert {
 // ClearFeatureKey clears the value of the "feature_key" field.
 func (u *PlanRateCardUpsert) ClearFeatureKey() *PlanRateCardUpsert {
 	u.SetNull(planratecard.FieldFeatureKey)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *PlanRateCardUpsert) SetAnnotations(v models.Annotations) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateAnnotations() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *PlanRateCardUpsert) ClearAnnotations() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldAnnotations)
 	return u
 }
 
@@ -1201,6 +1230,27 @@ func (u *PlanRateCardUpsertOne) UpdateFeatureKey() *PlanRateCardUpsertOne {
 func (u *PlanRateCardUpsertOne) ClearFeatureKey() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearFeatureKey()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *PlanRateCardUpsertOne) SetAnnotations(v models.Annotations) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateAnnotations() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *PlanRateCardUpsertOne) ClearAnnotations() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearAnnotations()
 	})
 }
 
@@ -1788,6 +1838,27 @@ func (u *PlanRateCardUpsertBulk) UpdateFeatureKey() *PlanRateCardUpsertBulk {
 func (u *PlanRateCardUpsertBulk) ClearFeatureKey() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearFeatureKey()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *PlanRateCardUpsertBulk) SetAnnotations(v models.Annotations) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateAnnotations() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *PlanRateCardUpsertBulk) ClearAnnotations() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

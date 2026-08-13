@@ -101,6 +101,7 @@ var (
 		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
 		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "entitlement_template", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
@@ -121,25 +122,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "addon_rate_cards_addons_ratecards",
-				Columns:    []*schema.Column{AddonRateCardsColumns[19]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[20]},
 				RefColumns: []*schema.Column{AddonsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "addon_rate_cards_custom_currencies_addon_rate_cards",
-				Columns:    []*schema.Column{AddonRateCardsColumns[20]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[21]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "addon_rate_cards_features_addon_ratecard",
-				Columns:    []*schema.Column{AddonRateCardsColumns[21]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[22]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "addon_rate_cards_tax_codes_addon_rate_cards",
-				Columns:    []*schema.Column{AddonRateCardsColumns[22]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[23]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -168,12 +169,12 @@ var (
 			{
 				Name:    "addonratecard_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{AddonRateCardsColumns[22]},
+				Columns: []*schema.Column{AddonRateCardsColumns[23]},
 			},
 			{
 				Name:    "addonratecard_addon_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{AddonRateCardsColumns[19], AddonRateCardsColumns[8]},
+				Columns: []*schema.Column{AddonRateCardsColumns[20], AddonRateCardsColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -181,7 +182,7 @@ var (
 			{
 				Name:    "addonratecard_addon_id_feature_key",
 				Unique:  true,
-				Columns: []*schema.Column{AddonRateCardsColumns[19], AddonRateCardsColumns[11]},
+				Columns: []*schema.Column{AddonRateCardsColumns[20], AddonRateCardsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -189,7 +190,7 @@ var (
 			{
 				Name:    "addonratecard_custom_currency_id",
 				Unique:  false,
-				Columns: []*schema.Column{AddonRateCardsColumns[20]},
+				Columns: []*schema.Column{AddonRateCardsColumns[21]},
 			},
 		},
 	}
@@ -5359,6 +5360,7 @@ var (
 		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
 		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "entitlement_template", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
@@ -5379,25 +5381,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "plan_rate_cards_custom_currencies_plan_rate_cards",
-				Columns:    []*schema.Column{PlanRateCardsColumns[19]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[20]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "plan_rate_cards_features_ratecard",
-				Columns:    []*schema.Column{PlanRateCardsColumns[20]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[21]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "plan_rate_cards_plan_phases_ratecards",
-				Columns:    []*schema.Column{PlanRateCardsColumns[21]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[22]},
 				RefColumns: []*schema.Column{PlanPhasesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "plan_rate_cards_tax_codes_plan_rate_cards",
-				Columns:    []*schema.Column{PlanRateCardsColumns[22]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[23]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -5426,12 +5428,12 @@ var (
 			{
 				Name:    "planratecard_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{PlanRateCardsColumns[22]},
+				Columns: []*schema.Column{PlanRateCardsColumns[23]},
 			},
 			{
 				Name:    "planratecard_phase_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[21], PlanRateCardsColumns[8]},
+				Columns: []*schema.Column{PlanRateCardsColumns[22], PlanRateCardsColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -5439,7 +5441,7 @@ var (
 			{
 				Name:    "planratecard_phase_id_feature_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[21], PlanRateCardsColumns[11]},
+				Columns: []*schema.Column{PlanRateCardsColumns[22], PlanRateCardsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -5447,7 +5449,7 @@ var (
 			{
 				Name:    "planratecard_custom_currency_id",
 				Unique:  false,
-				Columns: []*schema.Column{PlanRateCardsColumns[19]},
+				Columns: []*schema.Column{PlanRateCardsColumns[20]},
 			},
 		},
 	}

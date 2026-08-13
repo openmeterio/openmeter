@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // PlanRateCard is the model entity for the PlanRateCard schema.
@@ -49,6 +50,8 @@ type PlanRateCard struct {
 	Type productcatalog.RateCardType `json:"type,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey *string `json:"feature_key,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// EntitlementTemplate holds the value of the "entitlement_template" field.
 	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlement_template,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
@@ -139,7 +142,7 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case planratecard.FieldMetadata:
+		case planratecard.FieldMetadata, planratecard.FieldAnnotations:
 			values[i] = new([]byte)
 		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldCurrencyCode, planratecard.FieldCustomCurrencyID, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
@@ -254,6 +257,14 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.FeatureKey = new(string)
 				*_m.FeatureKey = value.String
+			}
+		case planratecard.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
 			}
 		case planratecard.FieldEntitlementTemplate:
 			if value, err := planratecard.ValueScanner.EntitlementTemplate.FromValue(values[i]); err != nil {
@@ -420,6 +431,9 @@ func (_m *PlanRateCard) String() string {
 		builder.WriteString("feature_key=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
 	if v := _m.EntitlementTemplate; v != nil {
 		builder.WriteString("entitlement_template=")

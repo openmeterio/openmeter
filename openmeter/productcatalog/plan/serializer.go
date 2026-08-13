@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -21,6 +22,7 @@ type rateCardAlias struct {
 	Name                string                      `json:"name"`
 	Description         *string                     `json:"description,omitempty"`
 	Metadata            map[string]string           `json:"metadata,omitempty"`
+	Annotations         models.Annotations          `json:"annotations,omitempty"`
 	FeatureKey          *string                     `json:"featureKey,omitempty"`
 	FeatureID           *string                     `json:"featureID,omitempty"`
 	BillingCadence      *string                     `json:"billingCadence,omitempty"`
@@ -85,6 +87,7 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 				Name:                meta.Name,
 				Description:         meta.Description,
 				Metadata:            meta.Metadata,
+				Annotations:         meta.Annotations,
 				FeatureKey:          meta.FeatureKey,
 				FeatureID:           meta.FeatureID,
 				Price:               priceJSON,
@@ -186,6 +189,7 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 				Name:                rcData.Name,
 				Description:         rcData.Description,
 				Metadata:            rcData.Metadata,
+				Annotations:         rcData.Annotations,
 				FeatureKey:          rcData.FeatureKey,
 				FeatureID:           rcData.FeatureID,
 				Price:               price,
