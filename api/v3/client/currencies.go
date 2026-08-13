@@ -151,7 +151,7 @@ func (s *CurrenciesService) GetCustomCurrency(ctx context.Context, currencyID st
 
 // Replace the presentational attributes of a custom currency. The currency's code
 // and precision are immutable and cannot be updated.
-func (s *CurrenciesService) UpdateCustomCurrency(ctx context.Context, currencyID string, request CurrencyCustomUpdate) (*CurrencyCustom, error) {
+func (s *CurrenciesService) UpdateCustomCurrency(ctx context.Context, currencyID string, request UpsertCurrencyCustomRequest) (*CurrencyCustom, error) {
 	if currencyID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "currencyID", ErrEmptyID)
 	}

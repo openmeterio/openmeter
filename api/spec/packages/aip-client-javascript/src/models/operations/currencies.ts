@@ -9,11 +9,11 @@ import type {
   CreateCostBasisRequest as CreateCostBasisRequestBody,
   CreateCurrencyCustomRequest,
   CurrencyCustom,
-  CurrencyCustomUpdate,
   CurrencyPagePaginatedResponse,
   ListCostBasesParamsFilter,
   ListCurrenciesParamsFilter,
   SortQueryInput,
+  UpsertCurrencyCustomRequest,
 } from '../types.js'
 
 export interface ListCurrenciesQuery {
@@ -57,7 +57,7 @@ export type GetCustomCurrencyResponse = CurrencyCustom
 
 export type UpdateCustomCurrencyRequest = AcceptDateStrings<{
   currencyId: string
-  body: CurrencyCustomUpdate
+  body: UpsertCurrencyCustomRequest
 }>
 export type UpdateCustomCurrencyResponse = CurrencyCustom
 

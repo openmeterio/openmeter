@@ -105,7 +105,7 @@ export type {
   UpdateBillingWorkflowPaymentChargeAutomaticallySettings,
   UpdateBillingWorkflowPaymentSendInvoiceSettings,
   UpdatePriceFree,
-  CurrencyCustomUpdate,
+  UpsertCurrencyCustomRequest,
   LlmCostProvider,
   LlmCostModel,
   ProductCatalogValidationError,

@@ -35,7 +35,7 @@ func (h *handler) UpdateCurrency() UpdateCurrencyHandler {
 				return UpdateCurrencyRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := v3.BillingCurrencyCustomUpdate{}
+			body := v3.UpsertCurrencyCustomRequest{}
 			if err = request.ParseBody(r, &body); err != nil {
 				return UpdateCurrencyRequest{}, fmt.Errorf("failed to parse update custom currency request: %w", err)
 			}

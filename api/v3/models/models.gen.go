@@ -5415,33 +5415,6 @@ type BillingCurrencyCustom struct {
 // BillingCurrencyCustomType The type of the currency.
 type BillingCurrencyCustomType string
 
-// BillingCurrencyCustomUpdate Update request for a custom currency.
-//
-// Only the presentational attributes of a currency can be changed. The code and
-// the precision are immutable, because issued invoices, charges and ledger entries
-// are denominated with them and changing them retroactively would misstate
-// historical monetary records.
-type BillingCurrencyCustomUpdate struct {
-	// DecimalMark The decimal mark for the currency. It should be a string that represents the
-	// decimal mark of the currency, such as "." for US Dollar or "," for Euro. It must
-	// differ from the thousand separator.
-	DecimalMark string `json:"decimal_mark"`
-
-	// Name The name of the currency. It should be a human-readable string that represents
-	// the name of the currency, such as "US Dollar" or "Euro".
-	Name string `json:"name"`
-
-	// Symbol The symbol of the currency. It should be a string that represents the symbol of
-	// the currency, such as "$" for US Dollar or "€" for Euro. Omit it to clear the
-	// currency's symbol.
-	Symbol *string `json:"symbol,omitempty"`
-
-	// ThousandSeparator The thousand separator for the currency. It should be a string that represents
-	// the thousand separator of the currency, such as "," for US Dollar or "." for
-	// Euro. It must differ from the decimal mark.
-	ThousandSeparator string `json:"thousand_separator"`
-}
-
 // BillingCurrencyExpand Expands for currencies.
 //
 // Values:
@@ -14649,6 +14622,26 @@ type UpsertBillingProfileRequest struct {
 	Workflow BillingWorkflow `json:"workflow"`
 }
 
+// UpsertCurrencyCustomRequest CurrencyCustom upsert request.
+type UpsertCurrencyCustomRequest struct {
+	// DecimalMark The decimal mark for the currency. It should be a string that represents the
+	// decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+	DecimalMark string `json:"decimal_mark"`
+
+	// Name The name of the currency. It should be a human-readable string that represents
+	// the name of the currency, such as "US Dollar" or "Euro".
+	Name string `json:"name"`
+
+	// Symbol The symbol of the currency. It should be a string that represents the symbol of
+	// the currency, such as "$" for US Dollar or "€" for Euro.
+	Symbol *string `json:"symbol,omitempty"`
+
+	// ThousandSeparator The thousand separator for the currency. It should be a string that represents
+	// the thousand separator of the currency, such as "," for US Dollar or "." for
+	// Euro.
+	ThousandSeparator string `json:"thousand_separator"`
+}
+
 // UpsertCustomerBillingDataRequest CustomerBillingData upsert request.
 type UpsertCustomerBillingDataRequest struct {
 	// AppData App customer data.
@@ -15568,7 +15561,7 @@ type UpdateInvoiceJSONRequestBody = UpdateInvoiceRequest
 type CreateCustomCurrencyJSONRequestBody = CreateCurrencyCustomRequest
 
 // UpdateCustomCurrencyJSONRequestBody defines body for UpdateCustomCurrency for application/json ContentType.
-type UpdateCustomCurrencyJSONRequestBody = BillingCurrencyCustomUpdate
+type UpdateCustomCurrencyJSONRequestBody = UpsertCurrencyCustomRequest
 
 // CreateCostBasisJSONRequestBody defines body for CreateCostBasis for application/json ContentType.
 type CreateCostBasisJSONRequestBody = CreateCostBasisRequest
