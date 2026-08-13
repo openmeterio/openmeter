@@ -4565,6 +4565,14 @@ type BillingSpendCommitments struct {
 
 // BillingSubscription Subscription.
 type BillingSubscription struct {
+	// ActiveFrom An ISO-8601 timestamp representation of when the subscription became (or will
+	// become) active.
+	ActiveFrom DateTime `json:"active_from"`
+
+	// ActiveTo An ISO-8601 timestamp representation of when the subscription stops being
+	// active. Open-ended when not set.
+	ActiveTo *DateTime `json:"active_to,omitempty"`
+
 	// BillingAnchor A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:
@@ -4573,6 +4581,11 @@ type BillingSubscription struct {
 	// - Subscription anniversary (day customer signed up)
 	// - Custom date (customer-specified day)
 	BillingAnchor DateTime `json:"billing_anchor"`
+
+	// BillingCadence The billing cadence of the subscription in ISO-8601 duration format. Defines how
+	// often the customer is billed. Examples: `P1M` (monthly), `P3M` (quarterly),
+	// `P1Y` (annually).
+	BillingCadence ISO8601Duration `json:"billing_cadence"`
 
 	// CostBasisMode Controls whether custom-currency cost bases are resolved dynamically or pinned
 	// when their currency pair is introduced to the subscription.
@@ -4584,12 +4597,19 @@ type BillingSubscription struct {
 	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
 	CreatedAt DateTime `json:"created_at"`
 
+	// CurrentPeriod The current aligned billing period. Present only when the subscription is active
+	// and aligned.
+	CurrentPeriod *ClosedPeriod `json:"current_period,omitempty"`
+
 	// CustomerId The customer ID of the subscription.
 	CustomerId ULID `json:"customer_id"`
 
 	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
 	DeletedAt *DateTime `json:"deleted_at,omitempty"`
-	Id        ULID      `json:"id"`
+
+	// Description Optional description of the subscription.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
 
 	// InvoiceCurrency The fiat currency in which the subscription is invoiced.
 	InvoiceCurrency CurrencyCode `json:"invoice_currency"`
@@ -4599,8 +4619,24 @@ type BillingSubscription struct {
 	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
 	Labels *Labels `json:"labels,omitempty"`
 
+	// Name Display name of the subscription. Defaults to the plan name when the
+	// subscription is created from a plan.
+	Name string `json:"name"`
+
+	// Phases The phases of the subscription in chronological order. A phase groups the rate
+	// cards that are in effect for a segment of the subscription's lifetime.
+	Phases []BillingSubscriptionPhase `json:"phases"`
+
+	// Plan The plan the subscription was created from, if any. Includes the plan key and
+	// version so clients can resolve the exact plan revision.
+	Plan *BillingSubscriptionPlanReference `json:"plan,omitempty"`
+
 	// PlanId The plan ID of the subscription. Set if subscription is created from a plan.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PlanId *ULID `json:"plan_id,omitempty"`
+
+	// ProRatingConfig The pro-rating configuration of the subscription.
+	ProRatingConfig *BillingSubscriptionProRatingConfig `json:"pro_rating_config,omitempty"`
 
 	// SettlementMode Settlement mode for billing.
 	//
@@ -4798,6 +4834,88 @@ type BillingSubscriptionEditTiming struct {
 // immediately. When next_billing_cycle, the requested changes take effect at the
 // next billing cycle.
 type BillingSubscriptionEditTimingEnum string
+
+// BillingSubscriptionItem A subscription item pins a rate card to a cadence within a subscription phase.
+type BillingSubscriptionItem struct {
+	// ActiveFrom An ISO-8601 timestamp representation of when this item version becomes active.
+	ActiveFrom DateTime `json:"active_from"`
+
+	// ActiveTo An ISO-8601 timestamp representation of when this item version stops being
+	// active.
+	ActiveTo *DateTime `json:"active_to,omitempty"`
+
+	// Id The unique identifier of the subscription item instance.
+	Id ULID `json:"id"`
+
+	// RateCard The rate card describing what the customer gets and pays for this item.
+	RateCard BillingRateCard `json:"rate_card"`
+}
+
+// BillingSubscriptionPhase A subscription phase groups the rate cards in effect for a segment of the
+// subscription's lifetime. Analogous to plan phases.
+type BillingSubscriptionPhase struct {
+	// ActiveFrom An ISO-8601 timestamp representation of when the phase becomes active.
+	ActiveFrom DateTime `json:"active_from"`
+
+	// ActiveTo An ISO-8601 timestamp representation of when the phase stops being active.
+	// Open-ended for the last phase.
+	ActiveTo *DateTime `json:"active_to,omitempty"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt DateTime `json:"created_at"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
+
+	// Items The rate cards in effect for this phase, resolved to the version active at the
+	// queried time (the currently active version for the current phase, the first
+	// version for future phases, and the last version for past phases).
+	Items []BillingSubscriptionItem `json:"items"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key ResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt DateTime `json:"updated_at"`
+}
+
+// BillingSubscriptionPlanReference A reference to the plan a subscription was created from, pinned to an exact
+// revision.
+type BillingSubscriptionPlanReference struct {
+	// Id The plan ID (exact revision).
+	Id ULID `json:"id"`
+
+	// Key The plan key. References the plan across versions.
+	Key ResourceKey `json:"key"`
+
+	// Version The plan version.
+	Version int `json:"version"`
+}
+
+// BillingSubscriptionProRatingConfig The pro-rating configuration of a subscription.
+type BillingSubscriptionProRatingConfig struct {
+	// Enabled Whether pro-rating is enabled.
+	Enabled bool `json:"enabled"`
+
+	// Mode How pro-rating is calculated when enabled.
+	Mode BillingRateCardProrationMode `json:"mode"`
+}
 
 // BillingSubscriptionReference Subscription reference represents a reference to the specific subscription item
 // this entity represents.

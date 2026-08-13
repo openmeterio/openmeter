@@ -1509,29 +1509,6 @@ type RateCardProrationConfiguration struct {
 	Mode RateCardProrationMode `json:"mode"`
 }
 
-// The proration mode of the rate card.
-//
-// Values:
-//
-// - `no_proration`: No proration.
-// - `prorate_prices`: Prorate the price based on the time remaining in the billing
-// period.
-type RateCardProrationMode string
-
-const (
-	RateCardProrationModeNoProration   RateCardProrationMode = "no_proration"
-	RateCardProrationModeProratePrices RateCardProrationMode = "prorate_prices"
-)
-
-func (value RateCardProrationMode) Valid() bool {
-	switch value {
-	case RateCardProrationModeNoProration, RateCardProrationModeProratePrices:
-		return true
-	default:
-		return false
-	}
-}
-
 // Request body for updating the external payment settlement status of a credit
 // grant.
 type UpdateCreditGrantExternalSettlementRequest struct {
