@@ -19,6 +19,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/strcase"
+)
+
+// Defaults for the pagination query parameters of listCustomerEntitlementGrantsV2. The OpenAPI
+// spec declares them, but the generated server does not apply them, so they are restated here
+// rather than borrowed from a shared constant that is free to drift from the published contract.
+const (
+	defaultPage     = 1
+	defaultPageSize = 100
+	defaultLimit    = 100
+	defaultOffset   = 0
 )
 
 type (
@@ -49,6 +60,7 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				CustomerIDOrKey:           params.CustomerIDOrKey,
 				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
+				Params:                    params.Params,
 			}, nil
 		},
 		func(ctx context.Context, request ListCustomerEntitlementGrantsHandlerRequest) (ListCustomerEntitlementGrantsHandlerResponse, error) {
@@ -68,16 +80,29 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				)
 			}
 
-			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, meteredentitlement.ListEntitlementGrantsParams{
+			listParams := meteredentitlement.ListEntitlementGrantsParams{
 				CustomerID:                cus.ID,
 				EntitlementIDOrFeatureKey: request.EntitlementIdOrFeatureKey,
-				OrderBy:                   grant.OrderBy(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.OrderBy)), string(grant.OrderByDefault))),
+				IncludeDeleted:            lo.FromPtr(request.Params.IncludeDeleted),
+				OrderBy:                   grant.OrderBy(strcase.CamelToSnake(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.OrderBy)), string(grant.OrderByDefault)))),
 				Order:                     sortx.Order(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.Order)), string(sortx.OrderDefault))),
-				Page: pagination.NewPage(
-					lo.FromPtrOr(request.Params.Page, 1),
-					lo.FromPtrOr(request.Params.PageSize, 100),
-				),
-			})
+			}
+
+			// The deprecated limit/offset mode is only entered when the caller asks for it, and
+			// page/pageSize wins when both are given. A request carrying neither keeps the
+			// paginated default response, which is what this endpoint has always returned.
+			if request.Params.Page == nil && request.Params.PageSize == nil &&
+				(request.Params.Limit != nil || request.Params.Offset != nil) {
+				listParams.Limit = lo.FromPtrOr(request.Params.Limit, defaultLimit)
+				listParams.Offset = lo.FromPtrOr(request.Params.Offset, defaultOffset)
+			} else {
+				listParams.Page = pagination.NewPage(
+					lo.FromPtrOr(request.Params.Page, defaultPage),
+					lo.FromPtrOr(request.Params.PageSize, defaultPageSize),
+				)
+			}
+
+			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, listParams)
 			if err != nil {
 				return ListCustomerEntitlementGrantsHandlerResponse{}, err
 			}

@@ -2,6 +2,7 @@ package meteredentitlement
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -25,23 +26,42 @@ type ListEntitlementGrantsParams struct {
 	EntitlementIDOrFeatureKey string
 	OrderBy                   grant.OrderBy
 	Order                     sortx.Order
+	IncludeDeleted            bool
 	Page                      pagination.Page
+
+	// Limit and Offset are only honored when Page is not set. They serve the deprecated
+	// limit/offset pagination mode of the HTTP APIs.
+	Limit  int
+	Offset int
 }
 
 func (p ListEntitlementGrantsParams) Validate() error {
-	if err := p.Page.Validate(); err != nil {
-		return err
+	var errs []error
+
+	// A zero Page selects the deprecated limit/offset mode, where the page fields carry no
+	// meaning. Exactly one of the two modes has to bound the result set, otherwise the
+	// query would be unbounded.
+	if p.Page.IsZero() {
+		if p.Limit < 1 {
+			errs = append(errs, errors.New("either page or limit is required"))
+		}
+
+		if p.Offset < 0 {
+			errs = append(errs, fmt.Errorf("offset cannot be negative: %d", p.Offset))
+		}
+	} else if err := p.Page.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if p.CustomerID == "" {
-		return fmt.Errorf("customerID is required")
+		errs = append(errs, errors.New("customerID is required"))
 	}
 
 	if p.EntitlementIDOrFeatureKey == "" {
-		return fmt.Errorf("entitlementIDOrFeatureKey is required")
+		errs = append(errs, errors.New("entitlementIDOrFeatureKey is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // CreateGrant creates a grant for a given entitlement
@@ -111,10 +131,12 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 	grants, err := e.grantRepo.ListGrants(ctx, grant.ListParams{
 		Namespace:      ent.Namespace,
 		OwnerID:        convert.ToPointer(ent.ID),
-		IncludeDeleted: false,
+		IncludeDeleted: params.IncludeDeleted,
 		OrderBy:        params.OrderBy,
 		Order:          params.Order,
 		Page:           params.Page,
+		Limit:          params.Limit,
+		Offset:         params.Offset,
 	})
 	if err != nil {
 		return def, err

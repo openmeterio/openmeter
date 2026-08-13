@@ -755,3 +755,199 @@ func TestEntitlementWithLatestAggregation(t *testing.T) {
 		}, 2*time.Minute, time.Second)
 	})
 }
+
+func TestCustomerEntitlementGrantsPagination(t *testing.T) {
+	client := initClient(t)
+
+	ctx := t.Context()
+
+	customerKey := fmt.Sprintf("grant_paging_customer_%d", time.Now().UnixNano())
+	cust := CreateCustomerWithSubject(t, client, customerKey, customerKey+"-subject")
+
+	apiMONTH := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+	featureKey := fmt.Sprintf("grant_paging_feature_%d", time.Now().UnixNano())
+	{
+		resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
+			Name:      "Grant Paging Test Feature",
+			MeterSlug: convert.ToPointer("entitlement_uc_meter"),
+			Key:       featureKey,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+	}
+
+	{
+		metered := api.EntitlementMeteredV2CreateInputs{
+			Type:       "metered",
+			FeatureKey: &featureKey,
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: *apiMONTH,
+			},
+		}
+		body := api.CreateCustomerEntitlementV2JSONRequestBody{}
+		require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(metered))
+
+		resp, err := client.CreateCustomerEntitlementV2WithResponse(ctx, cust.Id, body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+	}
+
+	// given three grants whose amounts identify them, and whose amounts and effective dates both
+	// run counter to their creation order. Ordering by createdAt therefore yields a sequence that
+	// ordering by amount or by effectiveAt could not produce, so the assertions below fail if
+	// orderBy is ignored or resolved to the wrong column.
+	amountsInCreationOrder := []float64{30, 10, 20}
+	grantCount := len(amountsInCreationOrder)
+	lastEffectiveAt := time.Now().Truncate(time.Minute).Add(time.Duration(grantCount) * time.Minute)
+
+	for i, amount := range amountsInCreationOrder {
+		resp, err := client.CreateCustomerEntitlementGrantV2WithResponse(ctx, cust.Id, featureKey, api.CreateCustomerEntitlementGrantV2JSONRequestBody{
+			Amount:      amount,
+			EffectiveAt: lastEffectiveAt.Add(-time.Duration(i) * time.Minute),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+	}
+
+	amounts := func(items []api.EntitlementGrantV2) []float64 {
+		return lo.Map(items, func(item api.EntitlementGrantV2, _ int) float64 { return item.Amount })
+	}
+
+	t.Run("Should default to the first page", func(t *testing.T) {
+		// when no pagination parameters are sent at all
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the documented page defaults apply, rather than the limit/offset mode that
+		// reports no page metadata, and the grants come back in the default createdAt order
+		require.Equal(t, amountsInCreationOrder, amounts(resp.JSON200.Items))
+		require.Equal(t, 1, resp.JSON200.Page)
+		require.Equal(t, 100, resp.JSON200.PageSize)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should default the offset when only a limit is sent", func(t *testing.T) {
+		// when only the deprecated limit is sent, the offset defaults to zero
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Limit:   lo.ToPtr(2),
+			OrderBy: lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:   lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the window starts at the first created grant
+		require.Equal(t, []float64{30, 10}, amounts(resp.JSON200.Items))
+	})
+
+	t.Run("Should default the page when only a pageSize is sent", func(t *testing.T) {
+		// when a page smaller than the grant count is requested
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			PageSize: lo.ToPtr(2),
+			OrderBy:  lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:    lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the page is capped at the requested size while the count covers every grant
+		require.Equal(t, []float64{30, 10}, amounts(resp.JSON200.Items))
+		require.Equal(t, 1, resp.JSON200.Page)
+		require.Equal(t, 2, resp.JSON200.PageSize)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should honor page", func(t *testing.T) {
+		// when the last page of size two is requested
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Page:     lo.ToPtr(2),
+			PageSize: lo.ToPtr(2),
+			OrderBy:  lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:    lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then only the grant left over from the first page is returned
+		require.Equal(t, []float64{20}, amounts(resp.JSON200.Items))
+		require.Equal(t, 2, resp.JSON200.Page)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should prefer page over the deprecated limit and offset", func(t *testing.T) {
+		// when both modes are sent, with legacy values that would select a different window
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Page:     lo.ToPtr(2),
+			PageSize: lo.ToPtr(2),
+			Limit:    lo.ToPtr(1),
+			Offset:   lo.ToPtr(0),
+			OrderBy:  lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:    lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the page window wins and the response still carries page metadata, which the
+		// limit/offset mode would have zeroed
+		require.Equal(t, []float64{20}, amounts(resp.JSON200.Items))
+		require.Equal(t, 2, resp.JSON200.Page)
+		require.Equal(t, 2, resp.JSON200.PageSize)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should honor limit and offset", func(t *testing.T) {
+		// when the deprecated limit/offset mode skips the first grant
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Limit:   lo.ToPtr(2),
+			Offset:  lo.ToPtr(1),
+			OrderBy: lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:   lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the remaining grants are returned in order. The page fields stay zeroed because
+		// this mode has no page, but the count is real, so a caller walking the offset can
+		// still tell when it has seen every grant.
+		require.Equal(t, []float64{10, 20}, amounts(resp.JSON200.Items))
+		require.Zero(t, resp.JSON200.Page)
+		require.Zero(t, resp.JSON200.PageSize)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should honor a descending order", func(t *testing.T) {
+		// when the same ordering column is requested in the opposite direction
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			OrderBy: lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:   lo.ToPtr(api.SortOrderDESC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the creation order is reversed
+		require.Equal(t, []float64{20, 10, 30}, amounts(resp.JSON200.Items))
+	})
+
+	t.Run("Should reject an invalid page", func(t *testing.T) {
+		// when a page index below the documented minimum is requested
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Page:     lo.ToPtr(0),
+			PageSize: lo.ToPtr(2),
+		})
+		require.NoError(t, err)
+
+		// then the request is rejected rather than silently falling back to the first page
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", resp.Body)
+	})
+}
