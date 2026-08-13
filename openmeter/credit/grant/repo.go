@@ -15,6 +15,7 @@ import (
 type OrderBy string
 
 const (
+	OrderByID          OrderBy = "id"
 	OrderByCreatedAt   OrderBy = "created_at"
 	OrderByUpdatedAt   OrderBy = "updated_at"
 	OrderByExpiresAt   OrderBy = "expires_at"
@@ -25,6 +26,7 @@ const (
 
 func (f OrderBy) Values() []OrderBy {
 	return []OrderBy{
+		OrderByID,
 		OrderByCreatedAt,
 		OrderByUpdatedAt,
 		OrderByExpiresAt,

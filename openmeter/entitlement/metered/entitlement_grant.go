@@ -30,7 +30,7 @@ type ListEntitlementGrantsParams struct {
 	Page                      pagination.Page
 
 	// Limit and Offset are only honored when Page is not set. They serve the deprecated
-	// limit/offset pagination mode of the HTTP APIs and, unlike Page, yield no total count.
+	// limit/offset pagination mode of the HTTP APIs.
 	Limit  int
 	Offset int
 }

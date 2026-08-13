@@ -152,6 +152,8 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 			order = entutils.GetOrdering(params.Order)
 		}
 		switch params.OrderBy {
+		case grant.OrderByID:
+			query = query.Order(db_grant.ByID(order...))
 		case grant.OrderByCreatedAt:
 			query = query.Order(db_grant.ByCreatedAt(order...))
 		case grant.OrderByUpdatedAt:
@@ -171,6 +173,13 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 
 	// we're using limit and offset
 	if params.Page.IsZero() {
+		// Counted before the window is applied, so callers walking the offset still learn how
+		// many grants match. Page.Paginate below reports the same figure for the other mode.
+		totalCount, err := query.Clone().Count(ctx)
+		if err != nil {
+			return response, err
+		}
+
 		if params.Limit > 0 {
 			query = query.Limit(params.Limit)
 		}
@@ -189,6 +198,8 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 		}
 
 		response.Items = grants
+		response.TotalCount = totalCount
+
 		return response, nil
 	}
 

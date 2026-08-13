@@ -916,12 +916,13 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
 		require.NotNil(t, resp.JSON200)
 
-		// then the remaining grants are returned in order; this mode runs no count query, so
-		// the page metadata stays zeroed, matching /api/v2/grants
+		// then the remaining grants are returned in order. The page fields stay zeroed because
+		// this mode has no page, but the count is real, so a caller walking the offset can
+		// still tell when it has seen every grant.
 		require.Equal(t, []float64{10, 20}, amounts(resp.JSON200.Items))
 		require.Zero(t, resp.JSON200.Page)
 		require.Zero(t, resp.JSON200.PageSize)
-		require.Zero(t, resp.JSON200.TotalCount)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
 	})
 
 	t.Run("Should honor a descending order", func(t *testing.T) {

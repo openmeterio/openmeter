@@ -110,10 +110,32 @@ func TestListEntitlementGrantsPagination(t *testing.T) {
 		grants, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), namespace, params)
 		require.NoError(t, err)
 
-		// then the remaining two grants are returned; this mode carries no total count
+		// then the remaining two grants are returned, and the count covers every match rather
+		// than the window, so a caller walking the offset can tell when it is done
 		require.Len(t, grants.Items, 2)
 		require.Equal(t, 2.0, grants.Items[0].Amount)
 		require.Equal(t, 3.0, grants.Items[1].Amount)
+		require.Equal(t, 3, grants.TotalCount)
+	})
+
+	t.Run("Should order by id", func(t *testing.T) {
+		// given ULIDs, which sort by creation time, ordering by id descending reverses the
+		// order the grants were issued in
+		params := listParams()
+		params.OrderBy = grant.OrderByID
+		params.Order = sortx.OrderDesc
+		params.Page = pagination.NewPage(1, 100)
+
+		// when the grants are listed
+		grants, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), namespace, params)
+		require.NoError(t, err)
+
+		// then the ordering is applied, rather than the query going out unordered because the
+		// column has no mapping
+		require.Len(t, grants.Items, 3)
+		require.Equal(t, 3.0, grants.Items[0].Amount)
+		require.Equal(t, 2.0, grants.Items[1].Amount)
+		require.Equal(t, 1.0, grants.Items[2].Amount)
 	})
 
 	t.Run("Should reject an unbounded query", func(t *testing.T) {
