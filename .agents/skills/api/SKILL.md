@@ -60,6 +60,14 @@ For a new domain/resource:
 3. Import the domain in `api/spec/packages/aip/src/openmeter.tsp` **and** `api/spec/packages/aip/src/konnect.tsp` (unless the domain is intentionally OpenMeter-only — confirm with the user before excluding it from Konnect)
 4. Wire up the route interface (and any new `@tagMetadata`) in **both** `openmeter.tsp` and `konnect.tsp`. After editing, run `diff openmeter.tsp konnect.tsp` and check that your new imports / tags / interfaces appear on both sides — pre-existing differences (service metadata, namespace name, `@useAuth`, security scheme models) are intentional and unrelated to your change.
 
+For new operations always add the following extensions:
+
+```tsp
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.UnstableExtension, true)
+```
+
 For modifying an existing endpoint:
 
 1. Find the relevant files under `api/spec/packages/aip/src/<domain>/`

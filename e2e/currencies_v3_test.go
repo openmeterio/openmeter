@@ -103,7 +103,7 @@ func TestV3CustomCurrencyUpdate(t *testing.T) {
 		// - a custom currency with the default formatting
 		// when:
 		// - name, symbol, decimal mark and thousand separator are all supplied
-		updated, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.CurrencyCustomUpdate{
+		updated, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.UpsertCurrencyCustomRequest{
 			Name:              "Update Currency Renamed",
 			Symbol:            lo.ToPtr("€"),
 			DecimalMark:       ",",
@@ -127,7 +127,7 @@ func TestV3CustomCurrencyUpdate(t *testing.T) {
 		// - the currency currently carries a symbol
 		// when:
 		// - a replacement without a symbol is submitted
-		updated, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.CurrencyCustomUpdate{
+		updated, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.UpsertCurrencyCustomRequest{
 			Name:              "Update Currency Again",
 			DecimalMark:       ",",
 			ThousandSeparator: ".",
@@ -144,7 +144,7 @@ func TestV3CustomCurrencyUpdate(t *testing.T) {
 	t.Run("a decimal mark colliding with the thousand separator is rejected", func(t *testing.T) {
 		// when:
 		// - both separators are the same character
-		_, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.CurrencyCustomUpdate{
+		_, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.UpsertCurrencyCustomRequest{
 			Name:              "Update Currency",
 			DecimalMark:       ".",
 			ThousandSeparator: ".",
@@ -159,7 +159,7 @@ func TestV3CustomCurrencyUpdate(t *testing.T) {
 	t.Run("a missing name is rejected", func(t *testing.T) {
 		// when:
 		// - the required name is omitted
-		_, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.CurrencyCustomUpdate{
+		_, err := c.Currencies.UpdateCustomCurrency(t.Context(), custom.ID, v3sdk.UpsertCurrencyCustomRequest{
 			DecimalMark:       ",",
 			ThousandSeparator: ".",
 		})
