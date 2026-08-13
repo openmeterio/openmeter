@@ -97,11 +97,15 @@ interface CurrenciesCustomOperations {
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
   @put
   @route("/{currencyId}")
   @operationId("update-custom-currency")
   @summary("Update custom currency")
-  update(@path currencyId: Shared.ULID, @body body: CurrencyCustomUpdate):
+  update(
+    @path currencyId: Shared.ULID,
+    @body body: Shared.UpsertRequest<CurrencyCustom>,
+  ):
     | Shared.UpdateResponse<CurrencyCustom>
     | Common.ErrorResponses
     | Common.NotFound;

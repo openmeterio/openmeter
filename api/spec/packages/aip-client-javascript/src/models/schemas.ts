@@ -1078,7 +1078,7 @@ export const currencyExpand = z
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
 
-export const currencyCustomUpdate = z
+export const upsertCurrencyCustomRequest = z
   .object({
     name: z
       .string()
@@ -1094,7 +1094,7 @@ export const currencyCustomUpdate = z
       .optional()
 
       .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro. Omit it to clear the currency\'s symbol.',
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
       ),
     decimalMark: z
       .string()
@@ -1102,7 +1102,7 @@ export const currencyCustomUpdate = z
       .max(1)
 
       .describe(
-        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro. It must differ from the thousand separator.',
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
       ),
     thousandSeparator: z
       .string()
@@ -1110,13 +1110,10 @@ export const currencyCustomUpdate = z
       .max(1)
 
       .describe(
-        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro. It must differ from the decimal mark.',
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
       ),
   })
-
-  .describe(
-    'Update request for a custom currency. Only the presentational attributes of a currency can be changed. The code and the precision are immutable, because issued invoices, charges and ledger entries are denominated with them and changing them retroactively would misstate historical monetary records.',
-  )
+  .describe('CurrencyCustom upsert request.')
 
 export const llmCostProvider = z
   .object({
@@ -7143,7 +7140,7 @@ export const updateCustomCurrencyPathParams = z.object({
   currencyId: ulid,
 })
 
-export const updateCustomCurrencyBody = currencyCustomUpdate
+export const updateCustomCurrencyBody = upsertCurrencyCustomRequest
 
 export const updateCustomCurrencyResponse = currencyCustom
 
@@ -8536,7 +8533,7 @@ export const currencyExpandWire = z
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
 
-export const currencyCustomUpdateWire = z
+export const upsertCurrencyCustomRequestWire = z
   .strictObject({
     name: z
       .string()
@@ -8552,7 +8549,7 @@ export const currencyCustomUpdateWire = z
       .optional()
 
       .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro. Omit it to clear the currency\'s symbol.',
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
       ),
     decimal_mark: z
       .string()
@@ -8560,7 +8557,7 @@ export const currencyCustomUpdateWire = z
       .max(1)
 
       .describe(
-        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro. It must differ from the thousand separator.',
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
       ),
     thousand_separator: z
       .string()
@@ -8568,13 +8565,10 @@ export const currencyCustomUpdateWire = z
       .max(1)
 
       .describe(
-        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro. It must differ from the decimal mark.',
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
       ),
   })
-
-  .describe(
-    'Update request for a custom currency. Only the presentational attributes of a currency can be changed. The code and the precision are immutable, because issued invoices, charges and ledger entries are denominated with them and changing them retroactively would misstate historical monetary records.',
-  )
+  .describe('CurrencyCustom upsert request.')
 
 export const llmCostProviderWire = z
   .strictObject({
@@ -14639,7 +14633,7 @@ export const updateCustomCurrencyPathParamsWire = z.object({
   currencyId: ulidWire,
 })
 
-export const updateCustomCurrencyBodyWire = currencyCustomUpdateWire
+export const updateCustomCurrencyBodyWire = upsertCurrencyCustomRequestWire
 
 export const updateCustomCurrencyResponseWire = currencyCustomWire
 
