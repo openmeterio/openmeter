@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -62,8 +63,12 @@ func (i ReconcileCustomCurrencyWithFiatOverageInput) Validate() error {
 
 	if i.ChargeCurrencyHandler == nil {
 		errs = append(errs, errors.New("charge currency handler is required"))
-	} else if currencyValid {
-		if err := i.ChargeCurrencyHandler.ValidateWith(i.Currency); err != nil {
+	} else {
+		var expectedCurrency currencyx.Currency
+		if currencyValid {
+			expectedCurrency = i.Currency
+		}
+		if err := validateHandlerCurrency(i.ChargeCurrencyHandler, expectedCurrency); err != nil {
 			errs = append(errs, fmt.Errorf("charge currency handler: %w", err))
 		}
 	}
@@ -74,9 +79,32 @@ func (i ReconcileCustomCurrencyWithFiatOverageInput) Validate() error {
 		fiatCurrency, err := i.CostBasisIntent.GetFiatCurrency()
 		if err != nil {
 			errs = append(errs, fmt.Errorf("get cost basis fiat currency: %w", err))
-		} else if err := i.FiatOverageHandler.ValidateWith(fiatCurrency); err != nil {
+		} else if err := validateHandlerCurrency(i.FiatOverageHandler, fiatCurrency); err != nil {
 			errs = append(errs, fmt.Errorf("fiat overage handler: %w", err))
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func validateHandlerCurrency(handler Handler, expected currencyx.Currency) error {
+	var errs []error
+
+	if err := handler.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	currencyCalculator := handler.CurrencyCalculator()
+	if currencyCalculator == nil {
+		errs = append(errs, errors.New("currency calculator is required"))
+	} else if err := currencyCalculator.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+	} else if expected != nil && !currencyCalculator.Details().Code.Equal(expected.Details().Code) {
+		errs = append(errs, fmt.Errorf(
+			"currency calculator must match monetary domain: %s != %s",
+			currencyCalculator.Details().Code,
+			expected.Details().Code,
+		))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -104,9 +132,8 @@ func ReconcileCustomCurrencyWithFiatOverage(
 	}
 
 	chargeCurrencyResult, err := Reconcile(ctx, ReconcileInput{
-		TargetAmount:       in.UnallocatedTotals.Total,
-		CurrencyCalculator: in.Currency,
-		Handler:            in.ChargeCurrencyHandler,
+		TargetAmount: in.UnallocatedTotals.Total,
+		Handler:      in.ChargeCurrencyHandler,
 	})
 	if err != nil {
 		return CustomCurrencyWithFiatOverageResult{}, fmt.Errorf("reconcile charge currency credits: %w", err)
@@ -142,9 +169,8 @@ func ReconcileCustomCurrencyWithFiatOverage(
 	}
 
 	fiatOverageResult, err := Reconcile(ctx, ReconcileInput{
-		TargetAmount:       fiatOverage.Amount,
-		CurrencyCalculator: fiatOverage.Currency,
-		Handler:            in.FiatOverageHandler,
+		TargetAmount: fiatOverage.Amount,
+		Handler:      in.FiatOverageHandler,
 	})
 	if err != nil {
 		return CustomCurrencyWithFiatOverageResult{}, fmt.Errorf("reconcile fiat overage credits: %w", err)

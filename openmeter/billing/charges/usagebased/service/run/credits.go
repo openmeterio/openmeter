@@ -96,8 +96,12 @@ func (s *Service) NewChargeCurrencyCreditReconciliationHandler(
 	}
 }
 
-func (h *chargeCurrencyCreditReconciliationHandler) ValidateWith(currencyx.Currency) error {
+func (h *chargeCurrencyCreditReconciliationHandler) Validate() error {
 	return h.CreditReconciliationHandlerInput.Validate()
+}
+
+func (h *chargeCurrencyCreditReconciliationHandler) CurrencyCalculator() currencyx.Currency {
+	return h.Charge.Intent.GetCurrency()
 }
 
 func (h *chargeCurrencyCreditReconciliationHandler) Realizations() creditrealization.Realizations {
@@ -180,7 +184,7 @@ func (s *Service) NewFiatOverageCreditReconciliationHandler(
 	}
 }
 
-func (h *fiatOverageCreditReconciliationHandler) ValidateWith(currency currencyx.Currency) error {
+func (h *fiatOverageCreditReconciliationHandler) Validate() error {
 	var errs []error
 
 	if err := h.CreditReconciliationHandlerInput.Validate(); err != nil {
@@ -198,25 +202,25 @@ func (h *fiatOverageCreditReconciliationHandler) ValidateWith(currency currencyx
 	costBasisIntent := h.Charge.Intent.GetCostBasisIntent()
 	if costBasisIntent == nil {
 		errs = append(errs, errors.New("cost basis intent is required"))
-	} else {
-		settlementCurrency, err := costBasisIntent.GetFiatCurrency()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("get settlement fiat currency: %w", err))
-		} else if currency != nil {
-			fiatCurrency, err := currency.AsFiat()
-			if err != nil {
-				errs = append(errs, fmt.Errorf("currency calculator must be fiat: %w", err))
-			} else if settlementCurrency.GetFiatCode() != fiatCurrency.GetFiatCode() {
-				errs = append(errs, fmt.Errorf(
-					"currency calculator must match settlement fiat currency: %s != %s",
-					fiatCurrency.GetFiatCode(),
-					settlementCurrency.GetFiatCode(),
-				))
-			}
-		}
+	} else if _, err := costBasisIntent.GetFiatCurrency(); err != nil {
+		errs = append(errs, fmt.Errorf("get settlement fiat currency: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (h *fiatOverageCreditReconciliationHandler) CurrencyCalculator() currencyx.Currency {
+	costBasisIntent := h.Charge.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return nil
+	}
+
+	fiatCurrency, err := costBasisIntent.GetFiatCurrency()
+	if err != nil {
+		return nil
+	}
+
+	return fiatCurrency
 }
 
 func (h *fiatOverageCreditReconciliationHandler) Realizations() creditrealization.Realizations {
@@ -299,27 +303,15 @@ func (s *Service) CorrectAllCreditRealizations(
 
 	if input.Charge.Intent.GetSettlementMode() == productcatalog.CreditThenInvoiceSettlementMode &&
 		input.Charge.Intent.GetCurrency().IsCustom() {
-		costBasisIntent := input.Charge.Intent.GetCostBasisIntent()
-		if costBasisIntent == nil {
-			return errors.New("cost basis intent is required")
-		}
-
-		fiatCurrency, err := costBasisIntent.GetFiatCurrency()
-		if err != nil {
-			return fmt.Errorf("get settlement fiat currency: %w", err)
-		}
-
 		if _, err := creditreconciliation.CorrectAll(ctx, creditreconciliation.CorrectAllInput{
-			CurrencyCalculator: fiatCurrency,
-			Handler:            s.NewFiatOverageCreditReconciliationHandler(input),
+			Handler: s.NewFiatOverageCreditReconciliationHandler(input),
 		}); err != nil {
 			return fmt.Errorf("correct all fiat overage credit realizations: %w", err)
 		}
 	}
 
 	if _, err := creditreconciliation.CorrectAll(ctx, creditreconciliation.CorrectAllInput{
-		CurrencyCalculator: input.Charge.Intent.GetCurrency(),
-		Handler:            s.NewChargeCurrencyCreditReconciliationHandler(input),
+		Handler: s.NewChargeCurrencyCreditReconciliationHandler(input),
 	}); err != nil {
 		return fmt.Errorf("correct all charge currency credit realizations: %w", err)
 	}

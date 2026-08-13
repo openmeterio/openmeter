@@ -23,18 +23,32 @@ func TestReconcile(t *testing.T) {
 
 		// when: reconciliation is requested
 		_, err := Reconcile(t.Context(), ReconcileInput{
-			TargetAmount:       alpacadecimal.NewFromInt(5),
-			CurrencyCalculator: currency,
+			TargetAmount: alpacadecimal.NewFromInt(5),
 		})
 
 		// then: reconciliation fails before attempting an economic effect
 		require.ErrorContains(t, err, "credit reconciliation handler is required")
 	})
 
+	t.Run("requires the handler to provide its currency calculator", func(t *testing.T) {
+		// given: a monetary-domain handler without a currency calculator
+		handler := &testHandler{}
+
+		// when: reconciliation is requested
+		_, err := Reconcile(t.Context(), ReconcileInput{
+			TargetAmount: alpacadecimal.NewFromInt(5),
+			Handler:      handler,
+		})
+
+		// then: reconciliation fails before attempting an economic effect
+		require.ErrorContains(t, err, "credit reconciliation handler currency calculator is required")
+	})
+
 	t.Run("allocates positive delta and persists realizations", func(t *testing.T) {
 		// given: a monetary domain with two credits realized toward a target of five
 		handler := &testHandler{
-			current: creditrealization.Realizations{newTestAllocation("allocation-1", 2)},
+			currency: currency,
+			current:  creditrealization.Realizations{newTestAllocation("allocation-1", 2)},
 			allocations: creditrealization.CreateAllocationInputs{
 				{Amount: alpacadecimal.NewFromInt(3)},
 			},
@@ -42,9 +56,8 @@ func TestReconcile(t *testing.T) {
 
 		// when: the domain is reconciled to the target
 		result, err := Reconcile(t.Context(), ReconcileInput{
-			TargetAmount:       alpacadecimal.NewFromInt(5),
-			CurrencyCalculator: currency,
-			Handler:            handler,
+			TargetAmount: alpacadecimal.NewFromInt(5),
+			Handler:      handler,
 		})
 
 		// then: only the positive delta is allocated and persisted
@@ -58,7 +71,8 @@ func TestReconcile(t *testing.T) {
 	t.Run("corrects negative delta and persists realizations", func(t *testing.T) {
 		// given: a monetary domain with five credits realized toward a target of two
 		handler := &testHandler{
-			current: creditrealization.Realizations{newTestAllocation("allocation-1", 5)},
+			currency: currency,
+			current:  creditrealization.Realizations{newTestAllocation("allocation-1", 5)},
 			corrections: creditrealization.CreateCorrectionInputs{
 				{
 					Amount:                alpacadecimal.NewFromInt(-3),
@@ -72,9 +86,8 @@ func TestReconcile(t *testing.T) {
 
 		// when: the domain is reconciled to the lower target
 		result, err := Reconcile(t.Context(), ReconcileInput{
-			TargetAmount:       alpacadecimal.NewFromInt(2),
-			CurrencyCalculator: currency,
-			Handler:            handler,
+			TargetAmount: alpacadecimal.NewFromInt(2),
+			Handler:      handler,
 		})
 
 		// then: the negative delta is corrected against the current realizations
@@ -89,14 +102,14 @@ func TestReconcile(t *testing.T) {
 	t.Run("zero delta is a no-op", func(t *testing.T) {
 		// given: a monetary domain already reconciled to its target
 		handler := &testHandler{
-			current: creditrealization.Realizations{newTestAllocation("allocation-1", 2)},
+			currency: currency,
+			current:  creditrealization.Realizations{newTestAllocation("allocation-1", 2)},
 		}
 
 		// when: the domain is reconciled
 		result, err := Reconcile(t.Context(), ReconcileInput{
-			TargetAmount:       alpacadecimal.NewFromInt(2),
-			CurrencyCalculator: currency,
-			Handler:            handler,
+			TargetAmount: alpacadecimal.NewFromInt(2),
+			Handler:      handler,
 		})
 
 		// then: no handler effect or persistence is requested
@@ -110,6 +123,7 @@ func TestReconcile(t *testing.T) {
 	t.Run("exact allocation rejects a partial result", func(t *testing.T) {
 		// given: a handler that can allocate only part of the requested amount
 		handler := &testHandler{
+			currency: currency,
 			allocations: creditrealization.CreateAllocationInputs{
 				{Amount: alpacadecimal.NewFromInt(2)},
 			},
@@ -117,10 +131,9 @@ func TestReconcile(t *testing.T) {
 
 		// when: exact reconciliation requests five credits
 		_, err := Reconcile(t.Context(), ReconcileInput{
-			TargetAmount:       alpacadecimal.NewFromInt(5),
-			CurrencyCalculator: currency,
-			ExactAllocation:    true,
-			Handler:            handler,
+			TargetAmount:    alpacadecimal.NewFromInt(5),
+			ExactAllocation: true,
+			Handler:         handler,
 		})
 
 		// then: the mismatched allocation is rejected before persistence
@@ -131,6 +144,7 @@ func TestReconcile(t *testing.T) {
 	t.Run("over-allocation is always rejected", func(t *testing.T) {
 		// given: a handler returning more than the requested allocation
 		handler := &testHandler{
+			currency: currency,
 			allocations: creditrealization.CreateAllocationInputs{
 				{Amount: alpacadecimal.NewFromInt(6)},
 			},
@@ -138,9 +152,8 @@ func TestReconcile(t *testing.T) {
 
 		// when: reconciliation requests five credits
 		_, err := Reconcile(t.Context(), ReconcileInput{
-			TargetAmount:       alpacadecimal.NewFromInt(5),
-			CurrencyCalculator: currency,
-			Handler:            handler,
+			TargetAmount: alpacadecimal.NewFromInt(5),
+			Handler:      handler,
 		})
 
 		// then: over-allocation is rejected before persistence
@@ -155,7 +168,8 @@ func TestCorrectAll(t *testing.T) {
 
 	// given: a monetary domain with five active credits
 	handler := &testHandler{
-		current: creditrealization.Realizations{newTestAllocation("allocation-1", 5)},
+		currency: currency,
+		current:  creditrealization.Realizations{newTestAllocation("allocation-1", 5)},
 		corrections: creditrealization.CreateCorrectionInputs{
 			{
 				Amount:                alpacadecimal.NewFromInt(-5),
@@ -169,8 +183,7 @@ func TestCorrectAll(t *testing.T) {
 
 	// when: all credits are corrected
 	result, err := CorrectAll(t.Context(), CorrectAllInput{
-		CurrencyCalculator: currency,
-		Handler:            handler,
+		Handler: handler,
 	})
 
 	// then: correction delegates to reconciliation with a zero target
@@ -182,6 +195,7 @@ func TestCorrectAll(t *testing.T) {
 }
 
 type testHandler struct {
+	currency    currencyx.Currency
 	current     creditrealization.Realizations
 	allocations creditrealization.CreateAllocationInputs
 	corrections creditrealization.CreateCorrectionInputs
@@ -190,8 +204,12 @@ type testHandler struct {
 	created     creditrealization.CreateInputs
 }
 
-func (h *testHandler) ValidateWith(currency currencyx.Currency) error {
+func (h *testHandler) Validate() error {
 	return nil
+}
+
+func (h *testHandler) CurrencyCalculator() currencyx.Currency {
+	return h.currency
 }
 
 func (h *testHandler) Realizations() creditrealization.Realizations {

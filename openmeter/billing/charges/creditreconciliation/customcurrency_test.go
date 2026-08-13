@@ -17,12 +17,16 @@ import (
 
 func TestReconcileCustomCurrencyWithFiatOverage(t *testing.T) {
 	input := newCustomCurrencyWithFiatOverageInput(t)
+	fiatCurrency, err := input.CostBasisIntent.GetFiatCurrency()
+	require.NoError(t, err)
 	chargeCurrencyHandler := &testHandler{
+		currency: input.Currency,
 		allocations: creditrealization.CreateAllocationInputs{
 			{Amount: alpacadecimal.NewFromInt(12)},
 		},
 	}
 	fiatOverageHandler := &testHandler{
+		currency: fiatCurrency,
 		allocations: creditrealization.CreateAllocationInputs{
 			{Amount: alpacadecimal.NewFromInt(5)},
 		},
@@ -50,6 +54,7 @@ func TestReconcileCustomCurrencyWithFiatOverage(t *testing.T) {
 func TestReconcileCustomCurrencyWithFiatOverageValidatesBothHandlersBeforeAllocation(t *testing.T) {
 	input := newCustomCurrencyWithFiatOverageInput(t)
 	chargeCurrencyHandler := &testHandler{
+		currency: input.Currency,
 		allocations: creditrealization.CreateAllocationInputs{
 			{Amount: alpacadecimal.NewFromInt(12)},
 		},
@@ -64,6 +69,28 @@ func TestReconcileCustomCurrencyWithFiatOverageValidatesBothHandlersBeforeAlloca
 	// then: validation fails before charge-currency credits are allocated
 	require.ErrorContains(t, err, "fiat overage handler is required")
 	require.True(t, chargeCurrencyHandler.allocated.IsZero())
+}
+
+func TestReconcileCustomCurrencyWithFiatOverageRejectsHandlerCurrencyMismatch(t *testing.T) {
+	input := newCustomCurrencyWithFiatOverageInput(t)
+	otherCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode("CREDITS").
+		WithName("Credits").
+		WithPrecision(2).
+		Build()
+	require.NoError(t, err)
+	fiatCurrency, err := input.CostBasisIntent.GetFiatCurrency()
+	require.NoError(t, err)
+	input.ChargeCurrencyHandler = &testHandler{currency: otherCurrency}
+	input.FiatOverageHandler = &testHandler{currency: fiatCurrency}
+
+	// given: a custom-currency orchestration whose charge handler owns another currency
+
+	// when: reconciliation is requested
+	_, err = ReconcileCustomCurrencyWithFiatOverage(t.Context(), input)
+
+	// then: validation rejects the inconsistent monetary domain before allocation
+	require.ErrorContains(t, err, "currency calculator must match monetary domain: CREDITS != TOKENS")
 }
 
 func newCustomCurrencyWithFiatOverageInput(t testing.TB) ReconcileCustomCurrencyWithFiatOverageInput {

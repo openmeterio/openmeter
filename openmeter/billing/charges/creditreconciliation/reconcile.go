@@ -26,7 +26,8 @@ var ErrCreditAllocationsDoNotMatchTotal = models.NewValidationIssue(
 // Handler binds reconciliation to one charge type and monetary domain. It owns
 // domain validation, ledger effects, persistence, and realization lineage.
 type Handler interface {
-	ValidateWith(currencyx.Currency) error
+	Validate() error
+	CurrencyCalculator() currencyx.Currency
 	Realizations() creditrealization.Realizations
 	Allocate(context.Context, alpacadecimal.Decimal) (creditrealization.CreateAllocationInputs, error)
 	Correct(
@@ -37,10 +38,9 @@ type Handler interface {
 }
 
 type ReconcileInput struct {
-	TargetAmount       alpacadecimal.Decimal
-	CurrencyCalculator currencyx.Currency
-	ExactAllocation    bool
-	Handler            Handler
+	TargetAmount    alpacadecimal.Decimal
+	ExactAllocation bool
+	Handler         Handler
 }
 
 func (i ReconcileInput) Validate() error {
@@ -50,16 +50,19 @@ func (i ReconcileInput) Validate() error {
 		errs = append(errs, errors.New("target amount must be zero or positive"))
 	}
 
-	if i.CurrencyCalculator == nil {
-		errs = append(errs, errors.New("currency calculator is required"))
-	} else if err := i.CurrencyCalculator.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
-	}
-
 	if i.Handler == nil {
 		errs = append(errs, errors.New("credit reconciliation handler is required"))
-	} else if err := i.Handler.ValidateWith(i.CurrencyCalculator); err != nil {
-		errs = append(errs, fmt.Errorf("credit reconciliation handler: %w", err))
+	} else {
+		if err := i.Handler.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("credit reconciliation handler: %w", err))
+		}
+
+		currencyCalculator := i.Handler.CurrencyCalculator()
+		if currencyCalculator == nil {
+			errs = append(errs, errors.New("credit reconciliation handler currency calculator is required"))
+		} else if err := currencyCalculator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("credit reconciliation handler currency calculator: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -78,14 +81,15 @@ func Reconcile(ctx context.Context, in ReconcileInput) (ReconcileResult, error) 
 		return ReconcileResult{}, err
 	}
 
-	in.TargetAmount = in.CurrencyCalculator.RoundToPrecision(in.TargetAmount)
+	currencyCalculator := in.Handler.CurrencyCalculator()
+	in.TargetAmount = currencyCalculator.RoundToPrecision(in.TargetAmount)
 	if err := in.Validate(); err != nil {
 		return ReconcileResult{}, err
 	}
 
 	currentRealizations := in.Handler.Realizations()
-	currentAmount := in.CurrencyCalculator.RoundToPrecision(currentRealizations.Sum())
-	delta := in.CurrencyCalculator.RoundToPrecision(in.TargetAmount.Sub(currentAmount))
+	currentAmount := currencyCalculator.RoundToPrecision(currentRealizations.Sum())
+	delta := currencyCalculator.RoundToPrecision(in.TargetAmount.Sub(currentAmount))
 	result := ReconcileResult{Delta: delta}
 
 	switch {
@@ -95,7 +99,7 @@ func Reconcile(ctx context.Context, in ReconcileInput) (ReconcileResult, error) 
 			return ReconcileResult{}, err
 		}
 
-		allocated := in.CurrencyCalculator.RoundToPrecision(allocations.Sum())
+		allocated := currencyCalculator.RoundToPrecision(allocations.Sum())
 		if allocated.GreaterThan(delta) || (in.ExactAllocation && !allocated.Equal(delta)) {
 			return ReconcileResult{}, ErrCreditAllocationsDoNotMatchTotal.WithAttrs(models.Attributes{
 				"total": delta.String(),
@@ -113,7 +117,7 @@ func Reconcile(ctx context.Context, in ReconcileInput) (ReconcileResult, error) 
 	case delta.IsNegative():
 		corrections, err := currentRealizations.Correct(
 			delta,
-			in.CurrencyCalculator,
+			currencyCalculator,
 			func(request creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
 				return in.Handler.Correct(ctx, request)
 			},
@@ -137,15 +141,13 @@ func Reconcile(ctx context.Context, in ReconcileInput) (ReconcileResult, error) 
 }
 
 type CorrectAllInput struct {
-	CurrencyCalculator currencyx.Currency
-	Handler            Handler
+	Handler Handler
 }
 
 // CorrectAll reverses every active allocation selected by Handler.
 func CorrectAll(ctx context.Context, in CorrectAllInput) (ReconcileResult, error) {
 	return Reconcile(ctx, ReconcileInput{
-		TargetAmount:       alpacadecimal.Zero,
-		CurrencyCalculator: in.CurrencyCalculator,
-		Handler:            in.Handler,
+		TargetAmount: alpacadecimal.Zero,
+		Handler:      in.Handler,
 	})
 }

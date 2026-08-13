@@ -120,10 +120,9 @@ func (s *Service) ReconcileRatedRun(
 		noFiatTransactionRequired = reconcileResult.RemainingFiatOverage.IsZero()
 	} else {
 		reconcileResult, err := creditreconciliation.Reconcile(ctx, creditreconciliation.ReconcileInput{
-			TargetAmount:       runTotals.Total,
-			CurrencyCalculator: in.CurrencyCalculator,
-			ExactAllocation:    isCreditsOnlySettlementMode,
-			Handler:            s.NewChargeCurrencyCreditReconciliationHandler(creditReconciliationHandlerInput),
+			TargetAmount:    runTotals.Total,
+			ExactAllocation: isCreditsOnlySettlementMode,
+			Handler:         s.NewChargeCurrencyCreditReconciliationHandler(creditReconciliationHandlerInput),
 		})
 		if err != nil {
 			return ReconcileRatedRunResult{}, fmt.Errorf("reconcile charge currency credits: %w", err)

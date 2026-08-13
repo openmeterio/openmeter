@@ -453,9 +453,8 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	targetCreditsTotal := currentTotals.Total
 
 	if _, err := creditreconciliation.Reconcile(ctx, creditreconciliation.ReconcileInput{
-		TargetAmount:       targetCreditsTotal,
-		CurrencyCalculator: s.CurrencyCalculator,
-		ExactAllocation:    true,
+		TargetAmount:    targetCreditsTotal,
+		ExactAllocation: true,
 		Handler: s.Runs.NewChargeCurrencyCreditReconciliationHandler(usagebasedrun.CreditReconciliationHandlerInput{
 			Charge:     s.Charge,
 			Run:        currentRun,
