@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -322,7 +324,210 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 	})
 }
 
-func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoiceMutableRunDeletionCorrectsCreditRealizations() {
+func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllocationSurvivesInvoiceSyncRetry() {
+	// given:
+	// - a collected custom-currency usage run has a 5 USD gross overage
+	// - 5 USD of settlement credits are available at invoice finalization
+	// when:
+	// - invoice finalization persists the fiat allocation but external invoice sync fails
+	// - issuing is retried after the invoicing app recovers
+	// then:
+	// - issuing reuses the persisted allocation without invoking allocation again
+
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-fiat-overage-sync-retry")
+
+	s.UsageBasedTestHandler.Reset()
+	s.T().Cleanup(s.UsageBasedTestHandler.Reset)
+	s.MockStreamingConnector.Reset()
+	s.T().Cleanup(s.MockStreamingConnector.Reset)
+	s.useCustomCurrencyUsageBasedServiceWithMockedLineage()
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
+	invoiceAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime()
+	collectionAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-02T00:01:00Z", time.UTC).AsTime()
+	usageAt := datetime.MustParseTimeInLocation(s.T(), "2025-01-15T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   invoiceAt,
+	}
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	customer := s.CreateTestCustomer(ns, "customer-c1")
+	_ = s.ProvisionBillingProfile(
+		ctx,
+		ns,
+		sandboxApp.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P1D")),
+		billingtest.WithManualApproval(),
+	)
+
+	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer feature.Cleanup()
+	customCurrency := s.createTestCustomCurrency(ctx, ns)
+	fiatCurrency, err := currencyx.NewFiatCurrency(USD)
+	s.Require().NoError(err)
+
+	fiatOverageCreditsHandler := &usageBasedFiatOverageCreditsHandler{
+		available: alpacadecimal.Zero,
+	}
+	fiatOverageAllocationInvocations := 0
+	s.UsageBasedTestHandler.onAllocateFiatOverageCredits = func(
+		ctx context.Context,
+		input usagebased.AllocateFiatOverageCreditsInput,
+	) (creditrealization.CreateAllocationInputs, error) {
+		fiatOverageAllocationInvocations++
+
+		return fiatOverageCreditsHandler.Allocate(ctx, input)
+	}
+	s.UsageBasedTestHandler.onCorrectFiatOverageCreditAllocations = fiatOverageCreditsHandler.Correct
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(0)
+
+	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: fiatCurrency,
+		Rate:         alpacadecimal.NewFromFloat(0.5),
+	})
+	price := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromInt(2),
+	})
+
+	var (
+		chargeID meta.ChargeID
+		invoice  billing.StandardInvoice
+	)
+
+	s.Run("given a collected invoice with gross fiat overage", func() {
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				charges.NewChargeIntent(usagebased.Intent{
+					Intent: meta.Intent{
+						ManagedBy:         billing.SubscriptionManagedLine,
+						UniqueReferenceID: lo.ToPtr("usage-based-fiat-overage-sync-retry"),
+						CustomerID:        customer.ID,
+						Currency:          customCurrency,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: defaults.InvoicingTaxCodeID,
+						},
+					},
+					IntentMutableFields: usagebased.IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "usage-based-fiat-overage-sync-retry",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+						},
+						InvoiceAt: invoiceAt,
+						Price:     *price,
+					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					FeatureKey:     feature.Feature.Key,
+					CostBasis:      &costBasisIntent,
+				}),
+			},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(created, 1)
+		charge, err := created[0].AsUsageBasedCharge()
+		s.Require().NoError(err)
+		chargeID = charge.GetChargeID()
+
+		s.MockStreamingConnector.AddSimpleEvent(
+			feature.Feature.Key,
+			5,
+			usageAt,
+			streamingtestutils.WithStoredAt(usageAt),
+		)
+		clock.FreezeTime(invoiceAt)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customer.GetID(),
+			AsOf:     lo.ToPtr(invoiceAt),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		invoice = invoices[0]
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, invoice.Totals)
+		s.Zero(fiatOverageAllocationInvocations)
+
+		clock.FreezeTime(collectionAt)
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, invoice.Totals)
+		s.Zero(fiatOverageAllocationInvocations)
+	})
+
+	fiatOverageCreditsHandler.AddAvailable(5)
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+
+	invoiceSyncAttempts := 0
+	mockApp.OnUpsertStandardInvoice(func(_ billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+		invoiceSyncAttempts++
+		if invoiceSyncAttempts == 1 {
+			return nil, errors.New("simulated invoice sync failure")
+		}
+
+		return billing.NewUpsertStandardInvoiceResult(), nil
+	})
+	mockApp.OnFinalizeStandardInvoice(nil)
+
+	s.Run("when invoice sync fails after fiat allocation", func() {
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, invoice.Status)
+		s.Equal(1, invoiceSyncAttempts)
+		s.Equal(1, fiatOverageAllocationInvocations)
+		s.Zero(mockApp.FinalizeInvoiceCallCount())
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5}, invoice.Totals)
+
+		charge := s.mustGetUsageBasedChargeByID(chargeID)
+		run, err := charge.GetCurrentRealizationRun()
+		s.Require().NoError(err)
+		s.True(run.NoFiatTransactionRequired)
+		s.requireCreditRealizations(
+			[]expectedCreditRealization{{Type: creditrealization.TypeAllocation, Amount: 5}},
+			run.FiatOverageCreditRealizations,
+			"fiat overage",
+		)
+	})
+
+	s.Run("then retry issuing without reallocating fiat credits", func() {
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+		s.Equal(2, invoiceSyncAttempts)
+		s.Equal(1, mockApp.FinalizeInvoiceCallCount())
+		s.Equal(1, fiatOverageAllocationInvocations)
+
+		err = s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
+			InvoiceTriggerInput: billing.InvoiceTriggerInput{
+				Invoice: invoice.GetInvoiceID(),
+				Trigger: billing.TriggerPaid,
+			},
+			AppType:    app.AppTypeSandbox,
+			Capability: app.CapabilityTypeCollectPayments,
+		})
+		s.Require().NoError(err)
+
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5}, invoice.Totals)
+		s.Equal(5.0, invoice.Lines.OrEmpty()[0].CreditsApplied.SumAmount(fiatCurrency).InexactFloat64())
+		s.Equal(1, fiatOverageAllocationInvocations)
+		mockApp.AssertExpectations(s.T())
+	})
+}
+
+func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoiceMutableRunDeletionCorrectsChargeCurrencyRealizations() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-custom-currency-deletion")
 
@@ -353,6 +558,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
 	invoiceAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime()
+	collectionAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-02T00:01:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:00:00Z", time.UTC).AsTime(),
 		To:   invoiceAt,
@@ -365,28 +571,22 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		invoice  billing.StandardInvoice
 	)
 
-	s.Run("create mutable run with both credit domains", func() {
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(12)
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccruedCorrection = func(
+		_ context.Context,
+		input usagebased.CreditsOnlyUsageAccruedCorrectionInput,
+	) (creditrealization.CreateCorrectionInputs, error) {
+		return newCreditCorrectionInputs(input.Corrections), nil
+	}
+
+	s.Run("create collected mutable run with charge currency credits", func() {
 		// given:
 		// - 26 TOKENS of usage are covered by 12 TOKENS of charge-currency credits
-		// - the resulting 7 USD overage is covered by 5 USD of settlement credits
 		// when:
-		// - billing creates the final mutable realization run and its draft invoice
+		// - billing creates and collects the final mutable realization run
 		// then:
-		// - each monetary domain has its own allocation history before collection
+		// - its invoice line has a 7 USD gross overage and no fiat allocation yet
 		clock.FreezeTime(createAt)
-
-		fiatOverageCreditsHandler := &usageBasedFiatOverageCreditsHandler{
-			available: alpacadecimal.NewFromInt(5),
-		}
-		s.UsageBasedTestHandler.onAllocateFiatOverageCredits = fiatOverageCreditsHandler.Allocate
-		s.UsageBasedTestHandler.onCorrectFiatOverageCreditAllocations = fiatOverageCreditsHandler.Correct
-		s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(12)
-		s.UsageBasedTestHandler.onCreditsOnlyUsageAccruedCorrection = func(
-			_ context.Context,
-			input usagebased.CreditsOnlyUsageAccruedCorrectionInput,
-		) (creditrealization.CreateCorrectionInputs, error) {
-			return newCreditCorrectionInputs(input.Corrections), nil
-		}
 
 		costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
 			FiatCurrency: fiatCurrency,
@@ -450,11 +650,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 			line:               invoice.Lines.OrEmpty()[0],
 			expectTokenOverage: 14,
 			expectCostBasis:    0.5,
-			expectFiatTotals: billingtest.ExpectedTotals{
-				Amount:       7,
-				CreditsTotal: 5,
-				Total:        2,
-			},
+			expectFiatTotals:   billingtest.ExpectedTotals{Amount: 7, Total: 7},
 		})
 
 		charge = s.mustGetUsageBasedChargeByID(chargeID)
@@ -473,19 +669,25 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 			"charge currency",
 		)
 		s.requireCreditRealizations(
-			[]expectedCreditRealization{{Type: creditrealization.TypeAllocation, Amount: 5}},
+			nil,
 			initialRun.FiatOverageCreditRealizations,
 			"fiat overage",
 		)
+
+		clock.FreezeTime(collectionAt)
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 7, Total: 7}, invoice.Totals)
 	})
 
-	s.Run("delete charge before collection", func() {
+	s.Run("delete charge before invoice finalization", func() {
 		// given:
-		// - the final realization run and invoice line are still mutable
+		// - the collected run and its charge-currency allocation are still mutable
 		// when:
 		// - the owning charge is deleted with refund-as-credits semantics
 		// then:
-		// - billing deletes the now-empty draft invoice
+		// - the charge allocation is corrected and billing deletes the invoice
 		mockApp := s.SandboxApp.EnableMock(s.T())
 		s.T().Cleanup(s.SandboxApp.DisableMock)
 		mockApp.OnValidateStandardInvoice(nil)
@@ -513,7 +715,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		// when:
 		// - the deleted run and invoice are reloaded from persistence
 		// then:
-		// - both credit domains retain independent, zero-sum correction histories
+		// - charge-currency history is zero-sum and fiat history remains empty
 		charge := s.mustGetUsageBasedChargeByID(chargeID)
 		s.Equal(usagebased.StatusDeleted, charge.Status)
 		s.Nil(charge.State.CurrentRealizationRunID)
@@ -544,16 +746,9 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 			"charge currency",
 		)
 		s.requireCreditRealizations(
-			[]expectedCreditRealization{
-				{Type: creditrealization.TypeAllocation, Amount: 5},
-				{Type: creditrealization.TypeCorrection, Amount: -5},
-			},
+			nil,
 			fiatOverageRealizations,
 			"fiat overage",
-		)
-		s.requireIndependentCreditRealizationHistories(
-			chargeCurrencyRealizations,
-			fiatOverageRealizations,
 		)
 		s.Zero(chargeCurrencyRealizations.Sum().InexactFloat64())
 		s.Zero(fiatOverageRealizations.Sum().InexactFloat64())
@@ -584,12 +779,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		s.Require().NoError(err)
 		s.Require().Len(invoiceWithDeletedLine.Lines.OrEmpty(), 1)
 		s.requireDeletedCustomCurrencyOverageLine(requireDeletedCustomCurrencyOverageLineInput{
-			line: invoiceWithDeletedLine.Lines.OrEmpty()[0],
-			expectFiatTotals: billingtest.ExpectedTotals{
-				Amount:       7,
-				CreditsTotal: 5,
-				Total:        2,
-			},
+			line:             invoiceWithDeletedLine.Lines.OrEmpty()[0],
+			expectFiatTotals: billingtest.ExpectedTotals{Amount: 7, Total: 7},
 		})
 		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
 	})
@@ -604,11 +795,16 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		// chargeCurrencyCreditsAllocated is the additional TOKENS allocation returned during this pass.
 		// A later-pass value can model a credit correction that is effective at the run's allocation time.
 		chargeCurrencyCreditsAllocated float64
-		// fiatOverageCreditsAvailable is the additional USD balance available during this pass.
-		fiatOverageCreditsAvailable float64
 		// expectRunTotals contains the realization run totals in TOKENS.
 		expectRunTotals billingtest.ExpectedTotals
 		// expectInvoiceTotals contains the invoice line totals in USD.
+		expectInvoiceTotals billingtest.ExpectedTotals
+	}
+
+	type invoiceFinalizationPhase struct {
+		// fiatOverageCreditsAvailable is the USD balance available when the invoice is finalized.
+		fiatOverageCreditsAvailable float64
+		// expectInvoiceTotals contains the finalized invoice line totals in USD.
 		expectInvoiceTotals billingtest.ExpectedTotals
 		// expectFiatRealizations contains the immutable USD allocation and correction facts persisted so far.
 		expectFiatRealizations []expectedCreditRealization
@@ -617,8 +813,9 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 	type tc struct {
 		name string
 
-		onRunCreated         runPhase
-		onCollectionComplete runPhase
+		onRunCreated          runPhase
+		onCollectionComplete  runPhase
+		onInvoiceFinalization invoiceFinalizationPhase
 
 		expectLineDeleted    bool
 		expectPaymentSettled bool
@@ -651,6 +848,9 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				expectRunTotals:                billingtest.ExpectedTotals{Amount: 10, Total: 10},
 				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			},
+			onInvoiceFinalization: invoiceFinalizationPhase{
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
+			},
 			expectPaymentSettled: true,
 		},
 		// given:
@@ -673,6 +873,9 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				expectRunTotals:                billingtest.ExpectedTotals{Amount: 10, CreditsTotal: 2, Total: 8},
 				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 4, Total: 4},
 			},
+			onInvoiceFinalization: invoiceFinalizationPhase{
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 4, Total: 4},
+			},
 			expectPaymentSettled: true,
 		},
 		// given:
@@ -685,17 +888,17 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		{
 			name: "fiat overage partially covered by credits",
 			onRunCreated: runPhase{
-				usageAdded:                  5,
-				fiatOverageCreditsAvailable: 3,
-				expectRunTotals:             billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 3, Total: 2},
-				expectFiatRealizations: []expectedCreditRealization{
-					{Type: creditrealization.TypeAllocation, Amount: 3},
-				},
+				usageAdded:          5,
+				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			},
 			onCollectionComplete: runPhase{
 				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 3, Total: 2},
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
+			},
+			onInvoiceFinalization: invoiceFinalizationPhase{
+				fiatOverageCreditsAvailable: 3,
+				expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 3, Total: 2},
 				expectFiatRealizations: []expectedCreditRealization{
 					{Type: creditrealization.TypeAllocation, Amount: 3},
 				},
@@ -712,17 +915,17 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		{
 			name: "fiat overage fully covered by credits",
 			onRunCreated: runPhase{
-				usageAdded:                  5,
-				fiatOverageCreditsAvailable: 5,
-				expectRunTotals:             billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5},
-				expectFiatRealizations: []expectedCreditRealization{
-					{Type: creditrealization.TypeAllocation, Amount: 5},
-				},
+				usageAdded:          5,
+				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			},
 			onCollectionComplete: runPhase{
 				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5},
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
+			},
+			onInvoiceFinalization: invoiceFinalizationPhase{
+				fiatOverageCreditsAvailable: 5,
+				expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5},
 				expectFiatRealizations: []expectedCreditRealization{
 					{Type: creditrealization.TypeAllocation, Amount: 5},
 				},
@@ -730,31 +933,31 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		},
 		// given:
 		// - 13 metered units produce 26 TOKENS
-		// - 12 TOKENS of credits leave a 7 USD overage, covered by 5 USD of credits
+		// - 12 TOKENS of credits initially leave a 7 USD gross overage
 		// when:
 		// - a retrospective credit correction makes another 10 TOKENS effective at the run's allocation time
 		// - collection reconciles the run against that corrected balance
+		// - 5 USD of credits are available when the invoice is finalized
 		// then:
-		// - 3 USD of the original fiat allocation is corrected and the remaining 2 USD stays applied
+		// - only the final 2 USD overage is allocated without a provisional allocation and correction
 		{
-			name: "fiat overage credits corrected after retrospective charge currency credit correction",
+			name: "fiat overage allocated after retrospective charge currency credit correction",
 			onRunCreated: runPhase{
 				usageAdded:                     13,
 				chargeCurrencyCreditsAllocated: 12,
-				fiatOverageCreditsAvailable:    5,
 				expectRunTotals:                billingtest.ExpectedTotals{Amount: 26, CreditsTotal: 12, Total: 14},
-				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 7, CreditsTotal: 5, Total: 2},
-				expectFiatRealizations: []expectedCreditRealization{
-					{Type: creditrealization.TypeAllocation, Amount: 5},
-				},
+				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 7, Total: 7},
 			},
 			onCollectionComplete: runPhase{
 				chargeCurrencyCreditsAllocated: 10,
 				expectRunTotals:                billingtest.ExpectedTotals{Amount: 26, CreditsTotal: 22, Total: 4},
-				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 2, CreditsTotal: 2},
+				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 2, Total: 2},
+			},
+			onInvoiceFinalization: invoiceFinalizationPhase{
+				fiatOverageCreditsAvailable: 5,
+				expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 2, CreditsTotal: 2},
 				expectFiatRealizations: []expectedCreditRealization{
-					{Type: creditrealization.TypeAllocation, Amount: 5},
-					{Type: creditrealization.TypeCorrection, Amount: -3},
+					{Type: creditrealization.TypeAllocation, Amount: 2},
 				},
 			},
 		},
@@ -822,6 +1025,9 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				expectRunTotals:                billingtest.ExpectedTotals{Amount: 12, CreditsTotal: 10, Total: 2},
 				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 1, Total: 1},
 			},
+			onInvoiceFinalization: invoiceFinalizationPhase{
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 1, Total: 1},
+			},
 			expectPaymentSettled: true,
 		},
 		// given:
@@ -843,6 +1049,9 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				chargeCurrencyCreditsAllocated: 0,
 				expectRunTotals:                billingtest.ExpectedTotals{Amount: 4, Total: 4},
 				expectInvoiceTotals:            billingtest.ExpectedTotals{Amount: 2, Total: 2},
+			},
+			onInvoiceFinalization: invoiceFinalizationPhase{
+				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 2, Total: 2},
 			},
 			expectPaymentSettled: true,
 		},
@@ -1000,7 +1209,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				s.Require().NoError(err)
 				chargeID = charge.GetChargeID()
 
-				fiatOverageCreditsHandler.AddAvailable(test.onRunCreated.fiatOverageCreditsAvailable)
 				s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(test.onRunCreated.chargeCurrencyCreditsAllocated)
 				if test.onRunCreated.usageAdded > 0 {
 					s.MockStreamingConnector.AddSimpleEvent(
@@ -1033,6 +1241,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					test.onRunCreated.expectInvoiceTotals.CreditsTotal,
 					line.CreditsApplied.SumAmount(fiatCurrency).InexactFloat64(),
 				)
+				s.RequireTotals(test.onRunCreated.expectInvoiceTotals, invoice.Totals)
 
 				charge = s.mustGetUsageBasedChargeByID(chargeID)
 				s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
@@ -1043,14 +1252,13 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				s.Equal(test.onRunCreated.usageAdded, initialRun.MeteredQuantity.InexactFloat64())
 				s.RequireTotals(test.onRunCreated.expectRunTotals, initialRun.Totals)
 				s.requireCreditRealizations(
-					test.onRunCreated.expectFiatRealizations,
+					nil,
 					initialRun.FiatOverageCreditRealizations,
 					"fiat overage",
 				)
 			})
 
-			s.Run("collect realization run and settle fiat overage", func() {
-				fiatOverageCreditsHandler.AddAvailable(test.onCollectionComplete.fiatOverageCreditsAvailable)
+			s.Run("collect realization run", func() {
 				s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(test.onCollectionComplete.chargeCurrencyCreditsAllocated)
 				if test.onCollectionComplete.usageAdded > 0 {
 					s.MockStreamingConnector.AddSimpleEvent(
@@ -1094,7 +1302,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				s.Equal(test.onRunCreated.usageAdded+test.onCollectionComplete.usageAdded, collectedRun.MeteredQuantity.InexactFloat64())
 				s.RequireTotals(test.onCollectionComplete.expectRunTotals, collectedRun.Totals)
 				s.requireCreditRealizations(
-					test.onCollectionComplete.expectFiatRealizations,
+					nil,
 					collectedRun.FiatOverageCreditRealizations,
 					"fiat overage",
 				)
@@ -1120,42 +1328,10 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 						line.CreditsApplied.SumAmount(fiatCurrency).InexactFloat64(),
 					)
 				}
+				s.RequireTotals(test.onCollectionComplete.expectInvoiceTotals, invoice.Totals)
+			})
 
-				if test.expectPaymentSettled {
-					s.UsageBasedTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
-						customCurrencyOverageAccruedInvocations++
-						s.Equal(chargeID.ID, input.Charge.ID)
-						s.Equal(test.onCollectionComplete.expectRunTotals.Total, input.GetCustomCurrencyAmountAccrued().InexactFloat64())
-
-						resolvedCostBasis, err := input.GetCostBasis()
-						s.Require().NoError(err)
-						s.Equal(float64(0.5), resolvedCostBasis.InexactFloat64())
-
-						resolvedFiatCurrency, err := input.GetFiatCurrency()
-						s.Require().NoError(err)
-						s.Equal(USD, resolvedFiatCurrency.Details().Code)
-
-						return usagebased.OnCustomCurrencyOverageAccruedResult{
-							TransactionGroup: ledgertransaction.GroupReference{
-								TransactionGroupID: ulid.Make().String(),
-							},
-							TotalFiatAmount: alpacadecimal.NewFromFloat(test.onCollectionComplete.expectInvoiceTotals.Total),
-						}, nil
-					}
-
-					authorizedCallback = newCountedLedgerTransactionCallback[usagebased.OnPaymentAuthorizedInput]()
-					s.UsageBasedTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(_ *testing.T, input usagebased.OnPaymentAuthorizedInput) {
-						s.Equal(chargeID.ID, input.Charge.ID)
-						s.Equal(test.onCollectionComplete.expectInvoiceTotals.Total, input.FiatAmount.InexactFloat64())
-					})
-
-					settledCallback = newCountedLedgerTransactionCallback[usagebased.OnPaymentSettledInput]()
-					s.UsageBasedTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(_ *testing.T, input usagebased.OnPaymentSettledInput) {
-						s.Equal(chargeID.ID, input.Charge.ID)
-						s.Equal(test.onCollectionComplete.expectInvoiceTotals.Total, input.FiatAmount.InexactFloat64())
-					})
-				}
-
+			s.Run("finalize invoice and settle fiat overage", func() {
 				if test.expectLineDeleted {
 					mockApp := s.SandboxApp.EnableMock(s.T())
 					defer s.SandboxApp.DisableMock()
@@ -1175,14 +1351,81 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					return
 				}
 
+				fiatOverageCreditsHandler.AddAvailable(test.onInvoiceFinalization.fiatOverageCreditsAvailable)
+
+				if test.expectPaymentSettled {
+					s.UsageBasedTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
+						customCurrencyOverageAccruedInvocations++
+						s.Equal(chargeID.ID, input.Charge.ID)
+						s.Equal(test.onCollectionComplete.expectRunTotals.Total, input.GetCustomCurrencyAmountAccrued().InexactFloat64())
+
+						resolvedCostBasis, err := input.GetCostBasis()
+						s.Require().NoError(err)
+						s.Equal(float64(0.5), resolvedCostBasis.InexactFloat64())
+
+						resolvedFiatCurrency, err := input.GetFiatCurrency()
+						s.Require().NoError(err)
+						s.Equal(USD, resolvedFiatCurrency.Details().Code)
+
+						return usagebased.OnCustomCurrencyOverageAccruedResult{
+							TransactionGroup: ledgertransaction.GroupReference{
+								TransactionGroupID: ulid.Make().String(),
+							},
+							TotalFiatAmount: alpacadecimal.NewFromFloat(test.onInvoiceFinalization.expectInvoiceTotals.Total),
+						}, nil
+					}
+
+					authorizedCallback = newCountedLedgerTransactionCallback[usagebased.OnPaymentAuthorizedInput]()
+					s.UsageBasedTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(_ *testing.T, input usagebased.OnPaymentAuthorizedInput) {
+						s.Equal(chargeID.ID, input.Charge.ID)
+						s.Equal(test.onInvoiceFinalization.expectInvoiceTotals.Total, input.FiatAmount.InexactFloat64())
+					})
+
+					settledCallback = newCountedLedgerTransactionCallback[usagebased.OnPaymentSettledInput]()
+					s.UsageBasedTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(_ *testing.T, input usagebased.OnPaymentSettledInput) {
+						s.Equal(chargeID.ID, input.Charge.ID)
+						s.Equal(test.onInvoiceFinalization.expectInvoiceTotals.Total, input.FiatAmount.InexactFloat64())
+					})
+				}
+
 				invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 				s.Require().NoError(err)
+
 				s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 				s.Require().NotNil(invoice.CollectionAt)
 				s.True(realizationVariant.expectedCollectionEnd.Equal(*invoice.CollectionAt))
+				s.Require().Len(invoice.Lines.OrEmpty(), 1)
+				line := invoice.Lines.OrEmpty()[0]
+				s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+					line:               line,
+					expectTokenOverage: test.onCollectionComplete.expectRunTotals.Total,
+					expectCostBasis:    0.5,
+					expectFiatTotals:   test.onInvoiceFinalization.expectInvoiceTotals,
+				})
+				s.Equal(
+					test.onInvoiceFinalization.expectInvoiceTotals.CreditsTotal,
+					line.CreditsApplied.SumAmount(fiatCurrency).InexactFloat64(),
+				)
+				s.RequireTotals(test.onInvoiceFinalization.expectInvoiceTotals, invoice.Totals)
+
+				charge := s.mustGetUsageBasedChargeByID(chargeID)
+				realizedRun, ok := charge.Realizations.Latest()
+				s.Require().True(ok)
+				s.requireCreditRealizations(
+					test.onInvoiceFinalization.expectFiatRealizations,
+					realizedRun.FiatOverageCreditRealizations,
+					"fiat overage",
+				)
 			})
 
 			s.Run("reload realized charge and invoice state", func() {
+				expectInvoiceTotals := test.onInvoiceFinalization.expectInvoiceTotals
+				expectFiatRealizations := test.onInvoiceFinalization.expectFiatRealizations
+				if test.expectLineDeleted {
+					expectInvoiceTotals = test.onCollectionComplete.expectInvoiceTotals
+					expectFiatRealizations = nil
+				}
+
 				charge := s.mustGetUsageBasedChargeByID(chargeID)
 				s.Equal(realizationVariant.expectedChargeStatusAfterPayment, charge.Status)
 				s.Nil(charge.State.CurrentRealizationRunID)
@@ -1195,7 +1438,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					realizedRun.CreditsAllocated.Sum().InexactFloat64(),
 				)
 				s.requireCreditRealizations(
-					test.onCollectionComplete.expectFiatRealizations,
+					expectFiatRealizations,
 					realizedRun.FiatOverageCreditRealizations,
 					"fiat overage",
 				)
@@ -1203,7 +1446,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					s.Nil(realizedRun.InvoiceUsage)
 				} else {
 					s.Require().NotNil(realizedRun.InvoiceUsage)
-					s.RequireTotals(test.onCollectionComplete.expectInvoiceTotals, realizedRun.InvoiceUsage.Totals)
+					s.RequireTotals(expectInvoiceTotals, realizedRun.InvoiceUsage.Totals)
 				}
 
 				if test.expectPaymentSettled {
@@ -1214,7 +1457,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					s.Equal(1, settledCallback.nrInvocations)
 					s.Require().NotNil(realizedRun.Payment)
 					s.Equal(payment.StatusSettled, realizedRun.Payment.Status)
-					s.Equal(test.onCollectionComplete.expectInvoiceTotals.Total, realizedRun.Payment.FiatAmount.InexactFloat64())
+					s.Equal(expectInvoiceTotals.Total, realizedRun.Payment.FiatAmount.InexactFloat64())
 					s.False(realizedRun.NoFiatTransactionRequired)
 				} else {
 					s.Zero(customCurrencyOverageAccruedInvocations)
@@ -1268,10 +1511,10 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 						line:               line,
 						expectTokenOverage: test.onCollectionComplete.expectRunTotals.Total,
 						expectCostBasis:    0.5,
-						expectFiatTotals:   test.onCollectionComplete.expectInvoiceTotals,
+						expectFiatTotals:   expectInvoiceTotals,
 					})
 					s.Equal(
-						test.onCollectionComplete.expectInvoiceTotals.CreditsTotal,
+						expectInvoiceTotals.CreditsTotal,
 						line.CreditsApplied.SumAmount(fiatCurrency).InexactFloat64(),
 					)
 				}

@@ -74,8 +74,8 @@ type ReconcileRatedRunResult struct {
 }
 
 // ReconcileRatedRun makes a realization run match an authoritative rating
-// snapshot. It reconciles both credit domains in settlement order, rebuilds
-// detailed lines, and persists the resulting run checkpoint.
+// snapshot. Rating owns charge-currency reconciliation; settlement-fiat
+// overage credits are reconciled later during invoice finalization.
 func (s *Service) ReconcileRatedRun(
 	ctx context.Context,
 	in ReconcileRatedRunInput,
@@ -94,54 +94,40 @@ func (s *Service) ReconcileRatedRun(
 		AllocateAt: run.ServicePeriodTo,
 	}
 
-	var noFiatTransactionRequired bool
+	reconcileResult, err := creditreconciliation.Reconcile(ctx, creditreconciliation.ReconcileInput{
+		TargetAmount:    runTotals.Total,
+		ExactAllocation: isCreditsOnlySettlementMode,
+		Handler:         s.NewChargeCurrencyCreditReconciliationHandler(creditReconciliationHandlerInput),
+	})
+	if err != nil {
+		return ReconcileRatedRunResult{}, fmt.Errorf("reconcile charge currency credits: %w", err)
+	}
+
+	run.CreditsAllocated = append(run.CreditsAllocated, reconcileResult.Realizations...)
+	allocated := in.CurrencyCalculator.RoundToPrecision(run.CreditsAllocated.Sum())
+	if allocated.GreaterThan(runTotals.Total) {
+		return ReconcileRatedRunResult{}, fmt.Errorf(
+			"credit allocations exceed rated total [charge_id=%s total=%s allocated=%s]",
+			in.Charge.ID,
+			runTotals.Total,
+			allocated,
+		)
+	}
+
+	runTotals.CreditsTotal = allocated
+	runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocated))
+
+	noFiatTransactionRequired := isCreditsOnlySettlementMode || runTotals.Total.IsZero()
 	if settlementMode == productcatalog.CreditThenInvoiceSettlementMode && in.Charge.Intent.GetCurrency().IsCustom() {
-		reconcileResult, err := creditreconciliation.ReconcileCustomCurrencyWithFiatOverage(
-			ctx,
-			creditreconciliation.ReconcileCustomCurrencyWithFiatOverageInput{
-				UnallocatedTotals:     runTotals,
-				Currency:              in.Charge.Intent.GetCurrency(),
-				CostBasisIntent:       in.Charge.Intent.GetCostBasisIntent(),
-				ResolvedCostBasis:     in.Charge.State.ResolvedCostBasis,
-				ChargeCurrencyHandler: s.NewChargeCurrencyCreditReconciliationHandler(creditReconciliationHandlerInput),
-				FiatOverageHandler:    s.NewFiatOverageCreditReconciliationHandler(creditReconciliationHandlerInput),
-			},
-		)
+		fiatOverage, err := in.Charge.ConvertCustomCurrencyOverageToFiat(runTotals)
 		if err != nil {
-			return ReconcileRatedRunResult{}, fmt.Errorf("reconcile custom currency with fiat overage: %w", err)
+			return ReconcileRatedRunResult{}, fmt.Errorf("convert custom currency overage to fiat: %w", err)
 		}
 
-		run.CreditsAllocated = append(run.CreditsAllocated, reconcileResult.ChargeCurrency.Realizations...)
-		run.FiatOverageCreditRealizations = append(
-			run.FiatOverageCreditRealizations,
-			reconcileResult.FiatOverageCredits.Realizations...,
-		)
-		runTotals = reconcileResult.Totals
-		noFiatTransactionRequired = reconcileResult.RemainingFiatOverage.IsZero()
-	} else {
-		reconcileResult, err := creditreconciliation.Reconcile(ctx, creditreconciliation.ReconcileInput{
-			TargetAmount:    runTotals.Total,
-			ExactAllocation: isCreditsOnlySettlementMode,
-			Handler:         s.NewChargeCurrencyCreditReconciliationHandler(creditReconciliationHandlerInput),
-		})
-		if err != nil {
-			return ReconcileRatedRunResult{}, fmt.Errorf("reconcile charge currency credits: %w", err)
-		}
-
-		run.CreditsAllocated = append(run.CreditsAllocated, reconcileResult.Realizations...)
-		allocated := in.CurrencyCalculator.RoundToPrecision(run.CreditsAllocated.Sum())
-		if allocated.GreaterThan(runTotals.Total) {
-			return ReconcileRatedRunResult{}, fmt.Errorf(
-				"credit allocations exceed rated total [charge_id=%s total=%s allocated=%s]",
-				in.Charge.ID,
-				runTotals.Total,
-				allocated,
-			)
-		}
-
-		runTotals.CreditsTotal = allocated
-		runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocated))
-		noFiatTransactionRequired = isCreditsOnlySettlementMode || runTotals.Total.IsZero()
+		// Rating can decide that no invoice line is required for a zero gross
+		// overage. For a positive overage the final value is set only after
+		// settlement-fiat credit reconciliation during invoice finalization.
+		noFiatTransactionRequired = fiatOverage.Amount.IsZero()
 	}
 
 	run.Totals = runTotals

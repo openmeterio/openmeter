@@ -23,18 +23,102 @@ var ErrCreditAllocationsDoNotMatchTotal = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
-// Handler binds reconciliation to one charge type and monetary domain. It owns
-// domain validation, ledger effects, persistence, and realization lineage.
-type Handler interface {
+// AllocationHandler binds allocation to one charge type and monetary domain.
+// It owns domain validation, ledger effects, persistence, and realization
+// lineage without requiring an existing realization history.
+type AllocationHandler interface {
 	Validate() error
 	CurrencyCalculator() currencyx.Currency
-	Realizations() creditrealization.Realizations
 	Allocate(context.Context, alpacadecimal.Decimal) (creditrealization.CreateAllocationInputs, error)
+	Create(context.Context, creditrealization.CreateInputs) (creditrealization.Realizations, error)
+}
+
+// Handler extends allocation with the realization history and correction
+// behavior required by reconciliation.
+type Handler interface {
+	AllocationHandler
+	Realizations() creditrealization.Realizations
 	Correct(
 		context.Context,
 		creditrealization.CorrectionRequest,
 	) (creditrealization.CreateCorrectionInputs, error)
-	Create(context.Context, creditrealization.CreateInputs) (creditrealization.Realizations, error)
+}
+
+type AllocateInput struct {
+	Amount          alpacadecimal.Decimal
+	ExactAllocation bool
+	Handler         AllocationHandler
+}
+
+func (i AllocateInput) Validate() error {
+	var errs []error
+
+	if i.Amount.IsNegative() {
+		errs = append(errs, errors.New("amount must be zero or positive"))
+	}
+
+	if i.Handler == nil {
+		errs = append(errs, errors.New("credit allocation handler is required"))
+	} else {
+		if err := i.Handler.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("credit allocation handler: %w", err))
+		}
+
+		currencyCalculator := i.Handler.CurrencyCalculator()
+		if currencyCalculator == nil {
+			errs = append(errs, errors.New("credit allocation handler currency calculator is required"))
+		} else if err := currencyCalculator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("credit allocation handler currency calculator: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type AllocateResult struct {
+	AllocatedAmount alpacadecimal.Decimal
+	Realizations    creditrealization.Realizations
+}
+
+// Allocate creates up to Amount in new credit allocations. It never reads or
+// corrects existing realizations, making it suitable for one-shot lifecycle
+// effects whose caller owns the empty-history invariant.
+func Allocate(ctx context.Context, in AllocateInput) (AllocateResult, error) {
+	if err := in.Validate(); err != nil {
+		return AllocateResult{}, err
+	}
+
+	currencyCalculator := in.Handler.CurrencyCalculator()
+	in.Amount = currencyCalculator.RoundToPrecision(in.Amount)
+	if in.Amount.IsZero() {
+		return AllocateResult{}, nil
+	}
+
+	allocations, err := in.Handler.Allocate(ctx, in.Amount)
+	if err != nil {
+		return AllocateResult{}, err
+	}
+
+	allocated := currencyCalculator.RoundToPrecision(allocations.Sum())
+	if allocated.GreaterThan(in.Amount) || (in.ExactAllocation && !allocated.Equal(in.Amount)) {
+		return AllocateResult{}, ErrCreditAllocationsDoNotMatchTotal.WithAttrs(models.Attributes{
+			"total": in.Amount.String(),
+		})
+	}
+
+	result := AllocateResult{AllocatedAmount: allocated}
+	if len(allocations) == 0 {
+		return result, nil
+	}
+
+	realizations, err := in.Handler.Create(ctx, allocations.AsCreateInputs())
+	if err != nil {
+		return AllocateResult{}, err
+	}
+
+	result.Realizations = realizations
+
+	return result, nil
 }
 
 type ReconcileInput struct {
@@ -94,26 +178,16 @@ func Reconcile(ctx context.Context, in ReconcileInput) (ReconcileResult, error) 
 
 	switch {
 	case delta.IsPositive():
-		allocations, err := in.Handler.Allocate(ctx, delta)
+		allocationResult, err := Allocate(ctx, AllocateInput{
+			Amount:          delta,
+			ExactAllocation: in.ExactAllocation,
+			Handler:         in.Handler,
+		})
 		if err != nil {
 			return ReconcileResult{}, err
 		}
 
-		allocated := currencyCalculator.RoundToPrecision(allocations.Sum())
-		if allocated.GreaterThan(delta) || (in.ExactAllocation && !allocated.Equal(delta)) {
-			return ReconcileResult{}, ErrCreditAllocationsDoNotMatchTotal.WithAttrs(models.Attributes{
-				"total": delta.String(),
-			})
-		}
-
-		if len(allocations) > 0 {
-			realizations, err := in.Handler.Create(ctx, allocations.AsCreateInputs())
-			if err != nil {
-				return ReconcileResult{}, err
-			}
-
-			result.Realizations = realizations
-		}
+		result.Realizations = allocationResult.Realizations
 	case delta.IsNegative():
 		corrections, err := currentRealizations.Correct(
 			delta,

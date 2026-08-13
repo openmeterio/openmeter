@@ -14,6 +14,105 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestAllocate(t *testing.T) {
+	currency, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	t.Run("requires a handler", func(t *testing.T) {
+		// given: otherwise valid allocation input without a monetary-domain handler
+
+		// when: allocation is requested
+		_, err := Allocate(t.Context(), AllocateInput{
+			Amount: alpacadecimal.NewFromInt(5),
+		})
+
+		// then: allocation fails before attempting an economic effect
+		require.ErrorContains(t, err, "credit allocation handler is required")
+	})
+
+	t.Run("allocates the requested amount without reading realization history", func(t *testing.T) {
+		// given: a handler with existing realizations that can allocate three credits
+		handler := &testHandler{
+			currency: currency,
+			current:  creditrealization.Realizations{newTestAllocation("existing-allocation", 2)},
+			allocations: creditrealization.CreateAllocationInputs{
+				{Amount: alpacadecimal.NewFromInt(3)},
+			},
+		}
+
+		// when: five credits are requested through the allocation-only operation
+		result, err := Allocate(t.Context(), AllocateInput{
+			Amount:  alpacadecimal.NewFromInt(5),
+			Handler: handler,
+		})
+
+		// then: the handler receives five rather than a reconciled delta and persists its allocation
+		require.NoError(t, err)
+		require.Equal(t, float64(5), handler.allocated.InexactFloat64())
+		require.Equal(t, float64(3), result.AllocatedAmount.InexactFloat64())
+		require.Len(t, handler.created, 1)
+		require.Len(t, result.Realizations, 1)
+	})
+
+	t.Run("zero amount is a no-op", func(t *testing.T) {
+		// given: a valid allocation handler
+		handler := &testHandler{currency: currency}
+
+		// when: zero credits are requested
+		result, err := Allocate(t.Context(), AllocateInput{
+			Amount:  alpacadecimal.Zero,
+			Handler: handler,
+		})
+
+		// then: no ledger or persistence operation is requested
+		require.NoError(t, err)
+		require.True(t, result.AllocatedAmount.IsZero())
+		require.True(t, handler.allocated.IsZero())
+		require.Empty(t, handler.created)
+	})
+
+	t.Run("exact allocation rejects a partial result", func(t *testing.T) {
+		// given: a handler that can allocate only part of the requested amount
+		handler := &testHandler{
+			currency: currency,
+			allocations: creditrealization.CreateAllocationInputs{
+				{Amount: alpacadecimal.NewFromInt(2)},
+			},
+		}
+
+		// when: exact allocation requests five credits
+		_, err := Allocate(t.Context(), AllocateInput{
+			Amount:          alpacadecimal.NewFromInt(5),
+			ExactAllocation: true,
+			Handler:         handler,
+		})
+
+		// then: the partial allocation is rejected before persistence
+		require.Error(t, err)
+		require.Empty(t, handler.created)
+	})
+
+	t.Run("over-allocation is rejected", func(t *testing.T) {
+		// given: a handler returning more than the requested amount
+		handler := &testHandler{
+			currency: currency,
+			allocations: creditrealization.CreateAllocationInputs{
+				{Amount: alpacadecimal.NewFromInt(6)},
+			},
+		}
+
+		// when: five credits are requested
+		_, err := Allocate(t.Context(), AllocateInput{
+			Amount:  alpacadecimal.NewFromInt(5),
+			Handler: handler,
+		})
+
+		// then: the over-allocation is rejected before persistence
+		require.Error(t, err)
+		require.Empty(t, handler.created)
+	})
+}
+
 func TestReconcile(t *testing.T) {
 	currency, err := currencyx.NewFiatCurrency("USD")
 	require.NoError(t, err)

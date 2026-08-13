@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditreconciliation"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -288,6 +290,121 @@ func (h *fiatOverageCreditReconciliationHandler) Create(
 	}
 
 	return realizations, nil
+}
+
+type AllocateFiatOverageCreditsInput struct {
+	Charge usagebased.Charge
+	Run    usagebased.RealizationRun
+}
+
+func (i AllocateFiatOverageCreditsInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if !i.Charge.Intent.GetCurrency().IsCustom() {
+		errs = append(errs, errors.New("charge currency must be custom"))
+	}
+
+	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		errs = append(errs, errors.New("settlement mode must be credit_then_invoice"))
+	}
+
+	if i.Charge.State.CurrentRealizationRunID == nil {
+		errs = append(errs, errors.New("charge has no current realization run"))
+	} else if *i.Charge.State.CurrentRealizationRunID != i.Run.ID.ID {
+		errs = append(errs, fmt.Errorf(
+			"run is not the charge's current realization run [current_run_id=%s run_id=%s]",
+			*i.Charge.State.CurrentRealizationRunID,
+			i.Run.ID.ID,
+		))
+	}
+
+	if i.Run.ID.Namespace != i.Charge.Namespace {
+		errs = append(errs, fmt.Errorf(
+			"run namespace does not match charge namespace: %s != %s",
+			i.Run.ID.Namespace,
+			i.Charge.Namespace,
+		))
+	}
+
+	if i.Run.InvoiceUsage != nil {
+		errs = append(errs, errors.New("run already has accrued invoice usage"))
+	}
+
+	if len(i.Run.FiatOverageCreditRealizations) > 0 {
+		errs = append(errs, errors.New("run already has fiat overage credit realizations"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type AllocateFiatOverageCreditsResult struct {
+	Charge usagebased.Charge
+	Run    usagebased.RealizationRun
+}
+
+// AllocateFiatOverageCredits performs the one settlement-fiat allocation for a
+// custom-currency run during invoice finalization. Fiat balance eligibility is
+// evaluated when invoice finalization invokes the operation, independently
+// from charge-currency realization timing.
+func (s *Service) AllocateFiatOverageCredits(
+	ctx context.Context,
+	in AllocateFiatOverageCreditsInput,
+) (AllocateFiatOverageCreditsResult, error) {
+	if err := in.Validate(); err != nil {
+		return AllocateFiatOverageCreditsResult{}, err
+	}
+
+	fiatOverage, err := in.Charge.ConvertCustomCurrencyOverageToFiat(in.Run.Totals)
+	if err != nil {
+		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("convert custom currency overage to fiat: %w", err)
+	}
+
+	run := in.Run
+	allocationResult, err := creditreconciliation.Allocate(ctx, creditreconciliation.AllocateInput{
+		Amount: fiatOverage.Amount,
+		Handler: s.NewFiatOverageCreditReconciliationHandler(CreditReconciliationHandlerInput{
+			Charge: in.Charge,
+			Run:    run,
+			// Fiat overage allocation is an invoice-finalization effect. Using the
+			// current time makes any outstanding settlement-fiat balance, such as
+			// USD credits, eligible for allocation when the invoice is finalized.
+			AllocateAt: clock.Now(),
+		}),
+	})
+	if err != nil {
+		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("allocate fiat overage credits: %w", err)
+	}
+
+	run.FiatOverageCreditRealizations = allocationResult.Realizations
+
+	allocated := fiatOverage.Currency.RoundToPrecision(run.FiatOverageCreditRealizations.Sum())
+	remainingFiatOverage := fiatOverage.Currency.RoundToPrecision(fiatOverage.Amount.Sub(allocated))
+	runBase, err := s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:                        run.ID,
+		NoFiatTransactionRequired: mo.Some(remainingFiatOverage.IsZero()),
+	})
+	if err != nil {
+		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("update realization run after fiat overage allocation: %w", err)
+	}
+
+	run.RealizationRunBase = runBase
+	charge := in.Charge
+	if err := charge.Realizations.SetRealizationRun(run); err != nil {
+		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("update realization run in charge: %w", err)
+	}
+
+	return AllocateFiatOverageCreditsResult{
+		Charge: charge,
+		Run:    run,
+	}, nil
 }
 
 // CorrectAllCreditRealizations reverses every active credit allocation for a

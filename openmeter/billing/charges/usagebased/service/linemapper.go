@@ -28,6 +28,7 @@ const (
 	standardLinePopulationStageGatheringPreview    standardLinePopulationStage = "gathering_preview"
 	standardLinePopulationStageInvoiceCreated      standardLinePopulationStage = "invoice_created"
 	standardLinePopulationStageCollectionCompleted standardLinePopulationStage = "collection_completed"
+	standardLinePopulationStageInvoiceFinalizing   standardLinePopulationStage = "invoice_finalizing"
 	standardLinePopulationStageManualAttachment    standardLinePopulationStage = "manual_attachment"
 )
 
@@ -36,6 +37,7 @@ func (s standardLinePopulationStage) Validate() error {
 	case standardLinePopulationStageGatheringPreview,
 		standardLinePopulationStageInvoiceCreated,
 		standardLinePopulationStageCollectionCompleted,
+		standardLinePopulationStageInvoiceFinalizing,
 		standardLinePopulationStageManualAttachment:
 		return nil
 	case "":
