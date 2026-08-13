@@ -943,6 +943,10 @@ func (e *LineEngine) getChargesForStandardLineEvent(ctx context.Context, input b
 	}), nil
 }
 
+func (e *LineEngine) OnInvoiceFinalizing(_ context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+	return input.Lines, nil
+}
+
 func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("validating input: %w", err)

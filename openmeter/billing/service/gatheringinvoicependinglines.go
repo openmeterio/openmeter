@@ -893,15 +893,10 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 			return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		if err := lines.Validate(); err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created output for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := billing.ValidateStandardLineIDsMatchExactly(grouped.Lines, lines); err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created line ids for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := invoice.Lines.ReplaceLinesByID(lines...); err != nil {
+		if err := invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
+			Existing:    grouped.Lines,
+			Replacement: lines,
+		}); err != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("replacing standard invoice created lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 	}
