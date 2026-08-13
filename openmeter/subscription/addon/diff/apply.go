@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -86,7 +87,9 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 			// We need to update all items
 			for _, item := range items {
 				itemPer := item.GetCadence(pCad).AsPeriod()
-				priceIntroducedByAddon := item.RateCard.AsMeta().Price == nil && rc.AddonRateCard.AsMeta().Price != nil
+				itemMeta := item.RateCard.AsMeta()
+				addonMeta := rc.AddonRateCard.AsMeta()
+				priceIntroducedByAddon := itemMeta.Price == nil && addonMeta.Price != nil
 
 				{
 					// Let's subtract the item from the gaps
@@ -115,6 +118,10 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 					newItems = append(newItems, item)
 
 					continue
+				}
+
+				if err := validateAddonCurrencyCompatibility(itemMeta, addonMeta, d.addon.Addon.Currency); err != nil {
+					return fmt.Errorf("add-on rate card %s: %w", rc.AddonRateCard.Key(), err)
 				}
 
 				// We need to split the item:
@@ -162,7 +169,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 				}
 				if priceIntroducedByAddon {
 					addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
-					if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.Currency); err != nil {
+					if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.InvoiceCurrency); err != nil {
 						return fmt.Errorf("failed to materialize currency for extended rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
 				}
@@ -192,7 +199,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 					}
 				}
 				addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
-				if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.Currency); err != nil {
+				if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.InvoiceCurrency); err != nil {
 					return fmt.Errorf("failed to materialize currency for new rate card %s: %w", rc.AddonRateCard.Key(), err)
 				}
 
@@ -210,6 +217,26 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 
 		return nil
 	})
+}
+
+// validateAddonCurrencyCompatibility prevents two priced rate cards from being
+// layered unless they resolve to the same effective currency. An unpriced base
+// or add-on rate card does not establish a currency conflict.
+func validateAddonCurrencyCompatibility(
+	itemMeta productcatalog.RateCardMeta,
+	addonMeta productcatalog.RateCardMeta,
+	addonDefaultCurrency currencies.CurrencyReference,
+) error {
+	if itemMeta.Price == nil || addonMeta.Price == nil {
+		return nil
+	}
+
+	addonCurrency := addonMeta.EffectiveCurrency(addonDefaultCurrency)
+	if itemMeta.Currency == nil || !itemMeta.Currency.Equal(addonCurrency) {
+		return productcatalog.ErrPlanAddonCurrencyMismatch
+	}
+
+	return nil
 }
 
 // materializeAddonRateCardCurrency records only the add-on currency information

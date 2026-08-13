@@ -204,7 +204,7 @@ func TestV3CustomCurrencyProductCatalogValidation(t *testing.T) {
 		assertValidationCode(t, problem, "rate_card_currency_override_not_allowed")
 	})
 
-	t.Run("custom addon default cannot be attached to fiat subscription", func(t *testing.T) {
+	t.Run("custom addon default can be attached to fiat subscription", func(t *testing.T) {
 		// given:
 		// - a valid USD plan and an assigned add-on whose priced rate card inherits
 		//   a managed custom currency with an active USD cost basis
@@ -243,23 +243,26 @@ func TestV3CustomCurrencyProductCatalogValidation(t *testing.T) {
 		// when:
 		// - the custom-priced add-on is attached to the fiat subscription
 		timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumImmediate))
-		_, err = c.Subscriptions.CreateAddon(t.Context(), subscription.ID, v3sdk.CreateSubscriptionAddonRequest{
+		subscriptionAddon, err := c.Subscriptions.CreateAddon(t.Context(), subscription.ID, v3sdk.CreateSubscriptionAddonRequest{
 			Addon:    v3sdk.AddonReference{ID: resources.Addon.ID},
 			Quantity: 1,
 			Timing:   timing,
 		})
 
 		// then:
-		// - the temporary subscription boundary rejects it before persistence
-		problem := requireProblem(t, err, http.StatusBadRequest)
-		assertProblemDetail(t, problem, "custom currencies are not yet supported on subscriptions")
+		// - the compatible custom currency is accepted and the attachment is persisted
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, subscriptionAddon)
+		assert.Equal(t, resources.Addon.ID, subscriptionAddon.Addon.ID)
+		assert.EqualValues(t, 1, subscriptionAddon.Quantity)
 
 		page, err := c.Subscriptions.ListAddons(t.Context(), subscription.ID, v3sdk.SubscriptionAddonListParams{
 			Page: &v3sdk.PageParams{Size: lo.ToPtr(100)},
 		})
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
-		assert.Empty(t, page.Data)
+		require.Len(t, page.Data, 1)
+		assert.Equal(t, subscriptionAddon.ID, page.Data[0].ID)
 	})
 
 	t.Run("plan and addon reject different custom default currencies", func(t *testing.T) {

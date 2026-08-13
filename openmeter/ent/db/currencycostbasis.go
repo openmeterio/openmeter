@@ -48,9 +48,11 @@ type CurrencyCostBasis struct {
 type CurrencyCostBasisEdges struct {
 	// Currency holds the value of the currency edge.
 	Currency *CustomCurrency `json:"currency,omitempty"`
+	// SubscriptionPins holds the value of the subscription_pins edge.
+	SubscriptionPins []*SubscriptionCostBasisPin `json:"subscription_pins,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // CurrencyOrErr returns the Currency value or an error if the edge
@@ -62,6 +64,15 @@ func (e CurrencyCostBasisEdges) CurrencyOrErr() (*CustomCurrency, error) {
 		return nil, &NotFoundError{label: customcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "currency"}
+}
+
+// SubscriptionPinsOrErr returns the SubscriptionPins value or an error if the edge
+// was not loaded in eager-loading.
+func (e CurrencyCostBasisEdges) SubscriptionPinsOrErr() ([]*SubscriptionCostBasisPin, error) {
+	if e.loadedTypes[1] {
+		return e.SubscriptionPins, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription_pins"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -168,6 +179,11 @@ func (_m *CurrencyCostBasis) Value(name string) (ent.Value, error) {
 // QueryCurrency queries the "currency" edge of the CurrencyCostBasis entity.
 func (_m *CurrencyCostBasis) QueryCurrency() *CustomCurrencyQuery {
 	return NewCurrencyCostBasisClient(_m.config).QueryCurrency(_m)
+}
+
+// QuerySubscriptionPins queries the "subscription_pins" edge of the CurrencyCostBasis entity.
+func (_m *CurrencyCostBasis) QuerySubscriptionPins() *SubscriptionCostBasisPinQuery {
+	return NewCurrencyCostBasisClient(_m.config).QuerySubscriptionPins(_m)
 }
 
 // Update returns a builder for updating this CurrencyCostBasis.

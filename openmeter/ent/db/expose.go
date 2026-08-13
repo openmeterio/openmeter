@@ -259,6 +259,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		SubscriptionBillingSyncState: NewSubscriptionBillingSyncStateClient(config),
 
+		SubscriptionCostBasisPin: NewSubscriptionCostBasisPinClient(config),
+
 		SubscriptionItem: NewSubscriptionItemClient(config),
 
 		SubscriptionPhase: NewSubscriptionPhaseClient(config),

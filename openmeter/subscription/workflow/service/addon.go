@@ -256,7 +256,7 @@ func (s *service) syncWithAddons(
 			return def, fmt.Errorf("failed to calculate subscription state with addons: %w", err)
 		}
 
-		if _, err := s.Service.Update(ctx, view.Subscription.NamespacedID, spec); err != nil {
+		if _, err := s.Service.Update(ctx, view.Subscription.NamespacedID, spec, subscription.WithCostBasisEffectiveAt(currentTime)); err != nil {
 			logErrWithArgs(fmt.Errorf("failed to update subscription: %w", err))
 
 			return def, fmt.Errorf("failed to update subscription: %w", err)

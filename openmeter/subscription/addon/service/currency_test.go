@@ -13,35 +13,29 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestAddonServiceCreateRejectsCustomEffectiveCurrency(t *testing.T) {
+func TestAddonWorkflowSupportsCustomEffectiveCurrency(t *testing.T) {
 	now := testutils.GetRFC3339Time(t, "2025-04-01T00:00:00Z")
 
 	tests := []struct {
 		name           string
 		defaultCustom  bool
 		overrideCustom bool
-		expectedError  error
 	}{
 		{
-			name: "fiat add-on remains supported",
-		},
-		{
-			name:          "custom add-on default is rejected",
+			name:          "custom add-on default is materialized",
 			defaultCustom: true,
-			expectedError: subscription.ErrCustomCurrencySubscriptionsNotSupported,
 		},
 		{
-			name:           "custom rate card override is rejected",
+			name:           "custom rate card override is materialized",
 			overrideCustom: true,
-			expectedError:  subscription.ErrCustomCurrencySubscriptionsNotSupported,
 		},
 	}
 
@@ -50,9 +44,12 @@ func TestAddonServiceCreateRejectsCustomEffectiveCurrency(t *testing.T) {
 			withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 				// given:
 				// - a USD plan with a published, compatible add-on
-				// - the add-on is fiat-only or has a valid custom effective currency
-				clock.SetTime(now)
-				defer clock.ResetTime()
+				// - the add-on has a valid custom effective currency
+				clock.FreezeTime(now.Add(time.Millisecond))
+				defer func() {
+					clock.UnFreeze()
+					clock.ResetTime()
+				}()
 
 				customCurrency := createCustomCurrencyWithUSDCostBasis(t, deps, "CREDITS")
 				rateCardCurrency := (*currencies.CurrencyReference)(nil)
@@ -60,98 +57,99 @@ func TestAddonServiceCreateRejectsCustomEffectiveCurrency(t *testing.T) {
 					rateCardCurrency = lo.ToPtr(currencies.NewCurrencyReference(customCurrency.GetCode()))
 				}
 
-				addonInput := newBillableAddonInput(t, now, rateCardCurrency)
+				addonInput := newBillableAddonInput(t, now, productcatalog.AddonInstanceTypeMultiple, rateCardCurrency)
 				if tt.defaultCustom {
 					addonInput.Currency = currencies.NewCurrencyReference(customCurrency.GetCode())
 				}
 
 				subscriptionID, add := createSubscriptionForPlanWithAddon(t, deps, now, addonInput)
-				input := subscriptionaddon.CreateSubscriptionAddonInput{
-					AddonID:        add.ID,
-					SubscriptionID: subscriptionID,
-					InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-						ActiveFrom: now,
-						Quantity:   1,
-					},
-				}
+				addonStart := clock.Now()
 
 				// when:
-				// - the add-on is attached to the subscription
-				created, err := deps.SubscriptionAddonService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, input)
+				// - the add-on is attached to the subscription through the workflow
+				view, subscriptionAddon, err := deps.WorkflowService.AddAddon(t.Context(), subscriptionID, subscriptionworkflow.AddAddonWorkflowInput{
+					AddonID:         add.ID,
+					InitialQuantity: 1,
+					Timing: subscription.Timing{
+						Custom: &addonStart,
+					},
+				})
 
 				// then:
-				// - fiat pricing remains supported
-				// - custom effective currencies fail before an attachment is persisted
-				if tt.expectedError == nil {
-					require.NoError(t, err)
-					require.NotNil(t, created)
-					return
-				}
-
-				require.ErrorIs(t, err, tt.expectedError)
-				require.Nil(t, created)
-
-				result, listErr := deps.SubscriptionAddonService.List(t.Context(), subscriptiontestutils.ExampleNamespace, subscriptionaddon.ListSubscriptionAddonsInput{
-					SubscriptionID: subscriptionID,
-					Page:           pagination.NewPage(1, 100),
-				})
-				require.NoError(t, listErr)
-				require.Empty(t, result.Items)
+				// - the attachment succeeds
+				// - every materialized add-on item retains the managed custom identity
+				require.NoError(t, err)
+				require.NotEmpty(t, subscriptionAddon.ID)
+				assertCustomCurrencyOnAddonItems(t, view, customCurrency)
 			})
 		})
 	}
 }
 
-func TestAddonServiceChangeQuantityRejectsCustomEffectiveCurrency(t *testing.T) {
+func TestAddonWorkflowChangesCustomCurrencyAddonQuantity(t *testing.T) {
 	now := testutils.GetRFC3339Time(t, "2025-04-01T00:00:00Z")
 
 	withDeps(t, func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
 		// given:
-		// - an existing subscription add-on created while its currency is fiat
-		// - its persisted add-on definition now represents a legacy custom-currency attachment
-		clock.SetTime(now)
-		defer clock.ResetTime()
+		// - a custom-currency add-on attached to a USD subscription
+		clock.FreezeTime(now.Add(time.Millisecond))
+		defer func() {
+			clock.UnFreeze()
+			clock.ResetTime()
+		}()
 
 		customCurrency := createCustomCurrencyWithUSDCostBasis(t, deps, "CREDITS")
-		subscriptionID, add := createSubscriptionForPlanWithAddon(t, deps, now, newBillableAddonInput(t, now, nil))
+		addonInput := newBillableAddonInput(t, now, productcatalog.AddonInstanceTypeMultiple, nil)
+		addonInput.Currency = currencies.NewCurrencyReference(customCurrency.GetCode())
+		subscriptionID, add := createSubscriptionForPlanWithAddon(t, deps, now, addonInput)
+		addonStart := clock.Now()
 
-		subscriptionAddon, err := deps.SubscriptionAddonService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, subscriptionaddon.CreateSubscriptionAddonInput{
-			AddonID:        add.ID,
-			SubscriptionID: subscriptionID,
-			InitialQuantity: subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-				ActiveFrom: now,
-				Quantity:   1,
+		view, subscriptionAddon, err := deps.WorkflowService.AddAddon(t.Context(), subscriptionID, subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         add.ID,
+			InitialQuantity: 1,
+			Timing: subscription.Timing{
+				Custom: &addonStart,
 			},
 		})
 		require.NoError(t, err)
-		require.NotNil(t, subscriptionAddon)
-
-		_, err = deps.DBDeps.PGDriver.DB().ExecContext(t.Context(), `
-			UPDATE addons
-			SET currency = $1, custom_currency_id = $2
-			WHERE id = $3
-		`, customCurrency.GetCode(), customCurrency.ID, add.ID)
-		require.NoError(t, err)
+		assertCustomCurrencyOnAddonItems(t, view, customCurrency)
 
 		// when:
-		// - a quantity change would rematerialize the custom-priced add-on
-		updated, err := deps.SubscriptionAddonService.ChangeQuantity(t.Context(), subscriptionAddon.NamespacedID, subscriptionaddon.CreateSubscriptionAddonQuantityInput{
-			ActiveFrom: now.Add(24 * time.Hour),
-			Quantity:   1,
+		// - the add-on quantity changes through the workflow
+		changeTime := now.Add(24 * time.Hour)
+		view, subscriptionAddon, err = deps.WorkflowService.ChangeAddonQuantity(t.Context(), subscriptionID, subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+			SubscriptionAddonID: subscriptionAddon.NamespacedID,
+			Quantity:            2,
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(changeTime),
+			},
 		})
 
 		// then:
-		// - the temporary custom-currency boundary rejects the mutation
-		// - no quantity entry is added
-		require.ErrorIs(t, err, subscription.ErrCustomCurrencySubscriptionsNotSupported)
-		require.Nil(t, updated)
-
-		stored, getErr := deps.SubscriptionAddonService.Get(t.Context(), subscriptionaddon.GetSubscriptionAddonInput{
-			NamespacedID: subscriptionAddon.NamespacedID,
-		})
-		require.NoError(t, getErr)
-		require.Len(t, stored.Quantities.GetTimes(), len(subscriptionAddon.Quantities.GetTimes()))
+		// - the quantity history is extended
+		// - the custom identity remains on the resulting subscription items
+		require.NoError(t, err)
+		require.Len(t, subscriptionAddon.Quantities.GetTimes(), 2)
+		require.Equal(t, 2, subscriptionAddon.Quantities.GetAt(1).GetValue().Quantity)
+		assertCustomCurrencyOnAddonItems(t, view, customCurrency)
 	})
+}
+
+func assertCustomCurrencyOnAddonItems(t *testing.T, view subscription.SubscriptionView, customCurrency currencies.Currency) {
+	t.Helper()
+
+	itemCount := 0
+	for _, phase := range view.Phases {
+		for _, item := range phase.ItemsByKey["subscription-currency-boundary"] {
+			itemCount++
+			reference := item.Spec.RateCard.AsMeta().Currency
+			require.NotNil(t, reference)
+			require.Equal(t, customCurrency.GetCode(), reference.GetCode())
+			require.Equal(t, lo.ToPtr(customCurrency.ID), reference.CustomCurrencyID)
+		}
+	}
+
+	require.NotZero(t, itemCount)
 }
 
 func createCustomCurrencyWithUSDCostBasis(
@@ -183,6 +181,7 @@ func createCustomCurrencyWithUSDCostBasis(
 func newBillableAddonInput(
 	t *testing.T,
 	now time.Time,
+	instanceType productcatalog.AddonInstanceType,
 	currency *currencies.CurrencyReference,
 ) addon.CreateAddonInput {
 	t.Helper()
@@ -202,7 +201,7 @@ func newBillableAddonInput(
 	input := subscriptiontestutils.BuildAddonForTesting(
 		t,
 		productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(now)},
-		productcatalog.AddonInstanceTypeSingle,
+		instanceType,
 		rateCard,
 	)
 	input.Key = "subscription-currency-boundary"
@@ -215,7 +214,7 @@ func createSubscriptionForPlanWithAddon(
 	deps subscriptiontestutils.SubscriptionDependencies,
 	now time.Time,
 	addonInput addon.CreateAddonInput,
-) (string, addon.Addon) {
+) (models.NamespacedID, addon.Addon) {
 	t.Helper()
 
 	p, add := createPlanWithAddon(
@@ -227,11 +226,11 @@ func createSubscriptionForPlanWithAddon(
 
 	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
 	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    customer.ID,
-		Currency:      "USD",
-		ActiveFrom:    now,
-		BillingAnchor: now,
-		Name:          "Test Subscription",
+		CustomerId:      customer.ID,
+		InvoiceCurrency: "USD",
+		ActiveFrom:      now,
+		BillingAnchor:   now,
+		Name:            "Test Subscription",
 	})
 	require.NoError(t, err)
 
@@ -239,5 +238,5 @@ func createSubscriptionForPlanWithAddon(
 	require.NoError(t, err)
 	require.NotNil(t, sub)
 
-	return sub.ID, add
+	return sub.NamespacedID, add
 }

@@ -43,6 +43,7 @@ if TYPE_CHECKING:
         PricePaymentTerm,
         ProRatingMode,
         RemovePhaseShifting,
+        SubscriptionCostBasisMode,
         TaxBehavior,
         TieredPriceMode,
         WindowSize,
@@ -1432,6 +1433,9 @@ class CustomSubscriptionChange(TypedDict, total=False):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the previous subscription billing anchor will be used.
     :vartype billing_anchor: str
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: Union[str, "SubscriptionCostBasisMode"]
     :ivar custom_plan: The custom plan description which defines the Subscription. Required.
     :vartype custom_plan: "CustomPlanInput"
     """
@@ -1444,6 +1448,9 @@ class CustomSubscriptionChange(TypedDict, total=False):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the previous
      subscription billing anchor will be used."""
+    costBasisMode: Union[str, "SubscriptionCostBasisMode"]
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
     customPlan: Required["CustomPlanInput"]
     """The custom plan description which defines the Subscription. Required."""
 
@@ -1451,6 +1458,9 @@ class CustomSubscriptionChange(TypedDict, total=False):
 class CustomSubscriptionCreate(TypedDict, total=False):
     """Create custom.
 
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: Union[str, "SubscriptionCostBasisMode"]
     :ivar custom_plan: The custom plan description which defines the Subscription. Required.
     :vartype custom_plan: "CustomPlanInput"
     :ivar timing: Timing configuration for the change, when the change should take effect. The
@@ -1468,6 +1478,9 @@ class CustomSubscriptionCreate(TypedDict, total=False):
     :vartype billing_anchor: str
     """
 
+    costBasisMode: Union[str, "SubscriptionCostBasisMode"]
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
     customPlan: Required["CustomPlanInput"]
     """The custom plan description which defines the Subscription. Required."""
     timing: "_unions.SubscriptionTiming"
@@ -3457,6 +3470,9 @@ class PlanSubscriptionChange(TypedDict, total=False):
     :ivar settlement_mode: The settlement mode of the subscription. Known values are:
      "credit_then_invoice" and "credit_only".
     :vartype settlement_mode: Union[str, "BillingSettlementMode"]
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: Union[str, "SubscriptionCostBasisMode"]
     """
 
     timing: Required["_unions.SubscriptionTiming"]
@@ -3483,6 +3499,9 @@ class PlanSubscriptionChange(TypedDict, total=False):
     settlementMode: Union[str, "BillingSettlementMode"]
     """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
      \"credit_only\"."""
+    costBasisMode: Union[str, "SubscriptionCostBasisMode"]
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
 
 
 class PlanSubscriptionCreate(TypedDict, total=False):
@@ -3504,6 +3523,9 @@ class PlanSubscriptionCreate(TypedDict, total=False):
     :ivar settlement_mode: The settlement mode of the subscription. Known values are:
      "credit_then_invoice" and "credit_only".
     :vartype settlement_mode: Union[str, "BillingSettlementMode"]
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: Union[str, "SubscriptionCostBasisMode"]
     :ivar timing: Timing configuration for the change, when the change should take effect. The
      default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
      datetime.datetime type.
@@ -3535,6 +3557,9 @@ class PlanSubscriptionCreate(TypedDict, total=False):
     settlementMode: Union[str, "BillingSettlementMode"]
     """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
      \"credit_only\"."""
+    costBasisMode: Union[str, "SubscriptionCostBasisMode"]
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
     timing: "_unions.SubscriptionTiming"
     """Timing configuration for the change, when the change should take effect. The default is
      immediate. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a

@@ -41,11 +41,6 @@ var ErrOnlySingleSubscriptionAllowed = models.NewValidationIssue(
 
 var ErrRestoreSubscriptionNotAllowedForMultiSubscription = models.NewGenericForbiddenError(errors.New("restore subscription is not allowed for multi-subscription"))
 
-// ErrCustomCurrencySubscriptionsNotSupported is the temporary boundary while
-// product-catalog resources can use custom currencies but subscriptions cannot
-// materialize or bill them.
-var ErrCustomCurrencySubscriptionsNotSupported = errors.New("custom currencies are not yet supported on subscriptions")
-
 const ErrCodeOnlySingleSubscriptionItemAllowedAtATime models.ErrorCode = "only_single_subscription_item_allowed_at_a_time"
 
 var ErrOnlySingleSubscriptionItemAllowedAtATime = models.NewValidationIssue(

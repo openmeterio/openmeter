@@ -2,6 +2,8 @@ package subscription
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"maps"
 	"reflect"
 	"time"
@@ -24,8 +26,9 @@ type CreateSubscriptionEntityInput struct {
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 
-	CustomerId string `json:"customerId,omitempty"`
-	Currency   currencyx.Code
+	CustomerId      string `json:"customerId,omitempty"`
+	InvoiceCurrency currencyx.Code
+	CostBasisMode   CostBasisMode
 
 	// BillingCadence is the default billing cadence for subscriptions.
 	BillingCadence datetime.ISODuration `json:"billing_cadence"`
@@ -59,6 +62,42 @@ type SubscriptionRepository interface {
 
 	// UpdateAnnotations updates the annotations of a subscription
 	UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*Subscription, error)
+
+	CreateCostBasisPins(ctx context.Context, inputs []CreateCostBasisPinEntityInput) error
+}
+
+type CreateCostBasisPinEntityInput struct {
+	Namespace        string
+	SubscriptionID   string
+	CustomCurrencyID string
+	InvoiceCurrency  currencyx.Code
+	CostBasisID      string
+}
+
+var _ models.Validator = CreateCostBasisPinEntityInput{}
+
+func (i CreateCostBasisPinEntityInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+	if i.SubscriptionID == "" {
+		errs = append(errs, errors.New("subscription ID is required"))
+	}
+	if i.CustomCurrencyID == "" {
+		errs = append(errs, errors.New("custom currency ID is required"))
+	}
+	if i.CostBasisID == "" {
+		errs = append(errs, errors.New("cost basis ID is required"))
+	}
+	if err := i.InvoiceCurrency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid invoice currency %q: %w", i.InvoiceCurrency, err))
+	} else if !i.InvoiceCurrency.IsFiat() {
+		errs = append(errs, fmt.Errorf("invalid invoice currency %q", i.InvoiceCurrency))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

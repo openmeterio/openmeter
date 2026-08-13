@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -56,11 +57,11 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 				},
 			},
 			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
-				Name:          "test",
-				CustomerId:    "test",
-				Currency:      currencyx.Code("USD"),
-				ActiveFrom:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-				BillingAnchor: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				Name:            "test",
+				CustomerId:      "test",
+				InvoiceCurrency: currencyx.Code("USD"),
+				ActiveFrom:      time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				BillingAnchor:   time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			Phases: map[string]*subscription.SubscriptionPhaseSpec{
 				"phase1": {
@@ -86,6 +87,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 												Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 													Amount: alpacadecimal.NewFromFloat(100),
 												}),
+												Currency: lo.ToPtr(currencies.NewCurrencyReference("USD")),
 												EntitlementTemplate: func() *productcatalog.EntitlementTemplate {
 													et := productcatalog.EntitlementTemplate{}
 													et.FromMetered(productcatalog.MeteredEntitlementTemplate{
@@ -126,11 +128,11 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 				},
 			},
 			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
-				Name:          "test",
-				CustomerId:    "test",
-				Currency:      currencyx.Code("USD"),
-				ActiveFrom:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-				BillingAnchor: time.Date(2025, 1, 1, 5, 0, 0, 0, time.UTC), // will error
+				Name:            "test",
+				CustomerId:      "test",
+				InvoiceCurrency: currencyx.Code("USD"),
+				ActiveFrom:      time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				BillingAnchor:   time.Date(2025, 1, 1, 5, 0, 0, 0, time.UTC), // will error
 			},
 			Phases: map[string]*subscription.SubscriptionPhaseSpec{
 				"phase1": {
@@ -156,6 +158,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 												Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 													Amount: alpacadecimal.NewFromFloat(100),
 												}),
+												Currency: lo.ToPtr(currencies.NewCurrencyReference("USD")),
 												EntitlementTemplate: func() *productcatalog.EntitlementTemplate {
 													et := productcatalog.EntitlementTemplate{}
 													et.FromMetered(productcatalog.MeteredEntitlementTemplate{

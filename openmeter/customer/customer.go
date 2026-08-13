@@ -110,10 +110,8 @@ func (c Customer) Validate() error {
 		return models.NewGenericValidationError(errors.New("key cannot be empty"))
 	}
 
-	if c.Currency != nil {
-		if err := c.Currency.Validate(); err != nil {
-			return models.NewGenericValidationError(err)
-		}
+	if err := validateCustomerCurrency(c.Currency); err != nil {
+		return models.NewGenericValidationError(err)
 	}
 
 	// Either key or usageAttribution.subjectKeys must be provided
@@ -154,10 +152,8 @@ func (c CustomerMutate) Validate() error {
 		return models.NewGenericValidationError(errors.New("name is required"))
 	}
 
-	if c.Currency != nil {
-		if err := c.Currency.Validate(); err != nil {
-			return models.NewGenericValidationError(err)
-		}
+	if err := validateCustomerCurrency(c.Currency); err != nil {
+		return models.NewGenericValidationError(err)
 	}
 
 	// Either key or usageAttribution.subjectKeys must be provided
@@ -172,6 +168,25 @@ func (c CustomerMutate) Validate() error {
 		if err := c.UsageAttribution.Validate(); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// validateCustomerCurrency allows an unset currency or a fiat billing currency.
+// Subscription invoice currencies remain fiat even when priced items use custom
+// currencies, so custom currencies cannot be configured at the customer level.
+func validateCustomerCurrency(code *currencyx.Code) error {
+	if code == nil {
+		return nil
+	}
+
+	if err := code.Validate(); err != nil {
+		return err
+	}
+
+	if !code.IsFiat() {
+		return fmt.Errorf("customer currency %q must be fiat", *code)
 	}
 
 	return nil

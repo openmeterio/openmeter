@@ -1648,7 +1648,7 @@ func (n NoopSubscriptionService) Create(ctx context.Context, namespace string, s
 	return subscription.Subscription{}, nil
 }
 
-func (n NoopSubscriptionService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error) {
+func (n NoopSubscriptionService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec, options ...subscription.UpdateOption) (subscription.Subscription, error) {
 	return subscription.Subscription{}, nil
 }
 

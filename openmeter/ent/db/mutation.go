@@ -112,6 +112,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -223,6 +224,7 @@ const (
 	TypeSubscriptionAddon                                = "SubscriptionAddon"
 	TypeSubscriptionAddonQuantity                        = "SubscriptionAddonQuantity"
 	TypeSubscriptionBillingSyncState                     = "SubscriptionBillingSyncState"
+	TypeSubscriptionCostBasisPin                         = "SubscriptionCostBasisPin"
 	TypeSubscriptionItem                                 = "SubscriptionItem"
 	TypeSubscriptionPhase                                = "SubscriptionPhase"
 	TypeTaxCode                                          = "TaxCode"
@@ -81799,23 +81801,26 @@ func (m *CreditRealizationLineageSegmentMutation) ResetEdge(name string) error {
 // CurrencyCostBasisMutation represents an operation that mutates the CurrencyCostBasis nodes in the graph.
 type CurrencyCostBasisMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *string
-	namespace       *string
-	created_at      *time.Time
-	updated_at      *time.Time
-	deleted_at      *time.Time
-	fiat_code       *currencyx.Code
-	rate            *alpacadecimal.Decimal
-	effective_from  *time.Time
-	effective_to    *time.Time
-	clearedFields   map[string]struct{}
-	currency        *string
-	clearedcurrency bool
-	done            bool
-	oldValue        func(context.Context) (*CurrencyCostBasis, error)
-	predicates      []predicate.CurrencyCostBasis
+	op                       Op
+	typ                      string
+	id                       *string
+	namespace                *string
+	created_at               *time.Time
+	updated_at               *time.Time
+	deleted_at               *time.Time
+	fiat_code                *currencyx.Code
+	rate                     *alpacadecimal.Decimal
+	effective_from           *time.Time
+	effective_to             *time.Time
+	clearedFields            map[string]struct{}
+	currency                 *string
+	clearedcurrency          bool
+	subscription_pins        map[string]struct{}
+	removedsubscription_pins map[string]struct{}
+	clearedsubscription_pins bool
+	done                     bool
+	oldValue                 func(context.Context) (*CurrencyCostBasis, error)
+	predicates               []predicate.CurrencyCostBasis
 }
 
 var _ ent.Mutation = (*CurrencyCostBasisMutation)(nil)
@@ -82299,6 +82304,60 @@ func (m *CurrencyCostBasisMutation) ResetCurrency() {
 	m.clearedcurrency = false
 }
 
+// AddSubscriptionPinIDs adds the "subscription_pins" edge to the SubscriptionCostBasisPin entity by ids.
+func (m *CurrencyCostBasisMutation) AddSubscriptionPinIDs(ids ...string) {
+	if m.subscription_pins == nil {
+		m.subscription_pins = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscription_pins[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubscriptionPins clears the "subscription_pins" edge to the SubscriptionCostBasisPin entity.
+func (m *CurrencyCostBasisMutation) ClearSubscriptionPins() {
+	m.clearedsubscription_pins = true
+}
+
+// SubscriptionPinsCleared reports if the "subscription_pins" edge to the SubscriptionCostBasisPin entity was cleared.
+func (m *CurrencyCostBasisMutation) SubscriptionPinsCleared() bool {
+	return m.clearedsubscription_pins
+}
+
+// RemoveSubscriptionPinIDs removes the "subscription_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (m *CurrencyCostBasisMutation) RemoveSubscriptionPinIDs(ids ...string) {
+	if m.removedsubscription_pins == nil {
+		m.removedsubscription_pins = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscription_pins, ids[i])
+		m.removedsubscription_pins[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscriptionPins returns the removed IDs of the "subscription_pins" edge to the SubscriptionCostBasisPin entity.
+func (m *CurrencyCostBasisMutation) RemovedSubscriptionPinsIDs() (ids []string) {
+	for id := range m.removedsubscription_pins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubscriptionPinsIDs returns the "subscription_pins" edge IDs in the mutation.
+func (m *CurrencyCostBasisMutation) SubscriptionPinsIDs() (ids []string) {
+	for id := range m.subscription_pins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubscriptionPins resets all changes to the "subscription_pins" edge.
+func (m *CurrencyCostBasisMutation) ResetSubscriptionPins() {
+	m.subscription_pins = nil
+	m.clearedsubscription_pins = false
+	m.removedsubscription_pins = nil
+}
+
 // Where appends a list predicates to the CurrencyCostBasisMutation builder.
 func (m *CurrencyCostBasisMutation) Where(ps ...predicate.CurrencyCostBasis) {
 	m.predicates = append(m.predicates, ps...)
@@ -82583,9 +82642,12 @@ func (m *CurrencyCostBasisMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CurrencyCostBasisMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.currency != nil {
 		edges = append(edges, currencycostbasis.EdgeCurrency)
+	}
+	if m.subscription_pins != nil {
+		edges = append(edges, currencycostbasis.EdgeSubscriptionPins)
 	}
 	return edges
 }
@@ -82598,27 +82660,47 @@ func (m *CurrencyCostBasisMutation) AddedIDs(name string) []ent.Value {
 		if id := m.currency; id != nil {
 			return []ent.Value{*id}
 		}
+	case currencycostbasis.EdgeSubscriptionPins:
+		ids := make([]ent.Value, 0, len(m.subscription_pins))
+		for id := range m.subscription_pins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CurrencyCostBasisMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.removedsubscription_pins != nil {
+		edges = append(edges, currencycostbasis.EdgeSubscriptionPins)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *CurrencyCostBasisMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case currencycostbasis.EdgeSubscriptionPins:
+		ids := make([]ent.Value, 0, len(m.removedsubscription_pins))
+		for id := range m.removedsubscription_pins {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CurrencyCostBasisMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedcurrency {
 		edges = append(edges, currencycostbasis.EdgeCurrency)
+	}
+	if m.clearedsubscription_pins {
+		edges = append(edges, currencycostbasis.EdgeSubscriptionPins)
 	}
 	return edges
 }
@@ -82629,6 +82711,8 @@ func (m *CurrencyCostBasisMutation) EdgeCleared(name string) bool {
 	switch name {
 	case currencycostbasis.EdgeCurrency:
 		return m.clearedcurrency
+	case currencycostbasis.EdgeSubscriptionPins:
+		return m.clearedsubscription_pins
 	}
 	return false
 }
@@ -82651,6 +82735,9 @@ func (m *CurrencyCostBasisMutation) ResetEdge(name string) error {
 	case currencycostbasis.EdgeCurrency:
 		m.ResetCurrency()
 		return nil
+	case currencycostbasis.EdgeSubscriptionPins:
+		m.ResetSubscriptionPins()
+		return nil
 	}
 	return fmt.Errorf("unknown CurrencyCostBasis edge %s", name)
 }
@@ -82658,51 +82745,54 @@ func (m *CurrencyCostBasisMutation) ResetEdge(name string) error {
 // CustomCurrencyMutation represents an operation that mutates the CustomCurrency nodes in the graph.
 type CustomCurrencyMutation struct {
 	config
-	op                             Op
-	typ                            string
-	id                             *string
-	namespace                      *string
-	created_at                     *time.Time
-	updated_at                     *time.Time
-	deleted_at                     *time.Time
-	code                           *currencyx.Code
-	name                           *string
-	symbol                         *string
-	precision                      *uint32
-	addprecision                   *int32
-	decimal_mark                   *string
-	thousands_separator            *string
-	clearedFields                  map[string]struct{}
-	cost_basis_history             map[string]struct{}
-	removedcost_basis_history      map[string]struct{}
-	clearedcost_basis_history      bool
-	charges_credit_purchase        map[string]struct{}
-	removedcharges_credit_purchase map[string]struct{}
-	clearedcharges_credit_purchase bool
-	charges_flat_fee               map[string]struct{}
-	removedcharges_flat_fee        map[string]struct{}
-	clearedcharges_flat_fee        bool
-	charges_usage_based            map[string]struct{}
-	removedcharges_usage_based     map[string]struct{}
-	clearedcharges_usage_based     bool
-	plans                          map[string]struct{}
-	removedplans                   map[string]struct{}
-	clearedplans                   bool
-	addons                         map[string]struct{}
-	removedaddons                  map[string]struct{}
-	clearedaddons                  bool
-	plan_rate_cards                map[string]struct{}
-	removedplan_rate_cards         map[string]struct{}
-	clearedplan_rate_cards         bool
-	addon_rate_cards               map[string]struct{}
-	removedaddon_rate_cards        map[string]struct{}
-	clearedaddon_rate_cards        bool
-	subscription_items             map[string]struct{}
-	removedsubscription_items      map[string]struct{}
-	clearedsubscription_items      bool
-	done                           bool
-	oldValue                       func(context.Context) (*CustomCurrency, error)
-	predicates                     []predicate.CustomCurrency
+	op                                  Op
+	typ                                 string
+	id                                  *string
+	namespace                           *string
+	created_at                          *time.Time
+	updated_at                          *time.Time
+	deleted_at                          *time.Time
+	code                                *currencyx.Code
+	name                                *string
+	symbol                              *string
+	precision                           *uint32
+	addprecision                        *int32
+	decimal_mark                        *string
+	thousands_separator                 *string
+	clearedFields                       map[string]struct{}
+	cost_basis_history                  map[string]struct{}
+	removedcost_basis_history           map[string]struct{}
+	clearedcost_basis_history           bool
+	charges_credit_purchase             map[string]struct{}
+	removedcharges_credit_purchase      map[string]struct{}
+	clearedcharges_credit_purchase      bool
+	charges_flat_fee                    map[string]struct{}
+	removedcharges_flat_fee             map[string]struct{}
+	clearedcharges_flat_fee             bool
+	charges_usage_based                 map[string]struct{}
+	removedcharges_usage_based          map[string]struct{}
+	clearedcharges_usage_based          bool
+	plans                               map[string]struct{}
+	removedplans                        map[string]struct{}
+	clearedplans                        bool
+	addons                              map[string]struct{}
+	removedaddons                       map[string]struct{}
+	clearedaddons                       bool
+	plan_rate_cards                     map[string]struct{}
+	removedplan_rate_cards              map[string]struct{}
+	clearedplan_rate_cards              bool
+	addon_rate_cards                    map[string]struct{}
+	removedaddon_rate_cards             map[string]struct{}
+	clearedaddon_rate_cards             bool
+	subscription_items                  map[string]struct{}
+	removedsubscription_items           map[string]struct{}
+	clearedsubscription_items           bool
+	subscription_cost_basis_pins        map[string]struct{}
+	removedsubscription_cost_basis_pins map[string]struct{}
+	clearedsubscription_cost_basis_pins bool
+	done                                bool
+	oldValue                            func(context.Context) (*CustomCurrency, error)
+	predicates                          []predicate.CustomCurrency
 }
 
 var _ ent.Mutation = (*CustomCurrencyMutation)(nil)
@@ -83701,6 +83791,60 @@ func (m *CustomCurrencyMutation) ResetSubscriptionItems() {
 	m.removedsubscription_items = nil
 }
 
+// AddSubscriptionCostBasisPinIDs adds the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity by ids.
+func (m *CustomCurrencyMutation) AddSubscriptionCostBasisPinIDs(ids ...string) {
+	if m.subscription_cost_basis_pins == nil {
+		m.subscription_cost_basis_pins = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscription_cost_basis_pins[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubscriptionCostBasisPins clears the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity.
+func (m *CustomCurrencyMutation) ClearSubscriptionCostBasisPins() {
+	m.clearedsubscription_cost_basis_pins = true
+}
+
+// SubscriptionCostBasisPinsCleared reports if the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity was cleared.
+func (m *CustomCurrencyMutation) SubscriptionCostBasisPinsCleared() bool {
+	return m.clearedsubscription_cost_basis_pins
+}
+
+// RemoveSubscriptionCostBasisPinIDs removes the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (m *CustomCurrencyMutation) RemoveSubscriptionCostBasisPinIDs(ids ...string) {
+	if m.removedsubscription_cost_basis_pins == nil {
+		m.removedsubscription_cost_basis_pins = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscription_cost_basis_pins, ids[i])
+		m.removedsubscription_cost_basis_pins[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscriptionCostBasisPins returns the removed IDs of the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity.
+func (m *CustomCurrencyMutation) RemovedSubscriptionCostBasisPinsIDs() (ids []string) {
+	for id := range m.removedsubscription_cost_basis_pins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubscriptionCostBasisPinsIDs returns the "subscription_cost_basis_pins" edge IDs in the mutation.
+func (m *CustomCurrencyMutation) SubscriptionCostBasisPinsIDs() (ids []string) {
+	for id := range m.subscription_cost_basis_pins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubscriptionCostBasisPins resets all changes to the "subscription_cost_basis_pins" edge.
+func (m *CustomCurrencyMutation) ResetSubscriptionCostBasisPins() {
+	m.subscription_cost_basis_pins = nil
+	m.clearedsubscription_cost_basis_pins = false
+	m.removedsubscription_cost_basis_pins = nil
+}
+
 // Where appends a list predicates to the CustomCurrencyMutation builder.
 func (m *CustomCurrencyMutation) Where(ps ...predicate.CustomCurrency) {
 	m.predicates = append(m.predicates, ps...)
@@ -84017,7 +84161,7 @@ func (m *CustomCurrencyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomCurrencyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.cost_basis_history != nil {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -84044,6 +84188,9 @@ func (m *CustomCurrencyMutation) AddedEdges() []string {
 	}
 	if m.subscription_items != nil {
 		edges = append(edges, customcurrency.EdgeSubscriptionItems)
+	}
+	if m.subscription_cost_basis_pins != nil {
+		edges = append(edges, customcurrency.EdgeSubscriptionCostBasisPins)
 	}
 	return edges
 }
@@ -84106,13 +84253,19 @@ func (m *CustomCurrencyMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customcurrency.EdgeSubscriptionCostBasisPins:
+		ids := make([]ent.Value, 0, len(m.subscription_cost_basis_pins))
+		for id := range m.subscription_cost_basis_pins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomCurrencyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.removedcost_basis_history != nil {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -84139,6 +84292,9 @@ func (m *CustomCurrencyMutation) RemovedEdges() []string {
 	}
 	if m.removedsubscription_items != nil {
 		edges = append(edges, customcurrency.EdgeSubscriptionItems)
+	}
+	if m.removedsubscription_cost_basis_pins != nil {
+		edges = append(edges, customcurrency.EdgeSubscriptionCostBasisPins)
 	}
 	return edges
 }
@@ -84201,13 +84357,19 @@ func (m *CustomCurrencyMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customcurrency.EdgeSubscriptionCostBasisPins:
+		ids := make([]ent.Value, 0, len(m.removedsubscription_cost_basis_pins))
+		for id := range m.removedsubscription_cost_basis_pins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomCurrencyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.clearedcost_basis_history {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -84235,6 +84397,9 @@ func (m *CustomCurrencyMutation) ClearedEdges() []string {
 	if m.clearedsubscription_items {
 		edges = append(edges, customcurrency.EdgeSubscriptionItems)
 	}
+	if m.clearedsubscription_cost_basis_pins {
+		edges = append(edges, customcurrency.EdgeSubscriptionCostBasisPins)
+	}
 	return edges
 }
 
@@ -84260,6 +84425,8 @@ func (m *CustomCurrencyMutation) EdgeCleared(name string) bool {
 		return m.clearedaddon_rate_cards
 	case customcurrency.EdgeSubscriptionItems:
 		return m.clearedsubscription_items
+	case customcurrency.EdgeSubscriptionCostBasisPins:
+		return m.clearedsubscription_cost_basis_pins
 	}
 	return false
 }
@@ -84302,6 +84469,9 @@ func (m *CustomCurrencyMutation) ResetEdge(name string) error {
 		return nil
 	case customcurrency.EdgeSubscriptionItems:
 		m.ResetSubscriptionItems()
+		return nil
+	case customcurrency.EdgeSubscriptionCostBasisPins:
+		m.ResetSubscriptionCostBasisPins()
 		return nil
 	}
 	return fmt.Errorf("unknown CustomCurrency edge %s", name)
@@ -117539,7 +117709,8 @@ type SubscriptionMutation struct {
 	active_to                              *time.Time
 	name                                   *string
 	description                            *string
-	currency                               *currencyx.Code
+	invoice_currency                       *currencyx.Code
+	cost_basis_mode                        *subscription.CostBasisMode
 	billing_anchor                         *time.Time
 	billing_cadence                        *datetime.ISODurationString
 	pro_rating_config                      *productcatalog.ProRatingConfig
@@ -117575,6 +117746,9 @@ type SubscriptionMutation struct {
 	clearedaddons                          bool
 	billing_sync_state                     *string
 	clearedbilling_sync_state              bool
+	cost_basis_pins                        map[string]struct{}
+	removedcost_basis_pins                 map[string]struct{}
+	clearedcost_basis_pins                 bool
 	done                                   bool
 	oldValue                               func(context.Context) (*Subscription, error)
 	predicates                             []predicate.Subscription
@@ -118194,40 +118368,76 @@ func (m *SubscriptionMutation) ResetCustomerID() {
 	m.customer = nil
 }
 
-// SetCurrency sets the "currency" field.
-func (m *SubscriptionMutation) SetCurrency(c currencyx.Code) {
-	m.currency = &c
+// SetInvoiceCurrency sets the "invoice_currency" field.
+func (m *SubscriptionMutation) SetInvoiceCurrency(c currencyx.Code) {
+	m.invoice_currency = &c
 }
 
-// Currency returns the value of the "currency" field in the mutation.
-func (m *SubscriptionMutation) Currency() (r currencyx.Code, exists bool) {
-	v := m.currency
+// InvoiceCurrency returns the value of the "invoice_currency" field in the mutation.
+func (m *SubscriptionMutation) InvoiceCurrency() (r currencyx.Code, exists bool) {
+	v := m.invoice_currency
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCurrency returns the old "currency" field's value of the Subscription entity.
+// OldInvoiceCurrency returns the old "invoice_currency" field's value of the Subscription entity.
 // If the Subscription object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+func (m *SubscriptionMutation) OldInvoiceCurrency(ctx context.Context) (v currencyx.Code, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+		return v, errors.New("OldInvoiceCurrency is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrency requires an ID field in the mutation")
+		return v, errors.New("OldInvoiceCurrency requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+		return v, fmt.Errorf("querying old value for OldInvoiceCurrency: %w", err)
 	}
-	return oldValue.Currency, nil
+	return oldValue.InvoiceCurrency, nil
 }
 
-// ResetCurrency resets all changes to the "currency" field.
-func (m *SubscriptionMutation) ResetCurrency() {
-	m.currency = nil
+// ResetInvoiceCurrency resets all changes to the "invoice_currency" field.
+func (m *SubscriptionMutation) ResetInvoiceCurrency() {
+	m.invoice_currency = nil
+}
+
+// SetCostBasisMode sets the "cost_basis_mode" field.
+func (m *SubscriptionMutation) SetCostBasisMode(sbm subscription.CostBasisMode) {
+	m.cost_basis_mode = &sbm
+}
+
+// CostBasisMode returns the value of the "cost_basis_mode" field in the mutation.
+func (m *SubscriptionMutation) CostBasisMode() (r subscription.CostBasisMode, exists bool) {
+	v := m.cost_basis_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostBasisMode returns the old "cost_basis_mode" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldCostBasisMode(ctx context.Context) (v subscription.CostBasisMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostBasisMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostBasisMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostBasisMode: %w", err)
+	}
+	return oldValue.CostBasisMode, nil
+}
+
+// ResetCostBasisMode resets all changes to the "cost_basis_mode" field.
+func (m *SubscriptionMutation) ResetCostBasisMode() {
+	m.cost_basis_mode = nil
 }
 
 // SetBillingAnchor sets the "billing_anchor" field.
@@ -118899,6 +119109,60 @@ func (m *SubscriptionMutation) ResetBillingSyncState() {
 	m.clearedbilling_sync_state = false
 }
 
+// AddCostBasisPinIDs adds the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity by ids.
+func (m *SubscriptionMutation) AddCostBasisPinIDs(ids ...string) {
+	if m.cost_basis_pins == nil {
+		m.cost_basis_pins = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.cost_basis_pins[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCostBasisPins clears the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity.
+func (m *SubscriptionMutation) ClearCostBasisPins() {
+	m.clearedcost_basis_pins = true
+}
+
+// CostBasisPinsCleared reports if the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity was cleared.
+func (m *SubscriptionMutation) CostBasisPinsCleared() bool {
+	return m.clearedcost_basis_pins
+}
+
+// RemoveCostBasisPinIDs removes the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (m *SubscriptionMutation) RemoveCostBasisPinIDs(ids ...string) {
+	if m.removedcost_basis_pins == nil {
+		m.removedcost_basis_pins = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.cost_basis_pins, ids[i])
+		m.removedcost_basis_pins[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCostBasisPins returns the removed IDs of the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity.
+func (m *SubscriptionMutation) RemovedCostBasisPinsIDs() (ids []string) {
+	for id := range m.removedcost_basis_pins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CostBasisPinsIDs returns the "cost_basis_pins" edge IDs in the mutation.
+func (m *SubscriptionMutation) CostBasisPinsIDs() (ids []string) {
+	for id := range m.cost_basis_pins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCostBasisPins resets all changes to the "cost_basis_pins" edge.
+func (m *SubscriptionMutation) ResetCostBasisPins() {
+	m.cost_basis_pins = nil
+	m.clearedcost_basis_pins = false
+	m.removedcost_basis_pins = nil
+}
+
 // Where appends a list predicates to the SubscriptionMutation builder.
 func (m *SubscriptionMutation) Where(ps ...predicate.Subscription) {
 	m.predicates = append(m.predicates, ps...)
@@ -118933,7 +119197,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -118970,8 +119234,11 @@ func (m *SubscriptionMutation) Fields() []string {
 	if m.customer != nil {
 		fields = append(fields, subscription.FieldCustomerID)
 	}
-	if m.currency != nil {
-		fields = append(fields, subscription.FieldCurrency)
+	if m.invoice_currency != nil {
+		fields = append(fields, subscription.FieldInvoiceCurrency)
+	}
+	if m.cost_basis_mode != nil {
+		fields = append(fields, subscription.FieldCostBasisMode)
 	}
 	if m.billing_anchor != nil {
 		fields = append(fields, subscription.FieldBillingAnchor)
@@ -119017,8 +119284,10 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.PlanID()
 	case subscription.FieldCustomerID:
 		return m.CustomerID()
-	case subscription.FieldCurrency:
-		return m.Currency()
+	case subscription.FieldInvoiceCurrency:
+		return m.InvoiceCurrency()
+	case subscription.FieldCostBasisMode:
+		return m.CostBasisMode()
 	case subscription.FieldBillingAnchor:
 		return m.BillingAnchor()
 	case subscription.FieldBillingCadence:
@@ -119060,8 +119329,10 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldPlanID(ctx)
 	case subscription.FieldCustomerID:
 		return m.OldCustomerID(ctx)
-	case subscription.FieldCurrency:
-		return m.OldCurrency(ctx)
+	case subscription.FieldInvoiceCurrency:
+		return m.OldInvoiceCurrency(ctx)
+	case subscription.FieldCostBasisMode:
+		return m.OldCostBasisMode(ctx)
 	case subscription.FieldBillingAnchor:
 		return m.OldBillingAnchor(ctx)
 	case subscription.FieldBillingCadence:
@@ -119163,12 +119434,19 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCustomerID(v)
 		return nil
-	case subscription.FieldCurrency:
+	case subscription.FieldInvoiceCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCurrency(v)
+		m.SetInvoiceCurrency(v)
+		return nil
+	case subscription.FieldCostBasisMode:
+		v, ok := value.(subscription.CostBasisMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostBasisMode(v)
 		return nil
 	case subscription.FieldBillingAnchor:
 		v, ok := value.(time.Time)
@@ -119322,8 +119600,11 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 	case subscription.FieldCustomerID:
 		m.ResetCustomerID()
 		return nil
-	case subscription.FieldCurrency:
-		m.ResetCurrency()
+	case subscription.FieldInvoiceCurrency:
+		m.ResetInvoiceCurrency()
+		return nil
+	case subscription.FieldCostBasisMode:
+		m.ResetCostBasisMode()
 		return nil
 	case subscription.FieldBillingAnchor:
 		m.ResetBillingAnchor()
@@ -119343,7 +119624,7 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 11)
+	edges := make([]string, 0, 12)
 	if m.plan != nil {
 		edges = append(edges, subscription.EdgePlan)
 	}
@@ -119376,6 +119657,9 @@ func (m *SubscriptionMutation) AddedEdges() []string {
 	}
 	if m.billing_sync_state != nil {
 		edges = append(edges, subscription.EdgeBillingSyncState)
+	}
+	if m.cost_basis_pins != nil {
+		edges = append(edges, subscription.EdgeCostBasisPins)
 	}
 	return edges
 }
@@ -119444,13 +119728,19 @@ func (m *SubscriptionMutation) AddedIDs(name string) []ent.Value {
 		if id := m.billing_sync_state; id != nil {
 			return []ent.Value{*id}
 		}
+	case subscription.EdgeCostBasisPins:
+		ids := make([]ent.Value, 0, len(m.cost_basis_pins))
+		for id := range m.cost_basis_pins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 11)
+	edges := make([]string, 0, 12)
 	if m.removedphases != nil {
 		edges = append(edges, subscription.EdgePhases)
 	}
@@ -119474,6 +119764,9 @@ func (m *SubscriptionMutation) RemovedEdges() []string {
 	}
 	if m.removedaddons != nil {
 		edges = append(edges, subscription.EdgeAddons)
+	}
+	if m.removedcost_basis_pins != nil {
+		edges = append(edges, subscription.EdgeCostBasisPins)
 	}
 	return edges
 }
@@ -119530,13 +119823,19 @@ func (m *SubscriptionMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscription.EdgeCostBasisPins:
+		ids := make([]ent.Value, 0, len(m.removedcost_basis_pins))
+		for id := range m.removedcost_basis_pins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 11)
+	edges := make([]string, 0, 12)
 	if m.clearedplan {
 		edges = append(edges, subscription.EdgePlan)
 	}
@@ -119570,6 +119869,9 @@ func (m *SubscriptionMutation) ClearedEdges() []string {
 	if m.clearedbilling_sync_state {
 		edges = append(edges, subscription.EdgeBillingSyncState)
 	}
+	if m.clearedcost_basis_pins {
+		edges = append(edges, subscription.EdgeCostBasisPins)
+	}
 	return edges
 }
 
@@ -119599,6 +119901,8 @@ func (m *SubscriptionMutation) EdgeCleared(name string) bool {
 		return m.clearedaddons
 	case subscription.EdgeBillingSyncState:
 		return m.clearedbilling_sync_state
+	case subscription.EdgeCostBasisPins:
+		return m.clearedcost_basis_pins
 	}
 	return false
 }
@@ -119656,6 +119960,9 @@ func (m *SubscriptionMutation) ResetEdge(name string) error {
 		return nil
 	case subscription.EdgeBillingSyncState:
 		m.ResetBillingSyncState()
+		return nil
+	case subscription.EdgeCostBasisPins:
+		m.ResetCostBasisPins()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription edge %s", name)
@@ -121933,6 +122240,884 @@ func (m *SubscriptionBillingSyncStateMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionBillingSyncState edge %s", name)
+}
+
+// SubscriptionCostBasisPinMutation represents an operation that mutates the SubscriptionCostBasisPin nodes in the graph.
+type SubscriptionCostBasisPinMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	invoice_currency       *currencyx.Code
+	clearedFields          map[string]struct{}
+	subscription           *string
+	clearedsubscription    bool
+	custom_currency        *string
+	clearedcustom_currency bool
+	cost_basis             *string
+	clearedcost_basis      bool
+	done                   bool
+	oldValue               func(context.Context) (*SubscriptionCostBasisPin, error)
+	predicates             []predicate.SubscriptionCostBasisPin
+}
+
+var _ ent.Mutation = (*SubscriptionCostBasisPinMutation)(nil)
+
+// subscriptioncostbasispinOption allows management of the mutation configuration using functional options.
+type subscriptioncostbasispinOption func(*SubscriptionCostBasisPinMutation)
+
+// newSubscriptionCostBasisPinMutation creates new mutation for the SubscriptionCostBasisPin entity.
+func newSubscriptionCostBasisPinMutation(c config, op Op, opts ...subscriptioncostbasispinOption) *SubscriptionCostBasisPinMutation {
+	m := &SubscriptionCostBasisPinMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSubscriptionCostBasisPin,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSubscriptionCostBasisPinID sets the ID field of the mutation.
+func withSubscriptionCostBasisPinID(id string) subscriptioncostbasispinOption {
+	return func(m *SubscriptionCostBasisPinMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SubscriptionCostBasisPin
+		)
+		m.oldValue = func(ctx context.Context) (*SubscriptionCostBasisPin, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SubscriptionCostBasisPin.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSubscriptionCostBasisPin sets the old SubscriptionCostBasisPin of the mutation.
+func withSubscriptionCostBasisPin(node *SubscriptionCostBasisPin) subscriptioncostbasispinOption {
+	return func(m *SubscriptionCostBasisPinMutation) {
+		m.oldValue = func(context.Context) (*SubscriptionCostBasisPin, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SubscriptionCostBasisPinMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SubscriptionCostBasisPinMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SubscriptionCostBasisPin entities.
+func (m *SubscriptionCostBasisPinMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SubscriptionCostBasisPinMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SubscriptionCostBasisPinMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SubscriptionCostBasisPin.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *SubscriptionCostBasisPinMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *SubscriptionCostBasisPinMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *SubscriptionCostBasisPinMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SubscriptionCostBasisPinMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *SubscriptionCostBasisPinMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *SubscriptionCostBasisPinMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *SubscriptionCostBasisPinMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *SubscriptionCostBasisPinMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[subscriptioncostbasispin.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *SubscriptionCostBasisPinMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[subscriptioncostbasispin.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *SubscriptionCostBasisPinMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, subscriptioncostbasispin.FieldDeletedAt)
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (m *SubscriptionCostBasisPinMutation) SetSubscriptionID(s string) {
+	m.subscription = &s
+}
+
+// SubscriptionID returns the value of the "subscription_id" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) SubscriptionID() (r string, exists bool) {
+	v := m.subscription
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionID returns the old "subscription_id" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldSubscriptionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionID: %w", err)
+	}
+	return oldValue.SubscriptionID, nil
+}
+
+// ResetSubscriptionID resets all changes to the "subscription_id" field.
+func (m *SubscriptionCostBasisPinMutation) ResetSubscriptionID() {
+	m.subscription = nil
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *SubscriptionCostBasisPinMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldCustomCurrencyID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *SubscriptionCostBasisPinMutation) ResetCustomCurrencyID() {
+	m.custom_currency = nil
+}
+
+// SetInvoiceCurrency sets the "invoice_currency" field.
+func (m *SubscriptionCostBasisPinMutation) SetInvoiceCurrency(c currencyx.Code) {
+	m.invoice_currency = &c
+}
+
+// InvoiceCurrency returns the value of the "invoice_currency" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) InvoiceCurrency() (r currencyx.Code, exists bool) {
+	v := m.invoice_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceCurrency returns the old "invoice_currency" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldInvoiceCurrency(ctx context.Context) (v currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceCurrency: %w", err)
+	}
+	return oldValue.InvoiceCurrency, nil
+}
+
+// ResetInvoiceCurrency resets all changes to the "invoice_currency" field.
+func (m *SubscriptionCostBasisPinMutation) ResetInvoiceCurrency() {
+	m.invoice_currency = nil
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (m *SubscriptionCostBasisPinMutation) SetCostBasisID(s string) {
+	m.cost_basis = &s
+}
+
+// CostBasisID returns the value of the "cost_basis_id" field in the mutation.
+func (m *SubscriptionCostBasisPinMutation) CostBasisID() (r string, exists bool) {
+	v := m.cost_basis
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostBasisID returns the old "cost_basis_id" field's value of the SubscriptionCostBasisPin entity.
+// If the SubscriptionCostBasisPin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionCostBasisPinMutation) OldCostBasisID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostBasisID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostBasisID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostBasisID: %w", err)
+	}
+	return oldValue.CostBasisID, nil
+}
+
+// ResetCostBasisID resets all changes to the "cost_basis_id" field.
+func (m *SubscriptionCostBasisPinMutation) ResetCostBasisID() {
+	m.cost_basis = nil
+}
+
+// ClearSubscription clears the "subscription" edge to the Subscription entity.
+func (m *SubscriptionCostBasisPinMutation) ClearSubscription() {
+	m.clearedsubscription = true
+	m.clearedFields[subscriptioncostbasispin.FieldSubscriptionID] = struct{}{}
+}
+
+// SubscriptionCleared reports if the "subscription" edge to the Subscription entity was cleared.
+func (m *SubscriptionCostBasisPinMutation) SubscriptionCleared() bool {
+	return m.clearedsubscription
+}
+
+// SubscriptionIDs returns the "subscription" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SubscriptionID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionCostBasisPinMutation) SubscriptionIDs() (ids []string) {
+	if id := m.subscription; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSubscription resets all changes to the "subscription" edge.
+func (m *SubscriptionCostBasisPinMutation) ResetSubscription() {
+	m.subscription = nil
+	m.clearedsubscription = false
+}
+
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (m *SubscriptionCostBasisPinMutation) ClearCustomCurrency() {
+	m.clearedcustom_currency = true
+	m.clearedFields[subscriptioncostbasispin.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyCleared reports if the "custom_currency" edge to the CustomCurrency entity was cleared.
+func (m *SubscriptionCostBasisPinMutation) CustomCurrencyCleared() bool {
+	return m.clearedcustom_currency
+}
+
+// CustomCurrencyIDs returns the "custom_currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomCurrencyID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionCostBasisPinMutation) CustomCurrencyIDs() (ids []string) {
+	if id := m.custom_currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomCurrency resets all changes to the "custom_currency" edge.
+func (m *SubscriptionCostBasisPinMutation) ResetCustomCurrency() {
+	m.custom_currency = nil
+	m.clearedcustom_currency = false
+}
+
+// ClearCostBasis clears the "cost_basis" edge to the CurrencyCostBasis entity.
+func (m *SubscriptionCostBasisPinMutation) ClearCostBasis() {
+	m.clearedcost_basis = true
+	m.clearedFields[subscriptioncostbasispin.FieldCostBasisID] = struct{}{}
+}
+
+// CostBasisCleared reports if the "cost_basis" edge to the CurrencyCostBasis entity was cleared.
+func (m *SubscriptionCostBasisPinMutation) CostBasisCleared() bool {
+	return m.clearedcost_basis
+}
+
+// CostBasisIDs returns the "cost_basis" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CostBasisID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionCostBasisPinMutation) CostBasisIDs() (ids []string) {
+	if id := m.cost_basis; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCostBasis resets all changes to the "cost_basis" edge.
+func (m *SubscriptionCostBasisPinMutation) ResetCostBasis() {
+	m.cost_basis = nil
+	m.clearedcost_basis = false
+}
+
+// Where appends a list predicates to the SubscriptionCostBasisPinMutation builder.
+func (m *SubscriptionCostBasisPinMutation) Where(ps ...predicate.SubscriptionCostBasisPin) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SubscriptionCostBasisPinMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SubscriptionCostBasisPinMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SubscriptionCostBasisPin, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SubscriptionCostBasisPinMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SubscriptionCostBasisPinMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SubscriptionCostBasisPin).
+func (m *SubscriptionCostBasisPinMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SubscriptionCostBasisPinMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.namespace != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldDeletedAt)
+	}
+	if m.subscription != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldSubscriptionID)
+	}
+	if m.custom_currency != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldCustomCurrencyID)
+	}
+	if m.invoice_currency != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldInvoiceCurrency)
+	}
+	if m.cost_basis != nil {
+		fields = append(fields, subscriptioncostbasispin.FieldCostBasisID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SubscriptionCostBasisPinMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case subscriptioncostbasispin.FieldNamespace:
+		return m.Namespace()
+	case subscriptioncostbasispin.FieldCreatedAt:
+		return m.CreatedAt()
+	case subscriptioncostbasispin.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case subscriptioncostbasispin.FieldDeletedAt:
+		return m.DeletedAt()
+	case subscriptioncostbasispin.FieldSubscriptionID:
+		return m.SubscriptionID()
+	case subscriptioncostbasispin.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
+	case subscriptioncostbasispin.FieldInvoiceCurrency:
+		return m.InvoiceCurrency()
+	case subscriptioncostbasispin.FieldCostBasisID:
+		return m.CostBasisID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SubscriptionCostBasisPinMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case subscriptioncostbasispin.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case subscriptioncostbasispin.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case subscriptioncostbasispin.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case subscriptioncostbasispin.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case subscriptioncostbasispin.FieldSubscriptionID:
+		return m.OldSubscriptionID(ctx)
+	case subscriptioncostbasispin.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
+	case subscriptioncostbasispin.FieldInvoiceCurrency:
+		return m.OldInvoiceCurrency(ctx)
+	case subscriptioncostbasispin.FieldCostBasisID:
+		return m.OldCostBasisID(ctx)
+	}
+	return nil, fmt.Errorf("unknown SubscriptionCostBasisPin field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionCostBasisPinMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case subscriptioncostbasispin.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case subscriptioncostbasispin.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case subscriptioncostbasispin.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case subscriptioncostbasispin.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case subscriptioncostbasispin.FieldSubscriptionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionID(v)
+		return nil
+	case subscriptioncostbasispin.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
+		return nil
+	case subscriptioncostbasispin.FieldInvoiceCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceCurrency(v)
+		return nil
+	case subscriptioncostbasispin.FieldCostBasisID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostBasisID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionCostBasisPin field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SubscriptionCostBasisPinMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SubscriptionCostBasisPinMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SubscriptionCostBasisPinMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SubscriptionCostBasisPin numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SubscriptionCostBasisPinMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(subscriptioncostbasispin.FieldDeletedAt) {
+		fields = append(fields, subscriptioncostbasispin.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SubscriptionCostBasisPinMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SubscriptionCostBasisPinMutation) ClearField(name string) error {
+	switch name {
+	case subscriptioncostbasispin.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionCostBasisPin nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SubscriptionCostBasisPinMutation) ResetField(name string) error {
+	switch name {
+	case subscriptioncostbasispin.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case subscriptioncostbasispin.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case subscriptioncostbasispin.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case subscriptioncostbasispin.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case subscriptioncostbasispin.FieldSubscriptionID:
+		m.ResetSubscriptionID()
+		return nil
+	case subscriptioncostbasispin.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
+		return nil
+	case subscriptioncostbasispin.FieldInvoiceCurrency:
+		m.ResetInvoiceCurrency()
+		return nil
+	case subscriptioncostbasispin.FieldCostBasisID:
+		m.ResetCostBasisID()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionCostBasisPin field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SubscriptionCostBasisPinMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.subscription != nil {
+		edges = append(edges, subscriptioncostbasispin.EdgeSubscription)
+	}
+	if m.custom_currency != nil {
+		edges = append(edges, subscriptioncostbasispin.EdgeCustomCurrency)
+	}
+	if m.cost_basis != nil {
+		edges = append(edges, subscriptioncostbasispin.EdgeCostBasis)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SubscriptionCostBasisPinMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case subscriptioncostbasispin.EdgeSubscription:
+		if id := m.subscription; id != nil {
+			return []ent.Value{*id}
+		}
+	case subscriptioncostbasispin.EdgeCustomCurrency:
+		if id := m.custom_currency; id != nil {
+			return []ent.Value{*id}
+		}
+	case subscriptioncostbasispin.EdgeCostBasis:
+		if id := m.cost_basis; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SubscriptionCostBasisPinMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SubscriptionCostBasisPinMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SubscriptionCostBasisPinMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedsubscription {
+		edges = append(edges, subscriptioncostbasispin.EdgeSubscription)
+	}
+	if m.clearedcustom_currency {
+		edges = append(edges, subscriptioncostbasispin.EdgeCustomCurrency)
+	}
+	if m.clearedcost_basis {
+		edges = append(edges, subscriptioncostbasispin.EdgeCostBasis)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SubscriptionCostBasisPinMutation) EdgeCleared(name string) bool {
+	switch name {
+	case subscriptioncostbasispin.EdgeSubscription:
+		return m.clearedsubscription
+	case subscriptioncostbasispin.EdgeCustomCurrency:
+		return m.clearedcustom_currency
+	case subscriptioncostbasispin.EdgeCostBasis:
+		return m.clearedcost_basis
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SubscriptionCostBasisPinMutation) ClearEdge(name string) error {
+	switch name {
+	case subscriptioncostbasispin.EdgeSubscription:
+		m.ClearSubscription()
+		return nil
+	case subscriptioncostbasispin.EdgeCustomCurrency:
+		m.ClearCustomCurrency()
+		return nil
+	case subscriptioncostbasispin.EdgeCostBasis:
+		m.ClearCostBasis()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionCostBasisPin unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SubscriptionCostBasisPinMutation) ResetEdge(name string) error {
+	switch name {
+	case subscriptioncostbasispin.EdgeSubscription:
+		m.ResetSubscription()
+		return nil
+	case subscriptioncostbasispin.EdgeCustomCurrency:
+		m.ResetCustomCurrency()
+		return nil
+	case subscriptioncostbasispin.EdgeCostBasis:
+		m.ResetCostBasis()
+		return nil
+	}
+	return fmt.Errorf("unknown SubscriptionCostBasisPin edge %s", name)
 }
 
 // SubscriptionItemMutation represents an operation that mutates the SubscriptionItem nodes in the graph.

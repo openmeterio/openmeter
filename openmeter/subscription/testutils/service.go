@@ -58,6 +58,7 @@ type SubscriptionDependencies struct {
 	CustomerAdapter          *testCustomerRepo
 	CustomerService          customer.Service
 	CurrencyService          currencies.Service
+	CurrencyResolver         currencies.CurrencyResolver
 	SubjectService           subject.Service
 	FeatureConnector         *testFeatureConnector
 	ExampleMeterID           string
@@ -231,6 +232,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Lockr:                 lockr,
 		FeatureFlags:          ffService,
 		TaxCode:               taxCodeService,
+		CostBasisService:      currencyService,
 	})
 	require.NoError(t, err)
 
@@ -286,6 +288,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	workflowSvc, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,
 		CustomerService:    customerService,
+		CurrencyResolver:   currencyResolver,
 		TransactionManager: subItemRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
@@ -300,6 +303,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		CustomerAdapter:          customerAdapter,
 		CustomerService:          customerService,
 		CurrencyService:          currencyService,
+		CurrencyResolver:         currencyResolver,
 		SubjectService:           subjectService,
 		FeatureConnector:         NewTestFeatureConnector(entitlementRegistry.Feature),
 		ExampleMeterID:           meterID,
