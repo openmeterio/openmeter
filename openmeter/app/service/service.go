@@ -11,9 +11,9 @@ import (
 var _ app.Service = (*Service)(nil)
 
 type Service struct {
-	adapter        app.Adapter
-	publisher      eventbus.Publisher
-	uninstallHooks servicehooks.Registry[app.AppUninstallEvent]
+	adapter   app.Adapter
+	publisher eventbus.Publisher
+	hooks     servicehooks.Registry[app.LifecycleEvent]
 }
 
 type Config struct {

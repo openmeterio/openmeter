@@ -1333,7 +1333,7 @@ func (n NoopAppService) ListApps(ctx context.Context, input app.ListAppInput) (p
 	return pagination.Result[app.App]{}, nil
 }
 
-func (n NoopAppService) RegisterUninstallHook(name string, hook servicehooks.Hook[app.AppUninstallEvent]) error {
+func (n NoopAppService) RegisterHook(name string, hook servicehooks.Hook[app.LifecycleEvent]) error {
 	return nil
 }
 

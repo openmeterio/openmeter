@@ -13,8 +13,8 @@ import (
 
 var _ app.AppService = (*Service)(nil)
 
-func (s *Service) RegisterUninstallHook(name string, hook servicehooks.Hook[app.AppUninstallEvent]) error {
-	return s.uninstallHooks.Register(name, hook)
+func (s *Service) RegisterHook(name string, hook servicehooks.Hook[app.LifecycleEvent]) error {
+	return s.hooks.Register(name, hook)
 }
 
 func (s *Service) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
@@ -112,10 +112,12 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 			return uninstallResult{}, err
 		}
 
-		if err := s.uninstallHooks.Invoke(ctx, app.AppUninstallEvent{
-			App: existingApp.GetAppBase(),
+		before := existingApp.GetAppBase()
+		if err := s.hooks.Invoke(ctx, app.LifecycleEvent{
+			Operation: app.OperationKindUninstall,
+			Before:    &before,
 		}); err != nil {
-			return uninstallResult{}, fmt.Errorf("invoking app uninstall hooks: %w", err)
+			return uninstallResult{}, fmt.Errorf("invoking app lifecycle hooks: %w", err)
 		}
 
 		// Delete the app

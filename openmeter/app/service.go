@@ -26,7 +26,7 @@ type AppService interface {
 	UpdateAppStatus(ctx context.Context, input UpdateAppStatusInput) error
 	UpdateApp(ctx context.Context, input UpdateAppInput) (App, error)
 	ListApps(ctx context.Context, input ListAppInput) (pagination.Result[App], error)
-	RegisterUninstallHook(name string, hook servicehooks.Hook[AppUninstallEvent]) error
+	RegisterHook(name string, hook servicehooks.Hook[LifecycleEvent]) error
 	UninstallApp(ctx context.Context, input UninstallAppInput) error
 
 	// Customer data
@@ -35,8 +35,16 @@ type AppService interface {
 	DeleteCustomer(ctx context.Context, input DeleteCustomerInput) error
 }
 
-// AppUninstallEvent contains the installed app state available to synchronous
-// validators before provider-specific resources are removed.
-type AppUninstallEvent struct {
-	App AppBase
+type OperationKind string
+
+const (
+	OperationKindUninstall OperationKind = "uninstall"
+)
+
+// LifecycleEvent contains the app state available to synchronous hooks for an
+// operation. Before and After are populated according to the operation kind.
+type LifecycleEvent struct {
+	Operation OperationKind
+	Before    *AppBase
+	After     *AppBase
 }

@@ -280,7 +280,7 @@ func NewBillingRegistry(
 		return BillingRegistry{}, err
 	}
 
-	if err := appService.RegisterUninstallHook(billingappuninstall.HookName, appUninstallValidator); err != nil {
+	if err := appService.RegisterHook(billingappuninstall.HookName, appUninstallValidator); err != nil {
 		return BillingRegistry{}, fmt.Errorf("registering billing app uninstall validator: %w", err)
 	}
 

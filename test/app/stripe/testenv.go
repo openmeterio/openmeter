@@ -167,7 +167,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create billing app uninstall validator: %w", err)
 	}
 
-	if err := appService.RegisterUninstallHook(billingappuninstall.HookName, appUninstallValidator); err != nil {
+	if err := appService.RegisterHook(billingappuninstall.HookName, appUninstallValidator); err != nil {
 		return nil, fmt.Errorf("failed to register billing app uninstall validator: %w", err)
 	}
 
