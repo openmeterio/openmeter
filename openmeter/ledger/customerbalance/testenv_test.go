@@ -326,6 +326,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		Handler:     creditPurchaseHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
+		Currencies:  currencyService,
 	})
 	require.NoError(t, err)
 
@@ -636,11 +637,11 @@ func (e *testEnv) createCreditPurchase(
 		From: periodAt,
 		To:   periodAt,
 	}
-	var costBasis *creditpurchase.CostBasis
+	var costBasis creditpurchase.CostBasis
 	if settlement.Type() != creditpurchase.SettlementTypePromotional {
-		costBasis = lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+		costBasis = creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 			Rate: alpacadecimal.NewFromInt(1),
-		}))
+		})
 	}
 
 	result, err := e.creditPurchase.Create(t.Context(), creditpurchase.CreateInput{

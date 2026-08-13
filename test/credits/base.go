@@ -64,6 +64,7 @@ type BaseSuite struct {
 	FlatFeeHandler       flatfee.Handler
 	LineageService       lineage.Service
 	RevenueRecognizer    recognizer.Service
+	CurrencyService      currencies.Service
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -178,6 +179,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.Charges = stack.ChargesService
 	s.CreditPurchaseSvc = stack.CreditPurchaseService
 	s.UsageBasedSvc = stack.UsageBasedService
+	s.CurrencyService = stack.CurrencyService
 
 	customerBalanceSvc, err := customerbalance.New(customerbalance.Config{
 		AccountResolver:   deps.ResolversService,
@@ -777,15 +779,15 @@ type CreateCreditPurchaseIntentInput struct {
 	Priority       *int
 	ServicePeriod  timeutil.ClosedPeriod
 	Settlement     creditpurchase.Settlement
-	CostBasis      *creditpurchase.CostBasis
+	CostBasis      creditpurchase.CostBasis
 	FeatureFilters creditpurchase.FeatureFilters
 	TaxConfig      productcatalog.TaxCodeConfig
 }
 
-func newFiatCreditPurchaseCostBasis(rate alpacadecimal.Decimal) *creditpurchase.CostBasis {
-	return lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+func newFiatCreditPurchaseCostBasis(rate alpacadecimal.Decimal) creditpurchase.CostBasis {
+	return creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 		Rate: rate,
-	}))
+	})
 }
 
 func (i CreateCreditPurchaseIntentInput) Validate() error {

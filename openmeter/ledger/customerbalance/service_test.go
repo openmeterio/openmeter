@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -833,9 +833,15 @@ func TestIsPendingCreditGrantAt(t *testing.T) {
 						CreditAmount: alpacadecimal.NewFromInt(10),
 						Settlement:   creditpurchase.NewInvoiceSettlement(),
 					},
-					CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+					CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 						Rate: alpacadecimal.NewFromInt(1),
-					})),
+					}),
+				},
+				State: creditpurchase.State{
+					ResolvedCostBasis: &costbasis.State{
+						CostBasis:  alpacadecimal.NewFromInt(1),
+						ResolvedAt: now,
+					},
 				},
 			},
 		}

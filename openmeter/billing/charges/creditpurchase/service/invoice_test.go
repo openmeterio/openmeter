@@ -10,13 +10,40 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestBuildInvoiceCreditPurchaseGatheringLineUsesZeroForUnresolvedCostBasis(t *testing.T) {
+	// given:
+	// - an invoice credit purchase whose dynamic cost basis is not yet resolved
+	// when:
+	// - its gathering line is built
+	// then:
+	// - the line keeps the settlement currency and uses a temporary zero amount
+	charge := newInvoiceStateMachineTestCharge(t, creditpurchase.StatusCreated)
+	charge.Intent.Currency = currenciestestutils.NewCustomCurrency(t, "TOKENS", 3)
+	fiatCurrency, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+	charge.Intent.CostBasis = creditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.DynamicIntent{
+		FiatCurrency: fiatCurrency,
+	}))
+	charge.State.ChargeCostBasisID = lo.ToPtr("charge-cost-basis-1")
+	charge.State.ResolvedCostBasis = nil
+
+	line, err := buildInvoiceCreditPurchaseGatheringLine(charge)
+	require.NoError(t, err)
+	require.Equal(t, currencyx.FiatCode("USD"), line.Currency)
+	price, err := line.Price.AsFlat()
+	require.NoError(t, err)
+	require.Equal(t, float64(0), price.Amount.InexactFloat64())
+}
 
 func TestInvoiceCreditPurchaseStateMachineRejectsMismatchedPaymentLine(t *testing.T) {
 	charge := newGrantedInvoiceStateMachineTestCharge(t, creditpurchase.StatusActivePaymentAuthorized)
@@ -26,8 +53,9 @@ func TestInvoiceCreditPurchaseStateMachineRejectsMismatchedPaymentLine(t *testin
 	adapter := &externalStateMachineAdapter{}
 	handler := &externalStateMachineHandler{}
 	service := &service{
-		adapter:      adapter,
-		realizations: newExternalStateMachineRealizations(t, adapter, handler, &externalStateMachineLineage{}),
+		adapter:           adapter,
+		realizations:      newExternalStateMachineRealizations(t, adapter, handler, &externalStateMachineLineage{}),
+		costbasisResolver: externalStateMachineCostBasisResolver{},
 	}
 
 	_, err := service.handleInvoiceLifecycleTrigger(t.Context(), HandleInvoiceLifecycleTriggerInput{

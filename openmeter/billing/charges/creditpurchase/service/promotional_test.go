@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -90,16 +91,17 @@ func TestPromotionalCreditPurchaseStateMachineRejectsExistingCreditGrant(t *test
 
 	adapter := &promotionalStateMachineAdapter{}
 	lineageService := &promotionalStateMachineLineage{}
-	svc := &service{
-		adapter: adapter,
-		handler: &promotionalStateMachineHandler{},
-		lineage: lineageService,
-	}
+	realizationsService := newPromotionalStateMachineRealizations(
+		t,
+		adapter,
+		&promotionalStateMachineHandler{},
+		lineageService,
+	)
 
 	stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  charge,
-		Adapter: adapter,
-		Service: svc,
+		Charge:       charge,
+		Adapter:      adapter,
+		Realizations: realizationsService,
 	})
 	require.NoError(t, err)
 
@@ -121,16 +123,17 @@ func TestPromotionalCreditPurchaseStateMachineReturnsNilForFinalCharge(t *testin
 	// then:
 	// - it is already stable and does not call side-effect handlers
 	adapter := &promotionalStateMachineAdapter{}
-	svc := &service{
-		adapter: adapter,
-		handler: &promotionalStateMachineHandler{},
-		lineage: &promotionalStateMachineLineage{},
-	}
+	realizationsService := newPromotionalStateMachineRealizations(
+		t,
+		adapter,
+		&promotionalStateMachineHandler{},
+		&promotionalStateMachineLineage{},
+	)
 
 	stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  newPromotionalStateMachineTestCharge(t, creditpurchase.StatusFinal),
-		Adapter: adapter,
-		Service: svc,
+		Charge:       newPromotionalStateMachineTestCharge(t, creditpurchase.StatusFinal),
+		Adapter:      adapter,
+		Realizations: realizationsService,
 	})
 	require.NoError(t, err)
 
@@ -151,11 +154,18 @@ func TestPromotionalCreditPurchaseStateMachineRejectsNonPromotionalCharge(t *tes
 	// - construction fails before any lifecycle side effect can happen
 	charge := newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated)
 	charge.Intent.Settlement = creditpurchase.NewInvoiceSettlement()
+	adapter := &promotionalStateMachineAdapter{}
+	realizationsService := newPromotionalStateMachineRealizations(
+		t,
+		adapter,
+		&promotionalStateMachineHandler{},
+		&promotionalStateMachineLineage{},
+	)
 
 	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  charge,
-		Adapter: &promotionalStateMachineAdapter{},
-		Service: &service{},
+		Charge:       charge,
+		Adapter:      adapter,
+		Realizations: realizationsService,
 	})
 
 	require.Error(t, err)
@@ -169,29 +179,37 @@ func TestPromotionalCreditPurchaseStateMachineRejectsMissingAdapter(t *testing.T
 	// - the promotional state machine is constructed
 	// then:
 	// - construction fails before lifecycle methods can dereference the adapter
+	adapter := &promotionalStateMachineAdapter{}
+	realizationsService := newPromotionalStateMachineRealizations(
+		t,
+		adapter,
+		&promotionalStateMachineHandler{},
+		&promotionalStateMachineLineage{},
+	)
+
 	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated),
-		Service: &service{},
+		Charge:       newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated),
+		Realizations: realizationsService,
 	})
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "adapter is required")
 }
 
-func TestPromotionalCreditPurchaseStateMachineRejectsMissingService(t *testing.T) {
+func TestStateMachineConfigRejectsMissingRealizationsService(t *testing.T) {
 	// given:
-	// - a promotional credit-purchase charge without runtime service dependencies
+	// - a state-machine config without realization dependencies
 	// when:
-	// - the promotional state machine is constructed
+	// - the shared config is validated
 	// then:
-	// - construction fails before final-state entry can dereference the service
-	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
+	// - validation fails before any concrete state machine is constructed
+	err := (StateMachineConfig{
 		Charge:  newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated),
 		Adapter: &promotionalStateMachineAdapter{},
-	})
+	}).Validate()
 
 	require.Error(t, err)
-	require.ErrorContains(t, err, "service is required")
+	require.ErrorContains(t, err, "realizations service is required")
 }
 
 func advancePromotionalChargeUntilStable(t *testing.T, stateMachine *PromotionalCreditpurchaseStateMachine) (*creditpurchase.Charge, error) {
@@ -224,11 +242,7 @@ func newPromotionalStateMachineTestMachine(
 			}, nil
 		},
 	}
-	svc := &service{
-		adapter: adapter,
-		handler: handler,
-		lineage: lineageService,
-	}
+	realizationsService := newPromotionalStateMachineRealizations(t, adapter, handler, lineageService)
 
 	lineageService.On("BackfillAdvanceLineageSegments",
 		mock.Anything,
@@ -243,13 +257,31 @@ func newPromotionalStateMachineTestMachine(
 		Once()
 
 	stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  charge,
-		Adapter: adapter,
-		Service: svc,
+		Charge:       charge,
+		Adapter:      adapter,
+		Realizations: realizationsService,
 	})
 	require.NoError(t, err)
 
 	return stateMachine, charge, adapter, lineageService
+}
+
+func newPromotionalStateMachineRealizations(
+	t *testing.T,
+	adapter creditpurchase.Adapter,
+	handler creditpurchase.Handler,
+	lineageService lineage.Service,
+) *creditpurchaserealizations.Service {
+	t.Helper()
+
+	realizationsService, err := creditpurchaserealizations.New(creditpurchaserealizations.Config{
+		Adapter: adapter,
+		Handler: handler,
+		Lineage: lineageService,
+	})
+	require.NoError(t, err)
+
+	return realizationsService
 }
 
 func newPromotionalStateMachineTestCharge(t *testing.T, status creditpurchase.Status) creditpurchase.Charge {

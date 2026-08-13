@@ -233,6 +233,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		Handler:     config.CreditPurchaseHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
+		Currencies:  currencyService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating credit purchase service: %w", err)

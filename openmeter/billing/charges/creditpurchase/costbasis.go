@@ -64,7 +64,7 @@ type CostBasis struct {
 	customCurrency *chargecostbasis.Intent
 }
 
-var _ models.Validator = (*CostBasis)(nil)
+var _ models.Validator = CostBasis{}
 
 type costBasisJSON struct {
 	Type                CostBasisType          `json:"type"`
@@ -95,7 +95,26 @@ func (c CostBasis) Type() CostBasisType {
 	return c.kind
 }
 
+// IsEmpty reports whether the union has no selected cost-basis variant.
+func (c CostBasis) IsEmpty() bool {
+	return c.kind == ""
+}
+
+// GetCustomCurrencyModeOrEmpty returns the shared cost-basis mode for a valid
+// custom-currency variant, or the zero mode for every other representation.
+func (c CostBasis) GetCustomCurrencyModeOrEmpty() chargecostbasis.Mode {
+	if c.kind != CostBasisTypeCustomCurrency || c.customCurrency == nil {
+		return ""
+	}
+
+	return c.customCurrency.Kind()
+}
+
 func (c CostBasis) MarshalJSON() ([]byte, error) {
+	if c.IsEmpty() {
+		return []byte("null"), nil
+	}
+
 	if err := c.Validate(); err != nil {
 		return nil, fmt.Errorf("validating credit purchase cost basis: %w", err)
 	}
@@ -139,9 +158,15 @@ func (c CostBasis) MarshalJSON() ([]byte, error) {
 }
 
 func (c *CostBasis) UnmarshalJSON(data []byte) error {
-	var serde costBasisJSON
+	var serde *costBasisJSON
 	if err := json.Unmarshal(data, &serde); err != nil {
 		return fmt.Errorf("deserializing credit purchase cost basis: %w", err)
+	}
+
+	if serde == nil {
+		*c = CostBasis{}
+
+		return nil
 	}
 
 	var decoded CostBasis
@@ -166,39 +191,17 @@ func (c *CostBasis) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("mapping custom-currency fiat currency: %w", err)
 		}
 
-		switch serde.Mode {
-		case chargecostbasis.ModeDynamic:
-			if serde.Rate != nil || serde.CurrencyCostBasisID != nil {
-				return errors.New("dynamic cost basis contains resolved fields")
-			}
-			decoded = NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.DynamicIntent{
-				FiatCurrency: fiatCurrency,
-			}))
-		case chargecostbasis.ModePinned:
-			if serde.CurrencyCostBasisID == nil {
-				return errors.New("pinned currency cost basis ID is required")
-			}
-			if serde.Rate != nil {
-				return errors.New("pinned cost basis contains a manual rate")
-			}
-			decoded = NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.PinnedIntent{
-				FiatCurrency:        fiatCurrency,
-				CurrencyCostBasisID: *serde.CurrencyCostBasisID,
-			}))
-		case chargecostbasis.ModeManual:
-			if serde.Rate == nil {
-				return errors.New("manual cost basis rate is required")
-			}
-			if serde.CurrencyCostBasisID != nil {
-				return errors.New("manual cost basis contains a pinned cost basis ID")
-			}
-			decoded = NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
-				FiatCurrency: fiatCurrency,
-				Rate:         *serde.Rate,
-			}))
-		default:
-			return fmt.Errorf("unsupported custom-currency cost basis mode: %s", serde.Mode)
+		intent, err := chargecostbasis.NewIntentFromFields(chargecostbasis.NewIntentFromFieldsInput{
+			Mode:                serde.Mode,
+			FiatCurrency:        fiatCurrency,
+			CurrencyCostBasisID: serde.CurrencyCostBasisID,
+			Rate:                serde.Rate,
+		})
+		if err != nil {
+			return fmt.Errorf("decoding custom-currency cost basis: %w", err)
 		}
+
+		decoded = NewCostBasis(intent)
 	default:
 		return fmt.Errorf("unsupported credit purchase cost basis type: %s", serde.Type)
 	}
@@ -212,11 +215,7 @@ func (c *CostBasis) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (c *CostBasis) Validate() error {
-	if c == nil {
-		return models.NewGenericValidationError(errors.New("cost basis is required"))
-	}
-
+func (c CostBasis) Validate() error {
 	if err := c.kind.Validate(); err != nil {
 		return err
 	}
@@ -269,85 +268,4 @@ func (c CostBasis) AsCustomCurrency() (chargecostbasis.Intent, error) {
 	}
 
 	return c.customCurrency.Clone(), nil
-}
-
-type ResolvedCostBasis struct {
-	FiatCurrency *currencyx.FiatCurrency
-	Rate         alpacadecimal.Decimal
-}
-
-// FiatAmount converts a credit amount to fiat and rounds it at the settlement
-// currency's precision.
-func (c ResolvedCostBasis) FiatAmount(creditAmount alpacadecimal.Decimal) alpacadecimal.Decimal {
-	return c.FiatCurrency.RoundToPrecision(creditAmount.Mul(c.Rate))
-}
-
-func (c ResolvedCostBasis) Validate() error {
-	var errs []error
-
-	if c.FiatCurrency == nil {
-		errs = append(errs, errors.New("fiat currency is required"))
-	} else if err := c.FiatCurrency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("fiat currency: %w", err))
-	}
-
-	if !c.Rate.IsPositive() {
-		errs = append(errs, errors.New("rate must be positive"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-// GetResolvedCostBasis returns the fiat currency and per-credit rate used by
-// every monetary consumer. It never consults the legacy settlement shadow.
-func (c ChargeBase) GetResolvedCostBasis() (ResolvedCostBasis, error) {
-	if c.Intent.Settlement.Type() == SettlementTypePromotional {
-		return ResolvedCostBasis{}, errors.New("promotional credit purchase does not have a cost basis")
-	}
-
-	if c.Intent.CostBasis == nil {
-		return ResolvedCostBasis{}, errors.New("cost basis is required")
-	}
-
-	switch c.Intent.CostBasis.Type() {
-	case CostBasisTypeFiat:
-		costBasis, err := c.Intent.CostBasis.AsFiat()
-		if err != nil {
-			return ResolvedCostBasis{}, err
-		}
-
-		fiatCurrency, err := currencyx.NewFiatCurrency(c.Intent.Currency.GetCode())
-		if err != nil {
-			return ResolvedCostBasis{}, fmt.Errorf("mapping credit currency to fiat currency: %w", err)
-		}
-
-		resolved := ResolvedCostBasis{
-			FiatCurrency: fiatCurrency,
-			Rate:         costBasis.Rate,
-		}
-
-		return resolved, resolved.Validate()
-	case CostBasisTypeCustomCurrency:
-		intent, err := c.Intent.CostBasis.AsCustomCurrency()
-		if err != nil {
-			return ResolvedCostBasis{}, err
-		}
-
-		fiatCurrency, err := intent.GetFiatCurrency()
-		if err != nil {
-			return ResolvedCostBasis{}, fmt.Errorf("getting custom-currency fiat currency: %w", err)
-		}
-		if c.State.ResolvedCostBasis == nil {
-			return ResolvedCostBasis{}, errors.New("custom-currency cost basis is unresolved")
-		}
-
-		resolved := ResolvedCostBasis{
-			FiatCurrency: fiatCurrency,
-			Rate:         c.State.ResolvedCostBasis.CostBasis,
-		}
-
-		return resolved, resolved.Validate()
-	default:
-		return ResolvedCostBasis{}, fmt.Errorf("unsupported credit purchase cost basis type: %s", c.Intent.CostBasis.Type())
-	}
 }

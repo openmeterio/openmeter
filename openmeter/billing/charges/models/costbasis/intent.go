@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -54,6 +55,58 @@ func NewIntent[T DynamicIntent | PinnedIntent | ManualIntent](in T) Intent {
 	}
 
 	return Intent{}
+}
+
+type NewIntentFromFieldsInput struct {
+	Mode                Mode
+	FiatCurrency        *currencyx.FiatCurrency
+	CurrencyCostBasisID *string
+	Rate                *alpacadecimal.Decimal
+}
+
+// NewIntentFromFields constructs a custom-currency cost-basis intent from its
+// flattened persistence or transport representation.
+func NewIntentFromFields(input NewIntentFromFieldsInput) (Intent, error) {
+	var intent Intent
+
+	switch input.Mode {
+	case ModeDynamic:
+		if input.Rate != nil {
+			return Intent{}, errors.New("dynamic cost basis doesn't support a manual rate")
+		}
+
+		if input.CurrencyCostBasisID != nil {
+			return Intent{}, errors.New("dynamic cost basis doesn't support a currency cost basis ID")
+		}
+
+		intent = NewIntent(DynamicIntent{FiatCurrency: input.FiatCurrency})
+	case ModePinned:
+		if input.Rate != nil {
+			return Intent{}, errors.New("pinned cost basis doesn't support a manual rate")
+		}
+
+		intent = NewIntent(PinnedIntent{
+			FiatCurrency:        input.FiatCurrency,
+			CurrencyCostBasisID: lo.FromPtr(input.CurrencyCostBasisID),
+		})
+	case ModeManual:
+		if input.CurrencyCostBasisID != nil {
+			return Intent{}, errors.New("manual cost basis doesn't support a currency cost basis ID")
+		}
+
+		intent = NewIntent(ManualIntent{
+			FiatCurrency: input.FiatCurrency,
+			Rate:         lo.FromPtr(input.Rate),
+		})
+	default:
+		return Intent{}, fmt.Errorf("unsupported cost basis mode: %s", input.Mode)
+	}
+
+	if err := intent.Validate(); err != nil {
+		return Intent{}, err
+	}
+
+	return intent, nil
 }
 
 func (i Intent) Kind() Mode {

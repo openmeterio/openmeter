@@ -316,12 +316,14 @@ func NewChargesCreditPurchaseService(
 	creditPurchaseHandler creditpurchase.Handler,
 	lineageService lineage.Service,
 	metaAdapter meta.Adapter,
+	currenciesService currencies.Service,
 ) (creditpurchase.Service, error) {
 	creditPurchaseSvc, err := creditpurchaseservice.New(creditpurchaseservice.Config{
 		Adapter:     creditPurchaseAdapter,
 		Handler:     creditPurchaseHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
+		Currencies:  currenciesService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges credit purchase service: %w", err)
@@ -522,7 +524,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	creditPurchaseSvc, err := NewChargesCreditPurchaseService(creditPurchaseAdapter, creditPurchaseHandler, lineageService, metaAdapter)
+	creditPurchaseSvc, err := NewChargesCreditPurchaseService(creditPurchaseAdapter, creditPurchaseHandler, lineageService, metaAdapter, currenciesService)
 	if err != nil {
 		return nil, err
 	}

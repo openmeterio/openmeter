@@ -62,7 +62,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 	})
 }
 
-func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInput) (creditpurchase.Charge, error) {
+func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeAdapterInput) (creditpurchase.Charge, error) {
 	if err := in.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -146,7 +146,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInpu
 
 type applyCostBasisInput struct {
 	Create *db.ChargeCreditPurchaseCreate
-	Charge creditpurchase.CreateInput
+	Charge creditpurchase.CreateChargeAdapterInput
 }
 
 var _ models.Validator = (*applyCostBasisInput)(nil)
@@ -158,7 +158,7 @@ func (i applyCostBasisInput) Validate() error {
 		errs = append(errs, errors.New("create is required"))
 	}
 
-	if i.Charge.Intent.CostBasis == nil {
+	if i.Charge.Intent.CostBasis.IsEmpty() {
 		errs = append(errs, errors.New("payment-backed credit purchase requires a cost basis"))
 	}
 
@@ -185,10 +185,6 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 		if err != nil {
 			return nil, fmt.Errorf("getting custom-currency cost basis: %w", err)
 		}
-		if customCostBasis.Kind() != costbasis.ModeManual {
-			return nil, errors.New("custom-currency cost basis requires resolver integration")
-		}
-
 		costBasisCreate, err := costbasis.Create(a.db.ChargeCreditPurchaseCostBasis.Create(), costbasis.CreateInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: in.Charge.Namespace,
@@ -196,6 +192,7 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 			},
 			CurrencyID: in.Charge.Intent.Currency.ID,
 			Intent:     customCostBasis,
+			State:      in.Charge.InitialCostBasisState,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("building custom-currency cost basis: %w", err)
@@ -204,14 +201,6 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 		createdCostBasis, err := costBasisCreate.Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("creating custom-currency cost basis: %w", err)
-		}
-
-		mappedCostBasis, err := costbasis.Get(createdCostBasis)
-		if err != nil {
-			return nil, fmt.Errorf("mapping created custom-currency cost basis: %w", err)
-		}
-		if mappedCostBasis.State == nil {
-			return nil, errors.New("created custom-currency cost basis is unresolved")
 		}
 
 		in.Create.SetCostBasisID(createdCostBasis.ID)

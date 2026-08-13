@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +15,7 @@ import (
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
@@ -54,7 +55,11 @@ func TestExternalCreditPurchaseServiceRoutesAuthorizedInitialStatus(t *testing.T
 		Return(ledgertransaction.GroupReference{TransactionGroupID: "authorized-ledger-tx"}, nil).
 		Once()
 	realizationsService := newExternalStateMachineRealizations(t, adapter, handler, lineageService)
-	svc := &service{adapter: adapter, realizations: realizationsService}
+	svc := &service{
+		adapter:           adapter,
+		realizations:      realizationsService,
+		costbasisResolver: externalStateMachineCostBasisResolver{},
+	}
 
 	got, err := svc.onExternalCreditPurchase(t.Context(), charge)
 
@@ -108,9 +113,10 @@ func TestExternalCreditPurchaseStateMachineAuthorizationUsesRealizationDuplicate
 	realizationsService := newExternalStateMachineRealizations(t, adapter, handler, lineageService)
 
 	stateMachine, err := NewExternalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:       charge,
-		Adapter:      adapter,
-		Realizations: realizationsService,
+		Charge:            charge,
+		Adapter:           adapter,
+		Realizations:      realizationsService,
+		CostBasisResolver: externalStateMachineCostBasisResolver{},
 	})
 	require.NoError(t, err)
 
@@ -139,6 +145,16 @@ func newExternalStateMachineRealizations(
 	require.NoError(t, err)
 
 	return realizationsService
+}
+
+type externalStateMachineCostBasisResolver struct{}
+
+func (externalStateMachineCostBasisResolver) ResolveInitialState(context.Context, chargecostbasis.ResolveInitialStateInput) (*chargecostbasis.State, error) {
+	return nil, errors.New("unexpected initial cost-basis resolution")
+}
+
+func (externalStateMachineCostBasisResolver) ResolveDynamicState(context.Context, chargecostbasis.ResolveDynamicStateInput) (chargecostbasis.State, error) {
+	return chargecostbasis.State{}, errors.New("unexpected dynamic cost-basis resolution")
 }
 
 type externalStateMachineTestChargeInput struct {
@@ -184,9 +200,9 @@ func newExternalStateMachineTestChargeWithInput(t *testing.T, input externalStat
 				InitialStatus: input.initialStatus,
 			}),
 		},
-		CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+		CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
 			Rate: input.costBasis,
-		})),
+		}),
 	}.Normalized()
 
 	return creditpurchase.Charge{
@@ -203,6 +219,12 @@ func newExternalStateMachineTestChargeWithInput(t *testing.T, input externalStat
 			},
 			Intent: intent,
 			Status: input.status,
+			State: creditpurchase.State{
+				ResolvedCostBasis: &chargecostbasis.State{
+					CostBasis:  input.costBasis,
+					ResolvedAt: period.From,
+				},
+			},
 		},
 	}
 }

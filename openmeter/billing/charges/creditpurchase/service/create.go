@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -21,9 +23,22 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
 		input.Intent = input.Intent.Normalized()
+		resolvedAt := clock.Now().UTC()
+
+		initialCostBasisState, err := s.resolveInitialCostBasis(ctx, resolveInitialCostBasisInput{
+			Currency:   input.Intent.Currency,
+			CostBasis:  input.Intent.CostBasis,
+			ResolvedAt: resolvedAt,
+		})
+		if err != nil {
+			return creditpurchase.ChargeWithGatheringLine{}, err
+		}
 
 		// Let's create the credit purchase charge
-		charge, err := s.adapter.CreateCharge(ctx, input)
+		charge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeAdapterInput{
+			CreateInput:           input,
+			InitialCostBasisState: initialCostBasisState,
+		})
 		if err != nil {
 			return creditpurchase.ChargeWithGatheringLine{}, err
 		}
@@ -32,9 +47,9 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		switch charge.Intent.Settlement.Type() {
 		case creditpurchase.SettlementTypePromotional:
 			stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-				Charge:  charge,
-				Adapter: s.adapter,
-				Service: s,
+				Charge:       charge,
+				Adapter:      s.adapter,
+				Realizations: s.realizations,
 			})
 			if err != nil {
 				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("new promotional state machine: %w", err)
@@ -60,7 +75,7 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 
 		// For invoice settlement, prepare the gathering line (actual invoicing happens after TX commits)
 		if charge.Intent.Settlement.Type() == creditpurchase.SettlementTypeInvoice {
-			gatheringLine, err := s.buildInvoiceCreditPurchaseGatheringLine(charge)
+			gatheringLine, err := buildInvoiceCreditPurchaseGatheringLine(charge)
 			if err != nil {
 				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("building invoice credit purchase gathering line: %w", err)
 			}
@@ -77,20 +92,28 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 	})
 }
 
-func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.Charge) (billing.GatheringLine, error) {
+func buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.Charge) (billing.GatheringLine, error) {
 	if charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeInvoice {
 		return billing.GatheringLine{}, errors.New("credit purchase is not invoice settled")
 	}
 
 	intent := charge.Intent
-	resolvedCostBasis, err := charge.GetResolvedCostBasis()
+
+	fiatCurrency, err := intent.GetSettlementFiatCurrency()
 	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("getting resolved cost basis: %w", err)
+		return billing.GatheringLine{}, fmt.Errorf("getting settlement fiat currency: %w", err)
 	}
 
-	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
-	totalCost := resolvedCostBasis.FiatAmount(intent.CreditAmount)
-	invoiceCurrency := resolvedCostBasis.FiatCurrency.GetFiatCode()
+	// Dynamic cost basis can remain unresolved while the gathering line is
+	// pending. Invoice creation replaces this temporary amount after resolution.
+	totalCost := alpacadecimal.Zero
+
+	if charge.State.ResolvedCostBasis != nil {
+		totalCost, err = charge.GetFiatSettlementAmount()
+		if err != nil {
+			return billing.GatheringLine{}, fmt.Errorf("getting fiat settlement amount: %w", err)
+		}
+	}
 
 	// Clone metadata and add credit-purchase specific annotations
 	annotations, err := charge.Intent.Annotations.Clone()
@@ -123,7 +146,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 					},
 				),
 			),
-			Currency:      invoiceCurrency,
+			Currency:      fiatCurrency.GetFiatCode(),
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.CalculateEffectiveAt(),
 			TaxConfig:     lo.ToPtr(intent.TaxConfig.ToTaxConfig()),

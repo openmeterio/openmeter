@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -76,10 +75,10 @@ func TestRealizationsAuthorizeExternalPaymentRoundsFiatAmount(t *testing.T) {
 				charge.Intent.Currency = currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
 				fiatCurrency, err := currencyx.NewFiatCurrency("USD")
 				require.NoError(t, err)
-				charge.Intent.CostBasis = lo.ToPtr(creditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
+				charge.Intent.CostBasis = creditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
 					FiatCurrency: fiatCurrency,
 					Rate:         alpacadecimal.RequireFromString(tt.costBasis),
-				})))
+				}))
 				charge.State.ResolvedCostBasis = &chargecostbasis.State{
 					CostBasis:  alpacadecimal.RequireFromString(tt.costBasis),
 					ResolvedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),

@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
 func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
@@ -66,8 +67,8 @@ func NewExternalCreditPurchaseStateMachine(config StateMachineConfig) (*External
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	if config.Realizations == nil {
-		return nil, fmt.Errorf("realizations service is required")
+	if config.CostBasisResolver == nil {
+		return nil, fmt.Errorf("cost basis resolver is required")
 	}
 
 	if config.Charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeExternal {
@@ -93,7 +94,10 @@ func (s *ExternalCreditPurchaseStateMachine) configureStates() {
 
 	s.Configure(creditpurchase.StatusActiveInitialCreditGrant).
 		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending).
-		OnActive(s.GrantCredits)
+		OnActive(statelessx.AllOf(
+			s.ResolveDynamicCostBasis,
+			s.GrantCredits,
+		))
 
 	s.Configure(creditpurchase.StatusActivePaymentPending).
 		Permit(billing.TriggerAuthorized, creditpurchase.StatusActivePaymentAuthorized).
@@ -146,9 +150,10 @@ func (s *ExternalCreditPurchaseStateMachine) SettleExternalPayment(ctx context.C
 
 func (s *service) newExternalCreditPurchaseStateMachine(charge creditpurchase.Charge) (*ExternalCreditPurchaseStateMachine, error) {
 	return NewExternalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:       charge,
-		Adapter:      s.adapter,
-		Realizations: s.realizations,
+		Charge:            charge,
+		Adapter:           s.adapter,
+		Realizations:      s.realizations,
+		CostBasisResolver: s.costbasisResolver,
 	})
 }
 

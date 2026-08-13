@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -26,13 +27,86 @@ type Adapter interface {
 }
 
 type ChargeAdapter interface {
-	CreateCharge(ctx context.Context, in CreateInput) (Charge, error)
+	CreateCharge(ctx context.Context, in CreateChargeAdapterInput) (Charge, error)
+	SetResolvedCostBasis(ctx context.Context, input SetResolvedCostBasisAdapterInput) (costbasis.State, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	MarkVoided(ctx context.Context, input MarkVoidedAdapterInput) (ChargeBase, error)
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
 	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
+}
+
+type SetResolvedCostBasisAdapterInput struct {
+	ChargeID          meta.ChargeID
+	ChargeCostBasisID string
+	State             costbasis.State
+}
+
+var _ models.Validator = SetResolvedCostBasisAdapterInput{}
+
+func (i SetResolvedCostBasisAdapterInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if i.ChargeCostBasisID == "" {
+		errs = append(errs, errors.New("charge cost basis ID is required"))
+	}
+
+	if err := i.State.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("state: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type CreateChargeAdapterInput struct {
+	CreateInput
+
+	// InitialCostBasisState is persisted only for manual and pinned custom-currency
+	// cost bases. Fiat state is reconstructed from immutable charge-row fields,
+	// while dynamic custom-currency state is resolved at realization time.
+	InitialCostBasisState *costbasis.State
+}
+
+var _ models.Validator = (*CreateChargeAdapterInput)(nil)
+
+func (i CreateChargeAdapterInput) Validate() error {
+	var errs []error
+
+	if err := i.CreateInput.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	switch i.Intent.Settlement.Type() {
+	case SettlementTypePromotional:
+		if i.InitialCostBasisState != nil {
+			errs = append(errs, errors.New("promotional credit purchase cannot have initial cost-basis state"))
+		}
+	case SettlementTypeInvoice, SettlementTypeExternal:
+		switch i.Intent.CostBasis.Type() {
+		case CostBasisTypeFiat:
+			if i.InitialCostBasisState != nil {
+				errs = append(errs, errors.New("fiat credit purchase cannot have initial cost-basis state"))
+			}
+		case CostBasisTypeCustomCurrency:
+			switch i.Intent.CostBasis.GetCustomCurrencyModeOrEmpty() {
+			case costbasis.ModeDynamic:
+				if i.InitialCostBasisState != nil {
+					errs = append(errs, errors.New("dynamic credit purchase cannot have initial cost-basis state"))
+				}
+			case costbasis.ModeManual, costbasis.ModePinned:
+				if i.InitialCostBasisState == nil {
+					errs = append(errs, errors.New("manual or pinned credit purchase requires initial cost-basis state"))
+				}
+			}
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ExternalPaymentAdapter interface {

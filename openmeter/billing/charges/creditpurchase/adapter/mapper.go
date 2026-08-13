@@ -61,6 +61,7 @@ func fromDBBase(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge) (c
 		},
 		State: creditpurchase.State{
 			VoidedAt:          convert.SafeToUTC(dbEntity.VoidedAt),
+			ChargeCostBasisID: mappedCostBasis.ChargeCostBasisID,
 			ResolvedCostBasis: mappedCostBasis.ResolvedCostBasis,
 		},
 	}
@@ -104,7 +105,8 @@ func fromDBSettlement(dbEntity *entdb.ChargeCreditPurchase) (creditpurchase.Sett
 }
 
 type mappedCostBasis struct {
-	CostBasis         *creditpurchase.CostBasis
+	CostBasis         creditpurchase.CostBasis
+	ChargeCostBasisID *string
 	ResolvedCostBasis *costbasis.State
 }
 
@@ -129,7 +131,15 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 			return mappedCostBasis{}, errors.New("fiat credit purchase contains custom-currency cost-basis state")
 		}
 
-		return mappedCostBasis{CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: *dbEntity.FiatCostBasis}))}, nil
+		return mappedCostBasis{
+			CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: *dbEntity.FiatCostBasis}),
+			ResolvedCostBasis: &costbasis.State{
+				CostBasis: *dbEntity.FiatCostBasis,
+				// CreatedAt is the only persisted timestamp available when
+				// reconstructing fiat cost-basis state - it's an acceptable fallback.
+				ResolvedAt: dbEntity.CreatedAt.In(time.UTC),
+			},
+		}, nil
 	}
 
 	if dbEntity.FiatCostBasis != nil {
@@ -149,15 +159,13 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 	if err != nil {
 		return mappedCostBasis{}, fmt.Errorf("mapping custom-currency cost basis: %w", err)
 	}
+
 	if mappedCustomCostBasis.CurrencyID != currency.ID {
 		return mappedCostBasis{}, fmt.Errorf("custom-currency cost basis currency mismatch [currency_id=%s,cost_basis_currency_id=%s]", currency.ID, mappedCustomCostBasis.CurrencyID)
 	}
-	if mappedCustomCostBasis.State == nil {
-		return mappedCostBasis{}, errors.New("custom-currency cost basis is unresolved")
-	}
-
 	return mappedCostBasis{
-		CostBasis:         lo.ToPtr(creditpurchase.NewCostBasis(mappedCustomCostBasis.Intent)),
+		CostBasis:         creditpurchase.NewCostBasis(mappedCustomCostBasis.Intent),
+		ChargeCostBasisID: dbEntity.CostBasisID,
 		ResolvedCostBasis: mappedCustomCostBasis.State,
 	}, nil
 }

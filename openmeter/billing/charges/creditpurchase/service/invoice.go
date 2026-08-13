@@ -23,8 +23,8 @@ func NewInvoiceCreditPurchaseStateMachine(config StateMachineConfig) (*InvoiceCr
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	if config.Realizations == nil {
-		return nil, errors.New("realizations service is required")
+	if config.CostBasisResolver == nil {
+		return nil, errors.New("cost basis resolver is required")
 	}
 
 	if config.Charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeInvoice {
@@ -50,7 +50,10 @@ func (s *InvoiceCreditPurchaseStateMachine) configureStates() {
 
 	s.Configure(creditpurchase.StatusActiveInitialCreditGrant).
 		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending).
-		OnActive(s.GrantCredits)
+		OnActive(statelessx.AllOf(
+			s.ResolveDynamicCostBasis,
+			s.GrantCredits,
+		))
 
 	s.Configure(creditpurchase.StatusActivePaymentPending).
 		Permit(billing.TriggerAuthorized, creditpurchase.StatusActivePaymentAuthorized)
@@ -180,9 +183,10 @@ func (s *service) handleInvoiceLifecycleTrigger(ctx context.Context, input Handl
 	}
 
 	stateMachine, err := NewInvoiceCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:       input.Charge,
-		Adapter:      s.adapter,
-		Realizations: s.realizations,
+		Charge:            input.Charge,
+		Adapter:           s.adapter,
+		Realizations:      s.realizations,
+		CostBasisResolver: s.costbasisResolver,
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, err

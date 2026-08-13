@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -15,9 +16,9 @@ import (
 type stateMachine struct {
 	*chargestatemachine.Machine[creditpurchase.Charge, creditpurchase.ChargeBase, creditpurchase.Status]
 
-	Adapter      creditpurchase.Adapter
-	Realizations *creditpurchaserealizations.Service
-	Service      *service
+	Adapter           creditpurchase.Adapter
+	Realizations      *creditpurchaserealizations.Service
+	CostBasisResolver costbasis.Resolver
 
 	CreditNotesSupported bool
 }
@@ -27,12 +28,14 @@ type StateMachine = chargestatemachine.StateMachine[creditpurchase.Charge]
 type StateMachineConfig struct {
 	Charge creditpurchase.Charge
 
-	Adapter      creditpurchase.Adapter
-	Realizations *creditpurchaserealizations.Service
-	Service      *service
+	Adapter           creditpurchase.Adapter
+	Realizations      *creditpurchaserealizations.Service
+	CostBasisResolver costbasis.Resolver
 
 	CreditNotesSupported bool
 }
+
+var _ models.Validator = StateMachineConfig{}
 
 func (c StateMachineConfig) Validate() error {
 	var errs []error
@@ -43,6 +46,10 @@ func (c StateMachineConfig) Validate() error {
 
 	if c.Adapter == nil {
 		errs = append(errs, errors.New("adapter is required"))
+	}
+
+	if c.Realizations == nil {
+		errs = append(errs, errors.New("realizations service is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -56,7 +63,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	out := &stateMachine{
 		Adapter:              config.Adapter,
 		Realizations:         config.Realizations,
-		Service:              config.Service,
+		CostBasisResolver:    config.CostBasisResolver,
 		CreditNotesSupported: config.CreditNotesSupported,
 	}
 
