@@ -67,7 +67,7 @@ model CurrencyBase<T extends CurrencyType> {
    * The name of the currency. It should be a human-readable string that represents
    * the name of the currency, such as "US Dollar" or "Euro".
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   @maxLength(256)
   name: string;
@@ -76,7 +76,7 @@ model CurrencyBase<T extends CurrencyType> {
    * The symbol of the currency. It should be a string that represents the symbol of
    * the currency, such as "$" for US Dollar or "€" for Euro.
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   symbol?: string;
 
@@ -91,7 +91,7 @@ model CurrencyBase<T extends CurrencyType> {
    * The decimal mark for the currency. It should be a string that represents the
    * decimal mark of the currency, such as "." for US Dollar or "," for Euro.
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   @maxLength(1)
   decimal_mark: string;
@@ -101,52 +101,7 @@ model CurrencyBase<T extends CurrencyType> {
    * the thousand separator of the currency, such as "," for US Dollar or "." for
    * Euro.
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @minLength(1)
-  @maxLength(1)
-  thousand_separator: string;
-}
-
-/**
- * Update request for a custom currency.
- *
- * Only the presentational attributes of a currency can be changed. The code and
- * the precision are immutable, because issued invoices, charges and ledger entries
- * are denominated with them and changing them retroactively would misstate
- * historical monetary records.
- */
-@friendlyName("BillingCurrencyCustomUpdate")
-model CurrencyCustomUpdate {
-  /**
-   * The name of the currency. It should be a human-readable string that represents
-   * the name of the currency, such as "US Dollar" or "Euro".
-   */
-  @minLength(1)
-  @maxLength(256)
-  name: string;
-
-  /**
-   * The symbol of the currency. It should be a string that represents the symbol of
-   * the currency, such as "$" for US Dollar or "€" for Euro. Omit it to clear the
-   * currency's symbol.
-   */
-  @minLength(1)
-  symbol?: string;
-
-  /**
-   * The decimal mark for the currency. It should be a string that represents the
-   * decimal mark of the currency, such as "." for US Dollar or "," for Euro. It must
-   * differ from the thousand separator.
-   */
-  @minLength(1)
-  @maxLength(1)
-  decimal_mark: string;
-
-  /**
-   * The thousand separator for the currency. It should be a string that represents
-   * the thousand separator of the currency, such as "," for US Dollar or "." for
-   * Euro. It must differ from the decimal mark.
-   */
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   @maxLength(1)
   thousand_separator: string;
