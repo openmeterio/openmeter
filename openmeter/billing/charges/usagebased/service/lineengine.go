@@ -841,11 +841,10 @@ func (e *LineEngine) deleteMutableStandardLineRealization(
 	}
 
 	now := clock.Now()
-	if _, err := e.service.runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
-		Charge:             charge,
-		Run:                run,
-		AllocateAt:         run.ServicePeriodTo,
-		CurrencyCalculator: charge.Intent.GetCurrency(),
+	if err := e.service.runs.CorrectAllCreditRealizations(ctx, usagebasedrun.CreditReconciliationHandlerInput{
+		Charge:     charge,
+		Run:        run,
+		AllocateAt: run.ServicePeriodTo,
 	}); err != nil {
 		return usagebased.Charge{}, fmt.Errorf("correcting credits for deleted usage based standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
 	}

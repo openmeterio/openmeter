@@ -16,15 +16,6 @@ var ErrChargeTotalIsNegative = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
-const ErrCodeCreditAllocationsDoNotMatchTotal models.ErrorCode = "credit_allocations_do_not_match_total"
-
-var ErrCreditAllocationsDoNotMatchTotal = models.NewValidationIssue(
-	ErrCodeCreditAllocationsDoNotMatchTotal,
-	"credit allocations do not match total",
-	models.WithCriticalSeverity(),
-	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
-)
-
 const ErrCodeActiveRealizationRunAlreadyExists models.ErrorCode = "active_realization_run_already_exists"
 
 var ErrActiveRealizationRunAlreadyExists = models.NewValidationIssue(

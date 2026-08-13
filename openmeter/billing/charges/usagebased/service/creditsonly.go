@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditreconciliation"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
@@ -255,11 +256,10 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 func (s *CreditsOnlyStateMachine) reconcileDeletedCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
 	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect {
 		for _, run := range s.Charge.Realizations {
-			if _, err := s.Runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
-				Charge:             s.Charge,
-				Run:                run,
-				AllocateAt:         run.ServicePeriodTo,
-				CurrencyCalculator: s.CurrencyCalculator,
+			if err := s.Runs.CorrectAllCreditRealizations(ctx, usagebasedrun.CreditReconciliationHandlerInput{
+				Charge:     s.Charge,
+				Run:        run,
+				AllocateAt: run.ServicePeriodTo,
 			}); err != nil {
 				return fmt.Errorf("correct credits for run %s: %w", run.ID.ID, err)
 			}
@@ -375,11 +375,10 @@ func (s *CreditsOnlyStateMachine) voidAllRuns(ctx context.Context) error {
 }
 
 func (s *CreditsOnlyStateMachine) voidRealizationRun(ctx context.Context, run usagebased.RealizationRun) (usagebased.RealizationRun, error) {
-	if _, err := s.Runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
-		Charge:             s.Charge,
-		Run:                run,
-		AllocateAt:         run.ServicePeriodTo,
-		CurrencyCalculator: s.CurrencyCalculator,
+	if err := s.Runs.CorrectAllCreditRealizations(ctx, usagebasedrun.CreditReconciliationHandlerInput{
+		Charge:     s.Charge,
+		Run:        run,
+		AllocateAt: run.ServicePeriodTo,
 	}); err != nil {
 		return usagebased.RealizationRun{}, fmt.Errorf("correct credits for run %s: %w", run.ID.ID, err)
 	}
@@ -453,13 +452,15 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	currentTotals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
 	targetCreditsTotal := currentTotals.Total
 
-	if _, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
-		Charge:             s.Charge,
-		Run:                currentRun,
-		AllocateAt:         currentRun.ServicePeriodTo,
+	if _, err := creditreconciliation.Reconcile(ctx, creditreconciliation.ReconcileInput{
 		TargetAmount:       targetCreditsTotal,
 		CurrencyCalculator: s.CurrencyCalculator,
 		ExactAllocation:    true,
+		Handler: s.Runs.NewChargeCurrencyCreditReconciliationHandler(usagebasedrun.CreditReconciliationHandlerInput{
+			Charge:     s.Charge,
+			Run:        currentRun,
+			AllocateAt: currentRun.ServicePeriodTo,
+		}),
 	}); err != nil {
 		return fmt.Errorf("reconcile lifecycle: %w", err)
 	}

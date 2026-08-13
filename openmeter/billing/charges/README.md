@@ -264,9 +264,16 @@ Within the charges domain, custom-currency `credit_then_invoice`:
 - allocates and realizes in the custom currency first
 - resolves and persists the applicable cost basis
 - converts only the post-allocation overage to fiat
+- allocates eligible settlement-fiat credits against the converted overage
+- invoices only the remaining settlement-fiat amount
 - rounds the converted amount with the fiat currency
 - retains the managed currency as charge identity rather than replacing it
   with the settlement fiat currency or display code
+
+Charge-currency and settlement-fiat allocations are separate realization and
+lineage domains. Rerating reconciles each domain independently. Deleting a
+mutable custom-currency run reverses settlement-fiat allocations before the
+charge-currency allocations from which the overage was derived.
 
 The converted post-allocation overage and the required fiat transaction are
 separate settlement facts. A zero converted overage controls line omission and
@@ -274,6 +281,7 @@ invoice bypass. A zero required transaction controls payment handling and does
 not by itself remove an otherwise billable line from the invoice.
 
 This is a charge-domain contract, not end-to-end support: current ledger-backed
-charge adapters reject custom currencies. Enabling them spans ledger route
-identity and persistence, charge realization, settlement rounding, corrections,
-balance queries, and historical migration.
+charge adapters reject custom currencies. The usage-based settlement-fiat
+allocation and correction handlers remain explicit unsupported stubs. Enabling
+them spans ledger route identity and persistence, charge realization,
+settlement rounding, corrections, balance queries, and historical migration.

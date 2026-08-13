@@ -335,6 +335,19 @@ func populateCustomCurrencyOverageFromRun(
 	}
 	*stdLine = *stdLineWithDetails
 
+	fiatCreditsApplied, err := run.FiatOverageCreditRealizations.AsCreditsApplied()
+	if err != nil {
+		return fmt.Errorf("mapping fiat overage credit realizations: %w", err)
+	}
+	stdLine.CreditsApplied = fiatCreditsApplied
+
+	detailedLines, err := stdLine.DetailedLines.WithCreditsApplied(fiatCreditsApplied, fiatOverage.FiatCurrency)
+	if err != nil {
+		return fmt.Errorf("applying fiat overage credits to detailed lines: %w", err)
+	}
+	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(detailedLines)
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(fiatOverage.FiatCurrency)
+
 	if (input.Stage == standardLinePopulationStageGatheringPreview ||
 		input.Stage == standardLinePopulationStageCollectionCompleted) &&
 		fiatOverage.ShouldOmitInvoiceLine {
