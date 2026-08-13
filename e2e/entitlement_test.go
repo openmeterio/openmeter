@@ -756,9 +756,6 @@ func TestEntitlementWithLatestAggregation(t *testing.T) {
 	})
 }
 
-// TestCustomerEntitlementGrantsPagination pins that the list endpoint honors the caller supplied
-// pagination. The handler used to drop every query parameter, capping callers at the first 100
-// grants with no way to reach the rest.
 func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 	client := initClient(t)
 
@@ -812,7 +809,39 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
 	}
 
-	t.Run("Should honor pageSize", func(t *testing.T) {
+	t.Run("Should default to the first page", func(t *testing.T) {
+		// when no pagination parameters are sent at all
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the documented page defaults apply, rather than the limit/offset mode that
+		// reports no page metadata
+		require.Len(t, resp.JSON200.Items, grantCount)
+		require.Equal(t, 1, resp.JSON200.Page)
+		require.Equal(t, 100, resp.JSON200.PageSize)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should default the offset when only a limit is sent", func(t *testing.T) {
+		// when only the deprecated limit is sent, the offset defaults to zero
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Limit:   lo.ToPtr(2),
+			OrderBy: lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:   lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the window starts at the first grant
+		require.Len(t, resp.JSON200.Items, 2)
+		require.Equal(t, 1.0, resp.JSON200.Items[0].Amount)
+		require.Equal(t, 2.0, resp.JSON200.Items[1].Amount)
+	})
+
+	t.Run("Should default the page when only a pageSize is sent", func(t *testing.T) {
 		// when a page smaller than the grant count is requested
 		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
 			PageSize: lo.ToPtr(2),

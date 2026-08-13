@@ -22,6 +22,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/strcase"
 )
 
+// Defaults for the pagination query parameters of listCustomerEntitlementGrantsV2. The OpenAPI
+// spec declares them, but the generated server does not apply them, so they are restated here
+// rather than borrowed from a shared constant that is free to drift from the published contract.
+const (
+	defaultPage     = 1
+	defaultPageSize = 100
+	defaultLimit    = 100
+	defaultOffset   = 0
+)
+
 type (
 	ListCustomerEntitlementGrantsHandlerParams struct {
 		CustomerIDOrKey           string
@@ -78,15 +88,18 @@ func (h *entitlementHandler) ListCustomerEntitlementGrants() ListCustomerEntitle
 				Order:                     sortx.Order(lo.CoalesceOrEmpty(string(lo.FromPtr(request.Params.Order)), string(sortx.OrderDefault))),
 			}
 
-			// page/pageSize takes precedence over the deprecated limit/offset mode.
-			if request.Params.Page != nil || request.Params.PageSize != nil {
-				listParams.Page = pagination.NewPage(
-					lo.FromPtrOr(request.Params.Page, commonhttp.DefaultPage),
-					lo.FromPtrOr(request.Params.PageSize, commonhttp.DefaultPageSize),
-				)
+			// The deprecated limit/offset mode is only entered when the caller asks for it, and
+			// page/pageSize wins when both are given. A request carrying neither keeps the
+			// paginated default response, which is what this endpoint has always returned.
+			if request.Params.Page == nil && request.Params.PageSize == nil &&
+				(request.Params.Limit != nil || request.Params.Offset != nil) {
+				listParams.Limit = lo.FromPtrOr(request.Params.Limit, defaultLimit)
+				listParams.Offset = lo.FromPtrOr(request.Params.Offset, defaultOffset)
 			} else {
-				listParams.Limit = lo.FromPtrOr(request.Params.Limit, commonhttp.DefaultPageSize)
-				listParams.Offset = lo.FromPtrOr(request.Params.Offset, 0)
+				listParams.Page = pagination.NewPage(
+					lo.FromPtrOr(request.Params.Page, defaultPage),
+					lo.FromPtrOr(request.Params.PageSize, defaultPageSize),
+				)
 			}
 
 			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, listParams)
