@@ -14,6 +14,10 @@
   pre-commit hook.
 - Never run multiple `nix develop` commands concurrently in one worktree; they
   mutate shared `.devenv/` state.
+- Dev shells share downloaded Go modules through `$HOME/go/pkg/mod`. `GOPATH`,
+  `GOCACHE`, and installed tools remain per-worktree under `.devenv/state/go`.
+  Existing worktree module caches are not migrated or removed automatically;
+  clean them up separately after confirming no active shell uses them.
 - `.nvmrc` is the GitHub Actions source of truth for Node. Keep it aligned with
   `node -v` in the Nix `.#ci` shell.
 

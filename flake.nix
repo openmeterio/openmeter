@@ -142,6 +142,7 @@
             ];
 
             env = {
+              GOCACHE = "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache";
               KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
               KIND_CLUSTER_NAME = "openmeter";
 
@@ -151,6 +152,9 @@
             };
 
             enterShell = ''
+              # Share downloaded modules across worktrees; keep GOPATH and build artifacts local.
+              export GOMODCACHE="$HOME/go/pkg/mod"
+
               ${lib.optionalString pkgs.stdenv.isDarwin ''
                 # Workaround for XCBUILD.XCRUN cosmetic issue due to incompatible plists (see https://github.com/NixOS/nixpkgs/issues/376958)
                 # 1) Filter out the buggy Nix version of xcbuild/xcrun from PATH
