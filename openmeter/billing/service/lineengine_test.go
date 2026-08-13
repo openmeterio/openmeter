@@ -6,9 +6,11 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
 )
 
@@ -277,6 +279,80 @@ func TestDeleteInvoiceAPIRequestReturnsChargeManagedLineErrorBeforeDeletingInvoi
 	require.Empty(t, chargeEngine.deletedBySystemInputs)
 }
 
+func TestOnInvoiceFinalizingDoesNotApplyPartialEngineOutput(t *testing.T) {
+	errFinalizationFailed := errors.New("finalization failed")
+	finalizationCalls := 0
+	onInvoiceFinalizing := func(_ context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+		finalizationCalls++
+		if finalizationCalls == 2 {
+			return nil, errFinalizationFailed
+		}
+
+		input.Lines[0].Totals = totals.Totals{
+			Amount: alpacadecimal.NewFromInt(100),
+			Total:  alpacadecimal.NewFromInt(100),
+		}
+
+		return input.Lines, nil
+	}
+
+	invoiceEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeInvoice,
+		},
+		onInvoiceFinalizing: onInvoiceFinalizing,
+	}
+	chargeEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeChargeUsageBased,
+		},
+		onInvoiceFinalizing: onInvoiceFinalizing,
+	}
+
+	svc := &Service{
+		lineEngines: newEngineRegistry(),
+	}
+	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
+	require.NoError(t, svc.RegisterLineEngine(chargeEngine))
+
+	lineTotals := totals.Totals{
+		Amount: alpacadecimal.NewFromInt(10),
+		Total:  alpacadecimal.NewFromInt(10),
+	}
+	invoiceLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false)
+	invoiceLine.Totals = lineTotals
+	chargeLine := newStandardLineForLineEngineTest("line-2", billing.LineEngineTypeChargeUsageBased, false)
+	chargeLine.Totals = lineTotals
+
+	sm := &InvoiceStateMachine{
+		Service: svc,
+		Invoice: billing.StandardInvoice{
+			StandardInvoiceBase: billing.StandardInvoiceBase{
+				Namespace: "ns",
+				ID:        "invoice-1",
+			},
+			Lines: billing.NewStandardInvoiceLines(billing.StandardLines{
+				invoiceLine,
+				chargeLine,
+			}),
+			Totals: totals.Totals{
+				Amount: alpacadecimal.NewFromInt(20),
+				Total:  alpacadecimal.NewFromInt(20),
+			},
+		},
+	}
+
+	// when: one engine returns updated totals before another engine fails
+	err := sm.onInvoiceFinalizing(t.Context())
+
+	// then: neither the successful engine output nor stale aggregate totals reach the invoice
+	require.ErrorIs(t, err, errFinalizationFailed)
+	require.Equal(t, 2, finalizationCalls)
+	require.Equal(t, 10.0, sm.Invoice.Lines.GetByID("line-1").Totals.Total.InexactFloat64())
+	require.Equal(t, 10.0, sm.Invoice.Lines.GetByID("line-2").Totals.Total.InexactFloat64())
+	require.Equal(t, 20.0, sm.Invoice.Totals.Total.InexactFloat64())
+}
+
 func TestEngineRegistryAllowsSingleCreateLineRouter(t *testing.T) {
 	registry := newEngineRegistry()
 	router := staticCreateLineRouter{engine: billing.LineEngineTypeChargeFlatFee}
@@ -311,6 +387,7 @@ type recordingLineEngine struct {
 	changeErr                   error
 	deletedBySystemErr          error
 	unsupportedCreditNoteErr    error
+	onInvoiceFinalizing         func(context.Context, billing.OnInvoiceFinalizingInput) (billing.StandardLines, error)
 }
 
 type staticCreateLineRouter struct {
@@ -360,6 +437,14 @@ func (e *recordingLineEngine) OnMutableStandardLinesDeletedBySystem(_ context.Co
 func (e *recordingLineEngine) OnUnsupportedCreditNote(_ context.Context, input billing.OnUnsupportedCreditNoteInput) error {
 	e.unsupportedCreditNoteInputs = append(e.unsupportedCreditNoteInputs, input)
 	return e.unsupportedCreditNoteErr
+}
+
+func (e *recordingLineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+	if e.onInvoiceFinalizing == nil {
+		return input.Lines, nil
+	}
+
+	return e.onInvoiceFinalizing(ctx, input)
 }
 
 func lineIDs(lines billing.StandardLines) []string {

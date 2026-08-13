@@ -1057,14 +1057,19 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 // the invoice is sent to the invoicing app. Engines own line calculation at
 // this boundary; billing only validates, replaces, and aggregates their output.
 func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	finalizedInvoice, err := m.Invoice.Clone()
+	if err != nil {
+		return fmt.Errorf("cloning invoice for line finalization: %w", err)
+	}
+
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(finalizedInvoice.Lines.OrEmpty())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
 
 	for _, grouped := range groupedLines {
 		input := billing.OnInvoiceFinalizingInput{
-			Invoice: m.Invoice,
+			Invoice: finalizedInvoice,
 			Lines:   grouped.Lines,
 		}
 		if err := input.Validate(); err != nil {
@@ -1076,7 +1081,7 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 			return billing.NewLineEngineValidationError(grouped.Engine, err)
 		}
 
-		if err := m.Invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
+		if err := finalizedInvoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
 			Existing:    grouped.Lines,
 			Replacement: lines,
 		}); err != nil {
@@ -1087,9 +1092,11 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 		}
 	}
 
-	if err := invoicecalc.RecalculateTotals(&m.Invoice); err != nil {
+	if err := invoicecalc.RecalculateTotals(&finalizedInvoice); err != nil {
 		return fmt.Errorf("recalculating invoice totals after line finalization: %w", err)
 	}
+
+	m.Invoice = finalizedInvoice
 
 	return nil
 }

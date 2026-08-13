@@ -73,8 +73,8 @@ func TestRecalculateTotalsAggregatesExistingLinesWithoutLineEngines(t *testing.T
 
 	// then: existing active line totals are summed without recalculating either line
 	require.NoError(t, err)
-	require.True(t, alpacadecimal.NewFromInt(12).Equal(invoice.Totals.Amount))
-	require.True(t, alpacadecimal.NewFromInt(12).Equal(invoice.Totals.Total))
+	require.Equal(t, 12.0, invoice.Totals.Amount.InexactFloat64())
+	require.Equal(t, 12.0, invoice.Totals.Total.InexactFloat64())
 }
 
 type staticLineEngineResolver map[billing.LineEngineType]billing.LineEngine
