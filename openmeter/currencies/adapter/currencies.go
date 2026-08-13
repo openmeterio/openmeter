@@ -220,8 +220,6 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 
 func (a *adapter) UpdateCurrency(ctx context.Context, params currencies.UpdateCurrencyInput) (currencies.Currency, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) {
-		// The request carries every mutable attribute, so the stored row does not
-		// need to be read first. The immutable code and precision are left alone.
 		curr, err := tx.db.CustomCurrency.UpdateOneID(params.ID).
 			Where(
 				customcurrency.Namespace(params.Namespace),
