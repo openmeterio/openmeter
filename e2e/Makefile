@@ -19,7 +19,7 @@ bench-entitlement-access: ## Benchmark entitlement access query latency (1x1 bas
 .PHONY: bench-entitlement-access-matrix
 bench-entitlement-access-matrix: ## Benchmark entitlement access query latency (full 3x3 customers x features matrix)
 	$(call print-target)
-	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_FULL_MATRIX=1 \
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) ENTITLEMENT_ACCESS_BENCH_FULL_MATRIX=1 \
 		go test -run='^$$' -bench='^BenchmarkEntitlementAccessQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
 
 .PHONY: bench-entitlement-access-namespace

@@ -108,7 +108,7 @@ type queryMetrics struct {
 
 func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	requests, err := meter.Int64Counter(
-		"openmeter.entitlementaccess.query.requests",
+		"openmeter.entitlement_access.query.requests",
 		metric.WithDescription("Number of entitlement access queries"),
 		metric.WithUnit("{request}"),
 	)
@@ -117,7 +117,7 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	}
 
 	customersNotFound, err := meter.Int64Counter(
-		"openmeter.entitlementaccess.query.customers_not_found",
+		"openmeter.entitlement_access.query.customers_not_found",
 		metric.WithDescription("Number of customer keys that did not resolve to a customer"),
 		metric.WithUnit("{customer}"),
 	)
@@ -126,7 +126,7 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	}
 
 	featureAccess, err := meter.Int64Histogram(
-		"openmeter.entitlementaccess.query.feature_access",
+		"openmeter.entitlement_access.query.feature_access",
 		metric.WithDescription("Number of feature evaluations per entitlement access query"),
 		metric.WithUnit("{evaluation}"),
 	)
@@ -135,7 +135,7 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 	}
 
 	customerKeys, err := meter.Int64Histogram(
-		"openmeter.entitlementaccess.query.customer_keys",
+		"openmeter.entitlement_access.query.customer_keys",
 		metric.WithDescription("Number of customer keys requested per entitlement access query"),
 		metric.WithUnit("{key}"),
 	)
@@ -335,7 +335,7 @@ func (s *service) resolveCustomers(ctx context.Context, input entitlementaccess.
 		}, nil
 	}
 
-	return tracex.Start[resolveCustomersResult](ctx, s.tracer, "entitlementaccess.resolveCustomers").Wrap(fn)
+	return tracex.Start[resolveCustomersResult](ctx, s.tracer, "entitlement_access.resolveCustomers").Wrap(fn)
 }
 
 // resolveAccess resolves entitlement access for each customer on the current page and maps it
@@ -406,7 +406,7 @@ func (s *service) resolveAccess(ctx context.Context, input entitlementaccess.Que
 		return results, nil
 	}
 
-	return tracex.Start[[]entitlementaccess.CustomerAccess](ctx, s.tracer, "entitlementaccess.resolveAccess").Wrap(fn)
+	return tracex.Start[[]entitlementaccess.CustomerAccess](ctx, s.tracer, "entitlement_access.resolveAccess").Wrap(fn)
 }
 
 // paginationDirection reports the pagination mode for span attribution.
@@ -586,7 +586,7 @@ func (s *service) listOrgFeatures(ctx context.Context, ns string) ([]feature.Fea
 		return res.Items, nil
 	}
 
-	return tracex.Start[[]feature.Feature](ctx, s.tracer, "entitlementaccess.listOrgFeatures").Wrap(fn)
+	return tracex.Start[[]feature.Feature](ctx, s.tracer, "entitlement_access.listOrgFeatures").Wrap(fn)
 }
 
 // resolveAbsentFeature determines why a requested feature key is absent from GetAccess results:

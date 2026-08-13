@@ -18,7 +18,7 @@ import (
 
 const (
 	defaultEntitlementAccessBenchNamespaceDecoys = 100_000
-	entitlementAccessBenchNamespaceDecoysEnv     = "GOV_BENCH_NAMESPACE_DECOYS"
+	entitlementAccessBenchNamespaceDecoysEnv     = "ENTITLEMENT_ACCESS_BENCH_NAMESPACE_DECOYS"
 )
 
 // BenchmarkEntitlementAccessQueryNamespaceScale isolates the effect of total namespace
@@ -38,8 +38,8 @@ const (
 //
 // Decoys are seeded directly via SQL (not HTTP, which would dominate setup
 // time) and require direct Postgres access alongside OPENMETER_ADDRESS (see
-// initE2EPostgresPool). Set GOV_BENCH_NAMESPACE_DECOYS to change the top
-// decoy count from the default 100,000.
+// initE2EPostgresPool). Set ENTITLEMENT_ACCESS_BENCH_NAMESPACE_DECOYS to
+// change the top decoy count from the default 100,000.
 func BenchmarkEntitlementAccessQueryNamespaceScale(b *testing.B) {
 	client := initClient(b)
 	v3 := newV3Client(b)
@@ -52,11 +52,11 @@ func BenchmarkEntitlementAccessQueryNamespaceScale(b *testing.B) {
 
 	custKeys, featKeys := seedEntitlementAccessFixture(b, client, queryCustomers, queryFeatures)
 	namespace := getCustomerNamespaceByKey(b, pool, custKeys[0])
-	decoyRun := uniqueKey("gov_bench_ns_decoy")
+	decoyRun := uniqueKey("ea_bench_ns_decoy")
 
 	// Sorted and deduplicated so the cumulative seeding below stays monotonically
-	// increasing regardless of GOV_BENCH_NAMESPACE_DECOYS: an override below the
-	// hardcoded 10_000 tier would otherwise seed 10_000 first, then skip seeding
+	// increasing regardless of ENTITLEMENT_ACCESS_BENCH_NAMESPACE_DECOYS: an
+	// override below the hardcoded 10_000 tier would otherwise seed 10_000 first, then skip seeding
 	// for the smaller tier (seeded > target) while still reporting that smaller,
 	// now-incorrect decoy count as the benchmark's label.
 	decoyCounts := []int{0, 10_000, entitlementAccessBenchNamespaceDecoyCount(b)}
@@ -132,7 +132,7 @@ func getCustomerNamespaceByKey(tb testing.TB, pool *pgxpool.Pool, key string) st
 // directly via SQL, numbered (from, to] under the given per-benchmark-run
 // prefix, so repeated calls with a growing `to` only seed the incremental
 // delta, and separate benchmark runs never collide on the same key even if
-// the database was not reset in between. Decoys are never included in a
+// the database was not reset in between. Decoys are never included in an
 // entitlement access query; they exist purely to grow the namespace the resolution
 // query has to search. ANALYZE keeps planner stats current, matching the
 // customer adapter's own usage-attribution benchmark.

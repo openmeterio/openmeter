@@ -32,7 +32,7 @@ import (
 // Sizes scale customers x features. The customer-count axis drives the GetAccess
 // fan-out (the dominant cost); the feature-count axis drives the per-customer
 // feature-access map. By default the diagonal (10/50/100% of the 100x100 spec
-// ceiling) plus a 1x1 fixed-overhead baseline is run. Set GOV_BENCH_FULL_MATRIX=1
+// ceiling) plus a 1x1 fixed-overhead baseline is run. Set ENTITLEMENT_ACCESS_BENCH_FULL_MATRIX=1
 // to run the full 3x3 matrix, which isolates the two axes.
 //
 // Seeding is heavy (100x100 = ~10k entitlement creates over HTTP) and runs once
@@ -56,7 +56,7 @@ func BenchmarkEntitlementAccessQuery(b *testing.B) {
 	}
 
 	// Full 3x3 matrix isolates the customer axis from the feature axis.
-	if os.Getenv("GOV_BENCH_FULL_MATRIX") != "" {
+	if os.Getenv("ENTITLEMENT_ACCESS_BENCH_FULL_MATRIX") != "" {
 		sizes = nil
 		sizes = append(sizes, size{"customers=1/features=1", 1, 1})
 		for _, c := range []int{10, 50, 100} {
@@ -105,7 +105,7 @@ func BenchmarkEntitlementAccessQuery(b *testing.B) {
 func seedEntitlementAccessFixture(b *testing.B, client *api.ClientWithResponses, nCustomers, nFeatures int) (custKeys, featKeys []string) {
 	b.Helper()
 	ctx := b.Context()
-	run := uniqueKey("gov_bench")
+	run := uniqueKey("ea_bench")
 
 	featKeys = make([]string, 0, nFeatures)
 	for i := 0; i < nFeatures; i++ {
