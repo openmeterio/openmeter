@@ -795,18 +795,25 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
 	}
 
-	// given three grants created in ascending amount order, so that ordering by createdAt makes
-	// the returned window identifiable by amount
-	grantCount := 3
-	firstEffectiveAt := time.Now().Truncate(time.Minute)
+	// given three grants whose amounts identify them, and whose amounts and effective dates both
+	// run counter to their creation order. Ordering by createdAt therefore yields a sequence that
+	// ordering by amount or by effectiveAt could not produce, so the assertions below fail if
+	// orderBy is ignored or resolved to the wrong column.
+	amountsInCreationOrder := []float64{30, 10, 20}
+	grantCount := len(amountsInCreationOrder)
+	lastEffectiveAt := time.Now().Truncate(time.Minute).Add(time.Duration(grantCount) * time.Minute)
 
-	for i := 0; i < grantCount; i++ {
+	for i, amount := range amountsInCreationOrder {
 		resp, err := client.CreateCustomerEntitlementGrantV2WithResponse(ctx, cust.Id, featureKey, api.CreateCustomerEntitlementGrantV2JSONRequestBody{
-			Amount:      float64(i + 1),
-			EffectiveAt: firstEffectiveAt.Add(time.Duration(i) * time.Minute),
+			Amount:      amount,
+			EffectiveAt: lastEffectiveAt.Add(-time.Duration(i) * time.Minute),
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+	}
+
+	amounts := func(items []api.EntitlementGrantV2) []float64 {
+		return lo.Map(items, func(item api.EntitlementGrantV2, _ int) float64 { return item.Amount })
 	}
 
 	t.Run("Should default to the first page", func(t *testing.T) {
@@ -817,8 +824,8 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.NotNil(t, resp.JSON200)
 
 		// then the documented page defaults apply, rather than the limit/offset mode that
-		// reports no page metadata
-		require.Len(t, resp.JSON200.Items, grantCount)
+		// reports no page metadata, and the grants come back in the default createdAt order
+		require.Equal(t, amountsInCreationOrder, amounts(resp.JSON200.Items))
 		require.Equal(t, 1, resp.JSON200.Page)
 		require.Equal(t, 100, resp.JSON200.PageSize)
 		require.Equal(t, grantCount, resp.JSON200.TotalCount)
@@ -835,10 +842,8 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
 		require.NotNil(t, resp.JSON200)
 
-		// then the window starts at the first grant
-		require.Len(t, resp.JSON200.Items, 2)
-		require.Equal(t, 1.0, resp.JSON200.Items[0].Amount)
-		require.Equal(t, 2.0, resp.JSON200.Items[1].Amount)
+		// then the window starts at the first created grant
+		require.Equal(t, []float64{30, 10}, amounts(resp.JSON200.Items))
 	})
 
 	t.Run("Should default the page when only a pageSize is sent", func(t *testing.T) {
@@ -853,9 +858,7 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.NotNil(t, resp.JSON200)
 
 		// then the page is capped at the requested size while the count covers every grant
-		require.Len(t, resp.JSON200.Items, 2)
-		require.Equal(t, 1.0, resp.JSON200.Items[0].Amount)
-		require.Equal(t, 2.0, resp.JSON200.Items[1].Amount)
+		require.Equal(t, []float64{30, 10}, amounts(resp.JSON200.Items))
 		require.Equal(t, 1, resp.JSON200.Page)
 		require.Equal(t, 2, resp.JSON200.PageSize)
 		require.Equal(t, grantCount, resp.JSON200.TotalCount)
@@ -874,9 +877,30 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 		require.NotNil(t, resp.JSON200)
 
 		// then only the grant left over from the first page is returned
-		require.Len(t, resp.JSON200.Items, 1)
-		require.Equal(t, 3.0, resp.JSON200.Items[0].Amount)
+		require.Equal(t, []float64{20}, amounts(resp.JSON200.Items))
 		require.Equal(t, 2, resp.JSON200.Page)
+		require.Equal(t, grantCount, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should prefer page over the deprecated limit and offset", func(t *testing.T) {
+		// when both modes are sent, with legacy values that would select a different window
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			Page:     lo.ToPtr(2),
+			PageSize: lo.ToPtr(2),
+			Limit:    lo.ToPtr(1),
+			Offset:   lo.ToPtr(0),
+			OrderBy:  lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:    lo.ToPtr(api.SortOrderASC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the page window wins and the response still carries page metadata, which the
+		// limit/offset mode would have zeroed
+		require.Equal(t, []float64{20}, amounts(resp.JSON200.Items))
+		require.Equal(t, 2, resp.JSON200.Page)
+		require.Equal(t, 2, resp.JSON200.PageSize)
 		require.Equal(t, grantCount, resp.JSON200.TotalCount)
 	})
 
@@ -894,12 +918,24 @@ func TestCustomerEntitlementGrantsPagination(t *testing.T) {
 
 		// then the remaining grants are returned in order; this mode runs no count query, so
 		// the page metadata stays zeroed, matching /api/v2/grants
-		require.Len(t, resp.JSON200.Items, 2)
-		require.Equal(t, 2.0, resp.JSON200.Items[0].Amount)
-		require.Equal(t, 3.0, resp.JSON200.Items[1].Amount)
+		require.Equal(t, []float64{10, 20}, amounts(resp.JSON200.Items))
 		require.Zero(t, resp.JSON200.Page)
 		require.Zero(t, resp.JSON200.PageSize)
 		require.Zero(t, resp.JSON200.TotalCount)
+	})
+
+	t.Run("Should honor a descending order", func(t *testing.T) {
+		// when the same ordering column is requested in the opposite direction
+		resp, err := client.ListCustomerEntitlementGrantsV2WithResponse(ctx, cust.Id, featureKey, &api.ListCustomerEntitlementGrantsV2Params{
+			OrderBy: lo.ToPtr(api.GrantOrderByCreatedAt),
+			Order:   lo.ToPtr(api.SortOrderDESC),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", resp.Body)
+		require.NotNil(t, resp.JSON200)
+
+		// then the creation order is reversed
+		require.Equal(t, []float64{20, 10, 30}, amounts(resp.JSON200.Items))
 	})
 
 	t.Run("Should reject an invalid page", func(t *testing.T) {
