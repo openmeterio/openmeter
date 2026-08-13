@@ -223,6 +223,22 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	// Issuing state
 
+	stateMachine.Configure(billing.StandardInvoiceStatusIssuingLineFinalization).
+		Permit(
+			billing.TriggerNext,
+			billing.StandardInvoiceStatusIssuingSyncing,
+		).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingLineFinalizationFailed).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
+		OnActive(statelessx.AllOf(
+			out.onInvoiceFinalizing,
+			out.requireDBSave,
+		))
+
+	stateMachine.Configure(billing.StandardInvoiceStatusIssuingLineFinalizationFailed).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingLineFinalization)
+
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncing).
 		Permit(billing.TriggerNext,
 			billing.StandardInvoiceStatusIssuingChargeBooking,
@@ -880,7 +896,7 @@ func (m *InvoiceStateMachine) resolveStateAfterDraftReadyToIssue(_ context.Conte
 		return billing.StandardInvoiceStatusDeleteSyncing, nil
 	}
 
-	return billing.StandardInvoiceStatusIssuingSyncing, nil
+	return billing.StandardInvoiceStatusIssuingLineFinalization, nil
 }
 
 // ensureEmptyInvoiceDeletionPrepared starts a system deletion when issuing
@@ -1021,15 +1037,10 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 			continue
 		}
 
-		if err := lines.Validate(); err != nil {
-			return fmt.Errorf("validating collection completed output for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := billing.ValidateStandardLineIDsMatchExactly(grouped.Lines, lines); err != nil {
-			return fmt.Errorf("validating collection completed line ids for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := m.Invoice.Lines.ReplaceLinesByID(lines...); err != nil {
+		if err := m.Invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
+			Existing:    grouped.Lines,
+			Replacement: lines,
+		}); err != nil {
 			return fmt.Errorf("replacing collection completed lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 	}
@@ -1037,6 +1048,47 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 	if len(groupedLines) > 0 && !hadValidationErr {
 		now := clock.Now().UTC()
 		m.Invoice.QuantitySnapshotedAt = &now
+	}
+
+	return nil
+}
+
+// onInvoiceFinalizing lets line engines make their lines authoritative before
+// the invoice is sent to the invoicing app. Engines own line calculation at
+// this boundary; billing only validates, replaces, and aggregates their output.
+func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	for _, grouped := range groupedLines {
+		input := billing.OnInvoiceFinalizingInput{
+			Invoice: m.Invoice,
+			Lines:   grouped.Lines,
+		}
+		if err := input.Validate(); err != nil {
+			return fmt.Errorf("validating invoice finalizing input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		lines, err := grouped.Engine.OnInvoiceFinalizing(ctx, input)
+		if err != nil {
+			return billing.NewLineEngineValidationError(grouped.Engine, err)
+		}
+
+		if err := m.Invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
+			Existing:    grouped.Lines,
+			Replacement: lines,
+		}); err != nil {
+			return billing.NewLineEngineValidationError(
+				grouped.Engine,
+				fmt.Errorf("replacing invoice finalizing lines: %w", err),
+			)
+		}
+	}
+
+	if err := invoicecalc.RecalculateTotals(&m.Invoice); err != nil {
+		return fmt.Errorf("recalculating invoice totals after line finalization: %w", err)
 	}
 
 	return nil

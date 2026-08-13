@@ -62,23 +62,31 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 			return fmt.Errorf("calculating lines for engine[%s]: %w", lineEngineType, err)
 		}
 
-		if err := updatedLines.Validate(); err != nil {
-			return fmt.Errorf("validating calculate lines output for engine[%s]: %w", lineEngineType, err)
-		}
-
-		if err := billing.ValidateStandardLineIDsMatchExactly(stdLines, updatedLines); err != nil {
-			return fmt.Errorf("validating calculate lines ids for engine[%s]: %w", lineEngineType, err)
-		}
-
-		if err := invoice.Lines.ReplaceLinesByID(updatedLines...); err != nil {
+		if err := invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
+			Existing:    stdLines,
+			Replacement: updatedLines,
+		}); err != nil {
 			return fmt.Errorf("replacing recalculated lines for engine[%s]: %w", lineEngineType, err)
 		}
 	}
 
+	return errors.Join(outErr, RecalculateTotals(invoice))
+}
+
+// RecalculateTotals aggregates already-calculated standard lines without
+// invoking their line engines. Deleted lines do not contribute to the invoice.
+func RecalculateTotals(invoice *billing.StandardInvoice) error {
+	if invoice == nil {
+		return errors.New("invoice is required")
+	}
+
+	if invoice.Lines.IsAbsent() {
+		return errors.New("cannot recalculate invoice totals without expanded lines")
+	}
+
 	invoice.Totals = totals.Sum(
 		lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) totals.Totals {
-			// Deleted lines are not contributing to the totals
-			if line.DeletedAt != nil {
+			if line.IsDeleted() {
 				return totals.Totals{}
 			}
 
@@ -86,7 +94,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 		})...,
 	)
 
-	return outErr
+	return nil
 }
 
 func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine) (billing.DetailedLines, error) {

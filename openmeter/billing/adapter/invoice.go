@@ -832,6 +832,8 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) error {
 			// invoices can reach a final state before the app is removed.
 			billinginvoice.StatusIn(
 				billing.StandardInvoiceStatusGathering,
+				billing.StandardInvoiceStatusIssuingLineFinalization,
+				billing.StandardInvoiceStatusIssuingLineFinalizationFailed,
 				billing.StandardInvoiceStatusIssuingSyncing,
 				billing.StandardInvoiceStatusIssuingSyncFailed,
 				billing.StandardInvoiceStatusIssuingChargeBooking,

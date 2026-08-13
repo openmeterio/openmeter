@@ -224,6 +224,10 @@ func (e *LineEngine) OnUnsupportedCreditNote(_ context.Context, _ billing.OnUnsu
 	return nil
 }
 
+func (e *LineEngine) OnInvoiceFinalizing(_ context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+	return input.Lines, nil
+}
+
 func (e *LineEngine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {
 	return nil
 }

@@ -102,6 +102,13 @@ be retried without replaying stable lifecycle states. Issuing and payment
 booking therefore happen in retryable intermediary states; authorization is
 booked before settlement when a payment provider reports both at once.
 
+Before external invoice finalization, billing invokes each line engine's line
+finalization callback. Engines return fully calculated lines with unchanged
+line IDs; billing replaces those lines, sums their totals, and persists the
+invoice before sending it to the invoicing app. Line finalization has its own
+retryable failure state, so an external app retry does not repeat stable
+engine-owned effects.
+
 Retrying and deleting are separate domain actions. Use the billing service's
 retry operation for a retryable failure and its delete operation for the
 delete lifecycle; firing a generic state-machine trigger bypasses preparation

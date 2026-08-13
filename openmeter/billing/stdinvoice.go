@@ -67,10 +67,12 @@ const (
 	StandardInvoiceStatusDeleteFailed     StandardInvoiceStatus = "delete.failed"
 	StandardInvoiceStatusDeleted          StandardInvoiceStatus = "deleted"
 
-	StandardInvoiceStatusIssuingSyncing             StandardInvoiceStatus = "issuing.syncing"
-	StandardInvoiceStatusIssuingSyncFailed          StandardInvoiceStatus = "issuing.failed"
-	StandardInvoiceStatusIssuingChargeBooking       StandardInvoiceStatus = "issuing.charge_booking"
-	StandardInvoiceStatusIssuingChargeBookingFailed StandardInvoiceStatus = "issuing.charge_booking_failed"
+	StandardInvoiceStatusIssuingLineFinalization       StandardInvoiceStatus = "issuing.line_finalization"
+	StandardInvoiceStatusIssuingLineFinalizationFailed StandardInvoiceStatus = "issuing.line_finalization_failed"
+	StandardInvoiceStatusIssuingSyncing                StandardInvoiceStatus = "issuing.syncing"
+	StandardInvoiceStatusIssuingSyncFailed             StandardInvoiceStatus = "issuing.failed"
+	StandardInvoiceStatusIssuingChargeBooking          StandardInvoiceStatus = "issuing.charge_booking"
+	StandardInvoiceStatusIssuingChargeBookingFailed    StandardInvoiceStatus = "issuing.charge_booking_failed"
 
 	StandardInvoiceStatusIssued StandardInvoiceStatus = "issued"
 
@@ -115,6 +117,8 @@ var validStatuses = []StandardInvoiceStatus{
 	StandardInvoiceStatusDeleteFailed,
 	StandardInvoiceStatusDeleted,
 
+	StandardInvoiceStatusIssuingLineFinalization,
+	StandardInvoiceStatusIssuingLineFinalizationFailed,
 	StandardInvoiceStatusIssuingSyncing,
 	StandardInvoiceStatusIssuingSyncFailed,
 	StandardInvoiceStatusIssuingChargeBooking,
@@ -176,6 +180,7 @@ func (s StandardInvoiceStatus) MatchesInvoiceStatus(status StandardInvoiceStatus
 
 var failedStatuses = []StandardInvoiceStatus{
 	StandardInvoiceStatusDraftSyncFailed,
+	StandardInvoiceStatusIssuingLineFinalizationFailed,
 	StandardInvoiceStatusIssuingSyncFailed,
 	StandardInvoiceStatusIssuingChargeBookingFailed,
 	StandardInvoiceStatusDeleteFailed,
@@ -657,6 +662,40 @@ func (c *StandardInvoiceLines) ReplaceLinesByID(lines ...*StandardLine) error {
 	}
 
 	return nil
+}
+
+type ReplaceExactLinesInput struct {
+	Existing    StandardLines
+	Replacement StandardLines
+}
+
+func (i ReplaceExactLinesInput) Validate() error {
+	var errs []error
+
+	if err := i.Replacement.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("replacement lines: %w", err))
+	}
+
+	if err := ValidateStandardLineIDsMatchExactly(i.Existing, i.Replacement); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ReplaceExact validates and replaces an engine-owned subset of invoice lines.
+// The replacement must contain exactly the existing line IDs so an engine
+// cannot add, remove, or mutate lines owned outside its lifecycle callback.
+func (c *StandardInvoiceLines) ReplaceExact(input ReplaceExactLinesInput) error {
+	if c == nil || c.IsAbsent() {
+		return errors.New("cannot replace lines without expanded invoice lines")
+	}
+
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	return c.ReplaceLinesByID(input.Replacement...)
 }
 
 func (c *StandardInvoiceLines) Sort() {

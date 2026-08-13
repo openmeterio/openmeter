@@ -165,6 +165,7 @@ func (i StandardLineEventInput) Validate() error {
 type (
 	OnStandardInvoiceCreatedInput      = StandardLineEventInput
 	OnCollectionCompletedInput         = StandardLineEventInput
+	OnInvoiceFinalizingInput           = StandardLineEventInput
 	OnMutableStandardLinesDeletedInput = StandardLineEventInput
 	OnUnsupportedCreditNoteInput       = StandardLineEventInput
 	OnInvoiceIssuedInput               = StandardLineEventInput
@@ -282,6 +283,10 @@ type LineEngine interface {
 	OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input OnMutableInvoiceUpdateInput) (OnMutableInvoiceUpdateResult, error)
 	// OnUnsupportedCreditNote is invoked when a line deletion targets an immutable invoice but credit-note support is not available yet.
 	OnUnsupportedCreditNote(ctx context.Context, input OnUnsupportedCreditNoteInput) error
+	// OnInvoiceFinalizing is invoked during issuing before the invoice is sent to the invoicing app.
+	// Implementations may persist retry-safe engine-owned effects and must return fully calculated
+	// lines with exactly the same IDs as the input.
+	OnInvoiceFinalizing(ctx context.Context, input OnInvoiceFinalizingInput) (StandardLines, error)
 	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
 	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
 	// OnPaymentAuthorized is invoked when a standard invoice reaches the payment authorized state.

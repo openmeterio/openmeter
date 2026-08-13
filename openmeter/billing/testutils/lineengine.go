@@ -77,6 +77,10 @@ func (NoopLineEngine) OnUnsupportedCreditNote(context.Context, billing.OnUnsuppo
 	return nil
 }
 
+func (NoopLineEngine) OnInvoiceFinalizing(_ context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+	return input.Lines, nil
+}
+
 func (NoopLineEngine) OnInvoiceIssued(context.Context, billing.OnInvoiceIssuedInput) error {
 	return nil
 }

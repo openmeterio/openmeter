@@ -269,6 +269,10 @@ func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnSta
 	return input.Lines, nil
 }
 
+func (e *Engine) OnInvoiceFinalizing(_ context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+	return input.Lines, nil
+}
+
 func (e *Engine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssuedInput) error {
 	return nil
 }
