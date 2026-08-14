@@ -2,14 +2,20 @@ package appservice
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/servicehooks"
 )
 
 var _ app.AppService = (*Service)(nil)
+
+func (s *Service) RegisterHook(name string, hook servicehooks.Hook[app.LifecycleEvent]) error {
+	return s.hooks.Register(name, hook)
+}
 
 func (s *Service) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {
 	// Validate the input
@@ -94,25 +100,49 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 		return models.NewGenericValidationError(err)
 	}
 
-	// Existing app
-	existingApp, err := s.adapter.GetApp(ctx, input)
+	type uninstallResult struct {
+		appBase      app.AppBase
+		eventAppData app.EventAppData
+	}
+
+	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (uninstallResult, error) {
+		// Existing app
+		existingApp, err := s.adapter.GetApp(ctx, input)
+		if err != nil {
+			return uninstallResult{}, err
+		}
+
+		before := existingApp.GetAppBase()
+		if err := s.hooks.Invoke(ctx, app.LifecycleEvent{
+			Operation: app.OperationKindUninstall,
+			Before:    &before,
+		}); err != nil {
+			return uninstallResult{}, fmt.Errorf("invoking app lifecycle hooks: %w", err)
+		}
+
+		// Delete the app
+		appBase, err := s.adapter.UninstallApp(ctx, input)
+		if err != nil {
+			return uninstallResult{}, err
+		}
+
+		// Capture event data while the concrete app still exists.
+		eventAppData, err := existingApp.GetEventAppData()
+		if err != nil {
+			return uninstallResult{}, err
+		}
+
+		return uninstallResult{
+			appBase:      *appBase,
+			eventAppData: eventAppData,
+		}, nil
+	})
 	if err != nil {
 		return err
 	}
 
-	// Delete the app
-	appBase, err := s.adapter.UninstallApp(ctx, input)
-	if err != nil {
-		return err
-	}
-
-	// Emit the app deleted event
-	eventAppData, err := existingApp.GetEventAppData()
-	if err != nil {
-		return err
-	}
-
-	event := app.NewAppDeleteEvent(ctx, *appBase, eventAppData)
+	// Emit the app deleted event after the uninstall transaction has committed.
+	event := app.NewAppDeleteEvent(ctx, result.appBase, result.eventAppData)
 	if err := s.publisher.Publish(ctx, event); err != nil {
 		return err
 	}

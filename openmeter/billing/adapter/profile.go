@@ -33,6 +33,8 @@ import (
 
 var _ billing.ProfileAdapter = (*adapter)(nil)
 
+const appUsageReferenceLimit = 10
+
 func workflowConfigWithTaxCode(namespace string) func(*db.BillingWorkflowConfigQuery) {
 	return func(q *db.BillingWorkflowConfigQuery) {
 		q.Where(billingworkflowconfig.Namespace(namespace)).
@@ -383,9 +385,8 @@ func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) err
 		return fmt.Errorf("invalid app id: %w", err)
 	}
 
-	profiles, err := a.db.BillingProfile.Query().
+	query := a.db.BillingProfile.Query().
 		Where(
-
 			billingprofile.Namespace(appID.Namespace),
 			billingprofile.Or(
 				billingprofile.InvoicingAppID(appID.ID),
@@ -393,16 +394,29 @@ func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) err
 				billingprofile.TaxAppID(appID.ID),
 			),
 			billingprofile.DeletedAtIsNil(),
-		).
+		)
+
+	count, err := query.Clone().Count(ctx)
+	if err != nil {
+		return err
+	}
+
+	profiles, err := query.
+		Limit(appUsageReferenceLimit).
 		All(ctx)
 	if err != nil {
 		return err
 	}
 
-	if len(profiles) > 0 {
-		return models.NewGenericConflictError(fmt.Errorf("app is used in %d billing profiles: %s", len(profiles), strings.Join(lo.Map(profiles, func(profile *db.BillingProfile, _ int) string {
+	if count > 0 {
+		references := strings.Join(lo.Map(profiles, func(profile *db.BillingProfile, _ int) string {
 			return fmt.Sprintf("%s[%s]", profile.Name, profile.ID)
-		}), ",")))
+		}), ",")
+		if count > len(profiles) {
+			references += fmt.Sprintf(", and %d more", count-len(profiles))
+		}
+
+		return models.NewGenericConflictError(fmt.Errorf("app is used in %d billing profiles: %s", count, references))
 	}
 
 	return nil

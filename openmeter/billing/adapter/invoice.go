@@ -817,61 +817,59 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) error {
 		}
 	}
 
-	// Check if the app is used in any billing profile
-	err := a.isBillingProfileUsed(ctx, appID)
-	if err != nil {
-		return err
-	}
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		// Check if the app is used in any billing profile
+		if err := tx.isBillingProfileUsed(ctx, appID); err != nil {
+			return err
+		}
 
-	// Check if the app is used in any invoice in gathering or issued states
-	usedInInvoices, err := a.db.BillingInvoice.
-		Query().
-		Where(billinginvoice.Namespace(appID.Namespace)).
-		Where(
-			// The non-final states are listed here, so that we can make sure that all
-			// invoices can reach a final state before the app is removed.
-			billinginvoice.StatusIn(
-				billing.StandardInvoiceStatusGathering,
-				billing.StandardInvoiceStatusIssuingLineFinalization,
-				billing.StandardInvoiceStatusIssuingLineFinalizationFailed,
-				billing.StandardInvoiceStatusIssuingSyncing,
-				billing.StandardInvoiceStatusIssuingSyncFailed,
-				billing.StandardInvoiceStatusIssuingChargeBooking,
-				billing.StandardInvoiceStatusIssuingChargeBookingFailed,
-				billing.StandardInvoiceStatusIssued,
-				billing.StandardInvoiceStatusPaymentProcessingPending,
-				billing.StandardInvoiceStatusPaymentProcessingBookingAuthorized,
-				billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedFailed,
-				billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettled,
-				billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed,
-				billing.StandardInvoiceStatusPaymentProcessingAuthorized,
-				billing.StandardInvoiceStatusPaymentProcessingFailed,
-				billing.StandardInvoiceStatusPaymentProcessingActionRequired,
-				billing.StandardInvoiceStatusPaymentProcessingBookingSettled,
-				billing.StandardInvoiceStatusPaymentProcessingBookingSettledFailed,
-				billing.StandardInvoiceStatusOverdue,
-			),
-			billinginvoice.DeletedAtIsNil(),
-		).
-		Where(
-			billinginvoice.Or(
-				billinginvoice.InvoicingAppID(appID.ID),
-				billinginvoice.PaymentAppID(appID.ID),
-				billinginvoice.TaxAppID(appID.ID),
-			),
-		).
-		All(ctx)
-	if err != nil {
-		return err
-	}
+		// Invoice app references are immutable history. Every non-final standard
+		// invoice that references an app must be able to complete its lifecycle
+		// before the app's provider-specific resources are removed.
+		query := tx.db.BillingInvoice.
+			Query().
+			Where(
+				billinginvoice.Namespace(appID.Namespace),
+				billinginvoice.TypeEQ(billing.InvoiceTypeStandard),
+				billinginvoice.StatusNotIn(
+					billing.StandardInvoiceStatusDeleted,
+					billing.StandardInvoiceStatusPaid,
+					billing.StandardInvoiceStatusUncollectible,
+					billing.StandardInvoiceStatusVoided,
+				),
+				billinginvoice.DeletedAtIsNil(),
+				billinginvoice.Or(
+					billinginvoice.InvoicingAppID(appID.ID),
+					billinginvoice.PaymentAppID(appID.ID),
+					billinginvoice.TaxAppID(appID.ID),
+				),
+			)
 
-	if len(usedInInvoices) > 0 {
-		return models.NewGenericConflictError(fmt.Errorf("app is used in %d non-finalized invoices: %s", len(usedInInvoices), strings.Join(lo.Map(usedInInvoices, func(invoice *db.BillingInvoice, _ int) string {
-			return fmt.Sprintf("%s[%s]", invoice.Number, invoice.ID)
-		}), ",")))
-	}
+		count, err := query.Clone().Count(ctx)
+		if err != nil {
+			return err
+		}
 
-	return nil
+		usedInInvoices, err := query.
+			Limit(appUsageReferenceLimit).
+			All(ctx)
+		if err != nil {
+			return err
+		}
+
+		if count > 0 {
+			references := strings.Join(lo.Map(usedInInvoices, func(invoice *db.BillingInvoice, _ int) string {
+				return fmt.Sprintf("%s[%s]", invoice.Number, invoice.ID)
+			}), ",")
+			if count > len(usedInInvoices) {
+				references += fmt.Sprintf(", and %d more", count-len(usedInInvoices))
+			}
+
+			return models.NewGenericConflictError(fmt.Errorf("app is used in %d non-finalized invoices: %s", count, references))
+		}
+
+		return nil
+	})
 }
 
 func (a *adapter) GetInvoiceType(ctx context.Context, input billing.GetInvoiceTypeAdapterInput) (billing.InvoiceType, error) {

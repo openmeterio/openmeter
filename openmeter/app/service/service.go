@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/servicehooks"
 )
 
 var _ app.Service = (*Service)(nil)
@@ -12,6 +13,7 @@ var _ app.Service = (*Service)(nil)
 type Service struct {
 	adapter   app.Adapter
 	publisher eventbus.Publisher
+	hooks     servicehooks.Registry[app.LifecycleEvent]
 }
 
 type Config struct {

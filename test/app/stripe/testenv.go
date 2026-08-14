@@ -15,6 +15,7 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingappuninstall "github.com/openmeterio/openmeter/openmeter/billing/validators/appuninstall"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -159,6 +160,15 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create billing service: %w", err)
+	}
+
+	appUninstallValidator, err := billingappuninstall.NewValidator(billingService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing app uninstall validator: %w", err)
+	}
+
+	if err := appService.RegisterHook(billingappuninstall.HookName, appUninstallValidator); err != nil {
+		return nil, fmt.Errorf("failed to register billing app uninstall validator: %w", err)
 	}
 
 	// Stripe Client

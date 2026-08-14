@@ -280,6 +280,44 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 	})
 }
 
+func (s *ProfileTestSuite) TestDeletedProfileAppUsageFollowsNonFinalInvoices() {
+	t := s.T()
+	ctx := t.Context()
+	namespace := s.GetUniqueNamespace("deleted-profile-app-usage")
+
+	// Given a draft invoice that snapshots the apps from the current default profile.
+	referencedApp := s.InstallSandboxApp(t, namespace)
+	referencedProfile := s.ProvisionBillingProfile(ctx, namespace, referencedApp.GetID())
+	customerEntity := s.CreateTestCustomer(namespace, ulid.Make().String())
+	invoice := s.CreateDraftInvoice(t, ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customerEntity,
+	})
+
+	// And the profile is superseded and deleted, leaving the invoice as the only reference.
+	replacementApp := s.InstallSandboxApp(t, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, replacementApp.GetID())
+	require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+		Namespace: namespace,
+		ID:        referencedProfile.ID,
+	}))
+
+	// Then the non-final invoice keeps the referenced app in use.
+	err := s.BillingService.IsAppUsed(ctx, referencedApp.GetID())
+	var conflictErr *models.GenericConflictError
+	require.ErrorAs(t, err, &conflictErr)
+	require.ErrorContains(t, err, invoice.ID)
+
+	// When the invoice reaches a final state, it no longer prevents uninstall.
+	invoice, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+		Invoice:        invoice.GetInvoiceID(),
+		DeletionSource: billing.ChangeSourceAPIRequest,
+	})
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusDeleted, invoice.Status)
+	require.NoError(t, s.BillingService.IsAppUsed(ctx, referencedApp.GetID()))
+}
+
 func (s *ProfileTestSuite) TestProfileFieldSetting() {
 	ctx := context.Background()
 	t := s.T()

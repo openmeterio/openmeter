@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/google/wire"
@@ -23,6 +24,7 @@ import (
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
 	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
+	billingappuninstall "github.com/openmeterio/openmeter/openmeter/billing/validators/appuninstall"
 	billingcustomer "github.com/openmeterio/openmeter/openmeter/billing/validators/customer"
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
@@ -273,6 +275,14 @@ func NewBillingRegistry(
 	}
 
 	// Hook registration
+	appUninstallValidator, err := billingappuninstall.NewValidator(billingRegistry.Billing)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
+	if err := appService.RegisterHook(billingappuninstall.HookName, appUninstallValidator); err != nil {
+		return BillingRegistry{}, fmt.Errorf("registering billing app uninstall validator: %w", err)
+	}
 
 	// Customer validate (and sync subscription on delete)
 	// To prevent circular dependencies, we create the validator here
