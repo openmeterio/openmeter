@@ -19,7 +19,6 @@ func (a *adapter) GetAppConfiguration(ctx context.Context, input app.AppID) (cus
 			Where(
 				appcustominvoicing.ID(input.ID),
 				appcustominvoicing.Namespace(input.Namespace),
-				appcustominvoicing.DeletedAtIsNil(),
 			).
 			First(ctx)
 		if err != nil {

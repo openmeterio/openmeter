@@ -31,13 +31,13 @@ type AppStripe struct {
 	// StripeLivemode holds the value of the "stripe_livemode" field.
 	StripeLivemode bool `json:"stripe_livemode,omitempty"`
 	// APIKey holds the value of the "api_key" field.
-	APIKey string `json:"-"`
+	APIKey *string `json:"-"`
 	// MaskedAPIKey holds the value of the "masked_api_key" field.
 	MaskedAPIKey string `json:"masked_api_key,omitempty"`
 	// StripeWebhookID holds the value of the "stripe_webhook_id" field.
 	StripeWebhookID string `json:"stripe_webhook_id,omitempty"`
 	// WebhookSecret holds the value of the "webhook_secret" field.
-	WebhookSecret string `json:"-"`
+	WebhookSecret *string `json:"-"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppStripeQuery when eager-loading is set.
 	Edges        AppStripeEdges `json:"edges"`
@@ -148,7 +148,8 @@ func (_m *AppStripe) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field api_key", values[i])
 			} else if value.Valid {
-				_m.APIKey = value.String
+				_m.APIKey = new(string)
+				*_m.APIKey = value.String
 			}
 		case appstripe.FieldMaskedAPIKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -166,7 +167,8 @@ func (_m *AppStripe) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field webhook_secret", values[i])
 			} else if value.Valid {
-				_m.WebhookSecret = value.String
+				_m.WebhookSecret = new(string)
+				*_m.WebhookSecret = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])

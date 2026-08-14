@@ -41,6 +41,8 @@ var (
 	ErrInvoiceNotFound                       = NewValidationError("invoice_not_found", "invoice not found")
 	ErrInvoiceDeleteFailed                   = NewValidationError("invoice_delete_failed", "invoice delete failed")
 	ErrInvoiceCannotDeleteGathering          = NewValidationError("invoice_cannot_delete_gathering", "gathering invoices cannot be deleted, please delete the upcoming lines instead")
+	ErrInvoiceWorkflowAppDeleted             = NewValidationError("invoice_workflow_app_deleted", "invoicing workflow app has been deleted")
+	WarnInvoiceWorkflowAppDeleteSkipped      = NewValidationWarning("invoice_workflow_app_delete_skipped", "external invoice deletion was skipped because the invoicing workflow app has been deleted")
 
 	ErrInvoiceLineFeatureHasNoMeters                             = NewValidationError("invoice_line_feature_has_no_meters", "usage based invoice line: feature has no meters")
 	ErrInvoiceLineVolumeSplitNotSupported                        = NewValidationError("invoice_line_graduated_split_not_supported", "graduated tiered pricing is not supported for split periods")

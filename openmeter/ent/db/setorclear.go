@@ -428,6 +428,34 @@ func (u *AppStripeUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeUpd
 	return u.SetDeletedAt(*value)
 }
 
+func (u *AppStripeUpdate) SetOrClearAPIKey(value *string) *AppStripeUpdate {
+	if value == nil {
+		return u.ClearAPIKey()
+	}
+	return u.SetAPIKey(*value)
+}
+
+func (u *AppStripeUpdateOne) SetOrClearAPIKey(value *string) *AppStripeUpdateOne {
+	if value == nil {
+		return u.ClearAPIKey()
+	}
+	return u.SetAPIKey(*value)
+}
+
+func (u *AppStripeUpdate) SetOrClearWebhookSecret(value *string) *AppStripeUpdate {
+	if value == nil {
+		return u.ClearWebhookSecret()
+	}
+	return u.SetWebhookSecret(*value)
+}
+
+func (u *AppStripeUpdateOne) SetOrClearWebhookSecret(value *string) *AppStripeUpdateOne {
+	if value == nil {
+		return u.ClearWebhookSecret()
+	}
+	return u.SetWebhookSecret(*value)
+}
+
 func (u *AppStripeCustomerUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeCustomerUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	entschema "entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -28,10 +29,18 @@ func (AppStripe) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("stripe_account_id").Immutable(),
 		field.Bool("stripe_livemode").Immutable(),
-		field.String("api_key").NotEmpty().Sensitive(),
+		field.String("api_key").Optional().Nillable().NotEmpty().Sensitive(),
 		field.String("masked_api_key").NotEmpty(),
 		field.String("stripe_webhook_id").NotEmpty(),
-		field.String("webhook_secret").NotEmpty().Sensitive(),
+		field.String("webhook_secret").Optional().Nillable().NotEmpty().Sensitive(),
+	}
+}
+
+func (AppStripe) Annotations() []entschema.Annotation {
+	return []entschema.Annotation{
+		entsql.Checks(map[string]string{
+			"app_stripe_secret_lifecycle": `(deleted_at IS NULL AND api_key IS NOT NULL AND webhook_secret IS NOT NULL) OR (deleted_at IS NOT NULL AND api_key IS NULL AND webhook_secret IS NULL)`,
+		}),
 	}
 }
 

@@ -8,6 +8,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+var ErrAppDeleted = models.NewGenericValidationError(errors.New("app is deleted"))
+
+func NewAppDeletedError(appID AppID) error {
+	return fmt.Errorf("app %s: %w", appID.ID, ErrAppDeleted)
+}
+
 // AppNotFoundError
 func NewAppNotFoundError(appID AppID) *AppNotFoundError {
 	return &AppNotFoundError{

@@ -272,6 +272,12 @@ func NewMockableFactory(_ *testing.T, config Config, opts ...mockConfigOption) (
 }
 
 func (m *MockableFactory) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
+	// Mock overrides represent an available Sandbox app. Deleted apps must retain
+	// the unavailable operations provided by the real factory.
+	if appBase.DeletedAt != nil {
+		return m.Factory.NewApp(ctx, appBase)
+	}
+
 	if m.overrideFactory != nil {
 		return m.overrideFactory.NewApp(ctx, appBase)
 	}

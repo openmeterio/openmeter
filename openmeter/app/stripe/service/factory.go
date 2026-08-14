@@ -18,9 +18,23 @@ var _ app.AppFactory = (*Service)(nil)
 
 // NewApp implement the app.AppFactory interface and returns a Stripe App by extending the AppBase
 func (s *Service) NewApp(ctx context.Context, appBase app.AppBase) (app.App, error) {
-	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: appBase.GetID()})
+	stripeApp, err := s.adapter.GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{
+		AppID:          appBase.GetID(),
+		IncludeDeleted: appBase.DeletedAt != nil,
+	})
 	if err != nil {
+		if appBase.DeletedAt != nil && app.IsAppNotFoundError(err) {
+			return appstripe.NewDeleted(appstripe.Meta{AppBase: appBase}), nil
+		}
+
 		return nil, fmt.Errorf("failed to get stripe app data: %w", err)
+	}
+
+	if appBase.DeletedAt != nil {
+		return appstripe.NewDeleted(appstripe.Meta{
+			AppBase: appBase,
+			AppData: stripeApp,
+		}), nil
 	}
 
 	app, err := s.newApp(appBase, stripeApp)
@@ -217,22 +231,23 @@ func (s *Service) UninstallApp(ctx context.Context, input app.UninstallAppInput)
 
 // newApp combines the app base and stripe app data to create a new app
 func (s *Service) newApp(appBase app.AppBase, stripeApp appstripe.AppData) (appstripe.App, error) {
-	app := appstripe.App{
-		Meta: appstripe.Meta{
+	application, err := appstripe.New(
+		appstripe.Meta{
 			AppBase: appBase,
 			AppData: stripeApp,
 		},
-		AppService:             s.appService,
-		BillingService:         s.billingService,
-		StripeAppService:       s,
-		SecretService:          s.secretService,
-		StripeAppClientFactory: s.adapter.GetStripeAppClientFactory(),
-		Logger:                 s.logger,
-	}
-
-	if err := app.Validate(); err != nil {
+		appstripe.AppConfig{
+			AppService:             s.appService,
+			BillingService:         s.billingService,
+			StripeAppService:       s,
+			SecretService:          s.secretService,
+			StripeAppClientFactory: s.adapter.GetStripeAppClientFactory(),
+			Logger:                 s.logger,
+		},
+	)
+	if err != nil {
 		return appstripe.App{}, fmt.Errorf("failed to map stripe app from db: %w", err)
 	}
 
-	return app, nil
+	return application, nil
 }

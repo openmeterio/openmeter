@@ -21,7 +21,7 @@ func (c CustomerData) Validate() error {
 
 // Customer Specific App Data Handling
 
-func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
+func (a appOperations) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return a.customInvoicingService.GetCustomerData(ctx, GetAppCustomerDataInput{
 		Namespace:  a.Namespace,
 		AppID:      a.ID,
@@ -29,7 +29,7 @@ func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustom
 	})
 }
 
-func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
+func (a appOperations) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	data, ok := input.Data.(CustomerData)
 	if !ok {
 		return fmt.Errorf("invalid customer data: %v", input.Data)
@@ -45,7 +45,7 @@ func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstance
 	})
 }
 
-func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
+func (a appOperations) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	return a.customInvoicingService.DeleteCustomerData(ctx, DeleteAppCustomerDataInput{
 		Namespace:  a.Namespace,
 		AppID:      a.ID,

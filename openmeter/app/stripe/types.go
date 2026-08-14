@@ -95,7 +95,8 @@ func (i CreateAppStripeInput) Validate() error {
 }
 
 type GetStripeAppDataInput struct {
-	AppID app.AppID
+	AppID          app.AppID
+	IncludeDeleted bool
 }
 
 func (i GetStripeAppDataInput) Validate() error {

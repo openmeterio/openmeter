@@ -52,11 +52,29 @@ func (m *Meta) FromEventAppData(event app.EventApp) error {
 
 type App struct {
 	Meta
+	Operations
+}
+
+type Operations interface {
+	app.AppOperations
+	customerapp.App
+	billing.InvoicingApp
+	billing.InvoicingAppPostAdvanceHook
+}
+
+type appOperations struct {
+	appBase app.AppBase
 
 	sequenceService sequence.Service
 }
 
-func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
+var _ Operations = (*appOperations)(nil)
+
+func (a appOperations) ValidateCapabilities(capabilities ...app.CapabilityType) error {
+	return a.appBase.ValidateCapabilities(capabilities...)
+}
+
+func (a appOperations) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	if err := a.ValidateCapabilities(capabilities...); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
 	}
@@ -64,31 +82,31 @@ func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, 
 	return nil
 }
 
-func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
+func (a appOperations) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	return CustomerData{}, nil
 }
 
-func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
+func (a appOperations) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	return nil
 }
 
-func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
+func (a appOperations) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	return nil
 }
 
-func (a App) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+func (a appOperations) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
-func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
+func (a appOperations) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
 	return nil
 }
 
-func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	return billing.NewUpsertStandardInvoiceResult(), nil
 }
 
-func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
+func (a appOperations) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
 	invoiceNumber, err := a.sequenceService.GenerateInvoiceSequenceNumber(
 		ctx,
 		sequence.GenerationInput{
@@ -107,11 +125,11 @@ func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.Standa
 		SetSentToCustomerAt(clock.Now()), nil
 }
 
-func (a App) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+func (a appOperations) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
-func (a App) PostAdvanceStandardInvoiceHook(ctx context.Context, invoice billing.StandardInvoice) (*billing.PostAdvanceHookResult, error) {
+func (a appOperations) PostAdvanceStandardInvoiceHook(ctx context.Context, invoice billing.StandardInvoice) (*billing.PostAdvanceHookResult, error) {
 	if invoice.Status != billing.StandardInvoiceStatusPaymentProcessingPending {
 		return nil, nil
 	}
@@ -158,6 +176,21 @@ func (a App) PostAdvanceStandardInvoiceHook(ctx context.Context, invoice billing
 
 func (a App) GetEventAppData() (app.EventAppData, error) {
 	return app.EventAppData{}, nil
+}
+
+type deletedApp struct {
+	app.DeletedApp
+	billing.DeletedInvoicingApp
+}
+
+var _ Operations = (*deletedApp)(nil)
+
+func (a deletedApp) PostAdvanceStandardInvoiceHook(_ context.Context, invoice billing.StandardInvoice) (*billing.PostAdvanceHookResult, error) {
+	if invoice.Status == billing.StandardInvoiceStatusDeleted {
+		return nil, nil
+	}
+
+	return nil, fmt.Errorf("app %s: %w", a.GetID().ID, billing.ErrInvoiceWorkflowAppDeleted)
 }
 
 type CustomerData struct{}
@@ -211,11 +244,26 @@ func NewFactory(config Config) (*Factory, error) {
 
 // Factory
 func (a *Factory) NewApp(_ context.Context, appBase app.AppBase) (app.App, error) {
+	if appBase.DeletedAt != nil {
+		return App{
+			Meta: Meta{
+				AppBase: appBase,
+			},
+			Operations: &deletedApp{
+				DeletedApp:          app.NewDeletedApp(appBase.GetID()),
+				DeletedInvoicingApp: billing.NewDeletedInvoicingApp(appBase.GetID()),
+			},
+		}, nil
+	}
+
 	return App{
 		Meta: Meta{
 			AppBase: appBase,
 		},
-		sequenceService: a.sequenceService,
+		Operations: &appOperations{
+			appBase:         appBase,
+			sequenceService: a.sequenceService,
+		},
 	}, nil
 }
 

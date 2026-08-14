@@ -34,6 +34,15 @@ type App interface {
 	DeleteCustomerData(ctx context.Context, input DeleteAppInstanceCustomerDataInput) error
 }
 
+// AppOperations contains behavior that must be implemented by all apps.
+type AppOperations interface {
+	UpdateAppConfig(ctx context.Context, input AppConfigUpdate) error
+	ValidateCapabilities(capabilities ...CapabilityType) error
+	GetCustomerData(ctx context.Context, input GetAppInstanceCustomerDataInput) (CustomerData, error)
+	UpsertCustomerData(ctx context.Context, input UpsertAppInstanceCustomerDataInput) error
+	DeleteCustomerData(ctx context.Context, input DeleteAppInstanceCustomerDataInput) error
+}
+
 type GetAppInstanceCustomerDataInput struct {
 	CustomerID customer.CustomerID
 }

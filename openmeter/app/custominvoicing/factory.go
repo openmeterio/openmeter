@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 )
 
@@ -102,13 +103,28 @@ func (f *Factory) NewApp(ctx context.Context, appBase app.AppBase) (app.App, err
 		return nil, fmt.Errorf("failed to get app config: %w", err)
 	}
 
+	meta := Meta{
+		AppBase:       appBase,
+		Configuration: cfg,
+	}
+
+	if appBase.DeletedAt != nil {
+		return App{
+			Meta: meta,
+			Operations: &deletedApp{
+				DeletedApp:          app.NewDeletedApp(appBase.GetID()),
+				DeletedInvoicingApp: billing.NewDeletedInvoicingApp(appBase.GetID()),
+			},
+		}, nil
+	}
+
 	return App{
-		Meta: Meta{
-			AppBase:       appBase,
-			Configuration: cfg,
+		Meta: meta,
+		Operations: &appOperations{
+			Meta:                   meta,
+			customInvoicingService: f.customInvoicingService,
+			sequenceService:        f.sequenceService,
 		},
-		customInvoicingService: f.customInvoicingService,
-		sequenceService:        f.sequenceService,
 	}, nil
 }
 

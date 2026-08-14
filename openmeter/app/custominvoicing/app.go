@@ -57,16 +57,34 @@ func (m *Meta) FromEventAppData(event app.EventApp) error {
 
 type App struct {
 	Meta
+	Operations
+}
+
+type Operations interface {
+	app.AppOperations
+	customerapp.App
+	billing.InvoicingApp
+	billing.InvoicingAppAsyncSyncer
+}
+
+type appOperations struct {
+	Meta
 
 	customInvoicingService Service
 	sequenceService        sequence.Service
 }
 
-func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
+var _ Operations = (*appOperations)(nil)
+
+func (a appOperations) ValidateCapabilities(capabilities ...app.CapabilityType) error {
+	return a.AppBase.ValidateCapabilities(capabilities...)
+}
+
+func (a appOperations) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	return nil
 }
 
-func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
+func (a appOperations) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
 	cfg, ok := input.(Configuration)
 	if !ok {
 		return fmt.Errorf("invalid configuration")
@@ -91,15 +109,15 @@ func (a App) GetEventAppData() (app.EventAppData, error) {
 
 // ValidateStandardInvoice is a no-op as any validation issues are published via the draft.syncing and finalizations syncing
 // flow.
-func (a App) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+func (a appOperations) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
-func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	return nil, nil
 }
 
-func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
+func (a appOperations) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
 	canAdvance, err := a.CanIssuingSyncAdvance(invoice)
 	if err != nil {
 		return nil, err
@@ -131,13 +149,13 @@ func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.Standa
 }
 
 // DeleteStandardInvoice is a no-op as this should happen via the notifications webhook
-func (a App) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+func (a appOperations) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
 // InvoicingAppAsyncSyncer
 
-func (a App) CanDraftSyncAdvance(invoice billing.StandardInvoice) (bool, error) {
+func (a appOperations) CanDraftSyncAdvance(invoice billing.StandardInvoice) (bool, error) {
 	if !a.Configuration.EnableDraftSyncHook {
 		return true, nil
 	}
@@ -153,7 +171,7 @@ func (a App) CanDraftSyncAdvance(invoice billing.StandardInvoice) (bool, error) 
 	return false, nil
 }
 
-func (a App) CanIssuingSyncAdvance(invoice billing.StandardInvoice) (bool, error) {
+func (a appOperations) CanIssuingSyncAdvance(invoice billing.StandardInvoice) (bool, error) {
 	if !a.Configuration.EnableIssuingSyncHook {
 		return true, nil
 	}
@@ -167,4 +185,19 @@ func (a App) CanIssuingSyncAdvance(invoice billing.StandardInvoice) (bool, error
 	}
 
 	return false, nil
+}
+
+type deletedApp struct {
+	app.DeletedApp
+	billing.DeletedInvoicingApp
+}
+
+var _ Operations = (*deletedApp)(nil)
+
+func (a deletedApp) CanDraftSyncAdvance(billing.StandardInvoice) (bool, error) {
+	return false, fmt.Errorf("app %s: %w", a.GetID().ID, billing.ErrInvoiceWorkflowAppDeleted)
+}
+
+func (a deletedApp) CanIssuingSyncAdvance(billing.StandardInvoice) (bool, error) {
+	return false, fmt.Errorf("app %s: %w", a.GetID().ID, billing.ErrInvoiceWorkflowAppDeleted)
 }

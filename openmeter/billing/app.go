@@ -182,6 +182,33 @@ type InvoicingApp interface {
 	DeleteStandardInvoice(ctx context.Context, invoice StandardInvoice) error
 }
 
+// DeletedInvoicingApp provides standard invoicing operations for a deleted app.
+type DeletedInvoicingApp struct {
+	appID app.AppID
+}
+
+var _ InvoicingApp = DeletedInvoicingApp{}
+
+func NewDeletedInvoicingApp(appID app.AppID) DeletedInvoicingApp {
+	return DeletedInvoicingApp{appID: appID}
+}
+
+func (a DeletedInvoicingApp) ValidateStandardInvoice(context.Context, StandardInvoice) error {
+	return fmt.Errorf("app %s: %w", a.appID.ID, ErrInvoiceWorkflowAppDeleted)
+}
+
+func (a DeletedInvoicingApp) UpsertStandardInvoice(context.Context, StandardInvoice) (*UpsertStandardInvoiceResult, error) {
+	return nil, fmt.Errorf("app %s: %w", a.appID.ID, ErrInvoiceWorkflowAppDeleted)
+}
+
+func (a DeletedInvoicingApp) FinalizeStandardInvoice(context.Context, StandardInvoice) (*FinalizeStandardInvoiceResult, error) {
+	return nil, fmt.Errorf("app %s: %w", a.appID.ID, ErrInvoiceWorkflowAppDeleted)
+}
+
+func (a DeletedInvoicingApp) DeleteStandardInvoice(context.Context, StandardInvoice) error {
+	return fmt.Errorf("app %s: %w", a.appID.ID, WarnInvoiceWorkflowAppDeleteSkipped)
+}
+
 type InvoicingAppPostAdvanceHook interface {
 	// PostAdvanceInvoiceHook is called after the invoice has been advanced to the next stable state
 	// (e.g. no next trigger is available)

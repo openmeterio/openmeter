@@ -440,6 +440,16 @@ func APIKeyHasSuffix(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldHasSuffix(FieldAPIKey, v))
 }
 
+// APIKeyIsNil applies the IsNil predicate on the "api_key" field.
+func APIKeyIsNil() predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldIsNull(FieldAPIKey))
+}
+
+// APIKeyNotNil applies the NotNil predicate on the "api_key" field.
+func APIKeyNotNil() predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNotNull(FieldAPIKey))
+}
+
 // APIKeyEqualFold applies the EqualFold predicate on the "api_key" field.
 func APIKeyEqualFold(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEqualFold(FieldAPIKey, v))
@@ -633,6 +643,16 @@ func WebhookSecretHasPrefix(v string) predicate.AppStripe {
 // WebhookSecretHasSuffix applies the HasSuffix predicate on the "webhook_secret" field.
 func WebhookSecretHasSuffix(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldHasSuffix(FieldWebhookSecret, v))
+}
+
+// WebhookSecretIsNil applies the IsNil predicate on the "webhook_secret" field.
+func WebhookSecretIsNil() predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldIsNull(FieldWebhookSecret))
+}
+
+// WebhookSecretNotNil applies the NotNil predicate on the "webhook_secret" field.
+func WebhookSecretNotNil() predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNotNull(FieldWebhookSecret))
 }
 
 // WebhookSecretEqualFold applies the EqualFold predicate on the "webhook_secret" field.

@@ -1,4 +1,4 @@
-h1:AxFosLDftkgQaBEIS8tPEoLcxeaTQASkfb+z8xY+CYk=
+h1:nSRJ0al22pbnOmFndF//0+6xErV5djgIXQJlFdXpQco=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -263,3 +263,4 @@ h1:AxFosLDftkgQaBEIS8tPEoLcxeaTQASkfb+z8xY+CYk=
 20260809172658_backfill_persisted_charge_discount_correlation_ids.up.sql h1:Ybb0TjDQ+u/OYhFRtPHIau+NK1PS/DO+sMdTLn5XJHY=
 20260810064730_backfill_subscription_item_currencies.up.sql h1:e2UeY1pD0Icov44B3IRkjQlx8Xn3DIS1httVx36CYI8=
 20260810084018_custom_currency_subscription_semantics.up.sql h1:ENlniMbQWePP3Lsu2ECok9tppZqusd7wGqOuO1VMNPA=
+20260814064718_make_stripe_app_secrets_nullable.up.sql h1:QyRP7+0X/pUyhAEzD7wxBWPiFTS63r/Dor3FJO3NPns=

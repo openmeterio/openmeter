@@ -109,6 +109,12 @@ invoice before sending it to the invoicing app. Line finalization has its own
 retryable failure state, so an external app retry does not repeat stable
 engine-owned effects.
 
+A deleted app keeps its historical identity and can still be expanded on
+invoices. Its generic app operations return `app.ErrAppDeleted`, while its
+invoicing operations return billing-owned validation issues. Critical issues
+move the invoice into the failed state for that step. Invoice deletion remains
+available and returns a warning when provider cleanup has to be skipped.
+
 Retrying and deleting are separate domain actions. Use the billing service's
 retry operation for a retryable failure and its delete operation for the
 delete lifecycle; firing a generic state-machine trigger bypasses preparation
@@ -117,7 +123,11 @@ and audit semantics owned by those operations.
 Billing publishes created and updated standard-invoice snapshots for
 downstream consumers. [Notifications](../notification/README.md) maps those
 snapshots into its own API-shaped historical payloads and delivers them
-asynchronously; webhook delivery is not part of the invoice lifecycle.
+asynchronously; webhook delivery is not part of the invoice lifecycle. Every
+snapshot contains the base identity of all three workflow apps. Building that
+identity does not instantiate provider implementations; provider-specific
+event data is included only when the implementation is already available to
+the lifecycle operation.
 
 ## Consistency invariants
 
