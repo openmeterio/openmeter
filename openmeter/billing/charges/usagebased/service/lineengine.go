@@ -841,11 +841,10 @@ func (e *LineEngine) deleteMutableStandardLineRealization(
 	}
 
 	now := clock.Now()
-	if _, err := e.service.runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
-		Charge:             charge,
-		Run:                run,
-		AllocateAt:         run.ServicePeriodTo,
-		CurrencyCalculator: charge.Intent.GetCurrency(),
+	if err := e.service.runs.CorrectAllCreditRealizations(ctx, usagebasedrun.CreditReconciliationHandlerInput{
+		Charge:     charge,
+		Run:        run,
+		AllocateAt: run.ServicePeriodTo,
 	}); err != nil {
 		return usagebased.Charge{}, fmt.Errorf("correcting credits for deleted usage based standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
 	}
@@ -977,8 +976,71 @@ func (e *LineEngine) getChargesForStandardLineEvent(ctx context.Context, input b
 	}), nil
 }
 
-func (e *LineEngine) OnInvoiceFinalizing(_ context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
-	return input.Lines, nil
+func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
+		meta.ExpandRealizations,
+	}, "invoice finalization")
+	if err != nil {
+		return nil, err
+	}
+
+	return slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return nil, fmt.Errorf("usage based charge[%s] not found for finalizing line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		if stdLine.IsDeleted() ||
+			charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode ||
+			!charge.Intent.GetCurrency().IsCustom() {
+			return stdLine, nil
+		}
+
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
+			return nil, fmt.Errorf("getting realization run for finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+			return nil, fmt.Errorf(
+				"realization run[%s] for finalizing line[%s] is not associated with invoice[%s]",
+				run.ID.ID,
+				stdLine.ID,
+				input.Invoice.ID,
+			)
+		}
+
+		allocated, err := e.service.runs.AllocateFiatOverageCredits(ctx, usagebasedrun.AllocateFiatOverageCreditsInput{
+			Charge: charge,
+			Run:    run,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		updatedLine, err := stdLine.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("cloning finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		if err := populateStandardLineFromRun(updatedLine, populateStandardLineFromRunInput{
+			Charge: allocated.Charge,
+			Run:    allocated.Run,
+			Stage:  standardLinePopulationStageInvoiceFinalizing,
+		}); err != nil {
+			return nil, fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", stdLine.ID, run.ID.ID, err)
+		}
+
+		if err := updatedLine.Validate(); err != nil {
+			return nil, fmt.Errorf("validating finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		return updatedLine, nil
+	})
 }
 
 func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {

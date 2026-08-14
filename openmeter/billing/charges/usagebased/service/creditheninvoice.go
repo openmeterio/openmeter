@@ -1032,71 +1032,18 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 		return fmt.Errorf("get detailed rating for usage: %w", err)
 	}
 
-	currentTotals := ratingResult.Totals.RoundToPrecision(s.CurrencyCalculator)
-
-	reconcileResult, err := s.Runs.ReconcileCredits(ctx, usagebasedrun.ReconcileCreditRealizationsInput{
+	currentRun.StoredAtLT = storedAtLT
+	reconciled, err := s.Runs.ReconcileRatedRun(ctx, usagebasedrun.ReconcileRatedRunInput{
 		Charge:             s.Charge,
 		Run:                currentRun,
-		AllocateAt:         currentRun.ServicePeriodTo,
-		TargetAmount:       currentTotals.Total,
+		Rating:             ratingResult,
 		CurrencyCalculator: s.CurrencyCalculator,
-		ExactAllocation:    false,
 	})
 	if err != nil {
-		return fmt.Errorf("reconcile lifecycle: %w", err)
+		return fmt.Errorf("reconcile rated run: %w", err)
 	}
 
-	currentRun.CreditsAllocated = append(currentRun.CreditsAllocated, reconcileResult.Realizations...)
-	currentTotals.CreditsTotal = s.CurrencyCalculator.RoundToPrecision(currentRun.CreditsAllocated.Sum())
-	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(currentTotals.CreditsTotal))
-
-	creditsApplied, err := currentRun.CreditsAllocated.AsCreditsApplied()
-	if err != nil {
-		return fmt.Errorf("map credit realizations to detailed line credits: %w", err)
-	}
-
-	detailedLines, err := ratingResult.DetailedLines.WithCreditsApplied(creditsApplied, s.CurrencyCalculator)
-	if err != nil {
-		return fmt.Errorf("apply credit allocations to run detailed lines: %w", err)
-	}
-
-	if err := s.Adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
-		ChargeID:                              s.Charge.GetChargeID(),
-		RunID:                                 currentRun.ID,
-		DetailedLines:                         detailedLines,
-		DetailedLinesIncludeCreditAllocations: true,
-	}); err != nil {
-		return fmt.Errorf("upsert run detailed lines: %w", err)
-	}
-	currentRun.DetailedLines = mo.Some(detailedLines)
-	currentRun.DetailedLinesIncludeCreditAllocations = true
-
-	noFiatTransactionRequired := currentTotals.Total.IsZero()
-	if s.Charge.Intent.GetCurrency().IsCustom() {
-		fiatOverage, err := s.Charge.ConvertCustomCurrencyOverageToFiat(currentTotals)
-		if err != nil {
-			return fmt.Errorf("convert custom currency overage to fiat: %w", err)
-		}
-
-		noFiatTransactionRequired = fiatOverage.Amount.IsZero()
-	}
-
-	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:                        currentRun.ID,
-		StoredAtLT:                mo.Some(storedAtLT),
-		MeteredQuantity:           mo.Some(ratingResult.Quantity),
-		Totals:                    mo.Some(currentTotals),
-		NoFiatTransactionRequired: mo.Some(noFiatTransactionRequired),
-	})
-	if err != nil {
-		return fmt.Errorf("update realization run: %w", err)
-	}
-
-	currentRun.RealizationRunBase = currentRunBase
-
-	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
-		return fmt.Errorf("update realization run: %w", err)
-	}
+	s.Charge = reconciled.Charge
 
 	return nil
 }

@@ -179,6 +179,24 @@ func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, 
 	return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
 }
 
+func (h *usageBasedHandler) OnAllocateFiatOverageCredits(ctx context.Context, input usagebased.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	// TODO[implement]: Allocate settlement-fiat credits against the custom-currency overage.
+	return nil, fmt.Errorf("implement OnAllocateFiatOverageCredits: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
+func (h *usageBasedHandler) OnCorrectFiatOverageCreditAllocations(ctx context.Context, input usagebased.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	// TODO[implement]: Correct settlement-fiat allocations for the custom-currency overage.
+	return nil, fmt.Errorf("implement OnCorrectFiatOverageCreditAllocations: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
 func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err

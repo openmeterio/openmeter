@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -172,80 +171,19 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
-	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
-
-	allocationResult, err := s.allocate(ctx, allocateCreditRealizationsInput{
+	reconciled, err := s.ReconcileRatedRun(ctx, ReconcileRatedRunInput{
 		Charge:             updatedCharge,
 		Run:                currentRun,
-		AllocateAt:         in.ServicePeriodTo,
-		AmountToAllocate:   runTotals.Total,
+		Rating:             ratingResult,
 		CurrencyCalculator: in.CurrencyCalculator,
-		Exact:              isCreditsOnlySettlementMode,
 	})
 	if err != nil {
-		return CreateRatedRunResult{}, fmt.Errorf("allocate credits: %w", err)
-	}
-
-	currentRun.CreditsAllocated = allocationResult.Realizations
-	runTotals.CreditsTotal = runTotals.CreditsTotal.Add(allocationResult.Allocated)
-	runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocationResult.Allocated))
-
-	detailedLines := ratingResult.DetailedLines
-	detailedLinesIncludeCreditAllocations := settlementMode == productcatalog.CreditThenInvoiceSettlementMode
-	if detailedLinesIncludeCreditAllocations {
-		creditsApplied, err := currentRun.CreditsAllocated.AsCreditsApplied()
-		if err != nil {
-			return CreateRatedRunResult{}, fmt.Errorf("map credit realizations to detailed line credits: %w", err)
-		}
-
-		detailedLines, err = detailedLines.WithCreditsApplied(creditsApplied, in.CurrencyCalculator)
-		if err != nil {
-			return CreateRatedRunResult{}, fmt.Errorf("apply credit allocations to run detailed lines: %w", err)
-		}
-	}
-
-	if err := s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
-		ChargeID:                              updatedCharge.GetChargeID(),
-		RunID:                                 currentRun.ID,
-		DetailedLines:                         detailedLines,
-		DetailedLinesIncludeCreditAllocations: detailedLinesIncludeCreditAllocations,
-	}); err != nil {
-		return CreateRatedRunResult{}, fmt.Errorf("upsert run detailed lines: %w", err)
-	}
-	currentRun.DetailedLines = mo.Some(detailedLines)
-	currentRun.DetailedLinesIncludeCreditAllocations = detailedLinesIncludeCreditAllocations
-
-	// Let's calculate if the current run at this point requires a fiat transaction.
-	noFiatTransactionRequired := isCreditsOnlySettlementMode || runTotals.Total.IsZero()
-	if !noFiatTransactionRequired && updatedCharge.Intent.GetCurrency().IsCustom() {
-		// For credit then invoice, if the overage totals is zero due to rounding, we still don't require
-		// a fiat transaction.
-		fiatOverage, err := updatedCharge.ConvertCustomCurrencyOverageToFiat(runTotals)
-		if err != nil {
-			return CreateRatedRunResult{}, fmt.Errorf("convert custom currency overage to fiat: %w", err)
-		}
-
-		noFiatTransactionRequired = fiatOverage.Amount.IsZero()
-	}
-
-	currentRunBase, err := s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:                        currentRun.ID,
-		Totals:                    mo.Some(runTotals),
-		NoFiatTransactionRequired: mo.Some(noFiatTransactionRequired),
-	})
-	if err != nil {
-		return CreateRatedRunResult{}, fmt.Errorf("update realization run: %w", err)
-	}
-
-	currentRun.RealizationRunBase = currentRunBase
-
-	if err := updatedCharge.Realizations.SetRealizationRun(currentRun); err != nil {
-		return CreateRatedRunResult{}, fmt.Errorf("update realization run detailed lines: %w", err)
+		return CreateRatedRunResult{}, fmt.Errorf("reconcile rated run: %w", err)
 	}
 
 	return CreateRatedRunResult{
-		Charge: updatedCharge,
-		Run:    currentRun,
+		Charge: reconciled.Charge,
+		Run:    reconciled.Run,
 		Rating: ratingResult,
 	}, nil
 }

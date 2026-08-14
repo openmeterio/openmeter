@@ -161,6 +161,26 @@ func (mockUsageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Conte
 	}), nil
 }
 
+func (mockUsageBasedHandler) OnAllocateFiatOverageCredits(_ context.Context, input usagebased.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+	return creditrealization.CreateAllocationInputs{
+		{
+			ServicePeriod:     input.Charge.Intent.GetEffectiveServicePeriod(),
+			LedgerTransaction: newMockLedgerTransactionGroupReference(),
+			Amount:            input.AmountToAllocate,
+		},
+	}, nil
+}
+
+func (mockUsageBasedHandler) OnCorrectFiatOverageCreditAllocations(_ context.Context, input usagebased.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
+	return lo.Map(input.Corrections, func(correction creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
+		return creditrealization.CreateCorrectionInput{
+			LedgerTransaction:     newMockLedgerTransactionGroupReference(),
+			Amount:                correction.Amount,
+			CorrectsRealizationID: correction.Allocation.ID,
+		}
+	}), nil
+}
+
 func newMockLedgerTransactionGroupReference() ledgertransaction.GroupReference {
 	return ledgertransaction.GroupReference{
 		TransactionGroupID: ulid.Make().String(),
