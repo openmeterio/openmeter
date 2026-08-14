@@ -165,6 +165,24 @@ func (h *flatFeeHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, inp
 	return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
 }
 
+func (h *flatFeeHandler) OnAllocateFiatOverageCredits(ctx context.Context, input flatfee.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	// TODO[implement]: Allocate settlement-fiat credits against the custom-currency overage.
+	return nil, fmt.Errorf("implement OnAllocateFiatOverageCredits: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
+func (h *flatFeeHandler) OnCorrectFiatOverageCreditAllocations(ctx context.Context, input flatfee.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	// TODO[implement]: Correct settlement-fiat allocations for the custom-currency overage.
+	return nil, fmt.Errorf("implement OnCorrectFiatOverageCreditAllocations: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
 func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	intent := input.Charge.Intent
 

@@ -126,7 +126,7 @@ func (s *CreditsOnlyStateMachine) SetOverride(ctx context.Context, patch flatfee
 		return nil
 	}
 
-	return s.reconcileCurrentRunCredits(ctx, ratingResult)
+	return s.reconcileCurrentRun(ctx, ratingResult)
 }
 
 func (s *CreditsOnlyStateMachine) ClearOverride(ctx context.Context, _ meta.PatchClearOverride) error {
@@ -152,7 +152,7 @@ func (s *CreditsOnlyStateMachine) ActiveClearOverride(ctx context.Context) error
 	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
 
 	if s.Charge.Realizations.CurrentRun != nil {
-		if err := s.reconcileCurrentRunCredits(ctx, ratingResult); err != nil {
+		if err := s.reconcileCurrentRun(ctx, ratingResult); err != nil {
 			return err
 		}
 	}
@@ -189,8 +189,6 @@ func (s *CreditsOnlyStateMachine) ClearDeletedChargeOverride(ctx context.Context
 }
 
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
-	currency := s.Charge.Intent.GetCurrency()
-
 	ratingResult, err := s.rateEffectiveIntent()
 	if err != nil {
 		return err
@@ -210,30 +208,30 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 
 		s.Charge.Realizations.CurrentRun = &flatfee.RealizationRun{
 			RealizationRunBase: runBase,
-			DetailedLines:      mo.Some(ratingResult.DetailedLines),
-		}
-
-		if err := s.Adapter.UpsertDetailedLines(ctx, runBase.ID, ratingResult.DetailedLines); err != nil {
-			return fmt.Errorf("persist credit-only detailed lines: %w", err)
+			DetailedLines:      mo.None[flatfee.DetailedLines](),
 		}
 	}
 
-	if s.Charge.Realizations.CurrentRun != nil && len(s.Charge.Realizations.CurrentRun.CreditRealizations) > 0 {
-		return s.reconcileCurrentRunCredits(ctx, ratingResult)
+	return s.reconcileCurrentRun(ctx, ratingResult)
+}
+
+func (s *CreditsOnlyStateMachine) reconcileCurrentRun(ctx context.Context, ratingResult flatfeerealizations.RateResult) error {
+	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun == nil {
+		return nil
 	}
 
-	result, err := s.Realizations.AllocateCreditsOnly(ctx, flatfeerealizations.AllocateCreditsOnlyInput{
+	reconciledRun, err := s.Realizations.ReconcileRatedRun(ctx, flatfeerealizations.ReconcileRatedRunInput{
 		Charge:             s.Charge,
-		Totals:             ratingResult.Totals,
-		CurrencyCalculator: currency,
+		Run:                *currentRun,
+		Rating:             ratingResult,
+		CurrencyCalculator: s.Charge.Intent.GetCurrency(),
 	})
 	if err != nil {
-		return fmt.Errorf("allocate credits: %w", err)
+		return fmt.Errorf("reconcile rated run[%s]: %w", currentRun.ID.ID, err)
 	}
 
-	s.Charge.Realizations.CurrentRun.RealizationRunBase = result.RunBase
-	s.Charge.Realizations.CurrentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
-	s.Charge.Realizations.CurrentRun.CreditRealizations = append(s.Charge.Realizations.CurrentRun.CreditRealizations, result.CreditRealizations...)
+	s.Charge.Realizations.CurrentRun = &reconciledRun
 	return nil
 }
 
@@ -300,70 +298,7 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(ctx context.Context, patch pe
 		return nil
 	}
 
-	return s.reconcileCurrentRunCredits(ctx, ratingResult)
-}
-
-func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context, ratingResult flatfeerealizations.RateResult) error {
-	currentRun := s.Charge.Realizations.CurrentRun
-	if currentRun == nil {
-		return nil
-	}
-
-	currency := s.Charge.Intent.GetCurrency()
-
-	creditAllocationTarget := currency.RoundToPrecision(ratingResult.Totals.Total)
-	servicePeriod := ratingResult.Intent.ServicePeriod
-	run := *currentRun
-	run.ServicePeriod = servicePeriod
-
-	reconcileResult, err := s.Realizations.ReconcileCredits(ctx, flatfeerealizations.ReconcileCreditRealizationsInput{
-		Charge:             s.Charge,
-		Run:                run,
-		AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
-		TargetAmount:       creditAllocationTarget,
-		CurrencyCalculator: currency,
-	})
-	if err != nil {
-		return fmt.Errorf("reconcile credits for run %s: %w", run.ID.ID, err)
-	}
-
-	run.CreditRealizations = append(run.CreditRealizations, reconcileResult.Realizations...)
-
-	// Given ReconcileCredits is both used for credits only and credit-then-invoice modes,
-	// we need to ensure that the allocated credits match the rated total.
-	allocated := currency.RoundToPrecision(run.CreditRealizations.Sum())
-	if !allocated.Equal(creditAllocationTarget) {
-		return fmt.Errorf(
-			"credit allocations do not match rated total [charge_id=%s total=%s allocated=%s]",
-			s.Charge.ID,
-			creditAllocationTarget.String(),
-			allocated.String(),
-		)
-	}
-
-	if err := s.Adapter.UpsertDetailedLines(ctx, run.ID, ratingResult.DetailedLines); err != nil {
-		return fmt.Errorf("persist credit-only detailed lines: %w", err)
-	}
-
-	runTotals := ratingResult.Totals
-	runTotals.CreditsTotal = currency.RoundToPrecision(runTotals.CreditsTotal.Add(allocated))
-	runTotals.Total = currency.RoundToPrecision(runTotals.Total.Sub(allocated))
-
-	runBase, err := s.Adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-		ID:                        run.ID,
-		ServicePeriod:             mo.Some(servicePeriod),
-		AmountAfterProration:      mo.Some(ratingResult.Intent.AmountAfterProration),
-		Totals:                    mo.Some(runTotals),
-		NoFiatTransactionRequired: mo.Some(true),
-	})
-	if err != nil {
-		return fmt.Errorf("update credit-only run: %w", err)
-	}
-
-	run.RealizationRunBase = runBase
-	run.DetailedLines = mo.Some(ratingResult.DetailedLines)
-	s.Charge.Realizations.CurrentRun = &run
-	return nil
+	return s.reconcileCurrentRun(ctx, ratingResult)
 }
 
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
@@ -393,13 +328,10 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 
 func (s *CreditsOnlyStateMachine) reconcileDeletedCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
 	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
-		currency := s.Charge.Intent.GetCurrency()
-
-		if _, err := s.Realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
-			Charge:             s.Charge,
-			Run:                *s.Charge.Realizations.CurrentRun,
-			AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Realizations.CurrentRun.ServicePeriod),
-			CurrencyCalculator: currency,
+		if err := s.Realizations.CorrectAllCreditRealizations(ctx, flatfeerealizations.CreditReconciliationHandlerInput{
+			Charge:     s.Charge,
+			Run:        *s.Charge.Realizations.CurrentRun,
+			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Realizations.CurrentRun.ServicePeriod),
 		}); err != nil {
 			return fmt.Errorf("correct credits: %w", err)
 		}

@@ -117,7 +117,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 			continue
 		}
 
-		previewResult, err := e.service.realizations.BuildCreditThenInvoiceGatheringPreviewRun(flatfeerealizations.BuildCreditThenInvoiceGatheringPreviewRunInput{
+		previewRun, err := e.service.realizations.BuildCreditThenInvoiceGatheringPreviewRun(flatfeerealizations.BuildCreditThenInvoiceGatheringPreviewRunInput{
 			Charge:    charge,
 			LineID:    stdLine.ID,
 			InvoiceID: stdLine.InvoiceID,
@@ -128,7 +128,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 
 		if err := populateFlatFeeStandardLineFromRun(stdLine, populateFlatFeeStandardLineFromRunInput{
 			Charge: charge,
-			Run:    previewResult.Run,
+			Run:    previewRun,
 			Stage:  standardLinePopulationStageGatheringPreview,
 		}); err != nil {
 			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
@@ -796,11 +796,10 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 			continue
 		}
 
-		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
-			Charge:             charge,
-			Run:                run,
-			AllocateAt:         flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod),
-			CurrencyCalculator: charge.Intent.GetCurrency(),
+		if err := e.service.realizations.CorrectAllCreditRealizations(ctx, flatfeerealizations.CreditReconciliationHandlerInput{
+			Charge:     charge,
+			Run:        run,
+			AllocateAt: flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod),
 		}); err != nil {
 			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
 		}
@@ -943,8 +942,71 @@ func (e *LineEngine) getChargesForStandardLineEvent(ctx context.Context, input b
 	}), nil
 }
 
-func (e *LineEngine) OnInvoiceFinalizing(_ context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
-	return input.Lines, nil
+func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnInvoiceFinalizingInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
+		meta.ExpandRealizations,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return nil, fmt.Errorf("flat fee charge[%s] not found for finalizing line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		if stdLine.IsDeleted() ||
+			charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode ||
+			!charge.Intent.GetCurrency().IsCustom() {
+			return stdLine, nil
+		}
+
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
+			return nil, fmt.Errorf("getting realization run for finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+			return nil, fmt.Errorf(
+				"realization run[%s] for finalizing line[%s] is not associated with invoice[%s]",
+				run.ID.ID,
+				stdLine.ID,
+				input.Invoice.ID,
+			)
+		}
+
+		allocated, err := e.service.realizations.AllocateFiatOverageCredits(ctx, flatfeerealizations.AllocateFiatOverageCreditsInput{
+			Charge: charge,
+			Run:    run,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		updatedLine, err := stdLine.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("cloning finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		if err := populateFlatFeeStandardLineFromRun(updatedLine, populateFlatFeeStandardLineFromRunInput{
+			Charge: allocated.Charge,
+			Run:    allocated.Run,
+			Stage:  standardLinePopulationStageInvoiceFinalizing,
+		}); err != nil {
+			return nil, fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", stdLine.ID, run.ID.ID, err)
+		}
+
+		if err := updatedLine.Validate(); err != nil {
+			return nil, fmt.Errorf("validating finalizing line[%s]: %w", stdLine.ID, err)
+		}
+
+		return updatedLine, nil
+	})
 }
 
 func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {

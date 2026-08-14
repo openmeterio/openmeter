@@ -76,6 +76,26 @@ func (mockFlatFeeHandler) OnCorrectCreditAllocations(_ context.Context, input fl
 	}), nil
 }
 
+func (mockFlatFeeHandler) OnAllocateFiatOverageCredits(_ context.Context, input flatfee.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+	return creditrealization.CreateAllocationInputs{
+		{
+			ServicePeriod:     input.Run.ServicePeriod,
+			LedgerTransaction: newMockLedgerTransactionGroupReference(),
+			Amount:            input.AmountToAllocate,
+		},
+	}, nil
+}
+
+func (mockFlatFeeHandler) OnCorrectFiatOverageCreditAllocations(_ context.Context, input flatfee.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
+	return lo.Map(input.Corrections, func(correction creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
+		return creditrealization.CreateCorrectionInput{
+			LedgerTransaction:     newMockLedgerTransactionGroupReference(),
+			Amount:                correction.Amount,
+			CorrectsRealizationID: correction.Allocation.ID,
+		}
+	}), nil
+}
+
 func (mockFlatFeeHandler) OnPaymentAuthorized(context.Context, flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
