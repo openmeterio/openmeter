@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
@@ -200,10 +201,16 @@ func (a *adapter) GetStripeAppData(ctx context.Context, input appstripe.GetStrip
 			return appstripe.AppData{}, fmt.Errorf("error getting stripe customer data: %w", err)
 		}
 
+		if dbApp.DeletedAt != nil && !input.IncludeDeleted {
+			return appstripe.AppData{}, app.NewAppDeletedError(input.AppID)
+		}
+
 		// Map the database stripe app to an app entity
 		appData := mapAppStripeData(input.AppID, dbApp)
-		if err := appData.Validate(); err != nil {
-			return appstripe.AppData{}, models.NewGenericValidationError(fmt.Errorf("error validating stripe app data: %w", err))
+		if dbApp.DeletedAt == nil {
+			if err := appData.Validate(); err != nil {
+				return appstripe.AppData{}, models.NewGenericValidationError(fmt.Errorf("error validating stripe app data: %w", err))
+			}
 		}
 
 		return appData, nil
@@ -219,18 +226,22 @@ func (a *adapter) DeleteStripeAppData(ctx context.Context, input appstripe.Delet
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {
-		// Delete the stripe app data
-		_, err := repo.db.AppStripe.
-			Delete().
+		// Preserve provider metadata for historical reads while removing access to credentials.
+		updated, err := repo.db.AppStripe.
+			Update().
 			Where(appstripedb.Namespace(input.AppID.Namespace)).
 			Where(appstripedb.ID(input.AppID.ID)).
-			Exec(ctx)
+			Where(appstripedb.DeletedAtIsNil()).
+			SetDeletedAt(time.Now()).
+			ClearAPIKey().
+			ClearWebhookSecret().
+			Save(ctx)
 		if err != nil {
-			if entdb.IsNotFound(err) {
-				return app.NewAppNotFoundError(input.AppID)
-			}
-
 			return fmt.Errorf("failed to delete stripe app: %w", err)
+		}
+
+		if updated == 0 {
+			return app.NewAppNotFoundError(input.AppID)
 		}
 
 		return nil
@@ -253,6 +264,7 @@ func (a *adapter) GetWebhookSecret(ctx context.Context, input appstripe.GetWebho
 			// The app row supplies the namespace needed to resolve the signing secret;
 			// callers must verify the signature before trusting it for namespaced work.
 			Where(appstripedb.ID(input.AppID)).
+			Where(appstripedb.DeletedAtIsNil()).
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
@@ -271,8 +283,11 @@ func (a *adapter) GetWebhookSecret(ctx context.Context, input appstripe.GetWebho
 			Namespace: stripeApp.Namespace,
 			ID:        stripeApp.ID,
 		}
+		if stripeApp.WebhookSecret == nil {
+			return secretentity.Secret{}, errors.New("stripe app webhook secret reference is missing")
+		}
 
-		secret, err := a.webhookSecretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, stripeApp.WebhookSecret, appstripe.WebhookSecretKey))
+		secret, err := a.webhookSecretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, *stripeApp.WebhookSecret, appstripe.WebhookSecretKey))
 		if err != nil {
 			return secretentity.Secret{}, fmt.Errorf("failed to get webhook secret: %w", err)
 		}
@@ -360,6 +375,7 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripe.Cre
 			Query().
 			Where(appstripedb.ID(input.AppID.ID)).
 			Where(appstripedb.Namespace(input.AppID.Namespace)).
+			Where(appstripedb.DeletedAtIsNil()).
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
@@ -456,7 +472,11 @@ func (a *adapter) CreateCheckoutSession(ctx context.Context, input appstripe.Cre
 		input.StripeCustomerID = &stripeCustomerId
 
 		// Get Stripe API Key
-		apiKeySecret, err := repo.secretService.GetAppSecret(ctx, secretentity.NewSecretID(input.AppID, stripeApp.APIKey, appstripe.APIKeySecretKey))
+		if stripeApp.APIKey == nil {
+			return appstripe.CreateCheckoutSessionOutput{}, errors.New("stripe app API key reference is missing")
+		}
+
+		apiKeySecret, err := repo.secretService.GetAppSecret(ctx, secretentity.NewSecretID(input.AppID, *stripeApp.APIKey, appstripe.APIKeySecretKey))
 		if err != nil {
 			return appstripe.CreateCheckoutSessionOutput{}, fmt.Errorf("failed to get stripe api key secret: %w", err)
 		}
@@ -511,7 +531,7 @@ func (a adapter) GetSupplierContact(ctx context.Context, input appstripe.GetSupp
 	}
 
 	// Get stripe app data
-	stripeAppData, err := a.GetStripeAppData(ctx, appstripe.GetStripeAppDataInput(input))
+	stripeAppData, err := a.GetStripeAppData(ctx, appstripe.GetStripeAppDataInput{AppID: input.AppID})
 	if err != nil {
 		return billing.SupplierContact{}, fmt.Errorf("failed to get stripe app data: %w", err)
 	}
@@ -675,12 +695,20 @@ func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID, logOpe
 
 // mapAppStripeData maps stripe app data from the database
 func mapAppStripeData(appID app.AppID, dbApp *entdb.AppStripe) appstripe.AppData {
-	return appstripe.AppData{
+	appData := appstripe.AppData{
 		StripeAccountID: dbApp.StripeAccountID,
 		Livemode:        dbApp.StripeLivemode,
-		APIKey:          secretentity.NewSecretID(appID, dbApp.APIKey, appstripe.APIKeySecretKey),
 		MaskedAPIKey:    dbApp.MaskedAPIKey,
 		StripeWebhookID: dbApp.StripeWebhookID,
-		WebhookSecret:   secretentity.NewSecretID(appID, dbApp.WebhookSecret, appstripe.WebhookSecretKey),
 	}
+
+	if dbApp.APIKey != nil {
+		appData.APIKey = secretentity.NewSecretID(appID, *dbApp.APIKey, appstripe.APIKeySecretKey)
+	}
+
+	if dbApp.WebhookSecret != nil {
+		appData.WebhookSecret = secretentity.NewSecretID(appID, *dbApp.WebhookSecret, appstripe.WebhookSecretKey)
+	}
+
+	return appData
 }

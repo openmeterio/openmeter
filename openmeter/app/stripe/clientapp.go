@@ -9,7 +9,7 @@ import (
 )
 
 // getStripeClient gets the Stripe client for the app
-func (a App) getStripeClient(ctx context.Context, logOperation string, logFields ...any) (AppData, stripeclient.StripeAppClient, error) {
+func (a appOperations) getStripeClient(ctx context.Context, logOperation string, logFields ...any) (AppData, stripeclient.StripeAppClient, error) {
 	// Get Stripe App
 	stripeAppData, err := a.StripeAppService.GetStripeAppData(ctx, GetStripeAppDataInput{
 		AppID: a.GetID(),

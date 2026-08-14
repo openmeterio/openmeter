@@ -375,10 +375,10 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "stripe_account_id", Type: field.TypeString},
 		{Name: "stripe_livemode", Type: field.TypeBool},
-		{Name: "api_key", Type: field.TypeString},
+		{Name: "api_key", Type: field.TypeString, Nullable: true},
 		{Name: "masked_api_key", Type: field.TypeString},
 		{Name: "stripe_webhook_id", Type: field.TypeString},
-		{Name: "webhook_secret", Type: field.TypeString},
+		{Name: "webhook_secret", Type: field.TypeString, Nullable: true},
 	}
 	// AppStripesTable holds the schema information for the "app_stripes" table.
 	AppStripesTable = &schema.Table{
@@ -6233,6 +6233,10 @@ func init() {
 	AppCustomersTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomersTable.ForeignKeys[1].RefTable = CustomersTable
 	AppStripesTable.ForeignKeys[0].RefTable = AppsTable
+	AppStripesTable.Annotation = &entsql.Annotation{}
+	AppStripesTable.Annotation.Checks = map[string]string{
+		"app_stripe_secret_lifecycle": "(deleted_at IS NULL AND api_key IS NOT NULL AND webhook_secret IS NOT NULL) OR (deleted_at IS NOT NULL AND api_key IS NULL AND webhook_secret IS NULL)",
+	}
 	AppStripeCustomersTable.ForeignKeys[0].RefTable = AppStripesTable
 	AppStripeCustomersTable.ForeignKeys[1].RefTable = CustomersTable
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable

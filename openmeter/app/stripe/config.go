@@ -19,7 +19,7 @@ func (c Configuration) Validate() error {
 	return nil
 }
 
-func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
+func (a appOperations) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) error {
 	configUpdate, ok := input.(Configuration)
 	if !ok {
 		return errors.New("invalid config update")

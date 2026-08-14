@@ -69,6 +69,12 @@ func (_u *AppStripeUpdate) SetNillableAPIKey(v *string) *AppStripeUpdate {
 	return _u
 }
 
+// ClearAPIKey clears the value of the "api_key" field.
+func (_u *AppStripeUpdate) ClearAPIKey() *AppStripeUpdate {
+	_u.mutation.ClearAPIKey()
+	return _u
+}
+
 // SetMaskedAPIKey sets the "masked_api_key" field.
 func (_u *AppStripeUpdate) SetMaskedAPIKey(v string) *AppStripeUpdate {
 	_u.mutation.SetMaskedAPIKey(v)
@@ -108,6 +114,12 @@ func (_u *AppStripeUpdate) SetNillableWebhookSecret(v *string) *AppStripeUpdate 
 	if v != nil {
 		_u.SetWebhookSecret(*v)
 	}
+	return _u
+}
+
+// ClearWebhookSecret clears the value of the "webhook_secret" field.
+func (_u *AppStripeUpdate) ClearWebhookSecret() *AppStripeUpdate {
+	_u.mutation.ClearWebhookSecret()
 	return _u
 }
 
@@ -237,6 +249,9 @@ func (_u *AppStripeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
 	}
+	if _u.mutation.APIKeyCleared() {
+		_spec.ClearField(appstripe.FieldAPIKey, field.TypeString)
+	}
 	if value, ok := _u.mutation.MaskedAPIKey(); ok {
 		_spec.SetField(appstripe.FieldMaskedAPIKey, field.TypeString, value)
 	}
@@ -245,6 +260,9 @@ func (_u *AppStripeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.WebhookSecret(); ok {
 		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
+	}
+	if _u.mutation.WebhookSecretCleared() {
+		_spec.ClearField(appstripe.FieldWebhookSecret, field.TypeString)
 	}
 	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -351,6 +369,12 @@ func (_u *AppStripeUpdateOne) SetNillableAPIKey(v *string) *AppStripeUpdateOne {
 	return _u
 }
 
+// ClearAPIKey clears the value of the "api_key" field.
+func (_u *AppStripeUpdateOne) ClearAPIKey() *AppStripeUpdateOne {
+	_u.mutation.ClearAPIKey()
+	return _u
+}
+
 // SetMaskedAPIKey sets the "masked_api_key" field.
 func (_u *AppStripeUpdateOne) SetMaskedAPIKey(v string) *AppStripeUpdateOne {
 	_u.mutation.SetMaskedAPIKey(v)
@@ -390,6 +414,12 @@ func (_u *AppStripeUpdateOne) SetNillableWebhookSecret(v *string) *AppStripeUpda
 	if v != nil {
 		_u.SetWebhookSecret(*v)
 	}
+	return _u
+}
+
+// ClearWebhookSecret clears the value of the "webhook_secret" field.
+func (_u *AppStripeUpdateOne) ClearWebhookSecret() *AppStripeUpdateOne {
+	_u.mutation.ClearWebhookSecret()
 	return _u
 }
 
@@ -549,6 +579,9 @@ func (_u *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, er
 	if value, ok := _u.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
 	}
+	if _u.mutation.APIKeyCleared() {
+		_spec.ClearField(appstripe.FieldAPIKey, field.TypeString)
+	}
 	if value, ok := _u.mutation.MaskedAPIKey(); ok {
 		_spec.SetField(appstripe.FieldMaskedAPIKey, field.TypeString, value)
 	}
@@ -557,6 +590,9 @@ func (_u *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, er
 	}
 	if value, ok := _u.mutation.WebhookSecret(); ok {
 		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
+	}
+	if _u.mutation.WebhookSecretCleared() {
+		_spec.ClearField(appstripe.FieldWebhookSecret, field.TypeString)
 	}
 	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{

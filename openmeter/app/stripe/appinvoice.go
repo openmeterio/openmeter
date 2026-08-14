@@ -29,7 +29,7 @@ const (
 var _ billing.InvoicingApp = (*App)(nil)
 
 // ValidateStandardInvoice validates the invoice for the app
-func (a App) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+func (a appOperations) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	customerID := customer.CustomerID{
 		Namespace: invoice.Namespace,
 		ID:        invoice.Customer.CustomerID,
@@ -61,7 +61,7 @@ func (a App) ValidateStandardInvoice(ctx context.Context, invoice billing.Standa
 // TODO: should we split invoice create and lines adds to make retries more robust?
 // Currently if the create fails between the create and add lines we can end up with
 // an invoice without lines.
-func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	// Create the invoice in Stripe.
 	if invoice.ExternalIDs.Invoicing == "" {
 		return a.createInvoice(ctx, invoice)
@@ -72,7 +72,7 @@ func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.Standard
 }
 
 // DeleteStandardInvoice deletes the invoice for the app
-func (a App) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+func (a appOperations) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx, "deleteInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
@@ -86,7 +86,7 @@ func (a App) DeleteStandardInvoice(ctx context.Context, invoice billing.Standard
 }
 
 // FinalizeStandardInvoice finalizes the invoice for the app
-func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
+func (a appOperations) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx, "finalizeInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
@@ -145,7 +145,7 @@ func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.Standa
 }
 
 // createInvoice creates the invoice for the app
-func (a App) createInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+func (a appOperations) createInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	// Get the currency calculator
 	calculator, err := NewStripeCalculator(invoice.Currency)
 	if err != nil {
@@ -269,7 +269,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.StandardInvoice)
 }
 
 // updateInvoice update the invoice for the app
-func (a App) updateInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+func (a appOperations) updateInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	// Get the currency calculator
 	calculator, err := NewStripeCalculator(invoice.Currency)
 	if err != nil {

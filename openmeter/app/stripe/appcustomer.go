@@ -16,12 +16,12 @@ import (
 var _ customerapp.App = (*App)(nil)
 
 // ValidateCustomer validates if the app can run for the given customer
-func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
+func (a appOperations) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
 	return a.ValidateCustomerByID(ctx, customer.GetID(), capabilities)
 }
 
 // ValidateCustomerByID validates if the app can run for the given customer ID
-func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.CustomerID, capabilities []app.CapabilityType) error {
+func (a appOperations) ValidateCustomerByID(ctx context.Context, customerID customer.CustomerID, capabilities []app.CapabilityType) error {
 	// Validate if the app supports the given capabilities
 	if err := a.ValidateCapabilities(capabilities...); err != nil {
 		return fmt.Errorf("error validating capabilities: %w", err)
@@ -171,7 +171,7 @@ func (a App) ValidateCustomerByID(ctx context.Context, customerID customer.Custo
 }
 
 // GetCustomerData gets the customer data for the app
-func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
+func (a appOperations) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustomerDataInput) (app.CustomerData, error) {
 	if err := input.Validate(); err != nil {
 		return nil, models.NewGenericValidationError(
 			err,
@@ -190,7 +190,7 @@ func (a App) GetCustomerData(ctx context.Context, input app.GetAppInstanceCustom
 }
 
 // UpsertCustomerData upserts the customer data for the app
-func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
+func (a appOperations) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			err,
@@ -216,7 +216,7 @@ func (a App) UpsertCustomerData(ctx context.Context, input app.UpsertAppInstance
 }
 
 // DeleteCustomerData deletes the customer data for the app
-func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
+func (a appOperations) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstanceCustomerDataInput) error {
 	if err := input.Validate(); err != nil {
 		return models.NewGenericValidationError(
 			err,

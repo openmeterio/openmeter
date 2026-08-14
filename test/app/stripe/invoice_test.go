@@ -26,6 +26,7 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	creditgrantservice "github.com/openmeterio/openmeter/openmeter/billing/creditgrant/service"
+	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -1343,6 +1344,165 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 
 	s.Equal("ACME Inc. (updated)", invoice.Supplier.Name)
 	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+}
+
+func (s *StripeInvoiceTestSuite) TestDeletedAppFailsAdvancementButAllowsInvoiceDeletion() {
+	ctx := s.T().Context()
+	namespace := "ns-deleted-stripe-app"
+	now := time.Date(2026, 8, 13, 9, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// Given an invoice whose draft was synchronized with Stripe.
+	// When the Stripe subtype is missing and its app identity is soft-deleted.
+	// Then reads keep working, advancement fails validation, and invoice deletion remains available.
+	var stripeApp app.App
+	var customerEntity *customer.Customer
+	var customerData appstripe.CustomerData
+	var invoice billing.StandardInvoice
+
+	s.Run("given a synchronized Stripe invoice", func() {
+		var err error
+		stripeApp, customerEntity, customerData, err = s.Fixture.setupAppWithCustomer(ctx, namespace)
+		s.Require().NoError(err)
+
+		s.ProvisionBillingProfile(ctx, namespace, stripeApp.GetID(), billingtest.WithManualApproval())
+		s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+
+		s.StripeAppClient.
+			On("GetCustomer", customerData.StripeCustomerID).
+			Return(stripeclient.StripeCustomer{
+				StripeCustomerID: customerData.StripeCustomerID,
+				DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
+					ID: "pm_deleted_app",
+					BillingAddress: &models.Address{
+						Country: lo.ToPtr(models.CountryCode("US")),
+					},
+				},
+			}, nil)
+		s.StripeAppClient.
+			On("CreateInvoice", mock.Anything).
+			Return(&stripe.Invoice{
+				ID:       "in_deleted_app",
+				Customer: &stripe.Customer{ID: customerData.StripeCustomerID},
+				Currency: "USD",
+				Lines:    &stripe.InvoiceLineItemList{},
+			}, nil)
+		s.StripeAppClient.
+			On("AddInvoiceLines", mock.Anything).
+			Return([]stripeclient.StripeInvoiceItemWithLineID{}, nil)
+
+		_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.FiatCode(currency.USD),
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+					Namespace:     namespace,
+					Period:        timeutil.ClosedPeriod{From: now.Add(-2 * time.Hour), To: now.Add(-time.Hour)},
+					InvoiceAt:     now.Add(-time.Second),
+					ManagedBy:     billing.ManuallyManagedLine,
+					Name:          "Test item",
+					PerUnitAmount: alpacadecimal.NewFromInt(100),
+					Currency:      currencyx.FiatCode(currency.USD),
+					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+				}),
+			},
+		})
+		s.Require().NoError(err)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+			AsOf:     lo.ToPtr(now),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		invoice = invoices[0]
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	})
+
+	s.Run("when the Stripe subtype is missing and the app is soft-deleted", func() {
+		// Simulate the legacy partial uninstall that caused the production failure.
+		s.Require().NoError(s.DBClient.AppStripe.DeleteOneID(stripeApp.GetID().ID).Exec(ctx))
+		_, err := s.DBClient.App.UpdateOneID(stripeApp.GetID().ID).
+			SetDeletedAt(clock.Now()).
+			Save(ctx)
+		s.Require().NoError(err)
+	})
+
+	s.Run("then app and invoice reads retain the Stripe identity", func() {
+		resolvedApp, err := s.AppService.GetApp(ctx, stripeApp.GetID())
+		s.Require().NoError(err)
+		_, ok := resolvedApp.(appstripe.App)
+		s.True(ok)
+		s.Equal(stripeApp.GetID(), resolvedApp.GetID())
+		s.Equal(stripeApp.GetType(), resolvedApp.GetType())
+		s.Require().NotNil(resolvedApp.GetAppBase().DeletedAt)
+		s.ErrorIs(resolvedApp.ValidateCapabilities(app.CapabilityTypeInvoiceCustomers), app.ErrAppDeleted)
+
+		refetched, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.Require().NotNil(refetched.Workflow.Apps)
+		_, ok = refetched.Workflow.Apps.Tax.(appstripe.App)
+		s.True(ok)
+		_, ok = refetched.Workflow.Apps.Invoicing.(appstripe.App)
+		s.True(ok)
+		_, ok = refetched.Workflow.Apps.Payment.(appstripe.App)
+		s.True(ok)
+		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Tax.GetID())
+		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Invoicing.GetID())
+		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Payment.GetID())
+		_, err = billinghttpdriver.MapStandardInvoiceToAPI(refetched)
+		s.Require().NoError(err)
+	})
+
+	s.Run("then advancement records a critical validation issue", func() {
+		var err error
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, invoice.Status)
+
+		deletedIssue, found := lo.Find(invoice.ValidationIssues, func(issue billing.ValidationIssue) bool {
+			return issue.Code == billing.ErrInvoiceWorkflowAppDeleted.Code
+		})
+		s.Require().True(found)
+		s.Equal(billing.ValidationIssueSeverityCritical, deletedIssue.Severity)
+
+		refetched, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, refetched.Status)
+		_, ok := refetched.Workflow.Apps.Invoicing.(appstripe.App)
+		s.True(ok)
+
+		candidates, err := s.BillingService.ListStandardInvoicesPendingAdvancement(ctx, billing.ListStandardInvoicesPendingAdvancementInput{
+			Namespaces: []string{namespace},
+			IDs:        []string{invoice.ID},
+			AsOf:       now.Add(time.Hour),
+		})
+		s.Require().NoError(err)
+		s.Empty(candidates)
+	})
+
+	s.Run("then invoice deletion skips provider cleanup with a warning", func() {
+		var err error
+		invoice, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        invoice.GetInvoiceID(),
+			DeletionSource: billing.ChangeSourceAPIRequest,
+		})
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDeleted, invoice.Status)
+
+		deleteSkippedIssue, found := lo.Find(invoice.ValidationIssues, func(issue billing.ValidationIssue) bool {
+			return issue.Code == billing.WarnInvoiceWorkflowAppDeleteSkipped.Code
+		})
+		s.Require().True(found)
+		s.Equal(billing.ValidationIssueSeverityWarning, deleteSkippedIssue.Severity)
+	})
 }
 
 func (s *StripeInvoiceTestSuite) TestSendInvoice() {

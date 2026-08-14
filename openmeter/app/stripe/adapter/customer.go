@@ -117,6 +117,7 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripe.
 		stripeAppExists, err := repo.db.AppStripe.Query().
 			Where(appstripedb.Namespace(input.AppID.Namespace)).
 			Where(appstripedb.ID(input.AppID.ID)).
+			Where(appstripedb.DeletedAtIsNil()).
 			Exist(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve stripe app: %w", err)

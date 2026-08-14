@@ -155,6 +155,9 @@ func (s *AppHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 
 // TestUninstall tests uninstalling a stripe app
 func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
+	// Given an active Stripe app with provider metadata and credentials.
+	// When the app is uninstalled.
+	// Then it remains resolvable as a deleted Stripe app without usable credentials.
 	s.setupNamespace(t)
 
 	// Create a stripe app first
@@ -163,6 +166,19 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 
 	require.NoError(t, err, "Create stripe app must not return error")
 	require.NotNil(t, createApp, "Create stripe app must return app")
+	createdStripeApp, ok := createApp.(appstripe.App)
+	require.True(t, ok)
+	s.Env.Secret().EnableMock()
+	defer s.Env.Secret().DisableMock()
+	s.Env.Secret().
+		On("GetAppSecret", createdStripeApp.APIKey).
+		Return(secretentity.Secret{
+			SecretID: createdStripeApp.APIKey,
+			Value:    createdStripeApp.APIKey.ID,
+		}, nil).
+		Once()
+	s.Env.Secret().On("DeleteAppSecret", createdStripeApp.APIKey).Return(nil).Once()
+	s.Env.Secret().On("DeleteAppSecret", createdStripeApp.WebhookSecret).Return(nil).Once()
 
 	// Mocks
 	s.Env.StripeAppClient().
@@ -177,9 +193,19 @@ func (s *AppHandlerTestSuite) TestUninstall(ctx context.Context, t *testing.T) {
 
 	require.NoError(t, err, "Uninstall stripe app must not return error")
 
-	// Get should return 404
-	_, err = s.Env.App().GetApp(ctx, createApp.GetID())
-	require.True(t, app.IsAppNotFoundError(err), "get after uninstall must return app not found error")
+	deleted, err := s.Env.App().GetApp(ctx, createApp.GetID())
+	require.NoError(t, err)
+	deletedStripeApp, ok := deleted.(appstripe.App)
+	require.True(t, ok)
+	require.NotNil(t, deleted.GetAppBase().DeletedAt)
+	require.Equal(t, createdStripeApp.StripeAccountID, deletedStripeApp.StripeAccountID)
+	require.Equal(t, createdStripeApp.Livemode, deletedStripeApp.Livemode)
+	require.Equal(t, createdStripeApp.MaskedAPIKey, deletedStripeApp.MaskedAPIKey)
+	require.Equal(t, createdStripeApp.StripeWebhookID, deletedStripeApp.StripeWebhookID)
+	require.Empty(t, deletedStripeApp.APIKey.ID)
+	require.Empty(t, deletedStripeApp.WebhookSecret.ID)
+	require.ErrorIs(t, deleted.ValidateCapabilities(app.CapabilityTypeInvoiceCustomers), app.ErrAppDeleted)
+	s.Env.Secret().AssertExpectations(t)
 }
 
 // TestUninstallInUse verifies that billing usage prevents provider cleanup.

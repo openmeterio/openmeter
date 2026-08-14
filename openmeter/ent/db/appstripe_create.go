@@ -91,6 +91,14 @@ func (_c *AppStripeCreate) SetAPIKey(v string) *AppStripeCreate {
 	return _c
 }
 
+// SetNillableAPIKey sets the "api_key" field if the given value is not nil.
+func (_c *AppStripeCreate) SetNillableAPIKey(v *string) *AppStripeCreate {
+	if v != nil {
+		_c.SetAPIKey(*v)
+	}
+	return _c
+}
+
 // SetMaskedAPIKey sets the "masked_api_key" field.
 func (_c *AppStripeCreate) SetMaskedAPIKey(v string) *AppStripeCreate {
 	_c.mutation.SetMaskedAPIKey(v)
@@ -106,6 +114,14 @@ func (_c *AppStripeCreate) SetStripeWebhookID(v string) *AppStripeCreate {
 // SetWebhookSecret sets the "webhook_secret" field.
 func (_c *AppStripeCreate) SetWebhookSecret(v string) *AppStripeCreate {
 	_c.mutation.SetWebhookSecret(v)
+	return _c
+}
+
+// SetNillableWebhookSecret sets the "webhook_secret" field if the given value is not nil.
+func (_c *AppStripeCreate) SetNillableWebhookSecret(v *string) *AppStripeCreate {
+	if v != nil {
+		_c.SetWebhookSecret(*v)
+	}
 	return _c
 }
 
@@ -228,9 +244,6 @@ func (_c *AppStripeCreate) check() error {
 	if _, ok := _c.mutation.StripeLivemode(); !ok {
 		return &ValidationError{Name: "stripe_livemode", err: errors.New(`db: missing required field "AppStripe.stripe_livemode"`)}
 	}
-	if _, ok := _c.mutation.APIKey(); !ok {
-		return &ValidationError{Name: "api_key", err: errors.New(`db: missing required field "AppStripe.api_key"`)}
-	}
 	if v, ok := _c.mutation.APIKey(); ok {
 		if err := appstripe.APIKeyValidator(v); err != nil {
 			return &ValidationError{Name: "api_key", err: fmt.Errorf(`db: validator failed for field "AppStripe.api_key": %w`, err)}
@@ -251,9 +264,6 @@ func (_c *AppStripeCreate) check() error {
 		if err := appstripe.StripeWebhookIDValidator(v); err != nil {
 			return &ValidationError{Name: "stripe_webhook_id", err: fmt.Errorf(`db: validator failed for field "AppStripe.stripe_webhook_id": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.WebhookSecret(); !ok {
-		return &ValidationError{Name: "webhook_secret", err: errors.New(`db: missing required field "AppStripe.webhook_secret"`)}
 	}
 	if v, ok := _c.mutation.WebhookSecret(); ok {
 		if err := appstripe.WebhookSecretValidator(v); err != nil {
@@ -322,7 +332,7 @@ func (_c *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.APIKey(); ok {
 		_spec.SetField(appstripe.FieldAPIKey, field.TypeString, value)
-		_node.APIKey = value
+		_node.APIKey = &value
 	}
 	if value, ok := _c.mutation.MaskedAPIKey(); ok {
 		_spec.SetField(appstripe.FieldMaskedAPIKey, field.TypeString, value)
@@ -334,7 +344,7 @@ func (_c *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.WebhookSecret(); ok {
 		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
-		_node.WebhookSecret = value
+		_node.WebhookSecret = &value
 	}
 	if nodes := _c.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -463,6 +473,12 @@ func (u *AppStripeUpsert) UpdateAPIKey() *AppStripeUpsert {
 	return u
 }
 
+// ClearAPIKey clears the value of the "api_key" field.
+func (u *AppStripeUpsert) ClearAPIKey() *AppStripeUpsert {
+	u.SetNull(appstripe.FieldAPIKey)
+	return u
+}
+
 // SetMaskedAPIKey sets the "masked_api_key" field.
 func (u *AppStripeUpsert) SetMaskedAPIKey(v string) *AppStripeUpsert {
 	u.Set(appstripe.FieldMaskedAPIKey, v)
@@ -496,6 +512,12 @@ func (u *AppStripeUpsert) SetWebhookSecret(v string) *AppStripeUpsert {
 // UpdateWebhookSecret sets the "webhook_secret" field to the value that was provided on create.
 func (u *AppStripeUpsert) UpdateWebhookSecret() *AppStripeUpsert {
 	u.SetExcluded(appstripe.FieldWebhookSecret)
+	return u
+}
+
+// ClearWebhookSecret clears the value of the "webhook_secret" field.
+func (u *AppStripeUpsert) ClearWebhookSecret() *AppStripeUpsert {
+	u.SetNull(appstripe.FieldWebhookSecret)
 	return u
 }
 
@@ -608,6 +630,13 @@ func (u *AppStripeUpsertOne) UpdateAPIKey() *AppStripeUpsertOne {
 	})
 }
 
+// ClearAPIKey clears the value of the "api_key" field.
+func (u *AppStripeUpsertOne) ClearAPIKey() *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.ClearAPIKey()
+	})
+}
+
 // SetMaskedAPIKey sets the "masked_api_key" field.
 func (u *AppStripeUpsertOne) SetMaskedAPIKey(v string) *AppStripeUpsertOne {
 	return u.Update(func(s *AppStripeUpsert) {
@@ -647,6 +676,13 @@ func (u *AppStripeUpsertOne) SetWebhookSecret(v string) *AppStripeUpsertOne {
 func (u *AppStripeUpsertOne) UpdateWebhookSecret() *AppStripeUpsertOne {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.UpdateWebhookSecret()
+	})
+}
+
+// ClearWebhookSecret clears the value of the "webhook_secret" field.
+func (u *AppStripeUpsertOne) ClearWebhookSecret() *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.ClearWebhookSecret()
 	})
 }
 
@@ -926,6 +962,13 @@ func (u *AppStripeUpsertBulk) UpdateAPIKey() *AppStripeUpsertBulk {
 	})
 }
 
+// ClearAPIKey clears the value of the "api_key" field.
+func (u *AppStripeUpsertBulk) ClearAPIKey() *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.ClearAPIKey()
+	})
+}
+
 // SetMaskedAPIKey sets the "masked_api_key" field.
 func (u *AppStripeUpsertBulk) SetMaskedAPIKey(v string) *AppStripeUpsertBulk {
 	return u.Update(func(s *AppStripeUpsert) {
@@ -965,6 +1008,13 @@ func (u *AppStripeUpsertBulk) SetWebhookSecret(v string) *AppStripeUpsertBulk {
 func (u *AppStripeUpsertBulk) UpdateWebhookSecret() *AppStripeUpsertBulk {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.UpdateWebhookSecret()
+	})
+}
+
+// ClearWebhookSecret clears the value of the "webhook_secret" field.
+func (u *AppStripeUpsertBulk) ClearWebhookSecret() *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.ClearWebhookSecret()
 	})
 }
 
