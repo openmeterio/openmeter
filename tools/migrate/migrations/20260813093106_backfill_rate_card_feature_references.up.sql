@@ -13,6 +13,9 @@ SET
       'dbmigration:backfill_rate_card_feature_references',
       jsonb_build_object(
         'field', 'feature_key',
+        'rate_card_id', rate_card.id,
+        'feature_id', feature.id,
+        'feature_key', feature.key,
         'at', to_char(
           CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
           'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
@@ -36,6 +39,9 @@ SET
       'dbmigration:backfill_rate_card_feature_references',
       jsonb_build_object(
         'field', 'feature_key',
+        'rate_card_id', rate_card.id,
+        'feature_id', feature.id,
+        'feature_key', feature.key,
         'at', to_char(
           CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
           'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
@@ -80,6 +86,9 @@ SET
       'dbmigration:backfill_rate_card_feature_references',
       jsonb_build_object(
         'field', 'feature_id',
+        'rate_card_id', rate_card.id,
+        'feature_id', resolved_feature.feature_id,
+        'feature_key', rate_card.feature_key,
         'at', to_char(
           CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
           'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
@@ -115,6 +124,9 @@ SET
       'dbmigration:backfill_rate_card_feature_references',
       jsonb_build_object(
         'field', 'feature_id',
+        'rate_card_id', rate_card.id,
+        'feature_id', resolved_feature.feature_id,
+        'feature_key', rate_card.feature_key,
         'at', to_char(
           CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
           'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'

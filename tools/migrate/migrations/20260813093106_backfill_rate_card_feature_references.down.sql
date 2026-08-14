@@ -1,43 +1,69 @@
 BEGIN;
 
-UPDATE plan_rate_cards
+WITH marked_rate_cards AS (
+  SELECT
+    id,
+    annotations -> 'dbmigration:backfill_rate_card_feature_references' AS marker
+  FROM plan_rate_cards
+  WHERE annotations ? 'dbmigration:backfill_rate_card_feature_references'
+)
+UPDATE plan_rate_cards AS rate_card
 SET
-  feature_key = NULL,
-  annotations = CASE
-    WHEN annotations - 'dbmigration:backfill_rate_card_feature_references' = '{}'::jsonb
+  feature_key = CASE
+    WHEN marked.marker ->> 'field' = 'feature_key'
+      AND marked.marker ->> 'rate_card_id' = rate_card.id
+      AND marked.marker ->> 'feature_id' = rate_card.feature_id
+      AND marked.marker ->> 'feature_key' = rate_card.feature_key
       THEN NULL
-    ELSE annotations - 'dbmigration:backfill_rate_card_feature_references'
+    ELSE rate_card.feature_key
+  END,
+  feature_id = CASE
+    WHEN marked.marker ->> 'field' = 'feature_id'
+      AND marked.marker ->> 'rate_card_id' = rate_card.id
+      AND marked.marker ->> 'feature_id' = rate_card.feature_id
+      AND marked.marker ->> 'feature_key' = rate_card.feature_key
+      THEN NULL
+    ELSE rate_card.feature_id
+  END,
+  annotations = CASE
+    WHEN rate_card.annotations - 'dbmigration:backfill_rate_card_feature_references' = '{}'::jsonb
+      THEN NULL
+    ELSE rate_card.annotations - 'dbmigration:backfill_rate_card_feature_references'
   END
-WHERE annotations -> 'dbmigration:backfill_rate_card_feature_references' ->> 'field' = 'feature_key';
+FROM marked_rate_cards AS marked
+WHERE rate_card.id = marked.id;
 
-UPDATE plan_rate_cards
+WITH marked_rate_cards AS (
+  SELECT
+    id,
+    annotations -> 'dbmigration:backfill_rate_card_feature_references' AS marker
+  FROM addon_rate_cards
+  WHERE annotations ? 'dbmigration:backfill_rate_card_feature_references'
+)
+UPDATE addon_rate_cards AS rate_card
 SET
-  feature_id = NULL,
-  annotations = CASE
-    WHEN annotations - 'dbmigration:backfill_rate_card_feature_references' = '{}'::jsonb
+  feature_key = CASE
+    WHEN marked.marker ->> 'field' = 'feature_key'
+      AND marked.marker ->> 'rate_card_id' = rate_card.id
+      AND marked.marker ->> 'feature_id' = rate_card.feature_id
+      AND marked.marker ->> 'feature_key' = rate_card.feature_key
       THEN NULL
-    ELSE annotations - 'dbmigration:backfill_rate_card_feature_references'
-  END
-WHERE annotations -> 'dbmigration:backfill_rate_card_feature_references' ->> 'field' = 'feature_id';
-
-UPDATE addon_rate_cards
-SET
-  feature_key = NULL,
-  annotations = CASE
-    WHEN annotations - 'dbmigration:backfill_rate_card_feature_references' = '{}'::jsonb
+    ELSE rate_card.feature_key
+  END,
+  feature_id = CASE
+    WHEN marked.marker ->> 'field' = 'feature_id'
+      AND marked.marker ->> 'rate_card_id' = rate_card.id
+      AND marked.marker ->> 'feature_id' = rate_card.feature_id
+      AND marked.marker ->> 'feature_key' = rate_card.feature_key
       THEN NULL
-    ELSE annotations - 'dbmigration:backfill_rate_card_feature_references'
-  END
-WHERE annotations -> 'dbmigration:backfill_rate_card_feature_references' ->> 'field' = 'feature_key';
-
-UPDATE addon_rate_cards
-SET
-  feature_id = NULL,
+    ELSE rate_card.feature_id
+  END,
   annotations = CASE
-    WHEN annotations - 'dbmigration:backfill_rate_card_feature_references' = '{}'::jsonb
+    WHEN rate_card.annotations - 'dbmigration:backfill_rate_card_feature_references' = '{}'::jsonb
       THEN NULL
-    ELSE annotations - 'dbmigration:backfill_rate_card_feature_references'
+    ELSE rate_card.annotations - 'dbmigration:backfill_rate_card_feature_references'
   END
-WHERE annotations -> 'dbmigration:backfill_rate_card_feature_references' ->> 'field' = 'feature_id';
+FROM marked_rate_cards AS marked
+WHERE rate_card.id = marked.id;
 
 COMMIT;

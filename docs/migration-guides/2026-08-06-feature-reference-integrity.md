@@ -119,18 +119,21 @@ WHERE rc.feature_id IS NULL
 
 Apply the same operations to `addon_rate_cards`. Only uniquely resolved rows are
 updated. Each updated rate card is marked in its `annotations` field with the
-backfilled field and a UTC migration timestamp. Rows with neither value, rows
-with both values, unresolved references, and ambiguous references are left
-unchanged and unmarked.
+original rate-card ID, complete post-backfill feature pair, backfilled field,
+and a UTC migration timestamp. Rows with neither value, rows with both values,
+unresolved references, and ambiguous references are left unchanged and
+unmarked.
 
 The complete implementation is
 [`20260813093106_backfill_rate_card_feature_references.up.sql`](../../tools/migrate/migrations/20260813093106_backfill_rate_card_feature_references.up.sql),
 with database-backed coverage in
 [`rate_card_feature_references_test.go`](../../tools/migrate/rate_card_feature_references_test.go).
-Rollback uses the migration marker to clear only the field added by the
-backfill, remove that marker, and preserve any pre-existing annotations. The
-annotations columns belong to the preceding schema migration and remain in
-place when only the backfill is rolled back.
+Rollback clears the backfilled field only if the marker still belongs to the
+same row and its complete feature pair is unchanged. If a later edit changed
+the reference or recreated the rate card while copying annotations, rollback
+removes the stale marker without changing either feature field. Pre-existing
+annotations are preserved. The annotations columns belong to the preceding
+schema migration and remain in place when only the backfill is rolled back.
 
 ### 3. Choose automated or controlled manual execution
 

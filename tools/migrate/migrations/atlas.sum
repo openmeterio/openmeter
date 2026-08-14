@@ -1,4 +1,4 @@
-h1:stXJvD7iJ6uRc815D59S17BlPZjmp/dVN88setMs36c=
+h1:GvT+VP7FxZSd3pIFtQR6jA3OmH9N2e+hUvFOPCLBXvk=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -264,5 +264,5 @@ h1:stXJvD7iJ6uRc815D59S17BlPZjmp/dVN88setMs36c=
 20260810064730_backfill_subscription_item_currencies.up.sql h1:e2UeY1pD0Icov44B3IRkjQlx8Xn3DIS1httVx36CYI8=
 20260810084018_custom_currency_subscription_semantics.up.sql h1:ENlniMbQWePP3Lsu2ECok9tppZqusd7wGqOuO1VMNPA=
 20260813093105_add_rate_card_annotations.up.sql h1:z62KpnU1+rL3Y7OT5W0PBac79crdNPTclwzRJyXfemk=
-20260813093106_backfill_rate_card_feature_references.up.sql h1:gLUM2d2OvjxR1l+4b1cHQnXsSUTzFx3vCXwnq1fs+Kk=
-20260814064718_make_stripe_app_secrets_nullable.up.sql h1:SuTzqe+g7OZtkfPkxvUg9xZ4nA6GnyWoU79Nl++SIWE=
+20260813093106_backfill_rate_card_feature_references.up.sql h1:Xfre26TlrCKtrCFJ8asGTi7jKClQgY4Kt4JkUrV6Z9o=
+20260814064718_make_stripe_app_secrets_nullable.up.sql h1:YBUzy7i4uM9vAhth1xoMhWURAdafAQW1VuWUA4WLyGQ=

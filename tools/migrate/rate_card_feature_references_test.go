@@ -69,6 +69,9 @@ func queryRateCardFeatureReferenceMigrationStates(
 func requireRateCardFeatureReferenceBackfillAnnotation(
 	t testing.TB,
 	state rateCardFeatureReferenceMigrationState,
+	rateCardID string,
+	featureID string,
+	featureKey string,
 	field string,
 	migrationTimestamp *string,
 ) {
@@ -80,6 +83,9 @@ func requireRateCardFeatureReferenceBackfillAnnotation(
 	annotation, ok := rawAnnotation.(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, field, annotation["field"])
+	require.Equal(t, rateCardID, annotation["rate_card_id"])
+	require.Equal(t, featureID, annotation["feature_id"])
+	require.Equal(t, featureKey, annotation["feature_key"])
 
 	annotationTimestamp, ok := annotation["at"].(string)
 	require.True(t, ok)
@@ -318,6 +324,9 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	requireRateCardFeatureReferenceBackfillAnnotation(
 		t,
 		planStates[planIDOnlyRateCardID],
+		planIDOnlyRateCardID,
+		planIDOnlyFeatureID,
+		"plan_id_only",
 		"feature_key",
 		&migrationTimestamp,
 	)
@@ -329,6 +338,9 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	requireRateCardFeatureReferenceBackfillAnnotation(
 		t,
 		planStates[planKeyOnlyRateCardID],
+		planKeyOnlyRateCardID,
+		oldVersionedFeatureID,
+		"versioned",
 		"feature_id",
 		&migrationTimestamp,
 	)
@@ -338,6 +350,9 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	requireRateCardFeatureReferenceBackfillAnnotation(
 		t,
 		addonStates[addonIDOnlyRateCardID],
+		addonIDOnlyRateCardID,
+		addonIDOnlyFeatureID,
+		"addon_id_only",
 		"feature_key",
 		&migrationTimestamp,
 	)
@@ -347,6 +362,9 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	requireRateCardFeatureReferenceBackfillAnnotation(
 		t,
 		addonStates[addonKeyOnlyRateCardID],
+		addonKeyOnlyRateCardID,
+		newVersionedFeatureID,
+		"versioned",
 		"feature_id",
 		&migrationTimestamp,
 	)
@@ -366,6 +384,42 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	require.False(t, planStates[planAmbiguousRateCardID].FeatureID.Valid)
 	require.False(t, addonStates[addonCrossNamespaceRateCardID].FeatureKey.Valid)
 
+	// A later edit can retain the marker while replacing the feature reference.
+	// Rollback must not clear either part of the newer reference.
+	_, err = db.ExecContext(t.Context(), `
+		UPDATE plan_rate_cards
+		SET feature_id = $2, feature_key = $3
+		WHERE id = $1
+	`, planIDOnlyRateCardID, planCompleteFeatureID, "plan_complete")
+	require.NoError(t, err)
+
+	// Product-catalog versioning recreates rate cards and can copy their annotations.
+	// The copied marker does not own any field on the replacement row.
+	clonedAddonID := ulid.Make().String()
+	_, err = db.ExecContext(t.Context(), `
+		INSERT INTO addons (
+			id, namespace, created_at, updated_at, name, key, version, currency
+		) VALUES (
+			$1, $2, $3, $3, 'Cloned feature backfill add-on',
+			'cloned_feature_backfill_addon', 1, 'USD'
+		)
+	`, clonedAddonID, namespace, featureCreatedAt)
+	require.NoError(t, err)
+
+	clonedAddonRateCardID := ulid.Make().String()
+	_, err = db.ExecContext(t.Context(), `
+		INSERT INTO addon_rate_cards (
+			id, namespace, created_at, updated_at, name, key, type,
+			addon_id, feature_id, feature_key, annotations
+		)
+		SELECT
+			$1, namespace, created_at, updated_at, 'Cloned add-on rate card',
+			'cloned_addon_rate_card', type, $3, feature_id, feature_key, annotations
+		FROM addon_rate_cards
+		WHERE id = $2
+	`, clonedAddonRateCardID, addonKeyOnlyRateCardID, clonedAddonID)
+	require.NoError(t, err)
+
 	require.NoError(t, migrator.Migrate(previousVersion))
 
 	assertRateCardFeatureReference(
@@ -373,8 +427,8 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 		db,
 		"plan_rate_cards",
 		planIDOnlyRateCardID,
-		planIDOnlyFeatureID,
-		"",
+		planCompleteFeatureID,
+		"plan_complete",
 		afterVersionBoundary,
 	)
 	assertRateCardFeatureReference(
@@ -404,6 +458,15 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 		"versioned",
 		featureVersionBoundary,
 	)
+	assertRateCardFeatureReference(
+		t,
+		db,
+		"addon_rate_cards",
+		clonedAddonRateCardID,
+		newVersionedFeatureID,
+		"versioned",
+		featureVersionBoundary,
+	)
 
 	planStates = queryRateCardFeatureReferenceMigrationStates(t, db, "plan_rate_cards", namespace)
 	addonStates = queryRateCardFeatureReferenceMigrationStates(t, db, "addon_rate_cards", namespace)
@@ -412,6 +475,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 		planStates[planKeyOnlyRateCardID],
 		addonStates[addonIDOnlyRateCardID],
 		addonStates[addonKeyOnlyRateCardID],
+		addonStates[clonedAddonRateCardID],
 	} {
 		require.NotContains(t, state.Annotations, rateCardFeatureReferenceBackfillAnnotation)
 	}
@@ -419,4 +483,5 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	require.Equal(t, "preserved", planStates[planKeyOnlyRateCardID].Annotations["existing"])
 	require.Nil(t, addonStates[addonIDOnlyRateCardID].Annotations)
 	require.Nil(t, addonStates[addonKeyOnlyRateCardID].Annotations)
+	require.Nil(t, addonStates[clonedAddonRateCardID].Annotations)
 }
