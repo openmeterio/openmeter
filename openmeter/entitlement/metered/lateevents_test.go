@@ -173,9 +173,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		)
 
 		balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
-			OwnerConnector:     ownerConnector,
-			StreamingConnector: streamingConnector,
-			Repo:               balanceSnapshotRepo,
+			Repo: balanceSnapshotRepo,
 		})
 
 		transactionManager := enttx.NewCreator(dbClient)

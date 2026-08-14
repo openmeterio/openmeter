@@ -300,8 +300,9 @@ func TestResetEntitlementUsage(t *testing.T) {
 					ID:        ent.ID,
 				}, []balance.Snapshot{
 					{
-						At:      g1.EffectiveAt,
-						Overage: 0,
+						At:            g1.EffectiveAt,
+						Overage:       0,
+						UsageSnapshot: &balance.UsageSnapshot{},
 						Balances: balance.Map{
 							g1.ID: 1000,
 						},

@@ -98,9 +98,9 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	return &EntitlementBalance{
 		EntitlementID:             entitlementID.ID,
 		Balance:                   res.Snapshot.Balance(),
-		UsageInPeriod:             res.Snapshot.Usage.Usage,
+		UsageInPeriod:             res.Snapshot.UsageSnapshot.Usage,
 		Overage:                   res.Snapshot.Overage,
-		TotalAvailableGrantAmount: res.TotalAvailableGrantAmountAtLastPeriod(),
+		TotalAvailableGrantAmount: res.Snapshot.UsageSnapshot.TotalGrantUsage + res.Snapshot.Balance(),
 		GrantBalances:             grantBalances,
 		StartOfPeriod:             startOfPeriod,
 	}, nil

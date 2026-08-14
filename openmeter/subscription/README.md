@@ -102,9 +102,9 @@ and phase; do not persist a derived absolute end as independent source truth.
 - The product catalog supplies the plan shape used to build the initial spec.
   The subscription owns the resulting customer-specific schedule, not the
   mutable plan definition.
-- Entitlements are derived from entitlement-bearing rate cards and share the
-  effective cadence of their subscription item. Recreating an item may
-  recreate its entitlement.
+- [Entitlements](../entitlement/README.md) are derived from
+  entitlement-bearing rate cards and share the effective cadence of their
+  subscription item. Recreating an item may recreate its entitlement.
 - Subscription commands publish lifecycle events. Successful subscription
   mutation means the desired schedule was committed; it does not mean billing
   artifacts have already been reconciled.

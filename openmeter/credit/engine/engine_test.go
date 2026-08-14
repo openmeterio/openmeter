@@ -114,9 +114,10 @@ func Test_Fuzzing(t *testing.T) {
 					engine.RunParams{
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
-							Balances: startingBalance,
-							Overage:  0,
-							At:       start,
+							UsageSnapshot: zeroUsageSnapshot(),
+							Balances:      startingBalance,
+							Overage:       0,
+							At:            start,
 						},
 						Meter: meter,
 						Until: intermediate,
@@ -212,9 +213,10 @@ func Test_Fuzzing(t *testing.T) {
 						engine.RunParams{
 							Grants: gCp,
 							StartingSnapshot: balance.Snapshot{
-								Balances: balances,
-								Overage:  0,
-								At:       start,
+								UsageSnapshot: zeroUsageSnapshot(),
+								Balances:      balances,
+								Overage:       0,
+								At:            start,
 							},
 							Meter: meter,
 							Until: end,
@@ -299,9 +301,10 @@ func Test_Fuzzing(t *testing.T) {
 					engine.RunParams{
 						Grants: gCp,
 						StartingSnapshot: balance.Snapshot{
-							Balances: startingBalances,
-							Overage:  0,
-							At:       start,
+							UsageSnapshot: zeroUsageSnapshot(),
+							Balances:      startingBalances,
+							Overage:       0,
+							At:            start,
 						},
 						Meter: meter,
 						Until: end,
@@ -337,9 +340,10 @@ func Test_Fuzzing(t *testing.T) {
 						engine.RunParams{
 							Grants: gCp,
 							StartingSnapshot: balance.Snapshot{
-								Balances: balances,
-								Overage:  overage,
-								At:       pStart,
+								UsageSnapshot: zeroUsageSnapshot(),
+								Balances:      balances,
+								Overage:       overage,
+								At:            pStart,
 							},
 							Until: pEnd,
 							Meter: meter,

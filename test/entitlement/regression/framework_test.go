@@ -159,9 +159,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	)
 
 	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
-		OwnerConnector:     owner,
-		StreamingConnector: streaming,
-		Repo:               balanceSnapshotRepo,
+		Repo: balanceSnapshotRepo,
 	})
 
 	transactionManager := enttx.NewCreator(dbClient)
