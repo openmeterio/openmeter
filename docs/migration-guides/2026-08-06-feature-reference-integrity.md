@@ -87,83 +87,71 @@ are necessary.
 
 ### 2. Backfill plan and add-on rate cards
 
-First apply the schema-only
-[`20260814113138_add_rate_card_annotations.up.sql`](../../tools/migrate/migrations/20260814113138_add_rate_card_annotations.up.sql)
-migration. It adds the marker field independently of the potentially
-long-running data repair.
+Run the repair only through OpenMeter's versioned migration runner. It must
+execute these complete migration artifacts, in order, from the same OpenMeter
+release:
 
-The repair must be namespace-scoped and must not change the historical rate-card
-`updated_at` value. The core operations are:
+1. [`20260814113138_add_rate_card_annotations.up.sql`](../../tools/migrate/migrations/20260814113138_add_rate_card_annotations.up.sql)
+   adds the marker field.
+2. [`20260814113139_backfill_rate_card_feature_references.up.sql`](../../tools/migrate/migrations/20260814113139_backfill_rate_card_feature_references.up.sql)
+   performs the repair and writes its ownership marker in the same transaction.
 
-```sql
--- ID-only: the ID directly identifies the key, including for archived features.
-UPDATE plan_rate_cards rc
-SET feature_key = f.key
-FROM features f
-WHERE rc.feature_id = f.id
-  AND rc.namespace = f.namespace
-  AND NULLIF(rc.feature_key, '') IS NULL;
+Do not copy or execute individual repair `UPDATE` statements, split the
+backfill artifact, or mark either version as applied without executing its
+complete file. An unmarked pre-apply makes affected rows appear complete, so the
+versioned backfill skips them and its normal rollback cannot identify the
+manually written values. Such a partial repair is unsupported and must be
+treated as irreversible until it has been assessed and reconciled manually.
 
--- Key-only: select the feature version active when the rate card was written.
-WITH resolved_features AS (
-  SELECT rc.id, MAX(f.id) AS feature_id
-  FROM plan_rate_cards rc
-  JOIN features f
-    ON f.namespace = rc.namespace
-   AND f.key = rc.feature_key
-   AND f.created_at <= rc.updated_at
-   AND (f.archived_at IS NULL OR f.archived_at > rc.updated_at)
-   AND (f.deleted_at IS NULL OR f.deleted_at > rc.updated_at)
-  WHERE rc.feature_id IS NULL
-    AND NULLIF(rc.feature_key, '') IS NOT NULL
-  GROUP BY rc.id
-  HAVING COUNT(*) = 1
-)
-UPDATE plan_rate_cards rc
-SET feature_id = resolved.feature_id
-FROM resolved_features resolved
-WHERE rc.id = resolved.id;
-```
+The backfill is namespace-scoped and preserves the historical rate-card
+`updated_at` value. ID-only rows receive the key of their referenced feature.
+Key-only rows receive an ID only when exactly one feature in the same namespace
+was active at `updated_at`. The same rules apply to `plan_rate_cards` and
+`addon_rate_cards`. Rows with neither value, rows with both values, unresolved
+references, and ambiguous references remain unchanged and unmarked.
 
-Apply the same operations to `addon_rate_cards`. Only uniquely resolved rows are
-updated. Each updated rate card is marked in its `annotations` field with the
-original rate-card ID, complete post-backfill feature pair, backfilled field,
-and a UTC migration timestamp. Rows with neither value, rows with both values,
-unresolved references, and ambiguous references are left unchanged and
-unmarked.
-
-The complete implementation is
-[`20260814113139_backfill_rate_card_feature_references.up.sql`](../../tools/migrate/migrations/20260814113139_backfill_rate_card_feature_references.up.sql),
-with database-backed coverage in
+Each updated row is marked in `annotations` with the original rate-card ID,
+complete post-backfill feature pair, backfilled field, and a UTC migration
+timestamp. Database-backed coverage is in
 [`rate_card_feature_references_test.go`](../../tools/migrate/rate_card_feature_references_test.go).
-Rollback clears the backfilled field only if the marker still belongs to the
-same row and its complete feature pair is unchanged. If a later edit changed
-the reference or recreated the rate card while copying annotations, rollback
+The versioned backfill rollback is
+[`20260814113139_backfill_rate_card_feature_references.down.sql`](../../tools/migrate/migrations/20260814113139_backfill_rate_card_feature_references.down.sql).
+It clears the backfilled field only if the marker still belongs to the same row
+and its complete feature pair is unchanged. If a later edit changed the
+reference or recreated the rate card while copying annotations, rollback
 removes the stale marker without changing either feature field. Pre-existing
-annotations are preserved. The annotations columns belong to the preceding
-schema migration and remain in place when only the backfill is rolled back.
+annotations are preserved. Run rollback through the migration runner as well;
+do not run the annotations schema rollback when only reverting the backfill.
 
 ### 3. Choose automated or controlled manual execution
 
 Use the normal automated migration only after production-shaped tests show that
 it finishes comfortably inside every environment's migration timeout and lock
 budget. This includes Konnect, where a long-running migration can time out even
-when the SQL is logically correct.
+when the SQL is logically correct. The supported bundled command is:
 
-If that margin is not demonstrated, execute the same versioned migration
-artifact in a controlled maintenance operation before deploying the schema
-constraint. Prefer the normal migration binary or migration CLI so `schema_om`
-records the version. Do not mark the version as applied without executing it.
-If operators pre-apply only the idempotent repair SQL, the versioned migration
-must still run later to record its version. The schema-only annotations
-migration must already be applied before either execution path runs the
-backfill.
+```bash
+openmeter-jobs migrate
+```
+
+If that margin is not demonstrated, stop legacy writers and run the same
+command from the exact target OpenMeter release as a controlled maintenance
+operation with a sufficient timeout. This still uses the embedded versioned
+migration history; it is not a separate repair path. Installations that manage
+migrations externally must follow the
+[normal versioned migration procedure](../database-migration.md#running-migrations)
+using the complete migration directory from that release.
+
+In every execution mode, the migration runner must advance `schema_om` through
+versions `20260814113138` and `20260814113139` only by executing their complete
+artifacts. Never pre-apply feature-column updates, execute only part of the
+backfill file, or manually mark either version as applied.
 
 In either mode:
 
 1. take and verify a recoverable backup
 2. prevent legacy writers from creating new incomplete references
-3. apply the repair
+3. run the versioned migration through `20260814113139`
 4. verify zero incomplete, ambiguous, mismatched, and cross-namespace rows
 5. monitor runtime, locks, errors, and database growth
 
