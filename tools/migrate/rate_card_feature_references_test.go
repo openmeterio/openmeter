@@ -138,7 +138,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	// given:
 	// - ID-only and key-only plan and add-on rate cards, including a soft-deleted row
 	// - complete and featureless rows that must remain untouched
-	// - unresolved, cross-namespace, and ambiguous references that cannot be repaired safely
+	// - unresolved, cross-namespace, deleted-feature, and ambiguous references that cannot be repaired safely
 	// when:
 	// - the best-effort feature-reference backfill is migrated up and then down
 	// then:
@@ -161,6 +161,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	db := testDB.PGDriver.DB()
 	featureCreatedAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	featureVersionBoundary := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	featureDeletedAt := featureVersionBoundary
 	beforeVersionBoundary := featureVersionBoundary.Add(-time.Hour)
 	afterVersionBoundary := featureVersionBoundary.Add(time.Hour)
 	ambiguousReferenceAt := time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC)
@@ -175,6 +176,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	ambiguousFeatureID1 := ulid.Make().String()
 	ambiguousFeatureID2 := ulid.Make().String()
 	crossNamespaceFeatureID := ulid.Make().String()
+	deletedFeatureID := ulid.Make().String()
 
 	_, err = db.ExecContext(t.Context(), `
 		INSERT INTO features (
@@ -205,6 +207,14 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 		ambiguousTerminalAt,
 		otherNamespace,
 	)
+	require.NoError(t, err)
+	_, err = db.ExecContext(t.Context(), `
+		INSERT INTO features (
+			id, namespace, created_at, updated_at, deleted_at, name, key
+		) VALUES (
+			$1, $2, $3, $4, $4, 'Deleted feature', 'deleted'
+		)
+	`, deletedFeatureID, namespace, featureCreatedAt, featureDeletedAt)
 	require.NoError(t, err)
 
 	planID := ulid.Make().String()
@@ -245,6 +255,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	planCompleteRateCardID := ulid.Make().String()
 	planUnresolvedRateCardID := ulid.Make().String()
 	planAmbiguousRateCardID := ulid.Make().String()
+	planDeletedFeatureRateCardID := ulid.Make().String()
 	_, err = db.ExecContext(t.Context(), `
 		INSERT INTO plan_rate_cards (
 			id, namespace, created_at, updated_at, deleted_at, name, key, type,
@@ -274,6 +285,16 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	)
 	require.NoError(t, err)
 	_, err = db.ExecContext(t.Context(), `
+		INSERT INTO plan_rate_cards (
+			id, namespace, created_at, updated_at, name, key, type,
+			phase_id, feature_id, feature_key
+		) VALUES (
+			$1, $2, $3, $4, 'Plan deleted feature', 'plan_deleted_feature_rc',
+			'FLAT_FEE', $5, NULL, 'deleted'
+		)
+	`, planDeletedFeatureRateCardID, namespace, featureCreatedAt, afterVersionBoundary, planPhaseID)
+	require.NoError(t, err)
+	_, err = db.ExecContext(t.Context(), `
 		UPDATE plan_rate_cards
 		SET annotations = '{"existing":"preserved"}'::jsonb
 		WHERE id = $1
@@ -285,6 +306,7 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	addonNeitherRateCardID := ulid.Make().String()
 	addonCompleteRateCardID := ulid.Make().String()
 	addonCrossNamespaceRateCardID := ulid.Make().String()
+	addonDeletedFeatureRateCardID := ulid.Make().String()
 	_, err = db.ExecContext(t.Context(), `
 		INSERT INTO addon_rate_cards (
 			id, namespace, created_at, updated_at, name, key, type,
@@ -310,6 +332,16 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 		addonCompleteFeatureID,
 		crossNamespaceFeatureID,
 	)
+	require.NoError(t, err)
+	_, err = db.ExecContext(t.Context(), `
+		INSERT INTO addon_rate_cards (
+			id, namespace, created_at, updated_at, name, key, type,
+			addon_id, feature_id, feature_key
+		) VALUES (
+			$1, $2, $3, $4, 'Add-on deleted feature', 'addon_deleted_feature_rc',
+			'FLAT_FEE', $5, NULL, 'deleted'
+		)
+	`, addonDeletedFeatureRateCardID, namespace, featureCreatedAt, afterVersionBoundary, addonID)
 	require.NoError(t, err)
 
 	require.NoError(t, migrator.Migrate(targetVersion))
@@ -374,15 +406,19 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 		planStates[planCompleteRateCardID],
 		planStates[planUnresolvedRateCardID],
 		planStates[planAmbiguousRateCardID],
+		planStates[planDeletedFeatureRateCardID],
 		addonStates[addonNeitherRateCardID],
 		addonStates[addonCompleteRateCardID],
 		addonStates[addonCrossNamespaceRateCardID],
+		addonStates[addonDeletedFeatureRateCardID],
 	} {
 		require.NotContains(t, state.Annotations, rateCardFeatureReferenceBackfillAnnotation)
 	}
 	require.False(t, planStates[planUnresolvedRateCardID].FeatureID.Valid)
 	require.False(t, planStates[planAmbiguousRateCardID].FeatureID.Valid)
+	require.False(t, planStates[planDeletedFeatureRateCardID].FeatureID.Valid)
 	require.False(t, addonStates[addonCrossNamespaceRateCardID].FeatureKey.Valid)
+	require.False(t, addonStates[addonDeletedFeatureRateCardID].FeatureID.Valid)
 
 	// A later edit can retain the marker while replacing the feature reference.
 	// Rollback must not clear either part of the newer reference.
