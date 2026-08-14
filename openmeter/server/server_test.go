@@ -2149,6 +2149,10 @@ func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currenci
 	return currencies.Currency{}, nil
 }
 
+func (n NoopCurrencyService) UpdateCurrency(ctx context.Context, params currencies.UpdateCurrencyInput) (currencies.Currency, error) {
+	return currencies.Currency{}, nil
+}
+
 func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
 	return currencies.CostBasis{}, nil
 }

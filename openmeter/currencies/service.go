@@ -23,6 +23,7 @@ type Service interface {
 type CurrencyService interface {
 	ListCurrencies(ctx context.Context, params ListCurrenciesInput) (pagination.Result[Currency], error)
 	CreateCurrency(ctx context.Context, params CreateCurrencyInput) (Currency, error)
+	UpdateCurrency(ctx context.Context, params UpdateCurrencyInput) (Currency, error)
 	GetCurrency(ctx context.Context, params GetCurrencyInput) (Currency, error)
 }
 
@@ -133,6 +134,46 @@ func (i CreateCurrencyInput) Validate() error {
 		Build()
 	if err != nil {
 		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+var _ models.Validator = (*UpdateCurrencyInput)(nil)
+
+// The currency's code and precision are absent by design: charges, invoices and
+// ledger entries are denominated with them, so changing them would misstate
+// historical amounts.
+type UpdateCurrencyInput struct {
+	models.NamespacedID
+
+	Name               string `json:"name"`
+	Symbol             string `json:"symbol,omitempty"`
+	DecimalMark        string `json:"decimal_mark"`
+	ThousandsSeparator string `json:"thousands_separator"`
+}
+
+func (i UpdateCurrencyInput) Validate() error {
+	var errs []error
+
+	if err := i.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name is required"))
+	}
+
+	if len([]rune(i.DecimalMark)) != 1 {
+		errs = append(errs, errors.New("decimal_mark must be exactly one character"))
+	}
+
+	if len([]rune(i.ThousandsSeparator)) != 1 {
+		errs = append(errs, errors.New("thousands_separator must be exactly one character"))
+	}
+
+	if i.DecimalMark == i.ThousandsSeparator {
+		errs = append(errs, fmt.Errorf("decimal_mark and thousands_separator must differ, both are %q", i.DecimalMark))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
