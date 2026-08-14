@@ -1813,6 +1813,7 @@ type AddonRateCardMutation struct {
 	tax_behavior           *productcatalog.TaxBehavior
 	_type                  *productcatalog.RateCardType
 	feature_key            *string
+	annotations            *models.Annotations
 	entitlement_template   **productcatalog.EntitlementTemplate
 	tax_config             **productcatalog.TaxConfig
 	billing_cadence        *datetime.ISODurationString
@@ -2448,6 +2449,55 @@ func (m *AddonRateCardMutation) ResetFeatureKey() {
 	delete(m.clearedFields, addonratecard.FieldFeatureKey)
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *AddonRateCardMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *AddonRateCardMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *AddonRateCardMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[addonratecard.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *AddonRateCardMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *AddonRateCardMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, addonratecard.FieldAnnotations)
+}
+
 // SetEntitlementTemplate sets the "entitlement_template" field.
 func (m *AddonRateCardMutation) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) {
 	m.entitlement_template = &pt
@@ -3080,7 +3130,7 @@ func (m *AddonRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddonRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, addonratecard.FieldNamespace)
 	}
@@ -3116,6 +3166,9 @@ func (m *AddonRateCardMutation) Fields() []string {
 	}
 	if m.feature_key != nil {
 		fields = append(fields, addonratecard.FieldFeatureKey)
+	}
+	if m.annotations != nil {
+		fields = append(fields, addonratecard.FieldAnnotations)
 	}
 	if m.entitlement_template != nil {
 		fields = append(fields, addonratecard.FieldEntitlementTemplate)
@@ -3179,6 +3232,8 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.GetType()
 	case addonratecard.FieldFeatureKey:
 		return m.FeatureKey()
+	case addonratecard.FieldAnnotations:
+		return m.Annotations()
 	case addonratecard.FieldEntitlementTemplate:
 		return m.EntitlementTemplate()
 	case addonratecard.FieldTaxConfig:
@@ -3232,6 +3287,8 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldType(ctx)
 	case addonratecard.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
+	case addonratecard.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case addonratecard.FieldEntitlementTemplate:
 		return m.OldEntitlementTemplate(ctx)
 	case addonratecard.FieldTaxConfig:
@@ -3344,6 +3401,13 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFeatureKey(v)
+		return nil
+	case addonratecard.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
 		return nil
 	case addonratecard.FieldEntitlementTemplate:
 		v, ok := value.(*productcatalog.EntitlementTemplate)
@@ -3463,6 +3527,9 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(addonratecard.FieldFeatureKey) {
 		fields = append(fields, addonratecard.FieldFeatureKey)
 	}
+	if m.FieldCleared(addonratecard.FieldAnnotations) {
+		fields = append(fields, addonratecard.FieldAnnotations)
+	}
 	if m.FieldCleared(addonratecard.FieldEntitlementTemplate) {
 		fields = append(fields, addonratecard.FieldEntitlementTemplate)
 	}
@@ -3521,6 +3588,9 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 		return nil
 	case addonratecard.FieldFeatureKey:
 		m.ClearFeatureKey()
+		return nil
+	case addonratecard.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	case addonratecard.FieldEntitlementTemplate:
 		m.ClearEntitlementTemplate()
@@ -3592,6 +3662,9 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 		return nil
 	case addonratecard.FieldFeatureKey:
 		m.ResetFeatureKey()
+		return nil
+	case addonratecard.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case addonratecard.FieldEntitlementTemplate:
 		m.ResetEntitlementTemplate()
@@ -115000,6 +115073,7 @@ type PlanRateCardMutation struct {
 	tax_behavior           *productcatalog.TaxBehavior
 	_type                  *productcatalog.RateCardType
 	feature_key            *string
+	annotations            *models.Annotations
 	entitlement_template   **productcatalog.EntitlementTemplate
 	tax_config             **productcatalog.TaxConfig
 	billing_cadence        *datetime.ISODurationString
@@ -115635,6 +115709,55 @@ func (m *PlanRateCardMutation) ResetFeatureKey() {
 	delete(m.clearedFields, planratecard.FieldFeatureKey)
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *PlanRateCardMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *PlanRateCardMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *PlanRateCardMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[planratecard.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *PlanRateCardMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *PlanRateCardMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, planratecard.FieldAnnotations)
+}
+
 // SetEntitlementTemplate sets the "entitlement_template" field.
 func (m *PlanRateCardMutation) SetEntitlementTemplate(pt *productcatalog.EntitlementTemplate) {
 	m.entitlement_template = &pt
@@ -116267,7 +116390,7 @@ func (m *PlanRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, planratecard.FieldNamespace)
 	}
@@ -116303,6 +116426,9 @@ func (m *PlanRateCardMutation) Fields() []string {
 	}
 	if m.feature_key != nil {
 		fields = append(fields, planratecard.FieldFeatureKey)
+	}
+	if m.annotations != nil {
+		fields = append(fields, planratecard.FieldAnnotations)
 	}
 	if m.entitlement_template != nil {
 		fields = append(fields, planratecard.FieldEntitlementTemplate)
@@ -116366,6 +116492,8 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.GetType()
 	case planratecard.FieldFeatureKey:
 		return m.FeatureKey()
+	case planratecard.FieldAnnotations:
+		return m.Annotations()
 	case planratecard.FieldEntitlementTemplate:
 		return m.EntitlementTemplate()
 	case planratecard.FieldTaxConfig:
@@ -116419,6 +116547,8 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldType(ctx)
 	case planratecard.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
+	case planratecard.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	case planratecard.FieldEntitlementTemplate:
 		return m.OldEntitlementTemplate(ctx)
 	case planratecard.FieldTaxConfig:
@@ -116531,6 +116661,13 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFeatureKey(v)
+		return nil
+	case planratecard.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
 		return nil
 	case planratecard.FieldEntitlementTemplate:
 		v, ok := value.(*productcatalog.EntitlementTemplate)
@@ -116650,6 +116787,9 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldFeatureKey) {
 		fields = append(fields, planratecard.FieldFeatureKey)
 	}
+	if m.FieldCleared(planratecard.FieldAnnotations) {
+		fields = append(fields, planratecard.FieldAnnotations)
+	}
 	if m.FieldCleared(planratecard.FieldEntitlementTemplate) {
 		fields = append(fields, planratecard.FieldEntitlementTemplate)
 	}
@@ -116708,6 +116848,9 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 		return nil
 	case planratecard.FieldFeatureKey:
 		m.ClearFeatureKey()
+		return nil
+	case planratecard.FieldAnnotations:
+		m.ClearAnnotations()
 		return nil
 	case planratecard.FieldEntitlementTemplate:
 		m.ClearEntitlementTemplate()
@@ -116779,6 +116922,9 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 		return nil
 	case planratecard.FieldFeatureKey:
 		m.ResetFeatureKey()
+		return nil
+	case planratecard.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	case planratecard.FieldEntitlementTemplate:
 		m.ResetEntitlementTemplate()

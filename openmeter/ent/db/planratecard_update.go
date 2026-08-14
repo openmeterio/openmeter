@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // PlanRateCardUpdate is the builder for updating PlanRateCard entities.
@@ -164,6 +165,18 @@ func (_u *PlanRateCardUpdate) SetNillableFeatureKey(v *string) *PlanRateCardUpda
 // ClearFeatureKey clears the value of the "feature_key" field.
 func (_u *PlanRateCardUpdate) ClearFeatureKey() *PlanRateCardUpdate {
 	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *PlanRateCardUpdate) SetAnnotations(v models.Annotations) *PlanRateCardUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *PlanRateCardUpdate) ClearAnnotations() *PlanRateCardUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -521,6 +534,12 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(planratecard.FieldFeatureKey, field.TypeString)
 	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(planratecard.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(planratecard.FieldAnnotations, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := planratecard.ValueScanner.EntitlementTemplate.Value(value)
 		if err != nil {
@@ -848,6 +867,18 @@ func (_u *PlanRateCardUpdateOne) SetNillableFeatureKey(v *string) *PlanRateCardU
 // ClearFeatureKey clears the value of the "feature_key" field.
 func (_u *PlanRateCardUpdateOne) ClearFeatureKey() *PlanRateCardUpdateOne {
 	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *PlanRateCardUpdateOne) SetAnnotations(v models.Annotations) *PlanRateCardUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *PlanRateCardUpdateOne) ClearAnnotations() *PlanRateCardUpdateOne {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -1234,6 +1265,12 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 	}
 	if _u.mutation.FeatureKeyCleared() {
 		_spec.ClearField(planratecard.FieldFeatureKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(planratecard.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(planratecard.FieldAnnotations, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.EntitlementTemplate(); ok {
 		vv, err := planratecard.ValueScanner.EntitlementTemplate.Value(value)

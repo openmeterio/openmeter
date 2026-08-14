@@ -42,6 +42,8 @@ const (
 	FieldType = "type"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
 	FieldFeatureKey = "feature_key"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldEntitlementTemplate holds the string denoting the entitlement_template field in the database.
 	FieldEntitlementTemplate = "entitlement_template"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
@@ -117,6 +119,7 @@ var Columns = []string{
 	FieldTaxBehavior,
 	FieldType,
 	FieldFeatureKey,
+	FieldAnnotations,
 	FieldEntitlementTemplate,
 	FieldTaxConfig,
 	FieldBillingCadence,

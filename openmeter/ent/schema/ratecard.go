@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type RateCard struct {
@@ -26,6 +27,11 @@ func (RateCard) Fields() []ent.Field {
 		field.String("feature_key").
 			Optional().
 			Nillable(),
+		field.JSON("annotations", models.Annotations{}).
+			Optional().
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
 		field.String("entitlement_template").
 			GoType(&productcatalog.EntitlementTemplate{}).
 			ValueScanner(EntitlementTemplateValueScanner).

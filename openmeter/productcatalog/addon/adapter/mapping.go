@@ -131,6 +131,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Name:                r.Name,
 		Description:         r.Description,
 		Metadata:            r.Metadata,
+		Annotations:         r.Annotations,
 		EntitlementTemplate: r.EntitlementTemplate,
 		FeatureKey:          r.FeatureKey,
 		FeatureID:           r.FeatureID,
@@ -386,6 +387,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Name:                r.Name,
 		Description:         r.Description,
 		Metadata:            r.Metadata,
+		Annotations:         r.Annotations,
 		FeatureID:           r.FeatureID,
 		FeatureKey:          r.FeatureKey,
 		EntitlementTemplate: r.EntitlementTemplate,
@@ -450,6 +452,7 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 	ratecard := entdb.AddonRateCard{
 		Key:                 meta.Key,
 		Metadata:            meta.Metadata,
+		Annotations:         meta.Annotations,
 		Name:                meta.Name,
 		Description:         meta.Description,
 		EntitlementTemplate: meta.EntitlementTemplate,

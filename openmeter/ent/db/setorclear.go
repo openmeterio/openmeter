@@ -190,6 +190,20 @@ func (u *AddonRateCardUpdateOne) SetOrClearFeatureKey(value *string) *AddonRateC
 	return u.SetFeatureKey(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearAnnotations(value *models.Annotations) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearAnnotations(value *models.Annotations) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearEntitlementTemplate(value **productcatalog.EntitlementTemplate) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearEntitlementTemplate()
@@ -5872,6 +5886,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureKey(value *string) *PlanRateCar
 		return u.ClearFeatureKey()
 	}
 	return u.SetFeatureKey(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearAnnotations(value *models.Annotations) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearAnnotations(value *models.Annotations) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearEntitlementTemplate(value **productcatalog.EntitlementTemplate) *PlanRateCardUpdate {

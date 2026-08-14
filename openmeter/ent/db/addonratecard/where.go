@@ -768,6 +768,16 @@ func FeatureKeyContainsFold(v string) predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldContainsFold(FieldFeatureKey, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldNotNull(FieldAnnotations))
+}
+
 // EntitlementTemplateIsNil applies the IsNil predicate on the "entitlement_template" field.
 func EntitlementTemplateIsNil() predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldIsNull(FieldEntitlementTemplate))
