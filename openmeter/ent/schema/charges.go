@@ -77,14 +77,24 @@ func (v ChargesSearchV1) Annotations() []schema.Annotation {
 
 func (ChargesSearchV1) buildChargesSearchV1TableSelector(s *sql.Selector, table string, chargeType meta.ChargeType) {
 	baseIntentDeletedAt := sql.Raw(`"intent_deleted_at"`)
+	// Credit purchases have no feature reference; flat fee and usage based
+	// charges expose their columns so listings can filter by feature.
+	featureID := sql.Raw(`"feature_id"`)
+	featureKey := sql.Raw(`"feature_key"`)
 	if chargeType == meta.ChargeTypeCreditPurchase {
 		baseIntentDeletedAt = sql.Raw("NULL::timestamptz")
+		featureID = sql.Raw("NULL::char(26)")
+		featureKey = sql.Raw("NULL::varchar")
 	}
 
+	// New columns are appended after the existing ones so the view stays
+	// evolvable without reordering what deployed definitions already serve.
 	s.From(sql.Table(table)).
 		Select(chargesSearchV1Columns...).
 		AppendSelectExprAs(baseIntentDeletedAt, "base_intent_deleted_at").
-		AppendSelectExprAs(sql.Raw("'"+string(chargeType)+"'"), "type")
+		AppendSelectExprAs(sql.Raw("'"+string(chargeType)+"'"), "type").
+		AppendSelectExprAs(featureID, "feature_id").
+		AppendSelectExprAs(featureKey, "feature_key")
 }
 
 func (ChargesSearchV1) Fields() []ent.Field {
@@ -97,6 +107,15 @@ func (ChargesSearchV1) Fields() []ent.Field {
 			GoType(meta.ChargeType("")).
 			Immutable(),
 		field.Time("base_intent_deleted_at").
+			Optional().
+			Nillable(),
+		field.String("feature_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+		field.String("feature_key").
 			Optional().
 			Nillable(),
 	}
