@@ -105,16 +105,24 @@ WHERE rc.feature_id = f.id
   AND NULLIF(rc.feature_key, '') IS NULL;
 
 -- Key-only: select the feature version active when the rate card was written.
+WITH resolved_features AS (
+  SELECT rc.id, MAX(f.id) AS feature_id
+  FROM plan_rate_cards rc
+  JOIN features f
+    ON f.namespace = rc.namespace
+   AND f.key = rc.feature_key
+   AND f.created_at <= rc.updated_at
+   AND (f.archived_at IS NULL OR f.archived_at > rc.updated_at)
+   AND (f.deleted_at IS NULL OR f.deleted_at > rc.updated_at)
+  WHERE rc.feature_id IS NULL
+    AND NULLIF(rc.feature_key, '') IS NOT NULL
+  GROUP BY rc.id
+  HAVING COUNT(*) = 1
+)
 UPDATE plan_rate_cards rc
-SET feature_id = f.id
-FROM features f
-WHERE rc.feature_id IS NULL
-  AND NULLIF(rc.feature_key, '') IS NOT NULL
-  AND f.namespace = rc.namespace
-  AND f.key = rc.feature_key
-  AND f.created_at <= rc.updated_at
-  AND (f.archived_at IS NULL OR f.archived_at > rc.updated_at)
-  AND (f.deleted_at IS NULL OR f.deleted_at > rc.updated_at);
+SET feature_id = resolved.feature_id
+FROM resolved_features resolved
+WHERE rc.id = resolved.id;
 ```
 
 Apply the same operations to `addon_rate_cards`. Only uniquely resolved rows are
