@@ -24,6 +24,16 @@ func BaseIntentDeletedAt(v time.Time) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldBaseIntentDeletedAt, v))
 }
 
+// FeatureID applies equality check predicate on the "feature_id" field. It's identical to FeatureIDEQ.
+func FeatureID(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldFeatureID, v))
+}
+
+// FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
+func FeatureKey(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldFeatureKey, v))
+}
+
 // CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
 func CustomerID(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldCustomerID, v))
@@ -267,6 +277,156 @@ func BaseIntentDeletedAtIsNil() predicate.ChargesSearchV1 {
 // BaseIntentDeletedAtNotNil applies the NotNil predicate on the "base_intent_deleted_at" field.
 func BaseIntentDeletedAtNotNil() predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldBaseIntentDeletedAt))
+}
+
+// FeatureIDEQ applies the EQ predicate on the "feature_id" field.
+func FeatureIDEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldFeatureID, v))
+}
+
+// FeatureIDNEQ applies the NEQ predicate on the "feature_id" field.
+func FeatureIDNEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldFeatureID, v))
+}
+
+// FeatureIDIn applies the In predicate on the "feature_id" field.
+func FeatureIDIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIn(FieldFeatureID, vs...))
+}
+
+// FeatureIDNotIn applies the NotIn predicate on the "feature_id" field.
+func FeatureIDNotIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldFeatureID, vs...))
+}
+
+// FeatureIDGT applies the GT predicate on the "feature_id" field.
+func FeatureIDGT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGT(FieldFeatureID, v))
+}
+
+// FeatureIDGTE applies the GTE predicate on the "feature_id" field.
+func FeatureIDGTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGTE(FieldFeatureID, v))
+}
+
+// FeatureIDLT applies the LT predicate on the "feature_id" field.
+func FeatureIDLT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLT(FieldFeatureID, v))
+}
+
+// FeatureIDLTE applies the LTE predicate on the "feature_id" field.
+func FeatureIDLTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLTE(FieldFeatureID, v))
+}
+
+// FeatureIDContains applies the Contains predicate on the "feature_id" field.
+func FeatureIDContains(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContains(FieldFeatureID, v))
+}
+
+// FeatureIDHasPrefix applies the HasPrefix predicate on the "feature_id" field.
+func FeatureIDHasPrefix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasPrefix(FieldFeatureID, v))
+}
+
+// FeatureIDHasSuffix applies the HasSuffix predicate on the "feature_id" field.
+func FeatureIDHasSuffix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasSuffix(FieldFeatureID, v))
+}
+
+// FeatureIDIsNil applies the IsNil predicate on the "feature_id" field.
+func FeatureIDIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldFeatureID))
+}
+
+// FeatureIDNotNil applies the NotNil predicate on the "feature_id" field.
+func FeatureIDNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldFeatureID))
+}
+
+// FeatureIDEqualFold applies the EqualFold predicate on the "feature_id" field.
+func FeatureIDEqualFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEqualFold(FieldFeatureID, v))
+}
+
+// FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
+func FeatureIDContainsFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldFeatureID, v))
+}
+
+// FeatureKeyEQ applies the EQ predicate on the "feature_key" field.
+func FeatureKeyEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldFeatureKey, v))
+}
+
+// FeatureKeyNEQ applies the NEQ predicate on the "feature_key" field.
+func FeatureKeyNEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldFeatureKey, v))
+}
+
+// FeatureKeyIn applies the In predicate on the "feature_key" field.
+func FeatureKeyIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIn(FieldFeatureKey, vs...))
+}
+
+// FeatureKeyNotIn applies the NotIn predicate on the "feature_key" field.
+func FeatureKeyNotIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldFeatureKey, vs...))
+}
+
+// FeatureKeyGT applies the GT predicate on the "feature_key" field.
+func FeatureKeyGT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGT(FieldFeatureKey, v))
+}
+
+// FeatureKeyGTE applies the GTE predicate on the "feature_key" field.
+func FeatureKeyGTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGTE(FieldFeatureKey, v))
+}
+
+// FeatureKeyLT applies the LT predicate on the "feature_key" field.
+func FeatureKeyLT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLT(FieldFeatureKey, v))
+}
+
+// FeatureKeyLTE applies the LTE predicate on the "feature_key" field.
+func FeatureKeyLTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLTE(FieldFeatureKey, v))
+}
+
+// FeatureKeyContains applies the Contains predicate on the "feature_key" field.
+func FeatureKeyContains(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContains(FieldFeatureKey, v))
+}
+
+// FeatureKeyHasPrefix applies the HasPrefix predicate on the "feature_key" field.
+func FeatureKeyHasPrefix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasPrefix(FieldFeatureKey, v))
+}
+
+// FeatureKeyHasSuffix applies the HasSuffix predicate on the "feature_key" field.
+func FeatureKeyHasSuffix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasSuffix(FieldFeatureKey, v))
+}
+
+// FeatureKeyIsNil applies the IsNil predicate on the "feature_key" field.
+func FeatureKeyIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldFeatureKey))
+}
+
+// FeatureKeyNotNil applies the NotNil predicate on the "feature_key" field.
+func FeatureKeyNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldFeatureKey))
+}
+
+// FeatureKeyEqualFold applies the EqualFold predicate on the "feature_key" field.
+func FeatureKeyEqualFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEqualFold(FieldFeatureKey, v))
+}
+
+// FeatureKeyContainsFold applies the ContainsFold predicate on the "feature_key" field.
+func FeatureKeyContainsFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldFeatureKey, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.

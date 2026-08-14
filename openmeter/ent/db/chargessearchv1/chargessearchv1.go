@@ -19,6 +19,10 @@ const (
 	FieldType = "type"
 	// FieldBaseIntentDeletedAt holds the string denoting the base_intent_deleted_at field in the database.
 	FieldBaseIntentDeletedAt = "base_intent_deleted_at"
+	// FieldFeatureID holds the string denoting the feature_id field in the database.
+	FieldFeatureID = "feature_id"
+	// FieldFeatureKey holds the string denoting the feature_key field in the database.
+	FieldFeatureKey = "feature_key"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
@@ -81,6 +85,8 @@ const (
 var Columns = []string{
 	FieldType,
 	FieldBaseIntentDeletedAt,
+	FieldFeatureID,
+	FieldFeatureKey,
 	FieldCustomerID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
@@ -182,6 +188,16 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByBaseIntentDeletedAt orders the results by the base_intent_deleted_at field.
 func ByBaseIntentDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBaseIntentDeletedAt, opts...).ToFunc()
+}
+
+// ByFeatureID orders the results by the feature_id field.
+func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
+// ByFeatureKey orders the results by the feature_key field.
+func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.
