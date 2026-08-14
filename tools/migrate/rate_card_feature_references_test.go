@@ -131,8 +131,8 @@ func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
 	const (
 		namespace       = "rate_card_feature_backfill"
 		otherNamespace  = "rate_card_feature_backfill_other"
-		previousVersion = uint(20260813093105)
-		targetVersion   = uint(20260813093106)
+		previousVersion = uint(20260814113138)
+		targetVersion   = uint(20260814113139)
 	)
 
 	// given:

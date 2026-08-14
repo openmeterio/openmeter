@@ -88,7 +88,7 @@ are necessary.
 ### 2. Backfill plan and add-on rate cards
 
 First apply the schema-only
-[`20260813093105_add_rate_card_annotations.up.sql`](../../tools/migrate/migrations/20260813093105_add_rate_card_annotations.up.sql)
+[`20260814113138_add_rate_card_annotations.up.sql`](../../tools/migrate/migrations/20260814113138_add_rate_card_annotations.up.sql)
 migration. It adds the marker field independently of the potentially
 long-running data repair.
 
@@ -133,7 +133,7 @@ unresolved references, and ambiguous references are left unchanged and
 unmarked.
 
 The complete implementation is
-[`20260813093106_backfill_rate_card_feature_references.up.sql`](../../tools/migrate/migrations/20260813093106_backfill_rate_card_feature_references.up.sql),
+[`20260814113139_backfill_rate_card_feature_references.up.sql`](../../tools/migrate/migrations/20260814113139_backfill_rate_card_feature_references.up.sql),
 with database-backed coverage in
 [`rate_card_feature_references_test.go`](../../tools/migrate/rate_card_feature_references_test.go).
 Rollback clears the backfilled field only if the marker still belongs to the
