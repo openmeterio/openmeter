@@ -23,6 +23,7 @@ const (
 	standardLinePopulationStageGatheringPreview     standardLinePopulationStage = "gathering_preview"
 	standardLinePopulationStageInvoiceCreated       standardLinePopulationStage = "invoice_created"
 	standardLinePopulationStageCollectionCompleted  standardLinePopulationStage = "collection_completed"
+	standardLinePopulationStageInvoiceFinalizing    standardLinePopulationStage = "invoice_finalizing"
 	standardLinePopulationStageManualAttachment     standardLinePopulationStage = "manual_attachment"
 	standardLinePopulationStageIntentReconciliation standardLinePopulationStage = "intent_reconciliation"
 )
@@ -32,6 +33,7 @@ func (s standardLinePopulationStage) Validate() error {
 	case standardLinePopulationStageGatheringPreview,
 		standardLinePopulationStageInvoiceCreated,
 		standardLinePopulationStageCollectionCompleted,
+		standardLinePopulationStageInvoiceFinalizing,
 		standardLinePopulationStageManualAttachment,
 		standardLinePopulationStageIntentReconciliation:
 		return nil
@@ -224,6 +226,19 @@ func populateCustomCurrencyOverageFromRun(
 		return fmt.Errorf("populating custom currency overage line: %w", err)
 	}
 	*stdLine = *stdLineWithDetails
+
+	fiatCreditsApplied, err := run.FiatOverageCreditRealizations.AsCreditsApplied()
+	if err != nil {
+		return fmt.Errorf("mapping fiat overage credit realizations: %w", err)
+	}
+	stdLine.CreditsApplied = fiatCreditsApplied
+
+	detailedLines, err := stdLine.DetailedLines.WithCreditsApplied(fiatCreditsApplied, fiatOverage.FiatCurrency)
+	if err != nil {
+		return fmt.Errorf("applying fiat overage credits to detailed lines: %w", err)
+	}
+	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(detailedLines)
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(fiatOverage.FiatCurrency)
 
 	if (input.Stage == standardLinePopulationStageGatheringPreview ||
 		input.Stage == standardLinePopulationStageCollectionCompleted) &&

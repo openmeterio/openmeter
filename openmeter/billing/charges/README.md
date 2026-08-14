@@ -232,10 +232,10 @@ one.
 - Corrections reconcile against persisted allocations in the same realization
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.
-- Settlement-fiat overage allocation for a custom-currency usage run is a
-  one-shot invoice-finalization effect. It requires an empty settlement-fiat
-  realization history; later cleanup corrects the persisted facts instead of
-  re-entering allocation.
+- Settlement-fiat overage allocation for a custom-currency usage-based or
+  flat-fee run is a one-shot invoice-finalization effect. It requires an empty
+  settlement-fiat realization history; later cleanup corrects the persisted
+  facts instead of re-entering allocation.
 - Amount discounts on persisted detailed lines are signed realization facts.
   Their rounded amounts and rounding adjustments reconcile to the line's
   `DiscountsTotal`; correction lines can therefore carry negative discount
@@ -269,15 +269,18 @@ Within the charges domain, custom-currency `credit_then_invoice`:
 - resolves and persists the applicable cost basis
 - converts only the post-allocation overage to fiat
 - allocates eligible settlement-fiat credits against the converted overage
-- invoices only the remaining settlement-fiat amount
+- represents the converted overage as the invoice-line amount, applies
+  settlement-fiat credits to that line, and leaves only the uncovered total
+  collectible
 - rounds the converted amount with the fiat currency
 - retains the managed currency as charge identity rather than replacing it
   with the settlement fiat currency or display code
 
 Charge-currency and settlement-fiat allocations are separate realization and
-lineage domains. Rerating reconciles each domain independently. Deleting a
-mutable custom-currency run reverses settlement-fiat allocations before the
-charge-currency allocations from which the overage was derived.
+lineage domains. Rating and mutable rerating reconcile charge-currency facts;
+invoice finalization allocates settlement-fiat credits once against the final
+converted overage. Cleanup reverses persisted settlement-fiat allocations
+before the charge-currency allocations from which the overage was derived.
 
 The converted post-allocation overage and the required fiat transaction are
 separate settlement facts. A zero converted overage controls line omission and
@@ -285,7 +288,8 @@ invoice bypass. A zero required transaction controls payment handling and does
 not by itself remove an otherwise billable line from the invoice.
 
 This is a charge-domain contract, not end-to-end support: current ledger-backed
-charge adapters reject custom currencies. The usage-based settlement-fiat
-allocation and correction handlers remain explicit unsupported stubs. Enabling
-them spans ledger route identity and persistence, charge realization,
-settlement rounding, corrections, balance queries, and historical migration.
+charge adapters reject custom currencies. The usage-based and flat-fee
+settlement-fiat allocation and correction handlers remain explicit unsupported
+stubs. Enabling them spans ledger route identity and persistence, charge
+realization, settlement rounding, corrections, balance queries, and historical
+migration.

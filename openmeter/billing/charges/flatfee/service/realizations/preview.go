@@ -41,28 +41,24 @@ func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type BuildCreditThenInvoiceGatheringPreviewRunResult struct {
-	Run flatfee.RealizationRun
-}
-
 // BuildCreditThenInvoiceGatheringPreviewRun creates the charge run shape needed
 // to map a gathering invoice preview line without persisting realization state.
 // Preview intentionally does not allocate credits: get/list expansion must stay
 // side-effect-free, so returned standard lines show charge-rated totals before
 // charge credit allocation.
-func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenInvoiceGatheringPreviewRunInput) (BuildCreditThenInvoiceGatheringPreviewRunResult, error) {
+func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenInvoiceGatheringPreviewRunInput) (flatfee.RealizationRun, error) {
 	if err := in.Validate(); err != nil {
-		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
+		return flatfee.RealizationRun{}, err
 	}
 
 	rateableIntent, err := in.Charge.GetRateableIntent()
 	if err != nil {
-		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("getting rateable intent: %w", err)
+		return flatfee.RealizationRun{}, fmt.Errorf("getting rateable intent: %w", err)
 	}
 
 	ratingResult, err := s.Rate(rateableIntent)
 	if err != nil {
-		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("rating flat fee: %w", err)
+		return flatfee.RealizationRun{}, fmt.Errorf("rating flat fee: %w", err)
 	}
 
 	runType := flatfee.RealizationRunTypeFinalRealization
@@ -89,5 +85,5 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenIn
 		DetailedLines: mo.Some(ratingResult.DetailedLines),
 	}
 
-	return BuildCreditThenInvoiceGatheringPreviewRunResult{Run: run}, nil
+	return run, nil
 }

@@ -607,7 +607,7 @@ func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, in
 		return err
 	}
 
-	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
+	run, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
 		Charge:    s.Charge,
 		LineID:    input.Line.ID,
 		InvoiceID: input.Invoice.ID,
@@ -616,7 +616,7 @@ func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, in
 		return fmt.Errorf("start credit-then-invoice run: %w", err)
 	}
 
-	s.Charge.Realizations.CurrentRun = &result.Run
+	s.Charge.Realizations.CurrentRun = &run
 
 	return nil
 }
@@ -661,7 +661,7 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 
 	line.ID = input.Line.ID
 
-	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
+	run, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
 		Charge:    s.Charge,
 		LineID:    line.ID,
 		InvoiceID: input.Invoice.ID,
@@ -670,11 +670,11 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 		return fmt.Errorf("start attached credit-then-invoice run: %w", err)
 	}
 
-	s.Charge.Realizations.CurrentRun = &result.Run
+	s.Charge.Realizations.CurrentRun = &run
 
 	if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
 		Charge: s.Charge,
-		Run:    result.Run,
+		Run:    run,
 		Stage:  standardLinePopulationStageManualAttachment,
 	}); err != nil {
 		return fmt.Errorf("mapping attached flat-fee run to standard line[%s]: %w", line.ID, err)
@@ -918,19 +918,18 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		// The mutable run still describes the previous effective intent.
 		// Rerate and reconcile it first, then project the resulting charge state
 		// onto the billing-owned line identity.
-		result, err := s.Realizations.ReconcileRunToIntent(ctx, flatfeerealizations.ReconcileRunToIntentInput{
-			Charge:     s.Charge,
-			Run:        *currentRun,
-			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Intent.GetEffectiveServicePeriod()),
+		reconciledRun, err := s.Realizations.ReconcileRunToIntent(ctx, flatfeerealizations.ReconcileRunToIntentInput{
+			Charge: s.Charge,
+			Run:    *currentRun,
 		})
 		if err != nil {
 			return fmt.Errorf("reconcile run to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
 		}
 
-		s.Charge.Realizations.CurrentRun = &result.Run
+		s.Charge.Realizations.CurrentRun = &reconciledRun
 		if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
 			Charge: s.Charge,
-			Run:    result.Run,
+			Run:    reconciledRun,
 			Stage:  standardLinePopulationStageIntentReconciliation,
 		}); err != nil {
 			return fmt.Errorf("mapping reconciled flat-fee run to standard line[%s]: %w", line.ID, err)

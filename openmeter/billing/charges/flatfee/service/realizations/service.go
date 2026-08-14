@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 )
 
 // Service owns flat-fee realization mechanics: credit allocation/correction and
@@ -64,32 +65,30 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) createChargeCurrencyCreditRealizations(ctx context.Context, charge flatfee.Charge, runID flatfee.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
-	realizations, err := s.adapter.CreateChargeCurrencyCreditRealizations(ctx, flatfee.CreateCreditRealizationsInput{
-		RunID:              runID,
-		CreditRealizations: creditAllocations,
-	})
-	if err != nil {
-		return creditrealization.Realizations{}, err
-	}
+func (s *Service) createCreditRealizationLineages(
+	ctx context.Context,
+	charge flatfee.Charge,
+	currency currencies.Currency,
+	realizations creditrealization.Realizations,
+) error {
 	featureKey := charge.Intent.GetFeatureKey()
 	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.GetCustomerID(),
-		Currency:     charge.Intent.GetCurrency(),
+		Currency:     currency,
 		Features:     lo.Ternary(featureKey == "", nil, []string{featureKey}),
 		Realizations: realizations,
 	}); err != nil {
-		return creditrealization.Realizations{}, fmt.Errorf("create initial credit realization lineages: %w", err)
+		return fmt.Errorf("create initial credit realization lineages: %w", err)
 	}
 
 	if err := s.lineage.PersistCorrectionLineageSegments(ctx, lineage.PersistCorrectionLineageSegmentsInput{
 		Namespace:    charge.Namespace,
 		Realizations: realizations,
 	}); err != nil {
-		return creditrealization.Realizations{}, fmt.Errorf("persist correction lineage segments: %w", err)
+		return fmt.Errorf("persist correction lineage segments: %w", err)
 	}
 
-	return realizations, nil
+	return nil
 }
