@@ -201,7 +201,7 @@ func isDryRunLoggablePatch(patch Patch, invoicesByID map[string]billing.Invoice)
 			return true
 		}
 
-		return isMutableInvoice(updatePatch.TargetState.GetInvoiceID(), invoicesByID)
+		return isMutableInvoice(updatePatch.InvoiceID, invoicesByID)
 	default:
 		return true
 	}
@@ -246,7 +246,7 @@ type patchesParsed struct {
 }
 
 type invoicePatches struct {
-	updatedLines []billing.GenericInvoiceLine
+	updatedLines []PatchLineUpdate
 	deletedLines []billing.LineID
 }
 
@@ -284,9 +284,13 @@ func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 				return patchesParsed{}, fmt.Errorf("getting line: %w", err)
 			}
 
-			lineUpdates := parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()]
-			lineUpdates.updatedLines = append(lineUpdates.updatedLines, update.TargetState)
-			parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()] = lineUpdates
+			if err := update.Validate(); err != nil {
+				return patchesParsed{}, fmt.Errorf("validating line[%s] update: %w", update.Line.ID, err)
+			}
+
+			lineUpdates := parsed.updatedLinesByInvoiceID[update.InvoiceID]
+			lineUpdates.updatedLines = append(lineUpdates.updatedLines, update)
+			parsed.updatedLinesByInvoiceID[update.InvoiceID] = lineUpdates
 		case PatchOpSplitLineGroupDelete:
 			deletePatch, err := patch.AsDeleteSplitLineGroupPatch()
 			if err != nil {
@@ -347,15 +351,20 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 				line.DeletedAt = lo.ToPtr(clock.Now())
 			}
 
-			for _, targetState := range linePatches.updatedLines {
-				targetStandardLine, err := targetState.AsInvoiceLine().AsStandardLine()
-				if err != nil {
-					return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
+			for _, update := range linePatches.updatedLines {
+				line := invoice.Lines.GetByID(update.Line.ID)
+				if line == nil {
+					return fmt.Errorf("line[%s] not found in the invoice, cannot update", update.Line.ID)
 				}
 
-				line := invoice.Lines.GetByID(targetStandardLine.ID)
-				if line == nil {
-					return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetStandardLine.ID)
+				targetState, err := update.Apply(line.AsGenericLine())
+				if err != nil {
+					return fmt.Errorf("applying update to line[%s]: %w", update.Line.ID, err)
+				}
+
+				targetStandardLine, err := targetState.AsInvoiceLine().AsStandardLine()
+				if err != nil {
+					return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", update.Line.ID, err)
 				}
 
 				updatedQtyLine, err := u.quantitySnapshotter.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
@@ -427,10 +436,20 @@ func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 				}
 			}
 
-			for _, targetStateGeneric := range linePatches.updatedLines {
-				targetGatheringLine, err := targetStateGeneric.AsInvoiceLine().AsGatheringLine()
+			for _, update := range linePatches.updatedLines {
+				line, ok := invoice.Lines.GetByID(update.Line.ID)
+				if !ok {
+					return fmt.Errorf("line[%s] not found in the invoice, cannot update", update.Line.ID)
+				}
+
+				targetState, err := update.Apply(line.AsGenericLine())
 				if err != nil {
-					return fmt.Errorf("line[%s] is not a gathering line, cannot update: %w", targetStateGeneric.GetID(), err)
+					return fmt.Errorf("applying update to line[%s]: %w", update.Line.ID, err)
+				}
+
+				targetGatheringLine, err := targetState.AsInvoiceLine().AsGatheringLine()
+				if err != nil {
+					return fmt.Errorf("line[%s] is not a gathering line, cannot update: %w", update.Line.ID, err)
 				}
 
 				if err := invoice.Lines.ReplaceByID(targetGatheringLine); err != nil {
@@ -462,33 +481,36 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 		)
 	}
 
-	for _, targetState := range linePatches.updatedLines {
-		existingLine := invoice.Lines.GetByID(targetState.GetID())
+	for _, update := range linePatches.updatedLines {
+		existingLine := invoice.Lines.GetByID(update.Line.ID)
 		if existingLine == nil {
-			return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetState.GetID())
+			return fmt.Errorf("line[%s] not found in the invoice, cannot update", update.Line.ID)
+		}
+
+		targetState, err := update.Apply(existingLine.AsGenericLine())
+		if err != nil {
+			return fmt.Errorf("applying update to line[%s]: %w", update.Line.ID, err)
 		}
 
 		if IsFlatFee(targetState) {
-			existingPerUnitAmount, err := GetFlatFeePerUnitAmount(existingLine)
-			if err != nil {
-				return fmt.Errorf("getting flat fee per unit amount: %w", err)
+			if targetPerUnitAmount, ok := update.FlatFeePerUnitAmount.Get(); ok {
+				existingPerUnitAmount, err := GetFlatFeePerUnitAmount(existingLine)
+				if err != nil {
+					return fmt.Errorf("getting flat fee per unit amount: %w", err)
+				}
+
+				if !existingPerUnitAmount.Equal(targetPerUnitAmount) {
+					validationIssues = append(validationIssues,
+						newValidationIssueOnLine(existingLine, "flat fee line's per unit amount cannot be changed on immutable invoice (new per unit amount: %s)",
+							targetPerUnitAmount.String()),
+					)
+
+					continue
+				}
 			}
 
-			targetPerUnitAmount, err := GetFlatFeePerUnitAmount(targetState)
-			if err != nil {
-				return fmt.Errorf("getting flat fee per unit amount: %w", err)
-			}
-
-			if !existingPerUnitAmount.Equal(targetPerUnitAmount) {
-				validationIssues = append(validationIssues,
-					newValidationIssueOnLine(existingLine, "flat fee line's per unit amount cannot be changed on immutable invoice (new per unit amount: %s)",
-						targetPerUnitAmount.String()),
-				)
-
-				continue
-			}
-
-			if !targetState.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)) {
+			if targetPeriod, ok := update.ServicePeriod.Get(); ok &&
+				!targetPeriod.Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)) {
 				validationIssues = append(validationIssues,
 					newValidationIssueOnLine(existingLine, "flat fee line's service period cannot be changed on immutable invoice"),
 				)
@@ -497,10 +519,11 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 			continue
 		}
 
-		if !targetState.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)) {
+		if targetPeriod, ok := update.ServicePeriod.Get(); ok &&
+			!targetPeriod.Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)) {
 			targetStandardLine, err := targetState.AsInvoiceLine().AsStandardLine()
 			if err != nil {
-				return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
+				return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", update.Line.ID, err)
 			}
 
 			targetStateWithUpdatedQty, err := u.quantitySnapshotter.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
@@ -508,7 +531,7 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 				Line:    &targetStandardLine,
 			})
 			if err != nil {
-				return fmt.Errorf("snapshotting quantity for line[%s]: %w", targetState.GetID(), err)
+				return fmt.Errorf("snapshotting quantity for line[%s]: %w", update.Line.ID, err)
 			}
 
 			if !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(lo.FromPtr(existingLine.UsageBased.Quantity)) {

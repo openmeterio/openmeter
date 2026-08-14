@@ -2,8 +2,10 @@ package reconciler
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
@@ -157,37 +159,25 @@ func (c *lineInvoicePatchCollection) AddProrate(existing persistedstate.Item, ta
 		return fmt.Errorf("cannot merge flat fee line with usage based line")
 	}
 
-	targetLine, err := existingLine.CloneWithoutChildren()
-	if err != nil {
-		return fmt.Errorf("cloning line: %w", err)
+	updateInput := invoiceupdater.NewUpdateLinePatchInput{
+		Line:      existingLine.GetLineID(),
+		InvoiceID: existingLine.GetInvoiceID(),
 	}
+	if !existingLine.GetServicePeriod().Equal(expectedLine.ServicePeriod) {
+		updateInput.ServicePeriod = mo.Some(expectedLine.ServicePeriod)
 
-	wasChange := false
-	if !targetLine.GetServicePeriod().Equal(expectedLine.ServicePeriod) {
-		wasChange = true
-
-		targetLine.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
-			*period = expectedLine.ServicePeriod
-		})
-
-		isGatheringInvoice, err := c.invoices.IsGatheringInvoice(targetLine.GetInvoiceID())
+		isGatheringInvoice, err := c.invoices.IsGatheringInvoice(existingLine.GetInvoiceID())
 		if err != nil {
-			return fmt.Errorf("getting invoice type for line[%s]: %w", targetLine.GetLineID().ID, err)
+			return fmt.Errorf("getting invoice type for line[%s]: %w", existingLine.GetLineID().ID, err)
 		}
 
 		if isGatheringInvoice {
-			invoiceAtAccessor, ok := targetLine.(billing.InvoiceAtAccessor)
-			if !ok {
-				return fmt.Errorf("target line is not an invoice at accessor: %T", targetLine)
-			}
-
-			invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
+			updateInput.InvoiceAt = mo.Some(expectedLine.InvoiceAt)
 		}
 	}
 
-	if targetLine.GetDeletedAt() != nil {
-		targetLine.SetDeletedAt(nil)
-		wasChange = true
+	if existingLine.GetDeletedAt() != nil {
+		updateInput.DeletedAt = mo.Some[*time.Time](nil)
 	}
 
 	perUnitAmountExisting, err := invoiceupdater.GetFlatFeePerUnitAmount(existingLine)
@@ -201,15 +191,17 @@ func (c *lineInvoicePatchCollection) AddProrate(existing persistedstate.Item, ta
 	}
 
 	if !perUnitAmountExisting.Equal(perUnitAmountExpected) {
-		if err := invoiceupdater.SetFlatFeePerUnitAmount(targetLine, perUnitAmountExpected); err != nil {
-			return fmt.Errorf("setting flat fee per unit amount: %w", err)
-		}
-		wasChange = true
+		updateInput.FlatFeePerUnitAmount = mo.Some(perUnitAmountExpected)
 	}
 
-	if !wasChange {
+	if updateInput.IsNoop() {
 		return nil
 	}
 
-	return c.addPatches(target.UniqueID, PatchOperationProrate, invoiceupdater.NewUpdateLinePatch(targetLine))
+	patch, err := invoiceupdater.NewUpdateLinePatch(updateInput)
+	if err != nil {
+		return fmt.Errorf("creating update line patch: %w", err)
+	}
+
+	return c.addPatches(target.UniqueID, PatchOperationProrate, patch)
 }
