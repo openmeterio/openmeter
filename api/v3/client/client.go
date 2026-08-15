@@ -10,27 +10,28 @@ import (
 )
 
 type Client struct {
-	baseURL       *url.URL
-	httpClient    *http.Client
-	token         string
-	userAgent     string
-	Events        *EventsService
-	Meters        *MetersService
-	Customers     *CustomersService
-	Entitlements  *EntitlementsService
-	Subscriptions *SubscriptionsService
-	Apps          *AppsService
-	Billing       *BillingService
-	Invoices      *InvoicesService
-	Tax           *TaxService
-	Currencies    *CurrenciesService
-	Features      *FeaturesService
-	LLMCost       *LLMCostService
-	Plans         *PlansService
-	Addons        *AddonsService
-	PlanAddons    *PlanAddonsService
-	Defaults      *DefaultsService
-	Governance    *GovernanceService
+	baseURL        *url.URL
+	httpClient     *http.Client
+	token          string
+	userAgent      string
+	requestEditors []RequestEditorFn
+	Events         *EventsService
+	Meters         *MetersService
+	Customers      *CustomersService
+	Entitlements   *EntitlementsService
+	Subscriptions  *SubscriptionsService
+	Apps           *AppsService
+	Billing        *BillingService
+	Invoices       *InvoicesService
+	Tax            *TaxService
+	Currencies     *CurrenciesService
+	Features       *FeaturesService
+	LLMCost        *LLMCostService
+	Plans          *PlansService
+	Addons         *AddonsService
+	PlanAddons     *PlanAddonsService
+	Defaults       *DefaultsService
+	Governance     *GovernanceService
 }
 
 func New(baseURL string, opts ...Option) (*Client, error) {

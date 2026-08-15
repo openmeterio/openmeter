@@ -4,9 +4,18 @@ package openmeter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 )
+
+// RequestEditorFn edits an outgoing request before it is sent — e.g. to add,
+// override, or remove a header, or attach tracing metadata. Editors run after
+// every SDK-applied default (Authorization, User-Agent, Accept, and the
+// per-operation Content-Type), so an editor can override any of them.
+// Returning a non-nil error aborts the request before any network call is
+// made; the error is wrapped and returned to the caller.
+type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
 func (c *Client) newRequestWithContentType(
 	ctx context.Context,
@@ -24,6 +33,16 @@ func (c *Client) newRequestWithContentType(
 	if body != nil && contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
+
+	// Editors run last: this wrapper is the single choke point every generated
+	// operation goes through, after the per-operation Content-Type override
+	// above, so editors genuinely see the final request.
+	for _, edit := range c.requestEditors {
+		if err := edit(ctx, req); err != nil {
+			return nil, fmt.Errorf("openmeter: request editor: %w", err)
+		}
+	}
+
 	return req, nil
 }
 
