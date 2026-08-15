@@ -163,15 +163,15 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 			go func() {
 				defer wg.Done()
 
-				_, err = a.CollectCustomerInvoice(ctx, CollectCustomerInvoiceInput{
+				_, collectErr := a.CollectCustomerInvoice(ctx, CollectCustomerInvoiceInput{
 					CustomerID: customerID,
 					AsOf:       time.Now(),
 				})
-				if err != nil {
-					err = fmt.Errorf("failed to collect invoice for customer [namespace=%s customer=%s]: %w", customerID.Namespace, customerID.ID, err)
+				if collectErr != nil {
+					collectErr = fmt.Errorf("failed to collect invoice for customer [namespace=%s customer=%s]: %w", customerID.Namespace, customerID.ID, collectErr)
 				}
 
-				errChan <- err
+				errChan <- collectErr
 			}()
 		}
 
@@ -180,8 +180,8 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 	closeErrChan()
 
 	var errs []error
-	for err = range errChan {
-		errs = append(errs, err)
+	for collectErr := range errChan {
+		errs = append(errs, collectErr)
 	}
 
 	return errors.Join(errs...)
