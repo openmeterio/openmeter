@@ -449,7 +449,9 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 	}
 
 	// Remove Stripe lines from the Stripe invoice
-	stripeLinesRemove = append(stripeLinesRemove, lo.Keys(stripeLinesToRemove)...)
+	for lineID := range stripeLinesToRemove {
+		stripeLinesRemove = append(stripeLinesRemove, stripeLinesByID[lineID].InvoiceItem.ID)
+	}
 
 	if len(stripeLinesRemove) > 0 {
 		err = stripeClient.RemoveInvoiceLines(ctx, stripeclient.RemoveInvoiceLinesInput{
@@ -503,7 +505,7 @@ func getDiscountStripeUpdateInvoiceItemParams(
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
-		ID:                stripeLine.ID,
+		ID:                stripeLine.InvoiceItem.ID,
 		InvoiceItemParams: getDiscountStripeInvoiceItemParams(calculator, line, discount),
 	}
 }
@@ -541,7 +543,7 @@ func getCreditStripeUpdateInvoiceItemParams(
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
-		ID:                stripeLine.ID,
+		ID:                stripeLine.InvoiceItem.ID,
 		InvoiceItemParams: getCreditStripeInvoiceItemParams(calculator, line, credit),
 	}
 }
@@ -592,7 +594,7 @@ func getStripeUpdateInvoiceItemParams(
 	stripeLine *stripe.InvoiceLineItem,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
-		ID:                stripeLine.ID,
+		ID:                stripeLine.InvoiceItem.ID,
 		InvoiceItemParams: getStripeInvoiceItemParams(line, calculator),
 	}
 }
