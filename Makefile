@@ -88,6 +88,35 @@ migrate-check-validate: ## Validate migration checksums
 	$(call print-target)
 	atlas migrate --env local validate
 
+NAMESPACE_FK_CHILD_TABLES := billing_profiles,billing_customer_overrides,billing_invoices
+NAMESPACE_FK_SCHEMA := tools/migrate/schema/namespace_foreign_keys.sql
+PG_SCHEMA_DIFF_DEV_DSN ?= postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+PG_SCHEMA_DIFF_OUTPUT ?= -
+
+.PHONY: generate-namespace-fks
+generate-namespace-fks: ## Generate additive namespace foreign keys from the Ent schema
+	$(call print-target)
+	go generate ./openmeter/ent/...
+	go run ./tools/migrate/cmd/namespacefks \
+		-child-tables "$(NAMESPACE_FK_CHILD_TABLES)" \
+		-output "$(NAMESPACE_FK_SCHEMA)"
+
+.PHONY: check-namespace-fks
+check-namespace-fks: ## Ensure generated namespace foreign keys are current
+	$(call print-target)
+	go run ./tools/migrate/cmd/namespacefks \
+		-child-tables "$(NAMESPACE_FK_CHILD_TABLES)" \
+		-output "$(NAMESPACE_FK_SCHEMA)" \
+		-check
+
+.PHONY: pgschema-diff-poc
+pgschema-diff-poc: ## Generate a pg-schema-diff PoC plan from migrations to Ent, namespace FKs, and views
+	$(call print-target)
+	go run ./tools/migrate/cmd/pgschemadiff \
+		-dev-dsn "$(PG_SCHEMA_DIFF_DEV_DSN)" \
+		-namespace-fk-child-tables "$(NAMESPACE_FK_CHILD_TABLES)" \
+		-output "$(PG_SCHEMA_DIFF_OUTPUT)"
+
 .PHONY: generate-sqlc-testdata
 generate-sqlc-testdata: ## Generate SQLC testdata for a specific version (make generate-sqlc-testdata VERSION=20240826120919)
 	$(call print-target)
