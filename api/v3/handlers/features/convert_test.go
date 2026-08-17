@@ -205,7 +205,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			UpdatedAt: now,
 		}
 
-		result, err := convertFeatureToAPI(f)
+		result, err := ConvertFeatureToAPI(f)
 		require.NoError(t, err)
 		assert.Equal(t, "feat-1", result.Id)
 		assert.Equal(t, api.ResourceKey("my_feature"), result.Key)
@@ -231,7 +231,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			UpdatedAt: now,
 		}
 
-		result, err := convertFeatureToAPI(f)
+		result, err := ConvertFeatureToAPI(f)
 		require.NoError(t, err)
 		require.NotNil(t, result.Meter)
 		assert.Equal(t, api.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"), result.Meter.Id)
@@ -257,7 +257,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			UpdatedAt: now,
 		}
 
-		result, err := convertFeatureToAPI(f)
+		result, err := ConvertFeatureToAPI(f)
 		require.NoError(t, err)
 		require.NotNil(t, result.UnitCost)
 
@@ -278,7 +278,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			UpdatedAt:  now,
 		}
 
-		result, err := convertFeatureToAPI(f)
+		result, err := ConvertFeatureToAPI(f)
 		require.NoError(t, err)
 		require.NotNil(t, result.DeletedAt)
 		assert.Equal(t, archived, *result.DeletedAt)
