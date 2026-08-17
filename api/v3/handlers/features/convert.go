@@ -34,7 +34,9 @@ func FromAPIFeatureSortField(ctx context.Context, field string) (feature.Feature
 	}
 }
 
-func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
+// ConvertFeatureToAPI maps a domain feature to its API representation. It is
+// exported for handler packages that embed full features behind an expand.
+func ConvertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	resp := api.Feature{
 		Id:          f.ID,
 		Key:         f.Key,

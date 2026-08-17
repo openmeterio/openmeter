@@ -68,7 +68,7 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 				return CreateFeatureResponse{}, err
 			}
 
-			return convertFeatureToAPI(created)
+			return ConvertFeatureToAPI(created)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateFeatureResponse](http.StatusCreated),
 		httptransport.AppendOptions(

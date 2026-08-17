@@ -40,7 +40,7 @@ func (h *handler) GetFeature() GetFeatureHandler {
 				return GetFeatureResponse{}, err
 			}
 
-			resp, err := convertFeatureToAPI(*feat)
+			resp, err := ConvertFeatureToAPI(*feat)
 			if err != nil {
 				return GetFeatureResponse{}, err
 			}

@@ -107,7 +107,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 
 			items := make([]api.Feature, 0, len(result.Items))
 			for _, f := range result.Items {
-				apiFeature, err := convertFeatureToAPI(f)
+				apiFeature, err := ConvertFeatureToAPI(f)
 				if err != nil {
 					return ListFeaturesResponse{}, err
 				}
