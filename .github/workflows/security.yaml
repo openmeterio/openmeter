@@ -81,7 +81,7 @@ jobs:
           persist-credentials: false
       - name: Scan GitHub Workflows
         id: scan_gh_workflows
-        uses: Kong/public-shared-actions/security-actions/scan-gh-workflows@343896e36ae2bd71d1dd30ce17ac19ed52152395 # 5.0.2
+        uses: Kong/public-shared-actions/security-actions/scan-gh-workflows@5d8835e25221a4aa16e7a53ab6e97c7fb2528b7e # 5.0.2
         with:
           fail_on_findings: "true"
           github_token: ${{ secrets.GITHUB_TOKEN }}
