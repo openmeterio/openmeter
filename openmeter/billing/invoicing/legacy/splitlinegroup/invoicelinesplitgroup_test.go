@@ -1,4 +1,4 @@
-package billing
+package splitlinegroup
 
 import (
 	"encoding/json"

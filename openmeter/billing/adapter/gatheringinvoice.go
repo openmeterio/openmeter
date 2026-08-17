@@ -507,24 +507,6 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 			return billing.GatheringInvoice{}, err
 		}
 
-		if expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
-			hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines.AsGenericLines())
-			if err != nil {
-				return billing.GatheringInvoice{}, err
-			}
-
-			mappedLinePtrs, err := withSplitLineHierarchyForLines(lo.Map(mappedLines, func(_ billing.GatheringLine, idx int) *billing.GatheringLine {
-				return &mappedLines[idx]
-			}), hierarchyByLineID)
-			if err != nil {
-				return billing.GatheringInvoice{}, err
-			}
-
-			mappedLines = lo.Map(mappedLinePtrs, func(line *billing.GatheringLine, _ int) billing.GatheringLine {
-				return *line
-			})
-		}
-
 		res.Lines = billing.NewGatheringInvoiceLines(mappedLines)
 	}
 

@@ -421,23 +421,3 @@ func applyExistingLineOverrideToGatheringLine(o ExistingLineOverride, line *Gath
 		line.RateCardDiscounts = val.Clone().UpsertCorrelationIDs()
 	}
 }
-
-func (l LineWithInvoiceHeader) Validate() error {
-	if l.Line == nil {
-		return errors.New("line is required")
-	}
-
-	if err := l.Line.Validate(); err != nil {
-		return fmt.Errorf("line: %w", err)
-	}
-
-	if l.Invoice == nil {
-		return errors.New("invoice is required")
-	}
-
-	if l.Invoice.GetID() == "" {
-		return errors.New("invoice id is required")
-	}
-
-	return nil
-}
