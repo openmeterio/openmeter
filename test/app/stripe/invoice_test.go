@@ -816,8 +816,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			Currency: "USD",
 			Lines: &stripe.InvoiceLineItemList{
 				Data: lo.Map(expectedInvoiceAddLines, func(line *stripe.InvoiceItemParams, idx int) *stripe.InvoiceLineItem {
-					return &stripe.InvoiceLineItem{
+					stripeLine := &stripe.InvoiceLineItem{
 						ID:          fmt.Sprintf("il_%d", idx),
+						InvoiceItem: &stripe.InvoiceItem{ID: fmt.Sprintf("ii_%d", idx)},
 						Amount:      *line.Amount,
 						Description: *line.Description,
 						Period: &stripe.Period{
@@ -826,6 +827,13 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 						},
 						Metadata: line.Metadata,
 					}
+
+					if idx == 0 {
+						stripeLine.ID = "il_test_line"
+						stripeLine.InvoiceItem.ID = "ii_test_item"
+					}
+
+					return stripeLine
 				}),
 			},
 			StatementDescriptor: invoice.Supplier.Name,
@@ -840,7 +848,12 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			Return(lo.Map(
 				expectedInvoiceAddLines,
 				func(line *stripe.InvoiceItemParams, idx int) stripeclient.StripeInvoiceItemWithLineID {
-					return mapInvoiceItemParamsToInvoiceItem(fmt.Sprintf("%d", idx), line)
+					result := mapInvoiceItemParamsToInvoiceItem(fmt.Sprintf("%d", idx), line)
+					if idx == 0 {
+						result.LineID = "il_test_line"
+						result.InvoiceItem.ID = "ii_test_item"
+					}
+					return result
 				},
 			), nil)
 
@@ -885,16 +898,21 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// Find the stripe line ID to remove.
 		var stripeLineIDToRemove string
+		var stripeLineToRemove *stripe.InvoiceLineItem
 
 		for lineID, stripeLineID := range expectedResult {
 			if lineID == lineToRemove.ID {
 				stripeLineIDToRemove = stripeLineID
+				stripeLineToRemove = lo.FindOrElse(stripeInvoice.Lines.Data, nil, func(stripeLine *stripe.InvoiceLineItem) bool {
+					return stripeLine.ID == stripeLineID
+				})
 			}
 		}
 
 		delete(expectedResult, lineToRemove.ID)
 
 		s.NotEmpty(stripeLineIDToRemove, "stripe line ID to remove is empty")
+		s.NotNil(stripeLineToRemove, "stripe line to remove is not found")
 
 		parentLine := getParentOfDetailedLine(*lineToRemove)
 		s.NotNil(parentLine, "parent line is not found")
@@ -960,12 +978,15 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 			// No changes to the line items.
 			return &stripeclient.StripeInvoiceItemWithID{
-				ID:                line.ID,
+				ID:                line.InvoiceItem.ID,
 				InvoiceItemParams: params,
 			}, line.ID != stripeLineIDToRemove
 		})
 
 		s.StripeAppClient.StableSortStripeInvoiceItemWithID(filteredUpdatedLines)
+		s.Require().Contains(lo.Map(filteredUpdatedLines, func(line *stripeclient.StripeInvoiceItemWithID, _ int) string {
+			return line.ID
+		}), "ii_test_item")
 
 		s.StripeAppClient.
 			On("UpdateInvoiceLines", stripeclient.UpdateInvoiceLinesInput{
@@ -980,7 +1001,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.StripeAppClient.
 			On("RemoveInvoiceLines", stripeclient.RemoveInvoiceLinesInput{
 				StripeInvoiceID: updateInvoice.ExternalIDs.Invoicing,
-				Lines:           []string{stripeLineIDToRemove},
+				Lines:           []string{stripeLineToRemove.InvoiceItem.ID},
 			}).
 			Once().
 			Return(nil)
@@ -990,7 +1011,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// Update the invoice.
 		results, err = invoicingApp.UpsertStandardInvoice(ctx, updateInvoice)
-		s.NoError(err, "failed to upsert invoice")
+		s.Require().NoError(err, "failed to upsert invoice")
 
 		// Assert results.
 		s.Equal(expectedResult, results.GetLineExternalIDs())

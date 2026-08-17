@@ -2,6 +2,7 @@ package appstripe
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -133,7 +134,21 @@ func (c *StripeAppClientMock) FinalizeInvoice(ctx context.Context, input stripec
 // Invoice Lines
 func (c *StripeAppClientMock) ListInvoiceLineItems(ctx context.Context, stripeInvoiceID string) ([]*stripe.InvoiceLineItem, error) {
 	args := c.Called(stripeInvoiceID)
-	return args.Get(0).([]*stripe.InvoiceLineItem), args.Error(1)
+	if err := args.Error(1); err != nil {
+		return nil, err
+	}
+
+	lines := args.Get(0).([]*stripe.InvoiceLineItem)
+	for _, line := range lines {
+		if line == nil || !strings.HasPrefix(line.ID, "il_") {
+			return nil, fmt.Errorf("stripe invoice line ID must start with il_: %v", line)
+		}
+		if line.InvoiceItem == nil || !strings.HasPrefix(line.InvoiceItem.ID, "ii_") {
+			return nil, fmt.Errorf("stripe invoice item ID must start with ii_ for line %s", line.ID)
+		}
+	}
+
+	return lines, nil
 }
 
 func (c *StripeAppClientMock) AddInvoiceLines(ctx context.Context, input stripeclient.AddInvoiceLinesInput) ([]stripeclient.StripeInvoiceItemWithLineID, error) {
@@ -157,6 +172,11 @@ func (c *StripeAppClientMock) UpdateInvoiceLines(ctx context.Context, input stri
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+	for _, line := range input.Lines {
+		if line == nil || !strings.HasPrefix(line.ID, "ii_") {
+			return nil, fmt.Errorf("stripe invoice item ID must start with ii_: %v", line)
+		}
+	}
 
 	c.StableSortStripeInvoiceItemWithID(input.Lines)
 
@@ -173,6 +193,11 @@ func (c *StripeAppClientMock) StableSortStripeInvoiceItemWithID(lines []*stripec
 func (c *StripeAppClientMock) RemoveInvoiceLines(ctx context.Context, input stripeclient.RemoveInvoiceLinesInput) error {
 	if err := input.Validate(); err != nil {
 		return err
+	}
+	for _, id := range input.Lines {
+		if !strings.HasPrefix(id, "ii_") {
+			return fmt.Errorf("stripe invoice item ID must start with ii_: %s", id)
+		}
 	}
 
 	args := c.Called(input)
