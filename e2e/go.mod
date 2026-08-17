@@ -14,7 +14,7 @@ require (
 	github.com/openmeterio/openmeter v0.0.0-00010101000000-000000000000
 	github.com/openmeterio/openmeter/api/v3/client v0.0.0
 	github.com/samber/lo v1.53.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.0
 	golang.org/x/sync v0.22.0
 )
 
@@ -35,7 +35,6 @@ require (
 	github.com/brunoga/deep v1.3.1 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
 	github.com/forscht/namegen v1.0.1 // indirect
 	github.com/getkin/kin-openapi v0.146.0 // indirect
@@ -75,7 +74,6 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/peterldowns/pgtestdb v0.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/qmuntal/stateless v1.8.0 // indirect
 	github.com/rickb777/period v1.0.30 // indirect
 	github.com/rickb777/plural/v2 v2.1.0 // indirect
