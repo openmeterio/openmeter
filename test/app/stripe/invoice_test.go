@@ -573,6 +573,10 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	})
 
 	s.Run("upsert invoice", func() {
+		// Given Stripe returns distinct invoice line (il_*) and invoice item (ii_*) IDs.
+		// When OpenMeter synchronizes an existing invoice after removing one line.
+		// Then every Stripe line mutation is addressed with the invoice item ID.
+
 		// Mock the stripe client to return the created invoice.
 		s.StripeAppClient.
 			On("CreateInvoice", stripeclient.CreateInvoiceInput{
