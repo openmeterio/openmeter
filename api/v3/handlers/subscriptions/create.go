@@ -138,8 +138,14 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				return CreateSubscriptionResponse{}, err
 			}
 
-			// Convert the subscription to an API subscription
-			return ToAPIBillingSubscription(m), nil
+			// Re-read the full view so the response carries phases and the current
+			// aligned billing period, consistent with get/list.
+			view, err := h.subscriptionService.GetView(ctx, m.NamespacedID)
+			if err != nil {
+				return CreateSubscriptionResponse{}, err
+			}
+
+			return ToAPIBillingSubscription(view)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateSubscriptionResponse](http.StatusCreated),
 		httptransport.AppendOptions(

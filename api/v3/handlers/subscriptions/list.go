@@ -2,6 +2,7 @@ package subscriptions
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -125,9 +126,38 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 				return ListSubscriptionsResponse{}, err
 			}
 
-			subscriptions := lo.Map(resp.Items, func(item subscription.Subscription, _ int) api.BillingSubscription {
-				return ToAPIBillingSubscription(item)
-			})
+			// Every subscription surfaces its phases, so each list row must be expanded
+			// to a full view. A page can span multiple customers, but ExpandViews only
+			// accepts a single customer at a time, so we expand one customer group at a
+			// time and reassemble in the original list order.
+			viewsByID := make(map[string]subscription.SubscriptionView, len(resp.Items))
+			for _, group := range lo.GroupBy(resp.Items, func(s subscription.Subscription) string {
+				return s.CustomerId
+			}) {
+				views, err := h.subscriptionService.ExpandViews(ctx, group)
+				if err != nil {
+					return ListSubscriptionsResponse{}, err
+				}
+
+				for _, view := range views {
+					viewsByID[view.Subscription.ID] = view
+				}
+			}
+
+			subscriptions := make([]api.BillingSubscription, 0, len(resp.Items))
+			for _, item := range resp.Items {
+				view, ok := viewsByID[item.ID]
+				if !ok {
+					return ListSubscriptionsResponse{}, fmt.Errorf("subscription %s missing from expanded views", item.ID)
+				}
+
+				sub, err := ToAPIBillingSubscription(view)
+				if err != nil {
+					return ListSubscriptionsResponse{}, err
+				}
+
+				subscriptions = append(subscriptions, sub)
+			}
 
 			r := response.NewPagePaginationResponse(subscriptions, response.PageMetaPage{
 				Size:   request.Page.PageSize,

@@ -65,7 +65,12 @@ func (h *handler) CancelSubscription() CancelSubscriptionHandler {
 				return CancelSubscriptionResponse{}, err
 			}
 
-			return ToAPIBillingSubscription(sub), nil
+			view, err := h.subscriptionService.GetView(ctx, sub.NamespacedID)
+			if err != nil {
+				return CancelSubscriptionResponse{}, err
+			}
+
+			return ToAPIBillingSubscription(view)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CancelSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(

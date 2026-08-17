@@ -33,13 +33,14 @@ func (h *handler) GetSubscription() GetSubscriptionHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetSubscriptionRequest) (GetSubscriptionResponse, error) {
-			// Get the subscription
-			m, err := h.subscriptionService.Get(ctx, request)
+			// Get the full subscription view so the response carries phases and the
+			// current aligned billing period, not just the scalar fields.
+			view, err := h.subscriptionService.GetView(ctx, request)
 			if err != nil {
 				return GetSubscriptionResponse{}, err
 			}
 
-			return ToAPIBillingSubscription(m), nil
+			return ToAPIBillingSubscription(view)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubscriptionResponse](http.StatusOK),
 		httptransport.AppendOptions(

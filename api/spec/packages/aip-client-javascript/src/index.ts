@@ -399,7 +399,6 @@ export type {
   UnitConfigInput,
   WorkflowInvoicingSettingsInput,
   EntitlementAccessQueryRequestInput,
-  SubscriptionInput,
   IngestedEventInput,
   SubscriptionCancelInput,
   SubscriptionChangeInput,

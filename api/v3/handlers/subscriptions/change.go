@@ -136,9 +136,24 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				return ChangeSubscriptionResponse{}, err
 			}
 
+			currentView, err := h.subscriptionService.GetView(ctx, resp.Current.NamespacedID)
+			if err != nil {
+				return ChangeSubscriptionResponse{}, err
+			}
+
+			current, err := ToAPIBillingSubscription(currentView)
+			if err != nil {
+				return ChangeSubscriptionResponse{}, err
+			}
+
+			next, err := ToAPIBillingSubscription(resp.Next)
+			if err != nil {
+				return ChangeSubscriptionResponse{}, err
+			}
+
 			return ChangeSubscriptionResponse{
-				Current: ToAPIBillingSubscription(resp.Current),
-				Next:    ToAPIBillingSubscription(resp.Next.Subscription),
+				Current: current,
+				Next:    next,
 			}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ChangeSubscriptionResponse](http.StatusOK),
