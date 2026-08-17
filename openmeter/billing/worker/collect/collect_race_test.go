@@ -68,6 +68,13 @@ func TestInvoiceCollectorAllPreservesConcurrentCollectionErrors(t *testing.T) {
 
 	for attempt := range attempts {
 		t.Run(fmt.Sprintf("attempt-%d", attempt), func(t *testing.T) {
+			// given:
+			// - 128 customers and a billing service that releases all collection calls
+			//   together before returning a customer-specific error.
+			// when:
+			// - InvoiceCollector.All collects the customers concurrently.
+			// then:
+			// - the joined error contains exactly one correctly attributed error per customer.
 			billingService := &concurrentErrorBillingService{
 				ready: make(chan struct{}),
 				total: customerCount,
