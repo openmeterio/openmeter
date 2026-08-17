@@ -1109,7 +1109,7 @@ export const addonStatus = z
     'The status of the add-on defined by the `effective_from` and `effective_to` properties. - `draft`: The add-on has not yet been published and can be edited. - `active`: The add-on is published and available for use. - `archived`: The add-on is no longer available for use.',
   )
 
-export const governanceQueryRequestCustomers = z
+export const entitlementAccessQueryRequestCustomers = z
   .object({
     keys: z
       .array(z.string())
@@ -1122,7 +1122,7 @@ export const governanceQueryRequestCustomers = z
   })
   .describe('List of customer identifiers to evaluate access for.')
 
-export const governanceQueryRequestFeatures = z
+export const entitlementAccessQueryRequestFeatures = z
   .object({
     keys: z
       .array(z.string())
@@ -1135,7 +1135,7 @@ export const governanceQueryRequestFeatures = z
     'Optional list of feature keys to evaluate access for. If omitted, all features available in the organization are returned. Providing this list is recommended to reduce the response size and the load on the backend services.',
   )
 
-export const governanceFeatureAccessReasonCode = z
+export const entitlementFeatureAccessReasonCode = z
   .enum([
     'unknown',
     'usage_limit_reached',
@@ -1145,9 +1145,9 @@ export const governanceFeatureAccessReasonCode = z
   ])
   .describe('Machine-readable reason code for denied feature access.')
 
-export const governanceQueryErrorCode = z
+export const entitlementAccessQueryErrorCode = z
   .enum(['unknown', 'customer_not_found'])
-  .describe('Error code for a governance query failure.')
+  .describe('Error code for an entitlement access query failure.')
 
 export const queryFilterInteger = z
   .object({
@@ -3175,7 +3175,7 @@ export const listCurrenciesParamsFilter = z
   })
   .describe('Filter options for listing currencies.')
 
-export const governanceQueryRequest = z
+export const entitlementAccessQueryRequest = z
   .object({
     includeCredits: z
       .boolean()
@@ -3185,14 +3185,14 @@ export const governanceQueryRequest = z
       .describe(
         'Whether to include credit balance availability for each resolved customer. When true, each feature evaluation includes credit balance checks. Defaults to `false`.',
       ),
-    customer: governanceQueryRequestCustomers,
-    feature: governanceQueryRequestFeatures.optional(),
+    customer: entitlementAccessQueryRequestCustomers,
+    feature: entitlementAccessQueryRequestFeatures.optional(),
   })
   .describe('Query to evaluate feature access for a list of customers.')
 
-export const governanceFeatureAccessReason = z
+export const entitlementFeatureAccessReason = z
   .object({
-    code: governanceFeatureAccessReasonCode,
+    code: entitlementFeatureAccessReasonCode,
     message: z.string().describe('Human-readable description of the error.'),
     attributes: z
       .record(z.string(), z.unknown())
@@ -3201,9 +3201,9 @@ export const governanceFeatureAccessReason = z
   })
   .describe('Reason a feature is not accessible to a customer.')
 
-export const governanceQueryError = z
+export const entitlementAccessQueryError = z
   .object({
-    code: governanceQueryErrorCode,
+    code: entitlementAccessQueryErrorCode,
     message: z.string().describe('Human-readable description of the error.'),
     attributes: z
       .record(z.string(), z.unknown())
@@ -3219,7 +3219,7 @@ export const governanceQueryError = z
   })
 
   .describe(
-    'Query error within a partially successful governance query response.',
+    'Query error within a partially successful entitlement access query response.',
   )
 
 export const appCustomerData = z
@@ -4247,7 +4247,7 @@ export const updateBillingInvoiceWorkflow = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
-export const governanceFeatureAccess = z
+export const entitlementFeatureAccess = z
   .object({
     hasAccess: z
       .boolean()
@@ -4255,7 +4255,7 @@ export const governanceFeatureAccess = z
       .describe(
         'Whether the customer currently has access to the feature. `true` for boolean and static entitlements that are available, and for metered entitlements with remaining balance. `false` when the feature is unavailable, the usage limit has been reached, or (when applicable) credits have been exhausted.',
       ),
-    reason: governanceFeatureAccessReason.optional(),
+    reason: entitlementFeatureAccessReason.optional(),
   })
   .describe('Access status for a single feature.')
 
@@ -4894,7 +4894,7 @@ export const updateInvoiceWorkflowSettings = z
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
 
-export const governanceQueryResult = z
+export const entitlementAccessQueryResult = z
   .object({
     matched: z
       .array(z.string())
@@ -4904,7 +4904,7 @@ export const governanceQueryResult = z
       ),
     customer: customer,
     features: z
-      .record(z.string(), governanceFeatureAccess)
+      .record(z.string(), entitlementFeatureAccess)
 
       .describe(
         'Map of features with their access status. Map keys are the feature keys requested in `feature.keys`, or every feature `key` available in the organization when the feature filter was omitted.',
@@ -5093,17 +5093,17 @@ export const app = z
   .discriminatedUnion('type', [appStripe, appSandbox, appExternalInvoicing])
   .describe('Installed application.')
 
-export const governanceQueryResponse = z
+export const entitlementAccessQueryResponse = z
   .object({
     data: z
-      .array(governanceQueryResult)
+      .array(entitlementAccessQueryResult)
       .describe('Access evaluation results, one entry per resolved customer.'),
     errors: z
-      .array(governanceQueryError)
+      .array(entitlementAccessQueryError)
       .describe('Partial errors encountered while processing the request.'),
     meta: cursorMeta,
   })
-  .describe('Response of the governance query.')
+  .describe('Response of the entitlement access query.')
 
 export const chargeFlatFee = z
   .object({
@@ -6912,13 +6912,13 @@ export const updateOrganizationDefaultTaxCodesBody =
 export const updateOrganizationDefaultTaxCodesResponse =
   organizationDefaultTaxCodes
 
-export const queryGovernanceAccessQueryParams = z.object({
+export const queryEntitlementAccessQueryParams = z.object({
   page: cursorPaginationQueryPage.optional(),
 })
 
-export const queryGovernanceAccessBody = governanceQueryRequest
+export const queryEntitlementAccessBody = entitlementAccessQueryRequest
 
-export const queryGovernanceAccessResponse = governanceQueryResponse
+export const queryEntitlementAccessResponse = entitlementAccessQueryResponse
 
 export const labelsWire = z
   .record(z.string(), z.string())
@@ -8021,7 +8021,7 @@ export const addonStatusWire = z
     'The status of the add-on defined by the `effective_from` and `effective_to` properties. - `draft`: The add-on has not yet been published and can be edited. - `active`: The add-on is published and available for use. - `archived`: The add-on is no longer available for use.',
   )
 
-export const governanceQueryRequestCustomersWire = z
+export const entitlementAccessQueryRequestCustomersWire = z
   .strictObject({
     keys: z
       .array(z.string())
@@ -8034,7 +8034,7 @@ export const governanceQueryRequestCustomersWire = z
   })
   .describe('List of customer identifiers to evaluate access for.')
 
-export const governanceQueryRequestFeaturesWire = z
+export const entitlementAccessQueryRequestFeaturesWire = z
   .strictObject({
     keys: z
       .array(z.string())
@@ -8047,7 +8047,7 @@ export const governanceQueryRequestFeaturesWire = z
     'Optional list of feature keys to evaluate access for. If omitted, all features available in the organization are returned. Providing this list is recommended to reduce the response size and the load on the backend services.',
   )
 
-export const governanceFeatureAccessReasonCodeWire = z
+export const entitlementFeatureAccessReasonCodeWire = z
   .enum([
     'unknown',
     'usage_limit_reached',
@@ -8057,9 +8057,9 @@ export const governanceFeatureAccessReasonCodeWire = z
   ])
   .describe('Machine-readable reason code for denied feature access.')
 
-export const governanceQueryErrorCodeWire = z
+export const entitlementAccessQueryErrorCodeWire = z
   .enum(['unknown', 'customer_not_found'])
-  .describe('Error code for a governance query failure.')
+  .describe('Error code for an entitlement access query failure.')
 
 export const queryFilterIntegerWire = z
   .strictObject({
@@ -10070,7 +10070,7 @@ export const listCurrenciesParamsFilterWire = z
   })
   .describe('Filter options for listing currencies.')
 
-export const governanceQueryRequestWire = z
+export const entitlementAccessQueryRequestWire = z
   .strictObject({
     include_credits: z
       .boolean()
@@ -10079,14 +10079,14 @@ export const governanceQueryRequestWire = z
       .describe(
         'Whether to include credit balance availability for each resolved customer. When true, each feature evaluation includes credit balance checks. Defaults to `false`.',
       ),
-    customer: governanceQueryRequestCustomersWire,
-    feature: governanceQueryRequestFeaturesWire.optional(),
+    customer: entitlementAccessQueryRequestCustomersWire,
+    feature: entitlementAccessQueryRequestFeaturesWire.optional(),
   })
   .describe('Query to evaluate feature access for a list of customers.')
 
-export const governanceFeatureAccessReasonWire = z
+export const entitlementFeatureAccessReasonWire = z
   .strictObject({
-    code: governanceFeatureAccessReasonCodeWire,
+    code: entitlementFeatureAccessReasonCodeWire,
     message: z.string().describe('Human-readable description of the error.'),
     attributes: z
       .record(z.string(), z.unknown())
@@ -10095,9 +10095,9 @@ export const governanceFeatureAccessReasonWire = z
   })
   .describe('Reason a feature is not accessible to a customer.')
 
-export const governanceQueryErrorWire = z
+export const entitlementAccessQueryErrorWire = z
   .strictObject({
-    code: governanceQueryErrorCodeWire,
+    code: entitlementAccessQueryErrorCodeWire,
     message: z.string().describe('Human-readable description of the error.'),
     attributes: z
       .record(z.string(), z.unknown())
@@ -10113,7 +10113,7 @@ export const governanceQueryErrorWire = z
   })
 
   .describe(
-    'Query error within a partially successful governance query response.',
+    'Query error within a partially successful entitlement access query response.',
   )
 
 export const appCustomerDataWire = z
@@ -11143,7 +11143,7 @@ export const updateBillingInvoiceWorkflowWire = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
-export const governanceFeatureAccessWire = z
+export const entitlementFeatureAccessWire = z
   .strictObject({
     has_access: z
       .boolean()
@@ -11151,7 +11151,7 @@ export const governanceFeatureAccessWire = z
       .describe(
         'Whether the customer currently has access to the feature. `true` for boolean and static entitlements that are available, and for metered entitlements with remaining balance. `false` when the feature is unavailable, the usage limit has been reached, or (when applicable) credits have been exhausted.',
       ),
-    reason: governanceFeatureAccessReasonWire.optional(),
+    reason: entitlementFeatureAccessReasonWire.optional(),
   })
   .describe('Access status for a single feature.')
 
@@ -11790,7 +11790,7 @@ export const updateInvoiceWorkflowSettingsWire = z
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
 
-export const governanceQueryResultWire = z
+export const entitlementAccessQueryResultWire = z
   .strictObject({
     matched: z
       .array(z.string())
@@ -11800,7 +11800,7 @@ export const governanceQueryResultWire = z
       ),
     customer: customerWire,
     features: z
-      .record(z.string(), governanceFeatureAccessWire)
+      .record(z.string(), entitlementFeatureAccessWire)
 
       .describe(
         'Map of features with their access status. Map keys are the feature keys requested in `feature.keys`, or every feature `key` available in the organization when the feature filter was omitted.',
@@ -11994,17 +11994,17 @@ export const appWire = z
   ])
   .describe('Installed application.')
 
-export const governanceQueryResponseWire = z
+export const entitlementAccessQueryResponseWire = z
   .strictObject({
     data: z
-      .array(governanceQueryResultWire)
+      .array(entitlementAccessQueryResultWire)
       .describe('Access evaluation results, one entry per resolved customer.'),
     errors: z
-      .array(governanceQueryErrorWire)
+      .array(entitlementAccessQueryErrorWire)
       .describe('Partial errors encountered while processing the request.'),
     meta: cursorMetaWire,
   })
-  .describe('Response of the governance query.')
+  .describe('Response of the entitlement access query.')
 
 export const chargeFlatFeeWire = z
   .strictObject({
@@ -13886,10 +13886,11 @@ export const updateOrganizationDefaultTaxCodesBodyWire =
 export const updateOrganizationDefaultTaxCodesResponseWire =
   organizationDefaultTaxCodesWire
 
-export const queryGovernanceAccessQueryParamsWire = z.object({
+export const queryEntitlementAccessQueryParamsWire = z.object({
   page: cursorPaginationQueryPageWire.optional(),
 })
 
-export const queryGovernanceAccessBodyWire = governanceQueryRequestWire
+export const queryEntitlementAccessBodyWire = entitlementAccessQueryRequestWire
 
-export const queryGovernanceAccessResponseWire = governanceQueryResponseWire
+export const queryEntitlementAccessResponseWire =
+  entitlementAccessQueryResponseWire

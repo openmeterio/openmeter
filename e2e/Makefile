@@ -1,32 +1,32 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
 # Address of a running OpenMeter to benchmark against. Defaults to the local stack
-# (env-local-up). Override on the CLI: make bench-governance OPENMETER_ADDRESS=...
+# (env-local-up). Override on the CLI: make bench-entitlement-access OPENMETER_ADDRESS=...
 OPENMETER_ADDRESS ?= http://localhost:38888
-# Iterations per sub-benchmark. Each governance query is sequential; "20x" fixes the
+# Iterations per sub-benchmark. Each entitlement access query is sequential; "20x" fixes the
 # count so runs are comparable. Bump for tighter means, or use COUNT for variance.
 BENCHTIME ?= 20x
 # Number of times to repeat the whole benchmark (feed >1 into benchstat for variance).
 COUNT ?= 1
 OPENMETER_E2E_EXTRA_COMPOSE_FILES ?=
 
-.PHONY: bench-governance
-bench-governance: ## Benchmark governance query latency (1x1 baseline + 10/50/100 diagonal)
+.PHONY: bench-entitlement-access
+bench-entitlement-access: ## Benchmark entitlement access query latency (1x1 baseline + 10/50/100 diagonal)
 	$(call print-target)
 	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) \
-		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
+		go test -run='^$$' -bench='^BenchmarkEntitlementAccessQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
 
-.PHONY: bench-governance-matrix
-bench-governance-matrix: ## Benchmark governance query latency (full 3x3 customers x features matrix)
+.PHONY: bench-entitlement-access-matrix
+bench-entitlement-access-matrix: ## Benchmark entitlement access query latency (full 3x3 customers x features matrix)
 	$(call print-target)
-	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_FULL_MATRIX=1 \
-		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) ENTITLEMENT_ACCESS_BENCH_FULL_MATRIX=1 \
+		go test -run='^$$' -bench='^BenchmarkEntitlementAccessQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
 
-.PHONY: bench-governance-namespace
-bench-governance-namespace: ## Benchmark governance query latency vs. namespace size (fixed 100 customers x 1 feature, 0/10k/100k decoys); requires direct Postgres access
+.PHONY: bench-entitlement-access-namespace
+bench-entitlement-access-namespace: ## Benchmark entitlement access query latency vs. namespace size (fixed 100 customers x 1 feature, 0/10k/100k decoys); requires direct Postgres access
 	$(call print-target)
 	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) \
-		go test -run='^$$' -bench='^BenchmarkGovernanceQueryNamespaceScale$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
+		go test -run='^$$' -bench='^BenchmarkEntitlementAccessQueryNamespaceScale$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
 
 .PHONY: test-local
 test-local: ## Run tests against local openmeter

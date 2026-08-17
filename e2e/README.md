@@ -16,12 +16,12 @@ changes need only `make env-local-up` (force-recreate), not a full down/up. Logs
 
 ## Benchmarks
 
-`BenchmarkGovernanceQuery` measures `POST /api/v3/openmeter/governance/query` latency
+`BenchmarkEntitlementAccessQuery` measures `POST /api/v3/openmeter/entitlement-access/query` latency
 across a customers × features grid. Seeds boolean entitlements (no usage events).
 
 ```sh
-make bench-governance          # 1x1 baseline + 10/50/100 diagonal
-make bench-governance-matrix   # full 3x3 customers x features matrix
+make bench-entitlement-access          # 1x1 baseline + 10/50/100 diagonal
+make bench-entitlement-access-matrix   # full 3x3 customers x features matrix
 ```
 
 Overridable vars (defaults shown):
@@ -35,7 +35,7 @@ Overridable vars (defaults shown):
 For variance / before-after comparison:
 
 ```sh
-make bench-governance COUNT=10 | tee baseline.txt
+make bench-entitlement-access COUNT=10 | tee baseline.txt
 benchstat baseline.txt                 # mean ± %CV
 benchstat baseline.txt after.txt       # delta + p-value
 ```
@@ -52,7 +52,7 @@ collector on the host (e.g. `grafana/otel-lgtm`). Then query per-size latency pe
 in Grafana (Tempo, TraceQL metrics):
 
 ```
-{ name = "governance.QueryAccess" && span.customer_key_count = 100 && span.feature_key_count = 100 }
+{ name = "entitlement_access.Query" && span.customer_key_count = 100 && span.feature_key_count = 100 }
   | quantile_over_time(duration, 0.5, 0.9, 0.95, 0.99)
 ```
 

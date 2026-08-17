@@ -6,22 +6,22 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/governance"
-	governanceservice "github.com/openmeterio/openmeter/openmeter/governance/service"
+	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
+	entitlementaccessservice "github.com/openmeterio/openmeter/openmeter/entitlementaccess/service"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 )
 
-var Governance = wire.NewSet(
-	NewGovernanceService,
+var EntitlementAccess = wire.NewSet(
+	NewEntitlementAccessService,
 )
 
-func NewGovernanceService(
+func NewEntitlementAccessService(
 	customer customer.Service,
 	entitlementRegistry *registry.Entitlement,
 	tracer trace.Tracer,
 	meter metric.Meter,
-) (governance.Service, error) {
-	return governanceservice.New(governanceservice.Config{
+) (entitlementaccess.Service, error) {
+	return entitlementaccessservice.New(entitlementaccessservice.Config{
 		Customer:    customer,
 		Entitlement: entitlementRegistry.Entitlement,
 		Feature:     entitlementRegistry.Feature,

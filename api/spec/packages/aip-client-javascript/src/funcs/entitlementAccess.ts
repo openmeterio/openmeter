@@ -7,12 +7,12 @@ import { toURLSearchParams } from '../lib/encodings.js'
 import { toWire, fromWire, assertValid } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
-  QueryGovernanceAccessRequest,
-  QueryGovernanceAccessResponse,
-} from '../models/operations/governance.js'
+  QueryEntitlementAccessRequest,
+  QueryEntitlementAccessResponse,
+} from '../models/operations/entitlementAccess.js'
 
 /**
- * Query governance access
+ * Query entitlement access
  *
  * Query feature access for a list of customers.
  *
@@ -23,30 +23,30 @@ import type {
  * _Designed to be called on a fixed refresh interval and the query response is
  * intended to be cached._
  *
- * POST /openmeter/governance/query
+ * POST /openmeter/entitlement-access/query
  */
-export function queryGovernanceAccess(
+export function queryEntitlementAccess(
   client: Client,
-  req: QueryGovernanceAccessRequest,
+  req: QueryEntitlementAccessRequest,
   options?: RequestOptions,
-): Promise<Result<QueryGovernanceAccessResponse>> {
+): Promise<Result<QueryEntitlementAccessResponse>> {
   return request(() => {
-    const body = toWire(req.body, schemas.queryGovernanceAccessBody)
+    const body = toWire(req.body, schemas.queryEntitlementAccessBody)
     if (client._options.validate) {
-      assertValid(schemas.queryGovernanceAccessBodyWire, body)
+      assertValid(schemas.queryEntitlementAccessBodyWire, body)
     }
     const query = toWire(
       {
         page: req.page,
       },
-      schemas.queryGovernanceAccessQueryParams,
+      schemas.queryEntitlementAccessQueryParams,
     )
     if (client._options.validate) {
-      assertValid(schemas.queryGovernanceAccessQueryParamsWire, query)
+      assertValid(schemas.queryEntitlementAccessQueryParamsWire, query)
     }
     const searchParams = toURLSearchParams(query)
     return http(client)
-      .post('openmeter/governance/query', {
+      .post('openmeter/entitlement-access/query', {
         ...options,
         searchParams,
         json: body,
@@ -54,9 +54,9 @@ export function queryGovernanceAccess(
       .json()
       .then((data) => {
         if (client._options.validate) {
-          assertValid(schemas.queryGovernanceAccessResponseWire, data)
+          assertValid(schemas.queryEntitlementAccessResponseWire, data)
         }
-        return fromWire(data, schemas.queryGovernanceAccessResponse)
+        return fromWire(data, schemas.queryEntitlementAccessResponse)
       })
   })
 }

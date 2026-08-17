@@ -39,7 +39,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Internal Apps](#internal-apps)
   - [Internal Invoices](#internal-invoices)
   - [Internal Currencies](#internal-currencies)
-  - [Internal Governance](#internal-governance)
+  - [Internal EntitlementAccess](#internal-entitlementaccess)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
 - [Error Handling](#error-handling)
@@ -457,11 +457,11 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.currencies.listCostBases`        | `GET /openmeter/currencies/custom/{currencyId}/cost-bases`  | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates. |
 | `client.internal.currencies.createCostBasis`      | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency.                                                                                            |
 
-### Internal Governance
+### Internal EntitlementAccess
 
-| Method                                   | HTTP                               | Description                                                                                                                                                                                                                                                                                                          |
-| ---------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.internal.governance.queryAccess` | `POST /openmeter/governance/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
+| Method                                    | HTTP                                       | Description                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.entitlementAccess.query` | `POST /openmeter/entitlement-access/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
 
 ## Runtime Validation (validate option)
 

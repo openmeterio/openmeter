@@ -33,7 +33,7 @@ TypeSpec definitions and ships typed request and response models.
   - [Addons](#addons)
   - [PlanAddons](#planaddons)
   - [Defaults](#defaults)
-  - [Governance](#governance)
+  - [EntitlementAccess](#entitlementaccess)
 - [Error Handling](#error-handling)
 - [Pagination and Streaming](#pagination-and-streaming)
 
@@ -313,11 +313,11 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Defaults.GetOrganizationTaxCodes` | `GET /openmeter/defaults/tax-codes` |  |
 | `om.Defaults.UpdateOrganizationTaxCodes` | `PUT /openmeter/defaults/tax-codes` |  |
 
-### Governance
+### EntitlementAccess
 
 | Method | HTTP | Description |
 | --- | --- | --- |
-| `om.Governance.QueryAccess` | `POST /openmeter/governance/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
+| `om.EntitlementAccess.Query` | `POST /openmeter/entitlement-access/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
 
 ## Error Handling
 

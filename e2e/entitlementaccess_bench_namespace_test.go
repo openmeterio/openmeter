@@ -17,13 +17,13 @@ import (
 )
 
 const (
-	defaultGovernanceBenchNamespaceDecoys = 100_000
-	governanceBenchNamespaceDecoysEnv     = "GOV_BENCH_NAMESPACE_DECOYS"
+	defaultEntitlementAccessBenchNamespaceDecoys = 100_000
+	entitlementAccessBenchNamespaceDecoysEnv     = "ENTITLEMENT_ACCESS_BENCH_NAMESPACE_DECOYS"
 )
 
-// BenchmarkGovernanceQueryNamespaceScale isolates the effect of total namespace
-// size on governance query latency, independent of the customers/features axes
-// BenchmarkGovernanceQuery already covers. It fixes a small, constant query
+// BenchmarkEntitlementAccessQueryNamespaceScale isolates the effect of total namespace
+// size on entitlement access query latency, independent of the customers/features axes
+// BenchmarkEntitlementAccessQuery already covers. It fixes a small, constant query
 // load (100 customers, matching the OAS customer-key cap, x 1 feature) so the
 // entitlement GetAccess fan-out cost stays flat across sub-benchmarks, and
 // varies only how many other (never-queried) customers/subjects exist in the
@@ -38,9 +38,9 @@ const (
 //
 // Decoys are seeded directly via SQL (not HTTP, which would dominate setup
 // time) and require direct Postgres access alongside OPENMETER_ADDRESS (see
-// initE2EPostgresPool). Set GOV_BENCH_NAMESPACE_DECOYS to change the top
-// decoy count from the default 100,000.
-func BenchmarkGovernanceQueryNamespaceScale(b *testing.B) {
+// initE2EPostgresPool). Set ENTITLEMENT_ACCESS_BENCH_NAMESPACE_DECOYS to
+// change the top decoy count from the default 100,000.
+func BenchmarkEntitlementAccessQueryNamespaceScale(b *testing.B) {
 	client := initClient(b)
 	v3 := newV3Client(b)
 	pool := initE2EPostgresPool(b)
@@ -50,22 +50,22 @@ func BenchmarkGovernanceQueryNamespaceScale(b *testing.B) {
 		queryFeatures  = 1
 	)
 
-	custKeys, featKeys := seedGovernanceFixture(b, client, queryCustomers, queryFeatures)
+	custKeys, featKeys := seedEntitlementAccessFixture(b, client, queryCustomers, queryFeatures)
 	namespace := getCustomerNamespaceByKey(b, pool, custKeys[0])
-	decoyRun := uniqueKey("gov_bench_ns_decoy")
+	decoyRun := uniqueKey("ea_bench_ns_decoy")
 
 	// Sorted and deduplicated so the cumulative seeding below stays monotonically
-	// increasing regardless of GOV_BENCH_NAMESPACE_DECOYS: an override below the
-	// hardcoded 10_000 tier would otherwise seed 10_000 first, then skip seeding
+	// increasing regardless of ENTITLEMENT_ACCESS_BENCH_NAMESPACE_DECOYS: an
+	// override below the hardcoded 10_000 tier would otherwise seed 10_000 first, then skip seeding
 	// for the smaller tier (seeded > target) while still reporting that smaller,
 	// now-incorrect decoy count as the benchmark's label.
-	decoyCounts := []int{0, 10_000, governanceBenchNamespaceDecoyCount(b)}
+	decoyCounts := []int{0, 10_000, entitlementAccessBenchNamespaceDecoyCount(b)}
 	sort.Ints(decoyCounts)
 	decoyCounts = slices.Compact(decoyCounts)
 
-	reqBody := v3sdk.GovernanceQueryRequest{
-		Customer: v3sdk.GovernanceQueryRequestCustomers{Keys: custKeys},
-		Feature:  &v3sdk.GovernanceQueryRequestFeatures{Keys: featKeys},
+	reqBody := v3sdk.EntitlementAccessQueryRequest{
+		Customer: v3sdk.EntitlementAccessQueryRequestCustomers{Keys: custKeys},
+		Feature:  &v3sdk.EntitlementAccessQueryRequestFeatures{Keys: featKeys},
 	}
 
 	seeded := 0
@@ -78,18 +78,18 @@ func BenchmarkGovernanceQueryNamespaceScale(b *testing.B) {
 
 			// Warm-up + correctness gate: a wrong result (e.g. missing customers)
 			// would make the latency number meaningless.
-			resp, err := v3.Governance.QueryAccess(b.Context(), reqBody, v3sdk.GovernanceQueryResultListParams{})
+			resp, err := v3.EntitlementAccess.Query(b.Context(), reqBody, v3sdk.EntitlementAccessQueryResultListParams{})
 			v3.requireStatus(http.StatusOK, err)
 			require.Lenf(b, resp.Data, queryCustomers, "expected %d resolved customers", queryCustomers)
 
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if _, err := v3.Governance.QueryAccess(b.Context(), reqBody, v3sdk.GovernanceQueryResultListParams{}); err != nil {
-					b.Fatalf("governance query failed: %v", err)
+				if _, err := v3.EntitlementAccess.Query(b.Context(), reqBody, v3sdk.EntitlementAccessQueryResultListParams{}); err != nil {
+					b.Fatalf("entitlement access query failed: %v", err)
 				}
 				if s := v3.statuses.last(); s != http.StatusOK {
-					b.Fatalf("governance query returned %d", s)
+					b.Fatalf("entitlement access query returned %d", s)
 				}
 			}
 			b.StopTimer()
@@ -98,17 +98,17 @@ func BenchmarkGovernanceQueryNamespaceScale(b *testing.B) {
 	}
 }
 
-func governanceBenchNamespaceDecoyCount(b *testing.B) int {
+func entitlementAccessBenchNamespaceDecoyCount(b *testing.B) int {
 	b.Helper()
 
-	value := os.Getenv(governanceBenchNamespaceDecoysEnv)
+	value := os.Getenv(entitlementAccessBenchNamespaceDecoysEnv)
 	if value == "" {
-		return defaultGovernanceBenchNamespaceDecoys
+		return defaultEntitlementAccessBenchNamespaceDecoys
 	}
 
 	count, err := strconv.Atoi(value)
 	if err != nil || count < 1 {
-		b.Fatalf("%s must be a positive integer, got %q", governanceBenchNamespaceDecoysEnv, value)
+		b.Fatalf("%s must be a positive integer, got %q", entitlementAccessBenchNamespaceDecoysEnv, value)
 	}
 
 	return count
@@ -132,8 +132,8 @@ func getCustomerNamespaceByKey(tb testing.TB, pool *pgxpool.Pool, key string) st
 // directly via SQL, numbered (from, to] under the given per-benchmark-run
 // prefix, so repeated calls with a growing `to` only seed the incremental
 // delta, and separate benchmark runs never collide on the same key even if
-// the database was not reset in between. Decoys are never included in a
-// governance query; they exist purely to grow the namespace the resolution
+// the database was not reset in between. Decoys are never included in an
+// entitlement access query; they exist purely to grow the namespace the resolution
 // query has to search. ANALYZE keeps planner stats current, matching the
 // customer adapter's own usage-attribution benchmark.
 func seedNamespaceDecoys(tb testing.TB, pool *pgxpool.Pool, namespace, runPrefix string, from, to int) {

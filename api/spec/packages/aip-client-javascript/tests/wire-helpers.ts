@@ -131,7 +131,7 @@ export function collectFieldKeys(
       if (k.startsWith('user_key_')) {
         // Preserved user record key — not itself a schema field, so it's excluded
         // from the leak check. Its value can still be model-shaped (e.g. a
-        // governance feature-access record value), so keep walking into it —
+        // entitlement access feature-access record value), so keep walking into it —
         // skipping the value too would blind the leak check to casing bugs in
         // any schema field nested under a record.
         collectFieldKeys(v, keys)

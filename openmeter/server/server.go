@@ -150,7 +150,7 @@ func NewServer(config *Config) (*Server, error) {
 		CustomerBalanceFacade:       config.RouterConfig.CustomerBalanceFacade,
 		CurrencyService:             config.RouterConfig.CurrencyService,
 		EntitlementService:          config.RouterConfig.EntitlementConnector,
-		GovernanceService:           config.RouterConfig.GovernanceService,
+		EntitlementAccessService:    config.RouterConfig.EntitlementAccessService,
 		IngestService:               config.RouterConfig.IngestService,
 		MeterEventService:           config.RouterConfig.MeterEventService,
 		LLMCostService:              config.RouterConfig.LLMCostService,

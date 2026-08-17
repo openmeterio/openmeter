@@ -8,15 +8,15 @@ import (
 	"net/url"
 )
 
-type GovernanceService struct {
+type EntitlementAccessService struct {
 	client *Client
 }
 
-type GovernanceQueryResultListParams struct {
+type EntitlementAccessQueryResultListParams struct {
 	Page *CursorPageParams
 }
 
-func (p GovernanceQueryResultListParams) values() url.Values {
+func (p EntitlementAccessQueryResultListParams) values() url.Values {
 	q := url.Values{}
 
 	addCursorPageParams(q, p.Page)
@@ -32,15 +32,15 @@ func (p GovernanceQueryResultListParams) values() url.Values {
 //
 // _Designed to be called on a fixed refresh interval and the query response is
 // intended to be cached._
-func (s *GovernanceService) QueryAccess(ctx context.Context, request GovernanceQueryRequest, params GovernanceQueryResultListParams) (*GovernanceQueryResponse, error) {
-	path := "/openmeter/governance/query"
+func (s *EntitlementAccessService) Query(ctx context.Context, request EntitlementAccessQueryRequest, params EntitlementAccessQueryResultListParams) (*EntitlementAccessQueryResponse, error) {
+	path := "/openmeter/entitlement-access/query"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, params.values(), request, "application/json", "application/json")
 	if err != nil {
 		return nil, err
 	}
 
-	var out GovernanceQueryResponse
+	var out EntitlementAccessQueryResponse
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

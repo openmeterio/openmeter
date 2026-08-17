@@ -1,4 +1,4 @@
-package governance
+package entitlementaccess
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	"github.com/openmeterio/openmeter/openmeter/governance"
+	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	pagination "github.com/openmeterio/openmeter/pkg/pagination/v2"
@@ -19,27 +19,27 @@ const (
 )
 
 type (
-	QueryGovernanceAccessParams   = apiv3.QueryGovernanceAccessParams
-	QueryGovernanceAccessRequest  = governance.QueryAccessInput
-	QueryGovernanceAccessResponse = apiv3.GovernanceQueryResponse
-	QueryGovernanceAccessHandler  = httptransport.HandlerWithArgs[QueryGovernanceAccessRequest, QueryGovernanceAccessResponse, QueryGovernanceAccessParams]
+	QueryEntitlementAccessParams   = apiv3.QueryEntitlementAccessParams
+	QueryEntitlementAccessRequest  = entitlementaccess.QueryInput
+	QueryEntitlementAccessResponse = apiv3.EntitlementAccessQueryResponse
+	QueryEntitlementAccessHandler  = httptransport.HandlerWithArgs[QueryEntitlementAccessRequest, QueryEntitlementAccessResponse, QueryEntitlementAccessParams]
 )
 
-func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
+func (h *handler) QueryEntitlementAccess() QueryEntitlementAccessHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params QueryGovernanceAccessParams) (QueryGovernanceAccessRequest, error) {
+		func(ctx context.Context, r *http.Request, params QueryEntitlementAccessParams) (QueryEntitlementAccessRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return QueryGovernanceAccessRequest{}, err
+				return QueryEntitlementAccessRequest{}, err
 			}
 
-			var body apiv3.GovernanceQueryRequest
+			var body apiv3.EntitlementAccessQueryRequest
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return QueryGovernanceAccessRequest{}, err
+				return QueryEntitlementAccessRequest{}, err
 			}
 
-			req := QueryGovernanceAccessRequest{
+			req := QueryEntitlementAccessRequest{
 				Namespace:    ns,
 				CustomerKeys: body.Customer.Keys,
 				PageSize:     defaultPageSize,
@@ -54,30 +54,30 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 			}
 
 			if err := applyPaging(ctx, &req, params); err != nil {
-				return QueryGovernanceAccessRequest{}, err
+				return QueryEntitlementAccessRequest{}, err
 			}
 
 			return req, nil
 		},
-		func(ctx context.Context, request QueryGovernanceAccessRequest) (QueryGovernanceAccessResponse, error) {
-			res, err := h.governanceService.QueryAccess(ctx, request)
+		func(ctx context.Context, request QueryEntitlementAccessRequest) (QueryEntitlementAccessResponse, error) {
+			res, err := h.entitlementAccessService.Query(ctx, request)
 			if err != nil {
-				return QueryGovernanceAccessResponse{}, err
+				return QueryEntitlementAccessResponse{}, err
 			}
 
-			return ToAPIGovernanceQueryResponse(res, request.PageSize), nil
+			return ToAPIEntitlementAccessQueryResponse(res, request.PageSize), nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[QueryGovernanceAccessResponse](http.StatusOK),
+		commonhttp.JSONResponseEncoderWithStatus[QueryEntitlementAccessResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("query-governance-access"),
+			httptransport.WithOperationName("query-entitlement-access"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }
 
 // applyPaging parses page[size]/page[after]/page[before] into the service input.
-func applyPaging(ctx context.Context, req *QueryGovernanceAccessRequest, params QueryGovernanceAccessParams) error {
+func applyPaging(ctx context.Context, req *QueryEntitlementAccessRequest, params QueryEntitlementAccessParams) error {
 	if params.Page == nil {
 		return nil
 	}

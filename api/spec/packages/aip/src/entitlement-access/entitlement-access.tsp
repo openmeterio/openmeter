@@ -2,13 +2,13 @@ import "../shared/index.tsp";
 import "../common/pagination.tsp";
 import "../customers/customer.tsp";
 
-namespace Governance;
+namespace EntitlementAccess;
 
 /**
  * List of customer identifiers to evaluate access for.
  */
-@friendlyName("GovernanceQueryRequestCustomers")
-model GovernanceQueryRequestCustomers {
+@friendlyName("EntitlementAccessQueryRequestCustomers")
+model EntitlementAccessQueryRequestCustomers {
   /**
    * Each entry can be a customer `key` or a usage-attribution subject `key`.
    * Identifiers that cannot be resolved to a customer are reported in the response
@@ -25,8 +25,8 @@ model GovernanceQueryRequestCustomers {
  * available in the organization are returned. Providing this list is recommended
  * to reduce the response size and the load on the backend services.
  */
-@friendlyName("GovernanceQueryRequestFeatures")
-model GovernanceQueryRequestFeatures {
+@friendlyName("EntitlementAccessQueryRequestFeatures")
+model EntitlementAccessQueryRequestFeatures {
   /**
    * List of feature keys to evaluate access for.
    */
@@ -39,8 +39,8 @@ model GovernanceQueryRequestFeatures {
 /**
  * Query to evaluate feature access for a list of customers.
  */
-@friendlyName("GovernanceQueryRequest")
-model GovernanceQueryRequest {
+@friendlyName("EntitlementAccessQueryRequest")
+model EntitlementAccessQueryRequest {
   /**
    * Whether to include credit balance availability for each resolved customer. When
    * true, each feature evaluation includes credit balance checks.
@@ -52,31 +52,31 @@ model GovernanceQueryRequest {
 
   #suppress "@openmeter/api-spec-aip/doc-decorator" "-"
   @summary("Customer")
-  customer: GovernanceQueryRequestCustomers;
+  customer: EntitlementAccessQueryRequestCustomers;
 
   #suppress "@openmeter/api-spec-aip/doc-decorator" "-"
   @summary("Feature")
-  feature?: GovernanceQueryRequestFeatures;
+  feature?: EntitlementAccessQueryRequestFeatures;
 }
 
 /**
- * Response of the governance query.
+ * Response of the entitlement access query.
  */
-@friendlyName("GovernanceQueryResponse")
-model GovernanceQueryResponse {
+@friendlyName("EntitlementAccessQueryResponse")
+model EntitlementAccessQueryResponse {
   /**
    * Access evaluation results, one entry per resolved customer.
    */
   @visibility(Lifecycle.Read)
   @summary("Data")
-  data: GovernanceQueryResult[];
+  data: EntitlementAccessQueryResult[];
 
   /**
    * Partial errors encountered while processing the request.
    */
   @visibility(Lifecycle.Read)
   @summary("Errors")
-  errors: GovernanceQueryError[];
+  errors: EntitlementAccessQueryError[];
 
   /**
    * Pagination metadata. The endpoint may return a partial response if the full
@@ -90,8 +90,8 @@ model GovernanceQueryResponse {
 /**
  * Access evaluation result for a single resolved customer.
  */
-@friendlyName("GovernanceQueryResult")
-model GovernanceQueryResult {
+@friendlyName("EntitlementAccessQueryResult")
+model EntitlementAccessQueryResult {
   /**
    * The list of identifiers from the request that resolved to this customer. Each
    * entry is either the customer `key` or one of its usage-attribution subject
@@ -119,7 +119,7 @@ model GovernanceQueryResult {
    */
   @visibility(Lifecycle.Read)
   @summary("Features")
-  features: Record<GovernanceFeatureAccess>;
+  features: Record<EntitlementFeatureAccess>;
 
   /**
    * Timestamp of the most recent change to the customer's access state reflected in
@@ -133,8 +133,8 @@ model GovernanceQueryResult {
 /**
  * Access status for a single feature.
  */
-@friendlyName("GovernanceFeatureAccess")
-model GovernanceFeatureAccess {
+@friendlyName("EntitlementFeatureAccess")
+model EntitlementFeatureAccess {
   /**
    * Whether the customer currently has access to the feature.
    *
@@ -153,21 +153,21 @@ model GovernanceFeatureAccess {
    */
   @visibility(Lifecycle.Read)
   @summary("Reason")
-  reason?: GovernanceFeatureAccessReason;
+  reason?: EntitlementFeatureAccessReason;
 }
 
 /**
  * Reason a feature is not accessible to a customer.
  */
-@friendlyName("GovernanceFeatureAccessReason")
-model GovernanceFeatureAccessReason
-  is Shared.BaseError<GovernanceFeatureAccessReasonCode>;
+@friendlyName("EntitlementFeatureAccessReason")
+model EntitlementFeatureAccessReason
+  is Shared.BaseError<EntitlementFeatureAccessReasonCode>;
 
 /**
  * Machine-readable reason code for denied feature access.
  */
-@friendlyName("GovernanceFeatureAccessReasonCode")
-enum GovernanceFeatureAccessReasonCode {
+@friendlyName("EntitlementFeatureAccessReasonCode")
+enum EntitlementFeatureAccessReasonCode {
   /**
    * Default zero value. Reserved for forward compatibility.
    */
@@ -197,10 +197,11 @@ enum GovernanceFeatureAccessReasonCode {
 }
 
 /**
- * Query error within a partially successful governance query response.
+ * Query error within a partially successful entitlement access query response.
  */
-@friendlyName("GovernanceQueryError")
-model GovernanceQueryError is Shared.BaseError<GovernanceQueryErrorCode> {
+@friendlyName("EntitlementAccessQueryError")
+model EntitlementAccessQueryError
+  is Shared.BaseError<EntitlementAccessQueryErrorCode> {
   /**
    * The customer identifier from the request that produced this error.
    */
@@ -210,10 +211,10 @@ model GovernanceQueryError is Shared.BaseError<GovernanceQueryErrorCode> {
 }
 
 /**
- * Error code for a governance query failure.
+ * Error code for an entitlement access query failure.
  */
-@friendlyName("GovernanceQueryErrorCode")
-enum GovernanceQueryErrorCode {
+@friendlyName("EntitlementAccessQueryErrorCode")
+enum EntitlementAccessQueryErrorCode {
   /**
    * Default zero value. Reserved for forward compatibility.
    */

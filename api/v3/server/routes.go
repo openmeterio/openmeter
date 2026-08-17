@@ -574,8 +574,8 @@ func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *htt
 	s.taxcodesHandler.UpsertOrganizationDefaultTaxCodes().ServeHTTP(w, r)
 }
 
-// Governance
+// EntitlementAccess
 
-func (s *Server) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params api.QueryGovernanceAccessParams) {
-	s.governanceHandler.QueryGovernanceAccess().With(params).ServeHTTP(w, r)
+func (s *Server) QueryEntitlementAccess(w http.ResponseWriter, r *http.Request, params api.QueryEntitlementAccessParams) {
+	s.entitlementAccessHandler.QueryEntitlementAccess().With(params).ServeHTTP(w, r)
 }

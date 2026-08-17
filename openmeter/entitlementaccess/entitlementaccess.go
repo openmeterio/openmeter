@@ -1,4 +1,4 @@
-package governance
+package entitlementaccess
 
 import (
 	"errors"
@@ -77,10 +77,10 @@ type QueryError struct {
 	Message     string
 }
 
-var _ models.Validator = (*QueryAccessInput)(nil)
+var _ models.Validator = (*QueryInput)(nil)
 
-// QueryAccessInput is the input for evaluating governance access.
-type QueryAccessInput struct {
+// QueryInput is the input for evaluating entitlement access.
+type QueryInput struct {
 	Namespace string
 	// CustomerKeys are arbitrary identifiers — each a customer key or a usage-attribution
 	// subject key. Identifiers that cannot be resolved are reported in QueryResult.Errors.
@@ -98,7 +98,7 @@ type QueryAccessInput struct {
 	Before   *pagination.Cursor
 }
 
-func (i QueryAccessInput) Validate() error {
+func (i QueryInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
@@ -120,7 +120,7 @@ func (i QueryAccessInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// QueryResult is the paged result of a governance access query.
+// QueryResult is the paged result of an entitlement access query.
 type QueryResult struct {
 	// Customers are the access evaluations for the current page, ordered by (CreatedAt, ID).
 	Customers []CustomerAccess
