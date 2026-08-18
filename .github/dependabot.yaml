@@ -75,6 +75,9 @@ updates:
         patterns:
           - "github/codeql-action"
           - "github/codeql-action/*"
+      kong:
+        patterns:
+          - "Kong/public-shared-actions/*"
 
   - package-ecosystem: "docker"
     directory: "/"
