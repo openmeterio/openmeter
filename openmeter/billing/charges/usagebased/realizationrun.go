@@ -132,14 +132,15 @@ func (r CreateRealizationRunInput) Validate() error {
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	Type                      mo.Option[RealizationRunType]    `json:"type"`
-	StoredAtLT                mo.Option[time.Time]             `json:"storedAtLT"`
-	DeletedAt                 mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
-	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
-	MeteredQuantity           mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
-	Totals                    mo.Option[totals.Totals]         `json:"totals"`
-	NoFiatTransactionRequired mo.Option[bool]                  `json:"noFiatTransactionRequired"`
-	Immutable                 mo.Option[bool]                  `json:"immutable"`
+	Type                                 mo.Option[RealizationRunType]    `json:"type"`
+	StoredAtLT                           mo.Option[time.Time]             `json:"storedAtLT"`
+	DeletedAt                            mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
+	LineID                               mo.Option[*string]               `json:"lineId,omitempty"`
+	MeteredQuantity                      mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
+	Totals                               mo.Option[totals.Totals]         `json:"totals"`
+	NoFiatTransactionRequired            mo.Option[bool]                  `json:"noFiatTransactionRequired"`
+	Immutable                            mo.Option[bool]                  `json:"immutable"`
+	FiatOverageCreditAllocationCompleted mo.Option[bool]                  `json:"fiatOverageCreditAllocationCompleted"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
@@ -215,6 +216,9 @@ type RealizationRunBase struct {
 	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
 	// Immutable means the backing invoice crossed the external issuance boundary.
 	Immutable bool `json:"immutable"`
+	// FiatOverageCreditAllocationCompleted distinguishes a successful
+	// zero-allocation result from pending allocation.
+	FiatOverageCreditAllocationCompleted bool `json:"fiatOverageCreditAllocationCompleted"`
 	// DetailedLinesIncludeCreditAllocations describes if credit allocation is applied to the detailed lines.
 	// Credits-only: always false
 	// Credit-then-invoice:

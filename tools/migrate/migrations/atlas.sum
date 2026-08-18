@@ -1,4 +1,4 @@
-h1:l0hjrx9b9W5bxQw4g8VhvwCSj+jb9qf0acfTC8BZD24=
+h1:lX06R0eo5VBFJoRA2P5FPYumCGKHE9ER4OcTuqIsDE8=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -270,3 +270,4 @@ h1:l0hjrx9b9W5bxQw4g8VhvwCSj+jb9qf0acfTC8BZD24=
 20260818090123_rate_card_feature_reference_constraints.up.sql h1:VjBtzWp/DPk3Y8uk0B0S6PqfaIzodN3rk0zDKGnnVtE=
 20260824141945_repair_distributed_locks.up.sql h1:2yMrvYEgMu69u2VehzaZMyESZmD/HrwOZaOU1xQsTDY=
 20260825073524_add_usage_based_run_immutable.up.sql h1:gtNDCpb60imuRqnncnjB/xHjAWKUa44SrnJbFl152wo=
+20260825083218_add_charge_overage_allocation_completion.up.sql h1:VdtZnYK+k3uxPZtD+ox9pNKUG0L4vi/b8W1znnNtv2o=

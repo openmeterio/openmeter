@@ -396,6 +396,16 @@ func (s *CreditThenInvoiceStateMachine) updateGatheringLineForEffectiveIntent() 
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
+	if s.Charge.State.CurrentRealizationRunID != nil {
+		currentRun, err := s.Charge.GetCurrentRealizationRun()
+		if err != nil {
+			return fmt.Errorf("get current realization run before delete: %w", err)
+		}
+		if currentRun.InvoiceUsage != nil {
+			return fmt.Errorf("usage based charge[%s] cannot be deleted after invoice issuance preparation", s.Charge.ID)
+		}
+	}
+
 	deletedAt := lo.ToPtr(clock.Now())
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
@@ -1111,15 +1121,31 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 		return fmt.Errorf("get current realization run: %w", err)
 	}
 
-	accrueResult, err := s.Runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
-		Charge: s.Charge,
-		Run:    currentRun,
-		Line:   *input.Line,
-	})
-	if err != nil {
-		return fmt.Errorf("accrue invoice usage: %w", err)
+	if !s.Charge.Intent.GetCurrency().IsCustom() {
+		accrueResult, err := s.Runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
+			Charge: s.Charge,
+			Run:    currentRun,
+			Line:   *input.Line,
+		})
+		if err != nil {
+			return fmt.Errorf("accrue invoice usage: %w", err)
+		}
+		currentRun = accrueResult.Run
+	} else {
+		if currentRun.InvoiceUsage == nil {
+			return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
+		}
+		if !currentRun.FiatOverageCreditAllocationCompleted {
+			return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
+		}
+		if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
+			return fmt.Errorf("prepared realization run[%s] line does not match issued line[%s]", currentRun.ID.ID, input.Line.ID)
+		}
+		if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
+			return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
+		}
 	}
-	currentRun = accrueResult.Run
+
 	runBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:        currentRun.ID,
 		Immutable: mo.Some(true),

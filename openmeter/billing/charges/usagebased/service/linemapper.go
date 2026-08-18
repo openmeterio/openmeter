@@ -183,6 +183,37 @@ func calculateFiatOverageForRun(charge usagebased.Charge, run usagebased.Realiza
 	}, nil
 }
 
+// resolveFiatOverageForLinePopulation reuses the gross FIAT amount persisted
+// by invoice preparation. This keeps retries from repeating conversion after
+// the durable accounting boundary has been crossed.
+func resolveFiatOverageForLinePopulation(
+	charge usagebased.Charge,
+	run usagebased.RealizationRun,
+	stage standardLinePopulationStage,
+) (calculateFiatOverageForRunResult, error) {
+	if stage != standardLinePopulationStageInvoiceFinalizing || run.InvoiceUsage == nil {
+		return calculateFiatOverageForRun(charge, run)
+	}
+
+	costBasisIntent := charge.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return calculateFiatOverageForRunResult{}, errors.New("cost basis intent is required for a custom-currency invoice")
+	}
+
+	fiatCurrency, err := costBasisIntent.GetFiatCurrency()
+	if err != nil {
+		return calculateFiatOverageForRunResult{}, err
+	}
+
+	grossFiatAmount := run.InvoiceUsage.Totals.Total
+
+	return calculateFiatOverageForRunResult{
+		FiatCurrency:          fiatCurrency,
+		FiatOverage:           grossFiatAmount,
+		ShouldOmitInvoiceLine: grossFiatAmount.IsZero(),
+	}, nil
+}
+
 func (i populateStandardLineFromRunInput) Validate() error {
 	var errs []error
 
@@ -279,7 +310,7 @@ func populateCustomCurrencyOverageFromRun(
 	charge := input.Charge
 	run := input.Run
 
-	fiatOverage, err := calculateFiatOverageForRun(charge, run)
+	fiatOverage, err := resolveFiatOverageForLinePopulation(charge, run, input.Stage)
 	if err != nil {
 		return fmt.Errorf("custom currency charge[%s] converting overage to fiat: %w", charge.ID, err)
 	}

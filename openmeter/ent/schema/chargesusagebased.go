@@ -391,6 +391,9 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 
 		field.Bool("immutable").
 			Default(false),
+
+		field.Bool("fiat_overage_credit_allocation_completed").
+			Default(false),
 	}
 }
 

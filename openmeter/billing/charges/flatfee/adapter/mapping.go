@@ -101,15 +101,16 @@ func fromDBRunBase(dbRun *entdb.ChargeFlatFeeRun) flatfee.RealizationRunBase {
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbRun),
 
-		LineID:                    dbRun.LineID,
-		InvoiceID:                 dbRun.InvoiceID,
-		Type:                      dbRun.Type,
-		InitialType:               dbRun.InitialType,
-		ServicePeriod:             timeutil.ClosedPeriod{From: dbRun.ServicePeriodFrom.UTC(), To: dbRun.ServicePeriodTo.UTC()},
-		AmountAfterProration:      dbRun.AmountAfterProration,
-		Totals:                    totals.FromDB(dbRun),
-		NoFiatTransactionRequired: dbRun.NoFiatTransactionRequired,
-		Immutable:                 dbRun.Immutable,
+		LineID:                               dbRun.LineID,
+		InvoiceID:                            dbRun.InvoiceID,
+		Type:                                 dbRun.Type,
+		InitialType:                          dbRun.InitialType,
+		ServicePeriod:                        timeutil.ClosedPeriod{From: dbRun.ServicePeriodFrom.UTC(), To: dbRun.ServicePeriodTo.UTC()},
+		AmountAfterProration:                 dbRun.AmountAfterProration,
+		Totals:                               totals.FromDB(dbRun),
+		NoFiatTransactionRequired:            dbRun.NoFiatTransactionRequired,
+		FiatOverageCreditAllocationCompleted: dbRun.FiatOverageCreditAllocationCompleted,
+		Immutable:                            dbRun.Immutable,
 	}
 }
 

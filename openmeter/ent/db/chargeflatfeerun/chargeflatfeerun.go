@@ -58,6 +58,8 @@ const (
 	FieldAmountAfterProration = "amount_after_proration"
 	// FieldNoFiatTransactionRequired holds the string denoting the no_fiat_transaction_required field in the database.
 	FieldNoFiatTransactionRequired = "no_fiat_transaction_required"
+	// FieldFiatOverageCreditAllocationCompleted holds the string denoting the fiat_overage_credit_allocation_completed field in the database.
+	FieldFiatOverageCreditAllocationCompleted = "fiat_overage_credit_allocation_completed"
 	// FieldImmutable holds the string denoting the immutable field in the database.
 	FieldImmutable = "immutable"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
@@ -160,6 +162,7 @@ var Columns = []string{
 	FieldInvoiceID,
 	FieldAmountAfterProration,
 	FieldNoFiatTransactionRequired,
+	FieldFiatOverageCreditAllocationCompleted,
 	FieldImmutable,
 }
 
@@ -186,6 +189,8 @@ var (
 	LineIDValidator func(string) error
 	// InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
 	InvoiceIDValidator func(string) error
+	// DefaultFiatOverageCreditAllocationCompleted holds the default value on creation for the "fiat_overage_credit_allocation_completed" field.
+	DefaultFiatOverageCreditAllocationCompleted bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -321,6 +326,11 @@ func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 // ByNoFiatTransactionRequired orders the results by the no_fiat_transaction_required field.
 func ByNoFiatTransactionRequired(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNoFiatTransactionRequired, opts...).ToFunc()
+}
+
+// ByFiatOverageCreditAllocationCompleted orders the results by the fiat_overage_credit_allocation_completed field.
+func ByFiatOverageCreditAllocationCompleted(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatOverageCreditAllocationCompleted, opts...).ToFunc()
 }
 
 // ByImmutable orders the results by the immutable field.

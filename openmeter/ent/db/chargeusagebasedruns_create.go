@@ -240,6 +240,20 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillableImmutable(v *bool) *ChargeUsage
 	return _c
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (_c *ChargeUsageBasedRunsCreate) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetFiatOverageCreditAllocationCompleted(v)
+	return _c
+}
+
+// SetNillableFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableFiatOverageCreditAllocationCompleted(v *bool) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetFiatOverageCreditAllocationCompleted(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeUsageBasedRunsCreate) SetID(v string) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetID(v)
@@ -457,6 +471,10 @@ func (_c *ChargeUsageBasedRunsCreate) defaults() {
 		v := chargeusagebasedruns.DefaultImmutable
 		_c.mutation.SetImmutable(v)
 	}
+	if _, ok := _c.mutation.FiatOverageCreditAllocationCompleted(); !ok {
+		v := chargeusagebasedruns.DefaultFiatOverageCreditAllocationCompleted
+		_c.mutation.SetFiatOverageCreditAllocationCompleted(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeusagebasedruns.DefaultID()
 		_c.mutation.SetID(v)
@@ -560,6 +578,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	}
 	if _, ok := _c.mutation.Immutable(); !ok {
 		return &ValidationError{Name: "immutable", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.immutable"`)}
+	}
+	if _, ok := _c.mutation.FiatOverageCreditAllocationCompleted(); !ok {
+		return &ValidationError{Name: "fiat_overage_credit_allocation_completed", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.fiat_overage_credit_allocation_completed"`)}
 	}
 	if len(_c.mutation.UsageBasedIDs()) == 0 {
 		return &ValidationError{Name: "usage_based", err: errors.New(`db: missing required edge "ChargeUsageBasedRuns.usage_based"`)}
@@ -686,6 +707,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.Immutable(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldImmutable, field.TypeBool, value)
 		_node.Immutable = value
+	}
+	if value, ok := _c.mutation.FiatOverageCreditAllocationCompleted(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted, field.TypeBool, value)
+		_node.FiatOverageCreditAllocationCompleted = value
 	}
 	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1131,6 +1156,18 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateImmutable() *ChargeUsageBasedRunsUpse
 	return u
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (u *ChargeUsageBasedRunsUpsert) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted, v)
+	return u
+}
+
+// UpdateFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateFiatOverageCreditAllocationCompleted() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1463,6 +1500,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetImmutable(v bool) *ChargeUsageBasedRu
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateImmutable() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateImmutable()
+	})
+}
+
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetFiatOverageCreditAllocationCompleted(v)
+	})
+}
+
+// UpdateFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateFiatOverageCreditAllocationCompleted() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateFiatOverageCreditAllocationCompleted()
 	})
 }
 
@@ -1965,6 +2016,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetImmutable(v bool) *ChargeUsageBasedR
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateImmutable() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateImmutable()
+	})
+}
+
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetFiatOverageCreditAllocationCompleted(v)
+	})
+}
+
+// UpdateFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateFiatOverageCreditAllocationCompleted() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateFiatOverageCreditAllocationCompleted()
 	})
 }
 

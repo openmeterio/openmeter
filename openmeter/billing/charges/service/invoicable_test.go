@@ -194,6 +194,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 		creditsAllocated float64
 		// fiatOverageCreditsAvailable is the USD balance available for the converted overage.
 		fiatOverageCreditsAvailable float64
+		// disableFiatOverageCredits models the settlement handler rejecting FIAT credit use.
+		disableFiatOverageCredits bool
 
 		// expectRunTotals contains the realization run totals in TOKENS.
 		expectRunTotals billingtest.ExpectedTotals
@@ -225,6 +227,21 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			expectDraftInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			expectInvoiceTotals:      billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			expectPaymentSettled:     true,
+		},
+		// given:
+		// - a 5 USD overage and enough settlement-fiat credits to cover it
+		// - the settlement handler does not allow those credits to be used
+		// then:
+		// - gross preparation still runs and the full 5 USD remains payable
+		{
+			name:                        "fiat overage credits disabled by handler",
+			chargeAmount:                10,
+			fiatOverageCreditsAvailable: 5,
+			disableFiatOverageCredits:   true,
+			expectRunTotals:             billingtest.ExpectedTotals{Amount: 10, Total: 10},
+			expectDraftInvoiceTotals:    billingtest.ExpectedTotals{Amount: 5, Total: 5},
+			expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, Total: 5},
+			expectPaymentSettled:        true,
 		},
 		// given:
 		// - a 10 TOKENS flat fee with 2 TOKENS allocated from credits
@@ -362,6 +379,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				input flatfee.AllocateFiatOverageCreditsInput,
 			) (creditrealization.CreateAllocationInputs, error) {
 				fiatOverageAllocationInvocations++
+				if test.disableFiatOverageCredits {
+					return nil, nil
+				}
 
 				return fiatOverageCreditsHandler.Allocate(ctx, input)
 			}
@@ -539,7 +559,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			s.Run("approve invoice and settle overage", func() {
 				fiatOverageCreditsHandler.AddAvailable(test.fiatOverageCreditsAvailable)
 
-				if test.expectPaymentSettled {
+				if !test.expectLineDeleted {
 					s.FlatFeeTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
 						customCurrencyOverageAccruedCalls++
 						s.Equal(chargeID.ID, input.Charge.ID)
@@ -560,9 +580,12 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 							TransactionGroup: ledgertransaction.GroupReference{
 								TransactionGroupID: accruedTransactionGroupID,
 							},
-							TotalFiatAmount: alpacadecimal.NewFromFloat(test.expectInvoiceTotals.Total),
+							TotalFiatAmount: alpacadecimal.NewFromFloat(test.expectInvoiceTotals.Amount),
 						}, nil
 					}
+				}
+
+				if test.expectPaymentSettled {
 
 					authorizedCallback = newCountedLedgerTransactionCallback[flatfee.OnPaymentAuthorizedInput]()
 					s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnPaymentAuthorizedInput) {
@@ -623,27 +646,40 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.RequireTotals(test.expectRunTotals, run.Totals)
 				s.Equal(!test.expectPaymentSettled, run.NoFiatTransactionRequired)
 				s.Equal(test.creditsAllocated, run.CreditRealizations.Sum().InexactFloat64())
-				s.Equal(test.fiatOverageCreditsAvailable, run.FiatOverageCreditRealizations.Sum().InexactFloat64())
+				expectedFiatCreditsAllocated := test.fiatOverageCreditsAvailable
+				if test.disableFiatOverageCredits {
+					expectedFiatCreditsAllocated = 0
+				}
+				s.Equal(expectedFiatCreditsAllocated, run.FiatOverageCreditRealizations.Sum().InexactFloat64())
 				s.True(run.DetailedLines.IsPresent())
 				s.Require().Len(run.DetailedLines.OrEmpty(), 1)
 				s.RequireTotals(test.expectRunTotals, run.DetailedLines.OrEmpty()[0].Totals)
 				expectedFiatRealizations := 0
-				if test.fiatOverageCreditsAvailable > 0 {
+				if expectedFiatCreditsAllocated > 0 {
 					expectedFiatRealizations = 1
 				}
 				s.Len(run.FiatOverageCreditRealizations, expectedFiatRealizations)
 
-				if test.expectPaymentSettled {
+				if !test.expectLineDeleted {
 					s.Equal(1, customCurrencyOverageAccruedCalls)
+					s.Require().NotNil(run.AccruedUsage)
+					s.Equal(servicePeriod, run.AccruedUsage.ServicePeriod)
+					s.Equal(accruedTransactionGroupID, run.AccruedUsage.LedgerTransaction.TransactionGroupID)
+					s.RequireTotals(billingtest.ExpectedTotals{
+						Amount: test.expectInvoiceTotals.Amount,
+						Total:  test.expectInvoiceTotals.Amount,
+					}, run.AccruedUsage.Totals)
+				} else {
+					s.Zero(customCurrencyOverageAccruedCalls)
+					s.Nil(run.AccruedUsage)
+				}
+
+				if test.expectPaymentSettled {
 					s.Require().NotNil(authorizedCallback)
 					s.Equal(1, authorizedCallback.nrInvocations)
 					s.Require().NotNil(settledCallback)
 					s.Equal(1, settledCallback.nrInvocations)
 
-					s.Require().NotNil(run.AccruedUsage)
-					s.Equal(servicePeriod, run.AccruedUsage.ServicePeriod)
-					s.Equal(accruedTransactionGroupID, run.AccruedUsage.LedgerTransaction.TransactionGroupID)
-					s.RequireTotals(test.expectInvoiceTotals, run.AccruedUsage.Totals)
 					s.Require().NotNil(run.Payment)
 					s.Equal(payment.StatusSettled, run.Payment.Status)
 					s.Equal(test.expectInvoiceTotals.Total, run.Payment.FiatAmount.InexactFloat64())
@@ -652,8 +688,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 					s.Require().NotNil(run.Payment.Settled)
 					s.Equal(settledCallback.id, run.Payment.Settled.TransactionGroupID)
 				} else {
-					s.Zero(customCurrencyOverageAccruedCalls)
-					s.Nil(run.AccruedUsage)
 					s.Nil(run.Payment)
 				}
 
@@ -758,6 +792,22 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyFiatOverageAllocat
 	fiatOverageCreditsHandler := &flatFeeFiatOverageCreditsHandler{
 		available: alpacadecimal.Zero,
 	}
+	accountingEvents := make([]string, 0, 2)
+	customCurrencyOverageAccruedInvocations := 0
+	s.FlatFeeTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+		customCurrencyOverageAccruedInvocations++
+		accountingEvents = append(accountingEvents, "gross_overage")
+
+		fiatCurrency, err := input.GetFiatCurrency()
+		s.Require().NoError(err)
+		costBasis, err := input.GetCostBasis()
+		s.Require().NoError(err)
+
+		return flatfee.OnCustomCurrencyOverageAccruedResult{
+			TransactionGroup: ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()},
+			TotalFiatAmount:  fiatCurrency.RoundToPrecision(input.GetCustomCurrencyAmountAccrued().Mul(costBasis)),
+		}, nil
+	}
 	s.FlatFeeTestHandler.onAllocateCredits = func(
 		_ context.Context,
 		_ flatfee.OnAllocateCreditsInput,
@@ -770,6 +820,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyFiatOverageAllocat
 		input flatfee.AllocateFiatOverageCreditsInput,
 	) (creditrealization.CreateAllocationInputs, error) {
 		fiatOverageAllocationInvocations++
+		accountingEvents = append(accountingEvents, "fiat_coverage")
 
 		return fiatOverageCreditsHandler.Allocate(ctx, input)
 	}
@@ -854,17 +905,49 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyFiatOverageAllocat
 		s.Require().NoError(err)
 		s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, invoice.Status)
 		s.Equal(1, invoiceSyncAttempts)
+		s.Equal(1, customCurrencyOverageAccruedInvocations)
 		s.Equal(1, fiatOverageAllocationInvocations)
+		s.Equal([]string{"gross_overage", "fiat_coverage"}, accountingEvents)
 		s.Zero(mockApp.FinalizeInvoiceCallCount())
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5}, invoice.Totals)
 
 		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
 		s.Require().NotNil(charge.Realizations.CurrentRun)
 		run := charge.Realizations.CurrentRun
+		s.Require().NotNil(run.AccruedUsage)
+		s.Require().NotNil(run.AccruedUsage.LedgerTransaction)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.AccruedUsage.Totals)
+		s.True(run.FiatOverageCreditAllocationCompleted)
 		s.True(run.NoFiatTransactionRequired)
 		s.Require().Len(run.FiatOverageCreditRealizations, 1)
 		s.Equal(creditrealization.TypeAllocation, run.FiatOverageCreditRealizations[0].Type)
 		s.Equal(float64(5), run.FiatOverageCreditRealizations[0].Amount.InexactFloat64())
+
+		_, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        invoice.GetInvoiceID(),
+			DeletionSource: billing.ChangeSourceSystem,
+		})
+		s.ErrorContains(err, "invoice action not available")
+
+		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+			ChangeSource: billing.ChangeSourceSystem,
+			Policy:       meta.RefundAsCreditsDeletePolicy,
+		})
+		s.Require().NoError(err)
+		err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: customer.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				chargeID.ID: deletePatch,
+			},
+		})
+		s.ErrorContains(err, "cannot be deleted after invoice issuance preparation")
+
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, invoice.Status)
 	})
 
 	s.Run("then retry issuing without reallocating fiat credits", func() {
@@ -873,6 +956,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyFiatOverageAllocat
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 		s.Equal(2, invoiceSyncAttempts)
 		s.Equal(1, mockApp.FinalizeInvoiceCallCount())
+		s.Equal(1, customCurrencyOverageAccruedInvocations)
 		s.Equal(1, fiatOverageAllocationInvocations)
 
 		err = s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
@@ -958,6 +1042,19 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceR
 
 	fiatOverageCreditsHandler := &flatFeeFiatOverageCreditsHandler{
 		available: alpacadecimal.Zero,
+	}
+	customCurrencyOverageAccruedCalls := 0
+	s.FlatFeeTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+		customCurrencyOverageAccruedCalls++
+		costBasis, err := input.GetCostBasis()
+		s.Require().NoError(err)
+		fiatCurrency, err := input.GetFiatCurrency()
+		s.Require().NoError(err)
+
+		return flatfee.OnCustomCurrencyOverageAccruedResult{
+			TransactionGroup: ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()},
+			TotalFiatAmount:  fiatCurrency.RoundToPrecision(input.GetCustomCurrencyAmountAccrued().Mul(costBasis)),
+		}, nil
 	}
 	s.FlatFeeTestHandler.onAllocateFiatOverageCredits = fiatOverageCreditsHandler.Allocate
 	s.FlatFeeTestHandler.onCorrectFiatOverageCreditAllocations = fiatOverageCreditsHandler.Correct
@@ -1128,6 +1225,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceR
 		s.Require().Len(run.FiatOverageCreditRealizations, 1)
 		s.Equal(creditrealization.TypeAllocation, run.FiatOverageCreditRealizations[0].Type)
 		s.Equal(float64(2), run.FiatOverageCreditRealizations[0].Amount.InexactFloat64())
+		s.Equal(1, customCurrencyOverageAccruedCalls)
 		s.True(run.NoFiatTransactionRequired)
 	})
 }
@@ -1691,7 +1789,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 			// when:
 			// - billing approves the invoice through the normal service lifecycle
 			// then:
-			// - invoice issuing becomes retryable without persisting accrued usage or payment
+			// - invoice finalization becomes retryable without persisting accrued usage or payment
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-invalid-accrual")
 
@@ -1802,7 +1900,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 
 			invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 			s.Require().NoError(err)
-			s.Equal(billing.StandardInvoiceStatusIssuingChargeBookingFailed, invoice.Status)
+			s.Equal(billing.StandardInvoiceStatusIssuingLineFinalizationFailed, invoice.Status)
 			s.True(invoice.StatusDetails.Failed)
 			s.Require().NotNil(invoice.StatusDetails.AvailableActions.Retry)
 			s.Require().NotEmpty(invoice.ValidationIssues)
@@ -1815,6 +1913,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 			s.Equal(runID, persistedCharge.Realizations.CurrentRun.ID)
 			s.False(persistedCharge.Realizations.CurrentRun.Immutable)
 			s.Nil(persistedCharge.Realizations.CurrentRun.AccruedUsage)
+			s.Empty(persistedCharge.Realizations.CurrentRun.FiatOverageCreditRealizations)
+			s.False(persistedCharge.Realizations.CurrentRun.FiatOverageCreditAllocationCompleted)
 			s.Nil(persistedCharge.Realizations.CurrentRun.Payment)
 			s.Equal(1, accrualCalls)
 			s.Zero(authorizedCallback.nrInvocations)

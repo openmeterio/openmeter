@@ -171,6 +171,7 @@ func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunB
 		Totals:                                totals.FromDB(dbRun),
 		NoFiatTransactionRequired:             dbRun.NoFiatTransactionRequired,
 		Immutable:                             dbRun.Immutable,
+		FiatOverageCreditAllocationCompleted:  dbRun.FiatOverageCreditAllocationCompleted,
 		DetailedLinesIncludeCreditAllocations: dbRun.DetailedLinesIncludeCreditAllocations,
 	}
 }

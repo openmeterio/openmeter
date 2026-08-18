@@ -53,15 +53,16 @@ func (i RealizationRunID) Validate() error {
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	Type                      mo.Option[RealizationRunType]    `json:"type"`
-	DeletedAt                 mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
-	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
-	InvoiceID                 mo.Option[*string]               `json:"invoiceId,omitempty"`
-	ServicePeriod             mo.Option[timeutil.ClosedPeriod] `json:"servicePeriod"`
-	AmountAfterProration      mo.Option[alpacadecimal.Decimal] `json:"amountAfterProration"`
-	Totals                    mo.Option[totals.Totals]         `json:"totals"`
-	NoFiatTransactionRequired mo.Option[bool]                  `json:"noFiatTransactionRequired"`
-	Immutable                 mo.Option[bool]                  `json:"immutable"`
+	Type                                 mo.Option[RealizationRunType]    `json:"type"`
+	DeletedAt                            mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
+	LineID                               mo.Option[*string]               `json:"lineId,omitempty"`
+	InvoiceID                            mo.Option[*string]               `json:"invoiceId,omitempty"`
+	ServicePeriod                        mo.Option[timeutil.ClosedPeriod] `json:"servicePeriod"`
+	AmountAfterProration                 mo.Option[alpacadecimal.Decimal] `json:"amountAfterProration"`
+	Totals                               mo.Option[totals.Totals]         `json:"totals"`
+	NoFiatTransactionRequired            mo.Option[bool]                  `json:"noFiatTransactionRequired"`
+	FiatOverageCreditAllocationCompleted mo.Option[bool]                  `json:"fiatOverageCreditAllocationCompleted"`
+	Immutable                            mo.Option[bool]                  `json:"immutable"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
@@ -140,6 +141,9 @@ type RealizationRunBase struct {
 	// Totals includes credit allocations and excludes taxes.
 	Totals                    totals.Totals `json:"totals"`
 	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
+	// FiatOverageCreditAllocationCompleted distinguishes a successful
+	// zero-allocation result from pending allocation.
+	FiatOverageCreditAllocationCompleted bool `json:"fiatOverageCreditAllocationCompleted"`
 	// Immutable means the backing invoice line can no longer be updated in place.
 	// When true, deleting this run requires issuing a credit note instead of mutating the invoice line.
 	Immutable bool `json:"immutable"`
