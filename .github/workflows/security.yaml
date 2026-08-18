@@ -57,7 +57,7 @@ jobs:
           persist-credentials: false
       - name: Scan Repository
         id: sca_repo
-        uses: Kong/public-shared-actions/security-actions/sca@343896e36ae2bd71d1dd30ce17ac19ed52152395 # 6.0.0
+        uses: Kong/public-shared-actions/security-actions/sca@5d8835e25221a4aa16e7a53ab6e97c7fb2528b7e # 6.0.0
         with:
           asset_prefix: openmeter-cloud
           dir: "."
