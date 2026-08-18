@@ -114,25 +114,17 @@ func resolveSubscriptionInvoiceCurrency(cus customer.Customer, plan subscription
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid plan currency: %w", err))
 	}
 
-	if cus.Currency == nil {
-		if planCurrency.IsFiat() {
-			return planCurrency.GetCode(), nil
-		}
-
-		return "", models.NewGenericValidationError(fmt.Errorf(
-			"customer currency is required when plan currency %q is custom",
-			planCurrency.GetCode(),
-		))
-	}
-
-	if !cus.Currency.IsFiat() {
+	if cus.Currency != nil && !cus.Currency.IsFiat() {
 		return "", models.NewGenericValidationError(fmt.Errorf("customer currency %q must be fiat", *cus.Currency))
 	}
 
-	if planCurrency.IsFiat() && planCurrency.GetCode() != *cus.Currency {
+	if planCurrency.IsFiat() {
+		return planCurrency.GetCode(), nil
+	}
+
+	if cus.Currency == nil {
 		return "", models.NewGenericValidationError(fmt.Errorf(
-			"currency mismatch: customer currency is %s, but plan currency is %s",
-			*cus.Currency,
+			"customer currency is required when plan currency %q is custom",
 			planCurrency.GetCode(),
 		))
 	}

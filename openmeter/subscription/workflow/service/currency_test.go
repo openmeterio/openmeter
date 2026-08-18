@@ -52,10 +52,10 @@ func TestResolveSubscriptionInvoiceCurrency(t *testing.T) {
 			expected:         currencyx.Code("USD"),
 		},
 		{
-			name:             "mismatching fiat customer currency",
+			name:             "fiat plan defines invoice currency despite customer mismatch",
 			planCurrency:     currencies.NewCurrencyReference("USD"),
 			customerCurrency: lo.ToPtr(currencyx.Code("EUR")),
-			wantErr:          true,
+			expected:         currencyx.Code("USD"),
 		},
 		{
 			name:         "custom plan requires customer currency",

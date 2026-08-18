@@ -121,6 +121,8 @@ and phase; do not persist a derived absolute end as independent source truth.
 - newly materialized priced items snapshot their effective currency code; custom
   currencies also retain their managed currency ID, while legacy items may lack
   this snapshot
+- customer and subscription invoice currencies must match whenever the spec has
+  priced items; unpriced items have no materialized currency
 - item and entitlement cadences cannot escape their phase or subscription
 - downstream work must be derived from the committed view and tolerate event
   retries
