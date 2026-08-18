@@ -162,6 +162,11 @@ func NoFiatTransactionRequired(v bool) predicate.ChargeFlatFeeRun {
 	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldNoFiatTransactionRequired, v))
 }
 
+// FiatOverageCreditAllocationCompleted applies equality check predicate on the "fiat_overage_credit_allocation_completed" field. It's identical to FiatOverageCreditAllocationCompletedEQ.
+func FiatOverageCreditAllocationCompleted(v bool) predicate.ChargeFlatFeeRun {
+	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldFiatOverageCreditAllocationCompleted, v))
+}
+
 // Immutable applies equality check predicate on the "immutable" field. It's identical to ImmutableEQ.
 func Immutable(v bool) predicate.ChargeFlatFeeRun {
 	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldImmutable, v))
@@ -1085,6 +1090,16 @@ func NoFiatTransactionRequiredEQ(v bool) predicate.ChargeFlatFeeRun {
 // NoFiatTransactionRequiredNEQ applies the NEQ predicate on the "no_fiat_transaction_required" field.
 func NoFiatTransactionRequiredNEQ(v bool) predicate.ChargeFlatFeeRun {
 	return predicate.ChargeFlatFeeRun(sql.FieldNEQ(FieldNoFiatTransactionRequired, v))
+}
+
+// FiatOverageCreditAllocationCompletedEQ applies the EQ predicate on the "fiat_overage_credit_allocation_completed" field.
+func FiatOverageCreditAllocationCompletedEQ(v bool) predicate.ChargeFlatFeeRun {
+	return predicate.ChargeFlatFeeRun(sql.FieldEQ(FieldFiatOverageCreditAllocationCompleted, v))
+}
+
+// FiatOverageCreditAllocationCompletedNEQ applies the NEQ predicate on the "fiat_overage_credit_allocation_completed" field.
+func FiatOverageCreditAllocationCompletedNEQ(v bool) predicate.ChargeFlatFeeRun {
+	return predicate.ChargeFlatFeeRun(sql.FieldNEQ(FieldFiatOverageCreditAllocationCompleted, v))
 }
 
 // ImmutableEQ applies the EQ predicate on the "immutable" field.

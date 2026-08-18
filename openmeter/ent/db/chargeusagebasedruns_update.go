@@ -278,6 +278,20 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableNoFiatTransactionRequired(v *bo
 	return _u
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetFiatOverageCreditAllocationCompleted(v)
+	return _u
+}
+
+// SetNillableFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableFiatOverageCreditAllocationCompleted(v *bool) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetFiatOverageCreditAllocationCompleted(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeUsageBasedRunsUpdate) SetBillingInvoiceLineID(id string) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -621,6 +635,9 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.FiatOverageCreditAllocationCompleted(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted, field.TypeBool, value)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1151,6 +1168,20 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableNoFiatTransactionRequired(v 
 	return _u
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetFiatOverageCreditAllocationCompleted(v)
+	return _u
+}
+
+// SetNillableFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableFiatOverageCreditAllocationCompleted(v *bool) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetFiatOverageCreditAllocationCompleted(*v)
+	}
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeUsageBasedRunsUpdateOne) SetBillingInvoiceLineID(id string) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -1524,6 +1555,9 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.NoFiatTransactionRequired(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldNoFiatTransactionRequired, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.FiatOverageCreditAllocationCompleted(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted, field.TypeBool, value)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -221,7 +221,9 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleted)
 
-	// Issuing state
+	// Issuing state. Line finalization handlers can persist durable preparation
+	// before returning, so failed and later issuing states are retry-only until
+	// correction support can make deletion safe.
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingLineFinalization).
 		Permit(
@@ -229,14 +231,12 @@ func allocateStateMachine() *InvoiceStateMachine {
 			billing.StandardInvoiceStatusIssuingSyncing,
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingLineFinalizationFailed).
-		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		OnActive(statelessx.AllOf(
 			out.onInvoiceFinalizing,
 			out.requireDBSave,
 		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingLineFinalizationFailed).
-		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingLineFinalization)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncing).
@@ -245,23 +245,19 @@ func allocateStateMachine() *InvoiceStateMachine {
 			statelessx.BoolFn(out.canIssuingSyncAdvance),
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingSyncFailed).
-		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		OnActive(statelessx.AllOf(
 			out.finalizeInvoice,
 		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncFailed).
-		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingSyncing)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingChargeBooking).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusIssued).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingChargeBookingFailed).
-		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		OnActive(out.onInvoiceIssued)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingChargeBookingFailed).
-		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingChargeBooking)
 
 	// Issued state

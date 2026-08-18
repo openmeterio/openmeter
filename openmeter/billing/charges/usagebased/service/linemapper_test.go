@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -368,6 +369,25 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	require.Len(t, line.DetailedLines, 1)
 	require.Equal(t, "existing-overage-id", line.DetailedLines[0].ID)
 	require.Nil(t, line.DeletedAt)
+
+	preparedRun := run
+	preparedRun.InvoiceUsage = &invoicedusage.AccruedUsage{
+		ServicePeriod: period,
+		Totals: totals.Totals{
+			Amount: alpacadecimal.NewFromInt(5),
+			Total:  alpacadecimal.NewFromInt(5),
+		},
+	}
+
+	// The current cost basis would convert the run to 6 USD. Finalization must
+	// reuse the persisted 5 USD result instead of converting again.
+	preparedFiatOverage, err := resolveFiatOverageForLinePopulation(
+		charge,
+		preparedRun,
+		standardLinePopulationStageInvoiceFinalizing,
+	)
+	require.NoError(t, err)
+	require.Equal(t, float64(5), preparedFiatOverage.FiatOverage.InexactFloat64())
 
 	for _, stage := range []standardLinePopulationStage{
 		standardLinePopulationStageGatheringPreview,

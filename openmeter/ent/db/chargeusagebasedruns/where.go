@@ -177,6 +177,11 @@ func NoFiatTransactionRequired(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldNoFiatTransactionRequired, v))
 }
 
+// FiatOverageCreditAllocationCompleted applies equality check predicate on the "fiat_overage_credit_allocation_completed" field. It's identical to FiatOverageCreditAllocationCompletedEQ.
+func FiatOverageCreditAllocationCompleted(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldFiatOverageCreditAllocationCompleted, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldNamespace, v))
@@ -1180,6 +1185,16 @@ func NoFiatTransactionRequiredEQ(v bool) predicate.ChargeUsageBasedRuns {
 // NoFiatTransactionRequiredNEQ applies the NEQ predicate on the "no_fiat_transaction_required" field.
 func NoFiatTransactionRequiredNEQ(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldNoFiatTransactionRequired, v))
+}
+
+// FiatOverageCreditAllocationCompletedEQ applies the EQ predicate on the "fiat_overage_credit_allocation_completed" field.
+func FiatOverageCreditAllocationCompletedEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldFiatOverageCreditAllocationCompleted, v))
+}
+
+// FiatOverageCreditAllocationCompletedNEQ applies the NEQ predicate on the "fiat_overage_credit_allocation_completed" field.
+func FiatOverageCreditAllocationCompletedNEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldFiatOverageCreditAllocationCompleted, v))
 }
 
 // HasUsageBased applies the HasEdge predicate on the "usage_based" edge.

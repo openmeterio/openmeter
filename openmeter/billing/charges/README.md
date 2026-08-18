@@ -233,9 +233,9 @@ one.
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.
 - Settlement-fiat overage allocation for a custom-currency usage-based or
-  flat-fee run is a one-shot invoice-finalization effect. It requires an empty
-  settlement-fiat realization history; later cleanup corrects the persisted
-  facts instead of re-entering allocation.
+  flat-fee run is a one-shot invoice-finalization effect. A persisted
+  completion marker distinguishes pending allocation from a successful
+  zero-allocation result, so retries do not re-enter completed allocation.
 - Amount discounts on persisted detailed lines are signed realization facts.
   Their rounded amounts and rounding adjustments reconcile to the line's
   `DiscountsTotal`; correction lines can therefore carry negative discount
@@ -278,9 +278,11 @@ Within the charges domain, custom-currency `credit_then_invoice`:
 
 Charge-currency and settlement-fiat allocations are separate realization and
 lineage domains. Rating and mutable rerating reconcile charge-currency facts;
-invoice finalization allocates settlement-fiat credits once against the final
-converted overage. Cleanup reverses persisted settlement-fiat allocations
-before the charge-currency allocations from which the overage was derived.
+invoice finalization first persists the gross converted overage, then allocates
+settlement-fiat credits once against it. Invoice-issued callbacks only advance
+the prepared custom-currency run. Once preparation starts, invoice issuing is
+retry-only; generic correction of prepared accounting is not part of this
+lifecycle.
 
 The converted post-allocation overage and the required fiat transaction are
 separate settlement facts. A zero converted overage controls line omission and

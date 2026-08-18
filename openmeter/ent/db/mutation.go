@@ -54266,51 +54266,52 @@ func (m *ChargeFlatFeeOverrideMutation) ResetEdge(name string) error {
 // ChargeFlatFeeRunMutation represents an operation that mutates the ChargeFlatFeeRun nodes in the graph.
 type ChargeFlatFeeRunMutation struct {
 	config
-	op                                     Op
-	typ                                    string
-	id                                     *string
-	namespace                              *string
-	created_at                             *time.Time
-	updated_at                             *time.Time
-	deleted_at                             *time.Time
-	amount                                 *alpacadecimal.Decimal
-	taxes_total                            *alpacadecimal.Decimal
-	taxes_inclusive_total                  *alpacadecimal.Decimal
-	taxes_exclusive_total                  *alpacadecimal.Decimal
-	charges_total                          *alpacadecimal.Decimal
-	discounts_total                        *alpacadecimal.Decimal
-	credits_total                          *alpacadecimal.Decimal
-	total                                  *alpacadecimal.Decimal
-	_type                                  *flatfee.RealizationRunType
-	initial_type                           *flatfee.RealizationRunType
-	service_period_from                    *time.Time
-	service_period_to                      *time.Time
-	amount_after_proration                 *alpacadecimal.Decimal
-	no_fiat_transaction_required           *bool
-	immutable                              *bool
-	clearedFields                          map[string]struct{}
-	flat_fee                               *string
-	clearedflat_fee                        bool
-	billing_invoice_line                   *string
-	clearedbilling_invoice_line            bool
-	billing_invoice                        *string
-	clearedbilling_invoice                 bool
-	credit_allocations                     map[string]struct{}
-	removedcredit_allocations              map[string]struct{}
-	clearedcredit_allocations              bool
-	fiat_overage_credit_allocations        map[string]struct{}
-	removedfiat_overage_credit_allocations map[string]struct{}
-	clearedfiat_overage_credit_allocations bool
-	detailed_lines                         map[string]struct{}
-	removeddetailed_lines                  map[string]struct{}
-	cleareddetailed_lines                  bool
-	invoiced_usage                         *string
-	clearedinvoiced_usage                  bool
-	payment                                *string
-	clearedpayment                         bool
-	done                                   bool
-	oldValue                               func(context.Context) (*ChargeFlatFeeRun, error)
-	predicates                             []predicate.ChargeFlatFeeRun
+	op                                       Op
+	typ                                      string
+	id                                       *string
+	namespace                                *string
+	created_at                               *time.Time
+	updated_at                               *time.Time
+	deleted_at                               *time.Time
+	amount                                   *alpacadecimal.Decimal
+	taxes_total                              *alpacadecimal.Decimal
+	taxes_inclusive_total                    *alpacadecimal.Decimal
+	taxes_exclusive_total                    *alpacadecimal.Decimal
+	charges_total                            *alpacadecimal.Decimal
+	discounts_total                          *alpacadecimal.Decimal
+	credits_total                            *alpacadecimal.Decimal
+	total                                    *alpacadecimal.Decimal
+	_type                                    *flatfee.RealizationRunType
+	initial_type                             *flatfee.RealizationRunType
+	service_period_from                      *time.Time
+	service_period_to                        *time.Time
+	amount_after_proration                   *alpacadecimal.Decimal
+	no_fiat_transaction_required             *bool
+	fiat_overage_credit_allocation_completed *bool
+	immutable                                *bool
+	clearedFields                            map[string]struct{}
+	flat_fee                                 *string
+	clearedflat_fee                          bool
+	billing_invoice_line                     *string
+	clearedbilling_invoice_line              bool
+	billing_invoice                          *string
+	clearedbilling_invoice                   bool
+	credit_allocations                       map[string]struct{}
+	removedcredit_allocations                map[string]struct{}
+	clearedcredit_allocations                bool
+	fiat_overage_credit_allocations          map[string]struct{}
+	removedfiat_overage_credit_allocations   map[string]struct{}
+	clearedfiat_overage_credit_allocations   bool
+	detailed_lines                           map[string]struct{}
+	removeddetailed_lines                    map[string]struct{}
+	cleareddetailed_lines                    bool
+	invoiced_usage                           *string
+	clearedinvoiced_usage                    bool
+	payment                                  *string
+	clearedpayment                           bool
+	done                                     bool
+	oldValue                                 func(context.Context) (*ChargeFlatFeeRun, error)
+	predicates                               []predicate.ChargeFlatFeeRun
 }
 
 var _ ent.Mutation = (*ChargeFlatFeeRunMutation)(nil)
@@ -55212,6 +55213,42 @@ func (m *ChargeFlatFeeRunMutation) ResetNoFiatTransactionRequired() {
 	m.no_fiat_transaction_required = nil
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (m *ChargeFlatFeeRunMutation) SetFiatOverageCreditAllocationCompleted(b bool) {
+	m.fiat_overage_credit_allocation_completed = &b
+}
+
+// FiatOverageCreditAllocationCompleted returns the value of the "fiat_overage_credit_allocation_completed" field in the mutation.
+func (m *ChargeFlatFeeRunMutation) FiatOverageCreditAllocationCompleted() (r bool, exists bool) {
+	v := m.fiat_overage_credit_allocation_completed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFiatOverageCreditAllocationCompleted returns the old "fiat_overage_credit_allocation_completed" field's value of the ChargeFlatFeeRun entity.
+// If the ChargeFlatFeeRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunMutation) OldFiatOverageCreditAllocationCompleted(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFiatOverageCreditAllocationCompleted is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFiatOverageCreditAllocationCompleted requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFiatOverageCreditAllocationCompleted: %w", err)
+	}
+	return oldValue.FiatOverageCreditAllocationCompleted, nil
+}
+
+// ResetFiatOverageCreditAllocationCompleted resets all changes to the "fiat_overage_credit_allocation_completed" field.
+func (m *ChargeFlatFeeRunMutation) ResetFiatOverageCreditAllocationCompleted() {
+	m.fiat_overage_credit_allocation_completed = nil
+}
+
 // SetImmutable sets the "immutable" field.
 func (m *ChargeFlatFeeRunMutation) SetImmutable(b bool) {
 	m.immutable = &b
@@ -55642,7 +55679,7 @@ func (m *ChargeFlatFeeRunMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeRunMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeerun.FieldNamespace)
 	}
@@ -55706,6 +55743,9 @@ func (m *ChargeFlatFeeRunMutation) Fields() []string {
 	if m.no_fiat_transaction_required != nil {
 		fields = append(fields, chargeflatfeerun.FieldNoFiatTransactionRequired)
 	}
+	if m.fiat_overage_credit_allocation_completed != nil {
+		fields = append(fields, chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted)
+	}
 	if m.immutable != nil {
 		fields = append(fields, chargeflatfeerun.FieldImmutable)
 	}
@@ -55759,6 +55799,8 @@ func (m *ChargeFlatFeeRunMutation) Field(name string) (ent.Value, bool) {
 		return m.AmountAfterProration()
 	case chargeflatfeerun.FieldNoFiatTransactionRequired:
 		return m.NoFiatTransactionRequired()
+	case chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted:
+		return m.FiatOverageCreditAllocationCompleted()
 	case chargeflatfeerun.FieldImmutable:
 		return m.Immutable()
 	}
@@ -55812,6 +55854,8 @@ func (m *ChargeFlatFeeRunMutation) OldField(ctx context.Context, name string) (e
 		return m.OldAmountAfterProration(ctx)
 	case chargeflatfeerun.FieldNoFiatTransactionRequired:
 		return m.OldNoFiatTransactionRequired(ctx)
+	case chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted:
+		return m.OldFiatOverageCreditAllocationCompleted(ctx)
 	case chargeflatfeerun.FieldImmutable:
 		return m.OldImmutable(ctx)
 	}
@@ -55970,6 +56014,13 @@ func (m *ChargeFlatFeeRunMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetNoFiatTransactionRequired(v)
 		return nil
+	case chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFiatOverageCreditAllocationCompleted(v)
+		return nil
 	case chargeflatfeerun.FieldImmutable:
 		v, ok := value.(bool)
 		if !ok {
@@ -56109,6 +56160,9 @@ func (m *ChargeFlatFeeRunMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeerun.FieldNoFiatTransactionRequired:
 		m.ResetNoFiatTransactionRequired()
+		return nil
+	case chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted:
+		m.ResetFiatOverageCreditAllocationCompleted()
 		return nil
 	case chargeflatfeerun.FieldImmutable:
 		m.ResetImmutable()
@@ -77904,6 +77958,7 @@ type ChargeUsageBasedRunsMutation struct {
 	detailed_lines_include_credit_allocations *bool
 	metered_quantity                          *alpacadecimal.Decimal
 	no_fiat_transaction_required              *bool
+	fiat_overage_credit_allocation_completed  *bool
 	clearedFields                             map[string]struct{}
 	usage_based                               *string
 	clearedusage_based                        bool
@@ -78941,6 +78996,42 @@ func (m *ChargeUsageBasedRunsMutation) ResetNoFiatTransactionRequired() {
 	m.no_fiat_transaction_required = nil
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (m *ChargeUsageBasedRunsMutation) SetFiatOverageCreditAllocationCompleted(b bool) {
+	m.fiat_overage_credit_allocation_completed = &b
+}
+
+// FiatOverageCreditAllocationCompleted returns the value of the "fiat_overage_credit_allocation_completed" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) FiatOverageCreditAllocationCompleted() (r bool, exists bool) {
+	v := m.fiat_overage_credit_allocation_completed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFiatOverageCreditAllocationCompleted returns the old "fiat_overage_credit_allocation_completed" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldFiatOverageCreditAllocationCompleted(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFiatOverageCreditAllocationCompleted is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFiatOverageCreditAllocationCompleted requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFiatOverageCreditAllocationCompleted: %w", err)
+	}
+	return oldValue.FiatOverageCreditAllocationCompleted, nil
+}
+
+// ResetFiatOverageCreditAllocationCompleted resets all changes to the "fiat_overage_credit_allocation_completed" field.
+func (m *ChargeUsageBasedRunsMutation) ResetFiatOverageCreditAllocationCompleted() {
+	m.fiat_overage_credit_allocation_completed = nil
+}
+
 // SetUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by id.
 func (m *ChargeUsageBasedRunsMutation) SetUsageBasedID(id string) {
 	m.usage_based = &id
@@ -79416,7 +79507,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 24)
+	fields := make([]string, 0, 25)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -79489,6 +79580,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	if m.no_fiat_transaction_required != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNoFiatTransactionRequired)
 	}
+	if m.fiat_overage_credit_allocation_completed != nil {
+		fields = append(fields, chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted)
+	}
 	return fields
 }
 
@@ -79545,6 +79639,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.MeteredQuantity()
 	case chargeusagebasedruns.FieldNoFiatTransactionRequired:
 		return m.NoFiatTransactionRequired()
+	case chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted:
+		return m.FiatOverageCreditAllocationCompleted()
 	}
 	return nil, false
 }
@@ -79602,6 +79698,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldMeteredQuantity(ctx)
 	case chargeusagebasedruns.FieldNoFiatTransactionRequired:
 		return m.OldNoFiatTransactionRequired(ctx)
+	case chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted:
+		return m.OldFiatOverageCreditAllocationCompleted(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)
 }
@@ -79779,6 +79877,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetNoFiatTransactionRequired(v)
 		return nil
+	case chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFiatOverageCreditAllocationCompleted(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)
 }
@@ -79920,6 +80025,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldNoFiatTransactionRequired:
 		m.ResetNoFiatTransactionRequired()
+		return nil
+	case chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted:
+		m.ResetFiatOverageCreditAllocationCompleted()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)

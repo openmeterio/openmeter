@@ -170,6 +170,7 @@ func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunB
 		MeteredQuantity:                       dbRun.MeteredQuantity,
 		Totals:                                totals.FromDB(dbRun),
 		NoFiatTransactionRequired:             dbRun.NoFiatTransactionRequired,
+		FiatOverageCreditAllocationCompleted:  dbRun.FiatOverageCreditAllocationCompleted,
 		DetailedLinesIncludeCreditAllocations: dbRun.DetailedLinesIncludeCreditAllocations,
 	}
 }
