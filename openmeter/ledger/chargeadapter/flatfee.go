@@ -8,14 +8,15 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -156,13 +157,108 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	}, nil
 }
 
+// OnCustomCurrencyOverageAccrued books uncovered custom-currency overage as a
+// credit purchase immediately consumed by the same charge: it purchases the
+// uncovered custom amount at the charge's persisted cost basis, consumes it
+// through the identical route so it never becomes spendable customer balance,
+// and converts the resulting custom-currency receivable into the
+// already-agreed, rounded fiat receivable the invoice will collect. This
+// keeps native amount, cost basis, and fiat provenance on the accrued leg
+// while the invoice and payment lifecycle stay entirely in fiat.
 func (h *flatFeeHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
 	if err := input.Validate(); err != nil {
 		return flatfee.OnCustomCurrencyOverageAccruedResult{}, err
 	}
 
-	// TODO[implement]: Book the fiat overage in the customer's outstanding account.
-	return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
+	fiatOverage, err := input.Charge.ConvertCustomCurrencyOverageToFiat(input.Run.Totals)
+	if err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("convert custom currency overage to fiat: %w", err)
+	}
+
+	costBasis, err := input.GetCostBasis()
+	if err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("get cost basis: %w", err)
+	}
+
+	intent := input.Charge.Intent
+	taxConfig := intent.GetTaxConfig()
+	customCurrency := input.CustomCurrency().Reference()
+	fiatCode := currencyx.Code(fiatOverage.Currency.GetFiatCode())
+	customAmount := input.GetCustomCurrencyAmountAccrued()
+
+	customerID := customer.CustomerID{
+		Namespace: input.Charge.Namespace,
+		ID:        intent.GetCustomerID(),
+	}
+	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
+	bookedAt := flatfee.UsageBookedAt(intent.GetEffectivePaymentTerm(), input.Run.ServicePeriod)
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.deps,
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  input.Charge.Namespace,
+		},
+		// Purchase the uncovered custom amount at the charge's persisted cost basis.
+		transactions.IssueCustomerReceivableTemplate{
+			At:                bookedAt,
+			Amount:            customAmount,
+			Currency:          customCurrency,
+			CostBasisCurrency: &fiatCode,
+			CostBasis:         &costBasis,
+			SourceChargeID:    &input.Charge.ID,
+		},
+		// Immediately consume the purchase through the same charge, so it never
+		// becomes spendable customer balance.
+		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+			At:                bookedAt,
+			Amount:            customAmount,
+			Currency:          customCurrency,
+			TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
+			TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
+			CostBasisCurrency: &fiatCode,
+			CostBasis:         &costBasis,
+			SourceChargeID:    &input.Charge.ID,
+			SpendChargeID:     &input.Charge.ID,
+		},
+		// Convert the purchase-backed custom receivable into the already-agreed,
+		// rounded fiat receivable the invoice will collect.
+		transactions.ConvertCurrencyTemplate{
+			At:             bookedAt,
+			SourceAmount:   fiatOverage.Amount,
+			TargetAmount:   customAmount,
+			CostBasis:      costBasis,
+			SourceCurrency: currencies.NewCurrencyReference(fiatCode),
+			TargetCurrency: customCurrency,
+			SourceChargeID: &input.Charge.ID,
+		},
+	)
+	if err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, annotations)
+		}
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return flatfee.OnCustomCurrencyOverageAccruedResult{
+		TransactionGroup: ledgertransaction.GroupReference{
+			TransactionGroupID: transactionGroup.ID().ID,
+		},
+		TotalFiatAmount: fiatOverage.Amount,
+	}, nil
 }
 
 func (h *flatFeeHandler) OnAllocateFiatOverageCredits(ctx context.Context, input flatfee.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error) {
@@ -211,8 +307,15 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 	}
 
 	intent := input.Charge.Intent
-	if intent.GetCurrency().IsCustom() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", meta.ErrCustomCurrencyNotSupported)
+
+	invoiceCurrency, err := input.Charge.GetInvoiceCurrency()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
+	}
+
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
 	}
 
 	customerID := customer.CustomerID{
@@ -220,6 +323,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
+	paymentIdentity := invoicePaymentIdentity(input.Charge.ID, intent.GetCurrency())
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -229,11 +333,12 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:            input.EventAt,
-			Amount:        input.FiatAmount,
-			Currency:      intent.GetCurrency().Reference(),
-			CostBasis:     invoiceCostBasis,
-			SpendChargeID: &input.Charge.ID,
+			At:             input.EventAt,
+			Amount:         input.FiatAmount,
+			Currency:       currencies.NewCurrencyReference(currencyx.Code(invoiceCurrency)),
+			CostBasis:      costBasis,
+			SourceChargeID: paymentIdentity.SourceChargeID,
+			SpendChargeID:  paymentIdentity.SpendChargeID,
 		},
 	)
 	if err != nil {
@@ -266,8 +371,15 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 	}
 
 	intent := input.Charge.Intent
-	if intent.GetCurrency().IsCustom() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", meta.ErrCustomCurrencyNotSupported)
+
+	invoiceCurrency, err := input.Charge.GetInvoiceCurrency()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
+	}
+
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
 	}
 
 	customerID := customer.CustomerID{
@@ -275,6 +387,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
+	paymentIdentity := invoicePaymentIdentity(input.Charge.ID, intent.GetCurrency())
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -284,11 +397,12 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:            input.EventAt,
-			Amount:        input.FiatAmount,
-			Currency:      intent.GetCurrency().Reference(),
-			CostBasis:     invoiceCostBasis,
-			SpendChargeID: &input.Charge.ID,
+			At:             input.EventAt,
+			Amount:         input.FiatAmount,
+			Currency:       currencies.NewCurrencyReference(currencyx.Code(invoiceCurrency)),
+			CostBasis:      costBasis,
+			SourceChargeID: paymentIdentity.SourceChargeID,
+			SpendChargeID:  paymentIdentity.SpendChargeID,
 		},
 	)
 	if err != nil {

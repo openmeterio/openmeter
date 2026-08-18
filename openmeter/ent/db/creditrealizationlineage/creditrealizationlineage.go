@@ -26,6 +26,8 @@ const (
 	FieldCustomerID = "customer_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
+	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldOriginKind holds the string denoting the origin_kind field in the database.
 	FieldOriginKind = "origin_kind"
 	// FieldAdvanceFeatures holds the string denoting the advance_features field in the database.
@@ -62,6 +64,7 @@ var Columns = []string{
 	FieldRootRealizationID,
 	FieldCustomerID,
 	FieldCurrency,
+	FieldCustomCurrencyID,
 	FieldOriginKind,
 	FieldAdvanceFeatures,
 	FieldCreatedAt,
@@ -88,6 +91,8 @@ var (
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	CustomCurrencyIDValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
@@ -135,6 +140,11 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByCustomCurrencyID orders the results by the custom_currency_id field.
+func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
 }
 
 // ByOriginKind orders the results by the origin_kind field.

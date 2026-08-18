@@ -64,7 +64,11 @@ func TestOnCreditPurchase_CustomCurrency_FullLifecycle(t *testing.T) {
 
 	// ...and the known cost-basis custom receivable holds the full purchase
 	// amount pending conversion into the fiat settlement currency.
-	require.True(t, env.sumBalance(t, env.customReceivableSubAccount(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+	customReceivable := env.customReceivableSubAccount(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)
+	require.True(t, env.sumBalance(t, customReceivable).Equal(alpacadecimal.NewFromInt(-100)))
+	env.requireAccountSourceBucketAmounts(t, customReceivable.AccountID().ID, map[string]float64{
+		charge.ID: -100,
+	})
 
 	// when: payment for the purchase is authorized.
 	authorizationInput := chargecreditpurchase.PaymentEventInput{
@@ -83,6 +87,9 @@ func TestOnCreditPurchase_CustomCurrency_FullLifecycle(t *testing.T) {
 	// (100 ACME x 0.25 = 25 USD), not the raw custom credit amount.
 	require.True(t, env.sumBalance(t, env.fiatAuthorizedReceivableSubAccount(t, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(-25)))
 	require.True(t, env.sumBalance(t, env.fiatOpenReceivableSubAccount(t, settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+	env.requireAccountSourceBucketAmounts(t, customReceivable.AccountID().ID, map[string]float64{
+		charge.ID: -25,
+	})
 
 	// when: payment is settled.
 	settlementInput := chargecreditpurchase.PaymentEventInput{
@@ -100,6 +107,7 @@ func TestOnCreditPurchase_CustomCurrency_FullLifecycle(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.fiatAuthorizedReceivableSubAccount(t, settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.fiatWashSubAccount(t, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(-25)))
 	require.True(t, env.sumBalance(t, env.customFBOSubAccount(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(60)))
+	env.requireAccountSourceBucketAmounts(t, customReceivable.AccountID().ID, map[string]float64{})
 }
 
 func TestOnCreditPurchase_CustomCurrency_UsesExactFiatAmount(t *testing.T) {

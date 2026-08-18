@@ -14,12 +14,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -113,18 +116,16 @@ func (e *recognizerTestEnv) ensureCharge(t *testing.T, chargeID string) {
 
 // createLineageForRealization creates a lineage record for a realization, mimicking
 // what the charges system does after credit allocation.
-func (e *recognizerTestEnv) createLineageForRealization(t *testing.T, chargeID, realizationID string, amount alpacadecimal.Decimal, originKind creditrealization.LineageOriginKind) {
+func (e *recognizerTestEnv) createLineageForRealization(t *testing.T, chargeID, realizationID string, currency currencies.Currency, amount alpacadecimal.Decimal, originKind creditrealization.LineageOriginKind) {
 	t.Helper()
 
 	e.ensureCharge(t, chargeID)
-
-	state := creditrealization.InitialLineageSegmentState(originKind)
 
 	err := e.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
 		Namespace:  e.Namespace,
 		ChargeID:   chargeID,
 		CustomerID: e.CustomerID.ID,
-		Currency:   currenciestestutils.NewFiatCurrency(t, e.Currency),
+		Currency:   currency,
 		Realizations: creditrealization.Realizations{
 			{
 				CreateInput: creditrealization.CreateInput{
@@ -144,8 +145,6 @@ func (e *recognizerTestEnv) createLineageForRealization(t *testing.T, chargeID, 
 		},
 	})
 	require.NoError(t, err)
-
-	_ = state
 }
 
 func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
@@ -154,13 +153,15 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 	currency := currenciestestutils.NewFiatCurrency(t, env.Currency)
 
 	chargeID := testID()
+	sourceChargeID := testID()
 	realID := testID()
 
 	// Set up accrued balance and lineage.
-	env.resolveAndCommit(t, transactions.TransferCustomerReceivableToAccruedTemplate{
+	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(), CostBasis: &costBasis,
+		SourceChargeID: &sourceChargeID, SpendChargeID: &chargeID,
 	})
-	env.createLineageForRealization(t, chargeID, realID, alpacadecimal.NewFromInt(50), creditrealization.LineageOriginKindRealCredit)
+	env.createLineageForRealization(t, chargeID, realID, currency, alpacadecimal.NewFromInt(50), creditrealization.LineageOriginKindRealCredit)
 
 	// First recognition.
 	result1, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
@@ -187,20 +188,82 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.EarningsSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(50)))
 }
 
+func TestRecognizeEarnings_CustomCurrencyCreditBackedAccrued(t *testing.T) {
+	env := newRecognizerTestEnv(t)
+	customCurrency := currenciestestutils.NewCustomCurrency(t, currencyx.Code("ACME"), 2)
+	customCurrencyReference := customCurrency.Reference()
+	fiatCurrency := currencyx.Code("USD")
+	costBasis := alpacadecimal.NewFromFloat(0.25)
+	amount := alpacadecimal.NewFromInt(40)
+	chargeID := testID()
+	sourceChargeID := testID()
+	realizationID := testID()
+
+	// given:
+	// - custom-currency accrued value backed by a distinct credit purchase
+	// - matching real-credit lineage in the native custom currency
+	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+		At:                env.Now(),
+		Amount:            amount,
+		Currency:          customCurrencyReference,
+		CostBasisCurrency: &fiatCurrency,
+		CostBasis:         &costBasis,
+		SourceChargeID:    &sourceChargeID,
+		SpendChargeID:     &chargeID,
+	})
+	env.createLineageForRealization(t, chargeID, realizationID, customCurrency, amount, creditrealization.LineageOriginKindRealCredit)
+
+	// when:
+	// - earnings are recognized in the native custom currency
+	result, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+		CustomerID: env.CustomerID,
+		At:         clock.Now(),
+		Currency:   customCurrency,
+	})
+	require.NoError(t, err)
+	require.True(t, result.RecognizedAmount.Equal(amount))
+	require.NotEmpty(t, result.LedgerGroupID)
+
+	// then:
+	// - the custom accrued route is cleared and the equivalent earnings route is credited
+	accrued := env.AccruedSubAccountForCurrency(t, customCurrencyReference, &fiatCurrency, &costBasis, nil)
+	earnings, err := env.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:          customCurrencyReference,
+		CostBasisCurrency: &fiatCurrency,
+		CostBasis:         &costBasis,
+	})
+	require.NoError(t, err)
+	require.True(t, env.SumBalance(t, accrued).IsZero())
+	require.True(t, env.SumBalance(t, earnings).Equal(amount))
+
+	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+		Namespace:  env.Namespace,
+		CustomerID: env.CustomerID.ID,
+		Currency:   customCurrencyReference,
+	})
+	require.NoError(t, err)
+	require.Len(t, lineages, 1)
+	require.Len(t, lineages[0].Segments, 1)
+	require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, lineages[0].Segments[0].State)
+	require.NotNil(t, lineages[0].Segments[0].BackingTransactionGroupID)
+}
+
 func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testing.T) {
 	env := newRecognizerTestEnv(t)
 	costBasis := alpacadecimal.NewFromInt(1)
 	currency := currenciestestutils.NewFiatCurrency(t, env.Currency)
 	chargeID := testID()
+	sourceChargeID := testID()
 	realA := testID()
 	realB := testID()
 
 	// Set up accrued balance and two lineages.
-	env.resolveAndCommit(t, transactions.TransferCustomerReceivableToAccruedTemplate{
+	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 		At: env.Now(), Amount: alpacadecimal.NewFromInt(70), Currency: env.CurrencyReference(), CostBasis: &costBasis,
+		SourceChargeID: &sourceChargeID, SpendChargeID: &chargeID,
 	})
-	env.createLineageForRealization(t, chargeID, realA, alpacadecimal.NewFromInt(30), creditrealization.LineageOriginKindRealCredit)
-	env.createLineageForRealization(t, chargeID, realB, alpacadecimal.NewFromInt(40), creditrealization.LineageOriginKindRealCredit)
+	env.createLineageForRealization(t, chargeID, realA, currency, alpacadecimal.NewFromInt(30), creditrealization.LineageOriginKindRealCredit)
+	env.createLineageForRealization(t, chargeID, realB, currency, alpacadecimal.NewFromInt(40), creditrealization.LineageOriginKindRealCredit)
 
 	result, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: env.CustomerID,
@@ -214,7 +277,7 @@ func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testin
 	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
-		Currency:   env.Currency,
+		Currency:   currencies.NewCurrencyReference(env.Currency),
 	})
 	require.NoError(t, err)
 

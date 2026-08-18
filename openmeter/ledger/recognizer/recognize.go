@@ -38,7 +38,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 		lineages, err := s.lnge.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
 			Namespace:  in.CustomerID.Namespace,
 			CustomerID: in.CustomerID.ID,
-			Currency:   in.Currency.GetCode(),
+			Currency:   in.Currency.Reference(),
 		})
 		if err != nil {
 			return RecognizeEarningsResult{}, fmt.Errorf("load lineages: %w", err)

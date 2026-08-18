@@ -6,20 +6,15 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+// TestBackfillAdvanceLineageSegmentsInputValidateCurrency documents that
+// advance-lineage backfill is currency agnostic: fiat and custom currencies
+// are tracked identically, since lineage only records credit provenance and
+// never performs currency-specific accounting itself.
 func TestBackfillAdvanceLineageSegmentsInputValidateCurrency(t *testing.T) {
-	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
-		WithCode(currencyx.Code("CREDITS")).
-		WithName("Credits").
-		Build()
-	require.NoError(t, err)
-
 	baseInput := BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 "test-namespace",
 		CustomerID:                "test-customer",
@@ -36,12 +31,9 @@ func TestBackfillAdvanceLineageSegmentsInputValidateCurrency(t *testing.T) {
 
 	t.Run("custom currency", func(t *testing.T) {
 		input := baseInput
-		input.Currency = currencies.Currency{Currency: customCurrency}
+		input.Currency = currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
 
-		err := input.Validate()
-		require.Error(t, err)
-		require.ErrorIs(t, err, meta.ErrCustomCurrencyNotSupported)
-		require.ErrorContains(t, err, "advance lineage backfill")
+		require.NoError(t, input.Validate())
 	})
 
 	t.Run("missing currency", func(t *testing.T) {

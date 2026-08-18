@@ -1,6 +1,7 @@
 package chargeadapter_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -241,7 +242,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 	t.Run("credit_then_invoice reverses recognized earnings in the same correction", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
-		priorityOne := env.fundPriority(t, 1, 20)
+		priorityOne := env.fundPriorityForSource(t, 1, 20, ulid.Make().String())
 
 		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
 		run := env.newRun()
@@ -284,7 +285,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 	t.Run("credit_only reverses recognized earnings in the same correction", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
-		priorityOne := env.fundPriority(t, 1, 20)
+		priorityOne := env.fundPriorityForSource(t, 1, 20, ulid.Make().String())
 
 		charge := env.newCreditsOnlyCharge()
 		run := env.newRun()
@@ -439,6 +440,11 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
 			requireLedgerBookedAtNotEqual(t, charge.Intent.GetEffectiveInvoiceAt(), bookedAt)
 		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
+		}
 	})
 
 	t.Run("zero fiat amount is rejected", func(t *testing.T) {
@@ -518,6 +524,11 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
 			requireLedgerBookedAtNotEqual(t, settledCharge.Intent.GetEffectiveInvoiceAt(), bookedAt)
+		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, settledCharge.ID, strings.TrimSpace(*entry.SpendChargeID))
 		}
 	})
 
@@ -745,6 +756,18 @@ func (e *usageBasedHandlerTestEnv) newRunWithAuthorizedPaymentAndInvoiceUsage(li
 func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amount int64) ledger.SubAccount {
 	t.Helper()
 
+	return e.fundPriorityForOptionalSource(t, priority, amount, nil)
+}
+
+func (e *usageBasedHandlerTestEnv) fundPriorityForSource(t *testing.T, priority int, amount int64, sourceChargeID string) ledger.SubAccount {
+	t.Helper()
+
+	return e.fundPriorityForOptionalSource(t, priority, amount, &sourceChargeID)
+}
+
+func (e *usageBasedHandlerTestEnv) fundPriorityForOptionalSource(t *testing.T, priority int, amount int64, sourceChargeID *string) ledger.SubAccount {
+	t.Helper()
+
 	costBasis := alpacadecimal.Zero
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       e.CurrencyReference(),
@@ -770,18 +793,21 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
+			SourceChargeID: sourceChargeID,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:        e.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.CurrencyReference(),
-			CostBasis: &costBasis,
+			At:             e.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       e.CurrencyReference(),
+			CostBasis:      &costBasis,
+			SourceChargeID: sourceChargeID,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:        e.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.CurrencyReference(),
-			CostBasis: &costBasis,
+			At:             e.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       e.CurrencyReference(),
+			CostBasis:      &costBasis,
+			SourceChargeID: sourceChargeID,
 		},
 	)
 	require.NoError(t, err)

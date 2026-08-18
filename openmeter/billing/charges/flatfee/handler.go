@@ -339,8 +339,13 @@ type Handler interface {
 	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 
-	// OnCustomCurrencyOverageAccrued is called when uncovered custom-currency flat-fee value is accrued in fiat.
-	// This must be modeled as a credit purchase flow from the ledger point of view.
+	// OnCustomCurrencyOverageAccrued is called when uncovered custom-currency
+	// flat-fee value is accrued. From the ledger's point of view this is a
+	// credit purchase immediately consumed by the same charge: it purchases
+	// and consumes the uncovered amount in the native currency at the
+	// charge's persisted cost basis, then converts the resulting
+	// custom-currency receivable into the fiat amount the invoice collects.
+	// The purchased credit never becomes spendable customer balance.
 	OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error)
 
 	// OnCorrectCreditAllocations is called when a credit allocation needs to be corrected.

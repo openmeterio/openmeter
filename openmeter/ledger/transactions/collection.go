@@ -80,13 +80,18 @@ func collectFromAttributableCustomerAccrued(
 			continue
 		}
 
+		identity := ledger.EntryIdentityParts{
+			SourceChargeID: bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			SpendChargeID:  bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+		}
+		if !isCreditBackedAccruedIdentity(identity) {
+			continue
+		}
+
 		sources = append(sources, postingAddressBalance{
-			address: bucket.Address,
-			balance: bucket.SettledAmount,
-			identity: ledger.EntryIdentityParts{
-				SourceChargeID: bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
-				SpendChargeID:  bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
-			},
+			address:  bucket.Address,
+			balance:  bucket.SettledAmount,
+			identity: identity,
 		})
 	}
 
@@ -106,6 +111,15 @@ func collectFromAttributableCustomerAccrued(
 	})
 
 	return collectFromPostingAddressBalanceSources(sources, target), nil
+}
+
+// isCreditBackedAccruedIdentity distinguishes accrued value consumed from a
+// real credit source from invoice-backed value. Invoice accrual either has no
+// source charge or is funded by the same charge it records as the spend.
+func isCreditBackedAccruedIdentity(identity ledger.EntryIdentityParts) bool {
+	return identity.SourceChargeID != nil &&
+		identity.SpendChargeID != nil &&
+		*identity.SourceChargeID != *identity.SpendChargeID
 }
 
 func collectFromPostingAddressBalanceSources(sources []postingAddressBalance, target alpacadecimal.Decimal) []postingAddressAmount {

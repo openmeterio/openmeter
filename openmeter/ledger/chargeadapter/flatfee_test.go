@@ -1,6 +1,7 @@
 package chargeadapter_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -339,7 +340,7 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 
 	t.Run("credit_then_invoice reverses recognized earnings in the same correction", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
-		priorityOne := env.fundPriority(t, 1, 30)
+		priorityOne := env.fundPriorityForSource(t, 1, 30, ulid.Make().String())
 
 		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
@@ -374,7 +375,7 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 
 	t.Run("credit_only reverses recognized earnings in the same correction", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
-		priorityOne := env.fundPriority(t, 1, 30)
+		priorityOne := env.fundPriorityForSource(t, 1, 30, ulid.Make().String())
 
 		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30))
 		allocations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(charge, alpacadecimal.NewFromInt(30)))
@@ -525,6 +526,11 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
 		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
+		}
 	})
 
 	t.Run("credit_then_invoice mixed FBO and receivable only authorizes receivable", func(t *testing.T) {
@@ -654,6 +660,11 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
+		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
 		}
 	})
 
@@ -801,10 +812,22 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 func (e *flatFeeHandlerTestEnv) fundPriority(t *testing.T, priority int, amount int64) ledger.SubAccount {
 	t.Helper()
 
-	return e.fundPriorityWithFeatures(t, priority, amount, nil)
+	return e.fundPriorityWithFeaturesAndSource(t, priority, amount, nil, nil)
+}
+
+func (e *flatFeeHandlerTestEnv) fundPriorityForSource(t *testing.T, priority int, amount int64, sourceChargeID string) ledger.SubAccount {
+	t.Helper()
+
+	return e.fundPriorityWithFeaturesAndSource(t, priority, amount, nil, &sourceChargeID)
 }
 
 func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority int, amount int64, features []string) ledger.SubAccount {
+	t.Helper()
+
+	return e.fundPriorityWithFeaturesAndSource(t, priority, amount, features, nil)
+}
+
+func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, priority int, amount int64, features []string, sourceChargeID *string) ledger.SubAccount {
 	t.Helper()
 
 	costBasis := alpacadecimal.Zero
@@ -834,20 +857,23 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority 
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 			Features:       features,
+			SourceChargeID: sourceChargeID,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:        e.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.CurrencyReference(),
-			CostBasis: &costBasis,
-			Features:  features,
+			At:             e.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       e.CurrencyReference(),
+			CostBasis:      &costBasis,
+			Features:       features,
+			SourceChargeID: sourceChargeID,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:        e.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.CurrencyReference(),
-			CostBasis: &costBasis,
-			Features:  features,
+			At:             e.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       e.CurrencyReference(),
+			CostBasis:      &costBasis,
+			Features:       features,
+			SourceChargeID: sourceChargeID,
 		},
 	)
 	require.NoError(t, err)
@@ -1208,6 +1234,29 @@ func (e *flatFeeHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupID s
 	out := make([]time.Time, 0, len(transactions))
 	for _, tx := range transactions {
 		out = append(out, tx.BookedAt)
+	}
+
+	return out
+}
+
+func (e *flatFeeHandlerTestEnv) transactionAnnotations(t *testing.T, groupID string) []models.Annotations {
+	t.Helper()
+
+	transactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	out := make([]models.Annotations, 0, len(transactions))
+	for _, tx := range transactions {
+		out = append(out, tx.Annotations)
 	}
 
 	return out

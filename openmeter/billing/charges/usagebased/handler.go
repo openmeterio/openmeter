@@ -354,8 +354,13 @@ type Handler interface {
 	// OnPaymentSettled is called when an invoice-backed usage-based run payment is settled.
 	OnPaymentSettled(ctx context.Context, input OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
 
-	// OnCustomCurrencyOverageAccrued is called when uncovered custom-currency usage is accrued in fiat.
-	// This must be modeled as a credit purchase flow from the ledger point of view.
+	// OnCustomCurrencyOverageAccrued is called when uncovered custom-currency
+	// usage is accrued. From the ledger's point of view this is a credit
+	// purchase immediately consumed by the same charge: it purchases and
+	// consumes the uncovered amount in the native currency at the charge's
+	// persisted cost basis, then converts the resulting custom-currency
+	// receivable into the fiat amount the invoice collects. The purchased
+	// credit never becomes spendable customer balance.
 	OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error)
 
 	// OnCreditsOnlyUsageAccrued is called when a credit-only usage-based charge needs to be allocated as credits fully.
