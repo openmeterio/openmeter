@@ -1,11 +1,17 @@
 package invoiceupdater
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"time"
+
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type PatchOperation string
@@ -27,8 +33,131 @@ type PatchLineDelete struct {
 	InvoiceID string
 }
 
+// NewUpdateLinePatchInput describes only the line fields subscription sync intends to change.
+// An absent option preserves persisted state; DeletedAt containing nil explicitly restores a line.
+type NewUpdateLinePatchInput struct {
+	Line      billing.LineID
+	InvoiceID string
+
+	ServicePeriod        mo.Option[timeutil.ClosedPeriod]
+	InvoiceAt            mo.Option[time.Time]
+	DeletedAt            mo.Option[*time.Time]
+	FlatFeePerUnitAmount mo.Option[alpacadecimal.Decimal]
+}
+
+func (i NewUpdateLinePatchInput) IsNoop() bool {
+	return !i.ServicePeriod.IsPresent() &&
+		!i.InvoiceAt.IsPresent() &&
+		!i.DeletedAt.IsPresent() &&
+		!i.FlatFeePerUnitAmount.IsPresent()
+}
+
+func (i NewUpdateLinePatchInput) Validate() error {
+	var errs []error
+
+	if err := i.Line.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("line: %w", err))
+	}
+
+	if i.InvoiceID == "" {
+		errs = append(errs, errors.New("invoice id is required"))
+	}
+
+	if period, ok := i.ServicePeriod.Get(); ok {
+		if err := period.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service period: %w", err))
+		}
+	}
+
+	if invoiceAt, ok := i.InvoiceAt.Get(); ok && invoiceAt.IsZero() {
+		errs = append(errs, errors.New("invoice at is required"))
+	}
+
+	if perUnitAmount, ok := i.FlatFeePerUnitAmount.Get(); ok && perUnitAmount.IsNegative() {
+		errs = append(errs, errors.New("flat fee per unit amount must not be negative"))
+	}
+
+	if i.IsNoop() {
+		errs = append(errs, errors.New("at least one line update is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type PatchLineUpdate struct {
-	TargetState billing.GenericInvoiceLine
+	NewUpdateLinePatchInput
+}
+
+func (p PatchLineUpdate) Apply(line billing.GenericInvoiceLine) (billing.GenericInvoiceLine, error) {
+	if err := p.Validate(); err != nil {
+		return nil, fmt.Errorf("validating update: %w", err)
+	}
+
+	if line == nil {
+		return nil, errors.New("line is required")
+	}
+
+	if line.GetLineID() != p.Line {
+		return nil, fmt.Errorf("line id mismatch: expected %s, got %s", p.Line.ID, line.GetLineID().ID)
+	}
+
+	if line.GetInvoiceID() != p.InvoiceID {
+		return nil, fmt.Errorf("invoice id mismatch: expected %s, got %s", p.InvoiceID, line.GetInvoiceID())
+	}
+
+	updatedLine, err := line.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
+
+	if line.AsInvoiceLine().Type() == billing.InvoiceLineTypeGathering {
+		existingGatheringLine, err := line.AsInvoiceLine().AsGatheringLine()
+		if err != nil {
+			return nil, fmt.Errorf("converting existing line to gathering line: %w", err)
+		}
+
+		if existingGatheringLine.SplitLineHierarchy != nil {
+			hierarchy, err := existingGatheringLine.SplitLineHierarchy.Clone()
+			if err != nil {
+				return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
+			}
+
+			updatedGatheringLine, err := updatedLine.AsInvoiceLine().AsGatheringLine()
+			if err != nil {
+				return nil, fmt.Errorf("converting updated line to gathering line: %w", err)
+			}
+
+			updatedGatheringLine.SplitLineHierarchy = &hierarchy
+			updatedLine = updatedGatheringLine.AsGenericLine()
+		}
+	}
+
+	if period, ok := p.ServicePeriod.Get(); ok {
+		updatedLine.UpdateServicePeriod(func(current *timeutil.ClosedPeriod) {
+			*current = period
+		})
+	}
+
+	if invoiceAt, ok := p.InvoiceAt.Get(); ok {
+		invoiceAtAccessor, ok := updatedLine.(billing.InvoiceAtAccessor)
+		if !ok {
+			return nil, fmt.Errorf("line[%s] does not support invoice at updates", p.Line.ID)
+		}
+
+		invoiceAtAccessor.SetInvoiceAt(invoiceAt)
+	}
+
+	if deletedAt, ok := p.DeletedAt.Get(); ok {
+		updatedLine.SetDeletedAt(deletedAt)
+	}
+
+	if perUnitAmount, ok := p.FlatFeePerUnitAmount.Get(); ok {
+		if err := SetFlatFeePerUnitAmount(updatedLine, perUnitAmount); err != nil {
+			return nil, fmt.Errorf("setting flat fee per unit amount: %w", err)
+		}
+	}
+
+	return updatedLine, nil
 }
 
 type PatchSplitLineGroupDelete struct {
@@ -104,13 +233,17 @@ func NewDeleteLinePatch(lineID billing.LineID, invoiceID string) Patch {
 	}
 }
 
-func NewUpdateLinePatch(line billing.GenericInvoiceLine) Patch {
+func NewUpdateLinePatch(input NewUpdateLinePatchInput) (Patch, error) {
+	if err := input.Validate(); err != nil {
+		return Patch{}, err
+	}
+
 	return Patch{
 		op: PatchOpLineUpdate,
 		updateLinePatch: PatchLineUpdate{
-			TargetState: line,
+			NewUpdateLinePatchInput: input,
 		},
-	}
+	}, nil
 }
 
 func NewDeleteSplitLineGroupPatch(groupID models.NamespacedID) Patch {
@@ -147,7 +280,34 @@ func (p Patch) Log(logger *slog.Logger) {
 	case PatchOpLineDelete:
 		logger.Info("delete line patch", "line_id", p.deleteLinePatch.Line, "invoice_id", p.deleteLinePatch.InvoiceID)
 	case PatchOpLineUpdate:
-		logger.Info("update line patch", "line_id", p.updateLinePatch.TargetState.GetLineID().ID, "invoice_id", p.updateLinePatch.TargetState.GetInvoiceID(), "new_service_period_from", p.updateLinePatch.TargetState.GetServicePeriod().From, "new_service_period_to", p.updateLinePatch.TargetState.GetServicePeriod().To, "unique_reference_id", p.updateLinePatch.TargetState.GetChildUniqueReferenceID())
+		args := []any{
+			"line_id", p.updateLinePatch.Line.ID,
+			"invoice_id", p.updateLinePatch.InvoiceID,
+		}
+		updatedFields := make([]string, 0, 4)
+
+		if period, ok := p.updateLinePatch.ServicePeriod.Get(); ok {
+			updatedFields = append(updatedFields, "service_period")
+			args = append(args, "new_service_period_from", period.From, "new_service_period_to", period.To)
+		}
+
+		if invoiceAt, ok := p.updateLinePatch.InvoiceAt.Get(); ok {
+			updatedFields = append(updatedFields, "invoice_at")
+			args = append(args, "new_invoice_at", invoiceAt)
+		}
+
+		if deletedAt, ok := p.updateLinePatch.DeletedAt.Get(); ok {
+			updatedFields = append(updatedFields, "deleted_at")
+			args = append(args, "new_deleted_at", deletedAt)
+		}
+
+		if perUnitAmount, ok := p.updateLinePatch.FlatFeePerUnitAmount.Get(); ok {
+			updatedFields = append(updatedFields, "flat_fee_per_unit_amount")
+			args = append(args, "new_flat_fee_per_unit_amount", perUnitAmount.String())
+		}
+
+		args = append(args, "updated_fields", updatedFields)
+		logger.Info("update line patch", args...)
 	case PatchOpSplitLineGroupDelete:
 		logger.Info("delete split line group patch", "group_id", p.deleteSplitLineGroupPatch.Group.ID)
 	case PatchOpSplitLineGroupUpdate:
