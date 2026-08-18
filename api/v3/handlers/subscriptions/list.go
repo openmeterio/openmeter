@@ -2,7 +2,6 @@ package subscriptions
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -121,36 +120,16 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListSubscriptionsRequest) (ListSubscriptionsResponse, error) {
-			resp, err := h.subscriptionService.List(ctx, request)
+			// Every subscription surfaces its phases, so the list is resolved to full
+			// views. ListViews batches the expansion (multi-customer aware) and keeps
+			// List's order and total count.
+			resp, err := h.subscriptionService.ListViews(ctx, request)
 			if err != nil {
 				return ListSubscriptionsResponse{}, err
 			}
 
-			// Every subscription surfaces its phases, so each list row must be expanded
-			// to a full view. A page can span multiple customers, but ExpandViews only
-			// accepts a single customer at a time, so we expand one customer group at a
-			// time and reassemble in the original list order.
-			viewsByID := make(map[string]subscription.SubscriptionView, len(resp.Items))
-			for _, group := range lo.GroupBy(resp.Items, func(s subscription.Subscription) string {
-				return s.CustomerId
-			}) {
-				views, err := h.subscriptionService.ExpandViews(ctx, group)
-				if err != nil {
-					return ListSubscriptionsResponse{}, err
-				}
-
-				for _, view := range views {
-					viewsByID[view.Subscription.ID] = view
-				}
-			}
-
 			subscriptions := make([]api.BillingSubscription, 0, len(resp.Items))
-			for _, item := range resp.Items {
-				view, ok := viewsByID[item.ID]
-				if !ok {
-					return ListSubscriptionsResponse{}, fmt.Errorf("subscription %s missing from expanded views", item.ID)
-				}
-
+			for _, view := range resp.Items {
 				sub, err := ToAPIBillingSubscription(view)
 				if err != nil {
 					return ListSubscriptionsResponse{}, err
