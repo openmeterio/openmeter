@@ -40,6 +40,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Internal Invoices](#internal-invoices)
   - [Internal Currencies](#internal-currencies)
   - [Internal EntitlementAccess](#internal-entitlementaccess)
+  - [Internal Notifications](#internal-notifications)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
 - [Error Handling](#error-handling)
@@ -462,6 +463,16 @@ they can change or be removed without notice or semver consideration.
 | Method                                    | HTTP                                       | Description                                                                                                                                                                                                                                                                                                          |
 | ----------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `client.internal.entitlementAccess.query` | `POST /openmeter/entitlement-access/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
+
+### Internal Notifications
+
+| Method                                        | HTTP                                                              | Description                          |
+| --------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------ |
+| `client.internal.notifications.listChannels`  | `GET /openmeter/notification/channels`                            | List all notification channels.      |
+| `client.internal.notifications.createChannel` | `POST /openmeter/notification/channels`                           | Create a notification channel.       |
+| `client.internal.notifications.getChannel`    | `GET /openmeter/notification/channels/{notificationChannelId}`    | Get a notification channel by id.    |
+| `client.internal.notifications.updateChannel` | `PUT /openmeter/notification/channels/{notificationChannelId}`    | Update a notification channel by id. |
+| `client.internal.notifications.deleteChannel` | `DELETE /openmeter/notification/channels/{notificationChannelId}` | Delete a notification channel by id. |
 
 ## Runtime Validation (validate option)
 
