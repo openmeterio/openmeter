@@ -20,6 +20,7 @@
   clean them up separately after confirming no active shell uses them.
 - `.nvmrc` is the GitHub Actions source of truth for Node. Keep it aligned with
   `node -v` in the Nix `.#ci` shell.
+- For slow or noisy commands, save complete output to a temporary log outside the repository, preserve and report the exit status and log path, inspect bounded slices, and never rerun solely because displayed output was truncated.
 
 ## Repository invariants
 
