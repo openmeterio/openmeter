@@ -1354,6 +1354,10 @@ func init() {
 	chargeflatfeerunDescInvoiceID := chargeflatfeerunFields[6].Descriptor()
 	// chargeflatfeerun.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
 	chargeflatfeerun.InvoiceIDValidator = chargeflatfeerunDescInvoiceID.Validators[0].(func(string) error)
+	// chargeflatfeerunDescFiatOverageCreditAllocationCompleted is the schema descriptor for fiat_overage_credit_allocation_completed field.
+	chargeflatfeerunDescFiatOverageCreditAllocationCompleted := chargeflatfeerunFields[9].Descriptor()
+	// chargeflatfeerun.DefaultFiatOverageCreditAllocationCompleted holds the default value on creation for the fiat_overage_credit_allocation_completed field.
+	chargeflatfeerun.DefaultFiatOverageCreditAllocationCompleted = chargeflatfeerunDescFiatOverageCreditAllocationCompleted.Default.(bool)
 	// chargeflatfeerunDescID is the schema descriptor for id field.
 	chargeflatfeerunDescID := chargeflatfeerunMixinFields1[0].Descriptor()
 	// chargeflatfeerun.DefaultID holds the default value on creation for the id field.
@@ -1841,6 +1845,10 @@ func init() {
 	chargeusagebasedrunsDescInvoiceID := chargeusagebasedrunsFields[9].Descriptor()
 	// chargeusagebasedruns.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
 	chargeusagebasedruns.InvoiceIDValidator = chargeusagebasedrunsDescInvoiceID.Validators[0].(func(string) error)
+	// chargeusagebasedrunsDescFiatOverageCreditAllocationCompleted is the schema descriptor for fiat_overage_credit_allocation_completed field.
+	chargeusagebasedrunsDescFiatOverageCreditAllocationCompleted := chargeusagebasedrunsFields[12].Descriptor()
+	// chargeusagebasedruns.DefaultFiatOverageCreditAllocationCompleted holds the default value on creation for the fiat_overage_credit_allocation_completed field.
+	chargeusagebasedruns.DefaultFiatOverageCreditAllocationCompleted = chargeusagebasedrunsDescFiatOverageCreditAllocationCompleted.Default.(bool)
 	// chargeusagebasedrunsDescID is the schema descriptor for id field.
 	chargeusagebasedrunsDescID := chargeusagebasedrunsMixinFields1[0].Descriptor()
 	// chargeusagebasedruns.DefaultID holds the default value on creation for the id field.

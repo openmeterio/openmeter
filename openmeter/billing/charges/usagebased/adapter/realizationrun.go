@@ -86,6 +86,10 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 			update = update.SetNoFiatTransactionRequired(input.NoFiatTransactionRequired.OrEmpty())
 		}
 
+		if input.FiatOverageCreditAllocationCompleted.IsPresent() {
+			update = update.SetFiatOverageCreditAllocationCompleted(input.FiatOverageCreditAllocationCompleted.OrEmpty())
+		}
+
 		dbRun, err := update.Save(ctx)
 		if err != nil {
 			return usagebased.RealizationRunBase{}, err

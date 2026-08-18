@@ -1014,22 +1014,53 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 			)
 		}
 
-		allocated, err := e.service.runs.AllocateFiatOverageCredits(ctx, usagebasedrun.AllocateFiatOverageCreditsInput{
-			Charge: charge,
-			Run:    run,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", stdLine.ID, err)
-		}
-
 		updatedLine, err := stdLine.Clone()
 		if err != nil {
 			return nil, fmt.Errorf("cloning finalizing line[%s]: %w", stdLine.ID, err)
 		}
 
+		if run.InvoiceUsage == nil {
+			if len(run.FiatOverageCreditRealizations) > 0 || run.FiatOverageCreditAllocationCompleted {
+				return nil, fmt.Errorf("realization run[%s] has fiat overage allocation state without prepared invoice usage", run.ID.ID)
+			}
+
+			if err := populateStandardLineFromRun(updatedLine, populateStandardLineFromRunInput{
+				Charge: charge,
+				Run:    run,
+				Stage:  standardLinePopulationStageInvoiceFinalizing,
+			}); err != nil {
+				return nil, fmt.Errorf("populating gross finalizing line[%s] from run[%s]: %w", stdLine.ID, run.ID.ID, err)
+			}
+
+			prepared, err := e.service.runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
+				Charge: charge,
+				Run:    run,
+				Line:   *updatedLine,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("preparing custom-currency overage for finalizing line[%s]: %w", stdLine.ID, err)
+			}
+			run = prepared.Run
+			if err := charge.Realizations.SetRealizationRun(run); err != nil {
+				return nil, fmt.Errorf("updating prepared realization run[%s]: %w", run.ID.ID, err)
+			}
+		}
+
+		if !run.FiatOverageCreditAllocationCompleted {
+			allocated, err := e.service.runs.AllocateFiatOverageCredits(ctx, usagebasedrun.AllocateFiatOverageCreditsInput{
+				Charge: charge,
+				Run:    run,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", stdLine.ID, err)
+			}
+			charge = allocated.Charge
+			run = allocated.Run
+		}
+
 		if err := populateStandardLineFromRun(updatedLine, populateStandardLineFromRunInput{
-			Charge: allocated.Charge,
-			Run:    allocated.Run,
+			Charge: charge,
+			Run:    run,
 			Stage:  standardLinePopulationStageInvoiceFinalizing,
 		}); err != nil {
 			return nil, fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", stdLine.ID, run.ID.ID, err)

@@ -371,6 +371,9 @@ func (ChargeFlatFeeRun) Fields() []ent.Field {
 
 		field.Bool("no_fiat_transaction_required"),
 
+		field.Bool("fiat_overage_credit_allocation_completed").
+			Default(false),
+
 		field.Bool("immutable"),
 	}
 }

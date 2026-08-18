@@ -132,13 +132,14 @@ func (r CreateRealizationRunInput) Validate() error {
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	Type                      mo.Option[RealizationRunType]    `json:"type"`
-	StoredAtLT                mo.Option[time.Time]             `json:"storedAtLT"`
-	DeletedAt                 mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
-	LineID                    mo.Option[*string]               `json:"lineId,omitempty"`
-	MeteredQuantity           mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
-	Totals                    mo.Option[totals.Totals]         `json:"totals"`
-	NoFiatTransactionRequired mo.Option[bool]                  `json:"noFiatTransactionRequired"`
+	Type                                 mo.Option[RealizationRunType]    `json:"type"`
+	StoredAtLT                           mo.Option[time.Time]             `json:"storedAtLT"`
+	DeletedAt                            mo.Option[*time.Time]            `json:"deletedAt,omitempty"`
+	LineID                               mo.Option[*string]               `json:"lineId,omitempty"`
+	MeteredQuantity                      mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
+	Totals                               mo.Option[totals.Totals]         `json:"totals"`
+	NoFiatTransactionRequired            mo.Option[bool]                  `json:"noFiatTransactionRequired"`
+	FiatOverageCreditAllocationCompleted mo.Option[bool]                  `json:"fiatOverageCreditAllocationCompleted"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
@@ -212,6 +213,9 @@ type RealizationRunBase struct {
 	// Totals includes credit allocations and excludes taxes.
 	Totals                    totals.Totals `json:"totals"`
 	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
+	// FiatOverageCreditAllocationCompleted distinguishes a successful
+	// zero-allocation result from pending allocation.
+	FiatOverageCreditAllocationCompleted bool `json:"fiatOverageCreditAllocationCompleted"`
 	// DetailedLinesIncludeCreditAllocations describes if credit allocation is applied to the detailed lines.
 	// Credits-only: always false
 	// Credit-then-invoice:

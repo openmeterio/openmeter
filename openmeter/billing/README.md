@@ -107,13 +107,14 @@ finalization callback. Engines return fully calculated lines with unchanged
 line IDs; billing replaces those lines, sums their totals, and persists the
 invoice before sending it to the invoicing app. Line finalization has its own
 retryable failure state, so an external app retry does not repeat stable
-engine-owned effects.
+engine-owned effects. Once line finalization starts, issuing is retry-only;
+invoice deletion requires correction support for any durable preparation.
 
 A deleted app keeps its historical identity and can still be expanded on
 invoices. Its generic app operations return `app.ErrAppDeleted`, while its
 invoicing operations return billing-owned validation issues. Critical issues
-move the invoice into the failed state for that step. Invoice deletion remains
-available and returns a warning when provider cleanup has to be skipped.
+move the invoice into the failed state for that step. Before issuing, invoice
+deletion returns a warning when provider cleanup has to be skipped.
 
 Retrying and deleting are separate domain actions. Use the billing service's
 retry operation for a retryable failure and its delete operation for the

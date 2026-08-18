@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -89,6 +90,36 @@ func TestCalculateFiatOverageForRun(t *testing.T) {
 			require.Equal(t, test.expectOmitInvoiceLine, fiatOverage.ShouldOmitInvoiceLine)
 		})
 	}
+}
+
+func TestResolveFlatFeeCustomCurrencyFinalizationOverageReusesPreparedGrossAmount(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	charge := newFlatFeeCustomCurrencyCreditThenInvoiceChargeForTest(t, servicePeriod)
+	run := newFlatFeeCustomCurrencyRunForTest(
+		servicePeriod,
+		totals.Totals{Amount: alpacadecimal.NewFromInt(3), Total: alpacadecimal.NewFromInt(3)},
+		false,
+	)
+	run.AccruedUsage = &invoicedusage.AccruedUsage{
+		ServicePeriod: servicePeriod,
+		Totals: totals.Totals{
+			Amount: alpacadecimal.NewFromInt(5),
+			Total:  alpacadecimal.NewFromInt(5),
+		},
+	}
+
+	// The current cost basis would convert the run to 6 USD. Finalization must
+	// reuse the persisted 5 USD result instead of converting again.
+	fiatOverage, err := resolveFiatOverageForLinePopulation(
+		charge,
+		run,
+		standardLinePopulationStageInvoiceFinalizing,
+	)
+	require.NoError(t, err)
+	require.Equal(t, float64(5), fiatOverage.FiatOverage.InexactFloat64())
 }
 
 func TestPopulateFlatFeeCustomCurrencyOverageLineDeletionUsesConvertedOverage(t *testing.T) {
