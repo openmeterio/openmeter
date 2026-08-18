@@ -14,9 +14,10 @@ import (
 )
 
 type rateCardFeatureReferenceConstraintTable struct {
-	name         string
-	parentColumn string
-	parentID     string
+	name                           string
+	parentColumn                   string
+	parentID                       string
+	featureReferenceConstraintName string
 }
 
 type rateCardFeatureReferenceConstraintRow struct {
@@ -85,14 +86,17 @@ func TestRateCardFeatureReferenceConstraintsMigration(t *testing.T) {
 	db := testDB.PGDriver.DB()
 	featureID := ulid.Make().String()
 	featureKey := "constraint_feature"
+	emptyIDFeatureKey := "empty_id_constraint_feature"
 	planID := ulid.Make().String()
 	phaseID := ulid.Make().String()
 	addonID := ulid.Make().String()
 
 	_, err = db.ExecContext(t.Context(), `
 		INSERT INTO features (id, namespace, created_at, updated_at, name, key)
-		VALUES ($1, $2, NOW(), NOW(), 'Constraint feature', $3)
-	`, featureID, namespace, featureKey)
+		VALUES
+			($1, $2, NOW(), NOW(), 'Constraint feature', $3),
+			('', $2, NOW(), NOW(), 'Empty ID constraint feature', $4)
+	`, featureID, namespace, featureKey, emptyIDFeatureKey)
 	require.NoError(t, err)
 
 	_, err = db.ExecContext(t.Context(), `
@@ -125,8 +129,18 @@ func TestRateCardFeatureReferenceConstraintsMigration(t *testing.T) {
 	require.NoError(t, err)
 
 	tables := []rateCardFeatureReferenceConstraintTable{
-		{name: "plan_rate_cards", parentColumn: "phase_id", parentID: phaseID},
-		{name: "addon_rate_cards", parentColumn: "addon_id", parentID: addonID},
+		{
+			name:                           "plan_rate_cards",
+			parentColumn:                   "phase_id",
+			parentID:                       phaseID,
+			featureReferenceConstraintName: "plan_rate_card_feature_reference",
+		},
+		{
+			name:                           "addon_rate_cards",
+			parentColumn:                   "addon_id",
+			parentID:                       addonID,
+			featureReferenceConstraintName: "addon_rate_card_feature_reference",
+		},
 	}
 
 	for index, table := range tables {
@@ -187,6 +201,15 @@ func TestRateCardFeatureReferenceConstraintsMigration(t *testing.T) {
 				featureID:  featureID,
 				featureKey: "",
 			}))
+
+			err := insertRateCardFeatureReferenceConstraintRow(t, db, rateCardFeatureReferenceConstraintRow{
+				table:      table,
+				namespace:  namespace,
+				key:        "empty_id",
+				featureID:  "",
+				featureKey: emptyIDFeatureKey,
+			})
+			require.ErrorContains(t, err, table.featureReferenceConstraintName)
 		})
 	}
 
