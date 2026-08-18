@@ -9,6 +9,8 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -52,10 +54,61 @@ func (h *handler) ListApps() ListAppsHandler {
 				})
 			}
 
-			return ListAppsRequest{
+			req := ListAppsRequest{
 				Namespace: namespace,
 				Page:      page,
-			}, nil
+			}
+
+			if params.Filter != nil {
+				id, err := filters.FromAPIFilterULID(params.Filter.Id)
+				if err != nil {
+					return ListAppsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.ID = id
+
+				name, err := filters.FromAPIFilterString(params.Filter.Name)
+				if err != nil {
+					return ListAppsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Name = name
+
+				appType, err := filters.FromAPIFilterStringExact(params.Filter.Type)
+				if err != nil {
+					return ListAppsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[type]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Type = appType
+
+				status, err := filters.FromAPIFilterStringExact(params.Filter.Status)
+				if err != nil {
+					return ListAppsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Status = status
+			}
+
+			if params.Sort != nil {
+				sort, err := request.ParseSortBy(*params.Sort)
+				if err != nil {
+					return ListAppsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						apierrors.InvalidParameter{
+							Field:  "sort",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.OrderBy = app.AppOrderBy(sort.Field)
+				req.Order = sort.Order.ToSortxOrder()
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request ListAppsRequest) (ListAppsResponse, error) {
 			result, err := h.appService.ListApps(ctx, request)
