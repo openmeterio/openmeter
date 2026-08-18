@@ -193,6 +193,10 @@ func init() {
 	addonratecardDescKey := addonratecardMixinFields0[8].Descriptor()
 	// addonratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	addonratecard.KeyValidator = addonratecardDescKey.Validators[0].(func(string) error)
+	// addonratecardDescFeatureKey is the schema descriptor for feature_key field.
+	addonratecardDescFeatureKey := addonratecardFields[1].Descriptor()
+	// addonratecard.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	addonratecard.FeatureKeyValidator = addonratecardDescFeatureKey.Validators[0].(func(string) error)
 	// addonratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
 	addonratecardDescEntitlementTemplate := addonratecardFields[3].Descriptor()
 	addonratecard.ValueScanner.EntitlementTemplate = addonratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
@@ -235,6 +239,10 @@ func init() {
 	addonratecardDescAddonID := addonratecardFields[11].Descriptor()
 	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
 	addonratecard.AddonIDValidator = addonratecardDescAddonID.Validators[0].(func(string) error)
+	// addonratecardDescFeatureID is the schema descriptor for feature_id field.
+	addonratecardDescFeatureID := addonratecardFields[12].Descriptor()
+	// addonratecard.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	addonratecard.FeatureIDValidator = addonratecardDescFeatureID.Validators[0].(func(string) error)
 	// addonratecardDescID is the schema descriptor for id field.
 	addonratecardDescID := addonratecardMixinFields0[0].Descriptor()
 	// addonratecard.DefaultID holds the default value on creation for the id field.
@@ -2932,6 +2940,10 @@ func init() {
 	planratecardDescKey := planratecardMixinFields0[8].Descriptor()
 	// planratecard.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	planratecard.KeyValidator = planratecardDescKey.Validators[0].(func(string) error)
+	// planratecardDescFeatureKey is the schema descriptor for feature_key field.
+	planratecardDescFeatureKey := planratecardFields[1].Descriptor()
+	// planratecard.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	planratecard.FeatureKeyValidator = planratecardDescFeatureKey.Validators[0].(func(string) error)
 	// planratecardDescEntitlementTemplate is the schema descriptor for entitlement_template field.
 	planratecardDescEntitlementTemplate := planratecardFields[3].Descriptor()
 	planratecard.ValueScanner.EntitlementTemplate = planratecardDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
@@ -2974,6 +2986,10 @@ func init() {
 	planratecardDescPhaseID := planratecardFields[11].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
+	// planratecardDescFeatureID is the schema descriptor for feature_id field.
+	planratecardDescFeatureID := planratecardFields[12].Descriptor()
+	// planratecard.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	planratecard.FeatureIDValidator = planratecardDescFeatureID.Validators[0].(func(string) error)
 	// planratecardDescID is the schema descriptor for id field.
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.

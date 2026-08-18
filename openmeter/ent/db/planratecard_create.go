@@ -394,6 +394,11 @@ func (_c *PlanRateCardCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.type": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.FeatureKey(); ok {
+		if err := planratecard.FeatureKeyValidator(v); err != nil {
+			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.feature_key": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.entitlement_template": %w`, err)}
@@ -435,6 +440,11 @@ func (_c *PlanRateCardCreate) check() error {
 	if v, ok := _c.mutation.PhaseID(); ok {
 		if err := planratecard.PhaseIDValidator(v); err != nil {
 			return &ValidationError{Name: "phase_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.phase_id": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.FeatureID(); ok {
+		if err := planratecard.FeatureIDValidator(v); err != nil {
+			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.feature_id": %w`, err)}
 		}
 	}
 	if len(_c.mutation.PhaseIDs()) == 0 {
