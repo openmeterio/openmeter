@@ -161,6 +161,82 @@ func TestCreateFromPlan(t *testing.T) {
 		require.NotNil(t, boolItem)
 		require.Equal(t, 1, subscription.AnnotationParser.GetBooleanEntitlementCount(boolItem.SubscriptionItem.Annotations))
 	})
+
+	t.Run("Should allow a free plan with a different customer currency", func(t *testing.T) {
+		// given:
+		// - a USD customer and a EUR plan without priced rate cards
+		// when:
+		// - the subscription is started and later revalidated by an update
+		// then:
+		// - both operations succeed because the plan has no billable contents
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.FreezeTime(now)
+		defer clock.UnFreeze()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		planInput := subscriptiontestutils.BuildTestPlanInput(t).
+			AddPhase(nil, subscriptiontestutils.ExampleAddonRateCard2.Clone()).
+			Build()
+		planInput.Plan.Currency = currencies.NewCurrencyReference(currencyx.Code(currency.EUR))
+		freePlan := deps.PlanHelper.CreatePlan(t, planInput)
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		created, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, freePlan)
+		require.NoError(t, err)
+		require.False(t, created.Spec.HasBillables())
+		require.Equal(t, currencyx.Code(currency.EUR), created.Subscription.InvoiceCurrency)
+
+		updated, err := deps.SubscriptionService.Update(t.Context(), created.Subscription.NamespacedID, created.AsSpec())
+		require.NoError(t, err)
+		require.Equal(t, currencyx.Code(currency.EUR), updated.InvoiceCurrency)
+	})
+
+	t.Run("Should reject a priced plan with a different customer currency", func(t *testing.T) {
+		// given:
+		// - a USD customer and a EUR plan with a priced rate card
+		// when:
+		// - subscription creation reaches the service validation boundary
+		// then:
+		// - the customer and subscription invoice currency mismatch is rejected
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.FreezeTime(now)
+		defer clock.UnFreeze()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		pricedRateCard := subscriptiontestutils.ExampleAddonRateCard2.Clone()
+		require.NoError(t, pricedRateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+			meta.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(1)})
+			return meta, nil
+		}))
+		planInput := subscriptiontestutils.BuildTestPlanInput(t).
+			AddPhase(nil, pricedRateCard).
+			Build()
+		planInput.Plan.Currency = currencies.NewCurrencyReference(currencyx.Code(currency.EUR))
+		pricedPlan := deps.PlanHelper.CreatePlan(t, planInput)
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		_, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, pricedPlan)
+		require.True(t, models.IsGenericValidationError(err))
+		require.ErrorContains(t, err, "currency mismatch: customer currency is USD, but subscription invoice currency is EUR")
+	})
 }
 
 func TestEditRunning(t *testing.T) {
