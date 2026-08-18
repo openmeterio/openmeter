@@ -577,8 +577,9 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 		return nil, fmt.Errorf("failed to list customers: %w", err)
 	}
 
-	customersByID := make(map[string]customer.Customer, len(customerList.Items))
-	for _, c := range customerList.Items {
+	customersByID := make(map[string]*customer.Customer, len(customerList.Items))
+	for i := range customerList.Items {
+		c := &customerList.Items[i]
 		customersByID[c.ID] = c
 	}
 
@@ -761,7 +762,8 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 	})
 
 	return slicesx.MapWithErr(subs, func(s subscription.Subscription) (subscription.SubscriptionView, error) {
-		view, err := subscription.NewSubscriptionView(s, customersByID[s.CustomerId],
+		view, err := subscription.NewSubscriptionView(
+			s, lo.FromPtr(customersByID[s.CustomerId]),
 			phasesBySub[s.ID],
 			itemsBySub[s.ID],
 			entsBySub[s.ID],
