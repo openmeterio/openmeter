@@ -153,12 +153,16 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
+	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	FeatureKeyValidator func(string) error
 	// CurrencyCodeValidator is a validator for the "currency_code" field. It is called by the builders before save.
 	CurrencyCodeValidator func(string) error
 	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
 	CustomCurrencyIDValidator func(string) error
 	// PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	PhaseIDValidator func(string) error
+	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	FeatureIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all PlanRateCard fields.

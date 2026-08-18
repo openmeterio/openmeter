@@ -440,6 +440,11 @@ func (_u *AddonRateCardUpdate) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.FeatureKey(); ok {
+		if err := addonratecard.FeatureKeyValidator(v); err != nil {
+			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.feature_key": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
@@ -478,6 +483,11 @@ func (_u *AddonRateCardUpdate) check() error {
 	if v, ok := _u.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.FeatureID(); ok {
+		if err := addonratecard.FeatureIDValidator(v); err != nil {
+			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.feature_id": %w`, err)}
 		}
 	}
 	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {
@@ -1155,6 +1165,11 @@ func (_u *AddonRateCardUpdateOne) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.FeatureKey(); ok {
+		if err := addonratecard.FeatureKeyValidator(v); err != nil {
+			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.feature_key": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
@@ -1193,6 +1208,11 @@ func (_u *AddonRateCardUpdateOne) check() error {
 	if v, ok := _u.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.FeatureID(); ok {
+		if err := addonratecard.FeatureIDValidator(v); err != nil {
+			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.feature_id": %w`, err)}
 		}
 	}
 	if _u.mutation.AddonCleared() && len(_u.mutation.AddonIDs()) > 0 {

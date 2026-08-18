@@ -25,6 +25,7 @@ func (RateCard) Fields() []ent.Field {
 			GoType(productcatalog.RateCardType("")).
 			Immutable(),
 		field.String("feature_key").
+			NotEmpty().
 			Optional().
 			Nillable(),
 		field.JSON("annotations", models.Annotations{}).
