@@ -4,11 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -81,12 +83,12 @@ func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 			createIn1.Namespace,
 			createIn2.Namespace,
 		},
-		Channels: []string{
+		ID: &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr([]string{
 			channel1.ID,
 			channel2.ID,
-		},
-		OrderBy:         "id",
-		IncludeDisabled: false,
+		})}},
+		OrderBy:  "id",
+		Disabled: &filter.FilterBoolean{Eq: lo.ToPtr(false)},
 	})
 	require.NoError(t, err, "Listing channels must not return error")
 	assert.NotEmpty(t, list.Items, "List of channels must not be empty")

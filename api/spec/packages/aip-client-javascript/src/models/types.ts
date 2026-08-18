@@ -2263,6 +2263,123 @@ export interface EntitlementAccessQueryError {
   customer?: string
 }
 
+/**
+ * A notification channel delivers notification events, such as entitlement balance
+ * threshold crossings, to an external system. Today the only supported channel
+ * type is a webhook delivered via Svix.
+ */
+export interface NotificationChannel {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/** NotificationChannel create request. */
+export interface CreateNotificationChannelRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/**
+ * Request body for updating a notification channel. Updates replace the channel's
+ * mutable state rather than merging it: `type`, `name`, and `url` must always be
+ * provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+ * their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+ * one exception: omitting it keeps the channel's current signing secret instead of
+ * clearing the credential.
+ */
+export interface UpdateNotificationChannelRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  labels?: Labels
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled: boolean
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
 /** App customer data. */
 export interface AppCustomerData {
   /** Used if the customer has a linked Stripe app. */
@@ -2845,6 +2962,16 @@ export interface ListInvoicesParamsFilter {
   createdAt?: DateTimeFieldFilter
 }
 
+/** Filter options for listing notification channels. */
+export interface ListNotificationChannelsParamsFilter {
+  id?: UlidFieldFilter
+  name?: StringFieldFilter
+  type?: StringFieldFilterExact
+  disabled?: BooleanFieldFilter
+  createdAt?: DateTimeFieldFilter
+  updatedAt?: DateTimeFieldFilter
+}
+
 /** Resource filters. */
 export interface ResourceFilters {
   name?: StringFieldFilter
@@ -2857,7 +2984,7 @@ export interface ResourceFilters {
 
 /** Field filters with all supported types. */
 export interface FieldFilters {
-  boolean?: boolean | { eq: boolean }
+  boolean?: BooleanFieldFilter
   numeric?:
     | number
     | {
@@ -3414,6 +3541,12 @@ export interface EntitlementFeatureAccess {
    * when `has_access` is `false`.
    */
   reason?: EntitlementFeatureAccessReason
+}
+
+/** Page paginated response. */
+export interface NotificationChannelPagePaginatedResponse {
+  data: NotificationChannel[]
+  meta: PaginatedMeta
 }
 
 /** Billing customer data. */
@@ -5496,6 +5629,9 @@ export type StringFieldFilterExact =
 /** The payment term of a flat price. */
 export type PricePaymentTerm = 'in_advance' | 'in_arrears'
 
+/** Filter by a boolean value (true/false). */
+export type BooleanFieldFilter = boolean | { eq: boolean }
+
 /** Fiat or custom currency code. */
 export type BillingCurrencyCode = string | string
 
@@ -6028,6 +6164,123 @@ export interface EntitlementAccessQueryRequestInput {
   feature?: EntitlementAccessQueryRequestFeatures
 }
 
+/**
+ * A notification channel delivers notification events, such as entitlement balance
+ * threshold crossings, to an external system. Today the only supported channel
+ * type is a webhook delivered via Svix.
+ */
+export interface NotificationChannelInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled?: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/** NotificationChannel create request. */
+export interface CreateNotificationChannelRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  labels?: Labels
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled?: boolean
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
+/**
+ * Request body for updating a notification channel. Updates replace the channel's
+ * mutable state rather than merging it: `type`, `name`, and `url` must always be
+ * provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+ * their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+ * one exception: omitting it keeps the channel's current signing secret instead of
+ * clearing the credential.
+ */
+export interface UpdateNotificationChannelRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /** The type of the channel. Immutable after creation. */
+  type: 'webhook'
+  /** The URL that webhook notification events are delivered to. */
+  url: string
+  labels?: Labels
+  /**
+   * Whether the channel is disabled. Disabled channels do not receive notification
+   * events.
+   */
+  disabled?: boolean
+  /**
+   * Custom HTTP headers to include on every webhook delivery request, keyed by
+   * header name.
+   */
+  customHeaders?: Record<string, string>
+  /**
+   * Secret used to sign outgoing webhook payloads so recipients can verify their
+   * authenticity. If omitted on create, a secret is generated automatically by the
+   * delivery provider. This is a sensitive credential returned in responses (unlike
+   * most secrets) specifically so clients can retrieve a server-generated value and
+   * verify webhook signatures; handle it with the same care as any other credential.
+   */
+  signingSecret?: string
+}
+
 /** Subscription. */
 export interface SubscriptionInput {
   id: string
@@ -6161,6 +6414,12 @@ export interface UpdateBillingInvoiceWorkflowInput {
   invoicing?: UpdateBillingInvoiceWorkflowInvoicingSettingsInput
   /** Payment settings for this invoice. */
   payment?: UpdateBillingWorkflowPaymentSettingsInput
+}
+
+/** Page paginated response. */
+export interface NotificationChannelPagePaginatedResponseInput {
+  data: NotificationChannelInput[]
+  meta: PaginatedMeta
 }
 
 /** CreditGrant create request. */

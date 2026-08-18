@@ -32,6 +32,13 @@ import {
   createCostBasis,
 } from '../funcs/currencies.js'
 import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
+import {
+  listNotificationChannels,
+  createNotificationChannel,
+  getNotificationChannel,
+  updateNotificationChannel,
+  deleteNotificationChannel,
+} from '../funcs/notifications.js'
 import type {
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
@@ -91,11 +98,24 @@ import type {
   QueryEntitlementAccessResponse,
 } from '../models/operations/entitlementAccess.js'
 import type {
+  ListNotificationChannelsRequest,
+  ListNotificationChannelsResponse,
+  CreateNotificationChannelRequest,
+  CreateNotificationChannelResponse,
+  GetNotificationChannelRequest,
+  GetNotificationChannelResponse,
+  UpdateNotificationChannelRequest,
+  UpdateNotificationChannelResponse,
+  DeleteNotificationChannelRequest,
+  DeleteNotificationChannelResponse,
+} from '../models/operations/notifications.js'
+import type {
   App,
   AppCatalogItem,
   CostBasis,
   Currency,
   Invoice,
+  NotificationChannel,
 } from '../models/types.js'
 
 /**
@@ -136,6 +156,11 @@ export class Internal {
     return (this._entitlementAccess ??= new InternalEntitlementAccess(
       this._client,
     ))
+  }
+
+  private _notifications?: InternalNotifications
+  get notifications(): InternalNotifications {
+    return (this._notifications ??= new InternalNotifications(this._client))
   }
 }
 
@@ -665,5 +690,107 @@ export class InternalEntitlementAccess {
     options?: RequestOptions,
   ): Promise<QueryEntitlementAccessResponse> {
     return unwrap(await queryEntitlementAccess(this._client, request, options))
+  }
+}
+
+export class InternalNotifications {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List notification channels
+   *
+   * List all notification channels.
+   *
+   * GET /openmeter/notification/channels
+   */
+  async listChannels(
+    request?: ListNotificationChannelsRequest,
+    options?: RequestOptions,
+  ): Promise<ListNotificationChannelsResponse> {
+    return unwrap(
+      await listNotificationChannels(this._client, request, options),
+    )
+  }
+
+  /**
+   * List notification channels
+   *
+   * List all notification channels.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/notification/channels
+   */
+  listChannelsAll(
+    request?: ListNotificationChannelsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<NotificationChannel> {
+    return paginatePages(
+      (req, opts) => listNotificationChannels(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Create notification channel
+   *
+   * Create a notification channel.
+   *
+   * POST /openmeter/notification/channels
+   */
+  async createChannel(
+    request: CreateNotificationChannelRequest,
+    options?: RequestOptions,
+  ): Promise<CreateNotificationChannelResponse> {
+    return unwrap(
+      await createNotificationChannel(this._client, request, options),
+    )
+  }
+
+  /**
+   * Get notification channel
+   *
+   * Get a notification channel by id.
+   *
+   * GET /openmeter/notification/channels/{notificationChannelId}
+   */
+  async getChannel(
+    request: GetNotificationChannelRequest,
+    options?: RequestOptions,
+  ): Promise<GetNotificationChannelResponse> {
+    return unwrap(await getNotificationChannel(this._client, request, options))
+  }
+
+  /**
+   * Update notification channel
+   *
+   * Update a notification channel by id.
+   *
+   * PUT /openmeter/notification/channels/{notificationChannelId}
+   */
+  async updateChannel(
+    request: UpdateNotificationChannelRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateNotificationChannelResponse> {
+    return unwrap(
+      await updateNotificationChannel(this._client, request, options),
+    )
+  }
+
+  /**
+   * Delete notification channel
+   *
+   * Delete a notification channel by id.
+   *
+   * DELETE /openmeter/notification/channels/{notificationChannelId}
+   */
+  async deleteChannel(
+    request: DeleteNotificationChannelRequest,
+    options?: RequestOptions,
+  ): Promise<DeleteNotificationChannelResponse> {
+    return unwrap(
+      await deleteNotificationChannel(this._client, request, options),
+    )
   }
 }

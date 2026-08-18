@@ -1149,6 +1149,24 @@ export const entitlementAccessQueryErrorCode = z
   .enum(['unknown', 'customer_not_found'])
   .describe('Error code for an entitlement access query failure.')
 
+export const booleanFieldFilter = z
+  .union([
+    z.boolean(),
+    z.object({
+      eq: z
+        .boolean()
+        .describe('Value strictly equals the given boolean value.'),
+    }),
+  ])
+  .describe('Filter by a boolean value (true/false).')
+
+export const notificationChannelType = z
+  .enum(['webhook'])
+
+  .describe(
+    'The type of a notification channel. Currently the only supported channel type is `webhook`; the domain model anticipates additional channel types (e.g. email, Slack) in the future, so this is modeled as an enum rather than a boolean/constant even though it has a single member today.',
+  )
+
 export const queryFilterInteger = z
   .object({
     eq: z
@@ -1295,17 +1313,6 @@ export const publicLabels = z
   .describe(
     'Public labels store information about an entity that can be used for filtering a list of objects.',
   )
-
-export const booleanFieldFilter = z
-  .union([
-    z.boolean(),
-    z.object({
-      eq: z
-        .boolean()
-        .describe('Value strictly equals the given boolean value.'),
-    }),
-  ])
-  .describe('Filter by a boolean value (true/false).')
 
 export const numericFieldFilter = z
   .union([
@@ -3222,6 +3229,127 @@ export const entitlementAccessQueryError = z
     'Query error within a partially successful entitlement access query response.',
   )
 
+export const notificationChannel = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: notificationChannelType,
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the channel is disabled. Disabled channels do not receive notification events.',
+      ),
+    url: z
+      .string()
+      .describe('The URL that webhook notification events are delivered to.'),
+    customHeaders: z
+      .record(z.string(), z.string())
+      .optional()
+
+      .describe(
+        'Custom HTTP headers to include on every webhook delivery request, keyed by header name.',
+      ),
+    signingSecret: z
+      .string()
+      .optional()
+
+      .describe(
+        'Secret used to sign outgoing webhook payloads so recipients can verify their authenticity. If omitted on create, a secret is generated automatically by the delivery provider. This is a sensitive credential returned in responses (unlike most secrets) specifically so clients can retrieve a server-generated value and verify webhook signatures; handle it with the same care as any other credential.',
+      ),
+  })
+
+  .describe(
+    'A notification channel delivers notification events, such as entitlement balance threshold crossings, to an external system. Today the only supported channel type is a webhook delivered via Svix.',
+  )
+
+export const createNotificationChannelRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    type: notificationChannelType,
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the channel is disabled. Disabled channels do not receive notification events.',
+      ),
+    url: z
+      .string()
+      .describe('The URL that webhook notification events are delivered to.'),
+    customHeaders: z
+      .record(z.string(), z.string())
+      .optional()
+
+      .describe(
+        'Custom HTTP headers to include on every webhook delivery request, keyed by header name.',
+      ),
+    signingSecret: z
+      .string()
+      .optional()
+
+      .describe(
+        'Secret used to sign outgoing webhook payloads so recipients can verify their authenticity. If omitted on create, a secret is generated automatically by the delivery provider. This is a sensitive credential returned in responses (unlike most secrets) specifically so clients can retrieve a server-generated value and verify webhook signatures; handle it with the same care as any other credential.',
+      ),
+  })
+  .describe('NotificationChannel create request.')
+
+export const updateNotificationChannelRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    type: notificationChannelType,
+    url: z
+      .string()
+      .describe('The URL that webhook notification events are delivered to.'),
+    labels: labels.optional(),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the channel is disabled. Disabled channels do not receive notification events.',
+      ),
+    customHeaders: z
+      .record(z.string(), z.string())
+      .optional()
+
+      .describe(
+        'Custom HTTP headers to include on every webhook delivery request, keyed by header name.',
+      ),
+    signingSecret: z
+      .string()
+      .optional()
+
+      .describe(
+        'Secret used to sign outgoing webhook payloads so recipients can verify their authenticity. If omitted on create, a secret is generated automatically by the delivery provider. This is a sensitive credential returned in responses (unlike most secrets) specifically so clients can retrieve a server-generated value and verify webhook signatures; handle it with the same care as any other credential.',
+      ),
+  })
+
+  .describe(
+    "Request body for updating a notification channel. Updates replace the channel's mutable state rather than merging it: `type`, `name`, and `url` must always be provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to their defaults (enabled, no labels, no custom headers). `signing_secret` is the one exception: omitting it keeps the channel's current signing secret instead of clearing the credential.",
+  )
+
 export const appCustomerData = z
   .object({
     stripe: appCustomerDataStripe.optional(),
@@ -3680,6 +3808,17 @@ export const listInvoicesParamsFilter = z
     createdAt: dateTimeFieldFilter.optional(),
   })
   .describe('Filter options for listing invoices.')
+
+export const listNotificationChannelsParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+    type: stringFieldFilterExact.optional(),
+    disabled: booleanFieldFilter.optional(),
+    createdAt: dateTimeFieldFilter.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
+  })
+  .describe('Filter options for listing notification channels.')
 
 export const resourceFilters = z
   .object({
@@ -4258,6 +4397,13 @@ export const entitlementFeatureAccess = z
     reason: entitlementFeatureAccessReason.optional(),
   })
   .describe('Access status for a single feature.')
+
+export const notificationChannelPagePaginatedResponse = z
+  .object({
+    data: z.array(notificationChannel),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
 
 export const customerData = z
   .object({
@@ -6920,6 +7066,49 @@ export const queryEntitlementAccessBody = entitlementAccessQueryRequest
 
 export const queryEntitlementAccessResponse = entitlementAccessQueryResponse
 
+export const listNotificationChannelsQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listNotificationChannelsParamsFilter.optional(),
+})
+
+export const listNotificationChannelsResponse = z.object({
+  data: z.array(notificationChannel),
+  meta: paginatedMeta,
+})
+
+export const createNotificationChannelBody = createNotificationChannelRequest
+
+export const createNotificationChannelResponse = notificationChannel
+
+export const getNotificationChannelPathParams = z.object({
+  notificationChannelId: ulid,
+})
+
+export const getNotificationChannelResponse = notificationChannel
+
+export const updateNotificationChannelPathParams = z.object({
+  notificationChannelId: ulid,
+})
+
+export const updateNotificationChannelBody = updateNotificationChannelRequest
+
+export const updateNotificationChannelResponse = notificationChannel
+
+export const deleteNotificationChannelPathParams = z.object({
+  notificationChannelId: ulid,
+})
+
 export const labelsWire = z
   .record(z.string(), z.string())
 
@@ -8061,6 +8250,24 @@ export const entitlementAccessQueryErrorCodeWire = z
   .enum(['unknown', 'customer_not_found'])
   .describe('Error code for an entitlement access query failure.')
 
+export const booleanFieldFilterWire = z
+  .union([
+    z.boolean(),
+    z.strictObject({
+      eq: z
+        .boolean()
+        .describe('Value strictly equals the given boolean value.'),
+    }),
+  ])
+  .describe('Filter by a boolean value (true/false).')
+
+export const notificationChannelTypeWire = z
+  .enum(['webhook'])
+
+  .describe(
+    'The type of a notification channel. Currently the only supported channel type is `webhook`; the domain model anticipates additional channel types (e.g. email, Slack) in the future, so this is modeled as an enum rather than a boolean/constant even though it has a single member today.',
+  )
+
 export const queryFilterIntegerWire = z
   .strictObject({
     eq: z
@@ -8207,17 +8414,6 @@ export const publicLabelsWire = z
   .describe(
     'Public labels store information about an entity that can be used for filtering a list of objects.',
   )
-
-export const booleanFieldFilterWire = z
-  .union([
-    z.boolean(),
-    z.strictObject({
-      eq: z
-        .boolean()
-        .describe('Value strictly equals the given boolean value.'),
-    }),
-  ])
-  .describe('Filter by a boolean value (true/false).')
 
 export const numericFieldFilterWire = z
   .union([
@@ -10116,6 +10312,124 @@ export const entitlementAccessQueryErrorWire = z
     'Query error within a partially successful entitlement access query response.',
   )
 
+export const notificationChannelWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: notificationChannelTypeWire,
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the channel is disabled. Disabled channels do not receive notification events.',
+      ),
+    url: z
+      .string()
+      .describe('The URL that webhook notification events are delivered to.'),
+    custom_headers: z
+      .record(z.string(), z.string())
+      .optional()
+
+      .describe(
+        'Custom HTTP headers to include on every webhook delivery request, keyed by header name.',
+      ),
+    signing_secret: z
+      .string()
+      .optional()
+
+      .describe(
+        'Secret used to sign outgoing webhook payloads so recipients can verify their authenticity. If omitted on create, a secret is generated automatically by the delivery provider. This is a sensitive credential returned in responses (unlike most secrets) specifically so clients can retrieve a server-generated value and verify webhook signatures; handle it with the same care as any other credential.',
+      ),
+  })
+
+  .describe(
+    'A notification channel delivers notification events, such as entitlement balance threshold crossings, to an external system. Today the only supported channel type is a webhook delivered via Svix.',
+  )
+
+export const createNotificationChannelRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    type: notificationChannelTypeWire,
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the channel is disabled. Disabled channels do not receive notification events.',
+      ),
+    url: z
+      .string()
+      .describe('The URL that webhook notification events are delivered to.'),
+    custom_headers: z
+      .record(z.string(), z.string())
+      .optional()
+
+      .describe(
+        'Custom HTTP headers to include on every webhook delivery request, keyed by header name.',
+      ),
+    signing_secret: z
+      .string()
+      .optional()
+
+      .describe(
+        'Secret used to sign outgoing webhook payloads so recipients can verify their authenticity. If omitted on create, a secret is generated automatically by the delivery provider. This is a sensitive credential returned in responses (unlike most secrets) specifically so clients can retrieve a server-generated value and verify webhook signatures; handle it with the same care as any other credential.',
+      ),
+  })
+  .describe('NotificationChannel create request.')
+
+export const updateNotificationChannelRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    type: notificationChannelTypeWire,
+    url: z
+      .string()
+      .describe('The URL that webhook notification events are delivered to.'),
+    labels: labelsWire.optional(),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the channel is disabled. Disabled channels do not receive notification events.',
+      ),
+    custom_headers: z
+      .record(z.string(), z.string())
+      .optional()
+
+      .describe(
+        'Custom HTTP headers to include on every webhook delivery request, keyed by header name.',
+      ),
+    signing_secret: z
+      .string()
+      .optional()
+
+      .describe(
+        'Secret used to sign outgoing webhook payloads so recipients can verify their authenticity. If omitted on create, a secret is generated automatically by the delivery provider. This is a sensitive credential returned in responses (unlike most secrets) specifically so clients can retrieve a server-generated value and verify webhook signatures; handle it with the same care as any other credential.',
+      ),
+  })
+
+  .describe(
+    "Request body for updating a notification channel. Updates replace the channel's mutable state rather than merging it: `type`, `name`, and `url` must always be provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to their defaults (enabled, no labels, no custom headers). `signing_secret` is the one exception: omitting it keeps the channel's current signing secret instead of clearing the credential.",
+  )
+
 export const appCustomerDataWire = z
   .strictObject({
     stripe: appCustomerDataStripeWire.optional(),
@@ -10574,6 +10888,17 @@ export const listInvoicesParamsFilterWire = z
     created_at: dateTimeFieldFilterWire.optional(),
   })
   .describe('Filter options for listing invoices.')
+
+export const listNotificationChannelsParamsFilterWire = z
+  .strictObject({
+    id: ulidFieldFilterWire.optional(),
+    name: stringFieldFilterWire.optional(),
+    type: stringFieldFilterExactWire.optional(),
+    disabled: booleanFieldFilterWire.optional(),
+    created_at: dateTimeFieldFilterWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing notification channels.')
 
 export const resourceFiltersWire = z
   .strictObject({
@@ -11154,6 +11479,13 @@ export const entitlementFeatureAccessWire = z
     reason: entitlementFeatureAccessReasonWire.optional(),
   })
   .describe('Access status for a single feature.')
+
+export const notificationChannelPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(notificationChannelWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
 
 export const customerDataWire = z
   .strictObject({
@@ -13894,3 +14226,54 @@ export const queryEntitlementAccessBodyWire = entitlementAccessQueryRequestWire
 
 export const queryEntitlementAccessResponseWire =
   entitlementAccessQueryResponseWire
+
+export const listNotificationChannelsQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort notification channels returned in the response. Supported sort attributes are: - `id` (default) - `type` - `created_at` - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listNotificationChannelsParamsFilterWire.optional(),
+})
+
+export const listNotificationChannelsResponseWire = z.strictObject({
+  data: z.array(notificationChannelWire),
+  meta: paginatedMetaWire,
+})
+
+export const createNotificationChannelBodyWire =
+  createNotificationChannelRequestWire
+
+export const createNotificationChannelResponseWire = notificationChannelWire
+
+export const getNotificationChannelPathParamsWire = z.object({
+  notificationChannelId: ulidWire,
+})
+
+export const getNotificationChannelResponseWire = notificationChannelWire
+
+export const updateNotificationChannelPathParamsWire = z.object({
+  notificationChannelId: ulidWire,
+})
+
+export const updateNotificationChannelBodyWire =
+  updateNotificationChannelRequestWire
+
+export const updateNotificationChannelResponseWire = notificationChannelWire
+
+export const deleteNotificationChannelPathParamsWire = z.object({
+  notificationChannelId: ulidWire,
+})
