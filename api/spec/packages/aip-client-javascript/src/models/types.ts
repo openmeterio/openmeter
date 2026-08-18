@@ -2608,6 +2608,16 @@ export interface ListAddonsParamsFilter {
   currency?: StringFieldFilterExact
 }
 
+/** Filter options for listing plan add-ons. */
+export interface ListPlanAddonsParamsFilter {
+  id?: UlidFieldFilter
+  planKey?: StringFieldFilter
+  addonId?: UlidFieldFilter
+  addonKey?: StringFieldFilter
+  addonName?: StringFieldFilter
+  planCurrency?: StringFieldFilter
+}
+
 /**
  * Tax configuration for a credit grant.
  *
