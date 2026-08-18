@@ -14,14 +14,32 @@ type AppsService struct {
 	client *Client
 }
 
+type AppFilter struct {
+	ID     *StringExactFilter
+	Name   *StringFilter
+	Type   *StringExactFilter
+	Status *StringExactFilter
+}
+
 type AppListParams struct {
-	Page *PageParams
+	Page   *PageParams
+	Sort   *Sort
+	Filter *AppFilter
 }
 
 func (p AppListParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
+
+	addSort(q, "sort", p.Sort)
+
+	if p.Filter != nil {
+		addStringExactFilter(q, "filter[id]", p.Filter.ID)
+		addStringFilter(q, "filter[name]", p.Filter.Name)
+		addStringExactFilter(q, "filter[type]", p.Filter.Type)
+		addStringExactFilter(q, "filter[status]", p.Filter.Status)
+	}
 
 	return q
 }

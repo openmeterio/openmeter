@@ -324,10 +324,9 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Apps
 
-| Method             | HTTP                          | Description           |
-| ------------------ | ----------------------------- | --------------------- |
-| `client.apps.list` | `GET /openmeter/apps`         | List installed apps.  |
-| `client.apps.get`  | `GET /openmeter/apps/{appId}` | Get an installed app. |
+| Method            | HTTP                          | Description           |
+| ----------------- | ----------------------------- | --------------------- |
+| `client.apps.get` | `GET /openmeter/apps/{appId}` | Get an installed app. |
 
 ### Billing
 
@@ -435,6 +434,7 @@ they can change or be removed without notice or semver consideration.
 
 | Method                                | HTTP                                   | Description                      |
 | ------------------------------------- | -------------------------------------- | -------------------------------- |
+| `client.internal.apps.list`           | `GET /openmeter/apps`                  | List installed apps.             |
 | `client.internal.apps.uninstall`      | `DELETE /openmeter/apps/{appId}`       | Uninstall an app by ID.          |
 | `client.internal.apps.update`         | `PUT /openmeter/apps/{appId}`          | Update an installed app.         |
 | `client.internal.apps.listCatalog`    | `GET /openmeter/app-catalog`           | List available apps.             |

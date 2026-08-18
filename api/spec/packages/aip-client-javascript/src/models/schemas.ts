@@ -3741,6 +3741,15 @@ export const listSubscriptionsParamsFilter = z
   })
   .describe('Filter options for listing subscriptions.')
 
+export const listAppsParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+    type: stringFieldFilterExact.optional(),
+    status: stringFieldFilterExact.optional(),
+  })
+  .describe('Filter options for listing apps.')
+
 export const listFeatureParamsFilter = z
   .object({
     meterId: ulidFieldFilter.optional(),
@@ -7219,6 +7228,8 @@ export const listAppsQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listAppsParamsFilter.optional(),
 })
 
 export const listAppsResponse = z.object({
@@ -11498,6 +11509,15 @@ export const listSubscriptionsParamsFilterWire = z
   })
   .describe('Filter options for listing subscriptions.')
 
+export const listAppsParamsFilterWire = z
+  .strictObject({
+    id: ulidFieldFilterWire.optional(),
+    name: stringFieldFilterWire.optional(),
+    type: stringFieldFilterExactWire.optional(),
+    status: stringFieldFilterExactWire.optional(),
+  })
+  .describe('Filter options for listing apps.')
+
 export const listFeatureParamsFilterWire = z
   .strictObject({
     meter_id: ulidFieldFilterWire.optional(),
@@ -15015,6 +15035,14 @@ export const listAppsQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort apps returned in the response. Supported sort attributes are: - `id` - `created_at` (default) The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listAppsParamsFilterWire.optional(),
 })
 
 export const listAppsResponseWire = z.strictObject({

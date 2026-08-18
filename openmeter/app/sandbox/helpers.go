@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -40,7 +41,7 @@ func AutoProvision(ctx context.Context, input AutoProvisionInput) (app.App, erro
 	// Get the sandbox app list
 	sandboxAppList, err := input.AppService.ListApps(ctx, app.ListAppInput{
 		Namespace: input.Namespace,
-		Type:      lo.ToPtr(app.AppTypeSandbox),
+		Type:      &filter.FilterString{Eq: lo.ToPtr(string(app.AppTypeSandbox))},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("cannot list apps: %w", err)

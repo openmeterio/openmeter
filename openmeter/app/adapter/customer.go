@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,7 +34,9 @@ func (a *adapter) ListCustomerData(ctx context.Context, input app.ListCustomerIn
 		Page:       input.Page,
 		Namespace:  input.CustomerID.Namespace,
 		CustomerID: &input.CustomerID,
-		Type:       input.Type,
+	}
+	if input.Type != nil {
+		listInput.Type = &filter.FilterString{Eq: lo.ToPtr(string(*input.Type))}
 	}
 
 	if input.AppID != nil {

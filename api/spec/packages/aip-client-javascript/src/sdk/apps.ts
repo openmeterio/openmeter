@@ -2,52 +2,14 @@
 
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import { paginatePages } from '../lib/paginate.js'
-import { listApps, getApp } from '../funcs/apps.js'
+import { getApp } from '../funcs/apps.js'
 import type {
-  ListAppsRequest,
-  ListAppsResponse,
   GetAppRequest,
   GetAppResponse,
 } from '../models/operations/apps.js'
-import type { App } from '../models/types.js'
 
 export class Apps {
   constructor(private readonly _client: Client) {}
-
-  /**
-   * List apps
-   *
-   * List installed apps.
-   *
-   * GET /openmeter/apps
-   */
-  async list(
-    request?: ListAppsRequest,
-    options?: RequestOptions,
-  ): Promise<ListAppsResponse> {
-    return unwrap(await listApps(this._client, request, options))
-  }
-
-  /**
-   * List apps
-   *
-   * List installed apps.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/apps
-   */
-  listAll(
-    request?: ListAppsRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<App> {
-    return paginatePages(
-      (req, opts) => listApps(this._client, req, opts),
-      request ?? {},
-      options,
-    )
-  }
 
   /**
    * Get app
