@@ -8213,12 +8213,16 @@ components:
         - id
         - created_at
         - updated_at
+        - name
+        - active_from
         - customer_id
         - invoice_currency
         - cost_basis_mode
         - cost_basis_pins
+        - billing_cadence
         - billing_anchor
         - status
+        - phases
       properties:
         id:
           allOf:
@@ -8241,6 +8245,37 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of entity deletion date.
           readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the subscription. Defaults to the plan name when the
+            subscription is created from a plan.
+          title: Name
+          readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the subscription.
+          title: Description
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of when the subscription became (or will
+            become) active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of when the subscription stops being
+            active. Open-ended when not set.
+          title: Active to
+          readOnly: true
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
@@ -8252,6 +8287,15 @@ components:
             - $ref: '#/components/schemas/ULID'
           description: The plan ID of the subscription. Set if subscription is created from a plan.
           title: Plan ID
+          deprecated: true
+          readOnly: true
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionPlanReference'
+          description: |-
+            The plan the subscription was created from, if any. Includes the plan key and
+            version so clients can resolve the exact plan revision.
+          title: Plan
           readOnly: true
         invoice_currency:
           allOf:
@@ -8274,6 +8318,21 @@ components:
             $ref: '#/components/schemas/BillingSubscriptionCostBasisPin'
           description: Cost bases pinned to custom-currency pairs for this subscription.
           title: Pinned cost bases
+          readOnly: true
+        billing_cadence:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The billing cadence of the subscription in ISO-8601 duration format. Defines how
+            often the customer is billed. Examples: `P1M` (monthly), `P3M` (quarterly),
+            `P1Y` (annually).
+          title: Billing cadence
+          readOnly: true
+        pro_rating_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionProRatingConfig'
+          description: The pro-rating configuration of the subscription.
+          title: Pro-rating configuration
           readOnly: true
         billing_anchor:
           allOf:
@@ -8306,6 +8365,23 @@ components:
             invoiced.
             - `credit_only`: Usage is settled exclusively against credits.
           title: Settlement Mode
+        current_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: |-
+            The current aligned billing period. Present only when the subscription is active
+            and aligned.
+          title: Current billing period
+          readOnly: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscriptionPhase'
+          description: |-
+            The phases of the subscription in chronological order. A phase groups the rate
+            cards that are in effect for a segment of the subscription's lifetime.
+          title: Phases
+          readOnly: true
       additionalProperties: false
       description: Subscription.
     BillingSubscriptionCancel:
@@ -8582,6 +8658,166 @@ components:
         Subscription edit timing. When immediate, the requested changes take effect
         immediately. When next_billing_cycle, the requested changes take effect at the
         next billing cycle.
+    BillingSubscriptionItem:
+      type: object
+      required:
+        - id
+        - active_from
+        - rate_card
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The unique identifier of the subscription item instance.
+          title: ID
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of when this item version becomes active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of when this item version stops being
+            active.
+          title: Active to
+          readOnly: true
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCard'
+          description: The rate card describing what the customer gets and pays for this item.
+          title: Rate card
+          readOnly: true
+      additionalProperties: false
+      description: A subscription item pins a rate card to a cadence within a subscription phase.
+    BillingSubscriptionPhase:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - key
+        - active_from
+        - items
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of when the phase becomes active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of when the phase stops being active.
+            Open-ended for the last phase.
+          title: Active to
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscriptionItem'
+          description: |-
+            The rate cards in effect for this phase, resolved to the version active at the
+            queried time (the currently active version for the current phase, the first
+            version for future phases, and the last version for past phases).
+          title: Items
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A subscription phase groups the rate cards in effect for a segment of the
+        subscription's lifetime. Analogous to plan phases.
+    BillingSubscriptionPlanReference:
+      type: object
+      required:
+        - id
+        - key
+        - version
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The plan ID (exact revision).
+          title: Plan ID
+          readOnly: true
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The plan key. References the plan across versions.
+          title: Plan key
+          readOnly: true
+        version:
+          type: integer
+          minimum: 1
+          description: The plan version.
+          title: Plan version
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A reference to the plan a subscription was created from, pinned to an exact
+        revision.
+    BillingSubscriptionProRatingConfig:
+      type: object
+      required:
+        - enabled
+        - mode
+      properties:
+        enabled:
+          type: boolean
+          description: Whether pro-rating is enabled.
+          title: Enabled
+          readOnly: true
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardProrationMode'
+          description: How pro-rating is calculated when enabled.
+          title: Mode
+          readOnly: true
+      additionalProperties: false
+      description: The pro-rating configuration of a subscription.
     BillingSubscriptionReference:
       type: object
       required:

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type QueryService interface {
@@ -14,8 +15,12 @@ type QueryService interface {
 	GetView(ctx context.Context, subscriptionID models.NamespacedID) (SubscriptionView, error)
 	// List lists the subscriptions matching the set criteria
 	List(ctx context.Context, params ListSubscriptionsInput) (SubscriptionList, error)
-	// ExpandViews expands the subscriptions to views
+	// ExpandViews expands the subscriptions to views. Supports subscriptions across
+	// multiple customers.
 	ExpandViews(ctx context.Context, subs []Subscription) ([]SubscriptionView, error)
+	// ListViews lists the subscriptions matching the set criteria, expanded to full
+	// views, in the same order and with the same total count as List.
+	ListViews(ctx context.Context, params ListSubscriptionsInput) (pagination.Result[SubscriptionView], error)
 }
 
 type CommandService interface {

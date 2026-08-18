@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -21,6 +22,7 @@ type MockService struct {
 	GetViewFn           func(ctx context.Context, subscriptionID models.NamespacedID) (subscription.SubscriptionView, error)
 	ListFn              func(ctx context.Context, params subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
 	ExpandViewsFn       func(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error)
+	ListViewsFn         func(ctx context.Context, params subscription.ListSubscriptionsInput) (pagination.Result[subscription.SubscriptionView], error)
 	GetAllForCustomerFn func(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error)
 	Hooks               []subscription.SubscriptionCommandHook
 }
@@ -75,6 +77,10 @@ func (s *MockService) List(ctx context.Context, params subscription.ListSubscrip
 
 func (s *MockService) ExpandViews(ctx context.Context, subs []subscription.Subscription) ([]subscription.SubscriptionView, error) {
 	return s.ExpandViewsFn(ctx, subs)
+}
+
+func (s *MockService) ListViews(ctx context.Context, params subscription.ListSubscriptionsInput) (pagination.Result[subscription.SubscriptionView], error) {
+	return s.ListViewsFn(ctx, params)
 }
 
 func (s *MockService) GetAllForCustomer(ctx context.Context, customerID models.NamespacedID, period timeutil.StartBoundedPeriod) ([]subscription.Subscription, error) {

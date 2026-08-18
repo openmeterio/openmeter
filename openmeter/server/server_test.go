@@ -1689,6 +1689,10 @@ func (n NoopSubscriptionService) ExpandViews(ctx context.Context, subs []subscri
 	return []subscription.SubscriptionView{}, nil
 }
 
+func (n NoopSubscriptionService) ListViews(ctx context.Context, params subscription.ListSubscriptionsInput) (pagination.Result[subscription.SubscriptionView], error) {
+	return pagination.Result[subscription.SubscriptionView]{}, nil
+}
+
 var _ subscriptionworkflow.Service = (*NoopSubscriptionWorkflowService)(nil)
 
 // NoopSubscriptionWorkflowService implements subscriptionworkflow.Service with no-op operations

@@ -893,13 +893,13 @@ export interface SubscriptionCostBasisPin {
   costBasisId: string
 }
 
-/** Addon reference. */
-export interface AddonReference {
+/** Feature reference. */
+export interface FeatureReference {
   id: string
 }
 
-/** Feature reference. */
-export interface FeatureReference {
+/** Addon reference. */
+export interface AddonReference {
   id: string
 }
 
@@ -1363,6 +1363,19 @@ export interface CreditGrantFilters {
    * credit grant can be used for any feature.
    */
   features?: string[]
+}
+
+/**
+ * A reference to the plan a subscription was created from, pinned to an exact
+ * revision.
+ */
+export interface SubscriptionPlanReference {
+  /** The plan ID (exact revision). */
+  id: string
+  /** The plan key. References the plan across versions. */
+  key: string
+  /** The plan version. */
+  version: number
 }
 
 /** PlanAddon upsert request. */
@@ -1900,6 +1913,14 @@ export interface VoidCreditGrantRequest {
 /** The proration configuration of the rate card. */
 export interface RateCardProrationConfiguration {
   /** The proration mode of the rate card. */
+  mode: 'no_proration' | 'prorate_prices'
+}
+
+/** The pro-rating configuration of a subscription. */
+export interface SubscriptionProRatingConfig {
+  /** Whether pro-rating is enabled. */
+  enabled: boolean
+  /** How pro-rating is calculated when enabled. */
   mode: 'no_proration' | 'prorate_prices'
 }
 
@@ -2667,53 +2688,6 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   invoicingTaxCode?: TaxCodeReference
   /** Default tax code for credit grants. */
   creditGrantTaxCode?: TaxCodeReference
-}
-
-/** Subscription. */
-export interface Subscription {
-  id: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The customer ID of the subscription. */
-  customerId: string
-  /** The plan ID of the subscription. Set if subscription is created from a plan. */
-  planId?: string
-  /** The fiat currency in which the subscription is invoiced. */
-  invoiceCurrency: string
-  /**
-   * Controls whether custom-currency cost bases are resolved dynamically or pinned
-   * when their currency pair is introduced to the subscription.
-   */
-  costBasisMode: 'dynamic' | 'pinned'
-  /** Cost bases pinned to custom-currency pairs for this subscription. */
-  costBasisPins: SubscriptionCostBasisPin[]
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   */
-  billingAnchor: Date
-  /** The status of the subscription. */
-  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
 }
 
 /**
@@ -3724,20 +3698,6 @@ export interface WorkflowTaxSettings {
    * and `behavior` remains fully supported.
    */
   defaultTaxConfig?: TaxConfig
-}
-
-/** Page paginated response. */
-export interface SubscriptionPagePaginatedResponse {
-  data: Subscription[]
-  meta: PaginatedMeta
-}
-
-/** Response for changing a subscription. */
-export interface SubscriptionChangeResponse {
-  /** The current subscription before the change. */
-  current: Subscription
-  /** The new state of the subscription after the change. */
-  next: Subscription
 }
 
 /** Page paginated response. */
@@ -4758,6 +4718,21 @@ export interface ChargeUsageBased {
   systemIntent?: ChargeUsageBasedSystemIntent
 }
 
+/** A subscription item pins a rate card to a cadence within a subscription phase. */
+export interface SubscriptionItem {
+  /** The unique identifier of the subscription item instance. */
+  id: string
+  /** An ISO-8601 timestamp representation of when this item version becomes active. */
+  activeFrom: Date
+  /**
+   * An ISO-8601 timestamp representation of when this item version stops being
+   * active.
+   */
+  activeTo?: Date
+  /** The rate card describing what the customer gets and pays for this item. */
+  rateCard: RateCard
+}
+
 /** A rate card for a subscription add-on. */
 export interface SubscriptionAddonRateCard {
   /** The rate card. */
@@ -5119,6 +5094,47 @@ export interface UpsertBillingProfileRequest {
   default: boolean
 }
 
+/**
+ * A subscription phase groups the rate cards in effect for a segment of the
+ * subscription's lifetime. Analogous to plan phases.
+ */
+export interface SubscriptionPhase {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  key: string
+  /** An ISO-8601 timestamp representation of when the phase becomes active. */
+  activeFrom: Date
+  /**
+   * An ISO-8601 timestamp representation of when the phase stops being active.
+   * Open-ended for the last phase.
+   */
+  activeTo?: Date
+  /**
+   * The rate cards in effect for this phase, resolved to the version active at the
+   * queried time (the currently active version for the current phase, the first
+   * version for future phases, and the last version for past phases).
+   */
+  items: SubscriptionItem[]
+}
+
 /** Addon purchased with a subscription. */
 export interface SubscriptionAddon {
   id: string
@@ -5317,6 +5333,93 @@ export interface ChargePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/** Subscription. */
+export interface Subscription {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /**
+   * Display name of the subscription. Defaults to the plan name when the
+   * subscription is created from a plan.
+   */
+  name: string
+  /** Optional description of the subscription. */
+  description?: string
+  /**
+   * An ISO-8601 timestamp representation of when the subscription became (or will
+   * become) active.
+   */
+  activeFrom: Date
+  /**
+   * An ISO-8601 timestamp representation of when the subscription stops being
+   * active. Open-ended when not set.
+   */
+  activeTo?: Date
+  /** The customer ID of the subscription. */
+  customerId: string
+  /** The plan ID of the subscription. Set if subscription is created from a plan. */
+  planId?: string
+  /**
+   * The plan the subscription was created from, if any. Includes the plan key and
+   * version so clients can resolve the exact plan revision.
+   */
+  plan?: SubscriptionPlanReference
+  /** The fiat currency in which the subscription is invoiced. */
+  invoiceCurrency: string
+  /**
+   * Controls whether custom-currency cost bases are resolved dynamically or pinned
+   * when their currency pair is introduced to the subscription.
+   */
+  costBasisMode: 'dynamic' | 'pinned'
+  /** Cost bases pinned to custom-currency pairs for this subscription. */
+  costBasisPins: SubscriptionCostBasisPin[]
+  /**
+   * The billing cadence of the subscription in ISO-8601 duration format. Defines how
+   * often the customer is billed. Examples: `P1M` (monthly), `P3M` (quarterly),
+   * `P1Y` (annually).
+   */
+  billingCadence: string
+  /** The pro-rating configuration of the subscription. */
+  proRatingConfig?: SubscriptionProRatingConfig
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   */
+  billingAnchor: Date
+  /** The status of the subscription. */
+  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /**
+   * The current aligned billing period. Present only when the subscription is active
+   * and aligned.
+   */
+  currentPeriod?: ClosedPeriod
+  /**
+   * The phases of the subscription in chronological order. A phase groups the rate
+   * cards that are in effect for a segment of the subscription's lifetime.
+   */
+  phases: SubscriptionPhase[]
+}
+
 /** Page paginated response. */
 export interface SubscriptionAddonPagePaginatedResponse {
   data: SubscriptionAddon[]
@@ -5449,6 +5552,20 @@ export interface UpdateInvoiceStandardRequest {
    * and cannot be edited directly.
    */
   lines?: UpdateInvoiceLine[]
+}
+
+/** Page paginated response. */
+export interface SubscriptionPagePaginatedResponse {
+  data: Subscription[]
+  meta: PaginatedMeta
+}
+
+/** Response for changing a subscription. */
+export interface SubscriptionChangeResponse {
+  /** The current subscription before the change. */
+  current: Subscription
+  /** The new state of the subscription after the change. */
+  next: Subscription
 }
 
 /** Page paginated response. */
@@ -6028,53 +6145,6 @@ export interface EntitlementAccessQueryRequestInput {
   feature?: EntitlementAccessQueryRequestFeatures
 }
 
-/** Subscription. */
-export interface SubscriptionInput {
-  id: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The customer ID of the subscription. */
-  customerId: string
-  /** The plan ID of the subscription. Set if subscription is created from a plan. */
-  planId?: string
-  /** The fiat currency in which the subscription is invoiced. */
-  invoiceCurrency: string
-  /**
-   * Controls whether custom-currency cost bases are resolved dynamically or pinned
-   * when their currency pair is introduced to the subscription.
-   */
-  costBasisMode?: 'dynamic' | 'pinned'
-  /** Cost bases pinned to custom-currency pairs for this subscription. */
-  costBasisPins: SubscriptionCostBasisPin[]
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   */
-  billingAnchor: Date
-  /** The status of the subscription. */
-  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-}
-
 /** An ingested metering event with ingestion metadata. */
 export interface IngestedEventInput {
   /** The original event ingested. */
@@ -6318,20 +6388,6 @@ export interface WorkflowTaxSettingsInput {
    * and `behavior` remains fully supported.
    */
   defaultTaxConfig?: TaxConfig
-}
-
-/** Page paginated response. */
-export interface SubscriptionPagePaginatedResponseInput {
-  data: SubscriptionInput[]
-  meta: PaginatedMeta
-}
-
-/** Response for changing a subscription. */
-export interface SubscriptionChangeResponseInput {
-  /** The current subscription before the change. */
-  current: SubscriptionInput
-  /** The new state of the subscription after the change. */
-  next: SubscriptionInput
 }
 
 /** Cursor paginated response. */
@@ -6669,6 +6725,21 @@ export interface WorkflowInput {
   tax?: WorkflowTaxSettingsInput
 }
 
+/** A subscription item pins a rate card to a cadence within a subscription phase. */
+export interface SubscriptionItemInput {
+  /** The unique identifier of the subscription item instance. */
+  id: string
+  /** An ISO-8601 timestamp representation of when this item version becomes active. */
+  activeFrom: Date
+  /**
+   * An ISO-8601 timestamp representation of when this item version stops being
+   * active.
+   */
+  activeTo?: Date
+  /** The rate card describing what the customer gets and pays for this item. */
+  rateCard: RateCardInput
+}
+
 /** A rate card for a subscription add-on. */
 export interface SubscriptionAddonRateCardInput {
   /** The rate card. */
@@ -6987,6 +7058,47 @@ export interface UpsertBillingProfileRequestInput {
   default: boolean
 }
 
+/**
+ * A subscription phase groups the rate cards in effect for a segment of the
+ * subscription's lifetime. Analogous to plan phases.
+ */
+export interface SubscriptionPhaseInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  key: string
+  /** An ISO-8601 timestamp representation of when the phase becomes active. */
+  activeFrom: Date
+  /**
+   * An ISO-8601 timestamp representation of when the phase stops being active.
+   * Open-ended for the last phase.
+   */
+  activeTo?: Date
+  /**
+   * The rate cards in effect for this phase, resolved to the version active at the
+   * queried time (the currently active version for the current phase, the first
+   * version for future phases, and the last version for past phases).
+   */
+  items: SubscriptionItemInput[]
+}
+
 /** Addon purchased with a subscription. */
 export interface SubscriptionAddonInput {
   id: string
@@ -7179,6 +7291,93 @@ export interface ProfilePagePaginatedResponseInput {
   meta: PaginatedMeta
 }
 
+/** Subscription. */
+export interface SubscriptionInput {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /**
+   * Display name of the subscription. Defaults to the plan name when the
+   * subscription is created from a plan.
+   */
+  name: string
+  /** Optional description of the subscription. */
+  description?: string
+  /**
+   * An ISO-8601 timestamp representation of when the subscription became (or will
+   * become) active.
+   */
+  activeFrom: Date
+  /**
+   * An ISO-8601 timestamp representation of when the subscription stops being
+   * active. Open-ended when not set.
+   */
+  activeTo?: Date
+  /** The customer ID of the subscription. */
+  customerId: string
+  /** The plan ID of the subscription. Set if subscription is created from a plan. */
+  planId?: string
+  /**
+   * The plan the subscription was created from, if any. Includes the plan key and
+   * version so clients can resolve the exact plan revision.
+   */
+  plan?: SubscriptionPlanReference
+  /** The fiat currency in which the subscription is invoiced. */
+  invoiceCurrency: string
+  /**
+   * Controls whether custom-currency cost bases are resolved dynamically or pinned
+   * when their currency pair is introduced to the subscription.
+   */
+  costBasisMode?: 'dynamic' | 'pinned'
+  /** Cost bases pinned to custom-currency pairs for this subscription. */
+  costBasisPins: SubscriptionCostBasisPin[]
+  /**
+   * The billing cadence of the subscription in ISO-8601 duration format. Defines how
+   * often the customer is billed. Examples: `P1M` (monthly), `P3M` (quarterly),
+   * `P1Y` (annually).
+   */
+  billingCadence: string
+  /** The pro-rating configuration of the subscription. */
+  proRatingConfig?: SubscriptionProRatingConfig
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   */
+  billingAnchor: Date
+  /** The status of the subscription. */
+  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /**
+   * The current aligned billing period. Present only when the subscription is active
+   * and aligned.
+   */
+  currentPeriod?: ClosedPeriod
+  /**
+   * The phases of the subscription in chronological order. A phase groups the rate
+   * cards that are in effect for a segment of the subscription's lifetime.
+   */
+  phases: SubscriptionPhaseInput[]
+}
+
 /** Page paginated response. */
 export interface SubscriptionAddonPagePaginatedResponseInput {
   data: SubscriptionAddonInput[]
@@ -7311,6 +7510,20 @@ export interface UpdateInvoiceStandardRequestInput {
    * and cannot be edited directly.
    */
   lines?: UpdateInvoiceLine[]
+}
+
+/** Page paginated response. */
+export interface SubscriptionPagePaginatedResponseInput {
+  data: SubscriptionInput[]
+  meta: PaginatedMeta
+}
+
+/** Response for changing a subscription. */
+export interface SubscriptionChangeResponseInput {
+  /** The current subscription before the change. */
+  current: SubscriptionInput
+  /** The new state of the subscription after the change. */
+  next: SubscriptionInput
 }
 
 /** Page paginated response. */

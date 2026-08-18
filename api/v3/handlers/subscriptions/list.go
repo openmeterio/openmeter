@@ -120,14 +120,23 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListSubscriptionsRequest) (ListSubscriptionsResponse, error) {
-			resp, err := h.subscriptionService.List(ctx, request)
+			// Every subscription surfaces its phases, so the list is resolved to full
+			// views. ListViews batches the expansion (multi-customer aware) and keeps
+			// List's order and total count.
+			resp, err := h.subscriptionService.ListViews(ctx, request)
 			if err != nil {
 				return ListSubscriptionsResponse{}, err
 			}
 
-			subscriptions := lo.Map(resp.Items, func(item subscription.Subscription, _ int) api.BillingSubscription {
-				return ToAPIBillingSubscription(item)
-			})
+			subscriptions := make([]api.BillingSubscription, 0, len(resp.Items))
+			for _, view := range resp.Items {
+				sub, err := ToAPIBillingSubscription(view)
+				if err != nil {
+					return ListSubscriptionsResponse{}, err
+				}
+
+				subscriptions = append(subscriptions, sub)
+			}
 
 			r := response.NewPagePaginationResponse(subscriptions, response.PageMetaPage{
 				Size:   request.Page.PageSize,

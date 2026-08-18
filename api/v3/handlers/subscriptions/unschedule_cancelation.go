@@ -37,7 +37,12 @@ func (h *handler) UnscheduleCancelation() UnscheduleCancelationHandler {
 				return UnscheduleCancelationResponse{}, err
 			}
 
-			return ToAPIBillingSubscription(sub), nil
+			view, err := h.subscriptionService.GetView(ctx, sub.NamespacedID)
+			if err != nil {
+				return UnscheduleCancelationResponse{}, err
+			}
+
+			return ToAPIBillingSubscription(view)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UnscheduleCancelationResponse](http.StatusOK),
 		httptransport.AppendOptions(

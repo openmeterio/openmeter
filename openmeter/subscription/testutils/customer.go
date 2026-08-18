@@ -97,6 +97,37 @@ func (a *testCustomerRepo) CreateExampleCustomer(t *testing.T) *customer.Custome
 	return c
 }
 
+// CreateExampleCustomerWithSubject creates a distinct example customer (its own name,
+// email, and usage-attribution subject) so tests can exercise multi-customer paths.
+func (a *testCustomerRepo) CreateExampleCustomerWithSubject(t *testing.T, name, subjectKey string) *customer.Customer {
+	t.Helper()
+
+	ctx := t.Context()
+
+	_, err := a.subjectService.Create(ctx, subject.CreateInput{
+		Namespace: ExampleNamespace,
+		Key:       subjectKey,
+	})
+	if err != nil {
+		t.Fatalf("failed to create subject %s: %v", subjectKey, err)
+	}
+
+	c, err := a.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: ExampleNamespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name:             name,
+			PrimaryEmail:     lo.ToPtr(subjectKey + "@me.uk"),
+			Currency:         lo.ToPtr(currencyx.Code("USD")),
+			UsageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{subjectKey}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create customer %s: %v", name, err)
+	}
+
+	return c
+}
+
 var ExampleCustomerEntity customer.Customer = customer.Customer{
 	ManagedResource: models.ManagedResource{
 		Name: "John Doe",
