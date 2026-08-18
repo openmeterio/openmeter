@@ -17,6 +17,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -573,7 +574,7 @@ func (e *fileExporter) Export(ctx context.Context, logs []sdklog.Record) error {
 		}
 
 		attrs := make([]any, 0, record.AttributesLen()*2)
-		record.WalkAttributes(func(attr log.KeyValue) bool {
+		record.WalkAttributes(func(attr attribute.KeyValue) bool {
 			attrs = append(attrs, attr.Key, attr.Value.AsString())
 			return true
 		})
