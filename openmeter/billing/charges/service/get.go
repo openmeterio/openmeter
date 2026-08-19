@@ -69,28 +69,36 @@ func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, 
 		}
 	}
 
+	// The typed loads run outside the search transaction, so the searched IDs
+	// are a snapshot: a charge deleted in between is tolerated (AllowMissing)
+	// and dropped from the result instead of failing the whole read.
+	// ListCharges keeps serving the rest of the page, and GetByID maps an
+	// empty result to its not-found error.
 	usageBased, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
-		Namespace: namespace,
-		IDs:       chargesByType[meta.ChargeTypeUsageBased],
-		Expands:   expands,
+		Namespace:    namespace,
+		IDs:          chargesByType[meta.ChargeTypeUsageBased],
+		Expands:      expands,
+		AllowMissing: true,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	flatFees, err := s.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
-		Namespace: namespace,
-		IDs:       chargesByType[meta.ChargeTypeFlatFee],
-		Expands:   expands,
+		Namespace:    namespace,
+		IDs:          chargesByType[meta.ChargeTypeFlatFee],
+		Expands:      expands,
+		AllowMissing: true,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	creditPurchases, err := s.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
-		Namespace: namespace,
-		IDs:       chargesByType[meta.ChargeTypeCreditPurchase],
-		Expands:   expands,
+		Namespace:    namespace,
+		IDs:          chargesByType[meta.ChargeTypeCreditPurchase],
+		Expands:      expands,
+		AllowMissing: true,
 	})
 	if err != nil {
 		return nil, err
@@ -108,12 +116,17 @@ func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, 
 		}),
 	)
 
-	return entutils.InIDOrder(
-		namespace,
-		lo.Map(
-			chargesItems,
-			func(charge charges.ChargeSearchItem, _ int) string {
-				return charge.ID.ID
-			},
-		), out)
+	// AllowMissing may have dropped vanished charges from the typed loads, so
+	// the ordering set is narrowed to the IDs actually loaded.
+	loadedIDs := make(map[string]struct{}, len(out))
+	for _, charge := range out {
+		loadedIDs[charge.GetID()] = struct{}{}
+	}
+
+	orderedIDs := lo.FilterMap(chargesItems, func(charge charges.ChargeSearchItem, _ int) (string, bool) {
+		_, ok := loadedIDs[charge.ID.ID]
+		return charge.ID.ID, ok
+	})
+
+	return entutils.InIDOrder(namespace, orderedIDs, out)
 }
