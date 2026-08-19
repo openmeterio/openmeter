@@ -105,6 +105,46 @@ func TestRateCardMetaCloneDeepCopiesCurrency(t *testing.T) {
 	require.Equal(t, "currency-1", resolved.ID)
 }
 
+func TestValidateRateCardsWithResolvedFeatures(t *testing.T) {
+	featureID := "feature-id"
+	featureKey := "feature-key"
+	resolvedReference := feature.Feature{ID: featureID, Key: featureKey}.Reference()
+
+	tests := []struct {
+		name      string
+		reference *FeatureReference
+		wantError bool
+	}{
+		{name: "featureless rate card"},
+		{name: "unresolved partial reference", reference: NewFeatureReference(&featureID, nil), wantError: true},
+		{name: "unresolved complete reference", reference: NewFeatureReference(&featureID, &featureKey), wantError: true},
+		{name: "resolved reference", reference: &resolvedReference},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a rate card whose optional feature reference may or may not be sideloaded
+			rateCards := RateCards{&FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Key:     "rate-card",
+					Feature: tt.reference,
+				},
+			}}
+
+			// when: the service loading contract is validated
+			err := rateCards.ValidateWith(ValidateRateCardsWithResolvedFeatures())
+
+			// then: only feature references carrying their resolved feature are accepted
+			if tt.wantError {
+				require.ErrorContains(t, err, "feature reference must be resolved")
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestFlatFeeRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		tests := []struct {

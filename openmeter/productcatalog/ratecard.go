@@ -838,6 +838,35 @@ func ValidateRateCards() models.ValidatorFunc[RateCards] {
 	}
 }
 
+// ValidateRateCardsWithResolvedFeatures verifies that every feature reference
+// has its feature representation sideloaded. Service operations that copy
+// persisted rate cards use this to guard the repository loading contract.
+func ValidateRateCardsWithResolvedFeatures() models.ValidatorFunc[RateCards] {
+	return func(rateCards RateCards) error {
+		var errs []error
+
+		for _, rateCard := range rateCards {
+			featureReference := rateCard.AsMeta().Feature
+			if featureReference == nil || featureReference.IsResolved() {
+				continue
+			}
+
+			fieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("rateCards").WithExpression(
+					models.NewFieldAttrValue("key", rateCard.Key()),
+				),
+			)
+
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				fieldSelector,
+				errors.New("feature reference must be resolved"),
+			))
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
 func (c RateCards) Validate() error {
 	return c.ValidateWith(ValidateRateCards())
 }

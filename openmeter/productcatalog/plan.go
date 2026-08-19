@@ -449,6 +449,28 @@ func (p PlanMeta) StatusAt(t time.Time) PlanStatus {
 	return PlanStatusInvalid
 }
 
+// ValidatePlanWithResolvedFeatures verifies that feature references in every
+// phase have their feature representations sideloaded.
+func ValidatePlanWithResolvedFeatures() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		var errs []error
+
+		for _, phase := range p.Phases {
+			phaseFieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("phases").WithExpression(
+					models.NewFieldAttrValue("key", phase.Key),
+				),
+			)
+
+			if err := ValidateRateCardsWithResolvedFeatures()(phase.RateCards); err != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, err))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
 func ValidatePlanWithFeatures(ctx context.Context, resolver NamespacedFeatureResolver) models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		var errs []error

@@ -749,6 +749,10 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 			)
 		}
 
+		if err := sourceAddon.AsProductCatalogAddon().ValidateWith(productcatalog.ValidateAddonWithResolvedFeatures()); err != nil {
+			return nil, fmt.Errorf("source add-on has unresolved feature references: %w", err)
+		}
+
 		if params.RejectUnrepresentableCurrencies {
 			if sourceAddon.Currency.IsCustom() {
 				return nil, productcatalog.ErrCurrencyNotRepresentable
@@ -758,18 +762,16 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 			}
 		}
 
+		nextAddonMeta := sourceAddon.AddonMeta
+		nextAddonMeta.EffectivePeriod = productcatalog.EffectivePeriod{}
+		nextAddonMeta.Version = nextVersion
+
 		nextAddon, err := s.adapter.CreateAddon(ctx, addon.CreateAddonInput{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: sourceAddon.Namespace,
 			},
 			Addon: productcatalog.Addon{
-				AddonMeta: productcatalog.AddonMeta{
-					Key:         sourceAddon.Key,
-					Version:     nextVersion,
-					Name:        sourceAddon.Name,
-					Description: sourceAddon.Description,
-					Currency:    sourceAddon.Currency,
-				},
+				AddonMeta: nextAddonMeta,
 				RateCards: sourceAddon.RateCards.AsProductCatalogRateCards(),
 			},
 		})

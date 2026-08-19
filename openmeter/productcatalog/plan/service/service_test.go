@@ -731,7 +731,9 @@ func TestPlanService(t *testing.T) {
 			var planV3 *plan.Plan
 
 			t.Run("V3", func(t *testing.T) {
-				planV3, err = env.Plan.CreatePlan(ctx, planInput)
+				planV3, err = env.Plan.NextPlan(ctx, plan.NextPlanInput{
+					NamespacedID: publishedPlanV2.NamespacedID,
+				})
 				require.NoErrorf(t, err, "creating a new draft Plan from active must not fail")
 				require.NotNil(t, planV3, "new draft Plan must not be empty")
 
@@ -739,6 +741,8 @@ func TestPlanService(t *testing.T) {
 
 				assert.Equalf(t, productcatalog.PlanStatusDraft, planV3.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, planV3.Status())
+
+				plan.AssertPlanEqual(t, *publishedPlanV2, *planV3)
 
 				t.Run("Addon", func(t *testing.T) {
 					var planAddonV3 *planaddon.PlanAddon

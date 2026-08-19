@@ -333,6 +333,7 @@ func TestAddonService(t *testing.T) {
 			})
 
 			var addonV2 *addon.Addon
+			var addonV3 *addon.Addon
 
 			t.Run("V2", func(t *testing.T) {
 				addonV2, err = env.Addon.CreateAddon(ctx, addonV1Input)
@@ -435,6 +436,22 @@ func TestAddonService(t *testing.T) {
 
 					assert.Equalf(t, productcatalog.AddonStatusArchived, getAddonV1.Status(),
 						"add Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusArchived, getAddonV1.Status())
+
+					t.Run("V3", func(t *testing.T) {
+						addonV3, err = env.Addon.NextAddon(ctx, addon.NextAddonInput{
+							NamespacedID: models.NamespacedID{Namespace: publishedAddonV2.Namespace},
+							Key:          publishedAddonV2.Key,
+						})
+						require.NoErrorf(t, err, "creating a new draft add-on from active must not fail")
+						require.NotNil(t, addonV3, "new draft add-on must not be empty")
+
+						assert.Equalf(t, publishedAddonV2.Version+1, addonV3.Version,
+							"new draft add-on must have higher version number")
+						assert.Equalf(t, productcatalog.AddonStatusDraft, addonV3.Status(),
+							"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusDraft, addonV3.Status())
+						assert.Equal(t, publishedAddonV2.InstanceType, addonV3.InstanceType)
+						addon.AssertAddonEqual(t, *publishedAddonV2, *addonV3)
+					})
 
 					t.Run("Archive", func(t *testing.T) {
 						archiveAt := time.Now().Truncate(time.Microsecond)

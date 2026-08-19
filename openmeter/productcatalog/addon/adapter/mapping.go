@@ -483,9 +483,6 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 	}
 
 	if meta.Feature != nil {
-		if err := meta.Feature.Validate(); err != nil {
-			return entdb.AddonRateCard{}, fmt.Errorf("invalid feature reference for persistence: %w", err)
-		}
 		ratecard.FeatureKey = meta.Feature.Key
 		ratecard.FeatureID = meta.Feature.ID
 	}
