@@ -688,9 +688,12 @@ func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invo
 	assert.Equal(t, line.Description, charge.Description)
 	assert.Equal(t, "USD", charge.Currency)
 	assert.Equal(t, flatInvoiceLineAmount(t, line), charge.AmountAfterProration.Amount)
-	feature, err := charge.Feature.AsFeature()
-	require.NoError(t, err)
-	assert.Equal(t, lo.FromPtr(line.FeatureKey), feature.Key)
+	if line.FeatureKey != nil {
+		require.NotNil(t, charge.Feature)
+		feature, err := charge.Feature.AsFeature()
+		require.NoError(t, err)
+		assert.Equal(t, lo.FromPtr(line.FeatureKey), feature.Key)
+	}
 	assert.Equal(t, line.InvoiceAt, charge.InvoiceAt)
 	assert.Equal(t, line.Period.From, charge.ServicePeriod.From, "service period from")
 	assert.Equal(t, line.Period.To, charge.ServicePeriod.To, "service period to")

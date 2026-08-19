@@ -204,6 +204,6 @@ func TestConvertChargeToAPIReadsFeatureIDFromState(t *testing.T) {
 		assert.NoError(t, err)
 		featureRef, err := out.Feature.AsFeatureReference()
 		assert.NoError(t, err)
-		assert.Equal(t, "usage-feature-version-id", featureRef.Id)
+		assert.Equal(t, "flat-fee-feature-version-id", featureRef.Id)
 	})
 }
