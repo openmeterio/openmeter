@@ -76,7 +76,7 @@ func TestPlanSerialization(t *testing.T) {
 								Metadata: models.Metadata{
 									"key3": "value3",
 								},
-								Feature: productcatalog.NewFeatureReference(lo.ToPtr("feature-1"), lo.ToPtr("feature-1")),
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr("feature-id-1"), lo.ToPtr("feature-key-1")),
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(1000),
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
