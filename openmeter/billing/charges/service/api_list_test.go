@@ -249,6 +249,27 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		s.Empty(result.Charges.Items)
 	})
 
+	s.Run("charges vanishing between search and typed loads are dropped", func() {
+		// given:
+		// - a search snapshot referencing the real charge and one whose typed
+		//   row no longer exists (a charge deleted between the search
+		//   transaction and the typed loads)
+		// then:
+		// - the vanished charge is dropped instead of failing the whole read
+		realID, err := created[0].GetChargeID()
+		require.NoError(s.T(), err)
+
+		items := charges.ChargeSearchItems{
+			{ID: realID, Type: created[0].Type(), CustomerID: cust.ID},
+			{ID: meta.ChargeID{Namespace: namespace, ID: ulid.Make().String()}, Type: meta.ChargeTypeUsageBased, CustomerID: cust.ID},
+		}
+
+		out, err := s.Charges.expandChargesWithTypes(ctx, namespace, items, meta.ExpandNone)
+		require.NoError(s.T(), err)
+		require.Len(s.T(), out, 1)
+		s.Equal(created[0].GetID(), out[0].GetID())
+	})
+
 	s.Run("deleted customers still expand", func() {
 		// given:
 		// - the charge's customer is deleted after the charge was created
