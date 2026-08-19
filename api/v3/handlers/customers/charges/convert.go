@@ -11,7 +11,6 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
@@ -33,7 +32,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -54,46 +52,6 @@ func FromAPICustomerChargesSortField(ctx context.Context, field string) (string,
 
 // ConvertMetadataToLabels converts domain metadata to API labels.
 var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
-
-// convertAPIServicePeriodFromFilter converts the wire service_period_from
-// filter, accepting only the gte operator. Service-period window queries are
-// half-open — [from, to) — so the from bound is inclusive; every other
-// operator is rejected instead of silently querying with semantics the wire
-// contract does not promise. A nil or empty filter means no filtering.
-func convertAPIServicePeriodFromFilter(f *filters.FilterDateTime) (*filter.FilterTime, error) {
-	if f == nil {
-		return nil, nil
-	}
-
-	if f.Eq != nil || f.Gt != nil || f.Lt != nil || f.Lte != nil {
-		return nil, errors.New("service_period_from filter supports only the gte operator")
-	}
-
-	if f.Gte == nil {
-		return nil, nil
-	}
-
-	return &filter.FilterTime{Gte: f.Gte}, nil
-}
-
-// convertAPIServicePeriodToFilter converts the wire service_period_to filter,
-// accepting only the lt operator: the exclusive end of the half-open
-// [from, to) service-period window. A nil or empty filter means no filtering.
-func convertAPIServicePeriodToFilter(f *filters.FilterDateTime) (*filter.FilterTime, error) {
-	if f == nil {
-		return nil, nil
-	}
-
-	if f.Eq != nil || f.Gt != nil || f.Gte != nil || f.Lte != nil {
-		return nil, errors.New("service_period_to filter supports only the lt operator")
-	}
-
-	if f.Lt == nil {
-		return nil, nil
-	}
-
-	return &filter.FilterTime{Lt: f.Lt}, nil
-}
 
 // convertFlatFeeChargeToAPI maps the flat-fee branch of a CustomerCharge to
 // the API representation: it unwraps the domain charge from the union (failing
@@ -148,7 +106,7 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(flatFee.ChargeBase.State.AmountAfterProration),
 		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              flatFee.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:               ConvertCurrencyCodeToAPI(flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
+		Currency:               api.CurrencyCode(flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
 		Customer:               customer,
 		DeletedAt:              flatFee.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:            intent.Description,
@@ -160,13 +118,13 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		Labels:                 ConvertMetadataToLabels(intent.Metadata),
 		LifecycleController:    ConvertLifecycleControllerToAPI(intent.ManagedBy, WithManualOverride(flatFee.ChargeBase.Intent.HasOverrideLayer())),
 		Name:                   intent.Name,
-		PaymentTerm:            ConvertPaymentTermToAPI(intent.PaymentTerm),
+		PaymentTerm:            api.BillingPricePaymentTerm(intent.PaymentTerm),
 		Price:                  price,
 		ProrationConfiguration: ConvertProRatingConfigToAPI(intent.ProRating),
 		Realizations:           realizations,
 		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
-		SettlementMode:         ConvertSettlementModeToAPI(flatFee.ChargeBase.Intent.GetSettlementMode()),
-		Status:                 ConvertChargeStatusToAPI(status),
+		SettlementMode:         api.BillingSettlementMode(flatFee.ChargeBase.Intent.GetSettlementMode()),
+		Status:                 api.BillingChargeStatus(status),
 		Subscription:           subscription,
 		SystemIntent:           toAPIBillingChargeFlatFeeSystemIntent(flatFee.ChargeBase.Intent),
 		TaxConfig:              convertTaxCodeConfigToAPI(intent.TaxConfig),
@@ -239,7 +197,7 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		AdvanceAfter:        usageBasedFee.State.AdvanceAfter,
 		BillingPeriod:       ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:           usageBasedFee.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:            ConvertCurrencyCodeToAPI(usageBasedFee.ChargeBase.Intent.GetCurrency().GetCode()),
+		Currency:            api.CurrencyCode(usageBasedFee.ChargeBase.Intent.GetCurrency().GetCode()),
 		Customer:            customer,
 		DeletedAt:           usageBasedFee.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:         intent.Description,
@@ -254,7 +212,7 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		Price:               price,
 		Realizations:        realizations,
 		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
-		SettlementMode:      ConvertSettlementModeToAPI(usageBasedFee.ChargeBase.Intent.GetSettlementMode()),
+		SettlementMode:      api.BillingSettlementMode(usageBasedFee.ChargeBase.Intent.GetSettlementMode()),
 		Status:              lo.FromPtr(status),
 		Subscription:        subscription,
 		SystemIntent:        systemIntent,
@@ -284,7 +242,7 @@ func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *ap
 		InvoiceAt:              baseIntent.InvoiceAt,
 		Labels:                 ConvertMetadataToLabels(baseIntent.Metadata),
 		Name:                   baseIntent.Name,
-		PaymentTerm:            ConvertPaymentTermToAPI(baseIntent.PaymentTerm),
+		PaymentTerm:            api.BillingPricePaymentTerm(baseIntent.PaymentTerm),
 		ProrationConfiguration: ConvertProRatingConfigToAPI(baseIntent.ProRating),
 		ServicePeriod:          ConvertClosedPeriodToAPI(baseIntent.ServicePeriod),
 	}
@@ -347,7 +305,15 @@ func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded
 
 	if expanded != nil {
 		var out api.SubscriptionOrReference
-		if err := out.FromBillingSubscription(subscriptions.ToAPIBillingSubscription(*expanded)); err != nil {
+
+		sub, err := subscriptions.ToAPIBillingSubscription(subscription.SubscriptionView{
+			Subscription: *expanded,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("converting subscription: %w", err)
+		}
+
+		if err := out.FromBillingSubscription(sub); err != nil {
 			return nil, fmt.Errorf("setting subscription union: %w", err)
 		}
 
@@ -889,7 +855,7 @@ func ConvertUsageBasedStatusToAPI(status usagebased.Status) (*api.BillingChargeS
 	if err != nil {
 		return nil, fmt.Errorf("converting usage-based status to charge status: %w", err)
 	}
-	return lo.ToPtr(ConvertChargeStatusToAPI(s)), nil
+	return lo.ToPtr(api.BillingChargeStatus(s)), nil
 }
 
 // ConvertClosedPeriodToAPI maps a domain ClosedPeriod to the API type.
@@ -924,21 +890,6 @@ func ConvertProRatingConfigToAPI(c productcatalog.ProRatingConfig) api.BillingRa
 // ConvertSubscriptionRefToAPI maps a SubscriptionReference to the API type.
 var ConvertSubscriptionRefToAPI = billingcommon.ConvertSubscriptionRefToAPI
 
-// ConvertChargeStatusToAPI casts a meta.ChargeStatus to api.BillingChargeStatus.
-func ConvertChargeStatusToAPI(s meta.ChargeStatus) api.BillingChargeStatus {
-	return api.BillingChargeStatus(s)
-}
-
-// ConvertSettlementModeToAPI casts a SettlementMode to its API equivalent.
-func ConvertSettlementModeToAPI(s productcatalog.SettlementMode) api.BillingSettlementMode {
-	return api.BillingSettlementMode(s)
-}
-
-// ConvertPaymentTermToAPI casts a PaymentTermType to its API equivalent.
-func ConvertPaymentTermToAPI(pt productcatalog.PaymentTermType) api.BillingPricePaymentTerm {
-	return api.BillingPricePaymentTerm(pt)
-}
-
 // LifecycleControllerOption configures lifecycle controller conversion.
 type LifecycleControllerOption = billingcommon.LifecycleControllerOption
 
@@ -949,11 +900,6 @@ var WithManualOverride = billingcommon.WithManualOverride
 // ConvertLifecycleControllerToAPI maps the internal lifecycle owner to the public
 // lifecycle controller.
 var ConvertLifecycleControllerToAPI = billingcommon.ConvertLifecycleControllerToAPI
-
-// ConvertCurrencyCodeToAPI casts a currencyx.Code to an API CurrencyCode.
-func ConvertCurrencyCodeToAPI(c currencyx.Code) api.CurrencyCode {
-	return api.CurrencyCode(c)
-}
 
 // convertTaxCodeConfigToAPI maps a TaxCodeConfig (Behavior + TaxCodeID) to the API type.
 func convertTaxCodeConfigToAPI(cfg productcatalog.TaxCodeConfig) *api.BillingTaxConfig {
@@ -994,22 +940,6 @@ func convertAPIChargesExpand(e api.BillingChargesExpand) (meta.Expand, error) {
 		return meta.ExpandDetailedLines, nil
 	default:
 		return "", fmt.Errorf("unsupported expand: %s", e)
-	}
-}
-
-// convertAPIChargeStatus maps an API status string to its domain equivalent.
-func convertAPIChargeStatus(s string) (meta.ChargeStatus, error) {
-	switch api.BillingChargeStatus(s) {
-	case api.BillingChargeStatusCreated:
-		return meta.ChargeStatusCreated, nil
-	case api.BillingChargeStatusActive:
-		return meta.ChargeStatusActive, nil
-	case api.BillingChargeStatusFinal:
-		return meta.ChargeStatusFinal, nil
-	case api.BillingChargeStatusDeleted:
-		return meta.ChargeStatusDeleted, nil
-	default:
-		return "", fmt.Errorf("unsupported charge status: %q", s)
 	}
 }
 
