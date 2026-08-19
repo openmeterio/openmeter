@@ -368,6 +368,11 @@ export function goType(
 const runtimeFilterTypesByUnionName = new Map<string, string>([
   ['StringFieldFilter', 'StringFilter'],
   ['StringFieldFilterExact', 'StringExactFilter'],
+  // ULIDFieldFilter deliberately shares StringExactFilter: a ULID is a string on
+  // the wire and both unions expose the same operators (eq/neq/oeq), so a
+  // separate Go type would add SDK surface without adding a distinction callers
+  // can act on. The server side does keep them apart — the spec's `x-go-type`
+  // maps this union to `filters.FilterULID`, which validates the ULID form.
   ['ULIDFieldFilter', 'StringExactFilter'],
   ['DateTimeFieldFilter', 'DateTimeFilter'],
   ['NumericFieldFilter', 'NumericFilter'],

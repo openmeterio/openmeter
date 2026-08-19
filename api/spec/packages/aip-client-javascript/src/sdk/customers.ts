@@ -21,8 +21,6 @@ import {
   createCreditAdjustment,
   updateCreditGrantExternalSettlement,
   listCreditTransactions,
-  listCustomerCharges,
-  createCustomerCharges,
 } from '../funcs/customers.js'
 import type {
   CreateCustomerRequest,
@@ -59,13 +57,8 @@ import type {
   UpdateCreditGrantExternalSettlementResponse,
   ListCreditTransactionsRequest,
   ListCreditTransactionsResponse,
-  ListCustomerChargesRequest,
-  ListCustomerChargesResponse,
-  CreateCustomerChargesRequest,
-  CreateCustomerChargesResponse,
 } from '../models/operations/customers.js'
 import type {
-  Charge,
   CreditGrant,
   CreditTransaction,
   Customer,
@@ -160,11 +153,6 @@ export class Customers {
   private _credits?: CustomersCredits
   get credits(): CustomersCredits {
     return (this._credits ??= new CustomersCredits(this._client))
-  }
-
-  private _charges?: CustomersCharges
-  get charges(): CustomersCharges {
-    return (this._charges ??= new CustomersCharges(this._client))
   }
 }
 
@@ -455,63 +443,5 @@ export class CustomersCreditsTransactions {
       request,
       options,
     )
-  }
-}
-
-export class CustomersCharges {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * List customer charges
-   *
-   * List customer charges.
-   *
-   * Returns the customer's charges that are represented as either flat fee or
-   * usage-based charges.
-   *
-   * GET /openmeter/customers/{customerId}/charges
-   */
-  async list(
-    request: ListCustomerChargesRequest,
-    options?: RequestOptions,
-  ): Promise<ListCustomerChargesResponse> {
-    return unwrap(await listCustomerCharges(this._client, request, options))
-  }
-
-  /**
-   * List customer charges
-   *
-   * List customer charges.
-   *
-   * Returns the customer's charges that are represented as either flat fee or
-   * usage-based charges.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/customers/{customerId}/charges
-   */
-  listAll(
-    request: ListCustomerChargesRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<Charge> {
-    return paginatePages(
-      (req, opts) => listCustomerCharges(this._client, req, opts),
-      request,
-      options,
-    )
-  }
-
-  /**
-   * Create customer charge
-   *
-   * Create customer charge.
-   *
-   * POST /openmeter/customers/{customerId}/charges
-   */
-  async create(
-    request: CreateCustomerChargesRequest,
-    options?: RequestOptions,
-  ): Promise<CreateCustomerChargesResponse> {
-    return unwrap(await createCustomerCharges(this._client, request, options))
   }
 }

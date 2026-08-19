@@ -27,6 +27,24 @@ type ChargeFilter struct {
 	//
 	// If omitted, all statuses are returned except for `deleted`.
 	Status *StringExactFilter
+	// Filter charges by the ID of their associated feature.
+	FeatureID *StringExactFilter
+	// Filter charges by the key of their associated feature.
+	FeatureKey *StringExactFilter
+	// Filter charges by the start of their service period.
+	//
+	// Combine with `service_period_to` to match charges whose service period falls
+	// within a given window: `filter[service_period_from][gte]=<from>` together with
+	// `filter[service_period_to][lt]=<to>` returns charges whose service period lies
+	// within `[from, to)`.
+	ServicePeriodFrom *DateTimeFilter
+	// Filter charges by the end of their service period.
+	//
+	// Combine with `service_period_from` to match charges whose service period falls
+	// within a given window: `filter[service_period_from][gte]=<from>` together with
+	// `filter[service_period_to][lt]=<to>` returns charges whose service period lies
+	// within `[from, to)`.
+	ServicePeriodTo *DateTimeFilter
 }
 
 type ChargeListParams struct {
@@ -45,6 +63,10 @@ func (p ChargeListParams) values() url.Values {
 
 	if p.Filter != nil {
 		addStringExactFilter(q, "filter[status]", p.Filter.Status)
+		addStringExactFilter(q, "filter[feature_id]", p.Filter.FeatureID)
+		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
+		addDateTimeFilter(q, "filter[service_period_from]", p.Filter.ServicePeriodFrom)
+		addDateTimeFilter(q, "filter[service_period_to]", p.Filter.ServicePeriodTo)
 	}
 
 	if len(p.Expand) > 0 {
