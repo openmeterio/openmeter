@@ -61,7 +61,7 @@ func TestConvertAPIServicePeriodFilters(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
-				out, err := convertAPIServicePeriodFromFilter(tc.in)
+				out, err := filters.FromAPIFilterDateTime(tc.in)
 				if tc.expectedErr != "" {
 					require.ErrorContains(t, err, tc.expectedErr)
 					return
@@ -116,7 +116,7 @@ func TestConvertAPIServicePeriodFilters(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
-				out, err := convertAPIServicePeriodToFilter(tc.in)
+				out, err := filters.FromAPIFilterDateTime(tc.in)
 				if tc.expectedErr != "" {
 					require.ErrorContains(t, err, tc.expectedErr)
 					return

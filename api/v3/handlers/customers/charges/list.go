@@ -169,7 +169,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				}
 				req.FeatureKey = featureKey
 
-				servicePeriodFrom, err := convertAPIServicePeriodFromFilter(args.Params.Filter.ServicePeriodFrom)
+				servicePeriodFrom, err := filters.FromAPIFilterDateTime(args.Params.Filter.ServicePeriodFrom)
 				if err != nil {
 					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
@@ -181,7 +181,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				}
 				req.ServicePeriodFrom = servicePeriodFrom
 
-				servicePeriodTo, err := convertAPIServicePeriodToFilter(args.Params.Filter.ServicePeriodTo)
+				servicePeriodTo, err := filters.FromAPIFilterDateTime(args.Params.Filter.ServicePeriodTo)
 				if err != nil {
 					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
