@@ -274,6 +274,10 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 					require.NotNil(t, reference)
 					assert.Equal(t, features[idx].ID, lo.FromPtr(reference.ID), "resolved feature id must be equal to the one we set")
 					assert.Equal(t, features[idx].Key, lo.FromPtr(reference.Key), "resolved feature key must be equal to the one we set")
+
+					resolved, ok := reference.Feature()
+					require.True(t, ok, "resolved feature must be attached")
+					require.Equal(t, features[idx], *resolved)
 				}
 			}
 		})
