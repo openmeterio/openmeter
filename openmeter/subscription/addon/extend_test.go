@@ -23,7 +23,7 @@ func TestValidations(t *testing.T) {
 		Name:        "Test Addon Rate Card 4",
 		Description: lo.ToPtr("Test Addon Rate Card 4 Description"),
 		Key:         subscriptiontestutils.ExampleFeatureKey,
-		FeatureKey:  lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
+		Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(subscriptiontestutils.ExampleFeatureKey)),
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      alpacadecimal.NewFromInt(100),
 			PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -258,7 +258,7 @@ func TestExtendApply(t *testing.T) {
 		Name:        "Test Addon Rate Card 4",
 		Description: lo.ToPtr("Test Addon Rate Card 4 Description"),
 		Key:         subscriptiontestutils.ExampleFeatureKey,
-		FeatureKey:  lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
+		Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(subscriptiontestutils.ExampleFeatureKey)),
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      alpacadecimal.NewFromInt(100),
 			PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -532,7 +532,7 @@ func TestExtendRestore(t *testing.T) {
 		Name:        "Test Addon Rate Card 4",
 		Description: lo.ToPtr("Test Addon Rate Card 4 Description"),
 		Key:         subscriptiontestutils.ExampleFeatureKey,
-		FeatureKey:  lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
+		Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(subscriptiontestutils.ExampleFeatureKey)),
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      alpacadecimal.NewFromInt(100),
 			PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -966,21 +966,6 @@ func TestExtendRestore(t *testing.T) {
 var _ productcatalog.RateCard = nonPointerRateCard{}
 
 type nonPointerRateCard struct{}
-
-func (n nonPointerRateCard) HasFeature() bool {
-	return false
-}
-
-func (n nonPointerRateCard) GetFeatureID() *string {
-	return nil
-}
-
-func (n nonPointerRateCard) GetFeatureKey() *string {
-	return nil
-}
-
-func (n nonPointerRateCard) SetFeature(_, _ *string) {
-}
 
 func (n nonPointerRateCard) IsBillable() bool {
 	return true

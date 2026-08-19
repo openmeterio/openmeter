@@ -36,8 +36,8 @@ func (n *namespacedResolver) Namespace() string {
 	return n.namespace
 }
 
-func (n *namespacedResolver) Resolve(ctx context.Context, id, key *string) (*feature.Feature, error) {
-	return n.resolver.Resolve(ctx, n.namespace, id, key)
+func (n *namespacedResolver) Resolve(ctx context.Context, reference feature.FeatureReference) (*feature.Feature, error) {
+	return n.resolver.Resolve(ctx, n.namespace, reference)
 }
 
 func (n *namespacedResolver) BatchResolve(ctx context.Context, idOrKeys ...string) (map[string]*feature.Feature, error) {
@@ -57,22 +57,19 @@ func (r *resolver) WithNamespace(namespace string) productcatalog.NamespacedFeat
 	}
 }
 
-func (r *resolver) Resolve(ctx context.Context, namespace string, id, key *string) (*feature.Feature, error) {
-	hasID := id != nil && *id != ""
-	hasKey := key != nil && *key != ""
-
-	if !hasID && !hasKey {
-		return nil, errors.New("feature id or key is required")
+func (r *resolver) Resolve(ctx context.Context, namespace string, reference feature.FeatureReference) (*feature.Feature, error) {
+	if err := reference.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid feature reference: %w", err)
 	}
 
 	batch := make([]string, 0, 2)
 
-	if hasID {
-		batch = append(batch, *id)
+	if reference.ID != nil {
+		batch = append(batch, *reference.ID)
 	}
 
-	if hasKey {
-		batch = append(batch, *key)
+	if reference.Key != nil {
+		batch = append(batch, *reference.Key)
 	}
 
 	features, err := r.BatchResolve(ctx, namespace, batch...)
@@ -82,34 +79,30 @@ func (r *resolver) Resolve(ctx context.Context, namespace string, id, key *strin
 
 	var f *feature.Feature
 
-	if hasID {
-		f = features[*id]
+	if reference.ID != nil {
+		f = features[*reference.ID]
 
 		if f == nil {
-			return nil, models.NewGenericNotFoundError(fmt.Errorf("feature [feature.id=%s]", lo.FromPtr(id)))
-		}
-
-		if f.ID != *id {
-			return nil, models.NewGenericConflictError(fmt.Errorf("feature [feature.id=%s feature.key=%s]", lo.FromPtr(id), lo.FromPtr(key)))
+			return nil, models.NewGenericNotFoundError(fmt.Errorf("feature [feature.id=%s]", lo.FromPtr(reference.ID)))
 		}
 	}
 
-	if hasKey {
+	if reference.Key != nil {
 		if f == nil {
-			f = features[*key]
+			f = features[*reference.Key]
 		}
 
 		if f == nil {
-			return nil, models.NewGenericNotFoundError(fmt.Errorf("feature [feature.key=%s]", lo.FromPtr(key)))
+			return nil, models.NewGenericNotFoundError(fmt.Errorf("feature [feature.key=%s]", lo.FromPtr(reference.Key)))
 		}
 
-		if features[*key] == nil {
-			return nil, models.NewGenericNotFoundError(fmt.Errorf("feature [feature.key=%s]", lo.FromPtr(key)))
+		if features[*reference.Key] == nil {
+			return nil, models.NewGenericNotFoundError(fmt.Errorf("feature [feature.key=%s]", lo.FromPtr(reference.Key)))
 		}
+	}
 
-		if f.Key != *key {
-			return nil, models.NewGenericConflictError(fmt.Errorf("feature [feature.id=%s feature.key=%s]", lo.FromPtr(id), lo.FromPtr(key)))
-		}
+	if _, err := reference.WithFeature(f); err != nil {
+		return nil, models.NewGenericConflictError(fmt.Errorf("feature [feature.id=%s feature.key=%s]: %w", lo.FromPtr(reference.ID), lo.FromPtr(reference.Key), err))
 	}
 
 	return f, nil

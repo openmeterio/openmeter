@@ -218,7 +218,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 	rcMeta := productcatalog.RateCardMeta{
 		Name:                item.Name,
 		Description:         item.Description,
-		FeatureKey:          item.FeatureKey,
+		Feature:             productcatalog.NewFeatureReference(nil, item.FeatureKey),
 		EntitlementTemplate: item.EntitlementTemplate,
 		TaxConfig:           item.TaxConfig,
 		Price:               item.Price,
@@ -226,8 +226,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		UnitConfig:          item.UnitConfig,
 		Key:                 item.Key,
 		// NOTE: resolving feature is done on service level as there is no direct relationship between subscription items and features.
-		FeatureID: nil,
-		Currency:  itemCurrency,
+		Currency: itemCurrency,
 	}
 
 	// Map TaxCode if eagerly loaded.

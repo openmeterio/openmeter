@@ -126,9 +126,9 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 		result.Currency = lo.ToPtr(meta.Currency.GetCode().String())
 	}
 
-	if meta.FeatureID != nil {
+	if meta.Feature != nil && meta.Feature.ID != nil {
 		result.Feature = &api.FeatureReference{
-			Id: *meta.FeatureID,
+			Id: *meta.Feature.ID,
 		}
 	}
 
@@ -710,7 +710,7 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 	}
 
 	if rc.Feature != nil {
-		meta.FeatureID = &rc.Feature.Id
+		meta.Feature = productcatalog.NewFeatureReference(&rc.Feature.Id, nil)
 	}
 
 	if rc.TaxConfig != nil {

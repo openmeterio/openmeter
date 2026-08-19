@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -31,18 +32,9 @@ func (s RateCardType) Values() []string {
 	}
 }
 
-type RateCardFeature interface {
-	HasFeature() bool
-	GetFeatureID() *string
-	GetFeatureKey() *string
-	SetFeature(id, key *string)
-}
-
 type RateCard interface {
 	models.Validator
 	models.Equaler[RateCard]
-
-	RateCardFeature
 
 	Type() RateCardType
 	AsMeta() RateCardMeta
@@ -65,6 +57,16 @@ var (
 	_ models.CustomValidator[RateCardMeta] = (*RateCardMeta)(nil)
 )
 
+type FeatureReference = feature.FeatureReference
+
+func NewFeatureReference(id, key *string) *FeatureReference {
+	if id == nil && key == nil {
+		return nil
+	}
+
+	return &FeatureReference{ID: id, Key: key}
+}
+
 type RateCardMeta struct {
 	// Key is the unique key for Plan.
 	Key string `json:"key"`
@@ -81,11 +83,9 @@ type RateCardMeta struct {
 	// Annotations contains internal metadata for the RateCard.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 
-	// FeatureKey is the key of the feature assigned to the RateCard
-	FeatureKey *string `json:"featureKey,omitempty"`
-
-	// FeatureID is the ID of the feature assigned to the RateCard
-	FeatureID *string `json:"featureID,omitempty"`
+	// Feature identifies the feature assigned to the RateCard. A partial
+	// reference is accepted while authoring and resolved before persistence.
+	Feature *FeatureReference `json:"-"`
 
 	// EntitlementTemplate defines the template used for instantiating entitlement.Entitlement.
 	// If Feature is set then template must be provided as well.
@@ -111,23 +111,6 @@ type RateCardMeta struct {
 	// metered quantity before pricing and entitlement evaluation. Shared by plan
 	// and addon rate cards.
 	UnitConfig *UnitConfig `json:"unitConfig,omitempty"`
-}
-
-func (r RateCardMeta) HasFeature() bool {
-	return lo.FromPtr(r.FeatureID) != "" || lo.FromPtr(r.FeatureKey) != ""
-}
-
-func (r RateCardMeta) GetFeatureID() *string {
-	return r.FeatureID
-}
-
-func (r RateCardMeta) GetFeatureKey() *string {
-	return r.FeatureKey
-}
-
-func (r *RateCardMeta) SetFeature(id, key *string) {
-	r.FeatureID = id
-	r.FeatureKey = key
 }
 
 func (r RateCardMeta) Clone() RateCardMeta {
@@ -156,14 +139,8 @@ func (r RateCardMeta) Clone() RateCardMeta {
 		clone.Annotations = r.Annotations
 	}
 
-	if r.FeatureKey != nil {
-		key := *r.FeatureKey
-		clone.FeatureKey = &key
-	}
-
-	if r.FeatureID != nil {
-		id := *r.FeatureID
-		clone.FeatureID = &id
+	if r.Feature != nil {
+		clone.Feature = lo.ToPtr(r.Feature.Clone())
 	}
 
 	if r.EntitlementTemplate != nil {
@@ -214,11 +191,11 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 		return false
 	}
 
-	if lo.FromPtr(r.FeatureKey) != lo.FromPtr(v.FeatureKey) {
+	if (r.Feature == nil) != (v.Feature == nil) {
 		return false
 	}
 
-	if lo.FromPtr(r.FeatureID) != lo.FromPtr(v.FeatureID) {
+	if r.Feature != nil && !r.Feature.Equal(*v.Feature) {
 		return false
 	}
 
@@ -261,8 +238,17 @@ func (r RateCardMeta) ValidateWith(v ...models.ValidatorFunc[RateCardMeta]) erro
 func (r RateCardMeta) Validate() error {
 	var errs []error
 
+	if r.Feature != nil {
+		if err := r.Feature.Validate(); err != nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("feature")),
+				err,
+			))
+		}
+	}
+
 	if r.EntitlementTemplate != nil {
-		if !r.HasFeature() {
+		if r.Feature == nil {
 			errs = append(errs, ErrRateCardEntitlementTemplateWithNoFeature)
 		}
 
@@ -302,7 +288,7 @@ func (r RateCardMeta) Validate() error {
 
 		// Ratecard with usage-based price type must have feature key.
 		if r.Price.Type() != FlatPriceType {
-			if !r.HasFeature() {
+			if r.Feature == nil {
 				errs = append(errs, ErrRateCardUsageBasedPriceWithNoFeature)
 			}
 		}
@@ -321,8 +307,8 @@ func (r RateCardMeta) Validate() error {
 		}
 	}
 
-	if r.FeatureKey != nil {
-		if r.Key != *r.FeatureKey {
+	if r.Feature != nil && r.Feature.Key != nil {
+		if r.Key != *r.Feature.Key {
 			errs = append(errs, ErrRateCardKeyFeatureKeyMismatch)
 		}
 	}
@@ -497,12 +483,22 @@ func (r *FlatFeeRateCard) Clone() RateCard {
 }
 
 func (r *FlatFeeRateCard) MarshalJSON() ([]byte, error) {
+	var featureID, featureKey *string
+	if r.Feature != nil {
+		featureID = r.Feature.ID
+		featureKey = r.Feature.Key
+	}
+
 	serde := struct {
 		RateCardSerde
 		RateCardMeta
+		FeatureKey     *string               `json:"featureKey,omitempty"`
+		FeatureID      *string               `json:"featureID,omitempty"`
 		BillingCadence *datetime.ISODuration `json:"billingCadence"`
 	}{
 		RateCardMeta:   r.RateCardMeta,
+		FeatureKey:     featureKey,
+		FeatureID:      featureID,
 		BillingCadence: r.BillingCadence,
 		RateCardSerde: RateCardSerde{
 			Type: r.Type(),
@@ -516,6 +512,8 @@ func (r *FlatFeeRateCard) UnmarshalJSON(data []byte) error {
 	serde := struct {
 		RateCardSerde
 		RateCardMeta
+		FeatureKey     *string               `json:"featureKey,omitempty"`
+		FeatureID      *string               `json:"featureID,omitempty"`
 		BillingCadence *datetime.ISODuration `json:"billingCadence"`
 	}{}
 
@@ -528,6 +526,9 @@ func (r *FlatFeeRateCard) UnmarshalJSON(data []byte) error {
 	}
 
 	r.RateCardMeta = serde.RateCardMeta
+	if serde.FeatureID != nil || serde.FeatureKey != nil {
+		r.Feature = &FeatureReference{ID: serde.FeatureID, Key: serde.FeatureKey}
+	}
 	r.BillingCadence = serde.BillingCadence
 
 	return nil
@@ -653,12 +654,22 @@ func (r *UsageBasedRateCard) Validate() error {
 }
 
 func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
+	var featureID, featureKey *string
+	if r.Feature != nil {
+		featureID = r.Feature.ID
+		featureKey = r.Feature.Key
+	}
+
 	serde := struct {
 		RateCardSerde
 		RateCardMeta
+		FeatureKey     *string              `json:"featureKey,omitempty"`
+		FeatureID      *string              `json:"featureID,omitempty"`
 		BillingCadence datetime.ISODuration `json:"billingCadence"`
 	}{
 		RateCardMeta:   r.RateCardMeta,
+		FeatureKey:     featureKey,
+		FeatureID:      featureID,
 		BillingCadence: r.BillingCadence,
 		RateCardSerde: RateCardSerde{
 			Type: r.Type(),
@@ -672,6 +683,8 @@ func (r *UsageBasedRateCard) UnmarshalJSON(data []byte) error {
 	serde := struct {
 		RateCardSerde
 		RateCardMeta
+		FeatureKey     *string              `json:"featureKey,omitempty"`
+		FeatureID      *string              `json:"featureID,omitempty"`
 		BillingCadence datetime.ISODuration `json:"billingCadence"`
 	}{}
 
@@ -684,6 +697,9 @@ func (r *UsageBasedRateCard) UnmarshalJSON(data []byte) error {
 	}
 
 	r.RateCardMeta = serde.RateCardMeta
+	if serde.FeatureID != nil || serde.FeatureKey != nil {
+		r.Feature = &FeatureReference{ID: serde.FeatureID, Key: serde.FeatureKey}
+	}
 	r.BillingCadence = serde.BillingCadence
 
 	return nil
@@ -822,6 +838,35 @@ func ValidateRateCards() models.ValidatorFunc[RateCards] {
 	}
 }
 
+// ValidateRateCardsWithResolvedFeatures verifies that every feature reference
+// has its feature representation sideloaded. Service operations that copy
+// persisted rate cards use this to guard the repository loading contract.
+func ValidateRateCardsWithResolvedFeatures() models.ValidatorFunc[RateCards] {
+	return func(rateCards RateCards) error {
+		var errs []error
+
+		for _, rateCard := range rateCards {
+			featureReference := rateCard.AsMeta().Feature
+			if featureReference == nil || featureReference.IsResolved() {
+				continue
+			}
+
+			fieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("rateCards").WithExpression(
+					models.NewFieldAttrValue("key", rateCard.Key()),
+				),
+			)
+
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				fieldSelector,
+				errors.New("feature reference must be resolved"),
+			))
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
 func (c RateCards) Validate() error {
 	return c.ValidateWith(ValidateRateCards())
 }
@@ -850,8 +895,7 @@ func (r RateCardWithOverlay) Validate() error {
 	return r.ValidateWith(
 		ValidateRateCardsShareSameKey,
 		ValidateRateCardsHaveCompatiblePrice,
-		ValidateRateCardsHaveCompatibleFeatureKey,
-		ValidateRateCardsHaveCompatibleFeatureID,
+		ValidateRateCardsHaveCompatibleFeature,
 		ValidateRateCardsHaveCompatibleBillingCadence,
 		ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		ValidateRateCardsHaveCompatibleDiscounts,
@@ -918,7 +962,11 @@ var ValidateRateCardsHaveCompatibleFeatureKey = models.ValidatorFunc[RateCardWit
 	fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
-	if rMeta.FeatureKey != nil && vMeta.FeatureKey != nil && *rMeta.FeatureKey != *vMeta.FeatureKey {
+	if rMeta.Feature == nil || vMeta.Feature == nil {
+		return nil
+	}
+
+	if rMeta.Feature.Key != nil && vMeta.Feature.Key != nil && *rMeta.Feature.Key != *vMeta.Feature.Key {
 		return models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardFeatureKeyMismatch)
 	}
 
@@ -935,11 +983,22 @@ var ValidateRateCardsHaveCompatibleFeatureID = models.ValidatorFunc[RateCardWith
 	fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
 		WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
 
-	if rMeta.FeatureID != nil && vMeta.FeatureID != nil && *rMeta.FeatureID != *vMeta.FeatureID {
+	if rMeta.Feature == nil || vMeta.Feature == nil {
+		return nil
+	}
+
+	if rMeta.Feature.ID != nil && vMeta.Feature.ID != nil && *rMeta.Feature.ID != *vMeta.Feature.ID {
 		return models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardFeatureIDMismatch)
 	}
 
 	return nil
+})
+
+var ValidateRateCardsHaveCompatibleFeature = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	return errors.Join(
+		ValidateRateCardsHaveCompatibleFeatureKey(r),
+		ValidateRateCardsHaveCompatibleFeatureID(r),
+	)
 })
 
 var ValidateRateCardsHaveCompatibleBillingCadence = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
@@ -1069,11 +1128,16 @@ func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatu
 					),
 			)
 
-			if rc.FeatureID == nil && rc.FeatureKey == nil {
+			if rc.Feature == nil {
 				continue
 			}
 
-			feat, err := resolver.Resolve(ctx, rc.FeatureID, rc.FeatureKey)
+			if err := rc.Feature.Validate(); err != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, err))
+				continue
+			}
+
+			feat, err := resolver.Resolve(ctx, *rc.Feature)
 			if err != nil {
 				switch {
 				case models.IsGenericNotFoundError(err):

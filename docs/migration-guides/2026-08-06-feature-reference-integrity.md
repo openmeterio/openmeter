@@ -1,9 +1,9 @@
 # Feature Reference Integrity Repair
 
-Status: the plan/add-on data repair and paired database constraints are
-implemented and tested. The `FeatureReference` refactor described below remains
-follow-up work. Subscription items are explicitly out of scope until their
-feature lifecycle has been researched separately.
+Status: the plan/add-on data repair, paired database constraints, and
+product-catalog `FeatureReference` refactor are implemented and tested.
+Subscription-item persistence is explicitly out of scope until its feature
+lifecycle has been researched separately.
 
 ## Problem
 
@@ -16,8 +16,10 @@ resolution path allowed only one half of that reference to be written:
 
 The [resolver](../../openmeter/productcatalog/featureresolver/ratecard.go) now
 populates both values before persistence, but existing rows remain incomplete.
-The current schemas and adapters still represent the pair as independent
-values, so the database cannot prevent the same defect from being reintroduced.
+The database schemas retain the two columns, while the product-catalog domain
+encapsulates them as one reference and requires both identifiers at persistence
+boundaries. Paired database constraints provide the final safeguard against
+incomplete stored references.
 
 An ID-only row is unambiguous: the referenced feature identifies its immutable
 key. It is still operationally inconvenient because a reader must load the
@@ -184,18 +186,19 @@ The domain model should follow the same separation used by
 identity is explicit, while the resolved resource is runtime-only and ignored
 by equality.
 
-Illustrative API, not final code:
+The product-catalog domain now represents this identity as:
 
 ```go
 type FeatureReference struct {
-	ID  string `json:"id"`
-	Key string `json:"key"`
+	ID  *string `json:"id,omitempty"`
+	Key *string `json:"key,omitempty"`
 
 	resolved *Feature
 }
 
 func (r FeatureReference) Validate() error
 func (r FeatureReference) Equal(other FeatureReference) bool
+func (r FeatureReference) Compatible(other FeatureReference) bool
 func (r FeatureReference) IsResolved() bool
 func (r FeatureReference) Feature() (*Feature, bool)
 func (r FeatureReference) WithFeature(feature *Feature) (FeatureReference, error)
@@ -203,12 +206,19 @@ func (r FeatureReference) Clone() FeatureReference
 func (f Feature) Reference() FeatureReference
 ```
 
-`RateCardMeta` would carry `Feature *feature.FeatureReference` instead of two
-independent pointers. A nil pointer means no feature; a non-nil reference always
-contains both persisted identifiers. Partial v1 key input and v3 ID input are
-authoring shapes at the API boundary, not valid persisted domain references.
-The resolver converts either shape into `Feature.Reference()` before validation
-and persistence, and rejects a supplied key/ID pair when the values disagree.
+`RateCardMeta` carries `Feature *feature.FeatureReference` instead of two
+independent pointers. A nil pointer means no feature. A non-nil reference is a
+valid authoring reference when it contains a non-empty ID, a non-empty key, or
+both. This allows the v1 key-only and v3 ID-only API shapes to use the same
+domain type. A reference with neither identifier, or with an explicitly empty
+identifier, is invalid.
+
+Persistence has a stronger boundary: both identifiers must be present. The
+resolver validates the supplied identity, fills the missing identifier, and
+attaches the runtime-only feature before plan or add-on adapters write the rate
+card. It rejects a supplied key/ID pair when the values disagree. Adapters apply
+the same reference validation before issuing SQL, with the database constraint
+remaining the final safeguard against incomplete stored references.
 
 Persistence mappings must always write both scalar columns. Hydration rebuilds
 the reference from those columns and attaches the sideloaded feature only when

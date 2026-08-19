@@ -97,12 +97,18 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 				}
 
 				// Let's validate the Feature linking
-				pFeatureKey := specItem.RateCard.AsMeta().FeatureKey
-				if foundItem.SubscriptionItem.RateCard.AsMeta().FeatureKey != nil {
-					require.NotNil(t, pFeatureKey)
-					assert.Equal(t, pFeatureKey, foundItem.SubscriptionItem.RateCard.AsMeta().FeatureKey)
+				var expectedFeatureKey, actualFeatureKey *string
+				if feature := specItem.RateCard.AsMeta().Feature; feature != nil {
+					expectedFeatureKey = feature.Key
+				}
+				if feature := foundItem.SubscriptionItem.RateCard.AsMeta().Feature; feature != nil {
+					actualFeatureKey = feature.Key
+				}
+				if actualFeatureKey != nil {
+					require.NotNil(t, expectedFeatureKey)
+					assert.Equal(t, expectedFeatureKey, actualFeatureKey)
 				} else {
-					assert.Empty(t, pFeatureKey)
+					assert.Empty(t, expectedFeatureKey)
 				}
 
 				rcInp := specItem.CreateSubscriptionItemPlanInput

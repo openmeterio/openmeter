@@ -23,8 +23,8 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 	meta := r.AsMeta()
 
 	var featureKey *string
-	if meta.FeatureKey != nil {
-		featureKey = meta.FeatureKey
+	if meta.Feature != nil {
+		featureKey = meta.Feature.Key
 	}
 
 	var tmpl api.RateCardEntitlement
@@ -415,7 +415,7 @@ func AsFlatFeeRateCard(flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard
 	}
 
 	if flat.FeatureKey != nil {
-		rc.RateCardMeta.FeatureKey = flat.FeatureKey
+		rc.RateCardMeta.Feature = productcatalog.NewFeatureReference(nil, flat.FeatureKey)
 	}
 
 	if flat.EntitlementTemplate != nil {
@@ -486,7 +486,7 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 	}
 
 	if usage.FeatureKey != nil {
-		rc.RateCardMeta.FeatureKey = usage.FeatureKey
+		rc.RateCardMeta.Feature = productcatalog.NewFeatureReference(nil, usage.FeatureKey)
 	}
 
 	if usage.EntitlementTemplate != nil {

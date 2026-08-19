@@ -388,9 +388,9 @@ func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.Settle
 func newChargePatchTestUsageRateCard() productcatalog.RateCard {
 	return &productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
-			Key:        "usage-rate-card",
-			Name:       "Usage Rate Card",
-			FeatureKey: ptr("feature-key"),
+			Key:     "usage-rate-card",
+			Name:    "Usage Rate Card",
+			Feature: productcatalog.NewFeatureReference(nil, ptr("feature-key")),
 			TaxConfig: &productcatalog.TaxConfig{
 				TaxCodeID: ptr("tax-code-id"),
 			},

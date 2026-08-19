@@ -59,6 +59,11 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 		rateCards := make([]rateCardAlias, len(phase.RateCards))
 		for j, rc := range phase.RateCards {
 			meta := rc.AsMeta()
+			var featureID, featureKey *string
+			if meta.Feature != nil {
+				featureID = meta.Feature.ID
+				featureKey = meta.Feature.Key
+			}
 
 			// Marshal price to raw JSON if present
 			var priceJSON json.RawMessage
@@ -88,8 +93,8 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 				Description:         meta.Description,
 				Metadata:            meta.Metadata,
 				Annotations:         meta.Annotations,
-				FeatureKey:          meta.FeatureKey,
-				FeatureID:           meta.FeatureID,
+				FeatureKey:          featureKey,
+				FeatureID:           featureID,
 				Price:               priceJSON,
 				Currency:            currencyCodePointerForJSON(meta.Currency),
 				EntitlementTemplate: entitlementTemplateJSON,
@@ -190,8 +195,7 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 				Description:         rcData.Description,
 				Metadata:            rcData.Metadata,
 				Annotations:         rcData.Annotations,
-				FeatureKey:          rcData.FeatureKey,
-				FeatureID:           rcData.FeatureID,
+				Feature:             productcatalog.NewFeatureReference(rcData.FeatureID, rcData.FeatureKey),
 				Price:               price,
 				EntitlementTemplate: entitlementTemplate,
 			}

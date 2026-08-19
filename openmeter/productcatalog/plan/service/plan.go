@@ -780,6 +780,10 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 			)
 		}
 
+		if err := sourcePlan.AsProductCatalogPlan().ValidateWith(productcatalog.ValidatePlanWithResolvedFeatures()); err != nil {
+			return nil, fmt.Errorf("source Plan has unresolved feature references: %w", err)
+		}
+
 		// The v1 API cannot represent unit_config; reject before creating the next draft
 		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable

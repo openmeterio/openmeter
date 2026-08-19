@@ -78,6 +78,11 @@ func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, tar
 
 func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeIntent, error) {
 	rateCardMeta := target.Spec.RateCard.AsMeta()
+	var featureKey string
+	if rateCardMeta.Feature != nil {
+		featureKey = lo.FromPtr(rateCardMeta.Feature.Key)
+	}
+
 	price := rateCardMeta.Price
 	if price == nil {
 		return charges.ChargeIntent{}, fmt.Errorf("price is required for usage based charge")
@@ -131,6 +136,6 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 			UnitConfig: unitConfig,
 		},
 		SettlementMode: target.Subscription.SettlementMode,
-		FeatureKey:     lo.FromPtr(rateCardMeta.FeatureKey),
+		FeatureKey:     featureKey,
 	}), nil
 }

@@ -160,6 +160,11 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			return def, errors.New("priced subscription item currency must be materialized before persistence")
 		}
 
+		var featureKey *string
+		if feature := input.RateCard.AsMeta().Feature; feature != nil {
+			featureKey = feature.Key
+		}
+
 		cmd := repo.db.SubscriptionItem.Create().
 			SetNillableActiveFromOverrideRelativeToPhaseStart(input.ActiveFromOverrideRelativeToPhaseStart.ISOStringPtrOrNil()).
 			SetNillableActiveToOverrideRelativeToPhaseStart(input.ActiveToOverrideRelativeToPhaseStart.ISOStringPtrOrNil()).
@@ -172,7 +177,7 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			SetKey(input.Key).
 			SetName(input.RateCard.AsMeta().Name).
 			SetNillableDescription(input.RateCard.AsMeta().Description).
-			SetNillableFeatureKey(input.RateCard.AsMeta().FeatureKey).
+			SetNillableFeatureKey(featureKey).
 			SetNillableEntitlementID(input.EntitlementID).
 			SetNillableBillingCadence(input.RateCard.GetBillingCadence().ISOStringPtrOrNil()).
 			SetNillableRestartsBillingPeriod(input.BillingBehaviorOverride.RestartBillingPeriod)

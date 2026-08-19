@@ -668,7 +668,7 @@ func TestPlanHasUnitConfig(t *testing.T) {
 			RateCardMeta: productcatalog.RateCardMeta{
 				Key:        "feat-1",
 				Name:       "Feature 1",
-				FeatureKey: lo.ToPtr("feat-1"),
+				Feature:    productcatalog.NewFeatureReference(nil, lo.ToPtr("feat-1")),
 				Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 				UnitConfig: uc,
 			},

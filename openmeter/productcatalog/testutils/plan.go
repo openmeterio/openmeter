@@ -72,8 +72,6 @@ func NewTestPlan(t *testing.T, namespace string, transformers ...TransformerFunc
 								Name:                "API Requests",
 								Description:         lo.ToPtr("API Requests"),
 								Metadata:            models.Metadata{"name": "api_requests"},
-								FeatureKey:          nil,
-								FeatureID:           nil,
 								EntitlementTemplate: nil,
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{

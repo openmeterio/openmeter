@@ -76,7 +76,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 						Name:        features[0].Name,
 						Description: lo.ToPtr("RateCard 1"),
 						Metadata:    models.Metadata{"name": features[0].Name},
-						FeatureKey:  lo.ToPtr(features[0].Key),
+						Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(features[0].Key)),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
@@ -96,7 +96,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 						Name:        features[1].Name,
 						Description: lo.ToPtr("RateCard 2"),
 						Metadata:    models.Metadata{"name": features[1].Name},
-						FeatureID:   lo.ToPtr(features[1].ID),
+						Feature:     productcatalog.NewFeatureReference(lo.ToPtr(features[1].ID), nil),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
@@ -139,7 +139,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 						Name:        features[2].Name,
 						Description: lo.ToPtr("RateCard 3"),
 						Metadata:    models.Metadata{"name": features[2].Name},
-						FeatureKey:  lo.ToPtr(features[2].Key),
+						Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(features[2].Key)),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
@@ -164,7 +164,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 						Name:        "abracadabra",
 						Description: lo.ToPtr("RateCard 4"),
 						Metadata:    models.Metadata{"name": "abracadabra"},
-						FeatureKey:  lo.ToPtr("abracadabra"),
+						Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr("abracadabra")),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
@@ -184,7 +184,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 						Name:        "abracadabra-2",
 						Description: lo.ToPtr("RateCard 4"),
 						Metadata:    models.Metadata{"name": "abracadabra-2"},
-						FeatureID:   lo.ToPtr("abracadabra-2"),
+						Feature:     productcatalog.NewFeatureReference(lo.ToPtr("abracadabra-2"), nil),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
@@ -210,8 +210,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 						Name:        features[0].Name,
 						Description: lo.ToPtr("RateCard 4"),
 						Metadata:    models.Metadata{"name": features[0].Name},
-						FeatureKey:  lo.ToPtr(features[0].Key),
-						FeatureID:   lo.ToPtr(features[1].ID),
+						Feature:     productcatalog.NewFeatureReference(lo.ToPtr(features[1].ID), lo.ToPtr(features[0].Key)),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
@@ -233,10 +232,10 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 			ratecards: &productcatalog.RateCards{
 				&productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:       features[0].Key,
-						Name:      features[0].Name,
-						FeatureID: lo.ToPtr(features[0].Key), // wrong slot
-						Price:     productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: decimal.NewFromInt(0), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
+						Key:     features[0].Key,
+						Name:    features[0].Name,
+						Feature: productcatalog.NewFeatureReference(lo.ToPtr(features[0].Key), nil), // wrong slot
+						Price:   productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: decimal.NewFromInt(0), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
 					},
 					BillingCadence: &MonthPeriod,
 				},
@@ -248,10 +247,10 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 			ratecards: &productcatalog.RateCards{
 				&productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        features[0].Key,
-						Name:       features[0].Name,
-						FeatureKey: lo.ToPtr(features[0].ID), // wrong slot
-						Price:      productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: decimal.NewFromInt(0), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
+						Key:     features[0].Key,
+						Name:    features[0].Name,
+						Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(features[0].ID)), // wrong slot
+						Price:   productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: decimal.NewFromInt(0), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
 					},
 					BillingCadence: &MonthPeriod,
 				},
@@ -271,8 +270,14 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 				assert.ErrorIsf(t, err, test.expectedErr, "expected error message")
 			} else {
 				for idx, rc := range *test.ratecards {
-					assert.Equal(t, features[idx].ID, lo.FromPtr(rc.GetFeatureID()), "resolved feature id must be equal to the one we set")
-					assert.Equal(t, features[idx].Key, lo.FromPtr(rc.GetFeatureKey()), "resolved feature key must be equal to the one we set")
+					reference := rc.AsMeta().Feature
+					require.NotNil(t, reference)
+					assert.Equal(t, features[idx].ID, lo.FromPtr(reference.ID), "resolved feature id must be equal to the one we set")
+					assert.Equal(t, features[idx].Key, lo.FromPtr(reference.Key), "resolved feature key must be equal to the one we set")
+
+					resolved, ok := reference.Feature()
+					require.True(t, ok, "resolved feature must be attached")
+					require.Equal(t, features[idx], *resolved)
 				}
 			}
 		})

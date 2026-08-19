@@ -30,8 +30,7 @@ func TestSubscriptionItemSpecSerialize(t *testing.T) {
 						Key:         "rate-card-key",
 						Name:        "rate-card-name",
 						Description: lo.ToPtr("rate-card-description"),
-						FeatureKey:  lo.ToPtr("feature-key"),
-						FeatureID:   lo.ToPtr("feature-id"),
+						Feature:     productcatalog.NewFeatureReference(lo.ToPtr("feature-id"), lo.ToPtr("feature-key")),
 						Currency:    lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code("CREDITS"))),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 							IssueAfterReset: lo.ToPtr(100.0),
@@ -113,8 +112,7 @@ func TestSubscriptionItemSerialize(t *testing.T) {
 					Key:         "rate-card-key",
 					Name:        "rate-card-name",
 					Description: lo.ToPtr("rate-card-description"),
-					FeatureKey:  lo.ToPtr("feature-key"),
-					FeatureID:   lo.ToPtr("feature-id"),
+					Feature:     productcatalog.NewFeatureReference(lo.ToPtr("feature-id"), lo.ToPtr("feature-key")),
 					EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 						IssueAfterReset: lo.ToPtr(100.0),
 					}),

@@ -2,13 +2,45 @@ package subscription_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestCreateSubscriptionItemEntityInputEqualIgnoresResolvedFeature(t *testing.T) {
+	now := time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC)
+	resolvedFeature := feature.Feature{
+		Namespace: "namespace",
+		ID:        "feature-id",
+		Name:      "Feature",
+		Key:       "feature-key",
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	unresolved := subscription.CreateSubscriptionItemEntityInput{
+		RateCard: &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
+			Feature: productcatalog.NewFeatureReference(lo.ToPtr(resolvedFeature.ID), lo.ToPtr(resolvedFeature.Key)),
+		}},
+	}
+	resolved := subscription.CreateSubscriptionItemEntityInput{
+		RateCard: &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
+			Feature: lo.ToPtr(resolvedFeature.Reference()),
+		}},
+	}
+
+	require.True(t, unresolved.Equal(resolved))
+
+	resolved.RateCard.AsMeta().Feature.ID = lo.ToPtr("other-feature-id")
+	require.False(t, unresolved.Equal(resolved))
+}
 
 func TestCreateCostBasisPinEntityInputValidate(t *testing.T) {
 	validInput := subscription.CreateCostBasisPinEntityInput{

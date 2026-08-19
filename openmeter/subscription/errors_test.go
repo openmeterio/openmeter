@@ -80,10 +80,9 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 										ItemKey:  "item1",
 										RateCard: &productcatalog.UsageBasedRateCard{
 											RateCardMeta: productcatalog.RateCardMeta{
-												Key:        "item1",
-												Name:       "item1",
-												FeatureKey: lo.ToPtr("item1"),
-												FeatureID:  lo.ToPtr("item1"),
+												Key:     "item1",
+												Name:    "item1",
+												Feature: productcatalog.NewFeatureReference(lo.ToPtr("item1"), lo.ToPtr("item1")),
 												Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 													Amount: alpacadecimal.NewFromFloat(100),
 												}),
@@ -151,10 +150,9 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 										ItemKey:  "item1",
 										RateCard: &productcatalog.UsageBasedRateCard{
 											RateCardMeta: productcatalog.RateCardMeta{
-												Key:        "item1",
-												Name:       "item1",
-												FeatureKey: lo.ToPtr("badkey"), // will error
-												FeatureID:  lo.ToPtr("badid"),
+												Key:     "item1",
+												Name:    "item1",
+												Feature: productcatalog.NewFeatureReference(lo.ToPtr("badid"), lo.ToPtr("badkey")), // will error
 												Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 													Amount: alpacadecimal.NewFromFloat(100),
 												}),

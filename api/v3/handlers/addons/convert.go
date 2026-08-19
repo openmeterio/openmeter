@@ -259,8 +259,8 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3.BillingRateCard, er
 	}
 
 	// Feature
-	if meta.FeatureID != nil {
-		result.Feature = &apiv3.FeatureReference{Id: *meta.FeatureID}
+	if meta.Feature != nil && meta.Feature.ID != nil {
+		result.Feature = &apiv3.FeatureReference{Id: *meta.Feature.ID}
 	}
 
 	// TaxConfig
@@ -826,7 +826,7 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 	}
 
 	if rc.Feature != nil {
-		meta.FeatureID = &rc.Feature.Id
+		meta.Feature = productcatalog.NewFeatureReference(&rc.Feature.Id, nil)
 	}
 
 	if rc.TaxConfig != nil {

@@ -269,8 +269,8 @@ func TestAddAddon(t *testing.T) {
 
 		// Due to not knowing the FeatureIDs before the subscription is updated, we cannot use subscriptiontestutils.SpecsEqual properly
 		// We'll strip all FeatureIDs from the comparison, which OPENS UP silent errors but this is the best we can do for now
-		stripFeatureIDs(&spec)
-		stripFeatureIDs(&newSpec)
+		stripFeatureIDs(t, &spec)
+		stripFeatureIDs(t, &newSpec)
 
 		subscriptiontestutils.SpecsEqual(t, newSpec, spec)
 	}))
@@ -649,11 +649,22 @@ func TestChangeAddonQuantity(t *testing.T) {
 }
 
 // Instead of stripping them, we could also populate them with the correct values
-func stripFeatureIDs(spec *subscription.SubscriptionSpec) {
+func stripFeatureIDs(t *testing.T, spec *subscription.SubscriptionSpec) {
+	t.Helper()
+
 	for _, phase := range spec.Phases {
 		for _, items := range phase.ItemsByKey {
 			for _, item := range items {
-				item.RateCard.SetFeature(nil, item.RateCard.GetFeatureKey())
+				reference := item.RateCard.AsMeta().Feature
+				if reference == nil {
+					continue
+				}
+				cloned := reference.Clone()
+				cloned.ID = nil
+				require.NoError(t, item.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+					meta.Feature = &cloned
+					return meta, nil
+				}))
 			}
 		}
 	}
@@ -688,9 +699,9 @@ func TestAddonCombinations(t *testing.T) {
 				subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
 				&productcatalog.UsageBasedRateCard{ // Dynamic price
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        subscriptiontestutils.ExampleFeatureKey2,
-						Name:       "Dynamic Rate Card 1",
-						FeatureKey: &subscriptiontestutils.ExampleFeatureKey2,
+						Key:     subscriptiontestutils.ExampleFeatureKey2,
+						Name:    "Dynamic Rate Card 1",
+						Feature: productcatalog.NewFeatureReference(nil, &subscriptiontestutils.ExampleFeatureKey2),
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
 							Tiers: []productcatalog.PriceTier{
@@ -725,9 +736,9 @@ func TestAddonCombinations(t *testing.T) {
 				productcatalog.AddonInstanceTypeSingle,
 				&productcatalog.UsageBasedRateCard{ // Dynamic price for addon
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        subscriptiontestutils.ExampleFeatureKey3,
-						Name:       "Addon Dynamic Rate Card",
-						FeatureKey: &subscriptiontestutils.ExampleFeatureKey3,
+						Key:     subscriptiontestutils.ExampleFeatureKey3,
+						Name:    "Addon Dynamic Rate Card",
+						Feature: productcatalog.NewFeatureReference(nil, &subscriptiontestutils.ExampleFeatureKey3),
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
 							Tiers: []productcatalog.PriceTier{
