@@ -45,6 +45,21 @@ export function isSnakeCase(value) {
 }
 
 /**
+ * Checks whether a given value is a dot-separated path of snake_case segments,
+ * e.g. `realization.detailed_lines`. A plain snake_case value is a valid
+ * single-segment path.
+ * @param value the value to check
+ * @returns true if every dot-separated segment is snake_case
+ */
+export function isSnakeCasePath(value) {
+  if (value === undefined || value === null || value === '') {
+    return true
+  }
+
+  return /^[a-z0-9]+(_[a-z0-9]+)*(\.[a-z0-9]+(_[a-z0-9]+)*)*$/.test(value)
+}
+
+/**
  * Checks whether a given value is in kebab-case
  * @param value the value to check
  * @returns true if the value is in kebab-case

@@ -76,6 +76,16 @@ model CustomerReference {
    * The ID of the customer.
    */
   id: Shared.ULID;
+
+  /**
+   * The display name of the customer.
+   *
+   * Only populated where the referencing endpoint documents a `customer` expand that
+   * resolves it.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Customer name")
+  name?: string;
 }
 
 /**

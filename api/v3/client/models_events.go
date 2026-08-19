@@ -4,11 +4,6 @@ package openmeter
 
 import "time"
 
-// Customer reference.
-type CustomerReference struct {
-	ID string `json:"id"`
-}
-
 // Metering event following the CloudEvents specification.
 type Event struct {
 	// Identifies the event.
