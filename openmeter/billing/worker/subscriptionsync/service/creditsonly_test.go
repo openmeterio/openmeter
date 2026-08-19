@@ -110,6 +110,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() {
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
 		TaxCodeService:        s.TaxCodeService,
+		CustomerService:       s.CustomerService,
+		SubscriptionService:   s.SubscriptionService,
 		FlatFeeHandler:        handlers.FlatFee,
 		CreditPurchaseHandler: handlers.CreditPurchase,
 		UsageBasedHandler:     handlers.UsageBased,

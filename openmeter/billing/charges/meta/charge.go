@@ -74,6 +74,23 @@ const (
 	ExpandRealtimeUsage       Expand = "realtime_usage"
 	ExpandDetailedLines       Expand = "detailed_lines"
 	ExpandDeletedRealizations Expand = "deleted_realizations"
+
+	// The expands below are resolved exclusively by the customer-charge API
+	// facade (service.ListCustomerCharges); adapters and sub-services ignore
+	// them, so they flow through charge loading unharmed.
+
+	// ExpandCustomer side-loads the full customer for each listed charge.
+	ExpandCustomer Expand = "customer"
+	// ExpandFeature side-loads the full feature referenced by each charge.
+	ExpandFeature Expand = "feature"
+	// ExpandSubscription side-loads the subscription referenced by each charge.
+	ExpandSubscription Expand = "subscription"
+	// ExpandRealizationInvoice side-loads the invoices referenced by
+	// realization runs.
+	ExpandRealizationInvoice Expand = "realization_invoice"
+	// ExpandRealizationTotals only gates emission on the API: run totals are
+	// always persisted and loaded with the runs.
+	ExpandRealizationTotals Expand = "realization_totals"
 )
 
 func (e Expand) Values() []Expand {
@@ -82,6 +99,11 @@ func (e Expand) Values() []Expand {
 		ExpandRealtimeUsage,
 		ExpandDetailedLines,
 		ExpandDeletedRealizations,
+		ExpandCustomer,
+		ExpandFeature,
+		ExpandSubscription,
+		ExpandRealizationInvoice,
+		ExpandRealizationTotals,
 	}
 }
 

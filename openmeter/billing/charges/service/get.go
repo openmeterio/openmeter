@@ -41,17 +41,18 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 		return nil, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
-		chargesItems, err := s.adapter.GetByIDs(ctx, charges.GetByIDsInput{
+	// Type-specific loads run outside the search transaction; see ListCharges.
+	chargesItems, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.ChargeSearchItems, error) {
+		return s.adapter.GetByIDs(ctx, charges.GetByIDsInput{
 			Namespace: input.Namespace,
 			IDs:       input.IDs,
 		})
-		if err != nil {
-			return nil, err
-		}
-
-		return s.expandChargesWithTypes(ctx, input.Namespace, chargesItems, input.Expands)
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.expandChargesWithTypes(ctx, input.Namespace, chargesItems, input.Expands)
 }
 
 // expandChargesWithTypes fetches the charges by type and expands them with the given expands.
