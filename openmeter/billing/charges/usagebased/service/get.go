@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -31,21 +30,25 @@ func (s *service) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 		return nil, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.Charge, error) {
-		charges, err := s.adapter.GetByIDs(ctx, input)
+	// The realtime usage expansion queries ClickHouse per charge, so it runs
+	// after the adapter read instead of inside the transaction: a remote call
+	// must not pin the pooled Postgres connection. Callers that wrap this in
+	// their own transaction hoist the expansion the same way.
+	charges, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.Charge, error) {
+		return s.adapter.GetByIDs(ctx, input)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if input.Expands.Has(meta.ExpandRealtimeUsage) {
+		charges, err = s.expandChargesUsage(ctx, input.Namespace, charges)
 		if err != nil {
 			return nil, err
 		}
+	}
 
-		if input.Expands.Has(meta.ExpandRealtimeUsage) {
-			charges, err = s.expandChargesUsage(ctx, input.Namespace, charges)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return charges, nil
-	})
+	return charges, nil
 }
 
 func (s *service) GetByID(ctx context.Context, input usagebased.GetByIDInput) (usagebased.Charge, error) {
@@ -53,25 +56,28 @@ func (s *service) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 		return usagebased.Charge{}, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (usagebased.Charge, error) {
-		charge, err := s.adapter.GetByID(ctx, input)
+	// The realtime totals read rates against ClickHouse, so it runs after
+	// the adapter read instead of inside the transaction; see GetByIDs.
+	charge, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (usagebased.Charge, error) {
+		return s.adapter.GetByID(ctx, input)
+	})
+	if err != nil {
+		return usagebased.Charge{}, err
+	}
+
+	if input.Expands.Has(meta.ExpandRealtimeUsage) {
+		totals, err := s.GetCurrentTotals(ctx, usagebased.GetCurrentTotalsInput{
+			ChargeID: charge.GetChargeID(),
+		})
 		if err != nil {
 			return usagebased.Charge{}, err
 		}
 
-		if input.Expands.Has(meta.ExpandRealtimeUsage) {
-			totals, err := s.GetCurrentTotals(ctx, usagebased.GetCurrentTotalsInput{
-				ChargeID: charge.GetChargeID(),
-			})
-			if err != nil {
-				return usagebased.Charge{}, err
-			}
+		charge.Expands.RealtimeUsage = &totals.DueTotals
+		charge.Expands.RealtimeQuantity = &totals.MeteredQuantity
+	}
 
-			charge.Expands.RealtimeUsage = &totals.DueTotals
-		}
-
-		return charge, nil
-	})
+	return charge, nil
 }
 
 func (s *service) expandChargesUsage(ctx context.Context, namespace string, charges usagebased.Charges) (usagebased.Charges, error) {
@@ -145,8 +151,8 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				}
 			}()
 
-			var dueTotals totals.Totals
-			dueTotals, err = s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
+			var rated usagebasedrating.GetTotalsForUsageResult
+			rated, err = s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
 				Charge:                  charge,
 				Customer:                customerOverridesById[charge.GetCustomerID()],
 				FeatureMeter:            featureMeter,
@@ -158,7 +164,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				return
 			}
 
-			ratingResults.Store(charge.GetChargeID(), dueTotals)
+			ratingResults.Store(charge.GetChargeID(), rated)
 		})
 	}
 
@@ -179,17 +185,18 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	}
 
 	return slicesx.MapWithErr(charges, func(charge usagebased.Charge) (usagebased.Charge, error) {
-		dueTotalsAny, ok := ratingResults.Load(charge.GetChargeID())
+		ratedAny, ok := ratingResults.Load(charge.GetChargeID())
 		if !ok {
 			return charge, fmt.Errorf("totals result not found for charge %s", charge.ID)
 		}
 
-		dueTotals, ok := dueTotalsAny.(totals.Totals)
+		rated, ok := ratedAny.(usagebasedrating.GetTotalsForUsageResult)
 		if !ok {
 			return charge, fmt.Errorf("invalid totals type for charge %s", charge.ID)
 		}
 
-		charge.Expands.RealtimeUsage = &dueTotals
+		charge.Expands.RealtimeUsage = &rated.Totals
+		charge.Expands.RealtimeQuantity = &rated.MeteredQuantity
 		return charge, nil
 	})
 }

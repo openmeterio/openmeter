@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"slices"
-	"strings"
 
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -21,8 +20,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
+// maxListCustomerChargesPageSize bounds a single page: every listed charge
+// loads its full run history, and expands add per-row live rating and full
+// invoice hydration on top.
+const maxListCustomerChargesPageSize = 1000
+
 type (
-	ListCustomerChargesRequest  = billingcharges.ListChargesInput
+	ListCustomerChargesRequest  = billingcharges.ListCustomerChargesInput
 	ListCustomerChargesResponse = response.PagePaginationResponse[api.BillingCharge]
 	ListCustomerChargesParams   struct {
 		CustomerID api.ULID
@@ -57,19 +61,51 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				})
 			}
 
-			// Realization runs are always required to compute booked totals.
-			expands := meta.Expands{meta.ExpandRealizations}
-			if args.Params.Expand != nil && slices.Contains(*args.Params.Expand, api.BillingChargesExpandRealTimeUsage) {
-				expands = expands.With(meta.ExpandRealtimeUsage)
+			// Every listed charge loads its full run history, and expands fan
+			// out to live rating and invoice hydration per row, so the page
+			// size is capped instead of trusting the caller.
+			if page.PageSize > maxListCustomerChargesPageSize {
+				return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx,
+					fmt.Errorf("page size must not exceed %d", maxListCustomerChargesPageSize),
+					apierrors.InvalidParameters{
+						{
+							Field:  "page[size]",
+							Reason: fmt.Sprintf("page size must not exceed %d", maxListCustomerChargesPageSize),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+			}
+
+			// Realization runs are always required to compute booked totals;
+			// the facade adds that expand itself. The request only carries the
+			// expands the caller asked for.
+			expands := meta.ExpandNone
+			if args.Params.Expand != nil {
+				for _, apiExpand := range *args.Params.Expand {
+					expand, err := convertAPIChargesExpand(apiExpand)
+					if err != nil {
+						return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+							{
+								Field:  "expand",
+								Reason: err.Error(),
+								Source: apierrors.InvalidParamSourceQuery,
+							},
+						})
+					}
+
+					expands = expands.With(expand)
+				}
 			}
 
 			req := ListCustomerChargesRequest{
-				Page:        page,
-				Namespace:   ns,
-				CustomerIDs: []string{args.CustomerID},
-				// Credit purchases are served by the credit grants API; exclude them here.
-				ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
-				Expands:     expands,
+				ListChargesInput: billingcharges.ListChargesInput{
+					Page:        page,
+					Namespace:   ns,
+					CustomerIDs: []string{args.CustomerID},
+					// Credit purchases are served by the credit grants API; exclude them here.
+					ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
+					Expands:     expands,
+				},
 			}
 
 			// Parse sort. When omitted, the service defaults to created_at ascending
@@ -93,32 +129,82 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				req.Order = sort.Order.ToSortxOrder()
 			}
 
-			// Parse status filter
-			if args.Params.Filter != nil && args.Params.Filter.Status != nil && len(args.Params.Filter.Status.Oeq) > 0 {
-				statuses, err := parseChargeStatusFilterSlice(args.Params.Filter.Status.Oeq)
+			// Parse the filters. Each one is optional and validated
+			// independently; the service-period pair combined expresses a
+			// half-open [from, to) window query.
+			if args.Params.Filter != nil {
+				status, err := filters.FromAPIFilterStringExact(args.Params.Filter.Status)
 				if err != nil {
 					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
-							Field:  "filter[status][oeq]",
+							Field:  "filter[status]",
 							Reason: err.Error(),
 							Source: apierrors.InvalidParamSourceQuery,
 						},
 					})
 				}
-				req.StatusIn = statuses
-				// TODO: Also add a deleted_at filter
-				req.IncludeDeleted = slices.Contains(statuses, meta.ChargeStatusDeleted)
+				req.Status = status
+
+				featureID, err := filters.FromAPIFilterULID(args.Params.Filter.FeatureId)
+				if err != nil {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[feature_id]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.FeatureID = featureID
+
+				featureKey, err := filters.FromAPIFilterStringExact(args.Params.Filter.FeatureKey)
+				if err != nil {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[feature_key]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.FeatureKey = featureKey
+
+				servicePeriodFrom, err := convertAPIServicePeriodFromFilter(args.Params.Filter.ServicePeriodFrom)
+				if err != nil {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[service_period_from]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.ServicePeriodFrom = servicePeriodFrom
+
+				servicePeriodTo, err := convertAPIServicePeriodToFilter(args.Params.Filter.ServicePeriodTo)
+				if err != nil {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[service_period_to]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.ServicePeriodTo = servicePeriodTo
 			}
 
 			return req, nil
 		},
 		func(ctx context.Context, request ListCustomerChargesRequest) (ListCustomerChargesResponse, error) {
-			result, err := h.service.ListCharges(ctx, request)
+			result, err := h.service.ListCustomerCharges(ctx, request)
 			if err != nil {
 				return ListCustomerChargesResponse{}, fmt.Errorf("listing charges: %w", err)
 			}
 
-			charges, err := slicesx.MapWithErr(result.Items, convertChargeToAPI)
+			charges, err := slicesx.MapWithErr(result.Charges.Items, func(charge billingcharges.CustomerCharge) (api.BillingCharge, error) {
+				return convertChargeToAPI(charge, result.Expands)
+			})
 			if err != nil {
 				return ListCustomerChargesResponse{}, fmt.Errorf("converting charge: %w", err)
 			}
@@ -126,7 +212,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 			return response.NewPagePaginationResponse(charges, response.PageMetaPage{
 				Size:   request.Page.PageSize,
 				Number: request.Page.PageNumber,
-				Total:  lo.ToPtr(result.TotalCount),
+				Total:  lo.ToPtr(result.Charges.TotalCount),
 			}), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListCustomerChargesResponse](http.StatusOK),
@@ -136,25 +222,4 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
-}
-
-// parseChargeStatusFilterSlice converts a slice of status strings to meta.ChargeStatus values.
-// Each token is validated with a type-safe switch so that unknown values are
-// rejected with an explicit error message rather than caught by a generic validator.
-func parseChargeStatusFilterSlice(values []string) ([]meta.ChargeStatus, error) {
-	statuses := make([]meta.ChargeStatus, 0, len(values))
-
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed == "" {
-			return nil, fmt.Errorf("status filter value must not be empty or whitespace-only")
-		}
-		s, err := convertAPIChargeStatus(trimmed)
-		if err != nil {
-			return nil, err
-		}
-		statuses = append(statuses, s)
-	}
-
-	return statuses, nil
 }

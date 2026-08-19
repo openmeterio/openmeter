@@ -150,6 +150,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		FeatureService:        s.FeatureService,
 		StreamingConnector:    s.MockStreamingConnector,
 		TaxCodeService:        s.TaxCodeService,
+		CustomerService:       s.CustomerService,
 		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),
 		CreditPurchaseHandler: creditPurchaseHandler,
 		UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}, collectorService),

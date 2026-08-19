@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
@@ -37,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -68,6 +70,34 @@ type BaseSuite struct {
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
+	// FakeSubscriptionService backs the facade's subscription expand; tests
+	// seed it with the subscriptions they reference.
+	FakeSubscriptionService *fakeSubscriptionService
+}
+
+// fakeSubscriptionService satisfies charges.SubscriptionService without a real
+// subscription stack, serving the in-memory slice and honoring the facade's
+// ID $in filter. It duplicates testutils.FakeSubscriptionService on purpose:
+// package service tests cannot import charges/testutils (testutils imports
+// this package), so do not deduplicate them into an import cycle.
+type fakeSubscriptionService struct {
+	subscriptions []subscription.Subscription
+}
+
+func (f *fakeSubscriptionService) List(_ context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	items := f.subscriptions
+
+	if input.ID != nil && input.ID.In != nil {
+		items = lo.Filter(items, func(sub subscription.Subscription, _ int) bool {
+			return slices.Contains(*input.ID.In, sub.ID)
+		})
+	}
+
+	return subscription.SubscriptionList{
+		Page:       input.Page,
+		TotalCount: len(items),
+		Items:      items,
+	}, nil
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -76,6 +106,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.FlatFeeTestHandler = newFlatFeeTestHandler()
 	s.CreditPurchaseTestHandler = newCreditPurchaseTestHandler()
 	s.UsageBasedTestHandler = newUsageBasedTestHandler()
+	s.FakeSubscriptionService = &fakeSubscriptionService{}
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.DBClient,
@@ -215,9 +246,11 @@ func (s *BaseSuite) SetupSuite() {
 		UsageBasedService:     usageBasedService,
 		RecognizerService:     recognizer.NoopService{},
 
-		BillingService:   s.BillingService,
-		TaxCodeService:   s.TaxCodeService,
-		CurrencyResolver: currencyResolver,
+		BillingService:      s.BillingService,
+		TaxCodeService:      s.TaxCodeService,
+		CurrencyResolver:    currencyResolver,
+		CustomerService:     s.CustomerService,
+		SubscriptionService: s.FakeSubscriptionService,
 	})
 	s.NoError(err)
 	s.Charges = chargesService

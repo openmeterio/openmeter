@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -742,6 +743,12 @@ func (s State) Validate() error {
 
 type Expands struct {
 	RealtimeUsage *totals.Totals `json:"realtimeUsage,omitempty"`
+	// RealtimeQuantity is the cumulative metered quantity behind
+	// RealtimeUsage, captured by the same live read; set only under the
+	// realtime usage expand. Loaded by the usagebased service during the
+	// realtime-usage rating expand for the charge-level usage API field and
+	// the outstanding realization quantity.
+	RealtimeQuantity *alpacadecimal.Decimal `json:"realtimeQuantity,omitempty"`
 }
 
 func (e Expands) Validate() error {
