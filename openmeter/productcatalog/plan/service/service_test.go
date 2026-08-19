@@ -743,6 +743,9 @@ func TestPlanService(t *testing.T) {
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, planV3.Status())
 
 				plan.AssertPlanEqual(t, *publishedPlanV2, *planV3)
+				assert.Equal(t, publishedPlanV2.Metadata, planV3.Metadata)
+				assert.Equal(t, publishedPlanV2.BillingCadence, planV3.BillingCadence)
+				assert.Equal(t, publishedPlanV2.ProRatingConfig, planV3.ProRatingConfig)
 
 				t.Run("Addon", func(t *testing.T) {
 					var planAddonV3 *planaddon.PlanAddon
