@@ -79,8 +79,7 @@ func TestPostgresAdapter(t *testing.T) {
 						Name:                "Trial RateCard 1",
 						Description:         lo.ToPtr("Trial RateCard 1"),
 						Metadata:            models.Metadata{"name": "trial-ratecard-1"},
-						FeatureKey:          nil,
-						FeatureID:           nil,
+						Feature:             productcatalog.NewFeatureReference(nil, nil),
 						EntitlementTemplate: nil,
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
@@ -111,8 +110,7 @@ func TestPostgresAdapter(t *testing.T) {
 						Name:                "Pro RateCard 1",
 						Description:         lo.ToPtr("Pro RateCard 1"),
 						Metadata:            models.Metadata{"name": features[0].Key},
-						FeatureKey:          &features[0].Key,
-						FeatureID:           nil,
+						Feature:             productcatalog.NewFeatureReference(nil, &features[0].Key),
 						EntitlementTemplate: nil,
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
@@ -628,10 +626,10 @@ func TestListPlansExcludeUnitConfig(t *testing.T) {
 			RateCards: []productcatalog.RateCard{
 				&productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        feat.Key,
-						Name:       "Pro RateCard",
-						FeatureKey: &feat.Key,
-						Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+						Key:     feat.Key,
+						Name:    "Pro RateCard",
+						Feature: productcatalog.NewFeatureReference(nil, &feat.Key),
+						Price:   productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
 						UnitConfig: &productcatalog.UnitConfig{
 							Operation:        productcatalog.UnitConfigOperationDivide,
 							ConversionFactor: decimal.NewFromInt(1000),

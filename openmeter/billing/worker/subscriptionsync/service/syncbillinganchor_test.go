@@ -82,9 +82,9 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       "test-rate-card",
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								Name:    "test-rate-card",
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(100),
 								}),
@@ -259,9 +259,9 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       "test-rate-card",
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								Name:    "test-rate-card",
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									IssueAfterReset: lo.ToPtr(1000.0),
 									UsagePeriod:     datetime.MustParseDuration(s.T(), "P1M"),
@@ -279,9 +279,9 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       "test-rate-card",
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								Name:    "test-rate-card",
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(100),
 								}),

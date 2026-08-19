@@ -176,15 +176,23 @@ type CreateSubscriptionItemEntityInput struct {
 }
 
 func (i CreateSubscriptionItemEntityInput) Equal(other CreateSubscriptionItemEntityInput) bool {
+	if (i.RateCard == nil) != (other.RateCard == nil) {
+		return false
+	}
+
+	rateCardsEqual := i.RateCard == nil || i.RateCard.Equal(other.RateCard)
+
 	a := i
 	a.MetadataModel = models.MetadataModel{}
 	a.Annotations = models.Annotations{}
+	a.RateCard = nil
 	b := other
 	b.MetadataModel = models.MetadataModel{}
 	b.Annotations = models.Annotations{}
+	b.RateCard = nil
 
 	// we don't compare annotations
-	return reflect.DeepEqual(a, b) && maps.Equal(i.Metadata, other.Metadata)
+	return rateCardsEqual && reflect.DeepEqual(a, b) && maps.Equal(i.Metadata, other.Metadata)
 }
 
 type SubscriptionItemRepository interface {

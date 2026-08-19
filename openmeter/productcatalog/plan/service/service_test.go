@@ -85,8 +85,7 @@ func TestPlanService(t *testing.T) {
 				Name:                features[0].Name,
 				Description:         lo.ToPtr("RateCard 1"),
 				Metadata:            models.Metadata{"name": features[0].Name},
-				FeatureKey:          lo.ToPtr(features[0].Key),
-				FeatureID:           lo.ToPtr(features[0].ID),
+				Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 				TaxConfig: &productcatalog.TaxConfig{
 					Stripe: &productcatalog.StripeTaxConfig{
@@ -132,8 +131,7 @@ func TestPlanService(t *testing.T) {
 								Name:        features[0].Name,
 								Description: lo.ToPtr("RateCard 1"),
 								Metadata:    models.Metadata{"name": features[0].Name},
-								FeatureKey:  nil,
-								FeatureID:   lo.ToPtr(features[0].ID),
+								Feature:     productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), nil),
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
 										Code: "txcd_10000000",
@@ -163,8 +161,7 @@ func TestPlanService(t *testing.T) {
 								Name:        features[0].Name,
 								Description: lo.ToPtr("RateCard 1"),
 								Metadata:    models.Metadata{"name": features[0].Name},
-								FeatureKey:  lo.ToPtr(features[0].Key),
-								FeatureID:   nil,
+								Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(features[0].Key)),
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
 										Code: "txcd_10000000",
@@ -314,8 +311,7 @@ func TestPlanService(t *testing.T) {
 									Name:        features[0].Name,
 									Description: lo.ToPtr("RateCard 1"),
 									Metadata:    models.Metadata{"name": features[0].Name},
-									FeatureKey:  lo.ToPtr(features[0].Key),
-									FeatureID:   nil,
+									Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(features[0].Key)),
 									EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 										productcatalog.MeteredEntitlementTemplate{
 											Metadata:                nil,
@@ -433,8 +429,7 @@ func TestPlanService(t *testing.T) {
 											Name:        features[0].Name,
 											Description: lo.ToPtr("RateCard 1"),
 											Metadata:    models.Metadata{"name": features[0].Name},
-											FeatureKey:  nil,
-											FeatureID:   lo.ToPtr(features[0].ID),
+											Feature:     productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), nil),
 											TaxConfig: &productcatalog.TaxConfig{
 												Stripe: &productcatalog.StripeTaxConfig{
 													Code: "txcd_10000000",
@@ -1392,9 +1387,9 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableFields(t *testing.T) {
 
 		return &productcatalog.UsageBasedRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Key:        featureKey,
-				Name:       "Usage",
-				FeatureKey: &featureKey,
+				Key:     featureKey,
+				Name:    "Usage",
+				Feature: productcatalog.NewFeatureReference(nil, &featureKey),
 				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: decimal.NewFromInt(1),
 				}),

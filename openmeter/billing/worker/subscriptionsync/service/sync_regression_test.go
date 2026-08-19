@@ -220,10 +220,9 @@ func cancellationRegressionRateCard(t *testing.T, chargeType chargesmeta.ChargeT
 	case chargesmeta.ChargeTypeUsageBased:
 		return &productcatalog.UsageBasedRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Key:        featureKey,
-				Name:       featureKey,
-				FeatureKey: lo.ToPtr(featureKey),
-				FeatureID:  lo.ToPtr(featureID),
+				Key:     featureKey,
+				Name:    featureKey,
+				Feature: productcatalog.NewFeatureReference(lo.ToPtr(featureID), lo.ToPtr(featureKey)),
 				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromFloat(1),
 				}),

@@ -230,7 +230,8 @@ func (s *SubscriptionItemView) Validate() error {
 
 	// Let's validate the Feature
 	if s.Feature != nil {
-		if s.SubscriptionItem.RateCard.AsMeta().FeatureKey == nil {
+		reference := s.SubscriptionItem.RateCard.AsMeta().Feature
+		if reference == nil || reference.Key == nil {
 			return fmt.Errorf("item %s has a feature, but no feature key", s.Spec.ItemKey)
 		}
 
@@ -240,8 +241,8 @@ func (s *SubscriptionItemView) Validate() error {
 				return fmt.Errorf("entitlement %s feature id %s does not match item %s feature id %s", s.Entitlement.Entitlement.ID, s.Entitlement.Entitlement.FeatureID, s.Spec.ItemKey, s.Feature.ID)
 			}
 		} else {
-			if *s.SubscriptionItem.RateCard.AsMeta().FeatureKey != s.Feature.Key {
-				return fmt.Errorf("item %s feature key %s does not match feature key %s", s.Spec.ItemKey, *s.SubscriptionItem.RateCard.AsMeta().FeatureKey, s.Feature.Key)
+			if *reference.Key != s.Feature.Key {
+				return fmt.Errorf("item %s feature key %s does not match feature key %s", s.Spec.ItemKey, *reference.Key, s.Feature.Key)
 			}
 		}
 	}
@@ -418,20 +419,31 @@ func NewSubscriptionView(
 					}); ok {
 						itemFeat = &feat
 					}
-				} else if item.RateCard.AsMeta().FeatureKey != nil {
+				} else if reference := item.RateCard.AsMeta().Feature; reference != nil && reference.Key != nil {
 					if feat, ok := lo.Find(itemFeats, func(i feature.Feature) bool {
-						return i.Key == *item.RateCard.AsMeta().FeatureKey
+						return i.Key == *reference.Key
 					}); ok {
 						itemFeat = &feat
 					}
 				}
 
 				if itemFeat != nil {
-					_ = item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-						m.FeatureID = lo.ToPtr(itemFeat.ID)
+					if err := item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+						if m.Feature == nil {
+							m.Feature = lo.ToPtr(itemFeat.Reference())
+							return m, nil
+						}
+
+						resolvedReference, err := m.Feature.WithFeature(itemFeat)
+						if err != nil {
+							return m, err
+						}
+						m.Feature = &resolvedReference
 
 						return m, nil
-					})
+					}); err != nil {
+						return nil, fmt.Errorf("failed to resolve feature reference for item %s: %w", item.ID, err)
+					}
 				}
 
 				itemView := SubscriptionItemView{

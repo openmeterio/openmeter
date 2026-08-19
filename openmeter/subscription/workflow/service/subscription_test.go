@@ -350,9 +350,9 @@ func TestEditRunning(t *testing.T) {
 
 				rateCard := &productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        itemKey,
-						Name:       itemKey,
-						FeatureKey: lo.ToPtr(itemKey),
+						Key:     itemKey,
+						Name:    itemKey,
+						Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(itemKey)),
 						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount: alpacadecimal.NewFromInt(10),
 						}),
@@ -1028,8 +1028,7 @@ func TestChangeToPlan(t *testing.T) {
 					Key:         subscriptiontestutils.ExampleFeatureKey,
 					Name:        "Rate Card 1",
 					Description: lo.ToPtr("Rate Card 1 Description"),
-					FeatureKey:  lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
-					FeatureID:   nil,
+					Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(subscriptiontestutils.ExampleFeatureKey)),
 					EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 						IssueAfterReset: lo.ToPtr(111.0),
 						UsagePeriod:     subscriptiontestutils.ISOMonth,
@@ -1913,10 +1912,9 @@ func TestMultiSubscription(t *testing.T) {
 			plan1 := deps.SubsDeps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
 				AddPhase(nil, &productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Name:       "feature1",
-						Key:        subscriptiontestutils.ExampleFeatureKey,
-						FeatureKey: lo.ToPtr(subscriptiontestutils.ExampleFeatureKey),
-						FeatureID:  nil,
+						Name:    "feature1",
+						Key:     subscriptiontestutils.ExampleFeatureKey,
+						Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(subscriptiontestutils.ExampleFeatureKey)),
 						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount: alpacadecimal.NewFromInt(int64(100)),
 						}),

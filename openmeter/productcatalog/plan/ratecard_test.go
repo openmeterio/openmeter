@@ -47,8 +47,7 @@ func TestRateCard_JSON(t *testing.T) {
 						Metadata: map[string]string{
 							"key": "value",
 						},
-						FeatureKey: lo.ToPtr("feature-1"),
-						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+						Feature: productcatalog.NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feature-1")),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 							productcatalog.StaticEntitlementTemplate{
 								Metadata: map[string]string{
@@ -93,8 +92,7 @@ func TestRateCard_JSON(t *testing.T) {
 						Metadata: map[string]string{
 							"key": "value",
 						},
-						FeatureKey: lo.ToPtr("feature-2"),
-						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+						Feature: productcatalog.NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feature-2")),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 							productcatalog.MeteredEntitlementTemplate{
 								Metadata: map[string]string{
@@ -221,8 +219,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "Flat 1",
 							},
-							FeatureKey: lo.ToPtr("feat-1"),
-							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+							Feature: productcatalog.NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.StaticEntitlementTemplate{
 									Metadata: map[string]string{
@@ -268,8 +265,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "Flat 2",
 							},
-							FeatureKey: lo.ToPtr("feat-2"),
-							FeatureID:  lo.ToPtr("01JBP3SGZ2YTM6DVH2W318TPNH"),
+							Feature: productcatalog.NewFeatureReference(lo.ToPtr("01JBP3SGZ2YTM6DVH2W318TPNH"), lo.ToPtr("feat-2")),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.StaticEntitlementTemplate{
 									Metadata: map[string]string{
@@ -339,8 +335,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							FeatureKey: lo.ToPtr("feat-1"),
-							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+							Feature: productcatalog.NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -394,8 +389,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-2",
 							},
-							FeatureKey: lo.ToPtr("feat-2"),
-							FeatureID:  lo.ToPtr("01JBWYR0G2PYB9DVADKQXF8E0P"),
+							Feature: productcatalog.NewFeatureReference(lo.ToPtr("01JBWYR0G2PYB9DVADKQXF8E0P"), lo.ToPtr("feat-2")),
 							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
 								productcatalog.MeteredEntitlementTemplate{
 									Metadata: map[string]string{

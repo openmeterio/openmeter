@@ -200,10 +200,9 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -218,10 +217,9 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),
@@ -239,10 +237,9 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -3093,10 +3090,9 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -3111,10 +3107,9 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),
@@ -3291,11 +3286,10 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProgressiveBillingCa
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-								Price:      testPrice,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   testPrice,
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -3834,10 +3828,9 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 						},
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -4062,10 +4055,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualCreateSync() {
 						RateCards: productcatalog.RateCards{
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(10),
 									}),
@@ -4357,10 +4349,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutR
 						RateCards: productcatalog.RateCards{
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(5),
 									}),
@@ -5599,10 +5590,9 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithSingleUsageBas
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),
@@ -5732,10 +5722,9 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithMultipleUsageB
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(5),
 								}),
@@ -6163,10 +6152,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -6371,10 +6359,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -6780,10 +6767,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -7124,10 +7110,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -7673,10 +7658,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveStandardInvoiceDel
 						RateCards: productcatalog.RateCards{
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(10),
 									}),
@@ -7827,10 +7811,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveGatheringLineManua
 						RateCards: productcatalog.RateCards{
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(10),
 									}),
@@ -8018,10 +8001,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveGatheringInvoiceMa
 						RateCards: productcatalog.RateCards{
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(10),
 									}),
@@ -8370,10 +8352,9 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
 						RateCards: productcatalog.RateCards{
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(5),
 									}),
@@ -8544,10 +8525,9 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 						},
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -8682,10 +8662,9 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 						},
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        s.APIRequestsTotalFeature.Key,
-								Name:       s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Key:     s.APIRequestsTotalFeature.Key,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromFloat(10),
 								}),
@@ -8825,10 +8804,9 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 							},
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(10),
 									}),
@@ -9068,10 +9046,9 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 							},
 							&productcatalog.UsageBasedRateCard{
 								RateCardMeta: productcatalog.RateCardMeta{
-									Key:        s.APIRequestsTotalFeature.Key,
-									Name:       s.APIRequestsTotalFeature.Key,
-									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Key:     s.APIRequestsTotalFeature.Key,
+									Name:    s.APIRequestsTotalFeature.Key,
+									Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 										Amount: alpacadecimal.NewFromFloat(10),
 									}),
@@ -9300,10 +9277,9 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 			},
 			&productcatalog.UsageBasedRateCard{
 				RateCardMeta: productcatalog.RateCardMeta{
-					Key:        s.APIRequestsTotalFeature.Key,
-					Name:       s.APIRequestsTotalFeature.Key,
-					FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-					FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+					Key:     s.APIRequestsTotalFeature.Key,
+					Name:    s.APIRequestsTotalFeature.Key,
+					Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromFloat(10),
 					}),
@@ -9809,8 +9785,7 @@ func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
 						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 							Amount: alpacadecimal.NewFromFloat(5),
 						}),
-						FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-						FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+						Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
 					},
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				},

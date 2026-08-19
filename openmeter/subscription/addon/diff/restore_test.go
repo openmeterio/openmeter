@@ -575,9 +575,9 @@ func TestRestore(t *testing.T) {
 					subscriptiontestutils.ExampleRateCard1.Clone(), // Flat price
 					&productcatalog.UsageBasedRateCard{ // Dynamic price
 						RateCardMeta: productcatalog.RateCardMeta{
-							Key:        subscriptiontestutils.ExampleFeatureKey2,
-							Name:       "Dynamic Rate Card 1",
-							FeatureKey: &subscriptiontestutils.ExampleFeatureKey2,
+							Key:     subscriptiontestutils.ExampleFeatureKey2,
+							Name:    "Dynamic Rate Card 1",
+							Feature: productcatalog.NewFeatureReference(nil, &subscriptiontestutils.ExampleFeatureKey2),
 							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.VolumeTieredPrice,
 								Tiers: []productcatalog.PriceTier{
@@ -608,9 +608,9 @@ func TestRestore(t *testing.T) {
 				productcatalog.AddonInstanceTypeSingle,
 				&productcatalog.UsageBasedRateCard{ // Dynamic price for addon
 					RateCardMeta: productcatalog.RateCardMeta{
-						Key:        subscriptiontestutils.ExampleFeatureKey3,
-						Name:       "Addon Dynamic Rate Card",
-						FeatureKey: &subscriptiontestutils.ExampleFeatureKey3,
+						Key:     subscriptiontestutils.ExampleFeatureKey3,
+						Name:    "Addon Dynamic Rate Card",
+						Feature: productcatalog.NewFeatureReference(nil, &subscriptiontestutils.ExampleFeatureKey3),
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
 							Tiers: []productcatalog.PriceTier{

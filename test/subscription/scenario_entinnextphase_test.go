@@ -68,10 +68,9 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 						// Let's have an in-arrears monthly entitlement ratecard
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        feats[0].Key,
-								Name:       "Test Rate Card",
-								FeatureKey: lo.ToPtr(feats[0].Key),
-								FeatureID:  lo.ToPtr(feats[0].ID),
+								Key:     feats[0].Key,
+								Name:    "Test Rate Card",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[0].ID), lo.ToPtr(feats[0].Key)),
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
 										Code: "txcd_10000000",
@@ -95,10 +94,9 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 						// Let's have an in-arrears monthly entitlement ratecard
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        feats[0].Key,
-								Name:       "Test Rate Card",
-								FeatureKey: lo.ToPtr(feats[0].Key),
-								FeatureID:  lo.ToPtr(feats[0].ID),
+								Key:     feats[0].Key,
+								Name:    "Test Rate Card",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[0].ID), lo.ToPtr(feats[0].Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),

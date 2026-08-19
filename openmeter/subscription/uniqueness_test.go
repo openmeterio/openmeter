@@ -142,10 +142,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder1 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder1 = builder1.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 			},
 		})
 		s1, err := builder1.Build()
@@ -154,10 +153,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder2 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder2 = builder2.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 			},
 		})
 		s2, err := builder2.Build()
@@ -206,9 +204,8 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 					Amount:      alpacadecimal.NewFromInt(int64(100)),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
 				}),
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 			},
 		})
 		s1, err := builder1.Build()
@@ -217,10 +214,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder2 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder2 = builder2.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 			},
 		})
 
@@ -230,10 +226,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder3 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder3 = builder3.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 			},
 		})
 		s3, err := builder3.Build()
@@ -242,10 +237,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder4 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder4 = builder4.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromInt(int64(100)),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -328,9 +322,8 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 					Amount:      alpacadecimal.NewFromInt(int64(100)),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
 				}),
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 			},
 		})
 		s1, err := builder1.Build()
@@ -344,9 +337,8 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 					Amount:      alpacadecimal.NewFromInt(int64(100)),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
 				}),
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 			},
 		})
 		s2, err := builder2.Build()
@@ -373,10 +365,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder1 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder1 = builder1.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 					UsagePeriod:     subscriptiontestutils.ISOMonth,
 					IssueAfterReset: lo.ToPtr(100.0),
@@ -391,8 +382,7 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 			RateCardMeta: productcatalog.RateCardMeta{
 				Name:                "overlapping feature",
 				Key:                 overlappingFeatureKey,
-				FeatureKey:          &overlappingFeatureKey,
-				FeatureID:           &overlappingFeatureID,
+				Feature:             productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 			},
 		})
@@ -420,10 +410,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder1 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder1 = builder1.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 					UsagePeriod:     subscriptiontestutils.ISOMonth,
 					IssueAfterReset: lo.ToPtr(100.0),
@@ -436,10 +425,9 @@ func TestValidateUniqueConstraintByFeatures(t *testing.T) {
 		builder2 := subscriptiontestutils.BuildTestSubscriptionSpec(t)
 		builder2 = builder2.AddPhase(nil, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Name:       "overlapping feature",
-				Key:        overlappingFeatureKey,
-				FeatureKey: &overlappingFeatureKey,
-				FeatureID:  &overlappingFeatureID,
+				Name:    "overlapping feature",
+				Key:     overlappingFeatureKey,
+				Feature: productcatalog.NewFeatureReference(&overlappingFeatureID, &overlappingFeatureKey),
 				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromInt(int64(100)),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,

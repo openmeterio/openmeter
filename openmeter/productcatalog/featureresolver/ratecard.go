@@ -25,15 +25,16 @@ func ResolveFeaturesForRateCards(
 	featureIDAndKeys := make([]string, 0, 2*len(*rateCards))
 
 	for _, rc := range *rateCards {
-		if !rc.HasFeature() {
+		reference := rc.AsMeta().Feature
+		if reference == nil {
 			continue
 		}
 
-		if id := rc.GetFeatureID(); id != nil && *id != "" {
+		if id := reference.ID; id != nil && *id != "" {
 			featureIDAndKeys = append(featureIDAndKeys, *id)
 		}
 
-		if key := rc.GetFeatureKey(); key != nil && *key != "" {
+		if key := reference.Key; key != nil && *key != "" {
 			featureIDAndKeys = append(featureIDAndKeys, *key)
 		}
 	}
@@ -46,63 +47,45 @@ func ResolveFeaturesForRateCards(
 	var errs []error
 
 	for _, rc := range *rateCards {
-		if !rc.HasFeature() {
-			continue
-		}
-
-		var f *feature.Feature
-
-		id := rc.GetFeatureID()
-		hasID := id != nil && *id != ""
-
-		key := rc.GetFeatureKey()
-		hasKey := key != nil && *key != ""
-
 		fieldSelector := models.NewFieldSelectorGroup(
 			models.NewFieldSelector("ratecards").WithExpression(
 				models.NewFieldAttrValue("key", rc.Key())),
 		)
 
-		if hasID {
-			f = features[*id]
+		reference := rc.AsMeta().Feature
+		if reference == nil {
+			continue
+		}
+
+		if err := reference.Validate(); err != nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
+			continue
+		}
+
+		var f *feature.Feature
+
+		if reference.ID != nil {
+			f = features[*reference.ID]
 
 			if f == nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
 					fmt.Errorf("feature not found [ratecard.key=%s feature.id=%s]: %w",
-						rc.Key(), lo.FromPtr(id), productcatalog.ErrRateCardFeatureNotFound),
-				))
-
-				continue
-			}
-
-			if f.ID != *id {
-				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
-					fmt.Errorf("feature id conflict [ratecard.key=%s feature.id=%s feature.key=%s]: %w",
-						rc.Key(), lo.FromPtr(id), lo.FromPtr(key), productcatalog.ErrRateCardFeatureMismatch),
+						rc.Key(), lo.FromPtr(reference.ID), productcatalog.ErrRateCardFeatureNotFound),
 				))
 
 				continue
 			}
 		}
 
-		if hasKey {
+		if reference.Key != nil {
 			if f == nil {
-				f = features[*key]
+				f = features[*reference.Key]
 			}
 
 			if f == nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
 					fmt.Errorf("feature not found [ratecard.key=%s feature.key=%s]: %w",
-						rc.Key(), lo.FromPtr(key), productcatalog.ErrRateCardFeatureNotFound),
-				))
-
-				continue
-			}
-
-			if f.Key != *key {
-				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
-					fmt.Errorf("feature key conflict [ratecard.key=%s feature.id=%s feature.key=%s]: %w",
-						rc.Key(), lo.FromPtr(id), lo.FromPtr(key), productcatalog.ErrRateCardFeatureMismatch),
+						rc.Key(), lo.FromPtr(reference.Key), productcatalog.ErrRateCardFeatureNotFound),
 				))
 
 				continue
@@ -113,8 +96,25 @@ func ResolveFeaturesForRateCards(
 			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
 				fmt.Errorf("feature not found [ratecard.key=%s]: %w", rc.Key(), productcatalog.ErrRateCardFeatureNotFound),
 			))
-		} else {
-			rc.SetFeature(&(f).ID, &(f).Key)
+			continue
+		}
+
+		resolvedReference, err := reference.WithFeature(f)
+		if err != nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
+				fmt.Errorf("feature reference conflict [ratecard.key=%s feature.id=%s feature.key=%s]: %w",
+					rc.Key(), lo.FromPtr(reference.ID), lo.FromPtr(reference.Key), productcatalog.ErrRateCardFeatureMismatch),
+			))
+			continue
+		}
+
+		if err := rc.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+			meta.Feature = &resolvedReference
+			return meta, nil
+		}); err != nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
+				fmt.Errorf("failed to update resolved feature reference: %w", err),
+			))
 		}
 	}
 

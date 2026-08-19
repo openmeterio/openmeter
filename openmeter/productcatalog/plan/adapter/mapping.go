@@ -10,6 +10,7 @@ import (
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -237,13 +238,28 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 		Metadata:            r.Metadata,
 		Annotations:         r.Annotations,
 		EntitlementTemplate: r.EntitlementTemplate,
-		FeatureKey:          r.FeatureKey,
-		FeatureID:           r.FeatureID,
+		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
 		Currency:            rateCardCurrency,
+	}
+
+	if meta.Feature != nil {
+		if err := meta.Feature.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid persisted feature reference: %w", err)
+		}
+
+		ratecardFeature, err := r.Edges.FeaturesOrErr()
+		if err == nil && ratecardFeature != nil {
+			resolvedFeature := productcatalogadapter.MapFeatureEntity(ratecardFeature)
+			resolvedReference, err := meta.Feature.WithFeature(&resolvedFeature)
+			if err != nil {
+				return nil, fmt.Errorf("invalid resolved feature reference: %w", err)
+			}
+			meta.Feature = &resolvedReference
+		}
 	}
 
 	// Map TaxCode if eagerly loaded.
@@ -375,8 +391,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Description:         r.Description,
 		Metadata:            r.Metadata,
 		Annotations:         r.Annotations,
-		FeatureID:           r.FeatureID,
-		FeatureKey:          r.FeatureKey,
+		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
 		EntitlementTemplate: r.EntitlementTemplate,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
@@ -385,17 +400,19 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Currency:            rateCardCurrency,
 	}
 
-	if r.FeatureID != nil || r.FeatureKey != nil {
-		ratecardFeature, err := r.Edges.FeaturesOrErr()
-		//if err != nil {
-		//	return nil, errors.New("feature is not loaded for ratecard")
-		//}
-		//
-		//meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
+	if meta.Feature != nil {
+		if err := meta.Feature.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid persisted feature reference: %w", err)
+		}
 
-		// FIXME(chrisgacsal): temporary fix until data is migrated
+		ratecardFeature, err := r.Edges.FeaturesOrErr()
 		if err == nil && ratecardFeature != nil {
-			meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
+			resolvedFeature := productcatalogadapter.MapFeatureEntity(ratecardFeature)
+			resolvedReference, err := meta.Feature.WithFeature(&resolvedFeature)
+			if err != nil {
+				return nil, fmt.Errorf("invalid resolved feature reference: %w", err)
+			}
+			meta.Feature = &resolvedReference
 		}
 	}
 
@@ -494,8 +511,13 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 		ratecard.PhaseID = managedFields.PhaseID
 	}
 
-	ratecard.FeatureKey = meta.FeatureKey
-	ratecard.FeatureID = meta.FeatureID
+	if meta.Feature != nil {
+		if err := meta.Feature.Validate(); err != nil {
+			return entdb.PlanRateCard{}, fmt.Errorf("invalid feature reference for persistence: %w", err)
+		}
+		ratecard.FeatureKey = meta.Feature.Key
+		ratecard.FeatureID = meta.Feature.ID
+	}
 	if meta.TaxConfig != nil {
 		ratecard.TaxCodeID = meta.TaxConfig.TaxCodeID
 		ratecard.TaxBehavior = meta.TaxConfig.Behavior

@@ -1124,10 +1124,20 @@ func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.F
 	msgX := fmt.Sprintf("item %s not equal to target %s", b1, b2)
 
 	left := target.Clone()
-	left.SetFeature(nil, left.GetFeatureKey())
+	leftFeature := left.AsMeta().Feature.Clone()
+	leftFeature.ID = nil
+	require.NoError(t, left.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Feature = &leftFeature
+		return meta, nil
+	}))
 
 	right := value.Clone()
-	right.SetFeature(nil, right.GetFeatureKey())
+	rightFeature := right.AsMeta().Feature.Clone()
+	rightFeature.ID = nil
+	require.NoError(t, right.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Feature = &rightFeature
+		return meta, nil
+	}))
 
 	if len(msgAndArgs) > 0 {
 		customMsg := fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...)

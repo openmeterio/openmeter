@@ -27,11 +27,10 @@ import (
 func newTestAddonFlatRateCard(feat feature.Feature, tc *productcatalog.TaxConfig) productcatalog.RateCard {
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
-			Key:        feat.Key,
-			Name:       feat.Name,
-			FeatureKey: lo.ToPtr(feat.Key),
-			FeatureID:  lo.ToPtr(feat.ID),
-			TaxConfig:  tc,
+			Key:       feat.Key,
+			Name:      feat.Name,
+			Feature:   productcatalog.NewFeatureReference(lo.ToPtr(feat.ID), lo.ToPtr(feat.Key)),
+			TaxConfig: tc,
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      decimal.NewFromInt(100),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,
@@ -804,10 +803,9 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 				RateCards: productcatalog.RateCards{
 					&productcatalog.FlatFeeRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
-							Key:        features[0].Key,
-							Name:       features[0].Name,
-							FeatureKey: lo.ToPtr(features[0].Key),
-							FeatureID:  lo.ToPtr(features[0].ID),
+							Key:     features[0].Key,
+							Name:    features[0].Name,
+							Feature: productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      decimal.NewFromInt(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,

@@ -273,9 +273,9 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        featureOne.Key,
-								Name:       "Usage Billable",
-								FeatureKey: lo.ToPtr(featureOne.Key),
+								Key:     featureOne.Key,
+								Name:    "Usage Billable",
+								Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(featureOne.Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1D"),
 									IssueAfterReset: lo.ToPtr(110.0),
@@ -289,9 +289,9 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 						},
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        featureTwo.Key,
-								Name:       "Usage Included",
-								FeatureKey: lo.ToPtr(featureTwo.Key),
+								Key:     featureTwo.Key,
+								Name:    "Usage Included",
+								Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(featureTwo.Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1D"),
 									IssueAfterReset: lo.ToPtr(10.0),

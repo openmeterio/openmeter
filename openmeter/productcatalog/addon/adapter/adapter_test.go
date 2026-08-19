@@ -79,8 +79,7 @@ func TestPostgresAdapter(t *testing.T) {
 						Name:                features[0].Name,
 						Description:         lo.ToPtr(features[0].Name),
 						Metadata:            models.Metadata{"name": features[0].Name},
-						FeatureKey:          lo.ToPtr(features[0].Key),
-						FeatureID:           lo.ToPtr(features[0].ID),
+						Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{
@@ -277,8 +276,7 @@ func TestPostgresAdapter(t *testing.T) {
 								Name:                "RateCard 2",
 								Description:         lo.ToPtr("RateCard 2"),
 								Metadata:            models.Metadata{"name": "ratecard-2"},
-								FeatureKey:          nil,
-								FeatureID:           nil,
+								Feature:             productcatalog.NewFeatureReference(nil, nil),
 								EntitlementTemplate: nil,
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
@@ -482,11 +480,10 @@ func TestListAddonsExcludeUnitConfig(t *testing.T) {
 	// unit_config add-on: usage-based rate card carrying a unit_config → not v1-representable.
 	ucInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.UsageBasedRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
-			Key:        feat.Key,
-			Name:       "UC RateCard",
-			FeatureKey: lo.ToPtr(feat.Key),
-			FeatureID:  lo.ToPtr(feat.ID),
-			Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+			Key:     feat.Key,
+			Name:    "UC RateCard",
+			Feature: productcatalog.NewFeatureReference(lo.ToPtr(feat.ID), lo.ToPtr(feat.Key)),
+			Price:   productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
 			UnitConfig: &productcatalog.UnitConfig{
 				Operation:        productcatalog.UnitConfigOperationDivide,
 				ConversionFactor: decimal.NewFromInt(1000),
