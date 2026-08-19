@@ -130,11 +130,9 @@ func TestV3CustomerChargeFlatFeeRealizations(t *testing.T) {
 
 	t.Run("list response carries the same realization shape", func(t *testing.T) {
 		// when:
-		// - the customer's charges are listed with a bumped page size so the
-		//   fresh row can't fall past page 1 on a busy DB
-		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ChargeListParams{
-			Page: &v3sdk.PageParams{Size: lo.ToPtr(1000)},
-		})
+		// - the customer's charges are listed; the listing is scoped to this
+		//   fresh customer, so the default page size always covers it
+		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ChargeListParams{})
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 
@@ -269,11 +267,9 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 
 	t.Run("list response carries the same realization shape", func(t *testing.T) {
 		// when:
-		// - the customer's charges are listed with a bumped page size so the
-		//   fresh row can't fall past page 1 on a busy DB
-		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ChargeListParams{
-			Page: &v3sdk.PageParams{Size: lo.ToPtr(1000)},
-		})
+		// - the customer's charges are listed; the listing is scoped to this
+		//   fresh customer, so the default page size always covers it
+		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ChargeListParams{})
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 
