@@ -306,12 +306,10 @@ func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded
 	if expanded != nil {
 		var out api.SubscriptionOrReference
 
-		sub, err := subscriptions.ToAPIBillingSubscription(subscription.SubscriptionView{
-			Subscription: *expanded,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("converting subscription: %w", err)
-		}
+		// The charges expand side-loads bare subscriptions without their
+		// specs, so only the base fields convert: the view-derived fields
+		// (phases, current period) would need per-subscription view loads.
+		sub := subscriptions.ToAPIBillingSubscriptionBase(*expanded)
 
 		if err := out.FromBillingSubscription(sub); err != nil {
 			return nil, fmt.Errorf("setting subscription union: %w", err)
