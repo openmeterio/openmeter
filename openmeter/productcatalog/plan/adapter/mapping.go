@@ -512,9 +512,18 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 	}
 
 	if meta.Feature != nil {
+		if err := meta.Feature.Validate(); err != nil {
+			return entdb.PlanRateCard{}, fmt.Errorf("invalid feature reference for persistence: %w", err)
+		}
+
+		if meta.Feature.ID == nil || meta.Feature.Key == nil {
+			return entdb.PlanRateCard{}, errors.New("feature reference must include both id and key for persistence")
+		}
+
 		ratecard.FeatureKey = meta.Feature.Key
 		ratecard.FeatureID = meta.Feature.ID
 	}
+
 	if meta.TaxConfig != nil {
 		ratecard.TaxCodeID = meta.TaxConfig.TaxCodeID
 		ratecard.TaxBehavior = meta.TaxConfig.Behavior
