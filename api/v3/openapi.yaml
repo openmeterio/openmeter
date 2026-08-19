@@ -1377,6 +1377,12 @@ paths:
 
             To filter charges by status add the following query param:
             `filter[status][oeq]=created,active`
+
+            To filter charges by feature, use `filter[feature_id][oeq]=<id>,<id>` or
+            `filter[feature_key][oeq]=<key>,<key>`.
+
+            See the `service_period_from` filter field for expressing a service-period
+            window query.
           schema:
             $ref: '#/components/schemas/ListChargesParamsFilter'
           style: deepObject
@@ -1388,7 +1394,15 @@ paths:
 
             Supported values are:
 
-            - `real_time_usage`: Expand the charge's real-time usage.
+            - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage`
+            and the `totals.realtime` fields.
+            - `customer`: Expand the charge's customer to the complete entity.
+            - `feature`: Expand the charge's feature to the complete entity.
+            - `subscription`: Expand the charge's subscription to the complete entity.
+            - `realization.invoice`: Expand each realization's invoice to the complete
+            entity.
+            - `realization.totals`: Expand each realization run's `totals`.
+            - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.
           schema:
             type: array
             items:
@@ -1412,6 +1426,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
+      x-internal: true
+      x-private: true
       x-unstable: true
     post:
       operationId: create-customer-charges
@@ -1444,6 +1460,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateChargeRequest'
+      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
@@ -4777,6 +4795,7 @@ components:
         - full_service_period
         - billing_period
         - settlement_mode
+        - realizations
         - payment_term
         - proration_configuration
         - amount_after_proration
@@ -4826,24 +4845,31 @@ components:
           title: Type
         customer:
           allOf:
-            - $ref: '#/components/schemas/BillingCustomerReference'
-          description: The customer owning the charge.
+            - $ref: '#/components/schemas/CustomerOrReference'
+          description: |-
+            The customer owning the charge.
+
+            By default, only the `id` of the customer is returned. For more details use the
+            `customer` expand.
           title: Customer
           readOnly: true
         lifecycle_controller:
           allOf:
             - $ref: '#/components/schemas/BillingLifecycleController'
           description: |-
-            Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+            Indicates whether the charge lifecycle is controlled by the system or manually
             overridden by the API user.
           title: Lifecycle controller
           readOnly: true
         subscription:
           allOf:
-            - $ref: '#/components/schemas/BillingSubscriptionReference'
+            - $ref: '#/components/schemas/SubscriptionOrReference'
           description: |-
             The subscription that originated the charge, when the charge was created from a
             subscription item.
+
+            By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+            returned. For more details use the `subscription` expand.
           title: Subscription
           readOnly: true
         currency:
@@ -4901,6 +4927,13 @@ components:
             - $ref: '#/components/schemas/BillingTaxConfig'
           description: Tax configuration of the charge.
           title: Tax configuration
+        realizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingChargeRealization'
+          description: The realization runs of the charge, sorted by `service_period.from`.
+          title: Realizations
+          readOnly: true
         payment_term:
           allOf:
             - $ref: '#/components/schemas/BillingPricePaymentTerm'
@@ -4911,15 +4944,12 @@ components:
             - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
           description: The discounts applied to the charge.
           title: Discounts
-        feature_key:
-          type: string
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureOrReference'
           description: The feature associated with the charge, when applicable.
-          title: Feature key
+          title: Feature
           readOnly: true
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -5049,6 +5079,603 @@ components:
         Flat fee intent fields from the system lifecycle controller shadowed by a manual
         override.
       title: Flat fee system lifecycle controller charge intent
+    BillingChargeRealization:
+      type: object
+      required:
+        - type
+        - service_period
+      properties:
+        id:
+          type: string
+          description: |-
+            The ID of the realization run. Not present on `outstanding` entries, which are
+            projections rather than persisted runs.
+          title: ID
+          readOnly: true
+        line_id:
+          type: string
+          description: |-
+            The ID of the invoice line this realization was booked to, when the realization
+            has been invoiced.
+          title: Line ID
+          readOnly: true
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/ChargeRealizationInvoiceOrReference'
+          description: The reference of the invoice related to the realization.
+          title: Invoice
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeRealizationType'
+          description: The type of the realization run.
+          title: Type
+          readOnly: true
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The service period covered by this realization run.
+          title: Service period
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The metered usage quantity this realization run accounts for. Only present on
+            usage-based charges; flat fees are not metered, so their realizations carry no
+            usage.
+
+            Booked entries report a signed delta: a negative value states a downward usage
+            correction (or a voided run that snapshotted behind its live neighbors) instead
+            of masking it as zero.
+
+            On an `outstanding` entry this is `0` unless the `real_time_usage` expand is
+            applied, in which case it is the not-yet-booked remainder of the live metering
+            read (never negative).
+          title: Usage
+          readOnly: true
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeRealizationPayment'
+          description: |-
+            The payment state of the realization, when the charge requires a fiat
+            transaction to settle.
+          title: Payment
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingTotals'
+          description: |-
+            Financial totals for the realization run, including credit allocations.
+
+            Requires the `realization.totals` expand.
+          title: Totals
+          readOnly: true
+        detailed_lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingChargeRealizationDetailedLine'
+          description: |-
+            The detailed (rated) lines produced by the realization run.
+
+            Requires the `realization.detailed_lines` expand.
+          title: Detailed lines
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A realization run of a charge.
+
+        `totals` and `detailed_lines` are only populated with the `realization.totals`
+        and `realization.detailed_lines` expands, respectively, since computing them
+        requires re-deriving the run's rated breakdown. `invoice` is an ID reference
+        unless the `realization.invoice` expand is used, which resolves it to the
+        invoice header of the run's booked line: the invoice entity without its `lines`
+        and without the `customer` snapshot (the charge itself already identifies the
+        customer).
+      title: Charge realization
+    BillingChargeRealizationAmountDiscount:
+      type: object
+      required:
+        - amount
+        - reason
+        - child_unique_reference_id
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the discount applied to the charge.
+          title: Amount
+          readOnly: true
+        reason:
+          type: string
+          description: The reason for the discount applied to the charge.
+          title: Reason
+          readOnly: true
+        description:
+          type: string
+          description: Optional human-readable description of the discount.
+          title: Description
+          readOnly: true
+        rounding_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The discount amount applied to the charge, rounded to the nearest cent (or
+            currency equivalent) and adjusted to compensate for rounding errors across
+            multiple discounted detail lines.
+          title: Rounded amount
+          readOnly: true
+        child_unique_reference_id:
+          type: string
+          description: Unique reference ID of the discount applied to the charge.
+          title: Unique reference ID
+          readOnly: true
+      additionalProperties: false
+      description: A discount applied to a charge realization detailed line.
+      title: Charge detailed line amount discount
+    BillingChargeRealizationDetailedLine:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingChargeRealizationDetailedLineFlatFee'
+        - $ref: '#/components/schemas/BillingChargeRealizationDetailedLineUsageBased'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat_fee: '#/components/schemas/BillingChargeRealizationDetailedLineFlatFee'
+          usage_based: '#/components/schemas/BillingChargeRealizationDetailedLineUsageBased'
+      description: |-
+        A detailed (child) line type of a charge realization run.
+
+        This is distinct from an invoice's own detailed lines: it represents the
+        rated/priced breakdown produced by the realization run itself, before that
+        breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice
+        runs include credit allocations in these lines, while credits-only runs keep the
+        gross rated detail.
+      title: Charge realization detailed line
+    BillingChargeRealizationDetailedLineCategory:
+      type: string
+      enum:
+        - regular
+        - commitment
+      description: |-
+        Cost category of a charge realization detailed line.
+
+        Values:
+
+        - `regular`: A regular charge line, based on usage or subscription pricing.
+        - `commitment`: A commitment-derived line, such as minimum spend.
+      title: Charge realization detailed line category
+    BillingChargeRealizationDetailedLineCreditApplied:
+      type: object
+      required:
+        - amount
+        - credit_realization_id
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The monetary amount credited.
+          title: Amount
+          readOnly: true
+        description:
+          type: string
+          description: Human-readable description of the credit allocation.
+          title: Description
+          readOnly: true
+        credit_realization_id:
+          type: string
+          description: The ID of the credit realization (allocation) this credit was applied from.
+          title: Credit realization ID
+          readOnly: true
+      additionalProperties: false
+      description: A credit allocation applied to a charge realization detailed line.
+      title: Charge realization detailed line credit applied
+    BillingChargeRealizationDetailedLineFlatFee:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - type
+        - service_period
+        - totals
+        - category
+        - unit_price
+        - amount_discounts
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the charge the realization belongs to.
+          title: Type
+          readOnly: true
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The service period covered by this detailed line.
+          title: Service period
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingTotals'
+          description: Aggregated financial totals for the detailed line.
+          title: Totals
+          readOnly: true
+        category:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeRealizationDetailedLineCategory'
+          description: The cost category of this detailed line.
+          title: Category
+          readOnly: true
+        credits_applied:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingChargeRealizationDetailedLineCreditApplied'
+          description: Credits applied to this detailed line.
+          title: Credits applied
+          readOnly: true
+        unit_price:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The unit price of the detailed line.
+          title: Unit price
+          readOnly: true
+        amount_discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingChargeRealizationAmountDiscount'
+          description: The amount discounts applied to the detailed line.
+          title: Amount discounts
+          readOnly: true
+      additionalProperties: false
+      description: A detailed line produced by a flat fee charge's realization run.
+      title: Flat fee charge realization detailed line
+    BillingChargeRealizationDetailedLineUsageBased:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - type
+        - service_period
+        - totals
+        - category
+        - unit_price
+        - amount_discounts
+        - quantity
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the charge the realization belongs to.
+          title: Type
+          readOnly: true
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The service period covered by this detailed line.
+          title: Service period
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingTotals'
+          description: Aggregated financial totals for the detailed line.
+          title: Totals
+          readOnly: true
+        category:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeRealizationDetailedLineCategory'
+          description: The cost category of this detailed line.
+          title: Category
+          readOnly: true
+        credits_applied:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingChargeRealizationDetailedLineCreditApplied'
+          description: Credits applied to this detailed line.
+          title: Credits applied
+          readOnly: true
+        unit_price:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The unit price of the detailed line.
+          title: Unit price
+          readOnly: true
+        amount_discounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingChargeRealizationAmountDiscount'
+          description: The amount discounts applied to the detailed line.
+          title: Amount discounts
+          readOnly: true
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity of the detailed line.
+          title: Quantity
+          readOnly: true
+        corrects_run_id:
+          type: string
+          description: |-
+            The ID of a prior realization run this detailed line corrects. Only set if the
+            detailed line's totals are negative.
+          title: Corrects run ID
+          readOnly: true
+      additionalProperties: false
+      description: A detailed line produced by a usage-based charge's realization run.
+      title: Usage-based charge realization detailed line
+    BillingChargeRealizationInvoice:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - number
+        - currency
+        - supplier
+        - totals
+        - service_period
+        - type
+        - status
+        - status_details
+        - workflow
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceNumber'
+          description: Human-readable invoice number generated by the invoicing app.
+          title: Number
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Three-letter ISO 4217 currency code for the invoice.
+          title: Currency
+          readOnly: true
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingSupplier'
+          description: |-
+            Snapshot of the supplier's contact information at the time the invoice was
+            issued.
+          title: Supplier
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingTotals'
+          description: Aggregated financial totals for the invoice.
+          title: Totals
+          readOnly: true
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: |-
+            The service period covered by this invoice.
+
+            For flat fee the service period can be empty which means `from` will be equals
+            to `to`. In other cases those fields will be filled with the actual service
+            period.
+          title: Service period
+          readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceValidationIssue'
+          description: |-
+            Validation issues found during invoice processing.
+
+            Present only when there are one or more validation findings. An empty list is
+            omitted.
+          title: Validation issues
+          readOnly: true
+        external_references:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceExternalReferences'
+          description: External identifiers assigned to this invoice by third-party systems.
+          title: External references
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - standard
+          description: Discriminator field identifying this as a standard invoice.
+          title: Type
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceStandardStatus'
+          description: Current lifecycle status of the invoice.
+          title: Status
+          readOnly: true
+        status_details:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceStatusDetails'
+          description: Detailed status information including available actions and workflow state.
+          title: Status details
+          readOnly: true
+        issued_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when the invoice was issued to the customer.
+          title: Issued at
+          readOnly: true
+        draft_until:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Timestamp until which the invoice remains in draft state.
+
+            The invoice advances automatically once this time is reached.
+          title: Draft until
+          readOnly: true
+        quantity_snapshotted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when usage quantities were last snapshotted for this invoice.
+          title: Quantity snapshotted at
+          readOnly: true
+        collection_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when collection was initiated for this invoice.
+          title: Collection at
+          readOnly: true
+        due_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when payment is due.
+          title: Due at
+          readOnly: true
+        sent_to_customer_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when the invoice was sent to the customer.
+          title: Sent to customer at
+          readOnly: true
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowSettings'
+          description: Workflow configuration snapshot captured at invoice creation time.
+          title: Workflow
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceLine'
+          description: |-
+            Line items on this invoice.
+
+            Always returned on single-resource GET; omitted on list endpoints unless
+            explicitly expanded. Editable via update: existing lines are matched by `id`,
+            lines without an `id` are created, and lines present on the invoice but omitted
+            from the update request are deleted. Detailed (child) lines are always computed
+            and cannot be edited directly.
+          title: Lines
+      additionalProperties: false
+      description: |-
+        The invoice a charge realization was booked to, embedded as a header.
+
+        Matches the standard invoice entity, except that it carries no `customer`
+        snapshot (the charge context already identifies the customer) and `lines` are
+        never populated (the realization itself is the line-level breakdown). The shared
+        invoice contract stays untouched: this model exists so the charges API can slim
+        the embedding without loosening the invoices API.
+      title: Charge realization invoice
+    BillingChargeRealizationPayment:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeRealizationPaymentStatus'
+          description: The settlement status of the payment.
+          title: Status
+          readOnly: true
+      additionalProperties: false
+      description: Payment state of a charge realization.
+      title: Charge realization payment
+    BillingChargeRealizationPaymentStatus:
+      type: string
+      enum:
+        - authorized
+        - settled
+      description: |-
+        Settlement status of a charge realization's payment.
+
+        Values:
+
+        - `authorized`: The payment has been authorized against the customer's ledger
+        but has not settled yet.
+        - `settled`: The payment has settled.
+      title: Charge realization payment status
+    BillingChargeRealizationType:
+      type: string
+      enum:
+        - final_realization
+        - partial_invoice
+        - outstanding
+        - voided
+      description: |-
+        Type of a charge realization run.
+
+        Values:
+
+        - `final_realization`: The run is the final realization of the charge for its
+        service period; no further runs are expected to correct it.
+        - `partial_invoice`: The run only realizes part of the charge, because the
+        remainder is not yet due to be invoiced.
+        - `outstanding`: The type an outstanding (not-yet-realized) projection would
+        carry if it were realized now. Never returned on a booked realization run.
+        - `voided`: The run's billing effect was undone (for example the charge's
+        service period was extended while its invoice was still mutable); it is
+        retained as audit history and excluded from aggregate and live calculations.
+      title: Charge realization type
     BillingChargeReference:
       type: object
       required:
@@ -5094,16 +5721,19 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingTotals'
           description: |-
-            The realtime amount of the charge.
+            The realtime amount of the charge, i.e. the whole usage rated at the charge's
+            price for its full service period, ignoring what has already been booked to a
+            realization. This differs from the `usage` of a realization with type
+            `outstanding`, which only covers the quantity not yet booked.
 
-            Requires the `realtime_usage` expand.
+            Requires the `real_time_usage` expand.
           title: Realtime totals
           readOnly: true
       additionalProperties: false
       description: |-
-        The totals of a change.
+        The totals of a charge.
 
-        RealTime is only expanded when the `real_time_usage` expand is used.
+        `realtime` is only populated when the `real_time_usage` expand is used.
     BillingChargeUsageBased:
       type: object
       required:
@@ -5121,8 +5751,8 @@ components:
         - full_service_period
         - billing_period
         - settlement_mode
-        - feature_key
-        - feature_id
+        - realizations
+        - feature
         - totals
         - price
       properties:
@@ -5170,24 +5800,31 @@ components:
           title: Type
         customer:
           allOf:
-            - $ref: '#/components/schemas/BillingCustomerReference'
-          description: The customer owning the charge.
+            - $ref: '#/components/schemas/CustomerOrReference'
+          description: |-
+            The customer owning the charge.
+
+            By default, only the `id` of the customer is returned. For more details use the
+            `customer` expand.
           title: Customer
           readOnly: true
         lifecycle_controller:
           allOf:
             - $ref: '#/components/schemas/BillingLifecycleController'
           description: |-
-            Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+            Indicates whether the charge lifecycle is controlled by the system or manually
             overridden by the API user.
           title: Lifecycle controller
           readOnly: true
         subscription:
           allOf:
-            - $ref: '#/components/schemas/BillingSubscriptionReference'
+            - $ref: '#/components/schemas/SubscriptionOrReference'
           description: |-
             The subscription that originated the charge, when the charge was created from a
             subscription item.
+
+            By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+            returned. For more details use the `subscription` expand.
           title: Subscription
           readOnly: true
         currency:
@@ -5245,30 +5882,48 @@ components:
             - $ref: '#/components/schemas/BillingTaxConfig'
           description: Tax configuration of the charge.
           title: Tax configuration
+        realizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingChargeRealization'
+          description: The realization runs of the charge, sorted by `service_period.from`.
+          title: Realizations
+          readOnly: true
         discounts:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discounts applied to the usage-based charge.
           title: Discounts
-        feature_key:
-          type: string
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureOrReference'
           description: The feature associated with the charge.
-          title: Feature key
+          title: Feature
           readOnly: true
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         totals:
           allOf:
             - $ref: '#/components/schemas/BillingChargeTotals'
           description: Aggregated booked and realtime totals for the charge.
           title: Totals for the charge
           readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The metered usage quantity of the charge for its full service period.
+
+            Requires the `real_time_usage` expand, since it is computed live from the
+            metering store rather than stored on the charge.
+          title: Usage
+          readOnly: true
         price:
           allOf:
             - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
+          description: |-
+            The price of the charge.
+
+            `free` prices are rejected on create: a usage-based charge always carries a
+            concrete price.
           title: Price
         system_intent:
           allOf:
@@ -5339,7 +5994,11 @@ components:
         price:
           allOf:
             - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
+          description: |-
+            The price of the charge.
+
+            `free` prices are rejected on create: a usage-based charge always carries a
+            concrete price.
           title: Price
         deleted_at:
           allOf:
@@ -5358,12 +6017,29 @@ components:
       type: string
       enum:
         - real_time_usage
+        - customer
+        - feature
+        - subscription
+        - realization.invoice
+        - realization.totals
+        - realization.detailed_lines
       description: |-
         Expands for customer charges.
 
         Values:
 
-        - `real_time_usage`: The charge's real-time usage.
+        - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the
+        `totals.realtime` fields, and fills the `outstanding` realization's `usage`
+        with the not-yet-booked remainder of the live read.
+        - `customer`: The complete customer entity of the charge.
+        - `feature`: The complete feature entity of the charge.
+        - `subscription`: The complete subscription of the charge, when present.
+        - `realization.invoice`: The invoice header of each realization (the invoice
+        entity without its `lines` and `customer` snapshot), in place of the ID
+        reference.
+        - `realization.totals`: The `totals` of each realization run, including credit
+        allocations.
+        - `realization.detailed_lines`: The `detailed_lines` of each realization run.
       title: Customer charge expands
     BillingCostBasis:
       type: object
@@ -6103,17 +6779,6 @@ components:
           title: App customer data
       additionalProperties: false
       description: Billing customer data.
-    BillingCustomerReference:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The ID of the customer.
-      additionalProperties: false
-      description: Customer reference.
     BillingCustomerStripeCreateCheckoutSessionRequest:
       type: object
       required:
@@ -9076,6 +9741,15 @@ components:
           description: The ID of the subscription.
           title: Subscription ID
           readOnly: true
+        name:
+          type: string
+          description: |-
+            The display name of the subscription.
+
+            Only populated where the referencing endpoint documents a `subscription` expand
+            that resolves it.
+          title: Subscription name
+          readOnly: true
         phase:
           type: object
           properties:
@@ -9696,6 +10370,20 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    ChargeRealizationInvoiceOrReference:
+      oneOf:
+        - $ref: '#/components/schemas/BillingChargeRealizationInvoice'
+        - $ref: '#/components/schemas/ChargeRealizationInvoiceReference'
+      description: ChargeRealizationInvoice or reference.
+    ChargeRealizationInvoiceReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: ChargeRealizationInvoice reference.
     ClosedPeriod:
       type: object
       required:
@@ -9920,10 +10608,6 @@ components:
             - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
           description: The discounts applied to the charge.
           title: Discounts
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -9934,6 +10618,11 @@ components:
             - $ref: '#/components/schemas/CurrencyAmount'
           description: The amount before proration of the charge.
           title: Amount before proration
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: A reference to the feature associated with the charge, when applicable.
+          title: Feature
         full_service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
@@ -9967,8 +10656,8 @@ components:
         - invoice_at
         - service_period
         - settlement_mode
-        - feature_id
         - price
+        - feature
       properties:
         name:
           type: string
@@ -10027,15 +10716,20 @@ components:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discounts applied to the usage-based charge.
           title: Discounts
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         price:
           allOf:
             - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
+          description: |-
+            The price of the charge.
+
+            `free` prices are rejected on create: a usage-based charge always carries a
+            concrete price.
           title: Price
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: A reference to the feature associated with the charge.
+          title: Feature
         full_service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
@@ -10762,6 +11456,11 @@ components:
           description: Request the previous page of data, starting with the item before this parameter.
       additionalProperties: false
       description: Determines which page of the collection to retrieve.
+    CustomerOrReference:
+      oneOf:
+        - $ref: '#/components/schemas/BillingCustomer'
+        - $ref: '#/components/schemas/CustomerReference'
+      description: Customer or reference.
     CustomerPagePaginatedResponse:
       type: object
       required:
@@ -11221,6 +11920,11 @@ components:
           title: Meter dimensions filters
       additionalProperties: false
       description: Reference to a meter associated with a feature.
+    FeatureOrReference:
+      oneOf:
+        - $ref: '#/components/schemas/Feature'
+        - $ref: '#/components/schemas/FeatureReference'
+      description: Feature or reference.
     FeaturePagePaginatedResponse:
       type: object
       required:
@@ -11496,6 +12200,34 @@ components:
             - `deleted`
 
             If omitted, all statuses are returned except for `deleted`.
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter charges by the ID of their associated feature.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter charges by the key of their associated feature.
+        service_period_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter charges by the start of their service period.
+
+            Combine with `service_period_to` to match charges whose service period falls
+            within a given window: `filter[service_period_from][gte]=<from>` together with
+            `filter[service_period_to][lt]=<to>` returns charges whose service period lies
+            within `[from, to)`.
+        service_period_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: |-
+            Filter charges by the end of their service period.
+
+            Combine with `service_period_from` to match charges whose service period falls
+            within a given window: `filter[service_period_from][gte]=<from>` together with
+            `filter[service_period_to][lt]=<to>` returns charges whose service period lies
+            within `[from, to)`.
       additionalProperties: false
       description: Filter options for listing charges.
     ListCostBasesParamsFilter:
@@ -12700,6 +13432,11 @@ components:
           readOnly: true
       additionalProperties: false
       description: A subscription add-on event.
+    SubscriptionOrReference:
+      oneOf:
+        - $ref: '#/components/schemas/BillingSubscription'
+        - $ref: '#/components/schemas/BillingSubscriptionReference'
+      description: Subscription or reference.
     SubscriptionPagePaginatedResponse:
       type: object
       required:

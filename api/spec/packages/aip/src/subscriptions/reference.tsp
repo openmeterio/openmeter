@@ -16,6 +16,16 @@ model SubscriptionReference {
   id: Shared.ULID;
 
   /**
+   * The display name of the subscription.
+   *
+   * Only populated where the referencing endpoint documents a `subscription` expand
+   * that resolves it.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Subscription name")
+  name?: string;
+
+  /**
    * The phase of the subscription.
    */
   @visibility(Lifecycle.Read)

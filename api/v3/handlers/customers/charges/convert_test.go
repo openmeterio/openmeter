@@ -162,8 +162,9 @@ func TestConvertChargeToAPIReadsFeatureIDFromState(t *testing.T) {
 		out, err := convertUsageBasedChargeToAPI(charge)
 
 		assert.NoError(t, err)
-		assert.Equal(t, "usage-feature-key", out.FeatureKey)
-		assert.Equal(t, "usage-feature-version-id", out.FeatureId)
+		featureRef, err := out.Feature.AsFeatureReference()
+		assert.NoError(t, err)
+		assert.Equal(t, "usage-feature-version-id", featureRef.Id)
 	})
 
 	t.Run("flat fee", func(t *testing.T) {
@@ -201,7 +202,8 @@ func TestConvertChargeToAPIReadsFeatureIDFromState(t *testing.T) {
 		out, err := convertFlatFeeChargeToAPI(charge)
 
 		assert.NoError(t, err)
-		assert.Equal(t, lo.ToPtr("flat-fee-feature-key"), out.FeatureKey)
-		assert.Equal(t, lo.ToPtr("flat-fee-feature-version-id"), out.FeatureId)
+		featureRef, err := out.Feature.AsFeatureReference()
+		assert.NoError(t, err)
+		assert.Equal(t, "usage-feature-version-id", featureRef.Id)
 	})
 }

@@ -81,3 +81,16 @@ model ResourceReference<T extends {}> {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   id: ULID;
 }
+
+alias ExpandableResourceReference<T extends {}> = CustomExpandableResourceReference<
+  T,
+  Shared.ResourceReference<T>
+>;
+
+@doc("{name} or reference.", T)
+@friendlyName("{name}OrReference", T)
+@TypeSpec.OpenAPI.oneOf
+union CustomExpandableResourceReference<T extends {}, TRef extends {}> {
+  T,
+  TRef,
+}

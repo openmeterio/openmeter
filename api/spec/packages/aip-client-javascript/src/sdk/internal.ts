@@ -3,7 +3,11 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
-import { voidCreditGrant } from '../funcs/customers.js'
+import {
+  voidCreditGrant,
+  listCustomerCharges,
+  createCustomerCharges,
+} from '../funcs/customers.js'
 import { createSubscriptionAddon } from '../funcs/subscriptions.js'
 import {
   uninstallApp,
@@ -34,6 +38,10 @@ import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
 import type {
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
+  ListCustomerChargesRequest,
+  ListCustomerChargesResponse,
+  CreateCustomerChargesRequest,
+  CreateCustomerChargesResponse,
 } from '../models/operations/customers.js'
 import type {
   CreateSubscriptionAddonRequest,
@@ -91,6 +99,7 @@ import type {
 } from '../models/operations/entitlementAccess.js'
 import type {
   AppCatalogItem,
+  Charge,
   CostBasis,
   Currency,
   Invoice,
@@ -150,6 +159,11 @@ export class InternalCustomers {
   get credits(): InternalCustomersCredits {
     return (this._credits ??= new InternalCustomersCredits(this._client))
   }
+
+  private _charges?: InternalCustomersCharges
+  get charges(): InternalCustomersCharges {
+    return (this._charges ??= new InternalCustomersCharges(this._client))
+  }
 }
 
 export class InternalCustomersCredits {
@@ -184,6 +198,64 @@ export class InternalCustomersCreditsGrants {
     options?: RequestOptions,
   ): Promise<VoidCreditGrantResponse> {
     return unwrap(await voidCreditGrant(this._client, request, options))
+  }
+}
+
+export class InternalCustomersCharges {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List customer charges
+   *
+   * List customer charges.
+   *
+   * Returns the customer's charges that are represented as either flat fee or
+   * usage-based charges.
+   *
+   * GET /openmeter/customers/{customerId}/charges
+   */
+  async list(
+    request: ListCustomerChargesRequest,
+    options?: RequestOptions,
+  ): Promise<ListCustomerChargesResponse> {
+    return unwrap(await listCustomerCharges(this._client, request, options))
+  }
+
+  /**
+   * List customer charges
+   *
+   * List customer charges.
+   *
+   * Returns the customer's charges that are represented as either flat fee or
+   * usage-based charges.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/customers/{customerId}/charges
+   */
+  listAll(
+    request: ListCustomerChargesRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<Charge> {
+    return paginatePages(
+      (req, opts) => listCustomerCharges(this._client, req, opts),
+      request,
+      options,
+    )
+  }
+
+  /**
+   * Create customer charge
+   *
+   * Create customer charge.
+   *
+   * POST /openmeter/customers/{customerId}/charges
+   */
+  async create(
+    request: CreateCustomerChargesRequest,
+    options?: RequestOptions,
+  ): Promise<CreateCustomerChargesResponse> {
+    return unwrap(await createCustomerCharges(this._client, request, options))
   }
 }
 

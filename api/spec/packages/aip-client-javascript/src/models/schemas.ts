@@ -595,10 +595,18 @@ export const creditTransactionType = z
   )
 
 export const chargesExpand = z
-  .enum(['real_time_usage'])
+  .enum([
+    'real_time_usage',
+    'customer',
+    'feature',
+    'subscription',
+    'realization.invoice',
+    'realization.totals',
+    'realization.detailed_lines',
+  ])
 
   .describe(
-    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage.",
+    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the `totals.realtime` fields, and fills the `outstanding` realization's `usage` with the not-yet-booked remainder of the live read. - `customer`: The complete customer entity of the charge. - `feature`: The complete feature entity of the charge. - `subscription`: The complete subscription of the charge, when present. - `realization.invoice`: The invoice header of each realization (the invoice entity without its `lines` and `customer` snapshot), in place of the ID reference. - `realization.totals`: The `totals` of each realization run, including credit allocations. - `realization.detailed_lines`: The `detailed_lines` of each realization run.",
   )
 
 export const lifecycleController = z
@@ -608,18 +616,80 @@ export const lifecycleController = z
     'Identifies whether a resource lifecycle is controlled by OpenMeter or manually overridden by the API user. Values: - `system`: The resource lifecycle is controlled by OpenMeter. - `manual`: The resource lifecycle was manually overridden by the API user.',
   )
 
-export const chargeStatus = z
-  .enum(['created', 'active', 'final', 'deleted'])
+export const subscriptionCostBasisMode = z
+  .enum(['dynamic', 'pinned'])
 
   .describe(
-    'Lifecycle status of a charge. Values: - `created`: The charge has been created but is not active yet. - `active`: The charge is active. - `final`: The charge is fully finalized and no further changes are expected. - `deleted`: The charge has been deleted.',
+    'Controls how custom-currency cost bases are selected for the subscription.',
   )
+
+export const rateCardProrationMode = z
+  .enum(['no_proration', 'prorate_prices'])
+
+  .describe(
+    'The proration mode of the rate card. Values: - `no_proration`: No proration. - `prorate_prices`: Prorate the price based on the time remaining in the billing period.',
+  )
+
+export const subscriptionStatus = z
+  .enum(['active', 'inactive', 'canceled', 'scheduled'])
+  .describe('Subscription status.')
 
 export const settlementMode = z
   .enum(['credit_then_invoice', 'credit_only'])
 
   .describe(
     'Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits.',
+  )
+
+export const priceFree = z
+  .object({
+    type: z.literal('free').describe('The type of the price.'),
+  })
+  .describe('Free price.')
+
+export const unitConfigOperation = z
+  .enum(['divide', 'multiply'])
+
+  .describe(
+    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
+  )
+
+export const unitConfigRoundingMode = z
+  .enum(['ceiling', 'floor', 'half_up', 'none'])
+
+  .describe(
+    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
+  )
+
+export const pricePaymentTerm = z
+  .union([z.literal('in_advance'), z.literal('in_arrears')])
+  .describe('The payment term of a flat price.')
+
+export const rateCardStaticEntitlement = z
+  .object({
+    type: z.literal('static').describe('The type of the entitlement template.'),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+  })
+  .describe('The entitlement template of a static entitlement.')
+
+export const rateCardBooleanEntitlement = z
+  .object({
+    type: z
+      .literal('boolean')
+      .describe('The type of the entitlement template.'),
+  })
+  .describe('The entitlement template of a boolean entitlement.')
+
+export const chargeStatus = z
+  .enum(['created', 'active', 'final', 'deleted'])
+
+  .describe(
+    'Lifecycle status of a charge. Values: - `created`: The charge has been created but is not active yet. - `active`: The charge is active. - `final`: The charge is fully finalized and no further changes are expected. - `deleted`: The charge has been deleted.',
   )
 
 export const taxConfigStripe = z
@@ -643,160 +713,14 @@ export const taxConfigExternalInvoicing = z
   })
   .describe('External invoicing tax config.')
 
-export const pricePaymentTerm = z
-  .union([z.literal('in_advance'), z.literal('in_arrears')])
-  .describe('The payment term of a flat price.')
-
-export const chargeFlatFeeDiscounts = z
-  .object({
-    percentage: z
-      .number()
-      .nonnegative()
-      .lte(100)
-      .optional()
-      .describe('Percentage discount applied to the price (0–100).'),
-  })
+export const invoiceNumber = z
+  .string()
+  .min(1)
+  .max(256)
 
   .describe(
-    'Discounts applicable to flat fee charges. This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.',
+    'InvoiceNumber is a unique identifier for the invoice, generated by the invoicing app. The uniqueness depends on a lot of factors: - app setting (unique per app or unique per customer) - multiple app scenarios (multiple apps generating invoices with the same prefix)',
   )
-
-export const rateCardProrationMode = z
-  .enum(['no_proration', 'prorate_prices'])
-
-  .describe(
-    'The proration mode of the rate card. Values: - `no_proration`: No proration. - `prorate_prices`: Prorate the price based on the time remaining in the billing period.',
-  )
-
-export const priceFree = z
-  .object({
-    type: z.literal('free').describe('The type of the price.'),
-  })
-  .describe('Free price.')
-
-export const subscriptionCostBasisMode = z
-  .enum(['dynamic', 'pinned'])
-
-  .describe(
-    'Controls how custom-currency cost bases are selected for the subscription.',
-  )
-
-export const subscriptionStatus = z
-  .enum(['active', 'inactive', 'canceled', 'scheduled'])
-  .describe('Subscription status.')
-
-export const unitConfigOperation = z
-  .enum(['divide', 'multiply'])
-
-  .describe(
-    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
-  )
-
-export const unitConfigRoundingMode = z
-  .enum(['ceiling', 'floor', 'half_up', 'none'])
-
-  .describe(
-    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
-  )
-
-export const rateCardStaticEntitlement = z
-  .object({
-    type: z.literal('static').describe('The type of the entitlement template.'),
-    config: z
-      .unknown()
-
-      .describe(
-        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
-      ),
-  })
-  .describe('The entitlement template of a static entitlement.')
-
-export const rateCardBooleanEntitlement = z
-  .object({
-    type: z
-      .literal('boolean')
-      .describe('The type of the entitlement template.'),
-  })
-  .describe('The entitlement template of a boolean entitlement.')
-
-export const subscriptionEditTimingEnum = z
-  .enum(['immediate', 'next_billing_cycle'])
-
-  .describe(
-    'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
-  )
-
-export const appType = z
-  .enum(['sandbox', 'stripe', 'external_invoicing'])
-  .describe('The type of the app.')
-
-export const appCapabilityType = z
-  .enum([
-    'report_usage',
-    'report_events',
-    'calculate_tax',
-    'invoice_customers',
-    'collect_payments',
-  ])
-
-  .describe(
-    'Supported capability types for an App. Each capability defines an integration function that an App can perform.',
-  )
-
-export const appInstallMethods = z
-  .enum(['with_oauth2', 'with_api_key', 'no_credentials_required'])
-  .describe('Supported installation methods for an app.')
-
-export const appStatus = z
-  .enum(['ready', 'unauthorized'])
-  .describe('Connection status of an installed app.')
-
-export const updateLabels = z
-  .record(z.string(), z.string())
-
-  .describe(
-    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
-  )
-
-export const installAppStripeWithApiKey = z
-  .object({
-    type: z.literal('stripe').describe('Type of the app.'),
-    name: z.string().describe('Name of the app.'),
-    createBillingProfile: z
-      .boolean()
-
-      .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
-      ),
-    apiKey: z.string().describe('API key for the app.'),
-  })
-  .describe('Model for installing an app from the catalog with an API key.')
-
-export const installAppSandbox = z
-  .object({
-    type: z.literal('sandbox').describe('Type of the app.'),
-    name: z.string().describe('Name of the app.'),
-    createBillingProfile: z
-      .boolean()
-
-      .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
-      ),
-  })
-  .describe('Base model for installing an app from the catalog.')
-
-export const installAppExternalInvoicing = z
-  .object({
-    type: z.literal('external_invoicing').describe('Type of the app.'),
-    name: z.string().describe('Name of the app.'),
-    createBillingProfile: z
-      .boolean()
-
-      .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
-      ),
-  })
-  .describe('Base model for installing an app from the catalog.')
 
 export const taxIdentificationCode = z
   .string()
@@ -805,58 +729,6 @@ export const taxIdentificationCode = z
 
   .describe(
     'Tax identifier code is a normalized tax code shown on the original identity document.',
-  )
-
-export const workflowCollectionAlignmentSubscription = z
-  .object({
-    type: z.literal('subscription').describe('The type of alignment.'),
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice.',
-  )
-
-export const workflowInvoicingSubscriptionEndProrationMode = z
-  .enum(['bill_full_period', 'bill_actual_period'])
-  .describe('Billing workflow subscription end proration mode.')
-
-export const workflowPaymentChargeAutomaticallySettings = z
-  .object({
-    collectionMethod: z
-      .literal('charge_automatically')
-      .describe('The collection method for the invoice.'),
-  })
-
-  .describe(
-    'Payment settings for a billing workflow when the collection method is charge automatically.',
-  )
-
-export const workflowPaymentSendInvoiceSettings = z
-  .object({
-    collectionMethod: z
-      .literal('send_invoice')
-      .describe('The collection method for the invoice.'),
-    dueAfter: z
-      .string()
-      .optional()
-      .default('P30D')
-
-      .describe(
-        "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
-      ),
-  })
-
-  .describe(
-    'Payment settings for a billing workflow when the collection method is send invoice.',
-  )
-
-export const invoiceNumber = z
-  .string()
-  .min(1)
-  .max(256)
-
-  .describe(
-    'InvoiceNumber is a unique identifier for the invoice, generated by the invoicing app. The uniqueness depends on a lot of factors: - app setting (unique per app or unique per customer) - multiple app scenarios (multiple apps generating invoices with the same prefix)',
   )
 
 export const invoiceValidationIssueSeverity = z
@@ -943,6 +815,36 @@ export const invoiceWorkflowInvoicingSettings = z
     'Invoice-level invoicing settings. A subset of BillingWorkflowInvoicingSettings limited to fields that are meaningful per-invoice. progressive_billing is omitted as it is a gather-time / profile-level decision.',
   )
 
+export const workflowPaymentChargeAutomaticallySettings = z
+  .object({
+    collectionMethod: z
+      .literal('charge_automatically')
+      .describe('The collection method for the invoice.'),
+  })
+
+  .describe(
+    'Payment settings for a billing workflow when the collection method is charge automatically.',
+  )
+
+export const workflowPaymentSendInvoiceSettings = z
+  .object({
+    collectionMethod: z
+      .literal('send_invoice')
+      .describe('The collection method for the invoice.'),
+    dueAfter: z
+      .string()
+      .optional()
+      .default('P30D')
+
+      .describe(
+        "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
+      ),
+  })
+
+  .describe(
+    'Payment settings for a billing workflow when the collection method is send invoice.',
+  )
+
 export const invoiceDiscountReason = z
   .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
   .describe('The reason a discount was applied to an invoice line.')
@@ -962,6 +864,145 @@ export const invoiceLineExternalReferences = z
 export const invoiceDetailedLineCostCategory = z
   .enum(['regular', 'commitment'])
   .describe('Cost category of a detailed invoice line item.')
+
+export const chargeRealizationType = z
+  .enum(['final_realization', 'partial_invoice', 'outstanding', 'voided'])
+
+  .describe(
+    "Type of a charge realization run. Values: - `final_realization`: The run is the final realization of the charge for its service period; no further runs are expected to correct it. - `partial_invoice`: The run only realizes part of the charge, because the remainder is not yet due to be invoiced. - `outstanding`: The type an outstanding (not-yet-realized) projection would carry if it were realized now. Never returned on a booked realization run. - `voided`: The run's billing effect was undone (for example the charge's service period was extended while its invoice was still mutable); it is retained as audit history and excluded from aggregate and live calculations.",
+  )
+
+export const chargeRealizationPaymentStatus = z
+  .enum(['authorized', 'settled'])
+
+  .describe(
+    "Settlement status of a charge realization's payment. Values: - `authorized`: The payment has been authorized against the customer's ledger but has not settled yet. - `settled`: The payment has settled.",
+  )
+
+export const chargeRealizationDetailedLineCategory = z
+  .enum(['regular', 'commitment'])
+
+  .describe(
+    'Cost category of a charge realization detailed line. Values: - `regular`: A regular charge line, based on usage or subscription pricing. - `commitment`: A commitment-derived line, such as minimum spend.',
+  )
+
+export const chargeFlatFeeDiscounts = z
+  .object({
+    percentage: z
+      .number()
+      .nonnegative()
+      .lte(100)
+      .optional()
+      .describe('Percentage discount applied to the price (0–100).'),
+  })
+
+  .describe(
+    'Discounts applicable to flat fee charges. This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.',
+  )
+
+export const featureLlmTokenType = z
+  .enum([
+    'input',
+    'output',
+    'cache_read',
+    'cache_write',
+    'reasoning',
+    'request',
+    'response',
+  ])
+  .describe('Token type for LLM cost lookup.')
+
+export const subscriptionEditTimingEnum = z
+  .enum(['immediate', 'next_billing_cycle'])
+
+  .describe(
+    'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
+  )
+
+export const appType = z
+  .enum(['sandbox', 'stripe', 'external_invoicing'])
+  .describe('The type of the app.')
+
+export const appCapabilityType = z
+  .enum([
+    'report_usage',
+    'report_events',
+    'calculate_tax',
+    'invoice_customers',
+    'collect_payments',
+  ])
+
+  .describe(
+    'Supported capability types for an App. Each capability defines an integration function that an App can perform.',
+  )
+
+export const appInstallMethods = z
+  .enum(['with_oauth2', 'with_api_key', 'no_credentials_required'])
+  .describe('Supported installation methods for an app.')
+
+export const appStatus = z
+  .enum(['ready', 'unauthorized'])
+  .describe('Connection status of an installed app.')
+
+export const updateLabels = z
+  .record(z.string(), z.string())
+
+  .describe(
+    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
+  )
+
+export const installAppStripeWithApiKey = z
+  .object({
+    type: z.literal('stripe').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    createBillingProfile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+    apiKey: z.string().describe('API key for the app.'),
+  })
+  .describe('Model for installing an app from the catalog with an API key.')
+
+export const installAppSandbox = z
+  .object({
+    type: z.literal('sandbox').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    createBillingProfile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
+
+export const installAppExternalInvoicing = z
+  .object({
+    type: z.literal('external_invoicing').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    createBillingProfile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
+
+export const workflowCollectionAlignmentSubscription = z
+  .object({
+    type: z.literal('subscription').describe('The type of alignment.'),
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice.',
+  )
+
+export const workflowInvoicingSubscriptionEndProrationMode = z
+  .enum(['bill_full_period', 'bill_actual_period'])
+  .describe('Billing workflow subscription end proration mode.')
 
 export const updateBillingInvoiceWorkflowInvoicingSettings = z
   .object({
@@ -1036,18 +1077,6 @@ export const currencyExpand = z
   .describe(
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
-
-export const featureLlmTokenType = z
-  .enum([
-    'input',
-    'output',
-    'cache_read',
-    'cache_write',
-    'reasoning',
-    'request',
-    'response',
-  ])
-  .describe('Token type for LLM cost lookup.')
 
 export const llmCostProvider = z
   .object({
@@ -1371,18 +1400,18 @@ export const priceType = z
     "The type of the price. - `free`: No charge, the rate card is included at no cost. - `flat`: A fixed amount charged once per billing period, regardless of usage. - `unit`: A fixed rate charged per billing unit consumed. - `graduated`: Tiered pricing where each tier's rate applies only to usage within that tier. - `volume`: Tiered pricing where the rate for the highest tier reached applies to all units in the period.",
   )
 
-export const collectionAlignment = z
-  .enum(['subscription', 'anchored'])
-
-  .describe(
-    'BillingCollectionAlignment specifies when the pending line items should be collected into an invoice.',
-  )
-
 export const collectionMethod = z
   .enum(['charge_automatically', 'send_invoice'])
 
   .describe(
     'Collection method specifies how the invoice should be collected (automatic or manual).',
+  )
+
+export const collectionAlignment = z
+  .enum(['subscription', 'anchored'])
+
+  .describe(
+    'BillingCollectionAlignment specifies when the pending line items should be collected into an invoice.',
   )
 
 export const featureUnitCostType = z
@@ -1572,13 +1601,6 @@ export const createCurrencyCustomRequest = z
   })
   .describe('CurrencyCustom create request.')
 
-export const currencyAmount = z
-  .object({
-    amount: numeric,
-    currency: currencyCode,
-  })
-  .describe('Monetary amount in a specific currency.')
-
 export const priceFlat = z
   .object({
     type: z.literal('flat').describe('The type of the price.'),
@@ -1594,6 +1616,16 @@ export const priceUnit = z
 
   .describe(
     'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
+  )
+
+export const spendCommitments = z
+  .object({
+    minimumAmount: numeric.optional(),
+    maximumAmount: numeric.optional(),
+  })
+
+  .describe(
+    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
   )
 
 export const rateCardDiscounts = z
@@ -1624,16 +1656,6 @@ export const totals = z
     'Totals contains the summaries of all calculations for a billing resource.',
   )
 
-export const spendCommitments = z
-  .object({
-    minimumAmount: numeric.optional(),
-    maximumAmount: numeric.optional(),
-  })
-
-  .describe(
-    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
-  )
-
 export const invoiceLineCreditsApplied = z
   .object({
     amount: numeric,
@@ -1661,6 +1683,68 @@ export const invoiceUsageQuantityDetail = z
   .describe(
     'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
   )
+
+export const chargeRealizationDetailedLineCreditApplied = z
+  .object({
+    amount: numeric,
+    description: z
+      .string()
+      .optional()
+      .describe('Human-readable description of the credit allocation.'),
+    creditRealizationId: z
+      .string()
+
+      .describe(
+        'The ID of the credit realization (allocation) this credit was applied from.',
+      ),
+  })
+
+  .describe(
+    'A credit allocation applied to a charge realization detailed line.',
+  )
+
+export const chargeRealizationAmountDiscount = z
+  .object({
+    amount: numeric,
+    reason: z
+      .string()
+      .describe('The reason for the discount applied to the charge.'),
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    roundingAmount: numeric.optional(),
+    childUniqueReferenceId: z
+      .string()
+      .describe('Unique reference ID of the discount applied to the charge.'),
+  })
+  .describe('A discount applied to a charge realization detailed line.')
+
+export const featureManualUnitCost = z
+  .object({
+    type: z
+      .literal('manual')
+      .describe('The type discriminator for manual unit cost.'),
+    amount: numeric,
+  })
+  .describe('A fixed per-unit cost amount.')
+
+export const featureLlmUnitCostPricing = z
+  .object({
+    inputPerToken: numeric,
+    outputPerToken: numeric,
+    cacheReadPerToken: numeric.optional(),
+    reasoningPerToken: numeric.optional(),
+    cacheWritePerToken: numeric.optional(),
+  })
+  .describe('Resolved per-token pricing from the LLM cost database.')
+
+export const currencyAmount = z
+  .object({
+    amount: numeric,
+    currency: currencyCode,
+  })
+  .describe('Monetary amount in a specific currency.')
 
 export const updatePriceFlat = z
   .object({
@@ -1690,25 +1774,6 @@ export const updateDiscounts = z
     usage: numeric.optional(),
   })
   .describe('Discount configuration for a rate card.')
-
-export const featureManualUnitCost = z
-  .object({
-    type: z
-      .literal('manual')
-      .describe('The type discriminator for manual unit cost.'),
-    amount: numeric,
-  })
-  .describe('A fixed per-unit cost amount.')
-
-export const featureLlmUnitCostPricing = z
-  .object({
-    inputPerToken: numeric,
-    outputPerToken: numeric,
-    cacheReadPerToken: numeric.optional(),
-    reasoningPerToken: numeric.optional(),
-    cacheWritePerToken: numeric.optional(),
-  })
-  .describe('Resolved per-token pricing from the LLM cost database.')
 
 export const llmCostModelPricing = z
   .object({
@@ -1834,31 +1899,6 @@ export const creditGrantInvoiceReference = z
   })
   .describe('Invoice references for the grant.')
 
-export const billingCustomerReference = z
-  .object({
-    id: ulid,
-  })
-  .describe('Customer reference.')
-
-export const subscriptionReference = z
-  .object({
-    id: ulid,
-    phase: z
-      .object({
-        id: ulid,
-        item: z
-          .object({
-            id: ulid,
-          })
-          .describe('The item of the phase.'),
-      })
-      .describe('The phase of the subscription.'),
-  })
-
-  .describe(
-    'Subscription reference represents a reference to the specific subscription item this entity represents.',
-  )
-
 export const subscriptionCostBasisPin = z
   .object({
     customCurrencyId: ulid,
@@ -1876,11 +1916,31 @@ export const featureReference = z
   })
   .describe('Feature reference.')
 
-export const addonReference = z
+export const subscriptionReference = z
   .object({
     id: ulid,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the subscription. Only populated where the referencing endpoint documents a `subscription` expand that resolves it.',
+      ),
+    phase: z
+      .object({
+        id: ulid,
+        item: z
+          .object({
+            id: ulid,
+          })
+          .describe('The item of the phase.'),
+      })
+      .describe('The phase of the subscription.'),
   })
-  .describe('Addon reference.')
+
+  .describe(
+    'Subscription reference represents a reference to the specific subscription item this entity represents.',
+  )
 
 export const appReference = z
   .object({
@@ -1894,11 +1954,56 @@ export const chargeReference = z
   })
   .describe('Reference to a charge associated with an invoice line.')
 
+export const chargeRealizationInvoiceReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('ChargeRealizationInvoice reference.')
+
+export const addonReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('Addon reference.')
+
 export const updateResourceReference = z
   .object({
     id: ulid,
   })
   .describe('TaxCode reference.')
+
+export const billingCustomerReference = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the customer. Only populated where the referencing endpoint documents a `customer` expand that resolves it.',
+      ),
+  })
+  .describe('Customer reference.')
+
+export const chargeFeature = z
+  .object({
+    id: ulid,
+    key: z
+      .string()
+      .optional()
+      .describe('The key of the feature. Requires the `feature` expand.'),
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the feature. Requires the `feature` expand.',
+      ),
+  })
+
+  .describe(
+    'The feature associated with a charge. `key` is always present and is set at charge creation time. `id` and `name` are only resolved with the `feature` expand, since resolving them requires an additional lookup against the feature catalog.',
+  )
 
 export const dateTimeFieldFilter = z
   .union([
@@ -2853,12 +2958,6 @@ export const getCreditBalanceParamsFilter = z
   })
   .describe('Filter options for getting a credit balance.')
 
-export const listChargesParamsFilter = z
-  .object({
-    status: stringFieldFilterExact.optional(),
-  })
-  .describe('Filter options for listing charges.')
-
 export const listPlansParamsFilter = z
   .object({
     key: stringFieldFilter.optional(),
@@ -2876,18 +2975,18 @@ export const voidCreditGrantRequest = z
   })
   .describe('Request body for voiding a credit grant.')
 
-export const rateCardProrationConfiguration = z
-  .object({
-    mode: rateCardProrationMode,
-  })
-  .describe('The proration configuration of the rate card.')
-
 export const subscriptionProRatingConfig = z
   .object({
     enabled: z.boolean().describe('Whether pro-rating is enabled.'),
     mode: rateCardProrationMode,
   })
   .describe('The pro-rating configuration of a subscription.')
+
+export const rateCardProrationConfiguration = z
+  .object({
+    mode: rateCardProrationMode,
+  })
+  .describe('The proration configuration of the rate card.')
 
 export const subscriptionCreate = z
   .object({
@@ -2944,6 +3043,110 @@ export const unitConfig = z
   .describe(
     'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
   )
+
+export const partyTaxIdentity = z
+  .object({
+    code: taxIdentificationCode.optional(),
+  })
+
+  .describe(
+    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
+  )
+
+export const updateBillingPartyTaxIdentity = z
+  .object({
+    code: taxIdentificationCode.optional(),
+  })
+
+  .describe(
+    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
+  )
+
+export const invoiceValidationIssue = z
+  .object({
+    code: z.string().describe('Machine-readable error code.'),
+    message: z.string().describe('Human-readable description of the error.'),
+    attributes: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe('Additional structured context.'),
+    severity: invoiceValidationIssueSeverity,
+    field: z
+      .string()
+      .optional()
+
+      .describe(
+        'JSON path to the field that caused this validation issue, if applicable. For example: `lines/0/rate_card/price`.',
+      ),
+  })
+
+  .describe(
+    'A validation issue found during invoice processing. Converges on the same structure used by plan and subscription validation errors: a machine-readable `code`, a human-readable `message`, optional structured `attributes`, plus a `severity` and optional `field` path.',
+  )
+
+export const invoiceAvailableActions = z
+  .object({
+    advance: invoiceAvailableActionDetails.optional(),
+    approve: invoiceAvailableActionDetails.optional(),
+    delete: invoiceAvailableActionDetails.optional(),
+    retry: invoiceAvailableActionDetails.optional(),
+    snapshotQuantities: invoiceAvailableActionDetails.optional(),
+  })
+
+  .describe(
+    'The set of state-transition actions available for an invoice in its current status. A field is present only when that action is permitted from the current state.',
+  )
+
+export const workflowPaymentSettings = z
+  .discriminatedUnion('collectionMethod', [
+    workflowPaymentChargeAutomaticallySettings,
+    workflowPaymentSendInvoiceSettings,
+  ])
+  .describe('Payment settings for a billing workflow.')
+
+export const invoiceLineAmountDiscount = z
+  .object({
+    id: ulid,
+    reason: invoiceDiscountReason,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+    amount: numeric,
+  })
+  .describe('A monetary amount discount applied to an invoice line item.')
+
+export const invoiceLineUsageDiscount = z
+  .object({
+    id: ulid,
+    reason: invoiceDiscountReason,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+    quantity: numeric,
+  })
+  .describe('A usage quantity discount applied to an invoice line item.')
+
+export const invoiceLineBaseDiscount = z
+  .object({
+    id: ulid,
+    reason: invoiceDiscountReason,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+  })
+  .describe('Base fields shared by all invoice line item discounts.')
+
+export const chargeRealizationPayment = z
+  .object({
+    status: chargeRealizationPaymentStatus,
+  })
+  .describe('Payment state of a charge realization.')
 
 export const subscriptionEditTiming = z
   .union([subscriptionEditTimingEnum, dateTime])
@@ -3052,24 +3255,6 @@ export const installAppRequest = z
   ])
   .describe('Request to install an app from the catalog.')
 
-export const partyTaxIdentity = z
-  .object({
-    code: taxIdentificationCode.optional(),
-  })
-
-  .describe(
-    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
-  )
-
-export const updateBillingPartyTaxIdentity = z
-  .object({
-    code: taxIdentificationCode.optional(),
-  })
-
-  .describe(
-    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
-  )
-
 export const workflowInvoicingSettings = z
   .object({
     autoAdvance: z
@@ -3098,86 +3283,6 @@ export const workflowInvoicingSettings = z
       .default('bill_actual_period'),
   })
   .describe('Invoice settings for a billing workflow.')
-
-export const workflowPaymentSettings = z
-  .discriminatedUnion('collectionMethod', [
-    workflowPaymentChargeAutomaticallySettings,
-    workflowPaymentSendInvoiceSettings,
-  ])
-  .describe('Payment settings for a billing workflow.')
-
-export const invoiceValidationIssue = z
-  .object({
-    code: z.string().describe('Machine-readable error code.'),
-    message: z.string().describe('Human-readable description of the error.'),
-    attributes: z
-      .record(z.string(), z.unknown())
-      .optional()
-      .describe('Additional structured context.'),
-    severity: invoiceValidationIssueSeverity,
-    field: z
-      .string()
-      .optional()
-
-      .describe(
-        'JSON path to the field that caused this validation issue, if applicable. For example: `lines/0/rate_card/price`.',
-      ),
-  })
-
-  .describe(
-    'A validation issue found during invoice processing. Converges on the same structure used by plan and subscription validation errors: a machine-readable `code`, a human-readable `message`, optional structured `attributes`, plus a `severity` and optional `field` path.',
-  )
-
-export const invoiceAvailableActions = z
-  .object({
-    advance: invoiceAvailableActionDetails.optional(),
-    approve: invoiceAvailableActionDetails.optional(),
-    delete: invoiceAvailableActionDetails.optional(),
-    retry: invoiceAvailableActionDetails.optional(),
-    snapshotQuantities: invoiceAvailableActionDetails.optional(),
-  })
-
-  .describe(
-    'The set of state-transition actions available for an invoice in its current status. A field is present only when that action is permitted from the current state.',
-  )
-
-export const invoiceLineAmountDiscount = z
-  .object({
-    id: ulid,
-    reason: invoiceDiscountReason,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-    amount: numeric,
-  })
-  .describe('A monetary amount discount applied to an invoice line item.')
-
-export const invoiceLineUsageDiscount = z
-  .object({
-    id: ulid,
-    reason: invoiceDiscountReason,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-    quantity: numeric,
-  })
-  .describe('A usage quantity discount applied to an invoice line item.')
-
-export const invoiceLineBaseDiscount = z
-  .object({
-    id: ulid,
-    reason: invoiceDiscountReason,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-  })
-  .describe('Base fields shared by all invoice line item discounts.')
 
 export const updateBillingWorkflowPaymentSettings = z
   .discriminatedUnion('collectionMethod', [
@@ -3366,18 +3471,7 @@ export const chargeTotals = z
   })
 
   .describe(
-    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
-  )
-
-export const updatePriceTier = z
-  .object({
-    upToAmount: numeric.optional(),
-    flatPrice: updatePriceFlat.optional(),
-    unitPrice: updatePriceUnit.optional(),
-  })
-
-  .describe(
-    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
+    'The totals of a charge. `realtime` is only populated when the `real_time_usage` expand is used.',
   )
 
 export const featureLlmUnitCost = z
@@ -3426,6 +3520,17 @@ export const featureLlmUnitCost = z
 
   .describe(
     'LLM cost lookup configuration. Each dimension (provider, model, token type) can be specified as either a static value or a meter group-by property name (mutually exclusive).',
+  )
+
+export const updatePriceTier = z
+  .object({
+    upToAmount: numeric.optional(),
+    flatPrice: updatePriceFlat.optional(),
+    unitPrice: updatePriceUnit.optional(),
+  })
+
+  .describe(
+    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
   )
 
 export const llmCostPrice = z
@@ -3531,6 +3636,13 @@ export const creditGrantTaxConfig = z
     'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
   )
 
+export const rateCardTaxConfig = z
+  .object({
+    behavior: taxBehavior.optional(),
+    code: taxCodeReference,
+  })
+  .describe('The tax config of the rate card.')
+
 export const taxConfig = z
   .object({
     behavior: taxBehavior.optional(),
@@ -3540,13 +3652,6 @@ export const taxConfig = z
     taxCode: taxCodeReference.optional(),
   })
   .describe('Set of provider specific tax configs.')
-
-export const rateCardTaxConfig = z
-  .object({
-    behavior: taxBehavior.optional(),
-    code: taxCodeReference,
-  })
-  .describe('The tax config of the rate card.')
 
 export const organizationDefaultTaxCodes = z
   .object({
@@ -3566,6 +3671,25 @@ export const updateOrganizationDefaultTaxCodesRequest = z
     creditGrantTaxCode: taxCodeReference.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
+
+export const invoiceWorkflowAppsReferences = z
+  .object({
+    tax: appReference,
+    invoicing: appReference,
+    payment: appReference,
+  })
+
+  .describe(
+    'BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile',
+  )
+
+export const profileAppReferences = z
+  .object({
+    tax: appReference,
+    invoicing: appReference,
+    payment: appReference,
+  })
+  .describe('References to the applications used by a billing profile.')
 
 export const planAddon = z
   .object({
@@ -3638,25 +3762,6 @@ export const createPlanAddonRequest = z
   })
   .describe('PlanAddon create request.')
 
-export const profileAppReferences = z
-  .object({
-    tax: appReference,
-    invoicing: appReference,
-    payment: appReference,
-  })
-  .describe('References to the applications used by a billing profile.')
-
-export const invoiceWorkflowAppsReferences = z
-  .object({
-    tax: appReference,
-    invoicing: appReference,
-    payment: appReference,
-  })
-
-  .describe(
-    'BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile',
-  )
-
 export const updateRateCardTaxConfig = z
   .object({
     behavior: taxBehavior.optional(),
@@ -3676,6 +3781,16 @@ export const listEventsParamsFilter = z
     storedAt: dateTimeFieldFilter.optional(),
   })
   .describe('Filter options for listing ingested events.')
+
+export const listChargesParamsFilter = z
+  .object({
+    status: stringFieldFilterExact.optional(),
+    featureId: ulidFieldFilter.optional(),
+    featureKey: stringFieldFilterExact.optional(),
+    servicePeriodFrom: dateTimeFieldFilter.optional(),
+    servicePeriodTo: dateTimeFieldFilter.optional(),
+  })
+  .describe('Filter options for listing charges.')
 
 export const listInvoicesParamsFilter = z
   .object({
@@ -3735,6 +3850,63 @@ export const meterQueryResult = z
       ),
   })
   .describe('Meter query result.')
+
+export const chargeRealizationDetailedLineFlatFee = z
+  .object({
+    id: ulid,
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('flat_fee')
+      .describe('The type of the charge the realization belongs to.'),
+    servicePeriod: closedPeriod,
+    totals: totals,
+    category: chargeRealizationDetailedLineCategory,
+    creditsApplied: z
+      .array(chargeRealizationDetailedLineCreditApplied)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    unitPrice: numeric,
+    amountDiscounts: z
+      .array(chargeRealizationAmountDiscount)
+      .describe('The amount discounts applied to the detailed line.'),
+  })
+  .describe("A detailed line produced by a flat fee charge's realization run.")
+
+export const chargeRealizationDetailedLineUsageBased = z
+  .object({
+    id: ulid,
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('usage_based')
+      .describe('The type of the charge the realization belongs to.'),
+    servicePeriod: closedPeriod,
+    totals: totals,
+    category: chargeRealizationDetailedLineCategory,
+    creditsApplied: z
+      .array(chargeRealizationDetailedLineCreditApplied)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    unitPrice: numeric,
+    amountDiscounts: z
+      .array(chargeRealizationAmountDiscount)
+      .describe('The amount discounts applied to the detailed line.'),
+    quantity: numeric,
+    correctsRunId: z
+      .string()
+      .optional()
+
+      .describe(
+        "The ID of a prior realization run this detailed line corrects. Only set if the detailed line's totals are negative.",
+      ),
+  })
+
+  .describe(
+    "A detailed line produced by a usage-based charge's realization run.",
+  )
 
 export const currencyCustom = z
   .object({
@@ -4051,6 +4223,51 @@ export const chargeFlatFeeSystemIntent = z
     'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
   )
 
+export const invoiceStatusDetails = z
+  .object({
+    immutable: z
+      .boolean()
+
+      .describe(
+        'Whether the invoice is immutable (i.e. cannot be modified or deleted).',
+      ),
+    failed: z.boolean().describe('Whether the invoice is in a failed state.'),
+    extendedStatus: z
+      .string()
+
+      .describe(
+        'Fine-grained internal status string providing additional workflow detail beyond the top-level status enum.',
+      ),
+    availableActions: invoiceAvailableActions,
+  })
+  .describe('Detailed status information for a standard invoice.')
+
+export const invoiceWorkflow = z
+  .object({
+    invoicing: invoiceWorkflowInvoicingSettings.optional(),
+    payment: workflowPaymentSettings.optional(),
+  })
+
+  .describe(
+    'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
+  )
+
+export const invoiceLineDiscounts = z
+  .object({
+    amount: z
+      .array(invoiceLineAmountDiscount)
+      .optional()
+
+      .describe(
+        'Monetary amount discounts (e.g. from maximum spend commitments).',
+      ),
+    usage: z
+      .array(invoiceLineUsageDiscount)
+      .optional()
+      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
+  })
+  .describe('Discounts applied to an invoice line item.')
+
 export const subscriptionCancel = z
   .object({
     timing: subscriptionEditTiming.optional().default('immediate'),
@@ -4198,51 +4415,6 @@ export const updateAppRequest = z
   ])
   .describe('Request to update an installed app.')
 
-export const invoiceWorkflow = z
-  .object({
-    invoicing: invoiceWorkflowInvoicingSettings.optional(),
-    payment: workflowPaymentSettings.optional(),
-  })
-
-  .describe(
-    'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
-  )
-
-export const invoiceStatusDetails = z
-  .object({
-    immutable: z
-      .boolean()
-
-      .describe(
-        'Whether the invoice is immutable (i.e. cannot be modified or deleted).',
-      ),
-    failed: z.boolean().describe('Whether the invoice is in a failed state.'),
-    extendedStatus: z
-      .string()
-
-      .describe(
-        'Fine-grained internal status string providing additional workflow detail beyond the top-level status enum.',
-      ),
-    availableActions: invoiceAvailableActions,
-  })
-  .describe('Detailed status information for a standard invoice.')
-
-export const invoiceLineDiscounts = z
-  .object({
-    amount: z
-      .array(invoiceLineAmountDiscount)
-      .optional()
-
-      .describe(
-        'Monetary amount discounts (e.g. from maximum spend commitments).',
-      ),
-    usage: z
-      .array(invoiceLineUsageDiscount)
-      .optional()
-      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
-  })
-  .describe('Discounts applied to an invoice line item.')
-
 export const updateBillingInvoiceWorkflow = z
   .object({
     invoicing: updateBillingInvoiceWorkflowInvoicingSettings.optional(),
@@ -4325,6 +4497,13 @@ export const priceVolume = z
     'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
 
+export const featureUnitCost = z
+  .discriminatedUnion('type', [featureManualUnitCost, featureLlmUnitCost])
+
+  .describe(
+    'Per-unit cost configuration for a feature. Either a fixed manual amount or a dynamic LLM cost lookup.',
+  )
+
 export const updatePriceGraduated = z
   .object({
     type: z.literal('graduated').describe('The type of the price.'),
@@ -4355,13 +4534,6 @@ export const updatePriceVolume = z
 
   .describe(
     'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
-  )
-
-export const featureUnitCost = z
-  .discriminatedUnion('type', [featureManualUnitCost, featureLlmUnitCost])
-
-  .describe(
-    'Per-unit cost configuration for a feature. Either a fixed manual amount or a dynamic LLM cost lookup.',
   )
 
 export const pricePagePaginatedResponse = z
@@ -4487,12 +4659,9 @@ export const createChargeFlatFeeRequest = z
     taxConfig: taxConfig.optional(),
     paymentTerm: pricePaymentTerm,
     discounts: chargeFlatFeeDiscounts.optional(),
-    featureId: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
     prorationConfiguration: rateCardProrationConfiguration,
     amountBeforeProration: currencyAmount,
+    feature: featureReference.optional(),
     fullServicePeriod: closedPeriod.optional(),
     billingPeriod: closedPeriod.optional(),
   })
@@ -4534,6 +4703,16 @@ export const ingestedEventPaginatedResponse = z
   })
   .describe('Cursor paginated response.')
 
+export const chargeRealizationDetailedLine = z
+  .discriminatedUnion('type', [
+    chargeRealizationDetailedLineFlatFee,
+    chargeRealizationDetailedLineUsageBased,
+  ])
+
+  .describe(
+    "A detailed (child) line type of a charge realization run. This is distinct from an invoice's own detailed lines: it represents the rated/priced breakdown produced by the realization run itself, before that breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice runs include credit allocations in these lines, while credits-only runs keep the gross rated detail.",
+  )
+
 export const currency = z
   .discriminatedUnion('type', [currencyFiat, currencyCustom])
   .describe('Fiat or custom currency.')
@@ -4572,18 +4751,9 @@ export const customerPagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
-export const party = z
-  .object({
-    id: z.string().optional().describe('Unique identifier for the party.'),
-    key: externalResourceKey.optional(),
-    name: z
-      .string()
-      .optional()
-      .describe('Legal name or representation of the party.'),
-    taxId: partyTaxIdentity.optional(),
-    addresses: partyAddresses.optional(),
-  })
-  .describe('Party represents a person or business entity.')
+export const customerOrReference = z
+  .union([customer, customerReference])
+  .describe('Customer or reference.')
 
 export const supplier = z
   .object({
@@ -4599,6 +4769,19 @@ export const supplier = z
   .describe(
     "Snapshot of the supplier's information at the time the invoice was issued. Structurally a read-only subset of `BillingParty` (the type configured on the billing profile), so the snapshot stays aligned with the source. `key` is omitted because it is not part of the snapshotted supplier data.",
   )
+
+export const party = z
+  .object({
+    id: z.string().optional().describe('Unique identifier for the party.'),
+    key: externalResourceKey.optional(),
+    name: z
+      .string()
+      .optional()
+      .describe('Legal name or representation of the party.'),
+    taxId: partyTaxIdentity.optional(),
+    addresses: partyAddresses.optional(),
+  })
+  .describe('Party represents a person or business entity.')
 
 export const updateSupplier = z
   .object({
@@ -4702,6 +4885,54 @@ export const workflowCollectionAlignment = z
 
   .describe(
     'The alignment for collecting the pending line items into an invoice. Defaults to subscription, which means that we are to create a new invoice every time the a subscription period starts (for in advance items) or ends (for in arrears items).',
+  )
+
+export const invoiceWorkflowSettings = z
+  .object({
+    apps: invoiceWorkflowAppsReferences.optional(),
+    sourceBillingProfile: profileReference,
+    workflow: invoiceWorkflow,
+  })
+
+  .describe(
+    'Snapshot of the billing workflow configuration captured at invoice creation.',
+  )
+
+export const invoiceDetailedLine = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    servicePeriod: closedPeriod,
+    totals: totals,
+    category: invoiceDetailedLineCostCategory.default('regular'),
+    discounts: invoiceLineDiscounts.optional(),
+    creditsApplied: z
+      .array(invoiceLineCreditsApplied)
+      .optional()
+      .describe('Credit applied to this detailed line.'),
+    externalReferences: invoiceLineExternalReferences.optional(),
+    quantity: numeric,
+    unitPrice: numeric,
+  })
+
+  .describe(
+    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
   )
 
 export const taxCodePagePaginatedResponse = z
@@ -4946,54 +5177,6 @@ export const installedAppExternalInvoicing = z
   })
   .describe('Response of an installed app.')
 
-export const invoiceWorkflowSettings = z
-  .object({
-    apps: invoiceWorkflowAppsReferences.optional(),
-    sourceBillingProfile: profileReference,
-    workflow: invoiceWorkflow,
-  })
-
-  .describe(
-    'Snapshot of the billing workflow configuration captured at invoice creation.',
-  )
-
-export const invoiceDetailedLine = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    servicePeriod: closedPeriod,
-    totals: totals,
-    category: invoiceDetailedLineCostCategory.default('regular'),
-    discounts: invoiceLineDiscounts.optional(),
-    creditsApplied: z
-      .array(invoiceLineCreditsApplied)
-      .optional()
-      .describe('Credit applied to this detailed line.'),
-    externalReferences: invoiceLineExternalReferences.optional(),
-    quantity: numeric,
-    unitPrice: numeric,
-  })
-
-  .describe(
-    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
-  )
-
 export const updateInvoiceWorkflowSettings = z
   .object({
     workflow: updateBillingInvoiceWorkflow,
@@ -5038,16 +5221,6 @@ export const priceUsageBased = z
   .describe(
     'Usage-based price types that can appear on a usage-based rate card. When UnitConfig is present on the rate card, these price types operate on billing units (i.e. post-conversion quantities), not raw metered units.',
   )
-
-export const updatePrice = z
-  .discriminatedUnion('type', [
-    updatePriceFree,
-    updatePriceFlat,
-    updatePriceUnit,
-    updatePriceGraduated,
-    updatePriceVolume,
-  ])
-  .describe('Price.')
 
 export const feature = z
   .object({
@@ -5111,6 +5284,16 @@ export const updateFeatureRequest = z
   .describe(
     'Request body for updating a feature. Currently only the unit_cost field can be updated.',
   )
+
+export const updatePrice = z
+  .discriminatedUnion('type', [
+    updatePriceFree,
+    updatePriceFlat,
+    updatePriceUnit,
+    updatePriceGraduated,
+    updatePriceVolume,
+  ])
+  .describe('Price.')
 
 export const creditGrantPagePaginatedResponse = z
   .object({
@@ -5222,9 +5405,8 @@ export const entitlementAccessQueryResponse = z
   })
   .describe('Response of the entitlement access query.')
 
-export const chargeFlatFee = z
+export const rateCard = z
   .object({
-    id: ulid,
     name: z
       .string()
       .min(1)
@@ -5239,42 +5421,32 @@ export const chargeFlatFee = z
         'Optional description of the resource. Maximum 1024 characters.',
       ),
     labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReference,
-    lifecycleController: lifecycleController,
-    subscription: subscriptionReference.optional(),
-    currency: currencyCode,
-    status: chargeStatus,
-    invoiceAt: dateTime,
-    servicePeriod: closedPeriod,
-    fullServicePeriod: closedPeriod,
-    billingPeriod: closedPeriod,
-    advanceAfter: dateTime.optional(),
-    uniqueReferenceId: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlementMode: settlementMode,
-    taxConfig: taxConfig.optional(),
-    paymentTerm: pricePaymentTerm,
-    discounts: chargeFlatFeeDiscounts.optional(),
-    featureKey: z
-      .string()
-      .optional()
-      .describe('The feature associated with the charge, when applicable.'),
-    featureId: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
-    prorationConfiguration: rateCardProrationConfiguration,
-    amountAfterProration: currencyAmount,
+    key: resourceKey,
+    feature: featureReference.optional(),
+    currency: billingCurrencyCode.optional(),
+    billingCadence: iso8601Duration.optional(),
     price: price,
-    systemIntent: chargeFlatFeeSystemIntent.optional(),
+    unitConfig: unitConfig.optional(),
+    paymentTerm: pricePaymentTerm.optional().default('in_arrears'),
+    commitments: spendCommitments.optional(),
+    discounts: rateCardDiscounts.optional(),
+    taxConfig: rateCardTaxConfig.optional(),
+    entitlement: rateCardEntitlement.optional(),
   })
-  .describe('A flat fee charge for a customer.')
+
+  .describe(
+    'A rate card defines the pricing and entitlement of a feature or service.',
+  )
+
+export const invoiceLineRateCard = z
+  .object({
+    price: price,
+    taxConfig: rateCardTaxConfig.optional(),
+    featureKey: resourceKey.optional(),
+    discounts: rateCardDiscounts.optional(),
+    unitConfig: unitConfig.optional(),
+  })
+  .describe('Rate card configuration snapshot for a usage-based invoice line.')
 
 export const chargeUsageBasedSystemIntent = z
   .object({
@@ -5332,57 +5504,23 @@ export const createChargeUsageBasedRequest = z
     settlementMode: settlementMode,
     taxConfig: taxConfig.optional(),
     discounts: rateCardDiscounts.optional(),
-    featureId: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
     price: price,
+    feature: featureReference,
     fullServicePeriod: closedPeriod.optional(),
     billingPeriod: closedPeriod.optional(),
   })
   .describe('Usage-based charge create request.')
 
-export const rateCard = z
+export const featureOrReference = z
+  .union([feature, featureReference])
+  .describe('Feature or reference.')
+
+export const featurePagePaginatedResponse = z
   .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    key: resourceKey,
-    feature: featureReference.optional(),
-    currency: billingCurrencyCode.optional(),
-    billingCadence: iso8601Duration.optional(),
-    price: price,
-    unitConfig: unitConfig.optional(),
-    paymentTerm: pricePaymentTerm.optional().default('in_arrears'),
-    commitments: spendCommitments.optional(),
-    discounts: rateCardDiscounts.optional(),
-    taxConfig: rateCardTaxConfig.optional(),
-    entitlement: rateCardEntitlement.optional(),
+    data: z.array(feature),
+    meta: paginatedMeta,
   })
-
-  .describe(
-    'A rate card defines the pricing and entitlement of a feature or service.',
-  )
-
-export const invoiceLineRateCard = z
-  .object({
-    price: price,
-    taxConfig: rateCardTaxConfig.optional(),
-    featureKey: resourceKey.optional(),
-    discounts: rateCardDiscounts.optional(),
-    unitConfig: unitConfig.optional(),
-  })
-  .describe('Rate card configuration snapshot for a usage-based invoice line.')
+  .describe('Page paginated response.')
 
 export const updateInvoiceLineRateCard = z
   .object({
@@ -5392,13 +5530,6 @@ export const updateInvoiceLineRateCard = z
     discounts: updateDiscounts.optional(),
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
-
-export const featurePagePaginatedResponse = z
-  .object({
-    data: z.array(feature),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
 
 export const workflow = z
   .object({
@@ -5423,61 +5554,6 @@ export const profileApps = z
     payment: app,
   })
   .describe('Applications used by a billing profile.')
-
-export const chargeUsageBased = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    type: z.literal('usage_based').describe('The type of the charge.'),
-    customer: billingCustomerReference,
-    lifecycleController: lifecycleController,
-    subscription: subscriptionReference.optional(),
-    currency: currencyCode,
-    status: chargeStatus,
-    invoiceAt: dateTime,
-    servicePeriod: closedPeriod,
-    fullServicePeriod: closedPeriod,
-    billingPeriod: closedPeriod,
-    advanceAfter: dateTime.optional(),
-    uniqueReferenceId: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlementMode: settlementMode,
-    taxConfig: taxConfig.optional(),
-    discounts: rateCardDiscounts.optional(),
-    featureKey: z.string().describe('The feature associated with the charge.'),
-    featureId: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
-    totals: chargeTotals,
-    price: price,
-    systemIntent: chargeUsageBasedSystemIntent.optional(),
-  })
-  .describe('A usage-based charge for a customer.')
-
-export const createChargeRequest = z
-  .discriminatedUnion('type', [
-    createChargeFlatFeeRequest,
-    createChargeUsageBasedRequest,
-  ])
-  .describe('Customer charge.')
 
 export const subscriptionItem = z
   .object({
@@ -5666,6 +5742,13 @@ export const invoiceStandardLine = z
     'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
   )
 
+export const createChargeRequest = z
+  .discriminatedUnion('type', [
+    createChargeFlatFeeRequest,
+    createChargeUsageBasedRequest,
+  ])
+  .describe('Customer charge.')
+
 export const updateInvoiceStandardLine = z
   .object({
     name: z
@@ -5768,10 +5851,6 @@ export const upsertBillingProfileRequest = z
     default: z.boolean().describe('Whether this is the default profile.'),
   })
   .describe('BillingProfile upsert request.')
-
-export const charge = z
-  .discriminatedUnion('type', [chargeFlatFee, chargeUsageBased])
-  .describe('Customer charge.')
 
 export const subscriptionPhase = z
   .object({
@@ -6003,13 +6082,6 @@ export const profilePagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
-export const chargePagePaginatedResponse = z
-  .object({
-    data: z.array(charge),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
-
 export const subscription = z
   .object({
     id: ulid,
@@ -6071,6 +6143,59 @@ export const planPagePaginatedResponse = z
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
+
+export const chargeRealizationInvoice = z
+  .object({
+    id: ulid,
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    number: invoiceNumber,
+    currency: currencyCode,
+    supplier: supplier,
+    totals: totals,
+    servicePeriod: closedPeriod,
+    validationIssues: z
+      .array(invoiceValidationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
+    externalReferences: invoiceExternalReferences.optional(),
+    type: z
+      .literal('standard')
+      .describe('Discriminator field identifying this as a standard invoice.'),
+    status: invoiceStandardStatus,
+    statusDetails: invoiceStatusDetails,
+    issuedAt: dateTime.optional(),
+    draftUntil: dateTime.optional(),
+    quantitySnapshottedAt: dateTime.optional(),
+    collectionAt: dateTime.optional(),
+    dueAt: dateTime.optional(),
+    sentToCustomerAt: dateTime.optional(),
+    workflow: invoiceWorkflowSettings,
+    lines: z
+      .array(invoiceLine)
+      .optional()
+
+      .describe(
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Detailed (child) lines are always computed and cannot be edited directly.',
+      ),
+  })
+
+  .describe(
+    'The invoice a charge realization was booked to, embedded as a header. Matches the standard invoice entity, except that it carries no `customer` snapshot (the charge context already identifies the customer) and `lines` are never populated (the realization itself is the line-level breakdown). The shared invoice contract stays untouched: this model exists so the charges API can slim the embedding without loosening the invoices API.',
+  )
 
 export const invoiceStandard = z
   .object({
@@ -6150,6 +6275,10 @@ export const updateInvoiceStandardRequest = z
   })
   .describe('InvoiceStandard update request.')
 
+export const subscriptionOrReference = z
+  .union([subscription, subscriptionReference])
+  .describe('Subscription or reference.')
+
 export const subscriptionPagePaginatedResponse = z
   .object({
     data: z.array(subscription),
@@ -6164,6 +6293,10 @@ export const subscriptionChangeResponse = z
   })
   .describe('Response for changing a subscription.')
 
+export const chargeRealizationInvoiceOrReference = z
+  .union([chargeRealizationInvoice, chargeRealizationInvoiceReference])
+  .describe('ChargeRealizationInvoice or reference.')
+
 export const invoice = z
   .discriminatedUnion('type', [invoiceStandard])
 
@@ -6175,9 +6308,160 @@ export const updateInvoiceRequest = z
   .discriminatedUnion('type', [updateInvoiceStandardRequest])
   .describe('UpdateInvoiceRequest update request.')
 
+export const chargeRealization = z
+  .object({
+    id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the realization run. Not present on `outstanding` entries, which are projections rather than persisted runs.',
+      ),
+    lineId: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the invoice line this realization was booked to, when the realization has been invoiced.',
+      ),
+    invoice: chargeRealizationInvoiceOrReference.optional(),
+    type: chargeRealizationType,
+    servicePeriod: closedPeriod,
+    usage: numeric.optional(),
+    payment: chargeRealizationPayment.optional(),
+    totals: totals.optional(),
+    detailedLines: z
+      .array(chargeRealizationDetailedLine)
+      .optional()
+
+      .describe(
+        'The detailed (rated) lines produced by the realization run. Requires the `realization.detailed_lines` expand.',
+      ),
+  })
+
+  .describe(
+    "A realization run of a charge. `totals` and `detailed_lines` are only populated with the `realization.totals` and `realization.detailed_lines` expands, respectively, since computing them requires re-deriving the run's rated breakdown. `invoice` is an ID reference unless the `realization.invoice` expand is used, which resolves it to the invoice header of the run's booked line: the invoice entity without its `lines` and without the `customer` snapshot (the charge itself already identifies the customer).",
+  )
+
 export const invoicePagePaginatedResponse = z
   .object({
     data: z.array(invoice),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const chargeFlatFee = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    customer: customerOrReference,
+    lifecycleController: lifecycleController,
+    subscription: subscriptionOrReference.optional(),
+    currency: currencyCode,
+    status: chargeStatus,
+    invoiceAt: dateTime,
+    servicePeriod: closedPeriod,
+    fullServicePeriod: closedPeriod,
+    billingPeriod: closedPeriod,
+    advanceAfter: dateTime.optional(),
+    uniqueReferenceId: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlementMode: settlementMode,
+    taxConfig: taxConfig.optional(),
+    realizations: z
+      .array(chargeRealization)
+
+      .describe(
+        'The realization runs of the charge, sorted by `service_period.from`.',
+      ),
+    paymentTerm: pricePaymentTerm,
+    discounts: chargeFlatFeeDiscounts.optional(),
+    feature: featureOrReference.optional(),
+    prorationConfiguration: rateCardProrationConfiguration,
+    amountAfterProration: currencyAmount,
+    price: price,
+    systemIntent: chargeFlatFeeSystemIntent.optional(),
+  })
+  .describe('A flat fee charge for a customer.')
+
+export const chargeUsageBased = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('usage_based').describe('The type of the charge.'),
+    customer: customerOrReference,
+    lifecycleController: lifecycleController,
+    subscription: subscriptionOrReference.optional(),
+    currency: currencyCode,
+    status: chargeStatus,
+    invoiceAt: dateTime,
+    servicePeriod: closedPeriod,
+    fullServicePeriod: closedPeriod,
+    billingPeriod: closedPeriod,
+    advanceAfter: dateTime.optional(),
+    uniqueReferenceId: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlementMode: settlementMode,
+    taxConfig: taxConfig.optional(),
+    realizations: z
+      .array(chargeRealization)
+
+      .describe(
+        'The realization runs of the charge, sorted by `service_period.from`.',
+      ),
+    discounts: rateCardDiscounts.optional(),
+    feature: featureOrReference,
+    totals: chargeTotals,
+    usage: numeric.optional(),
+    price: price,
+    systemIntent: chargeUsageBasedSystemIntent.optional(),
+  })
+  .describe('A usage-based charge for a customer.')
+
+export const charge = z
+  .discriminatedUnion('type', [chargeFlatFee, chargeUsageBased])
+  .describe('Customer charge.')
+
+export const chargePagePaginatedResponse = z
+  .object({
+    data: z.array(charge),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
@@ -6460,7 +6744,7 @@ export const listCustomerChargesQueryParams = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
@@ -7734,10 +8018,18 @@ export const creditTransactionTypeWire = z
   )
 
 export const chargesExpandWire = z
-  .enum(['real_time_usage'])
+  .enum([
+    'real_time_usage',
+    'customer',
+    'feature',
+    'subscription',
+    'realization.invoice',
+    'realization.totals',
+    'realization.detailed_lines',
+  ])
 
   .describe(
-    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage.",
+    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the `totals.realtime` fields, and fills the `outstanding` realization's `usage` with the not-yet-booked remainder of the live read. - `customer`: The complete customer entity of the charge. - `feature`: The complete feature entity of the charge. - `subscription`: The complete subscription of the charge, when present. - `realization.invoice`: The invoice header of each realization (the invoice entity without its `lines` and `customer` snapshot), in place of the ID reference. - `realization.totals`: The `totals` of each realization run, including credit allocations. - `realization.detailed_lines`: The `detailed_lines` of each realization run.",
   )
 
 export const lifecycleControllerWire = z
@@ -7747,18 +8039,80 @@ export const lifecycleControllerWire = z
     'Identifies whether a resource lifecycle is controlled by OpenMeter or manually overridden by the API user. Values: - `system`: The resource lifecycle is controlled by OpenMeter. - `manual`: The resource lifecycle was manually overridden by the API user.',
   )
 
-export const chargeStatusWire = z
-  .enum(['created', 'active', 'final', 'deleted'])
+export const subscriptionCostBasisModeWire = z
+  .enum(['dynamic', 'pinned'])
 
   .describe(
-    'Lifecycle status of a charge. Values: - `created`: The charge has been created but is not active yet. - `active`: The charge is active. - `final`: The charge is fully finalized and no further changes are expected. - `deleted`: The charge has been deleted.',
+    'Controls how custom-currency cost bases are selected for the subscription.',
   )
+
+export const rateCardProrationModeWire = z
+  .enum(['no_proration', 'prorate_prices'])
+
+  .describe(
+    'The proration mode of the rate card. Values: - `no_proration`: No proration. - `prorate_prices`: Prorate the price based on the time remaining in the billing period.',
+  )
+
+export const subscriptionStatusWire = z
+  .enum(['active', 'inactive', 'canceled', 'scheduled'])
+  .describe('Subscription status.')
 
 export const settlementModeWire = z
   .enum(['credit_then_invoice', 'credit_only'])
 
   .describe(
     'Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits.',
+  )
+
+export const priceFreeWire = z
+  .strictObject({
+    type: z.literal('free').describe('The type of the price.'),
+  })
+  .describe('Free price.')
+
+export const unitConfigOperationWire = z
+  .enum(['divide', 'multiply'])
+
+  .describe(
+    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
+  )
+
+export const unitConfigRoundingModeWire = z
+  .enum(['ceiling', 'floor', 'half_up', 'none'])
+
+  .describe(
+    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
+  )
+
+export const pricePaymentTermWire = z
+  .union([z.literal('in_advance'), z.literal('in_arrears')])
+  .describe('The payment term of a flat price.')
+
+export const rateCardStaticEntitlementWire = z
+  .strictObject({
+    type: z.literal('static').describe('The type of the entitlement template.'),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+  })
+  .describe('The entitlement template of a static entitlement.')
+
+export const rateCardBooleanEntitlementWire = z
+  .strictObject({
+    type: z
+      .literal('boolean')
+      .describe('The type of the entitlement template.'),
+  })
+  .describe('The entitlement template of a boolean entitlement.')
+
+export const chargeStatusWire = z
+  .enum(['created', 'active', 'final', 'deleted'])
+
+  .describe(
+    'Lifecycle status of a charge. Values: - `created`: The charge has been created but is not active yet. - `active`: The charge is active. - `final`: The charge is fully finalized and no further changes are expected. - `deleted`: The charge has been deleted.',
   )
 
 export const taxConfigStripeWire = z
@@ -7782,160 +8136,14 @@ export const taxConfigExternalInvoicingWire = z
   })
   .describe('External invoicing tax config.')
 
-export const pricePaymentTermWire = z
-  .union([z.literal('in_advance'), z.literal('in_arrears')])
-  .describe('The payment term of a flat price.')
-
-export const chargeFlatFeeDiscountsWire = z
-  .strictObject({
-    percentage: z
-      .number()
-      .nonnegative()
-      .lte(100)
-      .optional()
-      .describe('Percentage discount applied to the price (0–100).'),
-  })
+export const invoiceNumberWire = z
+  .string()
+  .min(1)
+  .max(256)
 
   .describe(
-    'Discounts applicable to flat fee charges. This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.',
+    'InvoiceNumber is a unique identifier for the invoice, generated by the invoicing app. The uniqueness depends on a lot of factors: - app setting (unique per app or unique per customer) - multiple app scenarios (multiple apps generating invoices with the same prefix)',
   )
-
-export const rateCardProrationModeWire = z
-  .enum(['no_proration', 'prorate_prices'])
-
-  .describe(
-    'The proration mode of the rate card. Values: - `no_proration`: No proration. - `prorate_prices`: Prorate the price based on the time remaining in the billing period.',
-  )
-
-export const priceFreeWire = z
-  .strictObject({
-    type: z.literal('free').describe('The type of the price.'),
-  })
-  .describe('Free price.')
-
-export const subscriptionCostBasisModeWire = z
-  .enum(['dynamic', 'pinned'])
-
-  .describe(
-    'Controls how custom-currency cost bases are selected for the subscription.',
-  )
-
-export const subscriptionStatusWire = z
-  .enum(['active', 'inactive', 'canceled', 'scheduled'])
-  .describe('Subscription status.')
-
-export const unitConfigOperationWire = z
-  .enum(['divide', 'multiply'])
-
-  .describe(
-    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
-  )
-
-export const unitConfigRoundingModeWire = z
-  .enum(['ceiling', 'floor', 'half_up', 'none'])
-
-  .describe(
-    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
-  )
-
-export const rateCardStaticEntitlementWire = z
-  .strictObject({
-    type: z.literal('static').describe('The type of the entitlement template.'),
-    config: z
-      .unknown()
-
-      .describe(
-        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
-      ),
-  })
-  .describe('The entitlement template of a static entitlement.')
-
-export const rateCardBooleanEntitlementWire = z
-  .strictObject({
-    type: z
-      .literal('boolean')
-      .describe('The type of the entitlement template.'),
-  })
-  .describe('The entitlement template of a boolean entitlement.')
-
-export const subscriptionEditTimingEnumWire = z
-  .enum(['immediate', 'next_billing_cycle'])
-
-  .describe(
-    'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
-  )
-
-export const appTypeWire = z
-  .enum(['sandbox', 'stripe', 'external_invoicing'])
-  .describe('The type of the app.')
-
-export const appCapabilityTypeWire = z
-  .enum([
-    'report_usage',
-    'report_events',
-    'calculate_tax',
-    'invoice_customers',
-    'collect_payments',
-  ])
-
-  .describe(
-    'Supported capability types for an App. Each capability defines an integration function that an App can perform.',
-  )
-
-export const appInstallMethodsWire = z
-  .enum(['with_oauth2', 'with_api_key', 'no_credentials_required'])
-  .describe('Supported installation methods for an app.')
-
-export const appStatusWire = z
-  .enum(['ready', 'unauthorized'])
-  .describe('Connection status of an installed app.')
-
-export const updateLabelsWire = z
-  .record(z.string(), z.string())
-
-  .describe(
-    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
-  )
-
-export const installAppStripeWithApiKeyWire = z
-  .strictObject({
-    type: z.literal('stripe').describe('Type of the app.'),
-    name: z.string().describe('Name of the app.'),
-    create_billing_profile: z
-      .boolean()
-
-      .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
-      ),
-    api_key: z.string().describe('API key for the app.'),
-  })
-  .describe('Model for installing an app from the catalog with an API key.')
-
-export const installAppSandboxWire = z
-  .strictObject({
-    type: z.literal('sandbox').describe('Type of the app.'),
-    name: z.string().describe('Name of the app.'),
-    create_billing_profile: z
-      .boolean()
-
-      .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
-      ),
-  })
-  .describe('Base model for installing an app from the catalog.')
-
-export const installAppExternalInvoicingWire = z
-  .strictObject({
-    type: z.literal('external_invoicing').describe('Type of the app.'),
-    name: z.string().describe('Name of the app.'),
-    create_billing_profile: z
-      .boolean()
-
-      .describe(
-        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
-      ),
-  })
-  .describe('Base model for installing an app from the catalog.')
 
 export const taxIdentificationCodeWire = z
   .string()
@@ -7944,57 +8152,6 @@ export const taxIdentificationCodeWire = z
 
   .describe(
     'Tax identifier code is a normalized tax code shown on the original identity document.',
-  )
-
-export const workflowCollectionAlignmentSubscriptionWire = z
-  .strictObject({
-    type: z.literal('subscription').describe('The type of alignment.'),
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice.',
-  )
-
-export const workflowInvoicingSubscriptionEndProrationModeWire = z
-  .enum(['bill_full_period', 'bill_actual_period'])
-  .describe('Billing workflow subscription end proration mode.')
-
-export const workflowPaymentChargeAutomaticallySettingsWire = z
-  .strictObject({
-    collection_method: z
-      .literal('charge_automatically')
-      .describe('The collection method for the invoice.'),
-  })
-
-  .describe(
-    'Payment settings for a billing workflow when the collection method is charge automatically.',
-  )
-
-export const workflowPaymentSendInvoiceSettingsWire = z
-  .strictObject({
-    collection_method: z
-      .literal('send_invoice')
-      .describe('The collection method for the invoice.'),
-    due_after: z
-      .string()
-      .optional()
-
-      .describe(
-        "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
-      ),
-  })
-
-  .describe(
-    'Payment settings for a billing workflow when the collection method is send invoice.',
-  )
-
-export const invoiceNumberWire = z
-  .string()
-  .min(1)
-  .max(256)
-
-  .describe(
-    'InvoiceNumber is a unique identifier for the invoice, generated by the invoicing app. The uniqueness depends on a lot of factors: - app setting (unique per app or unique per customer) - multiple app scenarios (multiple apps generating invoices with the same prefix)',
   )
 
 export const invoiceValidationIssueSeverityWire = z
@@ -8079,6 +8236,35 @@ export const invoiceWorkflowInvoicingSettingsWire = z
     'Invoice-level invoicing settings. A subset of BillingWorkflowInvoicingSettings limited to fields that are meaningful per-invoice. progressive_billing is omitted as it is a gather-time / profile-level decision.',
   )
 
+export const workflowPaymentChargeAutomaticallySettingsWire = z
+  .strictObject({
+    collection_method: z
+      .literal('charge_automatically')
+      .describe('The collection method for the invoice.'),
+  })
+
+  .describe(
+    'Payment settings for a billing workflow when the collection method is charge automatically.',
+  )
+
+export const workflowPaymentSendInvoiceSettingsWire = z
+  .strictObject({
+    collection_method: z
+      .literal('send_invoice')
+      .describe('The collection method for the invoice.'),
+    due_after: z
+      .string()
+      .optional()
+
+      .describe(
+        "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
+      ),
+  })
+
+  .describe(
+    'Payment settings for a billing workflow when the collection method is send invoice.',
+  )
+
 export const invoiceDiscountReasonWire = z
   .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
   .describe('The reason a discount was applied to an invoice line.')
@@ -8098,6 +8284,145 @@ export const invoiceLineExternalReferencesWire = z
 export const invoiceDetailedLineCostCategoryWire = z
   .enum(['regular', 'commitment'])
   .describe('Cost category of a detailed invoice line item.')
+
+export const chargeRealizationTypeWire = z
+  .enum(['final_realization', 'partial_invoice', 'outstanding', 'voided'])
+
+  .describe(
+    "Type of a charge realization run. Values: - `final_realization`: The run is the final realization of the charge for its service period; no further runs are expected to correct it. - `partial_invoice`: The run only realizes part of the charge, because the remainder is not yet due to be invoiced. - `outstanding`: The type an outstanding (not-yet-realized) projection would carry if it were realized now. Never returned on a booked realization run. - `voided`: The run's billing effect was undone (for example the charge's service period was extended while its invoice was still mutable); it is retained as audit history and excluded from aggregate and live calculations.",
+  )
+
+export const chargeRealizationPaymentStatusWire = z
+  .enum(['authorized', 'settled'])
+
+  .describe(
+    "Settlement status of a charge realization's payment. Values: - `authorized`: The payment has been authorized against the customer's ledger but has not settled yet. - `settled`: The payment has settled.",
+  )
+
+export const chargeRealizationDetailedLineCategoryWire = z
+  .enum(['regular', 'commitment'])
+
+  .describe(
+    'Cost category of a charge realization detailed line. Values: - `regular`: A regular charge line, based on usage or subscription pricing. - `commitment`: A commitment-derived line, such as minimum spend.',
+  )
+
+export const chargeFlatFeeDiscountsWire = z
+  .strictObject({
+    percentage: z
+      .number()
+      .nonnegative()
+      .lte(100)
+      .optional()
+      .describe('Percentage discount applied to the price (0–100).'),
+  })
+
+  .describe(
+    'Discounts applicable to flat fee charges. This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges.',
+  )
+
+export const featureLlmTokenTypeWire = z
+  .enum([
+    'input',
+    'output',
+    'cache_read',
+    'cache_write',
+    'reasoning',
+    'request',
+    'response',
+  ])
+  .describe('Token type for LLM cost lookup.')
+
+export const subscriptionEditTimingEnumWire = z
+  .enum(['immediate', 'next_billing_cycle'])
+
+  .describe(
+    'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
+  )
+
+export const appTypeWire = z
+  .enum(['sandbox', 'stripe', 'external_invoicing'])
+  .describe('The type of the app.')
+
+export const appCapabilityTypeWire = z
+  .enum([
+    'report_usage',
+    'report_events',
+    'calculate_tax',
+    'invoice_customers',
+    'collect_payments',
+  ])
+
+  .describe(
+    'Supported capability types for an App. Each capability defines an integration function that an App can perform.',
+  )
+
+export const appInstallMethodsWire = z
+  .enum(['with_oauth2', 'with_api_key', 'no_credentials_required'])
+  .describe('Supported installation methods for an app.')
+
+export const appStatusWire = z
+  .enum(['ready', 'unauthorized'])
+  .describe('Connection status of an installed app.')
+
+export const updateLabelsWire = z
+  .record(z.string(), z.string())
+
+  .describe(
+    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
+  )
+
+export const installAppStripeWithApiKeyWire = z
+  .strictObject({
+    type: z.literal('stripe').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    create_billing_profile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+    api_key: z.string().describe('API key for the app.'),
+  })
+  .describe('Model for installing an app from the catalog with an API key.')
+
+export const installAppSandboxWire = z
+  .strictObject({
+    type: z.literal('sandbox').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    create_billing_profile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
+
+export const installAppExternalInvoicingWire = z
+  .strictObject({
+    type: z.literal('external_invoicing').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    create_billing_profile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
+
+export const workflowCollectionAlignmentSubscriptionWire = z
+  .strictObject({
+    type: z.literal('subscription').describe('The type of alignment.'),
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice.',
+  )
+
+export const workflowInvoicingSubscriptionEndProrationModeWire = z
+  .enum(['bill_full_period', 'bill_actual_period'])
+  .describe('Billing workflow subscription end proration mode.')
 
 export const updateBillingInvoiceWorkflowInvoicingSettingsWire = z
   .strictObject({
@@ -8169,18 +8494,6 @@ export const currencyExpandWire = z
   .describe(
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
-
-export const featureLlmTokenTypeWire = z
-  .enum([
-    'input',
-    'output',
-    'cache_read',
-    'cache_write',
-    'reasoning',
-    'request',
-    'response',
-  ])
-  .describe('Token type for LLM cost lookup.')
 
 export const llmCostProviderWire = z
   .strictObject({
@@ -8504,18 +8817,18 @@ export const priceTypeWire = z
     "The type of the price. - `free`: No charge, the rate card is included at no cost. - `flat`: A fixed amount charged once per billing period, regardless of usage. - `unit`: A fixed rate charged per billing unit consumed. - `graduated`: Tiered pricing where each tier's rate applies only to usage within that tier. - `volume`: Tiered pricing where the rate for the highest tier reached applies to all units in the period.",
   )
 
-export const collectionAlignmentWire = z
-  .enum(['subscription', 'anchored'])
-
-  .describe(
-    'BillingCollectionAlignment specifies when the pending line items should be collected into an invoice.',
-  )
-
 export const collectionMethodWire = z
   .enum(['charge_automatically', 'send_invoice'])
 
   .describe(
     'Collection method specifies how the invoice should be collected (automatic or manual).',
+  )
+
+export const collectionAlignmentWire = z
+  .enum(['subscription', 'anchored'])
+
+  .describe(
+    'BillingCollectionAlignment specifies when the pending line items should be collected into an invoice.',
   )
 
 export const featureUnitCostTypeWire = z
@@ -8705,13 +9018,6 @@ export const createCurrencyCustomRequestWire = z
   })
   .describe('CurrencyCustom create request.')
 
-export const currencyAmountWire = z
-  .strictObject({
-    amount: numericWire,
-    currency: currencyCodeWire,
-  })
-  .describe('Monetary amount in a specific currency.')
-
 export const priceFlatWire = z
   .strictObject({
     type: z.literal('flat').describe('The type of the price.'),
@@ -8727,6 +9033,16 @@ export const priceUnitWire = z
 
   .describe(
     'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
+  )
+
+export const spendCommitmentsWire = z
+  .strictObject({
+    minimum_amount: numericWire.optional(),
+    maximum_amount: numericWire.optional(),
+  })
+
+  .describe(
+    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
   )
 
 export const rateCardDiscountsWire = z
@@ -8757,16 +9073,6 @@ export const totalsWire = z
     'Totals contains the summaries of all calculations for a billing resource.',
   )
 
-export const spendCommitmentsWire = z
-  .strictObject({
-    minimum_amount: numericWire.optional(),
-    maximum_amount: numericWire.optional(),
-  })
-
-  .describe(
-    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
-  )
-
 export const invoiceLineCreditsAppliedWire = z
   .strictObject({
     amount: numericWire,
@@ -8794,6 +9100,68 @@ export const invoiceUsageQuantityDetailWire = z
   .describe(
     'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
   )
+
+export const chargeRealizationDetailedLineCreditAppliedWire = z
+  .strictObject({
+    amount: numericWire,
+    description: z
+      .string()
+      .optional()
+      .describe('Human-readable description of the credit allocation.'),
+    credit_realization_id: z
+      .string()
+
+      .describe(
+        'The ID of the credit realization (allocation) this credit was applied from.',
+      ),
+  })
+
+  .describe(
+    'A credit allocation applied to a charge realization detailed line.',
+  )
+
+export const chargeRealizationAmountDiscountWire = z
+  .strictObject({
+    amount: numericWire,
+    reason: z
+      .string()
+      .describe('The reason for the discount applied to the charge.'),
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    rounding_amount: numericWire.optional(),
+    child_unique_reference_id: z
+      .string()
+      .describe('Unique reference ID of the discount applied to the charge.'),
+  })
+  .describe('A discount applied to a charge realization detailed line.')
+
+export const featureManualUnitCostWire = z
+  .strictObject({
+    type: z
+      .literal('manual')
+      .describe('The type discriminator for manual unit cost.'),
+    amount: numericWire,
+  })
+  .describe('A fixed per-unit cost amount.')
+
+export const featureLlmUnitCostPricingWire = z
+  .strictObject({
+    input_per_token: numericWire,
+    output_per_token: numericWire,
+    cache_read_per_token: numericWire.optional(),
+    reasoning_per_token: numericWire.optional(),
+    cache_write_per_token: numericWire.optional(),
+  })
+  .describe('Resolved per-token pricing from the LLM cost database.')
+
+export const currencyAmountWire = z
+  .strictObject({
+    amount: numericWire,
+    currency: currencyCodeWire,
+  })
+  .describe('Monetary amount in a specific currency.')
 
 export const updatePriceFlatWire = z
   .strictObject({
@@ -8823,25 +9191,6 @@ export const updateDiscountsWire = z
     usage: numericWire.optional(),
   })
   .describe('Discount configuration for a rate card.')
-
-export const featureManualUnitCostWire = z
-  .strictObject({
-    type: z
-      .literal('manual')
-      .describe('The type discriminator for manual unit cost.'),
-    amount: numericWire,
-  })
-  .describe('A fixed per-unit cost amount.')
-
-export const featureLlmUnitCostPricingWire = z
-  .strictObject({
-    input_per_token: numericWire,
-    output_per_token: numericWire,
-    cache_read_per_token: numericWire.optional(),
-    reasoning_per_token: numericWire.optional(),
-    cache_write_per_token: numericWire.optional(),
-  })
-  .describe('Resolved per-token pricing from the LLM cost database.')
 
 export const llmCostModelPricingWire = z
   .strictObject({
@@ -8967,31 +9316,6 @@ export const creditGrantInvoiceReferenceWire = z
   })
   .describe('Invoice references for the grant.')
 
-export const billingCustomerReferenceWire = z
-  .strictObject({
-    id: ulidWire,
-  })
-  .describe('Customer reference.')
-
-export const subscriptionReferenceWire = z
-  .strictObject({
-    id: ulidWire,
-    phase: z
-      .strictObject({
-        id: ulidWire,
-        item: z
-          .strictObject({
-            id: ulidWire,
-          })
-          .describe('The item of the phase.'),
-      })
-      .describe('The phase of the subscription.'),
-  })
-
-  .describe(
-    'Subscription reference represents a reference to the specific subscription item this entity represents.',
-  )
-
 export const subscriptionCostBasisPinWire = z
   .strictObject({
     custom_currency_id: ulidWire,
@@ -9009,11 +9333,31 @@ export const featureReferenceWire = z
   })
   .describe('Feature reference.')
 
-export const addonReferenceWire = z
+export const subscriptionReferenceWire = z
   .strictObject({
     id: ulidWire,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the subscription. Only populated where the referencing endpoint documents a `subscription` expand that resolves it.',
+      ),
+    phase: z
+      .strictObject({
+        id: ulidWire,
+        item: z
+          .strictObject({
+            id: ulidWire,
+          })
+          .describe('The item of the phase.'),
+      })
+      .describe('The phase of the subscription.'),
   })
-  .describe('Addon reference.')
+
+  .describe(
+    'Subscription reference represents a reference to the specific subscription item this entity represents.',
+  )
 
 export const appReferenceWire = z
   .strictObject({
@@ -9027,11 +9371,56 @@ export const chargeReferenceWire = z
   })
   .describe('Reference to a charge associated with an invoice line.')
 
+export const chargeRealizationInvoiceReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+  })
+  .describe('ChargeRealizationInvoice reference.')
+
+export const addonReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+  })
+  .describe('Addon reference.')
+
 export const updateResourceReferenceWire = z
   .strictObject({
     id: ulidWire,
   })
   .describe('TaxCode reference.')
+
+export const billingCustomerReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the customer. Only populated where the referencing endpoint documents a `customer` expand that resolves it.',
+      ),
+  })
+  .describe('Customer reference.')
+
+export const chargeFeatureWire = z
+  .strictObject({
+    id: ulidWire,
+    key: z
+      .string()
+      .optional()
+      .describe('The key of the feature. Requires the `feature` expand.'),
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the feature. Requires the `feature` expand.',
+      ),
+  })
+
+  .describe(
+    'The feature associated with a charge. `key` is always present and is set at charge creation time. `id` and `name` are only resolved with the `feature` expand, since resolving them requires an additional lookup against the feature catalog.',
+  )
 
 export const dateTimeFieldFilterWire = z
   .union([
@@ -9976,12 +10365,6 @@ export const getCreditBalanceParamsFilterWire = z
   })
   .describe('Filter options for getting a credit balance.')
 
-export const listChargesParamsFilterWire = z
-  .strictObject({
-    status: stringFieldFilterExactWire.optional(),
-  })
-  .describe('Filter options for listing charges.')
-
 export const listPlansParamsFilterWire = z
   .strictObject({
     key: stringFieldFilterWire.optional(),
@@ -9997,18 +10380,18 @@ export const voidCreditGrantRequestWire = z
   })
   .describe('Request body for voiding a credit grant.')
 
-export const rateCardProrationConfigurationWire = z
-  .strictObject({
-    mode: rateCardProrationModeWire,
-  })
-  .describe('The proration configuration of the rate card.')
-
 export const subscriptionProRatingConfigWire = z
   .strictObject({
     enabled: z.boolean().describe('Whether pro-rating is enabled.'),
     mode: rateCardProrationModeWire,
   })
   .describe('The pro-rating configuration of a subscription.')
+
+export const rateCardProrationConfigurationWire = z
+  .strictObject({
+    mode: rateCardProrationModeWire,
+  })
+  .describe('The proration configuration of the rate card.')
 
 export const subscriptionCreateWire = z
   .strictObject({
@@ -10064,6 +10447,110 @@ export const unitConfigWire = z
   .describe(
     'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
   )
+
+export const partyTaxIdentityWire = z
+  .strictObject({
+    code: taxIdentificationCodeWire.optional(),
+  })
+
+  .describe(
+    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
+  )
+
+export const updateBillingPartyTaxIdentityWire = z
+  .strictObject({
+    code: taxIdentificationCodeWire.optional(),
+  })
+
+  .describe(
+    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
+  )
+
+export const invoiceValidationIssueWire = z
+  .strictObject({
+    code: z.string().describe('Machine-readable error code.'),
+    message: z.string().describe('Human-readable description of the error.'),
+    attributes: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe('Additional structured context.'),
+    severity: invoiceValidationIssueSeverityWire,
+    field: z
+      .string()
+      .optional()
+
+      .describe(
+        'JSON path to the field that caused this validation issue, if applicable. For example: `lines/0/rate_card/price`.',
+      ),
+  })
+
+  .describe(
+    'A validation issue found during invoice processing. Converges on the same structure used by plan and subscription validation errors: a machine-readable `code`, a human-readable `message`, optional structured `attributes`, plus a `severity` and optional `field` path.',
+  )
+
+export const invoiceAvailableActionsWire = z
+  .strictObject({
+    advance: invoiceAvailableActionDetailsWire.optional(),
+    approve: invoiceAvailableActionDetailsWire.optional(),
+    delete: invoiceAvailableActionDetailsWire.optional(),
+    retry: invoiceAvailableActionDetailsWire.optional(),
+    snapshot_quantities: invoiceAvailableActionDetailsWire.optional(),
+  })
+
+  .describe(
+    'The set of state-transition actions available for an invoice in its current status. A field is present only when that action is permitted from the current state.',
+  )
+
+export const workflowPaymentSettingsWire = z
+  .discriminatedUnion('collection_method', [
+    workflowPaymentChargeAutomaticallySettingsWire,
+    workflowPaymentSendInvoiceSettingsWire,
+  ])
+  .describe('Payment settings for a billing workflow.')
+
+export const invoiceLineAmountDiscountWire = z
+  .strictObject({
+    id: ulidWire,
+    reason: invoiceDiscountReasonWire,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+    amount: numericWire,
+  })
+  .describe('A monetary amount discount applied to an invoice line item.')
+
+export const invoiceLineUsageDiscountWire = z
+  .strictObject({
+    id: ulidWire,
+    reason: invoiceDiscountReasonWire,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+    quantity: numericWire,
+  })
+  .describe('A usage quantity discount applied to an invoice line item.')
+
+export const invoiceLineBaseDiscountWire = z
+  .strictObject({
+    id: ulidWire,
+    reason: invoiceDiscountReasonWire,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+  })
+  .describe('Base fields shared by all invoice line item discounts.')
+
+export const chargeRealizationPaymentWire = z
+  .strictObject({
+    status: chargeRealizationPaymentStatusWire,
+  })
+  .describe('Payment state of a charge realization.')
 
 export const subscriptionEditTimingWire = z
   .union([subscriptionEditTimingEnumWire, dateTimeWire])
@@ -10172,24 +10659,6 @@ export const installAppRequestWire = z
   ])
   .describe('Request to install an app from the catalog.')
 
-export const partyTaxIdentityWire = z
-  .strictObject({
-    code: taxIdentificationCodeWire.optional(),
-  })
-
-  .describe(
-    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
-  )
-
-export const updateBillingPartyTaxIdentityWire = z
-  .strictObject({
-    code: taxIdentificationCodeWire.optional(),
-  })
-
-  .describe(
-    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
-  )
-
 export const workflowInvoicingSettingsWire = z
   .strictObject({
     auto_advance: z
@@ -10214,86 +10683,6 @@ export const workflowInvoicingSettingsWire = z
       workflowInvoicingSubscriptionEndProrationModeWire.optional(),
   })
   .describe('Invoice settings for a billing workflow.')
-
-export const workflowPaymentSettingsWire = z
-  .discriminatedUnion('collection_method', [
-    workflowPaymentChargeAutomaticallySettingsWire,
-    workflowPaymentSendInvoiceSettingsWire,
-  ])
-  .describe('Payment settings for a billing workflow.')
-
-export const invoiceValidationIssueWire = z
-  .strictObject({
-    code: z.string().describe('Machine-readable error code.'),
-    message: z.string().describe('Human-readable description of the error.'),
-    attributes: z
-      .record(z.string(), z.unknown())
-      .optional()
-      .describe('Additional structured context.'),
-    severity: invoiceValidationIssueSeverityWire,
-    field: z
-      .string()
-      .optional()
-
-      .describe(
-        'JSON path to the field that caused this validation issue, if applicable. For example: `lines/0/rate_card/price`.',
-      ),
-  })
-
-  .describe(
-    'A validation issue found during invoice processing. Converges on the same structure used by plan and subscription validation errors: a machine-readable `code`, a human-readable `message`, optional structured `attributes`, plus a `severity` and optional `field` path.',
-  )
-
-export const invoiceAvailableActionsWire = z
-  .strictObject({
-    advance: invoiceAvailableActionDetailsWire.optional(),
-    approve: invoiceAvailableActionDetailsWire.optional(),
-    delete: invoiceAvailableActionDetailsWire.optional(),
-    retry: invoiceAvailableActionDetailsWire.optional(),
-    snapshot_quantities: invoiceAvailableActionDetailsWire.optional(),
-  })
-
-  .describe(
-    'The set of state-transition actions available for an invoice in its current status. A field is present only when that action is permitted from the current state.',
-  )
-
-export const invoiceLineAmountDiscountWire = z
-  .strictObject({
-    id: ulidWire,
-    reason: invoiceDiscountReasonWire,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-    amount: numericWire,
-  })
-  .describe('A monetary amount discount applied to an invoice line item.')
-
-export const invoiceLineUsageDiscountWire = z
-  .strictObject({
-    id: ulidWire,
-    reason: invoiceDiscountReasonWire,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-    quantity: numericWire,
-  })
-  .describe('A usage quantity discount applied to an invoice line item.')
-
-export const invoiceLineBaseDiscountWire = z
-  .strictObject({
-    id: ulidWire,
-    reason: invoiceDiscountReasonWire,
-    description: z
-      .string()
-      .optional()
-      .describe('Optional human-readable description of the discount.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-  })
-  .describe('Base fields shared by all invoice line item discounts.')
 
 export const updateBillingWorkflowPaymentSettingsWire = z
   .discriminatedUnion('collection_method', [
@@ -10481,18 +10870,7 @@ export const chargeTotalsWire = z
   })
 
   .describe(
-    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
-  )
-
-export const updatePriceTierWire = z
-  .strictObject({
-    up_to_amount: numericWire.optional(),
-    flat_price: updatePriceFlatWire.optional(),
-    unit_price: updatePriceUnitWire.optional(),
-  })
-
-  .describe(
-    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
+    'The totals of a charge. `realtime` is only populated when the `real_time_usage` expand is used.',
   )
 
 export const featureLlmUnitCostWire = z
@@ -10541,6 +10919,17 @@ export const featureLlmUnitCostWire = z
 
   .describe(
     'LLM cost lookup configuration. Each dimension (provider, model, token type) can be specified as either a static value or a meter group-by property name (mutually exclusive).',
+  )
+
+export const updatePriceTierWire = z
+  .strictObject({
+    up_to_amount: numericWire.optional(),
+    flat_price: updatePriceFlatWire.optional(),
+    unit_price: updatePriceUnitWire.optional(),
+  })
+
+  .describe(
+    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
   )
 
 export const llmCostPriceWire = z
@@ -10646,6 +11035,13 @@ export const creditGrantTaxConfigWire = z
     'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
   )
 
+export const rateCardTaxConfigWire = z
+  .strictObject({
+    behavior: taxBehaviorWire.optional(),
+    code: taxCodeReferenceWire,
+  })
+  .describe('The tax config of the rate card.')
+
 export const taxConfigWire = z
   .strictObject({
     behavior: taxBehaviorWire.optional(),
@@ -10655,13 +11051,6 @@ export const taxConfigWire = z
     tax_code: taxCodeReferenceWire.optional(),
   })
   .describe('Set of provider specific tax configs.')
-
-export const rateCardTaxConfigWire = z
-  .strictObject({
-    behavior: taxBehaviorWire.optional(),
-    code: taxCodeReferenceWire,
-  })
-  .describe('The tax config of the rate card.')
 
 export const organizationDefaultTaxCodesWire = z
   .strictObject({
@@ -10681,6 +11070,25 @@ export const updateOrganizationDefaultTaxCodesRequestWire = z
     credit_grant_tax_code: taxCodeReferenceWire.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
+
+export const invoiceWorkflowAppsReferencesWire = z
+  .strictObject({
+    tax: appReferenceWire,
+    invoicing: appReferenceWire,
+    payment: appReferenceWire,
+  })
+
+  .describe(
+    'BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile',
+  )
+
+export const profileAppReferencesWire = z
+  .strictObject({
+    tax: appReferenceWire,
+    invoicing: appReferenceWire,
+    payment: appReferenceWire,
+  })
+  .describe('References to the applications used by a billing profile.')
 
 export const planAddonWire = z
   .strictObject({
@@ -10753,25 +11161,6 @@ export const createPlanAddonRequestWire = z
   })
   .describe('PlanAddon create request.')
 
-export const profileAppReferencesWire = z
-  .strictObject({
-    tax: appReferenceWire,
-    invoicing: appReferenceWire,
-    payment: appReferenceWire,
-  })
-  .describe('References to the applications used by a billing profile.')
-
-export const invoiceWorkflowAppsReferencesWire = z
-  .strictObject({
-    tax: appReferenceWire,
-    invoicing: appReferenceWire,
-    payment: appReferenceWire,
-  })
-
-  .describe(
-    'BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile',
-  )
-
 export const updateRateCardTaxConfigWire = z
   .strictObject({
     behavior: taxBehaviorWire.optional(),
@@ -10791,6 +11180,16 @@ export const listEventsParamsFilterWire = z
     stored_at: dateTimeFieldFilterWire.optional(),
   })
   .describe('Filter options for listing ingested events.')
+
+export const listChargesParamsFilterWire = z
+  .strictObject({
+    status: stringFieldFilterExactWire.optional(),
+    feature_id: ulidFieldFilterWire.optional(),
+    feature_key: stringFieldFilterExactWire.optional(),
+    service_period_from: dateTimeFieldFilterWire.optional(),
+    service_period_to: dateTimeFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing charges.')
 
 export const listInvoicesParamsFilterWire = z
   .strictObject({
@@ -10850,6 +11249,63 @@ export const meterQueryResultWire = z
       ),
   })
   .describe('Meter query result.')
+
+export const chargeRealizationDetailedLineFlatFeeWire = z
+  .strictObject({
+    id: ulidWire,
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('flat_fee')
+      .describe('The type of the charge the realization belongs to.'),
+    service_period: closedPeriodWire,
+    totals: totalsWire,
+    category: chargeRealizationDetailedLineCategoryWire,
+    credits_applied: z
+      .array(chargeRealizationDetailedLineCreditAppliedWire)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    unit_price: numericWire,
+    amount_discounts: z
+      .array(chargeRealizationAmountDiscountWire)
+      .describe('The amount discounts applied to the detailed line.'),
+  })
+  .describe("A detailed line produced by a flat fee charge's realization run.")
+
+export const chargeRealizationDetailedLineUsageBasedWire = z
+  .strictObject({
+    id: ulidWire,
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('usage_based')
+      .describe('The type of the charge the realization belongs to.'),
+    service_period: closedPeriodWire,
+    totals: totalsWire,
+    category: chargeRealizationDetailedLineCategoryWire,
+    credits_applied: z
+      .array(chargeRealizationDetailedLineCreditAppliedWire)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    unit_price: numericWire,
+    amount_discounts: z
+      .array(chargeRealizationAmountDiscountWire)
+      .describe('The amount discounts applied to the detailed line.'),
+    quantity: numericWire,
+    corrects_run_id: z
+      .string()
+      .optional()
+
+      .describe(
+        "The ID of a prior realization run this detailed line corrects. Only set if the detailed line's totals are negative.",
+      ),
+  })
+
+  .describe(
+    "A detailed line produced by a usage-based charge's realization run.",
+  )
 
 export const currencyCustomWire = z
   .strictObject({
@@ -11166,6 +11622,51 @@ export const chargeFlatFeeSystemIntentWire = z
     'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
   )
 
+export const invoiceStatusDetailsWire = z
+  .strictObject({
+    immutable: z
+      .boolean()
+
+      .describe(
+        'Whether the invoice is immutable (i.e. cannot be modified or deleted).',
+      ),
+    failed: z.boolean().describe('Whether the invoice is in a failed state.'),
+    extended_status: z
+      .string()
+
+      .describe(
+        'Fine-grained internal status string providing additional workflow detail beyond the top-level status enum.',
+      ),
+    available_actions: invoiceAvailableActionsWire,
+  })
+  .describe('Detailed status information for a standard invoice.')
+
+export const invoiceWorkflowWire = z
+  .strictObject({
+    invoicing: invoiceWorkflowInvoicingSettingsWire.optional(),
+    payment: workflowPaymentSettingsWire.optional(),
+  })
+
+  .describe(
+    'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
+  )
+
+export const invoiceLineDiscountsWire = z
+  .strictObject({
+    amount: z
+      .array(invoiceLineAmountDiscountWire)
+      .optional()
+
+      .describe(
+        'Monetary amount discounts (e.g. from maximum spend commitments).',
+      ),
+    usage: z
+      .array(invoiceLineUsageDiscountWire)
+      .optional()
+      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
+  })
+  .describe('Discounts applied to an invoice line item.')
+
 export const subscriptionCancelWire = z
   .strictObject({
     timing: subscriptionEditTimingWire.optional(),
@@ -11315,51 +11816,6 @@ export const updateAppRequestWire = z
   ])
   .describe('Request to update an installed app.')
 
-export const invoiceWorkflowWire = z
-  .strictObject({
-    invoicing: invoiceWorkflowInvoicingSettingsWire.optional(),
-    payment: workflowPaymentSettingsWire.optional(),
-  })
-
-  .describe(
-    'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
-  )
-
-export const invoiceStatusDetailsWire = z
-  .strictObject({
-    immutable: z
-      .boolean()
-
-      .describe(
-        'Whether the invoice is immutable (i.e. cannot be modified or deleted).',
-      ),
-    failed: z.boolean().describe('Whether the invoice is in a failed state.'),
-    extended_status: z
-      .string()
-
-      .describe(
-        'Fine-grained internal status string providing additional workflow detail beyond the top-level status enum.',
-      ),
-    available_actions: invoiceAvailableActionsWire,
-  })
-  .describe('Detailed status information for a standard invoice.')
-
-export const invoiceLineDiscountsWire = z
-  .strictObject({
-    amount: z
-      .array(invoiceLineAmountDiscountWire)
-      .optional()
-
-      .describe(
-        'Monetary amount discounts (e.g. from maximum spend commitments).',
-      ),
-    usage: z
-      .array(invoiceLineUsageDiscountWire)
-      .optional()
-      .describe('Usage quantity discounts (e.g. free tier usage allowances).'),
-  })
-  .describe('Discounts applied to an invoice line item.')
-
 export const updateBillingInvoiceWorkflowWire = z
   .strictObject({
     invoicing: updateBillingInvoiceWorkflowInvoicingSettingsWire.optional(),
@@ -11444,6 +11900,16 @@ export const priceVolumeWire = z
     'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
 
+export const featureUnitCostWire = z
+  .discriminatedUnion('type', [
+    featureManualUnitCostWire,
+    featureLlmUnitCostWire,
+  ])
+
+  .describe(
+    'Per-unit cost configuration for a feature. Either a fixed manual amount or a dynamic LLM cost lookup.',
+  )
+
 export const updatePriceGraduatedWire = z
   .strictObject({
     type: z.literal('graduated').describe('The type of the price.'),
@@ -11474,16 +11940,6 @@ export const updatePriceVolumeWire = z
 
   .describe(
     'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
-  )
-
-export const featureUnitCostWire = z
-  .discriminatedUnion('type', [
-    featureManualUnitCostWire,
-    featureLlmUnitCostWire,
-  ])
-
-  .describe(
-    'Per-unit cost configuration for a feature. Either a fixed manual amount or a dynamic LLM cost lookup.',
   )
 
 export const pricePagePaginatedResponseWire = z
@@ -11607,12 +12063,9 @@ export const createChargeFlatFeeRequestWire = z
     tax_config: taxConfigWire.optional(),
     payment_term: pricePaymentTermWire,
     discounts: chargeFlatFeeDiscountsWire.optional(),
-    feature_id: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
     proration_configuration: rateCardProrationConfigurationWire,
     amount_before_proration: currencyAmountWire,
+    feature: featureReferenceWire.optional(),
     full_service_period: closedPeriodWire.optional(),
     billing_period: closedPeriodWire.optional(),
   })
@@ -11652,6 +12105,16 @@ export const ingestedEventPaginatedResponseWire = z
   })
   .describe('Cursor paginated response.')
 
+export const chargeRealizationDetailedLineWire = z
+  .discriminatedUnion('type', [
+    chargeRealizationDetailedLineFlatFeeWire,
+    chargeRealizationDetailedLineUsageBasedWire,
+  ])
+
+  .describe(
+    "A detailed (child) line type of a charge realization run. This is distinct from an invoice's own detailed lines: it represents the rated/priced breakdown produced by the realization run itself, before that breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice runs include credit allocations in these lines, while credits-only runs keep the gross rated detail.",
+  )
+
 export const currencyWire = z
   .discriminatedUnion('type', [currencyFiatWire, currencyCustomWire])
   .describe('Fiat or custom currency.')
@@ -11689,18 +12152,9 @@ export const customerPagePaginatedResponseWire = z
   })
   .describe('Page paginated response.')
 
-export const partyWire = z
-  .strictObject({
-    id: z.string().optional().describe('Unique identifier for the party.'),
-    key: externalResourceKeyWire.optional(),
-    name: z
-      .string()
-      .optional()
-      .describe('Legal name or representation of the party.'),
-    tax_id: partyTaxIdentityWire.optional(),
-    addresses: partyAddressesWire.optional(),
-  })
-  .describe('Party represents a person or business entity.')
+export const customerOrReferenceWire = z
+  .union([customerWire, customerReferenceWire])
+  .describe('Customer or reference.')
 
 export const supplierWire = z
   .strictObject({
@@ -11716,6 +12170,19 @@ export const supplierWire = z
   .describe(
     "Snapshot of the supplier's information at the time the invoice was issued. Structurally a read-only subset of `BillingParty` (the type configured on the billing profile), so the snapshot stays aligned with the source. `key` is omitted because it is not part of the snapshotted supplier data.",
   )
+
+export const partyWire = z
+  .strictObject({
+    id: z.string().optional().describe('Unique identifier for the party.'),
+    key: externalResourceKeyWire.optional(),
+    name: z
+      .string()
+      .optional()
+      .describe('Legal name or representation of the party.'),
+    tax_id: partyTaxIdentityWire.optional(),
+    addresses: partyAddressesWire.optional(),
+  })
+  .describe('Party represents a person or business entity.')
 
 export const updateSupplierWire = z
   .strictObject({
@@ -11819,6 +12286,54 @@ export const workflowCollectionAlignmentWire = z
 
   .describe(
     'The alignment for collecting the pending line items into an invoice. Defaults to subscription, which means that we are to create a new invoice every time the a subscription period starts (for in advance items) or ends (for in arrears items).',
+  )
+
+export const invoiceWorkflowSettingsWire = z
+  .strictObject({
+    apps: invoiceWorkflowAppsReferencesWire.optional(),
+    source_billing_profile: profileReferenceWire,
+    workflow: invoiceWorkflowWire,
+  })
+
+  .describe(
+    'Snapshot of the billing workflow configuration captured at invoice creation.',
+  )
+
+export const invoiceDetailedLineWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    service_period: closedPeriodWire,
+    totals: totalsWire,
+    category: invoiceDetailedLineCostCategoryWire,
+    discounts: invoiceLineDiscountsWire.optional(),
+    credits_applied: z
+      .array(invoiceLineCreditsAppliedWire)
+      .optional()
+      .describe('Credit applied to this detailed line.'),
+    external_references: invoiceLineExternalReferencesWire.optional(),
+    quantity: numericWire,
+    unit_price: numericWire,
+  })
+
+  .describe(
+    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
   )
 
 export const taxCodePagePaginatedResponseWire = z
@@ -12063,54 +12578,6 @@ export const installedAppExternalInvoicingWire = z
   })
   .describe('Response of an installed app.')
 
-export const invoiceWorkflowSettingsWire = z
-  .strictObject({
-    apps: invoiceWorkflowAppsReferencesWire.optional(),
-    source_billing_profile: profileReferenceWire,
-    workflow: invoiceWorkflowWire,
-  })
-
-  .describe(
-    'Snapshot of the billing workflow configuration captured at invoice creation.',
-  )
-
-export const invoiceDetailedLineWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    service_period: closedPeriodWire,
-    totals: totalsWire,
-    category: invoiceDetailedLineCostCategoryWire,
-    discounts: invoiceLineDiscountsWire.optional(),
-    credits_applied: z
-      .array(invoiceLineCreditsAppliedWire)
-      .optional()
-      .describe('Credit applied to this detailed line.'),
-    external_references: invoiceLineExternalReferencesWire.optional(),
-    quantity: numericWire,
-    unit_price: numericWire,
-  })
-
-  .describe(
-    'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
-  )
-
 export const updateInvoiceWorkflowSettingsWire = z
   .strictObject({
     workflow: updateBillingInvoiceWorkflowWire,
@@ -12159,16 +12626,6 @@ export const priceUsageBasedWire = z
   .describe(
     'Usage-based price types that can appear on a usage-based rate card. When UnitConfig is present on the rate card, these price types operate on billing units (i.e. post-conversion quantities), not raw metered units.',
   )
-
-export const updatePriceWire = z
-  .discriminatedUnion('type', [
-    updatePriceFreeWire,
-    updatePriceFlatWire,
-    updatePriceUnitWire,
-    updatePriceGraduatedWire,
-    updatePriceVolumeWire,
-  ])
-  .describe('Price.')
 
 export const featureWire = z
   .strictObject({
@@ -12232,6 +12689,16 @@ export const updateFeatureRequestWire = z
   .describe(
     'Request body for updating a feature. Currently only the unit_cost field can be updated.',
   )
+
+export const updatePriceWire = z
+  .discriminatedUnion('type', [
+    updatePriceFreeWire,
+    updatePriceFlatWire,
+    updatePriceUnitWire,
+    updatePriceGraduatedWire,
+    updatePriceVolumeWire,
+  ])
+  .describe('Price.')
 
 export const creditGrantPagePaginatedResponseWire = z
   .strictObject({
@@ -12344,9 +12811,8 @@ export const entitlementAccessQueryResponseWire = z
   })
   .describe('Response of the entitlement access query.')
 
-export const chargeFlatFeeWire = z
+export const rateCardWire = z
   .strictObject({
-    id: ulidWire,
     name: z
       .string()
       .min(1)
@@ -12361,42 +12827,32 @@ export const chargeFlatFeeWire = z
         'Optional description of the resource. Maximum 1024 characters.',
       ),
     labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReferenceWire,
-    lifecycle_controller: lifecycleControllerWire,
-    subscription: subscriptionReferenceWire.optional(),
-    currency: currencyCodeWire,
-    status: chargeStatusWire,
-    invoice_at: dateTimeWire,
-    service_period: closedPeriodWire,
-    full_service_period: closedPeriodWire,
-    billing_period: closedPeriodWire,
-    advance_after: dateTimeWire.optional(),
-    unique_reference_id: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlement_mode: settlementModeWire,
-    tax_config: taxConfigWire.optional(),
-    payment_term: pricePaymentTermWire,
-    discounts: chargeFlatFeeDiscountsWire.optional(),
-    feature_key: z
-      .string()
-      .optional()
-      .describe('The feature associated with the charge, when applicable.'),
-    feature_id: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
-    proration_configuration: rateCardProrationConfigurationWire,
-    amount_after_proration: currencyAmountWire,
+    key: resourceKeyWire,
+    feature: featureReferenceWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
+    billing_cadence: iso8601DurationWire.optional(),
     price: priceWire,
-    system_intent: chargeFlatFeeSystemIntentWire.optional(),
+    unit_config: unitConfigWire.optional(),
+    payment_term: pricePaymentTermWire.optional(),
+    commitments: spendCommitmentsWire.optional(),
+    discounts: rateCardDiscountsWire.optional(),
+    tax_config: rateCardTaxConfigWire.optional(),
+    entitlement: rateCardEntitlementWire.optional(),
   })
-  .describe('A flat fee charge for a customer.')
+
+  .describe(
+    'A rate card defines the pricing and entitlement of a feature or service.',
+  )
+
+export const invoiceLineRateCardWire = z
+  .strictObject({
+    price: priceWire,
+    tax_config: rateCardTaxConfigWire.optional(),
+    feature_key: resourceKeyWire.optional(),
+    discounts: rateCardDiscountsWire.optional(),
+    unit_config: unitConfigWire.optional(),
+  })
+  .describe('Rate card configuration snapshot for a usage-based invoice line.')
 
 export const chargeUsageBasedSystemIntentWire = z
   .strictObject({
@@ -12454,57 +12910,23 @@ export const createChargeUsageBasedRequestWire = z
     settlement_mode: settlementModeWire,
     tax_config: taxConfigWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
-    feature_id: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
     price: priceWire,
+    feature: featureReferenceWire,
     full_service_period: closedPeriodWire.optional(),
     billing_period: closedPeriodWire.optional(),
   })
   .describe('Usage-based charge create request.')
 
-export const rateCardWire = z
+export const featureOrReferenceWire = z
+  .union([featureWire, featureReferenceWire])
+  .describe('Feature or reference.')
+
+export const featurePagePaginatedResponseWire = z
   .strictObject({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    key: resourceKeyWire,
-    feature: featureReferenceWire.optional(),
-    currency: billingCurrencyCodeWire.optional(),
-    billing_cadence: iso8601DurationWire.optional(),
-    price: priceWire,
-    unit_config: unitConfigWire.optional(),
-    payment_term: pricePaymentTermWire.optional(),
-    commitments: spendCommitmentsWire.optional(),
-    discounts: rateCardDiscountsWire.optional(),
-    tax_config: rateCardTaxConfigWire.optional(),
-    entitlement: rateCardEntitlementWire.optional(),
+    data: z.array(featureWire),
+    meta: paginatedMetaWire,
   })
-
-  .describe(
-    'A rate card defines the pricing and entitlement of a feature or service.',
-  )
-
-export const invoiceLineRateCardWire = z
-  .strictObject({
-    price: priceWire,
-    tax_config: rateCardTaxConfigWire.optional(),
-    feature_key: resourceKeyWire.optional(),
-    discounts: rateCardDiscountsWire.optional(),
-    unit_config: unitConfigWire.optional(),
-  })
-  .describe('Rate card configuration snapshot for a usage-based invoice line.')
+  .describe('Page paginated response.')
 
 export const updateInvoiceLineRateCardWire = z
   .strictObject({
@@ -12514,13 +12936,6 @@ export const updateInvoiceLineRateCardWire = z
     discounts: updateDiscountsWire.optional(),
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
-
-export const featurePagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(featureWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
 
 export const workflowWire = z
   .strictObject({
@@ -12545,61 +12960,6 @@ export const profileAppsWire = z
     payment: appWire,
   })
   .describe('Applications used by a billing profile.')
-
-export const chargeUsageBasedWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    type: z.literal('usage_based').describe('The type of the charge.'),
-    customer: billingCustomerReferenceWire,
-    lifecycle_controller: lifecycleControllerWire,
-    subscription: subscriptionReferenceWire.optional(),
-    currency: currencyCodeWire,
-    status: chargeStatusWire,
-    invoice_at: dateTimeWire,
-    service_period: closedPeriodWire,
-    full_service_period: closedPeriodWire,
-    billing_period: closedPeriodWire,
-    advance_after: dateTimeWire.optional(),
-    unique_reference_id: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlement_mode: settlementModeWire,
-    tax_config: taxConfigWire.optional(),
-    discounts: rateCardDiscountsWire.optional(),
-    feature_key: z.string().describe('The feature associated with the charge.'),
-    feature_id: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
-    totals: chargeTotalsWire,
-    price: priceWire,
-    system_intent: chargeUsageBasedSystemIntentWire.optional(),
-  })
-  .describe('A usage-based charge for a customer.')
-
-export const createChargeRequestWire = z
-  .discriminatedUnion('type', [
-    createChargeFlatFeeRequestWire,
-    createChargeUsageBasedRequestWire,
-  ])
-  .describe('Customer charge.')
 
 export const subscriptionItemWire = z
   .strictObject({
@@ -12787,6 +13147,13 @@ export const invoiceStandardLineWire = z
     'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
   )
 
+export const createChargeRequestWire = z
+  .discriminatedUnion('type', [
+    createChargeFlatFeeRequestWire,
+    createChargeUsageBasedRequestWire,
+  ])
+  .describe('Customer charge.')
+
 export const updateInvoiceStandardLineWire = z
   .strictObject({
     name: z
@@ -12889,10 +13256,6 @@ export const upsertBillingProfileRequestWire = z
     default: z.boolean().describe('Whether this is the default profile.'),
   })
   .describe('BillingProfile upsert request.')
-
-export const chargeWire = z
-  .discriminatedUnion('type', [chargeFlatFeeWire, chargeUsageBasedWire])
-  .describe('Customer charge.')
 
 export const subscriptionPhaseWire = z
   .strictObject({
@@ -13120,13 +13483,6 @@ export const profilePagePaginatedResponseWire = z
   })
   .describe('Page paginated response.')
 
-export const chargePagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(chargeWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
-
 export const subscriptionWire = z
   .strictObject({
     id: ulidWire,
@@ -13188,6 +13544,59 @@ export const planPagePaginatedResponseWire = z
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
+
+export const chargeRealizationInvoiceWire = z
+  .strictObject({
+    id: ulidWire,
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    number: invoiceNumberWire,
+    currency: currencyCodeWire,
+    supplier: supplierWire,
+    totals: totalsWire,
+    service_period: closedPeriodWire,
+    validation_issues: z
+      .array(invoiceValidationIssueWire)
+      .optional()
+
+      .describe(
+        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
+    external_references: invoiceExternalReferencesWire.optional(),
+    type: z
+      .literal('standard')
+      .describe('Discriminator field identifying this as a standard invoice.'),
+    status: invoiceStandardStatusWire,
+    status_details: invoiceStatusDetailsWire,
+    issued_at: dateTimeWire.optional(),
+    draft_until: dateTimeWire.optional(),
+    quantity_snapshotted_at: dateTimeWire.optional(),
+    collection_at: dateTimeWire.optional(),
+    due_at: dateTimeWire.optional(),
+    sent_to_customer_at: dateTimeWire.optional(),
+    workflow: invoiceWorkflowSettingsWire,
+    lines: z
+      .array(invoiceLineWire)
+      .optional()
+
+      .describe(
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Detailed (child) lines are always computed and cannot be edited directly.',
+      ),
+  })
+
+  .describe(
+    'The invoice a charge realization was booked to, embedded as a header. Matches the standard invoice entity, except that it carries no `customer` snapshot (the charge context already identifies the customer) and `lines` are never populated (the realization itself is the line-level breakdown). The shared invoice contract stays untouched: this model exists so the charges API can slim the embedding without loosening the invoices API.',
+  )
 
 export const invoiceStandardWire = z
   .strictObject({
@@ -13267,6 +13676,10 @@ export const updateInvoiceStandardRequestWire = z
   })
   .describe('InvoiceStandard update request.')
 
+export const subscriptionOrReferenceWire = z
+  .union([subscriptionWire, subscriptionReferenceWire])
+  .describe('Subscription or reference.')
+
 export const subscriptionPagePaginatedResponseWire = z
   .strictObject({
     data: z.array(subscriptionWire),
@@ -13281,6 +13694,10 @@ export const subscriptionChangeResponseWire = z
   })
   .describe('Response for changing a subscription.')
 
+export const chargeRealizationInvoiceOrReferenceWire = z
+  .union([chargeRealizationInvoiceWire, chargeRealizationInvoiceReferenceWire])
+  .describe('ChargeRealizationInvoice or reference.')
+
 export const invoiceWire = z
   .discriminatedUnion('type', [invoiceStandardWire])
 
@@ -13292,9 +13709,160 @@ export const updateInvoiceRequestWire = z
   .discriminatedUnion('type', [updateInvoiceStandardRequestWire])
   .describe('UpdateInvoiceRequest update request.')
 
+export const chargeRealizationWire = z
+  .strictObject({
+    id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the realization run. Not present on `outstanding` entries, which are projections rather than persisted runs.',
+      ),
+    line_id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the invoice line this realization was booked to, when the realization has been invoiced.',
+      ),
+    invoice: chargeRealizationInvoiceOrReferenceWire.optional(),
+    type: chargeRealizationTypeWire,
+    service_period: closedPeriodWire,
+    usage: numericWire.optional(),
+    payment: chargeRealizationPaymentWire.optional(),
+    totals: totalsWire.optional(),
+    detailed_lines: z
+      .array(chargeRealizationDetailedLineWire)
+      .optional()
+
+      .describe(
+        'The detailed (rated) lines produced by the realization run. Requires the `realization.detailed_lines` expand.',
+      ),
+  })
+
+  .describe(
+    "A realization run of a charge. `totals` and `detailed_lines` are only populated with the `realization.totals` and `realization.detailed_lines` expands, respectively, since computing them requires re-deriving the run's rated breakdown. `invoice` is an ID reference unless the `realization.invoice` expand is used, which resolves it to the invoice header of the run's booked line: the invoice entity without its `lines` and without the `customer` snapshot (the charge itself already identifies the customer).",
+  )
+
 export const invoicePagePaginatedResponseWire = z
   .strictObject({
     data: z.array(invoiceWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
+export const chargeFlatFeeWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    customer: customerOrReferenceWire,
+    lifecycle_controller: lifecycleControllerWire,
+    subscription: subscriptionOrReferenceWire.optional(),
+    currency: currencyCodeWire,
+    status: chargeStatusWire,
+    invoice_at: dateTimeWire,
+    service_period: closedPeriodWire,
+    full_service_period: closedPeriodWire,
+    billing_period: closedPeriodWire,
+    advance_after: dateTimeWire.optional(),
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementModeWire,
+    tax_config: taxConfigWire.optional(),
+    realizations: z
+      .array(chargeRealizationWire)
+
+      .describe(
+        'The realization runs of the charge, sorted by `service_period.from`.',
+      ),
+    payment_term: pricePaymentTermWire,
+    discounts: chargeFlatFeeDiscountsWire.optional(),
+    feature: featureOrReferenceWire.optional(),
+    proration_configuration: rateCardProrationConfigurationWire,
+    amount_after_proration: currencyAmountWire,
+    price: priceWire,
+    system_intent: chargeFlatFeeSystemIntentWire.optional(),
+  })
+  .describe('A flat fee charge for a customer.')
+
+export const chargeUsageBasedWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('usage_based').describe('The type of the charge.'),
+    customer: customerOrReferenceWire,
+    lifecycle_controller: lifecycleControllerWire,
+    subscription: subscriptionOrReferenceWire.optional(),
+    currency: currencyCodeWire,
+    status: chargeStatusWire,
+    invoice_at: dateTimeWire,
+    service_period: closedPeriodWire,
+    full_service_period: closedPeriodWire,
+    billing_period: closedPeriodWire,
+    advance_after: dateTimeWire.optional(),
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementModeWire,
+    tax_config: taxConfigWire.optional(),
+    realizations: z
+      .array(chargeRealizationWire)
+
+      .describe(
+        'The realization runs of the charge, sorted by `service_period.from`.',
+      ),
+    discounts: rateCardDiscountsWire.optional(),
+    feature: featureOrReferenceWire,
+    totals: chargeTotalsWire,
+    usage: numericWire.optional(),
+    price: priceWire,
+    system_intent: chargeUsageBasedSystemIntentWire.optional(),
+  })
+  .describe('A usage-based charge for a customer.')
+
+export const chargeWire = z
+  .discriminatedUnion('type', [chargeFlatFeeWire, chargeUsageBasedWire])
+  .describe('Customer charge.')
+
+export const chargePagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(chargeWire),
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
@@ -13606,7 +14174,7 @@ export const listCustomerChargesQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
