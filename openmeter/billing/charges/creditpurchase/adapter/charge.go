@@ -272,7 +272,12 @@ func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInp
 			return nil, err
 		}
 
-		entitiesInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, entities)
+		var entitiesInOrder []*db.ChargeCreditPurchase
+		if input.AllowMissing {
+			entitiesInOrder, err = entutils.InIDOrderSkipMissing(input.Namespace, input.IDs, entities)
+		} else {
+			entitiesInOrder, err = entutils.InIDOrder(input.Namespace, input.IDs, entities)
+		}
 		if err != nil {
 			return nil, err
 		}

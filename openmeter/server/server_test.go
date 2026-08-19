@@ -883,8 +883,8 @@ func (n NoopChargeService) HandleCreditPurchaseExternalPaymentStateTransition(_ 
 	return creditpurchase.Charge{}, nil
 }
 
-func (n NoopChargeService) CreateCustomerCharge(_ context.Context, _ billingcharges.CreateCustomerChargeInput) (billingcharges.Charge, error) {
-	return billingcharges.Charge{}, nil
+func (n NoopChargeService) CreateCustomerCharge(_ context.Context, _ billingcharges.CreateCustomerChargeInput) (billingcharges.CustomerCharge, error) {
+	return billingcharges.CustomerCharge{}, nil
 }
 
 func (n NoopChargeService) DeleteCustomerCharge(_ context.Context, _ billingcharges.DeleteCustomerChargeInput) error {
@@ -897,6 +897,16 @@ func (n NoopChargeService) SetCustomerChargeOverride(_ context.Context, _ billin
 
 func (n NoopChargeService) ClearCustomerChargeOverride(_ context.Context, _ billingcharges.ClearCustomerChargeOverrideInput) (billingcharges.Charge, error) {
 	return billingcharges.Charge{}, nil
+}
+
+func (n NoopChargeService) ListCustomerCharges(_ context.Context, input billingcharges.ListCustomerChargesInput) (billingcharges.ListCustomerChargesResult, error) {
+	return billingcharges.ListCustomerChargesResult{
+		Charges: pagination.Result[billingcharges.CustomerCharge]{
+			Items: []billingcharges.CustomerCharge{},
+			Page:  input.Page,
+		},
+		Expands: input.Expands,
+	}, nil
 }
 
 func (n NoopChargeService) GetCurrentTotals(_ context.Context, _ usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error) {

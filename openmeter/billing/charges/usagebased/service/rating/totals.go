@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -40,11 +42,18 @@ func (i GetTotalsForUsageInput) Validate() error {
 	return nil
 }
 
+type GetTotalsForUsageResult struct {
+	Totals totals.Totals
+	// MeteredQuantity is the cumulative snapshot quantity the totals were
+	// rated from, so callers can report the usage behind the amounts.
+	MeteredQuantity alpacadecimal.Decimal
+}
+
 // GetTotalsForUsage returns the rated totals for the charge at the requested stored-at offset.
 // It avoids generating detailed lines, so prefer it over GetDetailedRatingForUsage when only totals are needed.
-func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInput) (totals.Totals, error) {
+func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInput) (GetTotalsForUsageResult, error) {
 	if err := in.Validate(); err != nil {
-		return totals.Totals{}, err
+		return GetTotalsForUsageResult{}, err
 	}
 
 	snapshotQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
@@ -54,7 +63,7 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 		StoredAtLT:    in.StoredAtLT,
 	})
 	if err != nil {
-		return totals.Totals{}, fmt.Errorf("get snapshot quantity: %w", err)
+		return GetTotalsForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
 	}
 
 	// Totals must stay gross before charge credit allocation; run creation applies credits later and expects gross rating totals here.
@@ -71,8 +80,11 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 		ServicePeriod: in.Charge.Intent.GetEffectiveServicePeriod(),
 	}, opts...)
 	if err != nil {
-		return totals.Totals{}, fmt.Errorf("rating totals: %w", err)
+		return GetTotalsForUsageResult{}, fmt.Errorf("rating totals: %w", err)
 	}
 
-	return ratingResult.Totals, nil
+	return GetTotalsForUsageResult{
+		Totals:          ratingResult.Totals,
+		MeteredQuantity: snapshotQuantity,
+	}, nil
 }

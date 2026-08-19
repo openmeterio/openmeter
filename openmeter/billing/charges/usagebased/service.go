@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -126,6 +127,10 @@ type GetByIDsInput struct {
 	Namespace string
 	IDs       []string
 	Expands   meta.Expands
+	// AllowMissing drops IDs with no matching charge instead of failing the
+	// read: callers set it when the ID set comes from an earlier search
+	// snapshot and charges may have been deleted since.
+	AllowMissing bool
 }
 
 func (i GetByIDsInput) Validate() error {
@@ -210,6 +215,9 @@ func (i GetCurrentTotalsInput) Validate() error {
 type GetCurrentTotalsResult struct {
 	Charge    Charge
 	DueTotals totals.Totals
+	// MeteredQuantity is the cumulative live metered quantity the due totals
+	// were rated from.
+	MeteredQuantity alpacadecimal.Decimal
 }
 
 func validateExpands(expands meta.Expands) error {

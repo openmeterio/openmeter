@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -121,7 +122,9 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				return CreateCustomerChargesResponse{}, err
 			}
 
-			return convertChargeToAPI(charge)
+			// No expands on the create path: every expandable relation
+			// serializes as a reference.
+			return convertChargeToAPI(charge, meta.ExpandNone)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerChargesResponse](http.StatusCreated),
 		httptransport.AppendOptions(

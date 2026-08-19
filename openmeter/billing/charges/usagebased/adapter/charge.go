@@ -323,7 +323,12 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			return nil, err
 		}
 
-		entitiesInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, entities)
+		var entitiesInOrder []*db.ChargeUsageBased
+		if input.AllowMissing {
+			entitiesInOrder, err = entutils.InIDOrderSkipMissing(input.Namespace, input.IDs, entities)
+		} else {
+			entitiesInOrder, err = entutils.InIDOrder(input.Namespace, input.IDs, entities)
+		}
 		if err != nil {
 			return nil, err
 		}
