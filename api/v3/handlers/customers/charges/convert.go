@@ -1039,7 +1039,11 @@ func fromAPIChargeBillingPrice(p api.BillingPrice) (*productcatalog.Price, error
 		}
 
 		if price == nil {
-			return nil, fmt.Errorf("free price is not supported for usage-based charges")
+			// Only free prices map to nil today, but the branch also matches
+			// the flat discriminator, so name the actual type in the error.
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("%s price is not supported for usage-based charges", disc),
+			)
 		}
 
 		return price, nil
