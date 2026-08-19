@@ -97,6 +97,16 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		return api.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
+	var feature *api.FeatureOrReference
+	if source.State.FeatureID != nil {
+		feature = &api.FeatureOrReference{}
+		if err := feature.FromFeatureReference(api.FeatureReference{
+			Id: *source.State.FeatureID,
+		}); err != nil {
+			feature = nil
+		}
+	}
+
 	return api.BillingChargeFlatFee{
 		AdvanceAfter:           flatFee.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(flatFee.ChargeBase.State.AmountAfterProration),
