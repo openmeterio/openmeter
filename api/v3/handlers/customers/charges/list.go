@@ -145,6 +145,14 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				}
 				req.Status = status
 
+				// The search adapter hides deleted charges unless the request
+				// opts in, so a status filter positively selecting "deleted"
+				// (eq/oeq) must lift that guard; neq never unhides them.
+				if f := args.Params.Filter.Status; f != nil {
+					deleted := string(meta.ChargeStatusDeleted)
+					req.IncludeDeleted = lo.FromPtr(f.Eq) == deleted || lo.Contains(f.Oeq, deleted)
+				}
+
 				featureID, err := filters.FromAPIFilterULID(args.Params.Filter.FeatureId)
 				if err != nil {
 					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
