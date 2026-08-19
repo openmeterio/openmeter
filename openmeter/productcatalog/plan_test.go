@@ -12,11 +12,51 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogtestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestPlanValidationLayers(t *testing.T) {
+	input := productcatalogtestutils.NewTestPlan(t, "namespace")
+
+	t.Run("structure does not require catalog identity", func(t *testing.T) {
+		plan := input.Plan
+		plan.Key = ""
+		plan.Version = 0
+
+		require.NoError(t, plan.ValidateWith(productcatalog.ValidatePlanStructure()))
+	})
+
+	t.Run("full validation requires key", func(t *testing.T) {
+		plan := input.Plan
+		plan.Key = ""
+
+		require.ErrorIs(t, plan.Validate(), productcatalog.ErrResourceKeyEmpty)
+	})
+
+	t.Run("full validation wraps structural errors once", func(t *testing.T) {
+		plan := input.Plan
+		plan.Name = ""
+
+		err := plan.Validate()
+		require.Error(t, err)
+		require.True(t, models.IsGenericValidationError(err))
+		require.NotContains(t, err.Error(), "validation error: validation error:")
+	})
+}
+
+func TestCreatePlanInputValidationAllowsUnassignedVersion(t *testing.T) {
+	input := productcatalogtestutils.NewTestPlan(t, "namespace")
+	require.Zero(t, input.Version)
+
+	require.NoError(t, input.Validate())
+
+	input.Key = ""
+	require.ErrorIs(t, input.Validate(), productcatalog.ErrResourceKeyEmpty)
+}
 
 func TestValidatePlanWithCurrencies(t *testing.T) {
 	custom := currencyx.Code("CREDITS")

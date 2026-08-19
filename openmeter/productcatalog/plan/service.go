@@ -174,7 +174,10 @@ func (i CreatePlanInput) Validate() error {
 		errs = append(errs, productcatalog.ErrNamespaceEmpty)
 	}
 
-	if err := i.Plan.Validate(); err != nil {
+	if err := i.Plan.ValidateWith(
+		productcatalog.ValidatePlanVersioning(),
+		productcatalog.ValidatePlanStructure(),
+	); err != nil {
 		errs = append(errs, fmt.Errorf("invalid plan: %w", err))
 	}
 
