@@ -133,6 +133,9 @@ the lifecycle operation.
 
 - invoice manipulation is serialized per customer and runs under the billing
   transaction and customer update lock
+- product-catalog discounts describe commercial configuration without billing
+  identity; once attached to a charge or invoice line, billing owns a stable,
+  non-empty correlation ID for every present discount
 - every invoice contains one fiat currency
 - a customer cannot have two active gathering invoices for the same currency
 - pending-line creation resolves every supplied feature; metered prices require the feature's meter

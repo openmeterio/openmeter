@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -20,6 +21,11 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]usagebased.ChargeWithGatheringLine, error) {
+	input.Intents = slices.Clone(input.Intents)
+	for idx := range input.Intents {
+		input.Intents[idx].Discounts = input.Intents[idx].Discounts.UpsertCorrelationIDs()
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}

@@ -96,7 +96,7 @@ type invoiceLineRateCardParsed struct {
 	Price      *productcatalog.Price
 	TaxConfig  *productcatalog.TaxConfig
 	FeatureKey string
-	Discounts  billing.Discounts
+	Discounts  productcatalog.Discounts
 }
 
 func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardItems) (*invoiceLineRateCardParsed, error) {
@@ -138,7 +138,7 @@ func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardIte
 		}
 	}
 
-	var discounts billing.Discounts
+	var discounts productcatalog.Discounts
 	if in.RateCard.Discounts != nil {
 		discounts, err = AsDiscounts(in.RateCard.Discounts)
 		if err != nil {
@@ -152,8 +152,6 @@ func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardIte
 				Err: fmt.Errorf("invalid rateCard.discounts: %w", err),
 			}
 		}
-
-		discounts = discounts.UpsertCorrelationIDs()
 	}
 
 	return &invoiceLineRateCardParsed{
