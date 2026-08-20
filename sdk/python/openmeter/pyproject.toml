@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openmeter"
+version = "0.1.0"
+description = "Idiomatic Python SDK for the OpenMeter v3 API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+authors = [
+    { name = "OpenMeter", email = "info@openmeter.io" },
+]
+keywords = ["billing", "metering", "openmeter", "sdk", "usage"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.10,<3",
+]
+
+[project.optional-dependencies]
+async = [
+    "httpx>=0.28.1,<1",
+]
+
+[dependency-groups]
+dev = [
+    "build>=1.2,<2",
+    "flake8>=7,<8",
+    "httpx>=0.28.1,<1",
+    "pyright>=1.1.400,<2",
+    "ruff>=0.14,<1",
+]
+
+[project.urls]
+Documentation = "https://openmeter.io/docs"
+Issues = "https://github.com/openmeterio/openmeter/issues"
+Repository = "https://github.com/openmeterio/openmeter"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+# Optional/Union spellings keep annotations unambiguous for the Python 3.9 floor.
+ignore = ["UP006", "UP007", "UP035", "UP045"]
+
+[tool.pyright]
+include = ["src", "examples"]
+pythonVersion = "3.9"
+typeCheckingMode = "standard"
