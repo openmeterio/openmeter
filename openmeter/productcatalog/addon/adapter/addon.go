@@ -491,16 +491,16 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 		}
 
 		if !params.Equal(*add) {
+			// The effective period is outside the update request body -- it is moved by
+			// UpdateAddonEffectivePeriod -- and annotations are server-managed, so both must
+			// survive an update that omits them.
 			query := a.db.Addon.UpdateOneID(add.ID).
 				Where(addondb.Namespace(params.Namespace)).
 				SetNillableName(params.Name).
-				SetNillableDescription(params.Description).
+				SetOrClearDescription(params.Description).
+				SetOrClearMetadata((*map[string]string)(params.Metadata)).
 				SetNillableEffectiveFrom(params.EffectiveFrom).
 				SetNillableEffectiveTo(params.EffectiveTo)
-
-			if params.Metadata != nil {
-				query = query.SetMetadata(*params.Metadata)
-			}
 
 			if params.Annotations != nil {
 				query = query.SetAnnotations(*params.Annotations)
@@ -575,6 +575,47 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 		add, err = FromAddonRow(*addonRow)
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast updated add-on [namespace=%s id:%s]: %w", params.Namespace, addonRow.ID, err)
+		}
+
+		return add, nil
+	}
+
+	return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)
+}
+
+// UpdateAddonEffectivePeriod exists because UpdateAddon is a full replace: routing the publish
+// and archive flows through UpdateAddon would clear the name, description and labels they do
+// not carry.
+func (a *adapter) UpdateAddonEffectivePeriod(ctx context.Context, params addon.UpdateAddonEffectivePeriodInput) (*addon.Addon, error) {
+	fn := func(ctx context.Context, a *adapter) (*addon.Addon, error) {
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid update add-on effective period parameters: %w", err)
+		}
+
+		err := a.db.Addon.UpdateOneID(params.ID).
+			Where(addondb.Namespace(params.Namespace)).
+			SetNillableEffectiveFrom(params.EffectiveFrom).
+			SetNillableEffectiveTo(params.EffectiveTo).
+			Exec(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return nil, addon.NewNotFoundError(addon.NotFoundErrorParams{
+					Namespace: params.Namespace,
+					ID:        params.ID,
+				})
+			}
+
+			return nil, fmt.Errorf("failed to update add-on effective period: %w", err)
+		}
+
+		add, err := a.GetAddon(ctx, addon.GetAddonInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.ID,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get updated add-on: %w", err)
 		}
 
 		return add, nil

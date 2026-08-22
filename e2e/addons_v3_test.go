@@ -394,3 +394,35 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 		})
 	}
 }
+
+func TestV3AddonUpdateClearsOmittedFields(t *testing.T) {
+	c := newV3Client(t)
+
+	createBody := validAddonRequest("test_v3_addon_replace")
+	createBody.Description = lo.ToPtr("Original description")
+	createBody.Labels = &map[string]string{"env": "prod"}
+
+	created, err := c.Addons.Create(t.Context(), createBody)
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, created)
+	require.NotNil(t, created.Description)
+	require.NotEmpty(t, created.Labels)
+
+	updated, err := c.Addons.Update(t.Context(), created.ID, v3sdk.UpsertAddonRequest{
+		Name:         createBody.Name,
+		InstanceType: createBody.InstanceType,
+		RateCards:    createBody.RateCards,
+	})
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, updated)
+
+	assert.Nil(t, updated.Description, "omitted description must be cleared, not carried over")
+	assert.Empty(t, updated.Labels, "omitted labels must be cleared, not carried over")
+
+	fetched, err := c.Addons.Get(t.Context(), created.ID)
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, fetched)
+
+	assert.Nil(t, fetched.Description)
+	assert.Empty(t, fetched.Labels)
+}

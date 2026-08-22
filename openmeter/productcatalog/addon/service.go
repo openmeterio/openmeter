@@ -246,11 +246,13 @@ func (i UpdateAddonInput) Equal(p Addon) bool {
 		return false
 	}
 
-	if i.Description != nil && lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
+	// Compared unguarded, unlike the fields above: nil means the update omitted them and they
+	// are about to be cleared, so nil only equals an already-empty stored value.
+	if lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
 
-	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
+	if !lo.FromPtr(i.Metadata).Equal(p.Metadata) {
 		return false
 	}
 
@@ -342,13 +344,10 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 		a.Name = *i.Name
 	}
 
-	if i.Description != nil {
-		a.Description = i.Description
-	}
-
-	if i.Metadata != nil {
-		a.Metadata = *i.Metadata
-	}
+	// Assigned unguarded, unlike the fields below: the adapter clears these when the update
+	// omits them, so validation has to see the cleared state rather than the stored one.
+	a.Description = i.Description
+	a.Metadata = lo.FromPtr(i.Metadata)
 
 	if i.Annotations != nil {
 		a.Annotations = *i.Annotations
@@ -363,6 +362,39 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 	}
 
 	return a
+}
+
+var _ models.Validator = (*UpdateAddonEffectivePeriodInput)(nil)
+
+// UpdateAddonEffectivePeriodInput is deliberately separate from UpdateAddonInput, which
+// carries the complete replacement state of a PUT and clears every field the caller omitted.
+// Publishing and archiving shift only the schedule, so reusing UpdateAddonInput for them would
+// wipe the add-on's name, description and labels. Each boundary is updated independently, so a
+// publish can set only EffectiveFrom.
+type UpdateAddonEffectivePeriodInput struct {
+	models.NamespacedID
+
+	productcatalog.EffectivePeriod
+}
+
+func (i UpdateAddonEffectivePeriodInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
+	}
+
+	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
+		if err := i.EffectivePeriod.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ExpandFields struct {
