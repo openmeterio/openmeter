@@ -464,19 +464,19 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		}
 
 		if !params.Equal(*p) {
+			// The SetNillable fields below are outside the update request body -- the schedule
+			// is moved by UpdatePlanEffectivePeriod, and billing cadence and settlement mode
+			// are absent from the v3 body -- so they must survive an update that omits them.
 			query := a.db.Plan.UpdateOneID(p.ID).
 				Where(plandb.Namespace(params.Namespace)).
 				SetNillableName(params.Name).
-				SetNillableDescription(params.Description).
+				SetOrClearDescription(params.Description).
+				SetOrClearMetadata((*map[string]string)(params.Metadata)).
 				SetNillableEffectiveFrom(params.EffectiveFrom).
 				SetNillableEffectiveTo(params.EffectiveTo).
 				SetNillableBillingCadence(params.BillingCadence.ISOStringPtrOrNil()).
 				SetNillableProRatingConfig(params.ProRatingConfig).
 				SetNillableSettlementMode(params.SettlementMode)
-
-			if params.Metadata != nil {
-				query = query.SetMetadata(*params.Metadata)
-			}
 
 			err = query.Exec(ctx)
 			if err != nil {
@@ -531,6 +531,47 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 			phases[idx] = *planPhase
 		}
 		p.Phases = phases
+
+		return p, nil
+	}
+
+	return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)
+}
+
+// UpdatePlanEffectivePeriod exists because UpdatePlan is a full replace: routing the publish
+// and archive flows through UpdatePlan would clear the name, description and labels they do
+// not carry.
+func (a *adapter) UpdatePlanEffectivePeriod(ctx context.Context, params plan.UpdatePlanEffectivePeriodInput) (*plan.Plan, error) {
+	fn := func(ctx context.Context, a *adapter) (*plan.Plan, error) {
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid update Plan effective period parameters: %w", err)
+		}
+
+		err := a.db.Plan.UpdateOneID(params.ID).
+			Where(plandb.Namespace(params.Namespace)).
+			SetNillableEffectiveFrom(params.EffectiveFrom).
+			SetNillableEffectiveTo(params.EffectiveTo).
+			Exec(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return nil, plan.NewNotFoundError(plan.NotFoundErrorParams{
+					Namespace: params.Namespace,
+					ID:        params.ID,
+				})
+			}
+
+			return nil, fmt.Errorf("failed to update Plan effective period: %w", err)
+		}
+
+		p, err := a.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.ID,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get updated Plan: %w", err)
+		}
 
 		return p, nil
 	}

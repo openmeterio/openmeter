@@ -249,11 +249,13 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.Description != nil && lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
+	// Compared unguarded, unlike the fields above: nil means the update omitted them and they
+	// are about to be cleared, so nil only equals an already-empty stored value.
+	if lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
 
-	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
+	if !lo.FromPtr(i.Metadata).Equal(p.Metadata) {
 		return false
 	}
 
@@ -383,13 +385,10 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 		p.Name = *i.Name
 	}
 
-	if i.Description != nil {
-		p.Description = i.Description
-	}
-
-	if i.Metadata != nil {
-		p.Metadata = *i.Metadata
-	}
+	// Assigned unguarded, unlike the fields below: the adapter clears these when the update
+	// omits them, so validation has to see the cleared state rather than the stored one.
+	p.Description = i.Description
+	p.Metadata = lo.FromPtr(i.Metadata)
 
 	if i.BillingCadence != nil {
 		p.BillingCadence = *i.BillingCadence
@@ -408,6 +407,39 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 	}
 
 	return p
+}
+
+var _ models.Validator = (*UpdatePlanEffectivePeriodInput)(nil)
+
+// UpdatePlanEffectivePeriodInput is deliberately separate from UpdatePlanInput, which carries
+// the complete replacement state of a PUT and clears every field the caller omitted. Publishing
+// and archiving shift only the schedule, so reusing UpdatePlanInput for them would wipe the
+// plan's name, description and labels. Each boundary is updated independently, so a publish can
+// set only EffectiveFrom.
+type UpdatePlanEffectivePeriodInput struct {
+	models.NamespacedID
+
+	productcatalog.EffectivePeriod
+}
+
+func (i UpdatePlanEffectivePeriodInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
+	}
+
+	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
+		if err := i.EffectivePeriod.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ExpandFields defines which fields to expand when returning the Plan.

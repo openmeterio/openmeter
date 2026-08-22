@@ -513,7 +513,41 @@ func TestPostgresAdapter(t *testing.T) {
 			plan.AssertPlanUpdateInputEqual(t, planV1Update, *planV1)
 		})
 
-		t.Run("UpdateSettlementMode", func(t *testing.T) {
+		t.Run("UpdateClearsOmittedFields", func(t *testing.T) {
+				// given: a plan that carries a description and labels
+				require.NotNilf(t, planV1.Description, "plan must have a description to clear")
+				require.NotEmptyf(t, planV1.Metadata, "plan must have labels to clear")
+
+				// when: an update arrives that names neither of them
+				updated, err := env.PlanRepository.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: namespace,
+						ID:        planV1.ID,
+					},
+					Name: lo.ToPtr("Pro Published"),
+				})
+				require.NoErrorf(t, err, "updating plan must not fail")
+				require.NotNilf(t, updated, "plan must not be nil")
+
+				// then: the update replaced them rather than carrying them over, and the
+				// change is persisted rather than only reflected in the returned value
+				assert.Nilf(t, updated.Description, "omitted description must be cleared")
+				assert.Emptyf(t, updated.Metadata, "omitted labels must be cleared")
+
+				fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: namespace,
+						ID:        planV1.ID,
+					},
+				})
+				require.NoErrorf(t, err, "getting plan by id must not fail")
+				assert.Nilf(t, fetched.Description, "cleared description must be persisted")
+				assert.Emptyf(t, fetched.Metadata, "cleared labels must be persisted")
+
+				planV1 = updated
+			})
+
+			t.Run("UpdateSettlementMode", func(t *testing.T) {
 			newMode := productcatalog.CreditOnlySettlementMode
 
 			planV1, err = env.PlanRepository.UpdatePlan(t.Context(), plan.UpdatePlanInput{

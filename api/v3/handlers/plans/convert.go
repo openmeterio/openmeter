@@ -568,10 +568,9 @@ func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanReque
 		return req, fmt.Errorf("failed to convert label metadata: %w", err)
 	}
 
-	if body.Labels != nil {
-		m := meta
-		req.Metadata = &m
-	}
+	// Non-nil even when empty: a nil Metadata means "unchanged" to the service, which would
+	// leak the stored labels through a request that omitted them.
+	req.Metadata = &meta
 
 	phases := make([]productcatalog.Phase, 0, len(body.Phases))
 	for _, phase := range body.Phases {
