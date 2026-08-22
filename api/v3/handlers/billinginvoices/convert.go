@@ -576,9 +576,9 @@ func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updated api.U
 
 // mergeInvoiceWorkflowFromAPI applies the editable per-invoice workflow settings (invoicing
 // auto-advance/draft period, payment collection method/due date) onto the existing workflow
-// config. Omitting the invoicing or payment sub-object leaves that part of the config
-// unchanged; omitted fields within a provided sub-object fall back to
-// billing.DefaultWorkflowConfig, mirroring the v1 replace-update semantics.
+// config. The update is a replace at every level: an omitted invoicing or payment sub-object
+// resets that half of the config to billing.DefaultWorkflowConfig, exactly as an omitted field
+// within a provided sub-object does.
 func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.UpdateInvoiceWorkflowSettings) (billing.InvoiceWorkflow, error) {
 	if invoicing := updated.Workflow.Invoicing; invoicing != nil {
 		existing.Config.Invoicing.AutoAdvance = lo.FromPtrOr(invoicing.AutoAdvance, billing.DefaultWorkflowConfig.Invoicing.AutoAdvance)
@@ -592,6 +592,9 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 			}
 			existing.Config.Invoicing.DraftPeriod = period
 		}
+	} else {
+		existing.Config.Invoicing.AutoAdvance = billing.DefaultWorkflowConfig.Invoicing.AutoAdvance
+		existing.Config.Invoicing.DraftPeriod = billing.DefaultWorkflowConfig.Invoicing.DraftPeriod
 	}
 
 	if payment := updated.Workflow.Payment; payment != nil {
@@ -624,6 +627,9 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 		default:
 			return existing, billing.ValidationError{Err: fmt.Errorf("unsupported payment collection method: %s", disc)}
 		}
+	} else {
+		existing.Config.Payment.CollectionMethod = billing.DefaultWorkflowConfig.Payment.CollectionMethod
+		existing.Config.Invoicing.DueAfter = billing.DefaultWorkflowConfig.Invoicing.DueAfter
 	}
 
 	return existing, nil
@@ -631,11 +637,12 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 
 // mergeStandardInvoiceLinesFromAPI reconciles the invoice's top-level lines against the
 // update request: lines matched by ID are merged in place, lines without an ID (or with an
-// unknown ID) are created, and existing lines omitted from the request are tombstoned. A nil
-// lines pointer leaves the invoice's lines untouched, since it means the field wasn't sent.
+// unknown ID) are created, and existing lines omitted from the request are tombstoned. The
+// update is a replace, so an absent lines field means the same as an empty array — every
+// existing line is tombstoned.
 func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api.UpdateInvoiceLine) (billing.StandardInvoiceLines, error) {
 	if lines == nil {
-		return inv.Lines, nil
+		lines = &[]api.UpdateInvoiceLine{}
 	}
 
 	linesByID, _ := slicesx.UniqueGroupBy(inv.Lines.OrEmpty(), func(line *billing.StandardLine) string {
