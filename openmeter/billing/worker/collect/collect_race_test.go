@@ -3,7 +3,6 @@ package billingworkercollect
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"strings"
 	"sync/atomic"
@@ -85,9 +84,7 @@ func TestInvoiceCollectorAllPreservesConcurrentCollectionErrors(t *testing.T) {
 					customers: customers,
 				},
 				BillingService: billingService,
-				Logger: slog.New(
-					slog.NewTextHandler(io.Discard, nil),
-				),
+				Logger:         slog.New(slog.DiscardHandler),
 			})
 			require.NoError(t, err)
 
