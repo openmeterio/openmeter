@@ -11,6 +11,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -214,7 +215,8 @@ func TestMergeStandardInvoiceLinesFromAPITombstonesOmittedLines(t *testing.T) {
 	require.Len(t, newLines, 1)
 }
 
-func TestMergeStandardInvoiceLinesFromAPINilLeavesLinesUnchanged(t *testing.T) {
+func TestMergeStandardInvoiceLinesFromAPINilTombstonesEveryLine(t *testing.T) {
+	// given an invoice that has a line
 	period := mergeTestPeriod()
 	existing := standardLineForMergeTest(t, "line-id", period)
 
@@ -222,9 +224,35 @@ func TestMergeStandardInvoiceLinesFromAPINilLeavesLinesUnchanged(t *testing.T) {
 		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{existing}),
 	}
 
+	// when an update request leaves the lines field out entirely
 	merged, err := mergeStandardInvoiceLinesFromAPI(inv, nil)
 	require.NoError(t, err)
-	require.Equal(t, inv.Lines, merged)
+
+	// then the omission replaces the invoice's lines with nothing, exactly as an empty
+	// array would
+	all := merged.OrEmpty()
+	require.Len(t, all, 1)
+	require.Equal(t, "line-id", all[0].ID)
+	require.NotNil(t, all[0].DeletedAt)
+}
+
+func TestMergeInvoiceWorkflowFromAPIResetsOmittedSubObjects(t *testing.T) {
+	// given a workflow config that diverges from the defaults on both halves
+	existing := billing.InvoiceWorkflow{}
+	existing.Config.Invoicing.AutoAdvance = !billing.DefaultWorkflowConfig.Invoicing.AutoAdvance
+	existing.Config.Invoicing.DraftPeriod = datetime.MustParseDuration(t, "P30D")
+	existing.Config.Invoicing.DueAfter = datetime.MustParseDuration(t, "P60D")
+	existing.Config.Payment.CollectionMethod = billing.CollectionMethodSendInvoice
+
+	// when an update request carries neither the invoicing nor the payment sub-object
+	merged, err := mergeInvoiceWorkflowFromAPI(existing, api.UpdateInvoiceWorkflowSettings{})
+	require.NoError(t, err)
+
+	// then both halves fall back to the defaults instead of surviving the replace
+	require.Equal(t, billing.DefaultWorkflowConfig.Invoicing.AutoAdvance, merged.Config.Invoicing.AutoAdvance)
+	require.Equal(t, billing.DefaultWorkflowConfig.Invoicing.DraftPeriod, merged.Config.Invoicing.DraftPeriod)
+	require.Equal(t, billing.DefaultWorkflowConfig.Invoicing.DueAfter, merged.Config.Invoicing.DueAfter)
+	require.Equal(t, billing.DefaultWorkflowConfig.Payment.CollectionMethod, merged.Config.Payment.CollectionMethod)
 }
 
 func TestMergeInvoiceCustomerFromAPIPreservesImmutableFields(t *testing.T) {

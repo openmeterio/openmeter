@@ -5913,7 +5913,7 @@ export const invoiceStandard = z
       .optional()
 
       .describe(
-        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Detailed (child) lines are always computed and cannot be edited directly.',
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Because update replaces the invoice, leaving the field out entirely deletes every line, exactly as sending an empty array does. Detailed (child) lines are always computed and cannot be edited directly.',
       ),
   })
   .describe('A standard invoice for charges owed by the customer.')
@@ -5940,7 +5940,7 @@ export const updateInvoiceStandardRequest = z
       .optional()
 
       .describe(
-        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Detailed (child) lines are always computed and cannot be edited directly.',
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Because update replaces the invoice, leaving the field out entirely deletes every line, exactly as sending an empty array does. Detailed (child) lines are always computed and cannot be edited directly.',
       ),
   })
   .describe('InvoiceStandard update request.')
@@ -12809,7 +12809,7 @@ export const invoiceStandardWire = z
       .optional()
 
       .describe(
-        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Detailed (child) lines are always computed and cannot be edited directly.',
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Because update replaces the invoice, leaving the field out entirely deletes every line, exactly as sending an empty array does. Detailed (child) lines are always computed and cannot be edited directly.',
       ),
   })
   .describe('A standard invoice for charges owed by the customer.')
@@ -12836,7 +12836,7 @@ export const updateInvoiceStandardRequestWire = z
       .optional()
 
       .describe(
-        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Detailed (child) lines are always computed and cannot be edited directly.',
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Because update replaces the invoice, leaving the field out entirely deletes every line, exactly as sending an empty array does. Detailed (child) lines are always computed and cannot be edited directly.',
       ),
   })
   .describe('InvoiceStandard update request.')

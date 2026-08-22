@@ -412,8 +412,10 @@ type InvoiceStandard struct {
 	// Always returned on single-resource GET; omitted on list endpoints unless
 	// explicitly expanded. Editable via update: existing lines are matched by `id`,
 	// lines without an `id` are created, and lines present on the invoice but omitted
-	// from the update request are deleted. Detailed (child) lines are always computed
-	// and cannot be edited directly.
+	// from the update request are deleted. Because update replaces the invoice,
+	// leaving the field out entirely deletes every line, exactly as sending an empty
+	// array does. Detailed (child) lines are always computed and cannot be edited
+	// directly.
 	Lines []InvoiceLine `json:"lines,omitempty"`
 }
 
@@ -858,8 +860,10 @@ type UpdateInvoiceStandardRequest struct {
 	// Always returned on single-resource GET; omitted on list endpoints unless
 	// explicitly expanded. Editable via update: existing lines are matched by `id`,
 	// lines without an `id` are created, and lines present on the invoice but omitted
-	// from the update request are deleted. Detailed (child) lines are always computed
-	// and cannot be edited directly.
+	// from the update request are deleted. Because update replaces the invoice,
+	// leaving the field out entirely deletes every line, exactly as sending an empty
+	// array does. Detailed (child) lines are always computed and cannot be edited
+	// directly.
 	Lines *[]UpdateInvoiceLine `json:"lines,omitempty"`
 }
 
