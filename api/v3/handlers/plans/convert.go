@@ -568,10 +568,9 @@ func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanReque
 		return req, fmt.Errorf("failed to convert label metadata: %w", err)
 	}
 
-	if body.Labels != nil {
-		m := meta
-		req.Metadata = &m
-	}
+	// PUT replaces the whole resource, so labels left out of the request are cleared rather
+	// than carried over. Always hand the service a metadata value, empty included.
+	req.Metadata = &meta
 
 	phases := make([]productcatalog.Phase, 0, len(body.Phases))
 	for _, phase := range body.Phases {
