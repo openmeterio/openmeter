@@ -25,7 +25,7 @@ func init() {
 		taxcodeCreateTaxCodeInput.Metadata = modelsMetadata
 		return taxcodeCreateTaxCodeInput, nil
 	}
-	FromAPIUpdateOrganizationDefaultTaxCodesRequest = func(context string, source v3.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error) {
+	FromAPIUpdateOrganizationDefaultTaxCodesRequest = func(context string, source v3.UpsertOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error) {
 		var taxcodeUpsertOrganizationDefaultTaxCodesInput taxcode.UpsertOrganizationDefaultTaxCodesInput
 		taxcodeUpsertOrganizationDefaultTaxCodesInput.Namespace = NamespaceFromContext(context)
 		xstring, err := InvoicingTaxCodeReferenceToIDString(source.InvoicingTaxCode)

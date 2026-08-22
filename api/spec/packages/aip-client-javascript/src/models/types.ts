@@ -2661,12 +2661,12 @@ export interface OrganizationDefaultTaxCodes {
   updatedAt: Date
 }
 
-/** OrganizationDefaultTaxCodes update request. */
-export interface UpdateOrganizationDefaultTaxCodesRequest {
+/** OrganizationDefaultTaxCodes upsert request. */
+export interface UpsertOrganizationDefaultTaxCodesRequest {
   /** Default tax code for invoicing. */
-  invoicingTaxCode?: TaxCodeReference
+  invoicingTaxCode: TaxCodeReference
   /** Default tax code for credit grants. */
-  creditGrantTaxCode?: TaxCodeReference
+  creditGrantTaxCode: TaxCodeReference
 }
 
 /** Subscription. */

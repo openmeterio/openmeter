@@ -19,10 +19,10 @@ type OrganizationDefaultTaxCodes struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// OrganizationDefaultTaxCodes update request.
-type UpdateOrganizationDefaultTaxCodesRequest struct {
+// OrganizationDefaultTaxCodes upsert request.
+type UpsertOrganizationDefaultTaxCodesRequest struct {
 	// Default tax code for invoicing.
-	InvoicingTaxCode *TaxCodeReference `json:"invoicing_tax_code,omitempty"`
+	InvoicingTaxCode TaxCodeReference `json:"invoicing_tax_code"`
 	// Default tax code for credit grants.
-	CreditGrantTaxCode *TaxCodeReference `json:"credit_grant_tax_code,omitempty"`
+	CreditGrantTaxCode TaxCodeReference `json:"credit_grant_tax_code"`
 }

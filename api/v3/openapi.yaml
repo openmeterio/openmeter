@@ -1858,7 +1858,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateOrganizationDefaultTaxCodesRequest'
+              $ref: '#/components/schemas/UpsertOrganizationDefaultTaxCodesRequest'
       x-unstable: true
   /openmeter/events:
     get:
@@ -12886,21 +12886,6 @@ components:
             type: $.type
       additionalProperties: false
       description: Meter update request.
-    UpdateOrganizationDefaultTaxCodesRequest:
-      type: object
-      properties:
-        invoicing_tax_code:
-          allOf:
-            - $ref: '#/components/schemas/TaxCodeReference'
-          description: Default tax code for invoicing.
-          title: Invoicing tax code
-        credit_grant_tax_code:
-          allOf:
-            - $ref: '#/components/schemas/TaxCodeReference'
-          description: Default tax code for credit grants.
-          title: Credit grant tax code
-      additionalProperties: false
-      description: OrganizationDefaultTaxCodes update request.
     UpdatePrice:
       type: object
       oneOf:
@@ -13255,6 +13240,24 @@ components:
           title: Billing Address
       additionalProperties: false
       description: Customer upsert request.
+    UpsertOrganizationDefaultTaxCodesRequest:
+      type: object
+      required:
+        - invoicing_tax_code
+        - credit_grant_tax_code
+      properties:
+        invoicing_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for invoicing.
+          title: Invoicing tax code
+        credit_grant_tax_code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Default tax code for credit grants.
+          title: Credit grant tax code
+      additionalProperties: false
+      description: OrganizationDefaultTaxCodes upsert request.
     UpsertPlanAddonRequest:
       type: object
       required:

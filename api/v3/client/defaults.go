@@ -27,7 +27,7 @@ func (s *DefaultsService) GetOrganizationTaxCodes(ctx context.Context) (*Organiz
 	return &out, nil
 }
 
-func (s *DefaultsService) UpdateOrganizationTaxCodes(ctx context.Context, request UpdateOrganizationDefaultTaxCodesRequest) (*OrganizationDefaultTaxCodes, error) {
+func (s *DefaultsService) UpdateOrganizationTaxCodes(ctx context.Context, request UpsertOrganizationDefaultTaxCodesRequest) (*OrganizationDefaultTaxCodes, error) {
 	path := "/openmeter/defaults/tax-codes"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodPut, path, nil, request, "application/json", "application/json")

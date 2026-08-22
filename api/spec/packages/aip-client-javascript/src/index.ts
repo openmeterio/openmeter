@@ -235,6 +235,7 @@ export type {
   TaxConfig,
   RateCardTaxConfig,
   OrganizationDefaultTaxCodes,
+  UpsertOrganizationDefaultTaxCodesRequest,
   Subscription,
   PlanAddon,
   ProfileAppReferences,

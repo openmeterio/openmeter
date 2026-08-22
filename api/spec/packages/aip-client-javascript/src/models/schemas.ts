@@ -3531,12 +3531,12 @@ export const organizationDefaultTaxCodes = z
     'Organization-level default tax code references. Stores the default tax codes applied to specific billing contexts for this organization. Provisioned automatically when the organization is created.',
   )
 
-export const updateOrganizationDefaultTaxCodesRequest = z
+export const upsertOrganizationDefaultTaxCodesRequest = z
   .object({
-    invoicingTaxCode: taxCodeReference.optional(),
-    creditGrantTaxCode: taxCodeReference.optional(),
+    invoicingTaxCode: taxCodeReference,
+    creditGrantTaxCode: taxCodeReference,
   })
-  .describe('OrganizationDefaultTaxCodes update request.')
+  .describe('OrganizationDefaultTaxCodes upsert request.')
 
 export const subscription = z
   .object({
@@ -6907,7 +6907,7 @@ export const getOrganizationDefaultTaxCodesResponse =
   organizationDefaultTaxCodes
 
 export const updateOrganizationDefaultTaxCodesBody =
-  updateOrganizationDefaultTaxCodesRequest
+  upsertOrganizationDefaultTaxCodesRequest
 
 export const updateOrganizationDefaultTaxCodesResponse =
   organizationDefaultTaxCodes
@@ -10425,12 +10425,12 @@ export const organizationDefaultTaxCodesWire = z
     'Organization-level default tax code references. Stores the default tax codes applied to specific billing contexts for this organization. Provisioned automatically when the organization is created.',
   )
 
-export const updateOrganizationDefaultTaxCodesRequestWire = z
+export const upsertOrganizationDefaultTaxCodesRequestWire = z
   .strictObject({
-    invoicing_tax_code: taxCodeReferenceWire.optional(),
-    credit_grant_tax_code: taxCodeReferenceWire.optional(),
+    invoicing_tax_code: taxCodeReferenceWire,
+    credit_grant_tax_code: taxCodeReferenceWire,
   })
-  .describe('OrganizationDefaultTaxCodes update request.')
+  .describe('OrganizationDefaultTaxCodes upsert request.')
 
 export const subscriptionWire = z
   .strictObject({
@@ -13881,7 +13881,7 @@ export const getOrganizationDefaultTaxCodesResponseWire =
   organizationDefaultTaxCodesWire
 
 export const updateOrganizationDefaultTaxCodesBodyWire =
-  updateOrganizationDefaultTaxCodesRequestWire
+  upsertOrganizationDefaultTaxCodesRequestWire
 
 export const updateOrganizationDefaultTaxCodesResponseWire =
   organizationDefaultTaxCodesWire

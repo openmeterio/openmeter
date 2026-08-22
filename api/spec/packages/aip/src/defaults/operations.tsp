@@ -25,7 +25,7 @@ interface OrganizationDefaultTaxCodesOperations {
   @operationId("update-organization-default-tax-codes")
   @summary("Update organization default tax codes")
   @extension(Shared.UnstableExtension, true)
-  update(@body body: Shared.UpdateRequest<OrganizationDefaultTaxCodes>):
+  update(@body body: Shared.UpsertRequest<OrganizationDefaultTaxCodes>):
     | Shared.UpsertResponse<OrganizationDefaultTaxCodes>
     | Common.NotFound
     | Common.ErrorResponses;

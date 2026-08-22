@@ -57,7 +57,7 @@ var (
 	// goverter:map InvoicingTaxCode InvoicingTaxCodeID | InvoicingTaxCodeReferenceToIDString
 	// goverter:map CreditGrantTaxCode CreditGrantTaxCodeID | CreditGrantTaxCodeReferenceToIDString
 	// goverter:ignore Expand
-	FromAPIUpdateOrganizationDefaultTaxCodesRequest func(namespace string, body api.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error)
+	FromAPIUpdateOrganizationDefaultTaxCodesRequest func(namespace string, body api.UpsertOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error)
 )
 
 var ConvertLabelsToMetadata = labels.ToMetadata
@@ -98,15 +98,15 @@ func IDStringToTaxCodeReference(id string) api.TaxCodeReference {
 	return api.TaxCodeReference{Id: id}
 }
 
-func InvoicingTaxCodeReferenceToIDString(ref *api.TaxCodeReference) (string, error) {
-	if ref == nil || ref.Id == "" {
+func InvoicingTaxCodeReferenceToIDString(ref api.TaxCodeReference) (string, error) {
+	if ref.Id == "" {
 		return "", models.NewGenericValidationError(errors.New("invoicing_tax_code.id is required"))
 	}
 	return ref.Id, nil
 }
 
-func CreditGrantTaxCodeReferenceToIDString(ref *api.TaxCodeReference) (string, error) {
-	if ref == nil || ref.Id == "" {
+func CreditGrantTaxCodeReferenceToIDString(ref api.TaxCodeReference) (string, error) {
+	if ref.Id == "" {
 		return "", models.NewGenericValidationError(errors.New("credit_grant_tax_code.id is required"))
 	}
 	return ref.Id, nil
