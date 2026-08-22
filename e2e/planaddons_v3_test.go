@@ -489,3 +489,50 @@ func makeAddonWithStatus(t *testing.T, c *v3Client, keyPrefix string, target v3s
 		return nil
 	}
 }
+
+// PUT is a replace: labels the update body leaves out are cleared rather than
+// carried over from the stored plan-addon junction.
+func TestV3PlanAddonUpdateClearsOmittedLabels(t *testing.T) {
+	c := newV3Client(t)
+
+	standardPhase := validPlanPhase("standard", true /* isLast */)
+	planBody := validPlanRequest("test_v3_plan_addon_replace")
+	planBody.Phases = []v3sdk.PlanPhaseInput{standardPhase}
+
+	plan, err := c.Plans.Create(t.Context(), planBody)
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, plan)
+
+	addon, err := c.Addons.Create(t.Context(), validAddonRequest("test_v3_plan_addon_replace_addon"))
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, addon)
+
+	addon, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, addon)
+
+	createBody := validPlanAddonRequest(standardPhase.Key, addon.ID)
+	createBody.Labels = &map[string]string{"env": "prod"}
+
+	created, err := c.PlanAddons.Create(t.Context(), plan.ID, createBody)
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, created)
+	require.NotEmpty(t, created.Labels)
+
+	// The update body carries only the required fields — no labels.
+	updated, err := c.PlanAddons.Update(t.Context(), plan.ID, created.ID, v3sdk.UpsertPlanAddonRequest{
+		Name:          createBody.Name,
+		FromPlanPhase: standardPhase.Key,
+	})
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, updated)
+
+	assert.Empty(t, updated.Labels, "omitted labels must be cleared, not carried over")
+
+	// The clear is persisted, not just reflected in the update response.
+	fetched, err := c.PlanAddons.Get(t.Context(), plan.ID, created.ID)
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, fetched)
+
+	assert.Empty(t, fetched.Labels)
+}
