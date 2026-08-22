@@ -691,11 +691,10 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			SetUpdatedAt(clock.Now().UTC()).
 			SetName(input.Name).
 			SetOrClearDescription(input.Description).
-			SetNillablePrimaryEmail(input.PrimaryEmail).
-			SetNillableCurrency(input.Currency).
+			SetOrClearPrimaryEmail(input.PrimaryEmail).
+			SetOrClearCurrency(input.Currency).
 			SetOrClearKey(input.Key)
 
-		// Replace metadata
 		if input.Metadata != nil {
 			query = query.SetMetadata(input.Metadata.ToMap())
 		} else {
@@ -710,13 +709,13 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 
 		if input.BillingAddress != nil {
 			query = query.
-				SetNillableBillingAddressCity(input.BillingAddress.City).
-				SetNillableBillingAddressCountry(input.BillingAddress.Country).
-				SetNillableBillingAddressLine1(input.BillingAddress.Line1).
-				SetNillableBillingAddressLine2(input.BillingAddress.Line2).
-				SetNillableBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
-				SetNillableBillingAddressPostalCode(input.BillingAddress.PostalCode).
-				SetNillableBillingAddressState(input.BillingAddress.State)
+				SetOrClearBillingAddressCity(input.BillingAddress.City).
+				SetOrClearBillingAddressCountry(input.BillingAddress.Country).
+				SetOrClearBillingAddressLine1(input.BillingAddress.Line1).
+				SetOrClearBillingAddressLine2(input.BillingAddress.Line2).
+				SetOrClearBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
+				SetOrClearBillingAddressPostalCode(input.BillingAddress.PostalCode).
+				SetOrClearBillingAddressState(input.BillingAddress.State)
 		} else {
 			query = query.
 				ClearBillingAddressCity().
