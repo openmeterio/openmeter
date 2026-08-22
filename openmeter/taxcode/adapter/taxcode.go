@@ -59,7 +59,7 @@ func (a *adapter) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 			Where(taxcodedb.NamespaceEQ(input.Namespace)).
 			Where(taxcodedb.DeletedAtIsNil()).
 			SetName(input.Name).
-			SetNillableDescription(input.Description).
+			SetOrClearDescription(input.Description).
 			SetMetadata(input.Metadata).
 			SetAnnotations(input.Annotations)
 
