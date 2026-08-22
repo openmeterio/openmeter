@@ -23,7 +23,7 @@ type (
 func (h *handler) UpdateMeter() UpdateMeterHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, meterID UpdateMeterParams) (UpdateMeterRequest, error) {
-			body := api.UpdateMeterRequest{}
+			body := api.UpsertMeterRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateMeterRequest{}, err
 			}

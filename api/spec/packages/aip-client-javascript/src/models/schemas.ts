@@ -1419,13 +1419,12 @@ export const konnectAccessToken = z
     'The Konnect access token is meant to be used by the Konnect dashboard and the decK CLI authenticate with.',
   )
 
-export const updateMeterRequest = z
+export const upsertMeterRequest = z
   .object({
     name: z
       .string()
       .min(1)
       .max(256)
-      .optional()
       .describe('Display name of the resource. Between 1 and 256 characters.'),
     description: z
       .string()
@@ -1444,7 +1443,7 @@ export const updateMeterRequest = z
         'Named JSONPath expressions to extract the group by values from the event data. Keys must be unique and consist only alphanumeric and underscore characters.',
       ),
   })
-  .describe('Meter update request.')
+  .describe('Meter upsert request.')
 
 export const appCustomerDataStripe = z
   .object({
@@ -6011,7 +6010,7 @@ export const updateMeterPathParams = z.object({
   meterId: ulid,
 })
 
-export const updateMeterBody = updateMeterRequest
+export const updateMeterBody = upsertMeterRequest
 
 export const updateMeterResponse = meter
 
@@ -8331,13 +8330,12 @@ export const konnectAccessTokenWire = z
     'The Konnect access token is meant to be used by the Konnect dashboard and the decK CLI authenticate with.',
   )
 
-export const updateMeterRequestWire = z
+export const upsertMeterRequestWire = z
   .strictObject({
     name: z
       .string()
       .min(1)
       .max(256)
-      .optional()
       .describe('Display name of the resource. Between 1 and 256 characters.'),
     description: z
       .string()
@@ -8356,7 +8354,7 @@ export const updateMeterRequestWire = z
         'Named JSONPath expressions to extract the group by values from the event data. Keys must be unique and consist only alphanumeric and underscore characters.',
       ),
   })
-  .describe('Meter update request.')
+  .describe('Meter upsert request.')
 
 export const appCustomerDataStripeWire = z
   .strictObject({
@@ -12922,7 +12920,7 @@ export const updateMeterPathParamsWire = z.object({
   meterId: ulidWire,
 })
 
-export const updateMeterBodyWire = updateMeterRequestWire
+export const updateMeterBodyWire = upsertMeterRequestWire
 
 export const updateMeterResponseWire = meterWire
 

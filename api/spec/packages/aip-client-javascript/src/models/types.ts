@@ -508,14 +508,14 @@ export interface KonnectAccessToken {
   scheme: 'Bearer'
 }
 
-/** Meter update request. */
-export interface UpdateMeterRequest {
+/** Meter upsert request. */
+export interface UpsertMeterRequest {
   /**
    * Display name of the resource.
    *
    * Between 1 and 256 characters.
    */
-  name?: string
+  name: string
   /**
    * Optional description of the resource.
    *

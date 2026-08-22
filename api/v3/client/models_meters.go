@@ -130,12 +130,12 @@ type MeterQueryRow struct {
 	Dimensions map[string]string `json:"dimensions"`
 }
 
-// Meter update request.
-type UpdateMeterRequest struct {
+// Meter upsert request.
+type UpsertMeterRequest struct {
 	// Display name of the resource.
 	//
 	// Between 1 and 256 characters.
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// Optional description of the resource.
 	//
 	// Maximum 1024 characters.

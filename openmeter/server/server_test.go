@@ -612,7 +612,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPut,
 				contentType: "application/json",
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
-				body:        apiv3.UpdateMeterRequest{},
+				body:        apiv3.UpsertMeterRequest{Name: mockMeters[0].Name},
 			},
 			res: testResponse{
 				status: http.StatusOK,

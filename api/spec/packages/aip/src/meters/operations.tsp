@@ -87,11 +87,14 @@ interface MetersOperations {
 
   /**
    * Update a meter.
+   *
+   * The request body is the meter's full replacement state: fields left out are
+   * cleared.
    */
   @put
   @operationId("update-meter")
   @summary("Update meter")
-  update(@path meterId: Shared.ULID, @body meter: Shared.UpdateRequest<Meter>):
+  update(@path meterId: Shared.ULID, @body meter: Shared.UpsertRequest<Meter>):
     | Shared.UpdateResponse<Meter>
     | Common.NotFound
     | Common.ErrorResponses;
