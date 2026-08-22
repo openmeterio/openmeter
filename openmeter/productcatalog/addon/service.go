@@ -246,11 +246,14 @@ func (i UpdateAddonInput) Equal(p Addon) bool {
 		return false
 	}
 
-	if i.Description != nil && lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
+	// Description and Metadata are replaced, not merged: a nil here means the update request
+	// omitted them and they are about to be cleared, so nil only equals an already-empty
+	// stored value.
+	if lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
 
-	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
+	if !lo.FromPtr(i.Metadata).Equal(p.Metadata) {
 		return false
 	}
 
@@ -342,13 +345,11 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 		a.Name = *i.Name
 	}
 
-	if i.Description != nil {
-		a.Description = i.Description
-	}
-
-	if i.Metadata != nil {
-		a.Metadata = *i.Metadata
-	}
+	// Replaced rather than merged, mirroring the adapter: an omitted description or set of
+	// labels is cleared, so validation must see the cleared state. Annotations are
+	// server-managed and stay as they are unless the caller supplies them.
+	a.Description = i.Description
+	a.Metadata = lo.FromPtr(i.Metadata)
 
 	if i.Annotations != nil {
 		a.Annotations = *i.Annotations
@@ -363,6 +364,42 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 	}
 
 	return a
+}
+
+var _ models.Validator = (*UpdateAddonEffectivePeriodInput)(nil)
+
+// UpdateAddonEffectivePeriodInput moves an Addon version's schedule without touching any of
+// its content. Publishing and archiving only need to shift the effective period, so they use
+// this instead of UpdateAddonInput: UpdateAddonInput carries the complete replacement state of
+// a PUT request and clears every field the caller omitted, which would wipe the add-on's name,
+// description and labels on every publish.
+//
+// A nil boundary leaves that end of the period as it is; the two ends are updated
+// independently so a publish can set only EffectiveFrom.
+type UpdateAddonEffectivePeriodInput struct {
+	models.NamespacedID
+
+	productcatalog.EffectivePeriod
+}
+
+func (i UpdateAddonEffectivePeriodInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
+	}
+
+	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
+		if err := i.EffectivePeriod.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid EffectivePeriod: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ExpandFields struct {

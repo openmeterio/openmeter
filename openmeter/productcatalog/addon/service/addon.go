@@ -553,7 +553,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 
 		// Publish new add-on version
 
-		input := addon.UpdateAddonInput{
+		input := addon.UpdateAddonEffectivePeriodInput{
 			NamespacedID: params.NamespacedID,
 		}
 
@@ -565,7 +565,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			input.EffectiveTo = lo.ToPtr(params.EffectiveTo.UTC())
 		}
 
-		add, err = s.adapter.UpdateAddon(ctx, input)
+		add, err = s.adapter.UpdateAddonEffectivePeriod(ctx, input)
 		if err != nil {
 			return nil, fmt.Errorf("failed to publish add-on: %w", err)
 		}
@@ -633,7 +633,7 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 			return nil, err
 		}
 
-		add, err = s.adapter.UpdateAddon(ctx, addon.UpdateAddonInput{
+		add, err = s.adapter.UpdateAddonEffectivePeriod(ctx, addon.UpdateAddonEffectivePeriodInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: add.Namespace,
 				ID:        add.ID,

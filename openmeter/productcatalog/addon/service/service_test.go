@@ -218,8 +218,14 @@ func TestAddonService(t *testing.T) {
 			})
 
 			t.Run("Update", func(t *testing.T) {
+				// UpdateAddonInput is the add-on's full replacement state, so the fields that
+				// should survive have to be carried over explicitly; anything left out is
+				// cleared.
 				updateInput := addon.UpdateAddonInput{
 					NamespacedID: addonV1.NamespacedID,
+					Name:         lo.ToPtr(addonV1.Name),
+					Description:  addonV1.Description,
+					Metadata:     lo.ToPtr(addonV1.Metadata),
 					RateCards: &productcatalog.RateCards{
 						&productcatalog.FlatFeeRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
@@ -323,6 +329,12 @@ func TestAddonService(t *testing.T) {
 
 				assert.Equalf(t, productcatalog.AddonStatusActive, publishedAddonV1.Status(),
 					"add-on Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusActive, publishedAddonV1.Status())
+
+				// Publishing only moves the add-on's schedule. It must not ride the replace
+				// update path, which would clear every field the publish input does not repeat.
+				assert.Equalf(t, addonV1.Name, publishedAddonV1.Name, "publishing must preserve the name")
+				assert.Equalf(t, addonV1.Description, publishedAddonV1.Description, "publishing must preserve the description")
+				assert.Equalf(t, addonV1.Metadata, publishedAddonV1.Metadata, "publishing must preserve the labels")
 
 				t.Run("Update", func(t *testing.T) {
 					updateInput := addon.UpdateAddonInput{
