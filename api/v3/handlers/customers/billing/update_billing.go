@@ -178,7 +178,9 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				return resp, fmt.Errorf("failed to update customer data: %w", err)
 			}
 
-			// Override the billing profile if an ID was provided
+			// The billing profile pin is replaced, not merged: a request that names a profile
+			// pins the customer to it, and a request that leaves the field out drops any
+			// existing pin so the customer falls back to the organization default.
 			if request.ProfileID != nil {
 				_, err = h.billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
 					Namespace:  request.CustomerID.Namespace,
@@ -187,6 +189,16 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				})
 				if err != nil {
 					return resp, fmt.Errorf("failed to update billing profile: %w", err)
+				}
+			} else {
+				err = h.billingService.DeleteCustomerOverride(ctx, billing.DeleteCustomerOverrideInput{
+					Customer: request.CustomerID,
+				})
+				// A customer that was never pinned has nothing to drop, which is the state the
+				// request is asking for rather than an error.
+				if err != nil && !errors.Is(err, billing.ErrCustomerOverrideNotFound) &&
+					!errors.Is(err, billing.ErrCustomerOverrideAlreadyDeleted) {
+					return resp, fmt.Errorf("failed to clear billing profile: %w", err)
 				}
 			}
 
