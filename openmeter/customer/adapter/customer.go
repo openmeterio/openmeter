@@ -690,9 +690,10 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			Where(customerdb.Namespace(previousCustomer.Namespace)).
 			SetUpdatedAt(clock.Now().UTC()).
 			SetName(input.Name).
+			// Update is a full replace: every field the request omitted is cleared.
 			SetOrClearDescription(input.Description).
-			SetNillablePrimaryEmail(input.PrimaryEmail).
-			SetNillableCurrency(input.Currency).
+			SetOrClearPrimaryEmail(input.PrimaryEmail).
+			SetOrClearCurrency(input.Currency).
 			SetOrClearKey(input.Key)
 
 		// Replace metadata
@@ -708,15 +709,17 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			query = query.ClearAnnotations()
 		}
 
+		// The address is replaced as a whole: a provided address clears the lines it leaves
+		// out, exactly as an absent address clears all of them.
 		if input.BillingAddress != nil {
 			query = query.
-				SetNillableBillingAddressCity(input.BillingAddress.City).
-				SetNillableBillingAddressCountry(input.BillingAddress.Country).
-				SetNillableBillingAddressLine1(input.BillingAddress.Line1).
-				SetNillableBillingAddressLine2(input.BillingAddress.Line2).
-				SetNillableBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
-				SetNillableBillingAddressPostalCode(input.BillingAddress.PostalCode).
-				SetNillableBillingAddressState(input.BillingAddress.State)
+				SetOrClearBillingAddressCity(input.BillingAddress.City).
+				SetOrClearBillingAddressCountry(input.BillingAddress.Country).
+				SetOrClearBillingAddressLine1(input.BillingAddress.Line1).
+				SetOrClearBillingAddressLine2(input.BillingAddress.Line2).
+				SetOrClearBillingAddressPhoneNumber(input.BillingAddress.PhoneNumber).
+				SetOrClearBillingAddressPostalCode(input.BillingAddress.PostalCode).
+				SetOrClearBillingAddressState(input.BillingAddress.State)
 		} else {
 			query = query.
 				ClearBillingAddressCity().
