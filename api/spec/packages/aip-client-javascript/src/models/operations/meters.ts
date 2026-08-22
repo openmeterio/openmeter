@@ -11,7 +11,7 @@ import type {
   MeterQueryRequestInput,
   MeterQueryResult,
   SortQueryInput,
-  UpdateMeterRequest as UpdateMeterRequestBody,
+  UpsertMeterRequest,
 } from '../types.js'
 
 export type CreateMeterRequest = AcceptDateStrings<CreateMeterRequestBody>
@@ -51,7 +51,7 @@ export type ListMetersResponse = MeterPagePaginatedResponse
 
 export type UpdateMeterRequest = AcceptDateStrings<{
   meterId: string
-  body: UpdateMeterRequestBody
+  body: UpsertMeterRequest
 }>
 export type UpdateMeterResponse = Meter
 

@@ -116,7 +116,10 @@ func (s *MetersService) ListAll(ctx context.Context, params MeterListParams) ite
 }
 
 // Update a meter.
-func (s *MetersService) Update(ctx context.Context, meterID string, request UpdateMeterRequest) (*Meter, error) {
+//
+// The request body is the meter's full replacement state: fields left out are
+// cleared.
+func (s *MetersService) Update(ctx context.Context, meterID string, request UpsertMeterRequest) (*Meter, error) {
 	if meterID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "meterID", ErrEmptyID)
 	}

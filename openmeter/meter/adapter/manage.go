@@ -72,7 +72,8 @@ func (a *Adapter) UpdateMeter(ctx context.Context, input meterpkg.UpdateMeterInp
 				entity, err := repo.db.Meter.UpdateOneID(input.ID.ID).
 					Where(meterdb.NamespaceEQ(input.ID.Namespace)).
 					SetName(input.Name).
-					SetNillableDescription(input.Description).
+					// Update is a full replace: an omitted description is cleared, not kept.
+					SetOrClearDescription(input.Description).
 					SetGroupBy(input.GroupBy).
 					SetMetadata(input.Metadata).
 					SetOrClearAnnotations(input.Annotations).

@@ -2443,7 +2443,11 @@ paths:
     put:
       operationId: update-meter
       summary: Update meter
-      description: Update a meter.
+      description: |-
+        Update a meter.
+
+        The request body is the meter's full replacement state: fields left out are
+        cleared.
       parameters:
         - name: meterId
           in: path
@@ -2472,7 +2476,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateMeterRequest'
+              $ref: '#/components/schemas/UpsertMeterRequest'
     delete:
       operationId: delete-meter
       summary: Delete meter
@@ -12854,38 +12858,6 @@ components:
           title: Workflow config
       additionalProperties: false
       description: Snapshot of the billing workflow configuration captured at invoice creation.
-    UpdateMeterRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        dimensions:
-          type: object
-          additionalProperties:
-            type: string
-          description: |-
-            Named JSONPath expressions to extract the group by values from the event data.
-
-            Keys must be unique and consist only alphanumeric and underscore characters.
-          example:
-            type: $.type
-      additionalProperties: false
-      description: Meter update request.
     UpdateOrganizationDefaultTaxCodesRequest:
       type: object
       properties:
@@ -13255,6 +13227,40 @@ components:
           title: Billing Address
       additionalProperties: false
       description: Customer upsert request.
+    UpsertMeterRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Named JSONPath expressions to extract the group by values from the event data.
+
+            Keys must be unique and consist only alphanumeric and underscore characters.
+          example:
+            type: $.type
+      additionalProperties: false
+      description: Meter upsert request.
     UpsertPlanAddonRequest:
       type: object
       required:

@@ -106,32 +106,29 @@ func IntToFloat32(i int) float32 {
 	return float32(i)
 }
 
-func FromAPIUpdateMeterRequest(namespace string, meterID string, body api.UpdateMeterRequest) (meter.UpdateMeterInput, error) {
+// FromAPIUpdateMeterRequest builds the meter's full replacement state from a PUT body:
+// dimensions and labels left out of the request are cleared, not carried over. Annotations
+// are server-managed and are backfilled by the service, so they are deliberately absent here.
+func FromAPIUpdateMeterRequest(namespace string, meterID string, body api.UpsertMeterRequest) (meter.UpdateMeterInput, error) {
 	input := meter.UpdateMeterInput{
 		ID: models.NamespacedID{
 			Namespace: namespace,
 			ID:        meterID,
 		},
+		Name:        body.Name,
+		Description: body.Description,
 	}
-
-	if body.Name != nil {
-		input.Name = *body.Name
-	}
-
-	input.Description = body.Description
 
 	if body.Dimensions != nil {
 		input.GroupBy = *body.Dimensions
 	}
 
-	if body.Labels != nil {
-		metadata, err := labels.ToMetadata(body.Labels)
-		if err != nil {
-			return meter.UpdateMeterInput{}, err
-		}
-
-		input.Metadata = metadata
+	metadata, err := labels.ToMetadata(body.Labels)
+	if err != nil {
+		return meter.UpdateMeterInput{}, err
 	}
+
+	input.Metadata = metadata
 
 	return input, nil
 }

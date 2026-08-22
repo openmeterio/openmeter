@@ -100,6 +100,9 @@ export class Meters {
    *
    * Update a meter.
    *
+   * The request body is the meter's full replacement state: fields left out are
+   * cleared.
+   *
    * PUT /openmeter/meters/{meterId}
    */
   async update(

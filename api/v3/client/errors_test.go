@@ -206,7 +206,7 @@ func TestEmptyIDGuard(t *testing.T) {
 			name:      "meters update",
 			wantParam: "meterID",
 			call: func(ctx context.Context) error {
-				_, err := om.Meters.Update(ctx, "", openmeter.UpdateMeterRequest{})
+				_, err := om.Meters.Update(ctx, "", openmeter.UpsertMeterRequest{})
 				return err
 			},
 		},

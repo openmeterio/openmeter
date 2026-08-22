@@ -145,7 +145,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Meters.Create` | `POST /openmeter/meters` | Create a meter. |
 | `om.Meters.Get` | `GET /openmeter/meters/{meterId}` | Get a meter by ID. |
 | `om.Meters.List` | `GET /openmeter/meters` | List meters. |
-| `om.Meters.Update` | `PUT /openmeter/meters/{meterId}` | Update a meter. |
+| `om.Meters.Update` | `PUT /openmeter/meters/{meterId}` | Update a meter. The request body is the meter's full replacement state: fields left out are cleared. |
 | `om.Meters.Delete` | `DELETE /openmeter/meters/{meterId}` | Delete a meter. |
 | `om.Meters.Query` | `POST /openmeter/meters/{meterId}/query` | Query a meter for usage. Set `Accept: application/json` (the default) to get a structured JSON response. Set `Accept: text/csv` to download the same data as a CSV file suitable for spreadsheets. The CSV columns, in order, are: `from, to, [subject,] [customer_id, customer_key, customer_name,] <dimensions...>, value` The `subject` column is emitted only when `subject` is in the query's `group_by_dimensions`. The three `customer_*` columns are emitted together only when `customer_id` is in the query's `group_by_dimensions`. |
 | `om.Meters.QueryCSV` | `POST /openmeter/meters/{meterId}/query` |  |

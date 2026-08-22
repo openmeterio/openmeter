@@ -102,6 +102,7 @@ export type {
   SystemAccountAccessToken,
   PersonalAccessToken,
   KonnectAccessToken,
+  UpsertMeterRequest,
   AppCustomerDataStripe,
   AppCustomerDataExternalInvoicing,
   CurrencyFiat,
