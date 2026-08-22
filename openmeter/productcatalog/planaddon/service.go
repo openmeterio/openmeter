@@ -198,12 +198,10 @@ func (i UpdatePlanAddonInput) Equal(p PlanAddon) bool {
 		return false
 	}
 
-	// FIXME: annotations
-
-	if i.Metadata != nil {
-		if !i.Metadata.Equal(p.Metadata) {
-			return false
-		}
+	// Compared unguarded, unlike the fields above: nil means the update omitted labels and they
+	// are about to be cleared, so nil only equals an already-empty stored value.
+	if !lo.FromPtr(i.Metadata).Equal(p.Metadata) {
+		return false
 	}
 
 	return true

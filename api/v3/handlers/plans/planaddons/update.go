@@ -48,13 +48,14 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 				MaxQuantity:   body.MaxQuantity,
 			}
 
-			if body.Labels != nil {
-				m, err := labels.ToMetadata(body.Labels)
-				if err != nil {
-					return UpdatePlanAddonRequest{}, err
-				}
-				req.Metadata = &m
+			// Non-nil even when empty: a nil Metadata means "unchanged" to the service, which
+			// would leak the stored labels through a request that omitted them.
+			m, err := labels.ToMetadata(body.Labels)
+			if err != nil {
+				return UpdatePlanAddonRequest{}, err
 			}
+
+			req.Metadata = &m
 
 			return req, nil
 		},

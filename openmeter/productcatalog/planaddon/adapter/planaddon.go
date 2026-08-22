@@ -373,12 +373,12 @@ func (a *adapter) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePl
 				query = query.SetFromPlanPhase(*params.FromPlanPhase)
 			}
 
+			// Annotations are server-managed and are not part of the plan-addon
+			// representation, so they must survive an update that omits them.
+			query = query.SetOrClearMetadata((*map[string]string)(params.Metadata))
+
 			if params.Annotations != nil {
 				query = query.SetAnnotations(*params.Annotations)
-			}
-
-			if params.Metadata != nil {
-				query = query.SetMetadata(*params.Metadata)
 			}
 
 			err = query.Exec(ctx)
