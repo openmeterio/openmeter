@@ -12399,6 +12399,7 @@ components:
       required:
         - name
         - type
+        - secret_api_key
       properties:
         name:
           type: string
@@ -12425,7 +12426,12 @@ components:
         secret_api_key:
           type: string
           format: password
-          description: The Stripe secret API key used to authenticate API requests.
+          description: |-
+            The Stripe secret API key used to authenticate API requests.
+
+            Required on update: the app cannot operate without a key, so there is no cleared
+            state for an omitted one to fall back to. Send the key you want the app to keep
+            using, or a new one to rotate it.
       additionalProperties: false
       description: AppStripe update request.
     UpdateBillingInvoiceWorkflow:

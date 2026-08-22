@@ -125,7 +125,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 					Description: stripe.Description,
 					Metadata:    metadata,
 					AppConfigUpdate: appstripe.Configuration{
-						SecretAPIKey: stripe.SecretApiKey,
+						SecretAPIKey: &stripe.SecretApiKey,
 					},
 				}, nil
 			case api.BillingAppTypeExternalInvoicing:

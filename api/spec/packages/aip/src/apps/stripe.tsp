@@ -31,10 +31,14 @@ model AppStripe {
 
   /**
    * The Stripe secret API key used to authenticate API requests.
+   *
+   * Required on update: the app cannot operate without a key, so there is no cleared
+   * state for an omitted one to fall back to. Send the key you want the app to keep
+   * using, or a new one to rotate it.
    */
   @visibility(Lifecycle.Create, Lifecycle.Update)
   @secret
-  secret_api_key?: string;
+  secret_api_key: string;
 }
 
 /**

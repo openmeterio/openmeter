@@ -646,5 +646,9 @@ type UpdateAppStripeRequest struct {
 	// The app type.
 	Type AppType `json:"type"`
 	// The Stripe secret API key used to authenticate API requests.
-	SecretAPIKey *string `json:"secret_api_key,omitempty"`
+	//
+	// Required on update: the app cannot operate without a key, so there is no cleared
+	// state for an omitted one to fall back to. Send the key you want the app to keep
+	// using, or a new one to rotate it.
+	SecretAPIKey string `json:"secret_api_key"`
 }

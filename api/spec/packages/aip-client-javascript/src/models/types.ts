@@ -2038,8 +2038,14 @@ export interface UpdateAppStripeRequest {
   labels?: UpdateLabels
   /** The app type. */
   type: 'stripe'
-  /** The Stripe secret API key used to authenticate API requests. */
-  secretApiKey?: string
+  /**
+   * The Stripe secret API key used to authenticate API requests.
+   *
+   * Required on update: the app cannot operate without a key, so there is no cleared
+   * state for an omitted one to fall back to. Send the key you want the app to keep
+   * using, or a new one to rotate it.
+   */
+  secretApiKey: string
 }
 
 /** AppSandbox update request. */
