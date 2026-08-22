@@ -48,13 +48,15 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 				MaxQuantity:   body.MaxQuantity,
 			}
 
-			if body.Labels != nil {
-				m, err := labels.ToMetadata(body.Labels)
-				if err != nil {
-					return UpdatePlanAddonRequest{}, err
-				}
-				req.Metadata = &m
+			// PUT replaces the whole resource, so labels left out of the request are cleared
+			// rather than carried over. Always hand the service a metadata value, empty
+			// included.
+			m, err := labels.ToMetadata(body.Labels)
+			if err != nil {
+				return UpdatePlanAddonRequest{}, err
 			}
+
+			req.Metadata = &m
 
 			return req, nil
 		},

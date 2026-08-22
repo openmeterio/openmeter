@@ -373,12 +373,13 @@ func (a *adapter) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePl
 				query = query.SetFromPlanPhase(*params.FromPlanPhase)
 			}
 
+			// Metadata is part of every update request body, so a nil here means the caller
+			// left labels out and the PUT must clear them. Annotations are server-managed and
+			// survive an update that does not carry them.
+			query = query.SetOrClearMetadata((*map[string]string)(params.Metadata))
+
 			if params.Annotations != nil {
 				query = query.SetAnnotations(*params.Annotations)
-			}
-
-			if params.Metadata != nil {
-				query = query.SetMetadata(*params.Metadata)
 			}
 
 			err = query.Exec(ctx)
