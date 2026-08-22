@@ -394,3 +394,39 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 		})
 	}
 }
+
+// PUT is a replace: a field the update body leaves out is cleared rather than
+// carried over from the stored add-on.
+func TestV3AddonUpdateClearsOmittedFields(t *testing.T) {
+	c := newV3Client(t)
+
+	createBody := validAddonRequest("test_v3_addon_replace")
+	createBody.Description = lo.ToPtr("Original description")
+	createBody.Labels = &map[string]string{"env": "prod"}
+
+	created, err := c.Addons.Create(t.Context(), createBody)
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, created)
+	require.NotNil(t, created.Description)
+	require.NotEmpty(t, created.Labels)
+
+	// The update body carries only the required fields — no description, no labels.
+	updated, err := c.Addons.Update(t.Context(), created.ID, v3sdk.UpsertAddonRequest{
+		Name:         createBody.Name,
+		InstanceType: createBody.InstanceType,
+		RateCards:    createBody.RateCards,
+	})
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, updated)
+
+	assert.Nil(t, updated.Description, "omitted description must be cleared, not carried over")
+	assert.Empty(t, updated.Labels, "omitted labels must be cleared, not carried over")
+
+	// The clear is persisted, not just reflected in the update response.
+	fetched, err := c.Addons.Get(t.Context(), created.ID)
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, fetched)
+
+	assert.Nil(t, fetched.Description)
+	assert.Empty(t, fetched.Labels)
+}

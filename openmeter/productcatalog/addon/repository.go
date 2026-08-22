@@ -17,4 +17,5 @@ type Repository interface {
 	DeleteAddon(ctx context.Context, params DeleteAddonInput) error
 	GetAddon(ctx context.Context, params GetAddonInput) (*Addon, error)
 	UpdateAddon(ctx context.Context, params UpdateAddonInput) (*Addon, error)
+	UpdateAddonEffectivePeriod(ctx context.Context, params UpdateAddonEffectivePeriodInput) (*Addon, error)
 }
