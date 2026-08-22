@@ -59,7 +59,8 @@ func (a *adapter) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 			Where(taxcodedb.NamespaceEQ(input.Namespace)).
 			Where(taxcodedb.DeletedAtIsNil()).
 			SetName(input.Name).
-			SetNillableDescription(input.Description).
+			// Update is a full replace: an omitted description is cleared, not kept.
+			SetOrClearDescription(input.Description).
 			SetMetadata(input.Metadata).
 			SetAnnotations(input.Annotations)
 
