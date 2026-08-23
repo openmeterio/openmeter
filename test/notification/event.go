@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -265,9 +266,11 @@ func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
 		Namespaces: []string{
 			event.Namespace,
 		},
-		Events: []string{event.ID},
-		From:   event.CreatedAt.Add(-time.Minute),
-		To:     event.CreatedAt.Add(time.Minute),
+		ID: &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(event.ID)}},
+		CreatedAt: filter.NewFilterTime(
+			lo.ToPtr(event.CreatedAt.Add(-time.Minute)),
+			lo.ToPtr(event.CreatedAt.Add(time.Minute)),
+		),
 	}
 
 	events, err := service.ListEvents(ctx, listIn)

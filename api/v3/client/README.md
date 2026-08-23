@@ -329,6 +329,9 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Notifications.GetChannel` | `GET /openmeter/notification/channels/{notificationChannelId}` | Get a notification channel by id. |
 | `om.Notifications.UpdateChannel` | `PUT /openmeter/notification/channels/{notificationChannelId}` | Update a notification channel by id. |
 | `om.Notifications.DeleteChannel` | `DELETE /openmeter/notification/channels/{notificationChannelId}` | Delete a notification channel by id. |
+| `om.Notifications.ListEvents` | `GET /openmeter/notification/events` | List all notification events. |
+| `om.Notifications.GetEvent` | `GET /openmeter/notification/events/{notificationEventId}` | Get a notification event by id. |
+| `om.Notifications.ResendEvent` | `POST /openmeter/notification/events/{notificationEventId}/resend` | Re-send a notification event to the channels of the rule that generated it. Delivery is asynchronous: the request marks the matching delivery statuses for re-delivery and returns immediately. Statuses that are still pending or already being re-sent are left untouched. |
 
 ## Error Handling
 

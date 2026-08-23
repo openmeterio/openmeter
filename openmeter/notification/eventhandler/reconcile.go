@@ -15,6 +15,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -91,10 +92,12 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 		for {
 			out, err := h.repo.ListEvents(ctx, notification.ListEventsInput{
 				Page: page,
-				DeliveryStatusStates: []notification.EventDeliveryStatusState{
-					notification.EventDeliveryStatusStatePending,
-					notification.EventDeliveryStatusStateSending,
-					notification.EventDeliveryStatusStateResending,
+				DeliveryStatus: &filter.FilterString{
+					In: lo.ToPtr([]string{
+						string(notification.EventDeliveryStatusStatePending),
+						string(notification.EventDeliveryStatusStateSending),
+						string(notification.EventDeliveryStatusStateResending),
+					}),
 				},
 				NextAttemptBefore: nextAttemptBefore,
 			})
