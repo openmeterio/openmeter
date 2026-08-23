@@ -48,6 +48,60 @@ func (p NotificationChannelListParams) values() url.Values {
 	return q
 }
 
+type NotificationEventFilter struct {
+	ID        *StringExactFilter
+	Type      *StringExactFilter
+	CreatedAt *DateTimeFilter
+	RuleID    *StringExactFilter
+	// Filter by the channels the generating rule targets. This is an existential
+	// match: `filter[channel_id][eq]=<id>` returns events whose rule targets that
+	// channel, not events that were delivered only to it. Only `eq` and `oeq` are
+	// supported; negating an existential match would return events that merely have
+	// some other channel as well, so `neq` is rejected.
+	ChannelID *StringExactFilter
+	// Filter by delivery state. This is an existential match:
+	// `filter[delivery_status][eq]=failed` returns events where delivery to at least
+	// one channel failed, not events where every delivery failed. Only `eq` and `oeq`
+	// are supported; negating an existential match would return events that merely
+	// have some other state as well, so `neq` is rejected.
+	DeliveryStatus *StringExactFilter
+	// Filter by the subject the event refers to, matched against both the subject key
+	// and the subject id. Only `eq` and `oeq` are supported; the value is held in a
+	// JSON document rather than a column, and other operators are rejected.
+	Subject *StringExactFilter
+	// Filter by the feature the event refers to, matched against both the feature key
+	// and the feature id. Only `eq` and `oeq` are supported; the value is held in a
+	// JSON document rather than a column, and other operators are rejected.
+	Feature *StringExactFilter
+}
+
+type NotificationEventListParams struct {
+	Page   *PageParams
+	Sort   *Sort
+	Filter *NotificationEventFilter
+}
+
+func (p NotificationEventListParams) values() url.Values {
+	q := url.Values{}
+
+	addPageParams(q, p.Page)
+
+	addSort(q, "sort", p.Sort)
+
+	if p.Filter != nil {
+		addStringExactFilter(q, "filter[id]", p.Filter.ID)
+		addStringExactFilter(q, "filter[type]", p.Filter.Type)
+		addDateTimeFilter(q, "filter[created_at]", p.Filter.CreatedAt)
+		addStringExactFilter(q, "filter[rule_id]", p.Filter.RuleID)
+		addStringExactFilter(q, "filter[channel_id]", p.Filter.ChannelID)
+		addStringExactFilter(q, "filter[delivery_status]", p.Filter.DeliveryStatus)
+		addStringExactFilter(q, "filter[subject]", p.Filter.Subject)
+		addStringExactFilter(q, "filter[feature]", p.Filter.Feature)
+	}
+
+	return q
+}
+
 // List all notification channels.
 func (s *NotificationsService) ListChannels(ctx context.Context, params NotificationChannelListParams) (*NotificationChannelPagePaginatedResponse, error) {
 	path := "/openmeter/notification/channels"
@@ -154,6 +208,84 @@ func (s *NotificationsService) DeleteChannel(ctx context.Context, notificationCh
 	path = replacePathParam(path, "notificationChannelId", notificationChannelID)
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodDelete, path, nil, nil, "", "")
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.doRaw(req)
+	return err
+}
+
+// List all notification events.
+func (s *NotificationsService) ListEvents(ctx context.Context, params NotificationEventListParams) (*NotificationEventPagePaginatedResponse, error) {
+	path := "/openmeter/notification/events"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationEventPagePaginatedResponse
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// ListEventsAll returns an iterator over all NotificationEvent results, fetching pages of ListEvents transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *NotificationsService) ListEventsAll(ctx context.Context, params NotificationEventListParams) iter.Seq2[NotificationEvent, error] {
+	return paginate(params.Page, func(page, size int) ([]NotificationEvent, int, error) {
+		pageParams := params
+		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+
+		resp, err := s.ListEvents(ctx, pageParams)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return resp.Data, resp.Meta.Page.Total, nil
+	})
+}
+
+// Get a notification event by id.
+func (s *NotificationsService) GetEvent(ctx context.Context, notificationEventID string) (*NotificationEvent, error) {
+	if notificationEventID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationEventID", ErrEmptyID)
+	}
+
+	path := "/openmeter/notification/events/{notificationEventId}"
+
+	path = replacePathParam(path, "notificationEventId", notificationEventID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationEvent
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Re-send a notification event to the channels of the rule that generated it.
+//
+// Delivery is asynchronous: the request marks the matching delivery statuses for
+// re-delivery and returns immediately. Statuses that are still pending or already
+// being re-sent are left untouched.
+func (s *NotificationsService) ResendEvent(ctx context.Context, notificationEventID string, request ResendNotificationEventRequest) error {
+	if notificationEventID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "notificationEventID", ErrEmptyID)
+	}
+
+	path := "/openmeter/notification/events/{notificationEventId}/resend"
+
+	path = replacePathParam(path, "notificationEventId", notificationEventID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "")
 	if err != nil {
 		return err
 	}

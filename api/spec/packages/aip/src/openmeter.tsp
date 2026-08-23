@@ -235,3 +235,8 @@ interface EntitlementAccessEndpoints
 @tag(Shared.NotificationsTag)
 interface NotificationChannelsEndpoints
   extends Notifications.NotificationChannelOperations {}
+
+@route("/openmeter/notification/events")
+@tag(Shared.NotificationsTag)
+interface NotificationEventsEndpoints
+  extends Notifications.NotificationEventOperations {}
