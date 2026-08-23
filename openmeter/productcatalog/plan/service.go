@@ -411,11 +411,10 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 
 var _ models.Validator = (*UpdatePlanEffectivePeriodInput)(nil)
 
-// UpdatePlanEffectivePeriodInput is deliberately separate from UpdatePlanInput, which carries
-// the complete replacement state of a PUT and clears every field the caller omitted. Publishing
-// and archiving shift only the schedule, so reusing UpdatePlanInput for them would wipe the
-// plan's name, description and labels. Each boundary is updated independently, so a publish can
-// set only EffectiveFrom.
+// UpdatePlanEffectivePeriodInput is deliberately separate from UpdatePlanInput, whose PUT
+// replace semantics clear an omitted description and metadata. Publishing and archiving
+// shift only the schedule, so reusing UpdatePlanInput for them would wipe those fields.
+// Each boundary is updated independently, so a publish can set only EffectiveFrom.
 type UpdatePlanEffectivePeriodInput struct {
 	models.NamespacedID
 

@@ -53,6 +53,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		EffectiveTo:      p.EffectiveTo,
 		Id:               p.ID,
 		Key:              p.Key,
+		Labels:           labels.FromMetadata(p.Metadata),
 		Name:             p.Name,
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
@@ -568,8 +569,8 @@ func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanReque
 		return req, fmt.Errorf("failed to convert label metadata: %w", err)
 	}
 
-	// Non-nil even when empty: a nil Metadata means "unchanged" to the service, which would
-	// leak the stored labels through a request that omitted them.
+	// The PUT boundary hands the service the complete target state, so omitted labels
+	// become an explicit empty metadata value rather than an absent one.
 	req.Metadata = &meta
 
 	phases := make([]productcatalog.Phase, 0, len(body.Phases))
