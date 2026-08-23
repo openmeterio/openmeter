@@ -249,9 +249,10 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	// Compared unguarded, unlike the fields above: nil means the update omitted them and they
-	// are about to be cleared, so nil only equals an already-empty stored value.
-	if lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
+	// Compared presence-aware, unlike the guarded fields above: nil means the update omitted
+	// the description and is about to clear it, so nil only equals an already-absent stored
+	// value -- an explicitly empty stored description still needs the clearing write.
+	if (i.Description == nil) != (p.Description == nil) || lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
 
