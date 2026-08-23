@@ -366,11 +366,10 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 
 var _ models.Validator = (*UpdateAddonEffectivePeriodInput)(nil)
 
-// UpdateAddonEffectivePeriodInput is deliberately separate from UpdateAddonInput, which
-// carries the complete replacement state of a PUT and clears every field the caller omitted.
-// Publishing and archiving shift only the schedule, so reusing UpdateAddonInput for them would
-// wipe the add-on's name, description and labels. Each boundary is updated independently, so a
-// publish can set only EffectiveFrom.
+// UpdateAddonEffectivePeriodInput is deliberately separate from UpdateAddonInput, whose PUT
+// replace semantics clear an omitted description and metadata. Publishing and archiving
+// shift only the schedule, so reusing UpdateAddonInput for them would wipe those fields.
+// Each boundary is updated independently, so a publish can set only EffectiveFrom.
 type UpdateAddonEffectivePeriodInput struct {
 	models.NamespacedID
 

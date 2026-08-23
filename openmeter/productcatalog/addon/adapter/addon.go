@@ -583,8 +583,8 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 	return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)
 }
 
-// UpdateAddonEffectivePeriod exists because UpdateAddon is a full replace: routing the publish
-// and archive flows through UpdateAddon would clear the name, description and labels they do
+// UpdateAddonEffectivePeriod exists because UpdateAddon is a replace: routing the publish
+// and archive flows through UpdateAddon would clear the description and labels they do
 // not carry.
 func (a *adapter) UpdateAddonEffectivePeriod(ctx context.Context, params addon.UpdateAddonEffectivePeriodInput) (*addon.Addon, error) {
 	fn := func(ctx context.Context, a *adapter) (*addon.Addon, error) {
