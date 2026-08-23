@@ -28,16 +28,8 @@ func init() {
 	FromAPIUpdateOrganizationDefaultTaxCodesRequest = func(context string, source v3.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error) {
 		var taxcodeUpsertOrganizationDefaultTaxCodesInput taxcode.UpsertOrganizationDefaultTaxCodesInput
 		taxcodeUpsertOrganizationDefaultTaxCodesInput.Namespace = NamespaceFromContext(context)
-		xstring, err := InvoicingTaxCodeReferenceToIDString(source.InvoicingTaxCode)
-		if err != nil {
-			return taxcodeUpsertOrganizationDefaultTaxCodesInput, err
-		}
-		taxcodeUpsertOrganizationDefaultTaxCodesInput.InvoicingTaxCodeID = xstring
-		xstring2, err := CreditGrantTaxCodeReferenceToIDString(source.CreditGrantTaxCode)
-		if err != nil {
-			return taxcodeUpsertOrganizationDefaultTaxCodesInput, err
-		}
-		taxcodeUpsertOrganizationDefaultTaxCodesInput.CreditGrantTaxCodeID = xstring2
+		taxcodeUpsertOrganizationDefaultTaxCodesInput.InvoicingTaxCodeID = TaxCodeReferenceToIDString(source.InvoicingTaxCode)
+		taxcodeUpsertOrganizationDefaultTaxCodesInput.CreditGrantTaxCodeID = TaxCodeReferenceToIDString(source.CreditGrantTaxCode)
 		return taxcodeUpsertOrganizationDefaultTaxCodesInput, nil
 	}
 	FromAPIUpsertTaxCodeRequest = func(context models.NamespacedID, source v3.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
