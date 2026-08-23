@@ -3,6 +3,7 @@ package service_test
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -164,6 +165,35 @@ func TestTaxCodeService(t *testing.T) {
 			})
 			require.NoError(t, err)
 			assert.Equal(t, "updated name", updated.Name)
+		})
+
+		t.Run("UpdateClearsOmittedDescription", func(t *testing.T) {
+			// given a tax code that carries a description
+			name := testutils.NameGenerator.Generate()
+			created, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+				Namespace:   ns,
+				Key:         name.Key,
+				Name:        name.Name,
+				Description: lo.ToPtr("original description"),
+			})
+			require.NoError(t, err)
+			require.NotNil(t, created.Description)
+
+			// when an update arrives that does not name it
+			updated, err := env.Service.UpdateTaxCode(t.Context(), taxcode.UpdateTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: ns, ID: created.ID},
+				Name:         created.Name,
+			})
+			require.NoError(t, err)
+
+			// then the description is cleared and the clear is persisted
+			assert.Nil(t, updated.Description)
+
+			fetched, err := env.Service.GetTaxCode(t.Context(), taxcode.GetTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: ns, ID: created.ID},
+			})
+			require.NoError(t, err)
+			assert.Nil(t, fetched.Description)
 		})
 
 		t.Run("UpdateAnnotationsSucceeds", func(t *testing.T) {
