@@ -349,6 +349,7 @@ var ErrEntitlementTemplateNegativeUsagePeriod = models.NewValidationIssue(
 	"usage period must be positive",
 	models.WithFieldString("usagePeriod"),
 	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
 const ErrCodeEntitlementTemplateUsagePeriodLessThenAnHour models.ErrorCode = "entitlement_template_usage_period_less_then_an_hour"

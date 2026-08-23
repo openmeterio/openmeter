@@ -732,13 +732,9 @@ func FromAPIBillingRateCardEntitlement(e apiv3.BillingRateCardEntitlement, billi
 			}
 		}
 
-		if usagePeriod.IsZero() {
-			if billingCadence == nil || billingCadence.IsZero() {
-				return nil, models.NewGenericValidationError(
-					fmt.Errorf("metered entitlement requires usage_period when it cannot be inferred from billing_cadence"),
-				)
-			}
-
+		// When neither is set the usage period stays zero and the domain
+		// validation reports it on the entitlement template.
+		if usagePeriod.IsZero() && billingCadence != nil {
 			usagePeriod = *billingCadence
 		}
 

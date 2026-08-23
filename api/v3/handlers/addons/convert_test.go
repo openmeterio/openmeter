@@ -176,15 +176,24 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		assert.Equal(t, "P3M", metered.UsagePeriod.ISOString().String())
 	})
 
-	t.Run("metered — missing usage period with no billing cadence is a validation error", func(t *testing.T) {
+	t.Run("metered — missing usage period with no billing cadence converts and fails domain validation", func(t *testing.T) {
 		var apiEnt apiv3.BillingRateCardEntitlement
 		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(apiv3.BillingRateCardMeteredEntitlement{
 			Type: "metered",
 		}))
 
 		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
-		require.Error(t, err)
-		assert.Nil(t, domain)
+		require.NoError(t, err)
+
+		metered, err := domain.AsMetered()
+		require.NoError(t, err)
+		assert.True(t, metered.UsagePeriod.IsZero())
+
+		issues, err := models.AsValidationIssues(metered.Validate())
+		require.NoError(t, err)
+		assert.True(t, lo.ContainsBy(issues, func(issue models.ValidationIssue) bool {
+			return issue.Code() == productcatalog.ErrCodeEntitlementTemplateNegativeUsagePeriod
+		}))
 	})
 
 	t.Run("metered — malformed usage period is a validation error", func(t *testing.T) {
