@@ -532,3 +532,20 @@ func TestUnitConfigMapping(t *testing.T) {
 		assert.Equal(t, lo.ToPtr("GB"), uc.DisplayUnit)
 	})
 }
+
+func TestFromAPIBillingRateCardPriceTypeErrors(t *testing.T) {
+	t.Run("unknown price type is a validation error", func(t *testing.T) {
+		var price apiv3.BillingPrice
+		require.NoError(t, json.Unmarshal([]byte(`{"type":"bogus"}`), &price))
+
+		bc := apiv3.ISO8601Duration("P1M")
+		_, err := FromAPIBillingRateCard(apiv3.BillingRateCard{
+			Key:            "storage",
+			Name:           "Storage",
+			Price:          price,
+			BillingCadence: &bc,
+		})
+		require.Error(t, err)
+		assert.True(t, models.IsGenericValidationError(err))
+	})
+}

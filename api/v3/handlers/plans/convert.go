@@ -797,7 +797,7 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		}, nil
 
 	default:
-		return nil, fmt.Errorf("unsupported price type: %s", priceType)
+		return nil, models.NewGenericValidationError(fmt.Errorf("unsupported price type: %s", priceType))
 	}
 }
 
