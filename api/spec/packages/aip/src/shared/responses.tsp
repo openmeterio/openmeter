@@ -38,6 +38,12 @@ model DeleteResponse {
   @Http.statusCode _: 204;
 }
 
+@doc("Accepted response.")
+@friendlyName("AcceptedResponse")
+model AcceptedResponse {
+  @Http.statusCode _: 202;
+}
+
 /**
  * Cursor paginated response.
  */

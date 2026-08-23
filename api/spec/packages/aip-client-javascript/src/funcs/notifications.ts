@@ -23,6 +23,12 @@ import type {
   UpdateNotificationChannelResponse,
   DeleteNotificationChannelRequest,
   DeleteNotificationChannelResponse,
+  ListNotificationEventsRequest,
+  ListNotificationEventsResponse,
+  GetNotificationEventRequest,
+  GetNotificationEventResponse,
+  ResendNotificationEventRequest,
+  ResendNotificationEventResponse,
 } from '../models/operations/notifications.js'
 
 /**
@@ -210,5 +216,128 @@ export function deleteNotificationChannel(
       return encodeURIComponent(String(pathParams.notificationChannelId))
     })()}`
     await http(client).delete(path, options)
+  })
+}
+
+/**
+ * List notification events
+ *
+ * List all notification events.
+ *
+ * GET /openmeter/notification/events
+ */
+export function listNotificationEvents(
+  client: Client,
+  req: ListNotificationEventsRequest = {},
+  options?: RequestOptions,
+): Promise<Result<ListNotificationEventsResponse>> {
+  return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(
+        schemas.listNotificationEventsQueryParams.shape.sort,
+        req.sort,
+      )
+    }
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listNotificationEventsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listNotificationEventsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get('openmeter/notification/events', { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listNotificationEventsResponseWire, data)
+        }
+        return fromWire(data, schemas.listNotificationEventsResponse)
+      })
+  })
+}
+
+/**
+ * Get notification event
+ *
+ * Get a notification event by id.
+ *
+ * GET /openmeter/notification/events/{notificationEventId}
+ */
+export function getNotificationEvent(
+  client: Client,
+  req: GetNotificationEventRequest,
+  options?: RequestOptions,
+): Promise<Result<GetNotificationEventResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      notificationEventId: req.notificationEventId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getNotificationEventPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getNotificationEventPathParamsWire, pathParams)
+    }
+    const path = `openmeter/notification/events/${(() => {
+      if (pathParams.notificationEventId === undefined) {
+        throw new Error('missing path parameter: notificationEventId')
+      }
+      return encodeURIComponent(String(pathParams.notificationEventId))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getNotificationEventResponseWire, data)
+        }
+        return fromWire(data, schemas.getNotificationEventResponse)
+      })
+  })
+}
+
+/**
+ * Resend notification event
+ *
+ * Re-send a notification event to the channels of the rule that generated it.
+ *
+ * Delivery is asynchronous: the request marks the matching delivery statuses for
+ * re-delivery and returns immediately. Statuses that are still pending or already
+ * being re-sent are left untouched.
+ *
+ * POST /openmeter/notification/events/{notificationEventId}/resend
+ */
+export function resendNotificationEvent(
+  client: Client,
+  req: ResendNotificationEventRequest,
+  options?: RequestOptions,
+): Promise<Result<ResendNotificationEventResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      notificationEventId: req.notificationEventId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.resendNotificationEventPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.resendNotificationEventPathParamsWire, pathParams)
+    }
+    const path = `openmeter/notification/events/${(() => {
+      if (pathParams.notificationEventId === undefined) {
+        throw new Error('missing path parameter: notificationEventId')
+      }
+      return encodeURIComponent(String(pathParams.notificationEventId))
+    })()}/resend`
+    const body = toWire(req.body, schemas.resendNotificationEventBody)
+    if (client._options.validate) {
+      assertValid(schemas.resendNotificationEventBodyWire, body)
+    }
+    await http(client).post(path, { ...options, json: body })
   })
 }

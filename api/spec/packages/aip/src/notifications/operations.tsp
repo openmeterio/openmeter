@@ -7,6 +7,7 @@ import "../common/pagination.tsp";
 import "../common/parameters.tsp";
 import "../shared/index.tsp";
 import "./channel.tsp";
+import "./event.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -134,4 +135,125 @@ interface NotificationChannelOperations {
     | Shared.DeleteResponse
     | Common.NotFound
     | Common.ErrorResponses;
+}
+
+/**
+ * Filter options for listing notification events.
+ */
+@friendlyName("ListNotificationEventsParamsFilter")
+model ListNotificationEventsParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  type?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  created_at?: Common.DateTimeFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  rule_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter by the channels the generating rule targets. This is an existential
+   * match: `filter[channel_id][eq]=<id>` returns events whose rule targets that
+   * channel, not events that were delivered only to it. Only `eq` and `oeq` are
+   * supported; negating an existential match would return events that merely have
+   * some other channel as well, so `neq` is rejected.
+   */
+  channel_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter by delivery state. This is an existential match:
+   * `filter[delivery_status][eq]=failed` returns events where delivery to at least
+   * one channel failed, not events where every delivery failed. Only `eq` and `oeq`
+   * are supported; negating an existential match would return events that merely
+   * have some other state as well, so `neq` is rejected.
+   */
+  delivery_status?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by the subject the event refers to, matched against both the subject key
+   * and the subject id. Only `eq` and `oeq` are supported; the value is held in a
+   * JSON document rather than a column, and other operators are rejected.
+   */
+  subject?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by the feature the event refers to, matched against both the feature key
+   * and the feature id. Only `eq` and `oeq` are supported; the value is held in a
+   * JSON document rather than a column, and other operators are rejected.
+   */
+  feature?: Common.StringFieldFilterExact;
+}
+
+interface NotificationEventOperations {
+  /**
+   * List all notification events.
+   */
+  @get
+  @operationId("list-notification-events")
+  @summary("List notification events")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  list(
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort notification events returned in the response. Supported sort attributes
+     * are:
+     *
+     * - `created_at` (default, descending)
+     * - `id`
+     * - `type`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter notification events returned in the response.
+     *
+     * To filter notification events by type add the following query param:
+     * filter[type]=invoice_created
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListNotificationEventsParamsFilter,
+  ): Shared.PagePaginatedResponse<NotificationEvent> | Common.ErrorResponses;
+
+  /**
+   * Get a notification event by id.
+   */
+  @get
+  @route("/{notificationEventId}")
+  @operationId("get-notification-event")
+  @summary("Get notification event")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  get(@path notificationEventId: Shared.ULID):
+    | Shared.GetResponse<NotificationEvent>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Re-send a notification event to the channels of the rule that generated it.
+   *
+   * Delivery is asynchronous: the request marks the matching delivery statuses for
+   * re-delivery and returns immediately. Statuses that are still pending or already
+   * being re-sent are left untouched.
+   */
+  @post
+  @route("/{notificationEventId}/resend")
+  @operationId("resend-notification-event")
+  @summary("Resend notification event")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  resend(
+    @path notificationEventId: Shared.ULID,
+
+    @body
+    request: NotificationEventResendRequest,
+  ): Shared.AcceptedResponse | Common.NotFound | Common.ErrorResponses;
 }

@@ -23,6 +23,7 @@ import (
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -101,8 +102,10 @@ func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot
 			},
 			Namespaces: []string{balSnapshot.Namespace.ID},
 
-			From: balSnapshot.Entitlement.CurrentUsagePeriod.From,
-			To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
+			CreatedAt: filter.NewFilterTime(
+				&balSnapshot.Entitlement.CurrentUsagePeriod.From,
+				&balSnapshot.Entitlement.CurrentUsagePeriod.To,
+			),
 
 			DeduplicationHashes: []string{dedupHash.V1(), dedupHash.V2()},
 			OrderBy:             notification.OrderByCreatedAt,

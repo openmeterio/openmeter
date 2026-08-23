@@ -12,8 +12,10 @@ import (
 	eventdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -34,6 +36,29 @@ func EagerLoadRulesWithActiveChannels(at time.Time) func(query *entdb.Notificati
 	}
 }
 
+// annotationFilterValues reduces a filter on an annotation-backed field to the literal
+// values it matches. Annotations live in a JSONB column that is only reachable through
+// entutils.JSONBIn, so equality and set membership are the only expressible operators.
+// Anything else is rejected instead of silently ignored, which would return a superset of
+// the requested rows. The API layer rejects the same operators earlier with a 400; this is
+// the backstop for internal callers.
+func annotationFilterValues(name string, f *filter.FilterString) ([]string, error) {
+	if f == nil || f.IsEmpty() {
+		return nil, nil
+	}
+
+	switch {
+	case f.Eq != nil:
+		return []string{*f.Eq}, nil
+	case f.In != nil:
+		return *f.In, nil
+	default:
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("%s filter only supports equality and set membership", name),
+		)
+	}
+}
+
 func (a *adapter) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.Result[notification.Event], error) {
 	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Event], error) {
 		query := a.db.NotificationEvent.Query().
@@ -44,26 +69,58 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Where(eventdb.NamespaceIn(params.Namespaces...))
 		}
 
-		if len(params.Events) > 0 {
-			query = query.Where(eventdb.IDIn(params.Events...))
+		query = filter.ApplyToQuery(query, params.ID, eventdb.FieldID)
+		query = filter.ApplyToQuery(query, params.Type, eventdb.FieldType)
+		query = filter.ApplyToQuery(query, params.CreatedAt, eventdb.FieldCreatedAt)
+		query = filter.ApplyToQuery(query, params.RuleID, eventdb.FieldRuleID)
+
+		// Both edge filters are existential: they match events that have at least one
+		// matching delivery status / channel. Negation would silently invert to "has some
+		// other status/channel", so the API layer rejects it before we get here.
+		if params.DeliveryStatus != nil {
+			if p := filter.SelectPredicate[predicate.NotificationEventDeliveryStatus](*params.DeliveryStatus, statusdb.FieldState); p != nil {
+				query = query.Where(eventdb.HasDeliveryStatusesWith(*p))
+			}
 		}
 
-		if !params.From.IsZero() {
-			query = query.Where(eventdb.CreatedAtGTE(params.From.UTC()))
+		if params.ChannelID != nil {
+			if p := filter.SelectPredicate[predicate.NotificationChannel](*params.ChannelID, channeldb.FieldID); p != nil {
+				query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(*p)))
+			}
 		}
 
-		if !params.To.IsZero() {
-			query = query.Where(eventdb.CreatedAtLTE(params.To.UTC()))
+		subjects, err := annotationFilterValues("subject", params.Subject)
+		if err != nil {
+			return pagination.Result[notification.Event]{}, err
+		}
+
+		if len(subjects) > 0 {
+			query = query.Where(
+				eventdb.Or(
+					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, subjects),
+					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, subjects),
+				),
+			)
+		}
+
+		features, err := annotationFilterValues("feature", params.Feature)
+		if err != nil {
+			return pagination.Result[notification.Event]{}, err
+		}
+
+		if len(features) > 0 {
+			query = query.Where(
+				eventdb.Or(
+					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, features),
+					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, features),
+				),
+			)
 		}
 
 		if len(params.DeduplicationHashes) > 0 {
 			query = query.Where(
 				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationBalanceEventDedupeHash, params.DeduplicationHashes),
 			)
-		}
-
-		if len(params.DeliveryStatusStates) > 0 {
-			query = query.Where(eventdb.HasDeliveryStatusesWith(statusdb.StateIn(params.DeliveryStatusStates...)))
 		}
 
 		if !params.NextAttemptBefore.IsZero() {
@@ -76,32 +133,6 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			))
 		}
 
-		if len(params.Features) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, params.Features),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, params.Features),
-				),
-			)
-		}
-
-		if len(params.Subjects) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, params.Subjects),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, params.Subjects),
-				),
-			)
-		}
-
-		if len(params.Rules) > 0 {
-			query = query.Where(eventdb.RuleIDIn(params.Rules...))
-		}
-
-		if len(params.Channels) > 0 {
-			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...))))
-		}
-
 		order := entutils.GetOrdering(sortx.OrderDesc)
 		if !params.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(params.Order)
@@ -110,6 +141,8 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		switch params.OrderBy {
 		case notification.OrderByCreatedAt:
 			query = query.Order(eventdb.ByCreatedAt(order...))
+		case notification.OrderByType:
+			query = query.Order(eventdb.ByType(order...))
 		case notification.OrderByID:
 			fallthrough
 		default:
