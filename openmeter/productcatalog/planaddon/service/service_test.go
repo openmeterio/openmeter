@@ -263,6 +263,7 @@ func TestPlanAddonService(t *testing.T) {
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
+				Metadata: models.Metadata{"env": "prod"},
 				Annotations: map[string]interface{}{
 					"openmeter.key": "openmeter.value",
 				},

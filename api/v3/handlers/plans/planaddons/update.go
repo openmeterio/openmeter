@@ -48,8 +48,8 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 				MaxQuantity:   body.MaxQuantity,
 			}
 
-			// Non-nil even when empty: a nil Metadata means "unchanged" to the service, which
-			// would leak the stored labels through a request that omitted them.
+			// The PUT boundary hands the service the complete target state, so omitted labels
+			// become an explicit empty metadata value rather than an absent one.
 			m, err := labels.ToMetadata(body.Labels)
 			if err != nil {
 				return UpdatePlanAddonRequest{}, err

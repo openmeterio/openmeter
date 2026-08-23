@@ -172,6 +172,7 @@ func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePl
 			SetNamespace(params.Namespace).
 			SetPlanID(params.PlanID).
 			SetAddonID(params.AddonID).
+			SetMetadata(params.Metadata).
 			SetAnnotations(params.Annotations).
 			SetFromPlanPhase(params.FromPlanPhase).
 			SetNillableMaxQuantity(params.MaxQuantity).
@@ -373,10 +374,10 @@ func (a *adapter) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePl
 				query = query.SetFromPlanPhase(*params.FromPlanPhase)
 			}
 
-			// Annotations are server-managed and are not part of the plan-addon
-			// representation, so they must survive an update that omits them.
 			query = query.SetOrClearMetadata((*map[string]string)(params.Metadata))
 
+			// Annotations are server-managed and are not part of the plan-addon
+			// representation, so they must survive an update that omits them.
 			if params.Annotations != nil {
 				query = query.SetAnnotations(*params.Annotations)
 			}
