@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -32,14 +33,17 @@ func (h *handler) ListChannels() ListChannelsHandler {
 			}
 
 			req := ListChannelsRequest{
-				Namespaces:      []string{ns},
-				IncludeDisabled: lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationChannelOrderById)),
-				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
+				Namespaces: []string{ns},
+				OrderBy:    notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationChannelOrderById)),
+				Order:      sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
 				},
+			}
+
+			if includeDisabled := lo.FromPtrOr(params.IncludeDisabled, notification.DefaultDisabled); !includeDisabled {
+				req.Disabled = &filter.FilterBoolean{Eq: lo.ToPtr(false)}
 			}
 
 			return req, nil

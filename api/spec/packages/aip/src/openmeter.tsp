@@ -16,6 +16,7 @@ import "./productcatalog/index.tsp";
 import "./defaults/index.tsp";
 import "./entitlement-access/index.tsp";
 import "./invoices/index.tsp";
+import "./notifications/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -66,6 +67,10 @@ using TypeSpec.OpenAPI;
   #{ description: Shared.ProductCatalogDescription }
 )
 @tagMetadata(Shared.DefaultsTag, #{ description: Shared.DefaultsDescription })
+@tagMetadata(
+  Shared.NotificationsTag,
+  #{ description: Shared.NotificationsDescription }
+)
 namespace OpenMeter;
 
 @route("/openmeter/events")
@@ -211,3 +216,8 @@ interface OrganizationDefaultTaxCodesEndpoints
 @tag(Shared.EntitlementsTag)
 interface EntitlementAccessEndpoints
   extends EntitlementAccess.EntitlementAccessOperations {}
+
+@route("/openmeter/notification/channels")
+@tag(Shared.NotificationsTag)
+interface NotificationChannelsEndpoints
+  extends Notifications.NotificationChannelOperations {}
