@@ -1,0 +1,4 @@
+-- Intentionally no-op.
+--
+-- Healthy databases created these objects in migration 20260502093117. Dropping
+-- them when rolling back this repair would break those databases.
