@@ -823,10 +823,6 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		// Logs newly assigned partitions only (doesn't log already assigned partitions)
 		logger.Info("kafka partition assignment", "partitions", prettyPartitions(e.Partitions))
 
-		if len(e.Partitions) == 0 {
-			return nil
-		}
-
 		// Consumer to use the committed offset as a start position,
 		// with a fallback to `auto.offset.reset` if there is no committed offset.
 		// Auto offset reset is typically should be set to latest, so we will only consume new messages.
