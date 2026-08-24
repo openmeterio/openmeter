@@ -731,7 +731,7 @@ func TestPlanService(t *testing.T) {
 			var planV3 *plan.Plan
 
 			t.Run("V3", func(t *testing.T) {
-				planV3, err = env.Plan.NextPlan(ctx, plan.NextPlanInput{
+				planV3, err = env.Plan.NextPlan(t.Context(), plan.NextPlanInput{
 					NamespacedID: publishedPlanV2.NamespacedID,
 				})
 				require.NoErrorf(t, err, "creating a new draft Plan from active must not fail")

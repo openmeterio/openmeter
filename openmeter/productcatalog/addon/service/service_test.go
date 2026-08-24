@@ -438,7 +438,7 @@ func TestAddonService(t *testing.T) {
 						"add Status mismatch: expected=%s, actual=%s", productcatalog.AddonStatusArchived, getAddonV1.Status())
 
 					t.Run("V3", func(t *testing.T) {
-						addonV3, err = env.Addon.NextAddon(ctx, addon.NextAddonInput{
+						addonV3, err = env.Addon.NextAddon(t.Context(), addon.NextAddonInput{
 							NamespacedID: models.NamespacedID{Namespace: publishedAddonV2.Namespace},
 							Key:          publishedAddonV2.Key,
 						})
