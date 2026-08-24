@@ -520,13 +520,13 @@ func convertUsageBasedRealizationTypeToAPI(t usagebased.RealizationRunType, void
 // reference otherwise (including when the referenced invoice no longer
 // exists). The header carries neither lines nor the customer snapshot: the
 // charge already identifies both.
-func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.StandardLineWithInvoiceHeader) (*api.ChargeRealizationInvoiceOrReference, error) {
+func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.StandardInvoice) (*api.ChargeRealizationInvoiceOrReference, error) {
 	if invoiceID == nil {
 		return nil, nil
 	}
 
 	if expanded != nil {
-		apiInvoice, err := billinginvoices.ToAPIChargeRealizationInvoice(expanded.Invoice)
+		apiInvoice, err := billinginvoices.ToAPIChargeRealizationInvoice(*expanded)
 		if err != nil {
 			return nil, fmt.Errorf("converting invoice: %w", err)
 		}

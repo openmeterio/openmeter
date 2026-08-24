@@ -436,11 +436,7 @@ type customerChargeEntities struct {
 	customer          *customer.Customer
 	featuresByRef     map[ref.IDOrKey]feature.Feature
 	subscriptionsByID map[string]subscription.Subscription
-	// invoiceLinesByID pairs each realized invoice line with its parent
-	// invoice header, keyed by line ID: realization runs book to a specific
-	// line, and two runs may share an invoice through different lines, so the
-	// invoice ID alone cannot key the pairing.
-	invoiceLinesByID map[string]billing.StandardLineWithInvoiceHeader
+	invoiceLinesByID  map[string]billing.StandardInvoice
 }
 
 func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace string, customerID string, refs customerChargeReferences, expands meta.Expands) (customerChargeEntities, error) {
@@ -568,14 +564,14 @@ func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace
 }
 
 // listRealizationInvoiceLines loads the invoices referenced by realization
-// runs and breaks them into per-line entries keyed by line ID, each pairing
-// the line with its parent invoice header (lines stripped): realization runs
-// book to a specific line, so the line is the entity the expand resolves.
+// runs and indexes their header (lines stripped) by the ID of every line they
+// carry: realization runs book to a specific line, so the line ID is what the
+// expand resolves through, while the header is what the presentation needs.
 // There are no ID-only stubs without the expand; converters fall back to the
 // run's invoice ID. The customer filter is defense-in-depth against another
 // customer's invoice riding along through a corrupted run reference.
-func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace string, customerID string, ids []string) (map[string]billing.StandardLineWithInvoiceHeader, error) {
-	out := make(map[string]billing.StandardLineWithInvoiceHeader)
+func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace string, customerID string, ids []string) (map[string]billing.StandardInvoice, error) {
+	out := make(map[string]billing.StandardInvoice)
 	if len(ids) == 0 {
 		return out, nil
 	}
@@ -612,10 +608,7 @@ func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace str
 				continue
 			}
 
-			out[line.ID] = billing.StandardLineWithInvoiceHeader{
-				Line:    line,
-				Invoice: header,
-			}
+			out[line.ID] = header
 		}
 	}
 

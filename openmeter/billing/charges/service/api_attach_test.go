@@ -87,10 +87,7 @@ func TestBuildCustomerCharge(t *testing.T) {
 		customer:          &customer.Customer{ManagedResource: models.ManagedResource{ID: "cust-1", Name: "Attach Customer"}},
 		featuresByRef:     map[ref.IDOrKey]feature.Feature{{ID: "feat-1"}: {ID: "feat-1", Name: "Attach Feature"}},
 		subscriptionsByID: map[string]subscription.Subscription{"sub-1": {NamespacedID: models.NamespacedID{Namespace: "ns", ID: "sub-1"}, Name: "Attach Subscription"}},
-		invoiceLinesByID: map[string]billing.StandardLineWithInvoiceHeader{"line-1": {
-			Line:    &billing.StandardLine{StandardLineBase: billing.StandardLineBase{ManagedResource: models.ManagedResource{ID: "line-1"}}},
-			Invoice: billing.StandardInvoice{},
-		}},
+		invoiceLinesByID:  map[string]billing.StandardInvoice{"line-1": {}},
 	}
 
 	// when attaching the loaded entities

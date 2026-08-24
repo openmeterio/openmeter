@@ -133,7 +133,7 @@ func TestResolveFlatFeeRealizations(t *testing.T) {
 		// the runs' own persisted periods
 		charge := newFlatFeeCharge(t, flatfee.StatusActive, servicePeriod, realizations)
 
-		resolved, err := resolveFlatFeeRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveFlatFeeRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
 		// then the booked history is returned in creation order, voided runs
@@ -157,7 +157,7 @@ func TestResolveFlatFeeRealizations(t *testing.T) {
 		for _, status := range []flatfee.Status{flatfee.StatusFinal, flatfee.StatusDeleted} {
 			charge := newFlatFeeCharge(t, status, servicePeriod, realizations)
 
-			resolved, err := resolveFlatFeeRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+			resolved, err := resolveFlatFeeRealizations(charge, map[string]billing.StandardInvoice{})
 			require.NoError(t, err)
 			require.Len(t, resolved, 3)
 			require.NotNil(t, resolved[2].Run)
@@ -174,7 +174,7 @@ func TestResolveFlatFeeRealizations(t *testing.T) {
 
 		charge := newFlatFeeCharge(t, flatfee.StatusActive, servicePeriod, flatfee.Realizations{PriorRuns: flatfee.RealizationRuns{deletedRun}})
 
-		resolved, err := resolveFlatFeeRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveFlatFeeRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
 		require.Len(t, resolved, 1)
@@ -195,11 +195,8 @@ func TestResolveFlatFeeRealizations(t *testing.T) {
 
 		charge := newFlatFeeCharge(t, flatfee.StatusActive, servicePeriod, flatfee.Realizations{PriorRuns: flatfee.RealizationRuns{linedRun, linelessRun}})
 
-		lines := map[string]billing.StandardLineWithInvoiceHeader{
-			"line-1": {
-				Line:    &billing.StandardLine{StandardLineBase: billing.StandardLineBase{ManagedResource: models.ManagedResource{ID: "line-1"}}},
-				Invoice: billing.StandardInvoice{},
-			},
+		lines := map[string]billing.StandardInvoice{
+			"line-1": {StandardInvoiceBase: billing.StandardInvoiceBase{ID: "inv-1"}},
 		}
 
 		resolved, err := resolveFlatFeeRealizations(charge, lines)
@@ -208,8 +205,8 @@ func TestResolveFlatFeeRealizations(t *testing.T) {
 		// then only the run booked to a known line carries the attached
 		// invoice; the line-less run stays bare
 		require.Len(t, resolved, 2)
-		require.NotNil(t, resolved[0].Invoice, "the lined run carries the attached invoice line")
-		require.Equal(t, "line-1", resolved[0].Invoice.Line.ID)
+		require.NotNil(t, resolved[0].Invoice, "the lined run carries the attached invoice")
+		require.Equal(t, "inv-1", resolved[0].Invoice.ID)
 		require.Nil(t, resolved[1].Invoice, "a run without a line id cannot attach an invoice")
 	})
 }
@@ -273,7 +270,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, nil)
 
 		// when resolving the presentation view
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
 		// then live runs are stitched into contiguous periods with per-run
@@ -316,7 +313,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, usagebased.RealizationRuns{late, early}, nil)
 
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
 		require.Len(t, resolved, 3)
@@ -336,7 +333,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		for _, status := range []usagebased.Status{usagebased.StatusFinal, usagebased.StatusDeleted} {
 			charge := newUsageBasedCharge(t, status, servicePeriod, runs, nil)
 
-			resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+			resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 			require.NoError(t, err)
 			require.Len(t, resolved, 1)
 			require.NotNil(t, resolved[0].Run)
@@ -349,7 +346,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		}
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, nil)
 
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 		require.Len(t, resolved, 1)
 	})
@@ -365,7 +362,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 
 		// then the correction is reported frankly as a negative quantity
 		// instead of a fabricated zero
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 		require.Len(t, resolved, 3)
 		require.Equal(t, float64(10), resolved[0].Quantity.InexactFloat64())
@@ -381,7 +378,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		}
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, nil)
 
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
 		require.Len(t, resolved, 3)
@@ -404,7 +401,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 
 		// when resolving with the live read supplied through the realtime
 		// usage expand
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 		require.Len(t, resolved, 3)
 
@@ -423,7 +420,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		realtimeQuantity := alpacadecimal.NewFromInt(7)
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, &realtimeQuantity)
 
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
 		require.Nil(t, resolved[1].Run)
@@ -437,7 +434,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		realtimeQuantity := alpacadecimal.NewFromInt(14)
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, &realtimeQuantity)
 
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 		require.Len(t, resolved, 1)
 
@@ -457,7 +454,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 
 		// when resolving with a live read of 6 and the service period still
 		// open past the last run
-		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardLineWithInvoiceHeader{})
+		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 		require.Len(t, resolved, 3)
 

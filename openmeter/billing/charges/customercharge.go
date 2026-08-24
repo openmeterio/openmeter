@@ -51,11 +51,11 @@ type CustomerChargeFlatFeeRealization struct {
 	// Voided marks runs whose billing effect was undone. Voided entries are
 	// audit history: they do not count toward the covered service period.
 	Voided bool
-	// Invoice is the invoice line the run realized into together with its
-	// parent invoice header, attached by the customer-charge API facade under
-	// the realization-invoice expand; nil otherwise (converters fall back to
-	// the run's invoice ID).
-	Invoice *billing.StandardLineWithInvoiceHeader
+	// Invoice is the header (lines stripped) of the invoice the run realized
+	// into, attached by the customer-charge API facade under the
+	// realization-invoice expand; nil otherwise (converters fall back to the
+	// run's invoice ID).
+	Invoice *billing.StandardInvoice
 }
 
 // CustomerChargeUsageBasedRealization is a presentation-ready view of one
@@ -84,9 +84,9 @@ type CustomerChargeUsageBasedRealization struct {
 	// never advance the derived periods or quantities of the surrounding live
 	// entries.
 	Voided bool
-	// Invoice is the invoice line the run realized into together with its
-	// parent invoice header, attached by the customer-charge API facade under
-	// the realization-invoice expand; nil otherwise (converters fall back to
-	// the run's invoice ID).
-	Invoice *billing.StandardLineWithInvoiceHeader
+	// Invoice is the header (lines stripped) of the invoice the run realized
+	// into, attached by the customer-charge API facade under the
+	// realization-invoice expand; nil otherwise (converters fall back to the
+	// run's invoice ID).
+	Invoice *billing.StandardInvoice
 }

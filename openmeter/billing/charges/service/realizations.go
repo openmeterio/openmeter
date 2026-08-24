@@ -24,7 +24,7 @@ import (
 // whose remainder no further run will ever realize — the resolution is a
 // single outstanding projection spanning the whole service period, in place
 // of the (necessarily voided) history.
-func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[string]billing.StandardLineWithInvoiceHeader) ([]charges.CustomerChargeFlatFeeRealization, error) {
+func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[string]billing.StandardInvoice) ([]charges.CustomerChargeFlatFeeRealization, error) {
 	status, err := charge.Status.ToMetaChargeStatus()
 	if err != nil {
 		return nil, fmt.Errorf("converting charge status: %w", err)
@@ -58,8 +58,8 @@ func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[stri
 		}
 
 		if run.LineID != nil {
-			if line, ok := invoiceLinesByID[*run.LineID]; ok {
-				entry.Invoice = &line
+			if invoice, ok := invoiceLinesByID[*run.LineID]; ok {
+				entry.Invoice = &invoice
 			}
 		}
 
@@ -104,7 +104,7 @@ func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[stri
 // as the wire contract promises it is never negative. Billing-facing delta
 // calculations keep their own strict guards
 // (RealizationRuns.MapToBillingMeteredQuantity).
-func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID map[string]billing.StandardLineWithInvoiceHeader) ([]charges.CustomerChargeUsageBasedRealization, error) {
+func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID map[string]billing.StandardInvoice) ([]charges.CustomerChargeUsageBasedRealization, error) {
 	status, err := charge.Status.ToMetaChargeStatus()
 	if err != nil {
 		return nil, fmt.Errorf("converting charge status: %w", err)
@@ -145,8 +145,8 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 		}
 
 		if run.LineID != nil {
-			if line, ok := invoiceLinesByID[*run.LineID]; ok {
-				entry.Invoice = &line
+			if invoice, ok := invoiceLinesByID[*run.LineID]; ok {
+				entry.Invoice = &invoice
 			}
 		}
 
