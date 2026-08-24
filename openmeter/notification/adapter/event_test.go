@@ -144,13 +144,16 @@ func TestListEvents_Filters(t *testing.T) {
 	ruleA := seedRule(t, env, ns, notification.EventTypeBalanceThreshold, channelA.ID)
 	ruleB := seedRule(t, env, ns, notification.EventTypeEntitlementReset, channelB.ID)
 
+	subjectID := ulid.Make().String()
+	featureID := ulid.Make().String()
+
 	first := seedEvent(t, env, ns, ruleA, t0, models.Annotations{
 		notification.AnnotationEventSubjectKey: "subject-1",
 		notification.AnnotationEventFeatureKey: "feature-1",
 	})
 	second := seedEvent(t, env, ns, ruleA, t1, models.Annotations{
-		notification.AnnotationEventSubjectID: "subject-2-id",
-		notification.AnnotationEventFeatureID: "feature-2-id",
+		notification.AnnotationEventSubjectID: subjectID,
+		notification.AnnotationEventFeatureID: featureID,
 	})
 	third := seedEvent(t, env, ns, ruleB, frozen, nil)
 
@@ -229,37 +232,44 @@ func TestListEvents_Filters(t *testing.T) {
 			wantIDs: []string{first.ID},
 		},
 		{
-			name: "Subject eq matches the subject key annotation",
+			name: "SubjectKey eq matches the subject key annotation",
 			input: notification.ListEventsInput{
-				Subject: &filter.FilterString{Eq: lo.ToPtr("subject-1")},
+				SubjectKey: &filter.FilterString{Eq: lo.ToPtr("subject-1")},
 			},
 			wantIDs: []string{first.ID},
 		},
 		{
-			name: "Subject eq also matches the subject id annotation",
+			name: "SubjectKey eq does not match the subject id annotation",
 			input: notification.ListEventsInput{
-				Subject: &filter.FilterString{Eq: lo.ToPtr("subject-2-id")},
+				SubjectKey: &filter.FilterString{Eq: lo.ToPtr(subjectID)},
+			},
+			wantIDs: []string{},
+		},
+		{
+			name: "SubjectKey neq does not match events without the annotation",
+			input: notification.ListEventsInput{
+				SubjectKey: &filter.FilterString{Ne: lo.ToPtr("other-subject")},
+			},
+			wantIDs: []string{first.ID},
+		},
+		{
+			name: "SubjectID eq matches the subject id annotation",
+			input: notification.ListEventsInput{
+				SubjectID: &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(subjectID)}},
 			},
 			wantIDs: []string{second.ID},
 		},
 		{
-			name: "Subject in matches every listed subject",
+			name: "FeatureKey in matches the listed feature keys",
 			input: notification.ListEventsInput{
-				Subject: &filter.FilterString{In: lo.ToPtr([]string{"subject-1", "subject-2-id"})},
-			},
-			wantIDs: []string{first.ID, second.ID},
-		},
-		{
-			name: "Feature eq matches the feature key annotation",
-			input: notification.ListEventsInput{
-				Feature: &filter.FilterString{Eq: lo.ToPtr("feature-1")},
+				FeatureKey: &filter.FilterString{In: lo.ToPtr([]string{"feature-1", "feature-other"})},
 			},
 			wantIDs: []string{first.ID},
 		},
 		{
-			name: "Feature eq also matches the feature id annotation",
+			name: "FeatureID eq matches the feature id annotation",
 			input: notification.ListEventsInput{
-				Feature: &filter.FilterString{Eq: lo.ToPtr("feature-2-id")},
+				FeatureID: &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(featureID)}},
 			},
 			wantIDs: []string{second.ID},
 		},
@@ -283,35 +293,45 @@ func TestListEvents_Filters(t *testing.T) {
 	}
 }
 
-// TestListEvents_AnnotationFilterRejectsInexactOperators pins the adapter's refusal to
-// silently widen a subject/feature filter it cannot express against the JSONB column.
-// Returning every row for filter[subject][contains]=... would look like a successful
-// query while answering a different question.
-func TestListEvents_AnnotationFilterRejectsInexactOperators(t *testing.T) {
+// TestListEvents_AnnotationFilterOperators pins the JSONB predicate semantics of the
+// annotation-backed filters: pattern matching works against the stored text value, and
+// negated operators treat a missing annotation like a NULL column, so events without
+// the annotation never match.
+func TestListEvents_AnnotationFilterOperators(t *testing.T) {
 	env := newEventTestEnv(t)
 	ns := ulid.Make().String()
 
+	channel := seedChannel(t, env, ns)
+	rule := seedRule(t, env, ns, notification.EventTypeBalanceThreshold, channel.ID)
+
+	frozen := clock.Now()
+
+	annotated := seedEvent(t, env, ns, rule, frozen.Add(-2*time.Hour), models.Annotations{
+		notification.AnnotationEventSubjectKey: "customer-42",
+	})
+	other := seedEvent(t, env, ns, rule, frozen.Add(-time.Hour), models.Annotations{
+		notification.AnnotationEventSubjectKey: "internal-7",
+	})
+	seedEvent(t, env, ns, rule, frozen, nil)
+
 	testCases := []struct {
-		name  string
-		input notification.ListEventsInput
+		name    string
+		input   notification.ListEventsInput
+		wantIDs []string
 	}{
 		{
-			name: "subject contains",
+			name: "contains matches the annotation value case-insensitively",
 			input: notification.ListEventsInput{
-				Subject: &filter.FilterString{Contains: lo.ToPtr("subject")},
+				SubjectKey: &filter.FilterString{Contains: lo.ToPtr("CUSTOMER")},
 			},
+			wantIDs: []string{annotated.ID},
 		},
 		{
-			name: "subject neq",
+			name: "neq excludes the matching event and events without the annotation",
 			input: notification.ListEventsInput{
-				Subject: &filter.FilterString{Ne: lo.ToPtr("subject-1")},
+				SubjectKey: &filter.FilterString{Ne: lo.ToPtr("customer-42")},
 			},
-		},
-		{
-			name: "feature neq",
-			input: notification.ListEventsInput{
-				Feature: &filter.FilterString{Ne: lo.ToPtr("feature-1")},
-			},
+			wantIDs: []string{other.ID},
 		},
 	}
 
@@ -321,9 +341,14 @@ func TestListEvents_AnnotationFilterRejectsInexactOperators(t *testing.T) {
 			input.Namespaces = []string{ns}
 			input.Page = pagination.NewPage(1, 20)
 
-			_, err := env.adapter.ListEvents(t.Context(), input)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "only supports equality and set membership")
+			result, err := env.adapter.ListEvents(t.Context(), input)
+			require.NoError(t, err)
+
+			gotIDs := make([]string, 0, len(result.Items))
+			for _, item := range result.Items {
+				gotIDs = append(gotIDs, item.ID)
+			}
+			assert.ElementsMatch(t, tc.wantIDs, gotIDs)
 		})
 	}
 }

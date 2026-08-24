@@ -4547,8 +4547,10 @@ export const listNotificationEventsParamsFilter = z
     ruleId: ulidFieldFilter.optional(),
     channelId: ulidFieldFilter.optional(),
     deliveryStatus: stringFieldFilterExact.optional(),
-    subject: stringFieldFilterExact.optional(),
-    feature: stringFieldFilterExact.optional(),
+    subjectKey: stringFieldFilterExact.optional(),
+    subjectId: ulidFieldFilter.optional(),
+    featureKey: stringFieldFilterExact.optional(),
+    featureId: ulidFieldFilter.optional(),
   })
   .describe('Filter options for listing notification events.')
 
@@ -13649,8 +13651,10 @@ export const listNotificationEventsParamsFilterWire = z
     rule_id: ulidFieldFilterWire.optional(),
     channel_id: ulidFieldFilterWire.optional(),
     delivery_status: stringFieldFilterExactWire.optional(),
-    subject: stringFieldFilterExactWire.optional(),
-    feature: stringFieldFilterExactWire.optional(),
+    subject_key: stringFieldFilterExactWire.optional(),
+    subject_id: ulidFieldFilterWire.optional(),
+    feature_key: stringFieldFilterExactWire.optional(),
+    feature_id: ulidFieldFilterWire.optional(),
   })
   .describe('Filter options for listing notification events.')
 
