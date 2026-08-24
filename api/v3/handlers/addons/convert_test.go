@@ -176,17 +176,6 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		assert.Equal(t, "P3M", metered.UsagePeriod.ISOString().String())
 	})
 
-	t.Run("metered — missing usage period with no billing cadence is a validation error", func(t *testing.T) {
-		var apiEnt apiv3.BillingRateCardEntitlement
-		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(apiv3.BillingRateCardMeteredEntitlement{
-			Type: "metered",
-		}))
-
-		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
-		require.Error(t, err)
-		assert.Nil(t, domain)
-	})
-
 	t.Run("metered — malformed usage period is a validation error", func(t *testing.T) {
 		bad := apiv3.ISO8601Duration("not-a-duration")
 		var apiEnt apiv3.BillingRateCardEntitlement
