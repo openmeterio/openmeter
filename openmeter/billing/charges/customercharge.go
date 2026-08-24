@@ -22,7 +22,7 @@ type CustomerCharge struct {
 	// references.
 	Customer     *customer.Customer
 	Feature      *feature.Feature
-	Subscription *subscription.Subscription
+	Subscription *subscription.SubscriptionView
 
 	// Exactly the slice matching Charge.Type() is populated.
 	FlatFeeRealizations    []CustomerChargeFlatFeeRealization

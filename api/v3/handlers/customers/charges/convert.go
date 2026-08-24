@@ -292,7 +292,7 @@ func convertSubscriptionToReference(source *meta.SubscriptionReference) (*api.Su
 	return &result, nil
 }
 
-func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded *subscription.Subscription) (*api.SubscriptionOrReference, error) {
+func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded *subscription.SubscriptionView) (*api.SubscriptionOrReference, error) {
 	if source == nil {
 		return nil, nil
 	}
@@ -300,7 +300,10 @@ func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded
 	if expanded != nil {
 		var out api.SubscriptionOrReference
 
-		sub := subscriptions.ToAPIBillingSubscriptionBase(*expanded)
+		sub, err := subscriptions.ToAPIBillingSubscription(*expanded)
+		if err != nil {
+			return nil, fmt.Errorf("converting subscription: %w", err)
+		}
 
 		if err := out.FromBillingSubscription(sub); err != nil {
 			return nil, fmt.Errorf("setting subscription union: %w", err)

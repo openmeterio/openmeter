@@ -432,7 +432,7 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 type customerChargeEntities struct {
 	customer          *customer.Customer
 	featuresByRef     map[ref.IDOrKey]feature.Feature
-	subscriptionsByID map[string]subscription.Subscription
+	subscriptionsByID map[string]subscription.SubscriptionView
 	invoiceLinesByID  map[string]billing.StandardInvoice
 }
 
@@ -534,13 +534,13 @@ func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace stri
 // the subscription expand. The customer filter is defense-in-depth: the IDs
 // are already customer-scoped, but an integrity bug must not expose another
 // customer's subscription in this listing.
-func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace string, customerID string, ids []string) (map[string]subscription.Subscription, error) {
-	out := make(map[string]subscription.Subscription, len(ids))
+func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace string, customerID string, ids []string) (map[string]subscription.SubscriptionView, error) {
+	out := make(map[string]subscription.SubscriptionView, len(ids))
 	if len(ids) == 0 {
 		return out, nil
 	}
 
-	listed, err := s.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
+	listed, err := s.subscriptionService.ListViews(ctx, subscription.ListSubscriptionsInput{
 		Namespaces:     []string{namespace},
 		Page:           pagination.NewPage(1, len(ids)),
 		IncludeDeleted: true,
@@ -552,7 +552,7 @@ func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace
 	}
 
 	for _, item := range listed.Items {
-		out[item.ID] = item
+		out[item.Subscription.ID] = item
 	}
 
 	return out, nil

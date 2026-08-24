@@ -190,7 +190,9 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		full, err := s.Charges.listCustomerChargeSubscriptions(ctx, namespace, cust.ID, []string{subscriptionID})
 		require.NoError(s.T(), err)
 		require.Contains(s.T(), full, subscriptionID)
-		s.Equal("api-list-subscription", full[subscriptionID].Name)
+		s.Equal(subscriptionID, full[subscriptionID].Subscription.ID)
+		s.NotEmpty(full[subscriptionID].Phases, "the expand serves full views")
+		s.Equal("api-list-subscription", full[subscriptionID].Subscription.Name)
 	})
 
 	s.Run("customer scoping is required", func() {

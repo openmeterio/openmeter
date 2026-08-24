@@ -86,7 +86,7 @@ func TestBuildCustomerCharge(t *testing.T) {
 	entities := customerChargeEntities{
 		customer:          &customer.Customer{ManagedResource: models.ManagedResource{ID: "cust-1", Name: "Attach Customer"}},
 		featuresByRef:     map[ref.IDOrKey]feature.Feature{{ID: "feat-1"}: {ID: "feat-1", Name: "Attach Feature"}},
-		subscriptionsByID: map[string]subscription.Subscription{"sub-1": {NamespacedID: models.NamespacedID{Namespace: "ns", ID: "sub-1"}, Name: "Attach Subscription"}},
+		subscriptionsByID: map[string]subscription.SubscriptionView{"sub-1": {Subscription: subscription.Subscription{NamespacedID: models.NamespacedID{Namespace: "ns", ID: "sub-1"}, Name: "Attach Subscription"}}},
 		invoiceLinesByID:  map[string]billing.StandardInvoice{"line-1": {}},
 	}
 
@@ -103,7 +103,7 @@ func TestBuildCustomerCharge(t *testing.T) {
 	require.Equal(t, "Attach Feature", out.Feature.Name)
 
 	require.NotNil(t, out.Subscription)
-	require.Equal(t, "sub-1", out.Subscription.ID)
+	require.Equal(t, "sub-1", out.Subscription.Subscription.ID)
 
 	require.Len(t, out.UsageBasedRealizations, 2)
 	require.NotNil(t, out.UsageBasedRealizations[0].Invoice, "the booked run carries the loaded invoice")

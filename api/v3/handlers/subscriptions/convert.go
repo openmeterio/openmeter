@@ -85,18 +85,6 @@ func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.Bi
 	return result
 }
 
-// ToAPIBillingSubscriptionBase maps a bare subscription — no view — to the
-// API model: base fields only, an empty phase list, and no current period.
-// It serves callers that side-load subscriptions without their specs (e.g.
-// the customer charges subscription expand); the view-derived fields need
-// ToAPIBillingSubscription.
-func ToAPIBillingSubscriptionBase(sub subscription.Subscription) api.BillingSubscription {
-	result := subscriptionBaseFields(sub, clock.Now())
-	result.Phases = []api.BillingSubscriptionPhase{}
-
-	return result
-}
-
 func ToAPIBillingSubscription(view subscription.SubscriptionView) (api.BillingSubscription, error) {
 	// Resolve a single "now" and thread it through status, the current period, and
 	// phase classification so every time-dependent field reflects the same instant.
