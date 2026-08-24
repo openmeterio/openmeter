@@ -6,7 +6,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -217,8 +216,23 @@ func (h *usageBasedHandler) OnCustomCurrencyOverageAccruedCorrection(ctx context
 	if err := input.Validate(); err != nil {
 		return err
 	}
+	if input.Run.InvoiceUsage == nil || input.Run.InvoiceUsage.LedgerTransaction == nil {
+		return nil
+	}
 
-	return fmt.Errorf("implement OnCustomCurrencyOverageAccruedCorrection: %w", meta.ErrCustomCurrencyNotSupported)
+	costBasis, err := input.GetCostBasis()
+	if err != nil {
+		return fmt.Errorf("get cost basis: %w", err)
+	}
+
+	return h.customCurrencyOverage.correct(ctx, correctCustomCurrencyOverageInput{
+		Namespace:        input.Charge.Namespace,
+		TransactionGroup: *input.Run.InvoiceUsage.LedgerTransaction,
+		Annotations:      chargeAnnotationsForUsageBasedCharge(input.Charge),
+		BookedAt:         input.Run.ServicePeriodTo,
+		CustomAmount:     input.GetCustomCurrencyAmountAccrued(),
+		CostBasis:        costBasis,
+	})
 }
 
 func (h *usageBasedHandler) OnAllocateFiatOverageCredits(ctx context.Context, input usagebased.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error) {

@@ -459,6 +459,7 @@ func TestConvertCurrencyTemplateCorrection(t *testing.T) {
 	acme := currencyx.Code("ACME")
 	env := newTransactionsTestEnv(t)
 	costBasis := alpacadecimal.NewFromFloat(0.25)
+	sourceChargeID := testChargeID(1)
 
 	inputs := env.resolve(t, ConvertCurrencyTemplate{
 		At:             env.Now(),
@@ -467,6 +468,7 @@ func TestConvertCurrencyTemplateCorrection(t *testing.T) {
 		CostBasis:      costBasis,
 		SourceCurrency: testCurrencyReference(usd),
 		TargetCurrency: testCurrencyReference(acme),
+		SourceChargeID: &sourceChargeID,
 	})
 	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
@@ -479,8 +481,50 @@ func TestConvertCurrencyTemplateCorrection(t *testing.T) {
 		OriginalTransaction: convertTx,
 		OriginalGroup:       group,
 	})
+	require.NoError(t, err)
+	require.Len(t, correctionInputs, 1)
+	require.Equal(t, string(ledger.TransactionDirectionCorrection), correctionInputs[0].Annotations()[ledger.AnnotationTransactionDirection])
+	require.Equal(t, TemplateCode(ConvertCurrencyTemplate{}), correctionInputs[0].Annotations()[ledger.AnnotationTransactionTemplateCode])
+	for _, entry := range correctionInputs[0].EntryInputs() {
+		require.NotNil(t, entry.SourceChargeID())
+		require.Equal(t, sourceChargeID, *entry.SourceChargeID())
+	}
 
-	require.ErrorContains(t, err, "customer.receivable.currency.exchange correction is not implemented")
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, correctionInputs...))
+	require.NoError(t, err)
+
+	require.True(t, env.SumBalance(t, customerReceivableSubAccount(t, env, usd, nil, &costBasis, ledger.TransactionAuthorizationStatusOpen)).IsZero())
+	require.True(t, env.SumBalance(t, customerReceivableSubAccount(t, env, acme, &usd, &costBasis, ledger.TransactionAuthorizationStatusOpen)).IsZero())
+	require.True(t, env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, usd, nil, &costBasis)).IsZero())
+	require.True(t, env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, acme, &usd, &costBasis)).IsZero())
+}
+
+func TestConvertCurrencyTemplateCorrectionRejectsPartial(t *testing.T) {
+	usd := currencyx.Code("USD")
+	acme := currencyx.Code("ACME")
+	env := newTransactionsTestEnv(t)
+	costBasis := alpacadecimal.NewFromFloat(0.005)
+
+	inputs := env.resolve(t, ConvertCurrencyTemplate{
+		At:             env.Now(),
+		SourceAmount:   alpacadecimal.NewFromFloat(0.01),
+		TargetAmount:   alpacadecimal.NewFromInt(2),
+		CostBasis:      costBasis,
+		SourceCurrency: testCurrencyReference(usd),
+		TargetCurrency: testCurrencyReference(acme),
+	})
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+
+	convertTx := findForwardTransaction(t, group, ConvertCurrencyTemplate{})
+	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
+		At:                  env.Now(),
+		Amount:              alpacadecimal.NewFromInt(1),
+		CostBasis:           &costBasis,
+		OriginalTransaction: convertTx,
+		OriginalGroup:       group,
+	})
+	require.ErrorContains(t, err, "currency conversion correction requires full original target amount 2, got 1")
 	require.Empty(t, correctionInputs)
 }
 

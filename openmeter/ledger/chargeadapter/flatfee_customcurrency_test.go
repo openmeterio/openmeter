@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
@@ -124,6 +125,97 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SourceChargeID))
 		require.Nil(t, entry.SpendChargeID)
 	}
+}
+
+func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection(t *testing.T) {
+	env := newFlatFeeHandlerTestEnv(t)
+	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
+	customCurrencyIdentity := customCurrencyValue.Reference()
+	settlementCurrency := currencyx.Code("USD")
+	costBasis := alpacadecimal.NewFromFloat(0.25)
+	charge := env.newCustomCurrencyCreditThenInvoiceCharge(t, customCurrencyValue, costBasis)
+	run := env.newCustomOverageRun(totals.Totals{
+		Amount:       alpacadecimal.NewFromInt(100),
+		CreditsTotal: alpacadecimal.NewFromInt(60),
+		Total:        alpacadecimal.NewFromInt(40),
+	})
+
+	// given: invoice finalization has persisted the gross overage booking
+	result, err := env.handler.OnCustomCurrencyOverageAccrued(t.Context(), flatfee.OnCustomCurrencyOverageAccruedInput{
+		Charge: charge,
+		Run:    run,
+	})
+	require.NoError(t, err)
+	run.AccruedUsage = &invoicedusage.AccruedUsage{
+		ServicePeriod:     run.ServicePeriod,
+		Totals:            totals.Totals{Amount: result.TotalFiatAmount, Total: result.TotalFiatAmount},
+		LedgerTransaction: &result.TransactionGroup,
+	}
+
+	// when: failed invoice synchronization deletes the prepared run
+	err = env.handler.OnCustomCurrencyOverageAccruedCorrection(t.Context(), flatfee.OnCustomCurrencyOverageAccruedCorrectionInput{
+		Charge: charge,
+		Run:    run,
+	})
+	require.NoError(t, err)
+
+	// then: every native and fiat leg is fully reversed
+	fboSubAccount := env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)
+	customReceivableSubAccount := env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)
+	accruedSubAccount := env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))
+	require.True(t, env.sumBalance(t, fboSubAccount).IsZero())
+	require.True(t, env.sumBalance(t, customReceivableSubAccount).IsZero())
+	require.True(t, env.sumBalance(t, accruedSubAccount).IsZero())
+	require.True(t, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).IsZero())
+	require.True(t, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, currencies.NewCurrencyReference(settlementCurrency), nil, costBasis)).IsZero())
+	require.True(t, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).IsZero())
+
+	corrections, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     10,
+		AnnotationFilters: map[string]string{
+			ledger.AnnotationChargeID:             charge.ID,
+			ledger.AnnotationTransactionDirection: string(ledger.TransactionDirectionCorrection),
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, corrections.Items, 3)
+
+	bookedAt := flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod)
+	templateCodes := make([]string, 0, len(corrections.Items))
+	for _, transaction := range corrections.Items {
+		require.True(t, bookedAt.Equal(transaction.BookedAt()), "expected %s, got %s", bookedAt, transaction.BookedAt())
+		templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
+		require.NoError(t, err)
+		templateCodes = append(templateCodes, templateCode)
+	}
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.ConvertCurrencyTemplate{}),
+		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+	}, templateCodes)
+}
+
+func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(t *testing.T) {
+	env := newFlatFeeHandlerTestEnv(t)
+	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
+	charge := env.newCustomCurrencyCreditThenInvoiceCharge(t, customCurrencyValue, alpacadecimal.NewFromFloat(0.001))
+	run := env.newCustomOverageRun(totals.Totals{
+		Amount: alpacadecimal.NewFromInt(1),
+		Total:  alpacadecimal.NewFromInt(1),
+	})
+	run.AccruedUsage = &invoicedusage.AccruedUsage{
+		ServicePeriod: run.ServicePeriod,
+		Totals:        totals.Totals{},
+	}
+
+	// A positive native overage that rounded to zero fiat persisted no ledger
+	// reference, so cleanup has no gross booking to reverse.
+	err := env.handler.OnCustomCurrencyOverageAccruedCorrection(t.Context(), flatfee.OnCustomCurrencyOverageAccruedCorrectionInput{
+		Charge: charge,
+		Run:    run,
+	})
+	require.NoError(t, err)
 }
 
 func TestOnFlatFeeCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testing.T) {

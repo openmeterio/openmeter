@@ -33,6 +33,15 @@ type bookCustomCurrencyOverageInput struct {
 	TaxConfig      productcatalog.TaxCodeConfig
 }
 
+type correctCustomCurrencyOverageInput struct {
+	Namespace        string
+	TransactionGroup ledgertransaction.GroupReference
+	Annotations      models.Annotations
+	BookedAt         time.Time
+	CustomAmount     alpacadecimal.Decimal
+	CostBasis        alpacadecimal.Decimal
+}
+
 type customCurrencyOverageHandler struct {
 	ledger ledger.Ledger
 	deps   transactions.ResolverDependencies
@@ -90,6 +99,31 @@ func (i bookCustomCurrencyOverageInput) Validate() error {
 
 	if err := i.TaxConfig.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i correctCustomCurrencyOverageInput) Validate() error {
+	var errs []error
+
+	groupID := models.NamespacedID{Namespace: i.Namespace, ID: i.TransactionGroup.TransactionGroupID}
+	if err := groupID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("transaction group: %w", err))
+	}
+
+	if i.BookedAt.IsZero() {
+		errs = append(errs, errors.New("booked at is required"))
+	}
+
+	if err := ledger.ValidateTransactionAmount(i.CustomAmount); err != nil {
+		errs = append(errs, fmt.Errorf("custom amount: %w", err))
+	}
+
+	if err := ledger.ValidateCostBasis(i.CostBasis); err != nil {
+		errs = append(errs, fmt.Errorf("cost basis: %w", err))
+	} else if i.CostBasis.IsZero() {
+		errs = append(errs, errors.New("cost basis must be positive"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -168,4 +202,79 @@ func (h *customCurrencyOverageHandler) book(ctx context.Context, input bookCusto
 	return ledgertransaction.GroupReference{
 		TransactionGroupID: transactionGroup.ID().ID,
 	}, nil
+}
+
+// correct reverses a complete custom-currency overage booking in dependency
+// order: currency conversion, immediate consumption, then credit issuance.
+func (h *customCurrencyOverageHandler) correct(ctx context.Context, input correctCustomCurrencyOverageInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	originalGroup, err := h.ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: input.Namespace,
+		ID:        input.TransactionGroup.TransactionGroupID,
+	})
+	if err != nil {
+		return fmt.Errorf("get original transaction group: %w", err)
+	}
+
+	expectedForwardOrder := []string{
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
+		transactions.TemplateCode(transactions.ConvertCurrencyTemplate{}),
+	}
+	originalTransactions := originalGroup.Transactions()
+	if len(originalTransactions) != len(expectedForwardOrder) {
+		return fmt.Errorf("custom-currency overage group has %d transactions, expected %d", len(originalTransactions), len(expectedForwardOrder))
+	}
+
+	// The booking owns this transaction order, and transaction groups reload in
+	// creation order. Validate that contract before unwinding it in reverse.
+	for idx, transaction := range originalTransactions {
+		direction, err := ledger.TransactionDirectionFromAnnotations(transaction.Annotations())
+		if err != nil {
+			return fmt.Errorf("get original transaction direction: %w", err)
+		}
+		if direction != ledger.TransactionDirectionForward {
+			return fmt.Errorf("original transaction %s is not forward", transaction.ID().ID)
+		}
+
+		templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
+		if err != nil {
+			return fmt.Errorf("get original transaction template code: %w", err)
+		}
+		if templateCode != expectedForwardOrder[idx] {
+			return fmt.Errorf("unexpected transaction template %s at index %d in custom-currency overage group, expected %s", templateCode, idx, expectedForwardOrder[idx])
+		}
+	}
+
+	correctionInputs := make([]ledger.TransactionInput, 0, len(originalTransactions))
+	for idx := len(originalTransactions) - 1; idx >= 0; idx-- {
+		originalTransaction := originalTransactions[idx]
+		resolved, err := transactions.CorrectTransaction(ctx, h.deps, transactions.CorrectionInput{
+			At:                  input.BookedAt,
+			Amount:              input.CustomAmount,
+			CostBasis:           &input.CostBasis,
+			OriginalTransaction: originalTransaction,
+			OriginalGroup:       originalGroup,
+		})
+		if err != nil {
+			return fmt.Errorf("correct transaction template %s: %w", expectedForwardOrder[idx], err)
+		}
+
+		for _, correctionInput := range resolved {
+			correctionInputs = append(correctionInputs, transactions.WithAnnotations(correctionInput, input.Annotations))
+		}
+	}
+
+	if _, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Namespace,
+		input.Annotations,
+		correctionInputs...,
+	)); err != nil {
+		return fmt.Errorf("commit correction transaction group: %w", err)
+	}
+
+	return nil
 }

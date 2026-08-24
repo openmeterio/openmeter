@@ -44,6 +44,12 @@ func CalculateFiatAmount(amount, resolvedCostBasis alpacadecimal.Decimal, fiatCu
 // ConvertCustomCurrencyOverageToFiat converts the post-allocation total of a
 // custom-currency realization into its invoice currency using the persisted
 // cost basis.
+//
+// LIMITATION: Charges currently persist no cumulative custom/fiat conversion
+// state or FX correction history across realization runs. Each realization is
+// rounded independently, so neither forward booking nor correction can carry
+// or absorb another realization's rounding remainder. Cross-realization FX
+// reconciliation requires additional persisted charge state.
 func ConvertCustomCurrencyOverageToFiat(input ConvertCustomCurrencyOverageToFiatInput) (FiatOverage, error) {
 	if err := input.Currency.Validate(); err != nil {
 		return FiatOverage{}, fmt.Errorf("currency: %w", err)
