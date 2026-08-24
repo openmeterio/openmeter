@@ -232,6 +232,7 @@ export type {
   ListSubscriptionsParamsFilter,
   ListFeatureParamsFilter,
   ListAddonsParamsFilter,
+  ListPlanAddonsParamsFilter,
   CreateCreditGrantTaxConfig,
   CreditGrantTaxConfig,
   TaxConfig,
