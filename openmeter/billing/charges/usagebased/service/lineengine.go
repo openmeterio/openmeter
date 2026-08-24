@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -357,7 +358,10 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 	}
 
 	for _, line := range input.Deleted {
-		if err := e.handleInvoiceLineDeleteViaAPI(ctx, input.Invoice, line); err != nil {
+		err := transaction.RunWithNoValue(ctx, e.service.adapter, func(ctx context.Context) error {
+			return e.handleInvoiceLineDeleteViaAPI(ctx, input.Invoice, line)
+		})
+		if err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, err
 		}
 	}
@@ -600,6 +604,16 @@ func (e *LineEngine) validateInvoiceLineDeleteViaAPI(ctx context.Context, invoic
 			// This is an internal consistency error, we are not supposed to surface this to the user, so no typed error wrapping.
 			return usagebased.Charge{}, fmt.Errorf("usage based standard line[%s] cannot be deleted with no realization runs", line.GetID())
 		}
+
+		run, err := charge.Realizations.GetByLineID(line.GetID())
+		if err != nil {
+			return usagebased.Charge{}, fmt.Errorf("getting usage based realization run for line[%s]: %w", line.GetID(), err)
+		}
+		if charge.Intent.GetEffectiveIntent().Currency.IsCustom() && run.InvoiceUsage != nil {
+			if err := validatePreparedCustomCurrencyInvoiceDelete(invoice, charge, run, line); err != nil {
+				return usagebased.Charge{}, err
+			}
+		}
 	default:
 		return usagebased.Charge{}, fmt.Errorf("usage based line[%s]: unexpected line type: %s", line.GetID(), line.AsInvoiceLine().Type())
 	}
@@ -665,6 +679,17 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 
 		return nil
 	case billing.InvoiceLineTypeStandard:
+		run, err := charge.Realizations.GetByLineID(line.GetID())
+		if err != nil {
+			return fmt.Errorf("usage based line[%s]: getting realization run: %w", line.GetID(), err)
+		}
+		preparedRunCanceled := charge.Intent.GetEffectiveIntent().Currency.IsCustom() && run.InvoiceUsage != nil
+		if preparedRunCanceled {
+			charge, err = e.cancelPreparedCustomCurrencyRun(ctx, charge, &run)
+			if err != nil {
+				return fmt.Errorf("usage based line[%s]: canceling prepared realization run: %w", line.GetID(), err)
+			}
+		}
 
 		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
 			ChangeSource: billing.ChangeSourceAPIRequest,
@@ -689,27 +714,33 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 			return fmt.Errorf("usage based line[%s]: bisecting invoice patches for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
-		if len(stdInvoicePatches) != 1 {
-			return fmt.Errorf("received unexpected number of standard invoice patches for line[%s]: count=%d %v", line.GetID(), len(stdInvoicePatches), stdInvoicePatches)
-		}
+		if preparedRunCanceled {
+			if len(stdInvoicePatches) != 0 {
+				return fmt.Errorf("usage based line[%s]: prepared cancellation emitted unexpected standard invoice patches: %v", line.GetID(), stdInvoicePatches)
+			}
+		} else {
+			if len(stdInvoicePatches) != 1 {
+				return fmt.Errorf("received unexpected number of standard invoice patches for line[%s]: count=%d %v", line.GetID(), len(stdInvoicePatches), stdInvoicePatches)
+			}
 
-		stdInvoicePatch, err := stdInvoicePatches.RequireSingularStandardInvoiceLineDeletePatch()
-		if err != nil {
-			return fmt.Errorf("usage based line[%s]: requiring singular standard invoice line delete patch for charge[%s]: %w", line.GetID(), charge.ID, err)
-		}
+			stdInvoicePatch, err := stdInvoicePatches.RequireSingularStandardInvoiceLineDeletePatch()
+			if err != nil {
+				return fmt.Errorf("usage based line[%s]: requiring singular standard invoice line delete patch for charge[%s]: %w", line.GetID(), charge.ID, err)
+			}
 
-		if err := stdInvoicePatch.RequireTarget(line); err != nil {
-			return fmt.Errorf("usage based line[%s]: validating standard invoice line delete patch target for charge[%s]: %w", line.GetID(), charge.ID, err)
-		}
+			if err := stdInvoicePatch.RequireTarget(line); err != nil {
+				return fmt.Errorf("usage based line[%s]: validating standard invoice line delete patch target for charge[%s]: %w", line.GetID(), charge.ID, err)
+			}
 
-		standardLine, err := line.AsInvoiceLine().AsStandardLine()
-		if err != nil {
-			return fmt.Errorf("usage based line[%s]: getting standard line for charge[%s]: %w", line.GetID(), charge.ID, err)
-		}
+			standardLine, err := line.AsInvoiceLine().AsStandardLine()
+			if err != nil {
+				return fmt.Errorf("usage based line[%s]: getting standard line for charge[%s]: %w", line.GetID(), charge.ID, err)
+			}
 
-		_, err = e.deleteMutableStandardLineRealization(ctx, charge, standardInvoice, &standardLine)
-		if err != nil {
-			return fmt.Errorf("usage based line[%s]: deleting mutable standard line realization for charge[%s]: %w", line.GetID(), charge.ID, err)
+			_, err = e.deleteMutableStandardLineRealization(ctx, charge, standardInvoice, &standardLine)
+			if err != nil {
+				return fmt.Errorf("usage based line[%s]: deleting mutable standard line realization for charge[%s]: %w", line.GetID(), charge.ID, err)
+			}
 		}
 
 		// Handle the remaining gathering line patches
@@ -728,6 +759,66 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 	default:
 		return fmt.Errorf("usage based line[%s]: unexpected line type: %s", line.GetID(), line.AsInvoiceLine().Type())
 	}
+}
+
+func validatePreparedCustomCurrencyInvoiceDelete(
+	invoice billing.GenericInvoiceReader,
+	charge usagebased.Charge,
+	run usagebased.RealizationRun,
+	line billing.GenericInvoiceLine,
+) error {
+	standardInvoice, err := invoice.AsInvoice().AsStandardInvoice()
+	if err != nil {
+		return fmt.Errorf("usage based line[%s]: getting standard invoice: %w", line.GetID(), err)
+	}
+
+	switch standardInvoice.Status {
+	case billing.StandardInvoiceStatusIssuingSyncFailed,
+		billing.StandardInvoiceStatusDeleteInProgress,
+		billing.StandardInvoiceStatusDeleteFailed:
+	default:
+		return fmt.Errorf("custom-currency usage based line[%s] cannot be deleted before invoice synchronization: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	}
+
+	intent := charge.Intent.GetEffectiveIntent()
+	if !intent.Currency.IsCustom() || intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		return fmt.Errorf("usage based line[%s] is not a custom-currency credit-then-invoice line: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	}
+	if charge.State.CurrentRealizationRunID == nil || *charge.State.CurrentRealizationRunID != run.ID.ID {
+		return fmt.Errorf("custom-currency usage based line[%s] must reference the current realization run: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	}
+	if run.InvoiceID == nil || *run.InvoiceID != standardInvoice.ID || run.LineID == nil || *run.LineID != line.GetID() {
+		return fmt.Errorf("custom-currency usage based line[%s] has mismatched invoice preparation references: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	}
+	if !run.FiatOverageCreditAllocationCompleted {
+		return fmt.Errorf("custom-currency usage based line[%s] does not have completed invoice issuance preparation: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	}
+	if run.Payment != nil {
+		return fmt.Errorf("custom-currency usage based line[%s] cannot be deleted after payment booking: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	}
+
+	return nil
+}
+
+func (e *LineEngine) cancelPreparedCustomCurrencyRun(
+	ctx context.Context,
+	charge usagebased.Charge,
+	run *usagebased.RealizationRun,
+) (usagebased.Charge, error) {
+	if err := e.service.runs.CorrectAllCreditRealizations(ctx, usagebasedrun.CreditReconciliationHandlerInput{
+		Charge:     charge,
+		Run:        *run,
+		AllocateAt: run.ServicePeriodTo,
+	}); err != nil {
+		return usagebased.Charge{}, fmt.Errorf("correcting prepared realization run[%s]: %w", run.ID.ID, err)
+	}
+
+	charge, err := e.markMutableStandardLineRunDeleted(ctx, charge, *run, clock.Now())
+	if err != nil {
+		return usagebased.Charge{}, fmt.Errorf("marking prepared realization run[%s] deleted: %w", run.ID.ID, err)
+	}
+
+	return charge, nil
 }
 
 func (e *LineEngine) applyChargePatchForInvoiceLineEditViaAPI(ctx context.Context, charge usagebased.Charge, patch meta.Patch) (usagebased.Charge, invoiceupdater.Patches, error) {

@@ -325,6 +325,14 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 }
 
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllocationSurvivesInvoiceSyncRetry() {
+	s.runUsageBasedCustomCurrencyFiatOverageAfterInvoiceSyncFailure(false)
+}
+
+func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyPreparedOverageCanBeDeletedAfterInvoiceSyncFailure() {
+	s.runUsageBasedCustomCurrencyFiatOverageAfterInvoiceSyncFailure(true)
+}
+
+func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfterInvoiceSyncFailure(deleteAfterSyncFailure bool) {
 	// given:
 	// - a collected custom-currency usage run has a 5 USD gross overage
 	// - 5 USD of settlement credits are available at invoice finalization
@@ -406,8 +414,35 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllo
 
 		return fiatOverageCreditsHandler.Allocate(ctx, input)
 	}
-	s.UsageBasedTestHandler.onCorrectFiatOverageCreditAllocations = fiatOverageCreditsHandler.Correct
-	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(0)
+	correctionEvents := make([]string, 0, 6)
+	s.UsageBasedTestHandler.onCorrectFiatOverageCreditAllocations = func(
+		ctx context.Context,
+		input usagebased.CorrectFiatOverageCreditAllocationsInput,
+	) (creditrealization.CreateCorrectionInputs, error) {
+		correctionEvents = append(correctionEvents, "fiat_coverage_correction")
+
+		return fiatOverageCreditsHandler.Correct(ctx, input)
+	}
+	s.UsageBasedTestHandler.onCustomCurrencyOverageAccruedCorrection = func(
+		_ context.Context,
+		_ usagebased.OnCustomCurrencyOverageAccruedCorrectionInput,
+	) error {
+		correctionEvents = append(correctionEvents, "gross_overage_correction")
+		return nil
+	}
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(2)
+	failChargeCurrencyCorrection := deleteAfterSyncFailure
+	s.UsageBasedTestHandler.onCreditsOnlyUsageAccruedCorrection = func(
+		_ context.Context,
+		input usagebased.CreditsOnlyUsageAccruedCorrectionInput,
+	) (creditrealization.CreateCorrectionInputs, error) {
+		correctionEvents = append(correctionEvents, "charge_currency_correction")
+		if failChargeCurrencyCorrection {
+			return nil, errors.New("simulated charge-currency correction failure")
+		}
+
+		return newCreditCorrectionInputs(input.Corrections), nil
+	}
 
 	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
 		FiatCurrency: fiatCurrency,
@@ -419,6 +454,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllo
 
 	var (
 		chargeID meta.ChargeID
+		runID    usagebased.RealizationRunID
 		invoice  billing.StandardInvoice
 	)
 
@@ -460,7 +496,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllo
 
 		s.MockStreamingConnector.AddSimpleEvent(
 			feature.Feature.Key,
-			5,
+			6,
 			usageAt,
 			streamingtestutils.WithStoredAt(usageAt),
 		)
@@ -496,7 +532,11 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllo
 
 		return billing.NewUpsertStandardInvoiceResult(), nil
 	})
-	mockApp.OnFinalizeStandardInvoice(nil)
+	if deleteAfterSyncFailure {
+		mockApp.OnDeleteStandardInvoice(errors.New("simulated invoice delete sync failure"))
+	} else {
+		mockApp.OnFinalizeStandardInvoice(nil)
+	}
 
 	s.Run("when fiat allocation fails after gross preparation", func() {
 		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
@@ -549,6 +589,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllo
 		charge := s.mustGetUsageBasedChargeByID(chargeID)
 		run, err := charge.GetCurrentRealizationRun()
 		s.Require().NoError(err)
+		runID = run.ID
 		s.Require().NotNil(run.InvoiceUsage)
 		s.Require().NotNil(run.InvoiceUsage.LedgerTransaction)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.InvoiceUsage.Totals)
@@ -560,11 +601,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllo
 			"fiat overage",
 		)
 
-		_, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
-			Invoice:        invoice.GetInvoiceID(),
-			DeletionSource: billing.ChangeSourceSystem,
-		})
-		s.ErrorContains(err, "invoice action not available")
+		s.Require().NotNil(invoice.StatusDetails.AvailableActions.Delete)
 
 		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
 			ChangeSource: billing.ChangeSourceSystem,
@@ -586,6 +623,101 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyFiatOverageAllo
 		s.Require().NoError(err)
 		s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, invoice.Status)
 	})
+
+	if deleteAfterSyncFailure {
+		s.Run("when the first prepared cancellation fails", func() {
+			// given the overage and FIAT corrections succeed
+			// when the later charge-currency correction fails
+			// then the whole cleanup transaction rolls back
+			invoice, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+				Invoice:        invoice.GetInvoiceID(),
+				DeletionSource: billing.ChangeSourceAPIRequest,
+			})
+			s.Require().NoError(err)
+			s.Equal(billing.StandardInvoiceStatusDeleteFailed, invoice.Status)
+			s.Require().NotNil(invoice.StatusDetails.AvailableActions.Delete)
+			s.Equal([]string{
+				"fiat_coverage_correction",
+				"gross_overage_correction",
+				"charge_currency_correction",
+			}, correctionEvents)
+
+			charge := s.mustGetUsageBasedChargeByID(chargeID)
+			run, err := charge.GetCurrentRealizationRun()
+			s.Require().NoError(err)
+			s.Require().Len(run.FiatOverageCreditRealizations, 1)
+			s.Equal(creditrealization.TypeAllocation, run.FiatOverageCreditRealizations[0].Type)
+			s.Require().Len(run.CreditsAllocated, 1)
+			s.Equal(creditrealization.TypeAllocation, run.CreditsAllocated[0].Type)
+			s.Nil(run.DeletedAt)
+		})
+
+		failChargeCurrencyCorrection = false
+		s.Run("when cleanup commits before invoice delete sync fails", func() {
+			// given the correction failure is resolved
+			// when cleanup commits but the invoicing app delete fails
+			// then the prepared run stays deleted and only external sync remains retryable
+			invoice, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+				Invoice:        invoice.GetInvoiceID(),
+				DeletionSource: billing.ChangeSourceAPIRequest,
+			})
+			s.Require().NoError(err)
+			s.Equal(billing.StandardInvoiceStatusDeleteFailed, invoice.Status)
+			s.Equal(billing.ChangeSourceAPIRequest, invoice.DeletionSource)
+			s.Require().NotNil(invoice.DeletedAt)
+			s.Equal([]string{
+				"fiat_coverage_correction",
+				"gross_overage_correction",
+				"charge_currency_correction",
+				"fiat_coverage_correction",
+				"gross_overage_correction",
+				"charge_currency_correction",
+			}, correctionEvents)
+			s.Equal(1, mockApp.DeleteInvoiceCallCount())
+
+			charge := s.mustGetUsageBasedChargeByID(chargeID)
+			s.Equal(usagebased.StatusDeleted, charge.Status)
+			s.Nil(charge.State.CurrentRealizationRunID)
+			dbRun, err := s.DBClient.ChargeUsageBasedRuns.Get(ctx, runID.ID)
+			s.Require().NoError(err)
+			s.Require().NotNil(dbRun.DeletedAt)
+			dbFiatRealizations, err := dbRun.QueryFiatOverageCreditAllocations().All(ctx)
+			s.Require().NoError(err)
+			fiatRealizations := creditrealization.FromDBRealizations(dbFiatRealizations)
+			s.Require().Len(fiatRealizations, 2)
+			s.Zero(fiatRealizations.Sum().InexactFloat64())
+			dbChargeRealizations, err := dbRun.QueryCreditAllocations().All(ctx)
+			s.Require().NoError(err)
+			chargeRealizations := creditrealization.FromDBRealizations(dbChargeRealizations)
+			s.Require().Len(chargeRealizations, 2)
+			s.Zero(chargeRealizations.Sum().InexactFloat64())
+		})
+
+		mockApp.OnDeleteStandardInvoice(nil)
+		s.Run("then invoice delete sync retries without repeating cleanup", func() {
+			// given charge cleanup already committed
+			// when invoice deletion is retried after the app recovers
+			// then billing only retries external sync
+			invoice, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+				Invoice:        invoice.GetInvoiceID(),
+				DeletionSource: billing.ChangeSourceAPIRequest,
+			})
+			s.Require().NoError(err)
+			s.Equal(billing.StandardInvoiceStatusDeleted, invoice.Status)
+			s.Equal([]string{
+				"fiat_coverage_correction",
+				"gross_overage_correction",
+				"charge_currency_correction",
+				"fiat_coverage_correction",
+				"gross_overage_correction",
+				"charge_currency_correction",
+			}, correctionEvents)
+			s.Equal(2, mockApp.DeleteInvoiceCallCount())
+			mockApp.AssertExpectations(s.T())
+		})
+
+		return
+	}
 
 	s.Run("then retry issuing without reallocating fiat credits", func() {
 		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
@@ -1501,7 +1633,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				}
 
 				if test.expectPaymentSettled {
-
 					authorizedCallback = newCountedLedgerTransactionCallback[usagebased.OnPaymentAuthorizedInput]()
 					s.UsageBasedTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(_ *testing.T, input usagebased.OnPaymentAuthorizedInput) {
 						s.Equal(chargeID.ID, input.Charge.ID)

@@ -766,6 +766,11 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 			if input.DeletionSource != billing.ChangeSourceAPIRequest {
 				return nil
 			}
+			// Charge cleanup committed before invoice-app synchronization. A retry
+			// must not validate or dispatch those already-applied line deletions.
+			if sm.Invoice.DeletedAt != nil {
+				return nil
+			}
 
 			if err := s.validateAPIStandardLineDeletions(
 				ctx,

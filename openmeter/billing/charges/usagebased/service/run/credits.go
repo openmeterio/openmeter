@@ -436,6 +436,19 @@ func (s *Service) CorrectAllCreditRealizations(
 		}); err != nil {
 			return fmt.Errorf("correct all fiat overage credit realizations: %w", err)
 		}
+
+		if input.Run.InvoiceUsage != nil {
+			correctionInput := usagebased.OnCustomCurrencyOverageAccruedCorrectionInput{
+				Charge: input.Charge,
+				Run:    input.Run,
+			}
+			if err := correctionInput.Validate(); err != nil {
+				return fmt.Errorf("validate custom-currency overage accrual correction: %w", err)
+			}
+			if err := s.handler.OnCustomCurrencyOverageAccruedCorrection(ctx, correctionInput); err != nil {
+				return fmt.Errorf("correct custom-currency overage accrual: %w", err)
+			}
+		}
 	}
 
 	if _, err := creditreconciliation.CorrectAll(ctx, creditreconciliation.CorrectAllInput{
