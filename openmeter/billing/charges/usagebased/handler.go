@@ -298,6 +298,10 @@ type OnCustomCurrencyOverageAccruedResult struct {
 	TotalFiatAmount alpacadecimal.Decimal `json:"totalFiatAmount"`
 }
 
+// OnCustomCurrencyOverageAccruedCorrectionInput identifies the prepared gross
+// overage that must be corrected when invoice synchronization cannot complete.
+type OnCustomCurrencyOverageAccruedCorrectionInput = OnCustomCurrencyOverageAccruedInput
+
 func (r OnCustomCurrencyOverageAccruedResult) Validate() error {
 	var errs []error
 
@@ -360,6 +364,12 @@ type Handler interface {
 	// during invoice line finalization, before settlement-fiat credit allocation.
 	OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error)
 
+	// OnCustomCurrencyOverageAccruedCorrection reverses the prepared gross
+	// overage before its realization run is deleted. The implementation must
+	// participate in the caller's transaction; billing can invoke it again only
+	// after that transaction rolls back.
+	OnCustomCurrencyOverageAccruedCorrection(ctx context.Context, input OnCustomCurrencyOverageAccruedCorrectionInput) error
+
 	// OnCreditsOnlyUsageAccrued is called when a credit-only usage-based charge needs to be allocated as credits fully.
 	OnCreditsOnlyUsageAccrued(ctx context.Context, input CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
 
@@ -384,6 +394,10 @@ func (h UnimplementedHandler) OnInvoiceUsageAccrued(ctx context.Context, input O
 
 func (h UnimplementedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error) {
 	return OnCustomCurrencyOverageAccruedResult{}, errors.New("not implemented")
+}
+
+func (h UnimplementedHandler) OnCustomCurrencyOverageAccruedCorrection(ctx context.Context, input OnCustomCurrencyOverageAccruedCorrectionInput) error {
+	return errors.New("not implemented")
 }
 
 func (h UnimplementedHandler) OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {

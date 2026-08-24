@@ -165,6 +165,14 @@ func (h *flatFeeHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, inp
 	return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
 }
 
+func (h *flatFeeHandler) OnCustomCurrencyOverageAccruedCorrection(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedCorrectionInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	return fmt.Errorf("implement OnCustomCurrencyOverageAccruedCorrection: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
 func (h *flatFeeHandler) OnAllocateFiatOverageCredits(ctx context.Context, input flatfee.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
