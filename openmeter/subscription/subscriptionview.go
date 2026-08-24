@@ -250,6 +250,24 @@ func (s *SubscriptionItemView) Validate() error {
 	return nil
 }
 
+// withResolvedFeatureReference preserves any existing feature identity while
+// attaching the feature loaded for the subscription item.
+func withResolvedFeatureReference(meta productcatalog.RateCardMeta, resolvedFeature *feature.Feature) (productcatalog.RateCardMeta, error) {
+	if meta.Feature == nil {
+		meta.Feature = lo.ToPtr(resolvedFeature.Reference())
+		return meta, nil
+	}
+
+	resolvedReference, err := meta.Feature.WithFeature(resolvedFeature)
+	if err != nil {
+		return meta, err
+	}
+
+	meta.Feature = &resolvedReference
+
+	return meta, nil
+}
+
 func NewSubscriptionView(
 	sub Subscription,
 	cust customer.Customer,
@@ -428,19 +446,8 @@ func NewSubscriptionView(
 				}
 
 				if itemFeat != nil {
-					if err := item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-						if m.Feature == nil {
-							m.Feature = lo.ToPtr(itemFeat.Reference())
-							return m, nil
-						}
-
-						resolvedReference, err := m.Feature.WithFeature(itemFeat)
-						if err != nil {
-							return m, err
-						}
-						m.Feature = &resolvedReference
-
-						return m, nil
+					if err := item.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+						return withResolvedFeatureReference(meta, itemFeat)
 					}); err != nil {
 						return nil, fmt.Errorf("failed to resolve feature reference for item %s: %w", item.ID, err)
 					}
