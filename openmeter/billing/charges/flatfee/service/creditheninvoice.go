@@ -183,7 +183,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
-		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted)))
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
+		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.ValidateInvoiceIssuedRun))
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
@@ -780,6 +781,40 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 
 	s.Charge.State.AdvanceAfter = nil
 	s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(line.AsGenericLine()))
+
+	return nil
+}
+
+// ValidateInvoiceIssuedRun verifies that invoice finalization left the current
+// run in the durable state required to accept the external issuance event.
+func (s *CreditThenInvoiceStateMachine) ValidateInvoiceIssuedRun(_ context.Context, input billing.StandardLineWithInvoiceHeader) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun == nil {
+		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
+	}
+
+	if s.Charge.Intent.GetCurrency().IsCustom() {
+		if currentRun.AccruedUsage == nil {
+			return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
+		}
+		if !currentRun.FiatOverageCreditAllocationCompleted {
+			return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
+		}
+	}
+
+	if !currentRun.Immutable {
+		return fmt.Errorf("prepared realization run[%s] must be immutable", currentRun.ID.ID)
+	}
+	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
+		return fmt.Errorf("prepared realization run[%s] line does not match issued line[%s]", currentRun.ID.ID, input.Line.ID)
+	}
+	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
+		return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
+	}
 
 	return nil
 }

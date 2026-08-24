@@ -149,7 +149,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			statelessx.BoolFn(s.IsCurrentRunZeroFiatAmountOverage),
 		).
 		Permit(
-			meta.TriggerInvoiceIssued,
+			meta.TriggerInvoiceFinalizing,
 			usagebased.StatusActiveRealizationIssuing,
 		).
 		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
@@ -163,19 +163,19 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveRealizationIssuing).
 		Permit(
-			meta.TriggerNext,
+			meta.TriggerInvoiceIssued,
 			usagebased.StatusActiveRealizationCompleted,
 		).
 		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
-		// Extend is rejected while invoice-issued callbacks own this state.
+		// Extend is rejected while invoice callbacks own this state.
 		// Subscription sync can retry after billing advances the charge.
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.UnsupportedShrinkToRealizedPeriodOperation)).
-		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
+		OnEntryFrom(meta.TriggerInvoiceFinalizing, statelessx.WithParameters(s.FinalizeInvoiceRun))
 
 	// Zero-fiat-amount overages bypass invoice issuance after the run's converted
 	// fiat amount is durable. This state finalizes that run before normal
@@ -207,11 +207,13 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		// transition to payment settlement. Subscription sync can retry.
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
-		// Invoice-issued callbacks have already finalized the run in the
-		// issuing state. A gathering-line API delete may now shorten the
+		// Invoice-issued callbacks have already released the prepared run. A
+		// gathering-line API delete may now shorten the
 		// effective period to that completed run, and the next transition still
 		// owns routing the charge to active or payment settlement.
-		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod))
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
+		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.ValidateInvoiceIssuedRun)).
+		OnActive(s.ReleaseInvoiceIssuedRun)
 
 	// Payment + final
 
@@ -1120,45 +1122,129 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
 	}
+	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
+		return fmt.Errorf("realization run[%s] line does not match finalizing line[%s]", currentRun.ID.ID, input.Line.ID)
+	}
+	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
+		return fmt.Errorf("realization run[%s] invoice does not match finalizing invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
+	}
 
 	if !s.Charge.Intent.GetCurrency().IsCustom() {
-		accrueResult, err := s.Runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
+		if currentRun.InvoiceUsage == nil {
+			accrueResult, err := s.Runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
+				Charge: s.Charge,
+				Run:    currentRun,
+				Line:   *input.Line,
+			})
+			if err != nil {
+				return fmt.Errorf("accrue invoice usage: %w", err)
+			}
+			currentRun = accrueResult.Run
+
+			if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
+				return fmt.Errorf("update realization run: %w", err)
+			}
+		}
+
+		s.Charge.State.AdvanceAfter = nil
+
+		return nil
+	}
+
+	if currentRun.InvoiceUsage == nil && (len(currentRun.FiatOverageCreditRealizations) > 0 || currentRun.FiatOverageCreditAllocationCompleted) {
+		return fmt.Errorf("realization run[%s] has fiat overage allocation state without prepared invoice usage", currentRun.ID.ID)
+	}
+
+	line, err := input.Line.Clone()
+	if err != nil {
+		return fmt.Errorf("cloning finalizing line[%s]: %w", input.Line.ID, err)
+	}
+
+	if currentRun.InvoiceUsage == nil {
+		if err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
 			Charge: s.Charge,
 			Run:    currentRun,
-			Line:   *input.Line,
+			Stage:  standardLinePopulationStageInvoiceFinalizing,
+		}); err != nil {
+			return fmt.Errorf("populating gross finalizing line[%s] from run[%s]: %w", line.ID, currentRun.ID.ID, err)
+		}
+
+		prepared, err := s.Runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
+			Charge: s.Charge,
+			Run:    currentRun,
+			Line:   *line,
 		})
 		if err != nil {
-			return fmt.Errorf("accrue invoice usage: %w", err)
+			return fmt.Errorf("preparing custom-currency overage for finalizing line[%s]: %w", line.ID, err)
 		}
-		currentRun = accrueResult.Run
-
+		currentRun = prepared.Run
 		if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
-			return fmt.Errorf("update realization run: %w", err)
-		}
-	} else {
-		if currentRun.InvoiceUsage == nil {
-			return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
-		}
-		if !currentRun.FiatOverageCreditAllocationCompleted {
-			return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
-		}
-		if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
-			return fmt.Errorf("prepared realization run[%s] line does not match issued line[%s]", currentRun.ID.ID, input.Line.ID)
-		}
-		if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
-			return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
+			return fmt.Errorf("updating prepared realization run[%s]: %w", currentRun.ID.ID, err)
 		}
 	}
 
+	if !currentRun.FiatOverageCreditAllocationCompleted {
+		allocated, err := s.Runs.AllocateFiatOverageCredits(ctx, usagebasedrun.AllocateFiatOverageCreditsInput{
+			Charge: s.Charge,
+			Run:    currentRun,
+		})
+		if err != nil {
+			return fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", line.ID, err)
+		}
+		s.Charge = allocated.Charge
+		currentRun = allocated.Run
+	}
+
+	if err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Charge: s.Charge,
+		Run:    currentRun,
+		Stage:  standardLinePopulationStageInvoiceFinalizing,
+	}); err != nil {
+		return fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", line.ID, currentRun.ID.ID, err)
+	}
+
+	s.Charge.State.AdvanceAfter = nil
+	s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(line.AsGenericLine()))
+
+	return nil
+}
+
+// ValidateInvoiceIssuedRun verifies that invoice finalization prepared the
+// current run before accepting the external issuance event.
+func (s *CreditThenInvoiceStateMachine) ValidateInvoiceIssuedRun(_ context.Context, input billing.StandardLineWithInvoiceHeader) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	if s.Charge.State.CurrentRealizationRunID == nil {
+		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
+	}
+
+	currentRun, err := s.Charge.GetCurrentRealizationRun()
+	if err != nil {
+		return fmt.Errorf("get current realization run: %w", err)
+	}
+	if currentRun.InvoiceUsage == nil {
+		return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
+	}
+	if s.Charge.Intent.GetCurrency().IsCustom() && !currentRun.FiatOverageCreditAllocationCompleted {
+		return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
+	}
+	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
+		return fmt.Errorf("prepared realization run[%s] line does not match issued line[%s]", currentRun.ID.ID, input.Line.ID)
+	}
+	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
+		return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
+	}
+
+	return nil
+}
+
+// ReleaseInvoiceIssuedRun clears lifecycle scheduling after the prepared run
+// has accepted the external issuance event.
+func (s *CreditThenInvoiceStateMachine) ReleaseInvoiceIssuedRun(_ context.Context) error {
 	s.Charge.State.CurrentRealizationRunID = nil
 	s.Charge.State.AdvanceAfter = nil
-
-	updatedChargeBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.ChargeBase)
-	if err != nil {
-		return fmt.Errorf("update charge: %w", err)
-	}
-
-	s.Charge.ChargeBase = updatedChargeBase
 
 	return nil
 }

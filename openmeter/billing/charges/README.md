@@ -236,13 +236,13 @@ one.
   flat-fee run is a one-shot invoice-finalization effect. A persisted
   completion marker distinguishes pending allocation from a successful
   zero-allocation result, so retries do not re-enter completed allocation.
-- Invoice line finalization is the accounting-preparation boundary for a
-  flat-fee charge. The flat-fee state machine books invoice usage, prepares
-  custom-currency overage, and allocates settlement-fiat credits before emitting
+- Invoice line finalization is the accounting-preparation boundary for flat-fee
+  and usage-based charges. Their state machines book invoice usage, prepare
+  custom-currency overage, and allocate settlement-fiat credits before emitting
   any authoritative line change as an explicit invoice update patch. No patch
   means the existing line remains authoritative. Billing consumes an emitted
   patch before synchronizing the external invoice. The later invoice-issued
-  callback carries no economic effects; it only advances the prepared
+  callback carries no economic effects; it validates and advances the prepared
   realization into its post-issuance lifecycle.
 - Amount discounts on persisted detailed lines are signed realization facts.
   Their rounded amounts and rounding adjustments reconcile to the line's

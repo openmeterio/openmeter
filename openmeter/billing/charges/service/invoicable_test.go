@@ -3484,6 +3484,16 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
 		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 
+		mismatchedLine, err := invoice.Lines.OrEmpty()[0].Clone()
+		s.NoError(err)
+		mismatchedLine.ID = "mismatched-issued-line"
+		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: invoice,
+			Lines:   billing.StandardLines{mismatchedLine},
+		})
+		s.ErrorContains(err, "does not match issued line")
+		s.Equal(flatfee.StatusActiveRealizationIssuing, s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID).Status)
+
 		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
 			Invoice: invoice,
 			Lines:   invoice.Lines.OrEmpty(),
@@ -4692,22 +4702,66 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(float64(10), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
 	})
 
-	s.Run("#5 approve invoice with no fiat invoice usage accrual", func() {
+	s.Run("#5 finalize and issue invoice with no fiat invoice usage accrual", func() {
 		defer s.UsageBasedTestHandler.Reset()
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
 		s.UsageBasedTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
 
-		var err error
-		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		lineEngine := s.Charges.usageBasedService.GetLineEngine()
+		finalizingLine := invoice.Lines.OrEmpty()[0]
+		expectedFinalizingLine, err := finalizingLine.Clone()
 		s.NoError(err)
+
+		finalizedLines, err := lineEngine.OnInvoiceFinalizing(ctx, billing.OnInvoiceFinalizingInput{
+			Invoice: invoice,
+			Lines:   invoice.Lines.OrEmpty(),
+		})
+		s.NoError(err)
+		s.Equal(expectedFinalizingLine, finalizingLine)
+		s.Same(finalizingLine, finalizedLines[0])
+		invoice.Lines = billing.NewStandardInvoiceLines(finalizedLines)
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActiveRealizationIssuing, usageBasedCharge.Status)
+		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
+		s.Nil(usageBasedCharge.State.AdvanceAfter)
+		s.Len(usageBasedCharge.Realizations, 1)
+
+		preparedRun := usageBasedCharge.Realizations[0]
+		s.Equal(float64(100), preparedRun.MeteredQuantity.InexactFloat64())
+		s.NotNil(preparedRun.LineID)
+		s.Equal(stdLineID.ID, *preparedRun.LineID)
+		s.True(preparedRun.NoFiatTransactionRequired)
+		s.NotNil(preparedRun.InvoiceUsage)
+		s.Nil(preparedRun.InvoiceUsage.LedgerTransaction)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       10,
+			CreditsTotal: 10,
+		}, preparedRun.InvoiceUsage.Totals)
+
+		mismatchedLine, err := finalizingLine.Clone()
+		s.NoError(err)
+		mismatchedLine.ID = "mismatched-issued-line"
+		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: invoice,
+			Lines:   billing.StandardLines{mismatchedLine},
+		})
+		s.ErrorContains(err, "does not match issued line")
+		s.Equal(usagebased.StatusActiveRealizationIssuing, s.mustGetUsageBasedChargeByID(usageBasedChargeID).Status)
+
+		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: invoice,
+			Lines:   invoice.Lines.OrEmpty(),
+		})
+		s.NoError(err)
+		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
+
+		usageBasedCharge = s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
 		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Nil(usageBasedCharge.State.AdvanceAfter)
-		s.Len(usageBasedCharge.Realizations, 1)
 
 		finalRun := usageBasedCharge.Realizations[0]
 		s.Equal(float64(100), finalRun.MeteredQuantity.InexactFloat64())

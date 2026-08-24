@@ -1050,7 +1050,7 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 			return nil, fmt.Errorf("finalizing invoice line for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		updatedLine, err := patches.GetSingularStandardLineUpdateOrEmpty(stdLine.GetLineID(), input.Invoice.ID)
+		updatedLine, err := patches.RequireSingularStandardLineUpdateOrEmpty(stdLine.GetLineID(), input.Invoice.ID)
 		if err != nil {
 			return nil, fmt.Errorf("validating finalizing update for line[%s]: %w", stdLine.ID, err)
 		}
@@ -1073,7 +1073,10 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 			return err
 		}
 
-		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceIssued); err != nil {
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceIssued, billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		}); err != nil {
 			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 	}
