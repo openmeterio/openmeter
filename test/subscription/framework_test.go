@@ -16,6 +16,10 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
@@ -46,13 +50,18 @@ type testDeps struct {
 	subscriptionWorkflowService subscriptionworkflow.Service
 	subscriptionSyncService     subscriptionsync.Service
 	billingService              billing.Service
+	chargesService              charges.Service
 	sandboxApp                  app.App
 	cleanup                     func(t *testing.T) // Cleanup function
 }
 
-type setupConfig struct{}
+type setupConfig struct {
+	usageBasedHandler       usagebased.Handler
+	lineageService          lineage.Service
+	enableCreditThenInvoice bool
+}
 
-func setup(t *testing.T, _ setupConfig) testDeps {
+func setup(t *testing.T, config setupConfig) testDeps {
 	t.Helper()
 
 	// Let's build the dependencies
@@ -145,6 +154,25 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	billingService = billingService.WithInvoiceCalculator(invoiceCalculator)
 
+	var chargesService charges.Service
+	if config.usageBasedHandler != nil {
+		handlers := chargestestutils.NewMockHandlers()
+		stack, err := chargestestutils.NewServices(t, chargestestutils.Config{
+			Client:                deps.DBDeps.DBClient,
+			Logger:                slog.Default(),
+			BillingService:        billingService,
+			FeatureService:        deps.FeatureConnector,
+			StreamingConnector:    deps.MockStreamingConnector,
+			TaxCodeService:        taxCodeService,
+			FlatFeeHandler:        handlers.FlatFee,
+			CreditPurchaseHandler: handlers.CreditPurchase,
+			UsageBasedHandler:     config.usageBasedHandler,
+			LineageService:        config.lineageService,
+		})
+		require.NoError(t, err)
+		chargesService = stack.ChargesService
+	}
+
 	subscriptionSyncAdapter, err := subscriptionsyncadapter.New(subscriptionsyncadapter.Config{
 		Client: deps.DBDeps.DBClient,
 	})
@@ -153,10 +181,14 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	subscriptionSyncService, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		BillingService:          billingService,
 		LegacyBillingLineEngine: legacyBillingLineEngine,
+		ChargesService:          chargesService,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     deps.SubscriptionService,
+		FeatureFlags: subscriptionsyncservice.FeatureFlags{
+			EnableCreditThenInvoice: config.enableCreditThenInvoice,
+		},
 		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
 			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
 		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
@@ -206,6 +238,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		cleanup:                     dbDeps.Cleanup,
 		subscriptionSyncService:     subscriptionSyncService,
 		billingService:              billingService,
+		chargesService:              chargesService,
 		sandboxApp:                  sandboxApp,
 	}
 }
