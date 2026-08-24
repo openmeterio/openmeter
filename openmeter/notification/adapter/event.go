@@ -54,16 +54,16 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		// Both edge filters are existential: they match events that have at least one
 		// matching delivery status / channel. Negation would silently invert to "has some
 		// other status/channel", so the API layer rejects it before we get here.
-		if params.DeliveryStatus != nil {
-			if p := filter.SelectPredicate[predicate.NotificationEventDeliveryStatus](*params.DeliveryStatus, statusdb.FieldState); p != nil {
-				query = query.Where(eventdb.HasDeliveryStatusesWith(*p))
-			}
+		var statusPreds []predicate.NotificationEventDeliveryStatus
+		statusPreds = filter.ApplyToPredicate(statusPreds, params.DeliveryStatus, statusdb.FieldState)
+		if len(statusPreds) > 0 {
+			query = query.Where(eventdb.HasDeliveryStatusesWith(statusPreds...))
 		}
 
-		if params.ChannelID != nil {
-			if p := filter.SelectPredicate[predicate.NotificationChannel](*params.ChannelID, channeldb.FieldID); p != nil {
-				query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(*p)))
-			}
+		var channelPreds []predicate.NotificationChannel
+		channelPreds = filter.ApplyToPredicate(channelPreds, params.ChannelID, channeldb.FieldID)
+		if len(channelPreds) > 0 {
+			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channelPreds...)))
 		}
 
 		query = filter.ApplyToQueryJSONB(query, params.SubjectKey, eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey)
