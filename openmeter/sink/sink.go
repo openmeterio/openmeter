@@ -841,8 +841,8 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 			return fmt.Errorf("failed to assign partitions: %w", err)
 		}
 
-		// We resume the consumer after the partitions are assigned to start processing new messages.
-		err = s.config.Consumer.Resume(e.Partitions)
+		// Resume the full post-rebalance assignment, including partitions retained during a cooperative rebalance.
+		err = s.resume()
 		if err != nil {
 			return fmt.Errorf("failed to resume after assigned partitions: %w", err)
 		}
