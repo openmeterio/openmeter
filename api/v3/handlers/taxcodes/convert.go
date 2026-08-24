@@ -2,8 +2,6 @@
 package taxcodes
 
 import (
-	"errors"
-
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -22,8 +20,7 @@ import (
 // goverter:extend ToAPIBillingTaxCodeAppMappings
 // goverter:extend ConvertLabelsToMetadata
 // goverter:extend IDStringToTaxCodeReference
-// goverter:extend InvoicingTaxCodeReferenceToIDString
-// goverter:extend CreditGrantTaxCodeReferenceToIDString
+// goverter:extend TaxCodeReferenceToIDString
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
@@ -54,8 +51,8 @@ var (
 
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
-	// goverter:map InvoicingTaxCode InvoicingTaxCodeID | InvoicingTaxCodeReferenceToIDString
-	// goverter:map CreditGrantTaxCode CreditGrantTaxCodeID | CreditGrantTaxCodeReferenceToIDString
+	// goverter:map InvoicingTaxCode InvoicingTaxCodeID | TaxCodeReferenceToIDString
+	// goverter:map CreditGrantTaxCode CreditGrantTaxCodeID | TaxCodeReferenceToIDString
 	// goverter:ignore Expand
 	FromAPIUpdateOrganizationDefaultTaxCodesRequest func(namespace string, body api.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error)
 )
@@ -98,18 +95,13 @@ func IDStringToTaxCodeReference(id string) api.TaxCodeReference {
 	return api.TaxCodeReference{Id: id}
 }
 
-func InvoicingTaxCodeReferenceToIDString(ref *api.TaxCodeReference) (string, error) {
-	if ref == nil || ref.Id == "" {
-		return "", models.NewGenericValidationError(errors.New("invoicing_tax_code.id is required"))
+// TaxCodeReferenceToIDString maps a nil reference to an empty ID; the service
+// input validation rejects empty IDs with resource_id_empty.
+func TaxCodeReferenceToIDString(ref *api.TaxCodeReference) string {
+	if ref == nil {
+		return ""
 	}
-	return ref.Id, nil
-}
-
-func CreditGrantTaxCodeReferenceToIDString(ref *api.TaxCodeReference) (string, error) {
-	if ref == nil || ref.Id == "" {
-		return "", models.NewGenericValidationError(errors.New("credit_grant_tax_code.id is required"))
-	}
-	return ref.Id, nil
+	return ref.Id
 }
 
 // ToAPIBillingTaxCodeAppMappings converts domain app mappings to API app mappings.
