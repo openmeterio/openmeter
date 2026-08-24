@@ -37,15 +37,16 @@ func (m *mockLineageService) BackfillAdvanceLineageSegments(ctx context.Context,
 var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
 
 type flatFeeTestHandler struct {
-	onAllocateCredits                     func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error)
-	onInvoiceUsageAccrued                 func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
-	onCustomCurrencyOverageAccrued        func(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error)
-	onCorrectCreditAllocations            func(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
-	onAllocateFiatOverageCredits          func(ctx context.Context, input flatfee.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error)
-	onCorrectFiatOverageCreditAllocations func(ctx context.Context, input flatfee.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
-	onPaymentAuthorized                   func(ctx context.Context, input flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
-	onPaymentSettled                      func(ctx context.Context, input flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
-	onPaymentUncollectible                func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onAllocateCredits                        func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error)
+	onInvoiceUsageAccrued                    func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onCustomCurrencyOverageAccrued           func(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error)
+	onCustomCurrencyOverageAccruedCorrection func(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedCorrectionInput) error
+	onCorrectCreditAllocations               func(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
+	onAllocateFiatOverageCredits             func(ctx context.Context, input flatfee.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error)
+	onCorrectFiatOverageCreditAllocations    func(ctx context.Context, input flatfee.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
+	onPaymentAuthorized                      func(ctx context.Context, input flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
+	onPaymentSettled                         func(ctx context.Context, input flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
+	onPaymentUncollectible                   func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 }
 
 func newFlatFeeTestHandler() *flatFeeTestHandler {
@@ -74,6 +75,14 @@ func (h *flatFeeTestHandler) OnCustomCurrencyOverageAccrued(ctx context.Context,
 	}
 
 	return h.onCustomCurrencyOverageAccrued(ctx, input)
+}
+
+func (h *flatFeeTestHandler) OnCustomCurrencyOverageAccruedCorrection(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedCorrectionInput) error {
+	if h.onCustomCurrencyOverageAccruedCorrection == nil {
+		return nil
+	}
+
+	return h.onCustomCurrencyOverageAccruedCorrection(ctx, input)
 }
 
 func (h *flatFeeTestHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
@@ -180,14 +189,15 @@ func (h *creditPurchaseTestHandler) Reset() {
 var _ usagebased.Handler = (*usageBasedTestHandler)(nil)
 
 type usageBasedTestHandler struct {
-	onInvoiceUsageAccrued                 func(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
-	onCustomCurrencyOverageAccrued        func(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error)
-	onPaymentAuthorized                   func(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
-	onPaymentSettled                      func(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
-	onCreditsOnlyUsageAccrued             func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
-	onCreditsOnlyUsageAccruedCorrection   func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
-	onAllocateFiatOverageCredits          func(ctx context.Context, input usagebased.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error)
-	onCorrectFiatOverageCreditAllocations func(ctx context.Context, input usagebased.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
+	onInvoiceUsageAccrued                    func(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onCustomCurrencyOverageAccrued           func(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error)
+	onCustomCurrencyOverageAccruedCorrection func(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedCorrectionInput) error
+	onPaymentAuthorized                      func(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
+	onPaymentSettled                         func(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
+	onCreditsOnlyUsageAccrued                func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
+	onCreditsOnlyUsageAccruedCorrection      func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
+	onAllocateFiatOverageCredits             func(ctx context.Context, input usagebased.AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error)
+	onCorrectFiatOverageCreditAllocations    func(ctx context.Context, input usagebased.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
 }
 
 func newUsageBasedTestHandler() *usageBasedTestHandler {
@@ -208,6 +218,14 @@ func (h *usageBasedTestHandler) OnCustomCurrencyOverageAccrued(ctx context.Conte
 	}
 
 	return h.onCustomCurrencyOverageAccrued(ctx, input)
+}
+
+func (h *usageBasedTestHandler) OnCustomCurrencyOverageAccruedCorrection(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedCorrectionInput) error {
+	if h.onCustomCurrencyOverageAccruedCorrection == nil {
+		return nil
+	}
+
+	return h.onCustomCurrencyOverageAccruedCorrection(ctx, input)
 }
 
 func (h *usageBasedTestHandler) OnPaymentAuthorized(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {

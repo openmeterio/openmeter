@@ -280,9 +280,13 @@ Charge-currency and settlement-fiat allocations are separate realization and
 lineage domains. Rating and mutable rerating reconcile charge-currency facts;
 invoice finalization first persists the gross converted overage, then allocates
 settlement-fiat credits once against it. Invoice-issued callbacks only advance
-the prepared custom-currency run. Once preparation starts, invoice issuing is
-retry-only; generic correction of prepared accounting is not part of this
-lifecycle.
+the prepared custom-currency run. A line-finalization failure remains
+retry-only. If synchronization with the invoicing app fails after preparation,
+invoice deletion corrects settlement-fiat allocations, the gross overage, and
+charge-currency allocations before deleting the prepared run. Cleanup and its
+ledger effects share the billing transaction. Failed cleanup rolls back and
+leaves preparation attached for retry from `delete.failed`; committed cleanup
+sets `DeletedAt`, so later invoice-delete sync retries do not dispatch it again.
 
 The converted post-allocation overage and the required fiat transaction are
 separate settlement facts. A zero converted overage controls line omission and

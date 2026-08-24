@@ -222,8 +222,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleted)
 
 	// Issuing state. Line finalization handlers can persist durable preparation
-	// before returning, so failed and later issuing states are retry-only until
-	// correction support can make deletion safe.
+	// before returning. Preparation failures remain retry-only, while invoice-app
+	// synchronization can be abandoned through the charge-owned correction path.
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingLineFinalization).
 		Permit(
@@ -250,6 +250,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncFailed).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusIssuingSyncing)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingChargeBooking).
