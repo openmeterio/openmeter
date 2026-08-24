@@ -8,6 +8,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
+
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -568,9 +570,7 @@ func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customer
 				ChargeTypes: []meta.ChargeType{
 					meta.ChargeTypeCreditPurchase,
 				},
-				StatusNotIn: []meta.ChargeStatus{
-					meta.ChargeStatusDeleted,
-				},
+				Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusDeleted)}},
 				Expands: meta.Expands{meta.ExpandRealizations},
 			})
 		}),
@@ -659,8 +659,8 @@ func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID cu
 					meta.ChargeTypeFlatFee,
 					meta.ChargeTypeUsageBased,
 				},
-				StatusNotIn: []meta.ChargeStatus{meta.ChargeStatusFinal},
-				Expands:     meta.Expands{meta.ExpandRealizations},
+				Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusFinal)}},
+				Expands: meta.Expands{meta.ExpandRealizations},
 			})
 		}),
 		chargeListPageSize,

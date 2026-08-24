@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
+
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -29,7 +31,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 	advancedCharges, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
 		inScopeCharges, err := s.ListCharges(ctx, charges.ListChargesInput{
 			Namespace:   input.Customer.Namespace,
-			StatusNotIn: []meta.ChargeStatus{meta.ChargeStatusFinal},
+			Status:      &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusFinal)}},
 			CustomerIDs: []string{input.Customer.ID},
 			Expands:     meta.Expands{meta.ExpandRealizations},
 		})
