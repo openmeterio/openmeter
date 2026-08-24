@@ -830,12 +830,16 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 		}, nil
 	}
 	fiatOverageAllocationInvocations := 0
+	returnFiatAllocationError := true
 	s.FlatFeeTestHandler.onAllocateFiatOverageCredits = func(
 		ctx context.Context,
 		input flatfee.AllocateFiatOverageCreditsInput,
 	) (creditrealization.CreateAllocationInputs, error) {
 		fiatOverageAllocationInvocations++
 		accountingEvents = append(accountingEvents, "fiat_coverage")
+		if returnFiatAllocationError {
+			return nil, errors.New("simulated fiat allocation failure")
+		}
 
 		return fiatOverageCreditsHandler.Allocate(ctx, input)
 	}
@@ -946,18 +950,64 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 		mockApp.OnFinalizeStandardInvoice(nil)
 	}
 
-	s.Run("when invoice sync fails after fiat allocation", func() {
+	s.Run("when fiat allocation fails after gross preparation", func() {
 		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusIssuingLineFinalizationFailed, invoice.Status)
+		s.Require().NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.Nil(invoice.StatusDetails.AvailableActions.Delete)
+		s.Zero(invoiceSyncAttempts)
+		s.Equal(1, customCurrencyOverageAccruedInvocations)
+		s.Equal(1, fiatOverageAllocationInvocations)
+		s.Equal([]string{"gross_overage", "fiat_coverage"}, accountingEvents)
+
+		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		run := charge.Realizations.CurrentRun
+		s.Require().NotNil(run.AccruedUsage)
+		s.Require().NotNil(run.AccruedUsage.LedgerTransaction)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.AccruedUsage.Totals)
+		s.False(run.FiatOverageCreditAllocationCompleted)
+		s.False(run.NoFiatTransactionRequired)
+		s.Empty(run.FiatOverageCreditRealizations)
+
+		_, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        invoice.GetInvoiceID(),
+			DeletionSource: billing.ChangeSourceSystem,
+		})
+		s.ErrorContains(err, "invoice action not available")
+
+		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+			ChangeSource: billing.ChangeSourceSystem,
+			Policy:       meta.RefundAsCreditsDeletePolicy,
+		})
+		s.Require().NoError(err)
+		err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: customer.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				chargeID.ID: deletePatch,
+			},
+		})
+		s.ErrorContains(err, "cannot be deleted after invoice issuance preparation")
+	})
+
+	returnFiatAllocationError = false
+	accountingEvents = accountingEvents[:0]
+
+	s.Run("when retry reaches sync after fiat allocation", func() {
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
 		s.Require().NoError(err)
 		s.Equal(billing.StandardInvoiceStatusIssuingSyncFailed, invoice.Status)
 		s.Equal(1, invoiceSyncAttempts)
 		s.Equal(1, customCurrencyOverageAccruedInvocations)
-		s.Equal(1, fiatOverageAllocationInvocations)
-		s.Equal([]string{"gross_overage", "fiat_coverage"}, accountingEvents)
+		s.Equal(2, fiatOverageAllocationInvocations)
+		s.Equal([]string{"fiat_coverage"}, accountingEvents)
 		s.Zero(mockApp.FinalizeInvoiceCallCount())
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5}, invoice.Totals)
 
 		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Equal(flatfee.StatusActiveRealizationIssuing, charge.Status)
 		s.Require().NotNil(charge.Realizations.CurrentRun)
 		run := charge.Realizations.CurrentRun
 		s.Require().NotNil(run.AccruedUsage)
@@ -1087,7 +1137,8 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 		s.Equal(2, invoiceSyncAttempts)
 		s.Equal(1, mockApp.FinalizeInvoiceCallCount())
 		s.Equal(1, customCurrencyOverageAccruedInvocations)
-		s.Equal(1, fiatOverageAllocationInvocations)
+		s.Equal(2, fiatOverageAllocationInvocations)
+		s.Equal(flatfee.StatusFinal, s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID).Status)
 
 		err = s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
 			InvoiceTriggerInput: billing.InvoiceTriggerInput{
@@ -1107,7 +1158,7 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, CreditsTotal: 5}, invoice.Totals)
 		s.Equal(5.0, invoice.Lines.OrEmpty()[0].CreditsApplied.SumAmount(fiatCurrency).InexactFloat64())
-		s.Equal(1, fiatOverageAllocationInvocations)
+		s.Equal(2, fiatOverageAllocationInvocations)
 		mockApp.AssertExpectations(s.T())
 	})
 }
@@ -3403,7 +3454,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.Len(flatFeeWithDetailedLines.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 	})
 
-	s.Run("post invoice issued without invoice usage accrual", func() {
+	s.Run("finalize invoice without invoice usage accrual", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[flatfee.OnInvoiceUsageAccruedInput]()
@@ -3417,18 +3468,29 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.NoError(err)
 		invoice.Lines = billing.NewStandardInvoiceLines(lines)
 
+		lines, err = lineEngine.OnInvoiceFinalizing(ctx, billing.OnInvoiceFinalizingInput{
+			Invoice: invoice,
+			Lines:   invoice.Lines.OrEmpty(),
+		})
+		s.NoError(err)
+		invoice.Lines = billing.NewStandardInvoiceLines(lines)
+		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
+
+		updatedFlatFeeCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.Equal(flatfee.StatusActiveRealizationIssuing, updatedFlatFeeCharge.Status)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage)
+		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)
+		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
+
 		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
 			Invoice: invoice,
 			Lines:   invoice.Lines.OrEmpty(),
 		})
 		s.NoError(err)
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
-
-		updatedFlatFeeCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
-		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
-		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage)
-		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
-		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
+		s.Equal(flatfee.StatusFinal, s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID).Status)
 	})
 }
 
@@ -3507,11 +3569,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		s.Equal(flatfee.StatusActiveRealizationProcessing, fetchedFlatFeeCharge.Status)
 	})
 
-	s.Run("issue invoice with zero amount and non-zero charges", func() {
+	s.Run("finalize invoice with zero amount and non-zero charges", func() {
 		// given:
 		// - the standard line has zero Amount but non-zero ChargesTotal and Total
 		// when:
-		// - the flat-fee line engine receives the invoice-issued callback
+		// - the flat-fee line engine receives the invoice-finalizing callback
 		// then:
 		// - invoice usage accrual still runs because the payable total is non-zero
 		defer s.FlatFeeTestHandler.Reset()
@@ -3542,15 +3604,22 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		})
 		s.NoError(err)
 		invoice.Lines = billing.NewStandardInvoiceLines(updatedLines)
+		finalizingLine := invoice.Lines.OrEmpty()[0]
+		expectedFinalizingLine, err := finalizingLine.Clone()
+		s.NoError(err)
 
-		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+		updatedLines, err = lineEngine.OnInvoiceFinalizing(ctx, billing.OnInvoiceFinalizingInput{
 			Invoice: invoice,
 			Lines:   invoice.Lines.OrEmpty(),
 		})
 		s.NoError(err)
+		s.Equal(expectedFinalizingLine, finalizingLine)
+		s.Same(finalizingLine, updatedLines[0])
+		invoice.Lines = billing.NewStandardInvoiceLines(updatedLines)
 		s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
 
 		updatedFlatFeeCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.Equal(flatfee.StatusActiveRealizationIssuing, updatedFlatFeeCharge.Status)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage.LedgerTransaction)
@@ -3560,6 +3629,14 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 			ChargesTotal: 100,
 			Total:        100,
 		}, updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage.Totals)
+
+		err = lineEngine.OnInvoiceIssued(ctx, billing.OnInvoiceIssuedInput{
+			Invoice: invoice,
+			Lines:   invoice.Lines.OrEmpty(),
+		})
+		s.NoError(err)
+		s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
+		s.Equal(flatfee.StatusActiveAwaitingPaymentSettlement, s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID).Status)
 	})
 }
 
