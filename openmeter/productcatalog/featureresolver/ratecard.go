@@ -108,14 +108,7 @@ func ResolveFeaturesForRateCards(
 			continue
 		}
 
-		if err := rc.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-			meta.Feature = &resolvedReference
-			return meta, nil
-		}); err != nil {
-			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
-				fmt.Errorf("failed to update resolved feature reference: %w", err),
-			))
-		}
+		rc.SetFeatureReference(resolvedReference)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

@@ -979,6 +979,8 @@ func (n nonPointerRateCard) ChangeMeta(func(m productcatalog.RateCardMeta) (prod
 	return nil
 }
 
+func (n nonPointerRateCard) SetFeatureReference(productcatalog.FeatureReference) {}
+
 func (n nonPointerRateCard) Clone() productcatalog.RateCard {
 	return n
 }

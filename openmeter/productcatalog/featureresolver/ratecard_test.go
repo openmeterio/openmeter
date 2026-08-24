@@ -68,7 +68,7 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name: "success",
+			name: "success despite unrelated rate card validation warning",
 			ratecards: &productcatalog.RateCards{
 				&productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
@@ -87,6 +87,11 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 								Amount:      decimal.NewFromInt(0),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							}),
+						// Feature resolution must not reject warnings that the owning service can ignore.
+						UnitConfig: &productcatalog.UnitConfig{
+							Operation:        productcatalog.UnitConfigOperationDivide,
+							ConversionFactor: decimal.NewFromInt(1000),
+						},
 					},
 					BillingCadence: &MonthPeriod,
 				},

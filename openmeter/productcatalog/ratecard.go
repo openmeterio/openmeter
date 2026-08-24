@@ -41,6 +41,7 @@ type RateCard interface {
 	Key() string
 	Merge(RateCard) error
 	ChangeMeta(func(m RateCardMeta) (RateCardMeta, error)) error
+	SetFeatureReference(FeatureReference)
 	Clone() RateCard
 	Compatible(RateCard) error
 	GetBillingCadence() *datetime.ISODuration
@@ -387,6 +388,10 @@ func (r *FlatFeeRateCard) ChangeMeta(fn func(m RateCardMeta) (RateCardMeta, erro
 	return r.Validate()
 }
 
+func (r *FlatFeeRateCard) SetFeatureReference(reference FeatureReference) {
+	r.Feature = &reference
+}
+
 func (r *FlatFeeRateCard) Merge(v RateCard) error {
 	if r.Type() != v.Type() {
 		return errors.New("type mismatch")
@@ -575,6 +580,10 @@ func (r *UsageBasedRateCard) ChangeMeta(fn func(m RateCardMeta) (RateCardMeta, e
 	}
 
 	return r.Validate()
+}
+
+func (r *UsageBasedRateCard) SetFeatureReference(reference FeatureReference) {
+	r.Feature = &reference
 }
 
 func (r *UsageBasedRateCard) Merge(v RateCard) error {
