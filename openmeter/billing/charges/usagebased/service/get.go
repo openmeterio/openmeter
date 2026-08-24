@@ -151,8 +151,8 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				}
 			}()
 
-			var rated usagebasedrating.GetTotalsForUsageResult
-			rated, err = s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
+			var ratedUsage usagebasedrating.GetTotalsForUsageResult
+			ratedUsage, err = s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
 				Charge:                  charge,
 				Customer:                customerOverridesById[charge.GetCustomerID()],
 				FeatureMeter:            featureMeter,
@@ -164,7 +164,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				return
 			}
 
-			ratingResults.Store(charge.GetChargeID(), rated)
+			ratingResults.Store(charge.GetChargeID(), ratedUsage)
 		})
 	}
 
