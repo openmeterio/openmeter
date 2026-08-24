@@ -140,7 +140,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			flatfee.StatusActiveRealizationZeroFiatAmountOverageCompleted,
 			statelessx.BoolFn(s.IsCurrentRunZeroFiatAmountOverage),
 		).
-		Permit(meta.TriggerInvoiceIssued, flatfee.StatusActiveRealizationIssuing).
+		Permit(meta.TriggerInvoiceFinalizing, flatfee.StatusActiveRealizationIssuing).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
@@ -151,7 +151,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(s.AttachInvoiceLine))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
-		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationCompleted).
+		Permit(meta.TriggerInvoiceIssued, flatfee.StatusActiveRealizationCompleted).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
@@ -159,7 +159,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
-		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceUsage))
+		OnEntryFrom(meta.TriggerInvoiceFinalizing, statelessx.WithParameters(s.FinalizeInvoiceRun))
 
 	// Zero-fiat-amount overages bypass invoice issuance. This state seals the
 	// persisted current run before the charge completes without payment
@@ -183,7 +183,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
-		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted)))
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
+		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.ValidateInvoiceIssuedRun))
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
@@ -337,7 +338,8 @@ func (s *CreditThenInvoiceStateMachine) ClearDeletedChargeOverride(ctx context.C
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if s.Charge.Status == flatfee.StatusActiveRealizationProcessing &&
+	if (s.Charge.Status == flatfee.StatusActiveRealizationProcessing ||
+		s.Charge.Status == flatfee.StatusActiveRealizationIssuing) &&
 		s.Charge.Realizations.CurrentRun != nil &&
 		s.Charge.Realizations.CurrentRun.AccruedUsage != nil {
 		return fmt.Errorf("flat fee charge[%s] cannot be deleted after invoice issuance preparation", s.Charge.ID)
@@ -691,9 +693,22 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceUsage(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
+// FinalizeInvoiceRun performs durable accounting preparation and emits any
+// authoritative line change while the charge remains issuing until InvoiceIssued.
+func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err
+	}
+
+	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun == nil {
+		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
+	}
+	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
+		return fmt.Errorf("realization run[%s] line does not match finalizing line[%s]", currentRun.ID.ID, input.Line.ID)
+	}
+	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
+		return fmt.Errorf("realization run[%s] invoice does not match finalizing invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
 	}
 
 	if !s.Charge.Intent.GetCurrency().IsCustom() {
@@ -702,7 +717,7 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceUsage(ctx context.Context
 			LineWithHeader: input,
 		})
 		if err != nil {
-			return fmt.Errorf("post invoice issued: %w", err)
+			return fmt.Errorf("finalizing invoice usage: %w", err)
 		}
 
 		s.Charge.Realizations.CurrentRun = &result.Run
@@ -711,16 +726,86 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceUsage(ctx context.Context
 		return nil
 	}
 
+	run := *currentRun
+	if run.AccruedUsage == nil && (len(run.FiatOverageCreditRealizations) > 0 || run.FiatOverageCreditAllocationCompleted) {
+		return fmt.Errorf("realization run[%s] has fiat overage allocation state without prepared invoice usage", run.ID.ID)
+	}
+
+	line, err := input.Line.Clone()
+	if err != nil {
+		return fmt.Errorf("cloning finalizing line[%s]: %w", input.Line.ID, err)
+	}
+
+	if run.AccruedUsage == nil {
+		if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
+			Charge: s.Charge,
+			Run:    run,
+			Stage:  standardLinePopulationStageInvoiceFinalizing,
+		}); err != nil {
+			return fmt.Errorf("populating gross finalizing line[%s] from run[%s]: %w", line.ID, run.ID.ID, err)
+		}
+
+		prepared, err := s.Realizations.AccrueInvoiceUsage(ctx, flatfeerealizations.AccrueInvoiceUsageInput{
+			Charge: s.Charge,
+			LineWithHeader: billing.StandardLineWithInvoiceHeader{
+				Line:    line,
+				Invoice: input.Invoice,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("preparing custom-currency overage for finalizing line[%s]: %w", line.ID, err)
+		}
+		run = prepared.Run
+		s.Charge.Realizations.CurrentRun = &run
+	}
+
+	if !run.FiatOverageCreditAllocationCompleted {
+		allocated, err := s.Realizations.AllocateFiatOverageCredits(ctx, flatfeerealizations.AllocateFiatOverageCreditsInput{
+			Charge: s.Charge,
+			Run:    run,
+		})
+		if err != nil {
+			return fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", line.ID, err)
+		}
+		run = allocated.Run
+		s.Charge.Realizations.CurrentRun = &run
+	}
+
+	if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
+		Charge: s.Charge,
+		Run:    run,
+		Stage:  standardLinePopulationStageInvoiceFinalizing,
+	}); err != nil {
+		return fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", line.ID, run.ID.ID, err)
+	}
+
+	s.Charge.State.AdvanceAfter = nil
+	s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(line.AsGenericLine()))
+
+	return nil
+}
+
+// ValidateInvoiceIssuedRun verifies that invoice finalization left the current
+// run in the durable state required to accept the external issuance event.
+func (s *CreditThenInvoiceStateMachine) ValidateInvoiceIssuedRun(_ context.Context, input billing.StandardLineWithInvoiceHeader) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
 	currentRun := s.Charge.Realizations.CurrentRun
 	if currentRun == nil {
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
-	if currentRun.AccruedUsage == nil {
-		return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
+
+	if s.Charge.Intent.GetCurrency().IsCustom() {
+		if currentRun.AccruedUsage == nil {
+			return fmt.Errorf("realization run[%s] has not been prepared for invoice issuance", currentRun.ID.ID)
+		}
+		if !currentRun.FiatOverageCreditAllocationCompleted {
+			return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
+		}
 	}
-	if !currentRun.FiatOverageCreditAllocationCompleted {
-		return fmt.Errorf("realization run[%s] has not completed fiat overage credit allocation", currentRun.ID.ID)
-	}
+
 	if !currentRun.Immutable {
 		return fmt.Errorf("prepared realization run[%s] must be immutable", currentRun.ID.ID)
 	}
@@ -730,8 +815,6 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceUsage(ctx context.Context
 	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
 		return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
 	}
-
-	s.Charge.State.AdvanceAfter = nil
 
 	return nil
 }

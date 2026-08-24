@@ -1072,93 +1072,34 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
-		meta.ExpandRealizations,
-	}, "invoice finalization")
-	if err != nil {
-		return nil, err
-	}
-
 	return slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
-		charge, ok := chargesByID[*stdLine.ChargeID]
-		if !ok {
-			return nil, fmt.Errorf("usage based charge[%s] not found for finalizing line[%s]", *stdLine.ChargeID, stdLine.ID)
-		}
-
-		if stdLine.IsDeleted() ||
-			charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode ||
-			!charge.Intent.GetCurrency().IsCustom() {
+		if stdLine.IsDeleted() {
 			return stdLine, nil
 		}
 
-		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
 		if err != nil {
-			return nil, fmt.Errorf("getting realization run for finalizing line[%s]: %w", stdLine.ID, err)
+			return nil, err
 		}
 
-		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
-			return nil, fmt.Errorf(
-				"realization run[%s] for finalizing line[%s] is not associated with invoice[%s]",
-				run.ID.ID,
-				stdLine.ID,
-				input.Invoice.ID,
-			)
+		if stateMachine.GetCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+			return stdLine, nil
 		}
 
-		updatedLine, err := stdLine.Clone()
+		patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerInvoiceFinalizing, billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
+		})
 		if err != nil {
-			return nil, fmt.Errorf("cloning finalizing line[%s]: %w", stdLine.ID, err)
+			return nil, fmt.Errorf("finalizing invoice line for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		if run.InvoiceUsage == nil {
-			if len(run.FiatOverageCreditRealizations) > 0 || run.FiatOverageCreditAllocationCompleted {
-				return nil, fmt.Errorf("realization run[%s] has fiat overage allocation state without prepared invoice usage", run.ID.ID)
-			}
-
-			if err := populateStandardLineFromRun(updatedLine, populateStandardLineFromRunInput{
-				Charge: charge,
-				Run:    run,
-				Stage:  standardLinePopulationStageInvoiceFinalizing,
-			}); err != nil {
-				return nil, fmt.Errorf("populating gross finalizing line[%s] from run[%s]: %w", stdLine.ID, run.ID.ID, err)
-			}
-
-			prepared, err := e.service.runs.BookAccruedInvoiceUsage(ctx, usagebasedrun.BookAccruedInvoiceUsageInput{
-				Charge: charge,
-				Run:    run,
-				Line:   *updatedLine,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("preparing custom-currency overage for finalizing line[%s]: %w", stdLine.ID, err)
-			}
-			run = prepared.Run
-			if err := charge.Realizations.SetRealizationRun(run); err != nil {
-				return nil, fmt.Errorf("updating prepared realization run[%s]: %w", run.ID.ID, err)
-			}
+		updatedLine, err := patches.RequireSingularStandardLineUpdateOrEmpty(stdLine.GetLineID(), input.Invoice.ID)
+		if err != nil {
+			return nil, fmt.Errorf("validating finalizing update for line[%s]: %w", stdLine.ID, err)
 		}
-
-		if !run.FiatOverageCreditAllocationCompleted {
-			allocated, err := e.service.runs.AllocateFiatOverageCredits(ctx, usagebasedrun.AllocateFiatOverageCreditsInput{
-				Charge: charge,
-				Run:    run,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", stdLine.ID, err)
-			}
-			charge = allocated.Charge
-			run = allocated.Run
-		}
-
-		if err := populateStandardLineFromRun(updatedLine, populateStandardLineFromRunInput{
-			Charge: charge,
-			Run:    run,
-			Stage:  standardLinePopulationStageInvoiceFinalizing,
-		}); err != nil {
-			return nil, fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", stdLine.ID, run.ID.ID, err)
-		}
-
-		if err := updatedLine.Validate(); err != nil {
-			return nil, fmt.Errorf("validating finalizing line[%s]: %w", stdLine.ID, err)
+		if updatedLine == nil {
+			return stdLine, nil
 		}
 
 		return updatedLine, nil
