@@ -22,17 +22,6 @@ var (
 )
 
 func InIDOrder[T InIDOrderAccessor](namespace string, targetOrderIDs []string, results []T) ([]T, error) {
-	return inIDOrder(namespace, targetOrderIDs, results, false)
-}
-
-// InIDOrderSkipMissing orders results like InIDOrder but drops target IDs with
-// no matching entity instead of failing. Callers use it when the target ID set
-// comes from an earlier snapshot and entities may have been deleted since.
-func InIDOrderSkipMissing[T InIDOrderAccessor](namespace string, targetOrderIDs []string, results []T) ([]T, error) {
-	return inIDOrder(namespace, targetOrderIDs, results, true)
-}
-
-func inIDOrder[T InIDOrderAccessor](namespace string, targetOrderIDs []string, results []T, skipMissing bool) ([]T, error) {
 	// Input validation (let's make sure that namespace/id is set for all entities)
 	if namespace == "" {
 		return nil, ErrNamespaceRequired
@@ -80,9 +69,7 @@ func inIDOrder[T InIDOrderAccessor](namespace string, targetOrderIDs []string, r
 	for _, id := range targetOrderIDs {
 		entities, ok := entitiesByID[models.NamespacedID{Namespace: namespace, ID: id}]
 		if !ok {
-			if !skipMissing {
-				errs = append(errs, fmt.Errorf("%w [id=%s]", ErrNotFound, id))
-			}
+			errs = append(errs, fmt.Errorf("%w [id=%s]", ErrNotFound, id))
 			continue
 		}
 
