@@ -1095,8 +1095,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 	type invoiceFinalizationPhase struct {
 		// fiatOverageCreditsAvailable is the USD balance available when the invoice is finalized.
 		fiatOverageCreditsAvailable float64
-		// disableFiatOverageCredits models the settlement handler rejecting FIAT credit use.
-		disableFiatOverageCredits bool
 		// expectInvoiceTotals contains the finalized invoice line totals in USD.
 		expectInvoiceTotals billingtest.ExpectedTotals
 		// expectFiatRealizations contains the immutable USD allocation and correction facts persisted so far.
@@ -1143,29 +1141,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 			},
 			onInvoiceFinalization: invoiceFinalizationPhase{
 				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			},
-			expectPaymentSettled: true,
-		},
-		// given:
-		// - a 5 USD overage and enough settlement-fiat credits to cover it
-		// - the settlement handler does not allow those credits to be used
-		// then:
-		// - gross preparation still runs and the full 5 USD remains payable
-		{
-			name: "fiat overage credits disabled by handler",
-			onRunCreated: runPhase{
-				usageAdded:          5,
-				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			},
-			onCollectionComplete: runPhase{
-				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			},
-			onInvoiceFinalization: invoiceFinalizationPhase{
-				fiatOverageCreditsAvailable: 5,
-				disableFiatOverageCredits:   true,
-				expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			},
 			expectPaymentSettled: true,
 		},
@@ -1481,10 +1456,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				ctx context.Context,
 				input usagebased.AllocateFiatOverageCreditsInput,
 			) (creditrealization.CreateAllocationInputs, error) {
-				if test.onInvoiceFinalization.disableFiatOverageCredits {
-					return nil, nil
-				}
-
 				return fiatOverageCreditsHandler.Allocate(ctx, input)
 			}
 			s.UsageBasedTestHandler.onCorrectFiatOverageCreditAllocations = fiatOverageCreditsHandler.Correct

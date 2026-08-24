@@ -90,7 +90,7 @@ func (t TransferCustomerFBOToAccruedTemplate) correct(scope CorrectionInput) ([]
 		}
 	}
 
-	slices.SortStableFunc(negativeFBOEntries, compareFBOAccrualCorrectionSourceEntries)
+	slices.SortStableFunc(negativeFBOEntries, compareFBOCollectionCorrectionSourceEntries)
 	postings, err := allocateCorrectionLegs(
 		negativeFBOEntries,
 		positiveAccruedEntries,
@@ -138,7 +138,7 @@ func (t TransferCustomerFBOToAccruedTemplate) sourceRoutePairingKey(source Posti
 	return key
 }
 
-func compareFBOAccrualCorrectionSourceEntries(left ledger.Entry, right ledger.Entry) int {
+func compareFBOCollectionCorrectionSourceEntries(left ledger.Entry, right ledger.Entry) int {
 	leftOrder, leftHasOrder := left.Annotations().GetInt(ledger.AnnotationCollectionSourceOrder)
 	rightOrder, rightHasOrder := right.Annotations().GetInt(ledger.AnnotationCollectionSourceOrder)
 	if leftHasOrder && rightHasOrder && leftOrder != rightOrder {

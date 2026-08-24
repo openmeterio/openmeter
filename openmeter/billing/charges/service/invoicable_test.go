@@ -194,8 +194,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 		creditsAllocated float64
 		// fiatOverageCreditsAvailable is the USD balance available for the converted overage.
 		fiatOverageCreditsAvailable float64
-		// disableFiatOverageCredits models the settlement handler rejecting FIAT credit use.
-		disableFiatOverageCredits bool
 
 		// expectRunTotals contains the realization run totals in TOKENS.
 		expectRunTotals billingtest.ExpectedTotals
@@ -227,21 +225,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			expectDraftInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			expectInvoiceTotals:      billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			expectPaymentSettled:     true,
-		},
-		// given:
-		// - a 5 USD overage and enough settlement-fiat credits to cover it
-		// - the settlement handler does not allow those credits to be used
-		// then:
-		// - gross preparation still runs and the full 5 USD remains payable
-		{
-			name:                        "fiat overage credits disabled by handler",
-			chargeAmount:                10,
-			fiatOverageCreditsAvailable: 5,
-			disableFiatOverageCredits:   true,
-			expectRunTotals:             billingtest.ExpectedTotals{Amount: 10, Total: 10},
-			expectDraftInvoiceTotals:    billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			expectPaymentSettled:        true,
 		},
 		// given:
 		// - a 10 TOKENS flat fee with 2 TOKENS allocated from credits
@@ -379,9 +362,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				input flatfee.AllocateFiatOverageCreditsInput,
 			) (creditrealization.CreateAllocationInputs, error) {
 				fiatOverageAllocationInvocations++
-				if test.disableFiatOverageCredits {
-					return nil, nil
-				}
 
 				return fiatOverageCreditsHandler.Allocate(ctx, input)
 			}
@@ -646,9 +626,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Equal(!test.expectPaymentSettled, run.NoFiatTransactionRequired)
 				s.Equal(test.creditsAllocated, run.CreditRealizations.Sum().InexactFloat64())
 				expectedFiatCreditsAllocated := test.fiatOverageCreditsAvailable
-				if test.disableFiatOverageCredits {
-					expectedFiatCreditsAllocated = 0
-				}
 				s.Equal(expectedFiatCreditsAllocated, run.FiatOverageCreditRealizations.Sum().InexactFloat64())
 				s.True(run.DetailedLines.IsPresent())
 				s.Require().Len(run.DetailedLines.OrEmpty(), 1)

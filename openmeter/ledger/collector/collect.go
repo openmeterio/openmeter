@@ -99,6 +99,104 @@ func (c *accrualCollector) collect(ctx context.Context, input CollectToAccruedIn
 	return transaction.Run(ctx, c.transactionManager, run)
 }
 
+func (c *accrualCollector) collectToReceivable(ctx context.Context, input CollectToReceivableInput) (creditrealization.CreateAllocationInputs, error) {
+	run := func(ctx context.Context) (creditrealization.CreateAllocationInputs, error) {
+		if input.Amount.IsZero() {
+			return nil, nil
+		}
+
+		resolved, err := c.resolveCoveredReceivableInputs(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		if len(resolved.inputs) == 0 {
+			return nil, nil
+		}
+
+		groupAnnotations := input.Annotations
+		if groupAnnotations == nil {
+			groupAnnotations = ledger.ChargeAnnotations(models.NamespacedID{
+				Namespace: input.Namespace,
+				ID:        input.ChargeID,
+			})
+		}
+
+		for i, txInput := range resolved.inputs {
+			if txInput != nil {
+				resolved.inputs[i] = transactions.WithAnnotations(txInput, groupAnnotations)
+			}
+		}
+
+		transactionGroup, err := c.ledger.CommitGroup(ctx, transactions.GroupInputs(
+			input.Namespace,
+			groupAnnotations,
+			resolved.inputs...,
+		))
+		if err != nil {
+			return nil, fmt.Errorf("commit ledger transaction group: %w", err)
+		}
+
+		if c.breakage != nil {
+			if err := c.breakage.PersistCommittedRecords(ctx, resolved.breakagePending, transactionGroup); err != nil {
+				return nil, fmt.Errorf("persist breakage records: %w", err)
+			}
+		}
+
+		return collectedInputs(resolved.inputs).toCreditRealizations(input.ServicePeriod, transactionGroup.ID().ID), nil
+	}
+
+	return transaction.Run(ctx, c.transactionManager, run)
+}
+
+func (c *accrualCollector) resolveCoveredReceivableInputs(ctx context.Context, input CollectToReceivableInput) (resolvedCollectedInputs, error) {
+	if err := ledger.ValidateTransactionAmount(input.Amount); err != nil {
+		return resolvedCollectedInputs{}, fmt.Errorf("amount: %w", err)
+	}
+
+	selections, err := c.collectCustomerFBOSelections(
+		ctx,
+		customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
+		input.Currency,
+		input.FeatureKey,
+		input.Amount,
+		input.SourceBalanceAsOf,
+	)
+	if err != nil {
+		return resolvedCollectedInputs{}, fmt.Errorf("collect customer FBO: %w", err)
+	}
+	if len(selections) == 0 {
+		return resolvedCollectedInputs{}, nil
+	}
+
+	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		c.deps,
+		transactions.ResolutionScope{
+			CustomerID: customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
+			Namespace:  input.Namespace,
+		},
+		transactions.CoverCustomerReceivableTemplate{
+			At:       input.BookedAt,
+			Currency: input.Currency,
+			Sources:  sources,
+		},
+	)
+	if err != nil {
+		return resolvedCollectedInputs{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	breakageInputs, pending, err := c.resolveCollectionBreakageInputs(ctx, input.ChargeID, selections)
+	if err != nil {
+		return resolvedCollectedInputs{}, err
+	}
+
+	return resolvedCollectedInputs{
+		inputs:          append(inputs, breakageInputs...),
+		breakagePending: pending,
+	}, nil
+}
+
 func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input CollectToAccruedInput, amount alpacadecimal.Decimal) (resolvedCollectedInputs, error) {
 	if err := ledger.ValidateTransactionAmount(amount); err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("amount: %w", err)
@@ -137,6 +235,19 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, fmt.Errorf("resolve transactions: %w", err)
 	}
 
+	breakageInputs, pending, err := c.resolveCollectionBreakageInputs(ctx, input.ChargeID, selections)
+	if err != nil {
+		return resolvedCollectedInputs{}, err
+	}
+
+	return resolvedCollectedInputs{
+		inputs:          append(inputs, breakageInputs...),
+		breakagePending: pending,
+	}, nil
+}
+
+func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, chargeID string, selections []fboCollectionSelection) ([]ledger.TransactionInput, []breakage.PendingRecord, error) {
+	var inputs []ledger.TransactionInput
 	var pending []breakage.PendingRecord
 	releaseRemainingByPlanID := make(map[string]alpacadecimal.Decimal)
 
@@ -153,7 +264,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		// Legacy source-less plans can reserve multiple selected source slices,
 		// so guard the aggregate release amount before writing release records.
 		if selection.amount.GreaterThan(remaining) {
-			return resolvedCollectedInputs{}, fmt.Errorf("breakage release amount %s exceeds remaining plan amount %s for plan %s", selection.amount, remaining, plan.ID.ID)
+			return nil, nil, fmt.Errorf("breakage release amount %s exceeds remaining plan amount %s for plan %s", selection.amount, remaining, plan.ID.ID)
 		}
 		releaseRemainingByPlanID[plan.ID.ID] = remaining.Sub(selection.amount)
 
@@ -162,30 +273,27 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 			Amount:         selection.amount,
 			SourceKind:     breakage.SourceKindUsage,
 			SourceChargeID: selection.source.sourceChargeID,
-			SpendChargeID:  &input.ChargeID,
+			SpendChargeID:  &chargeID,
 			SourceEntryIdentityKey: func() string {
 				collectionSource := strconv.Itoa(idx)
 				identityKey, _ := ledger.EntryIdentityParts{
 					CollectionSource: &collectionSource,
 					SourceChargeID:   selection.source.sourceChargeID,
-					SpendChargeID:    &input.ChargeID,
+					SpendChargeID:    &chargeID,
 				}.Text()
 
 				return string(identityKey)
 			}(),
 		})
 		if err != nil {
-			return resolvedCollectedInputs{}, fmt.Errorf("resolve breakage release: %w", err)
+			return nil, nil, fmt.Errorf("resolve breakage release: %w", err)
 		}
 
 		inputs = append(inputs, releaseInput)
 		pending = append(pending, releaseRecord)
 	}
 
-	return resolvedCollectedInputs{
-		inputs:          inputs,
-		breakagePending: pending,
-	}, nil
+	return inputs, pending, nil
 }
 
 func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input CollectToAccruedInput, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {

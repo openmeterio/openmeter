@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -46,7 +47,6 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
-
 	if input.PreTaxAmountToAllocate.IsZero() {
 		return nil, nil
 	}
@@ -274,8 +274,24 @@ func (h *flatFeeHandler) OnAllocateFiatOverageCredits(ctx context.Context, input
 		return nil, err
 	}
 
-	// TODO[implement]: Allocate settlement-fiat credits against the custom-currency overage.
-	return nil, fmt.Errorf("implement OnAllocateFiatOverageCredits: %w", meta.ErrCustomCurrencyNotSupported)
+	fiatCurrency, err := input.GetFiatCurrency()
+	if err != nil {
+		return nil, fmt.Errorf("get settlement fiat currency: %w", err)
+	}
+
+	intent := input.Charge.Intent
+	return h.collector.CollectToReceivable(ctx, collector.CollectToReceivableInput{
+		Namespace:         input.Charge.Namespace,
+		ChargeID:          input.Charge.ID,
+		CustomerID:        intent.GetCustomerID(),
+		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
+		BookedAt:          input.BookedAt,
+		SourceBalanceAsOf: input.BookedAt,
+		Currency:          currencies.NewCurrencyReference(currencyx.Code(fiatCurrency.GetFiatCode())),
+		FeatureKey:        intent.GetFeatureKey(),
+		ServicePeriod:     input.Run.ServicePeriod,
+		Amount:            input.AmountToAllocate,
+	})
 }
 
 func (h *flatFeeHandler) OnCorrectFiatOverageCreditAllocations(ctx context.Context, input flatfee.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
@@ -283,8 +299,14 @@ func (h *flatFeeHandler) OnCorrectFiatOverageCreditAllocations(ctx context.Conte
 		return nil, err
 	}
 
-	// TODO[implement]: Correct settlement-fiat allocations for the custom-currency overage.
-	return nil, fmt.Errorf("implement OnCorrectFiatOverageCreditAllocations: %w", meta.ErrCustomCurrencyNotSupported)
+	return h.collector.CorrectCollectedReceivable(ctx, collector.CorrectCollectedReceivableInput{
+		Namespace:   input.Charge.Namespace,
+		ChargeID:    input.Charge.ID,
+		CustomerID:  input.Charge.Intent.GetCustomerID(),
+		Annotations: chargeAnnotationsForFlatFeeCharge(input.Charge),
+		AllocateAt:  input.BookedAt,
+		Corrections: input.Corrections,
+	})
 }
 
 func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {

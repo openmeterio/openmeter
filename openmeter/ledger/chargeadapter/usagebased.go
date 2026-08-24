@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -286,8 +287,24 @@ func (h *usageBasedHandler) OnAllocateFiatOverageCredits(ctx context.Context, in
 		return nil, err
 	}
 
-	// TODO[implement]: Allocate settlement-fiat credits against the custom-currency overage.
-	return nil, fmt.Errorf("implement OnAllocateFiatOverageCredits: %w", meta.ErrCustomCurrencyNotSupported)
+	fiatCurrency, err := input.GetFiatCurrency()
+	if err != nil {
+		return nil, fmt.Errorf("get settlement fiat currency: %w", err)
+	}
+
+	intent := input.Charge.Intent
+	return h.collector.CollectToReceivable(ctx, collector.CollectToReceivableInput{
+		Namespace:         input.Charge.Namespace,
+		ChargeID:          input.Charge.ID,
+		CustomerID:        intent.GetCustomerID(),
+		Annotations:       chargeAnnotationsForUsageBasedCharge(input.Charge),
+		BookedAt:          input.BookedAt,
+		SourceBalanceAsOf: input.BookedAt,
+		Currency:          currencies.NewCurrencyReference(currencyx.Code(fiatCurrency.GetFiatCode())),
+		FeatureKey:        intent.GetFeatureKey(),
+		ServicePeriod:     intent.GetEffectiveServicePeriod(),
+		Amount:            input.AmountToAllocate,
+	})
 }
 
 func (h *usageBasedHandler) OnCorrectFiatOverageCreditAllocations(ctx context.Context, input usagebased.CorrectFiatOverageCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
@@ -295,8 +312,14 @@ func (h *usageBasedHandler) OnCorrectFiatOverageCreditAllocations(ctx context.Co
 		return nil, err
 	}
 
-	// TODO[implement]: Correct settlement-fiat allocations for the custom-currency overage.
-	return nil, fmt.Errorf("implement OnCorrectFiatOverageCreditAllocations: %w", meta.ErrCustomCurrencyNotSupported)
+	return h.collector.CorrectCollectedReceivable(ctx, collector.CorrectCollectedReceivableInput{
+		Namespace:   input.Charge.Namespace,
+		ChargeID:    input.Charge.ID,
+		CustomerID:  input.Charge.Intent.GetCustomerID(),
+		Annotations: chargeAnnotationsForUsageBasedCharge(input.Charge),
+		AllocateAt:  input.BookedAt,
+		Corrections: input.Corrections,
+	})
 }
 
 func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {

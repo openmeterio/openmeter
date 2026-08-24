@@ -535,7 +535,8 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 	if err != nil {
 		return nil, nil, fmt.Errorf("transaction %s template code: %w", transactionPlan.transaction.ID().ID, err)
 	}
-	if templateCode != transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}) {
+	if templateCode != transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}) &&
+		templateCode != transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}) {
 		return nil, nil, nil
 	}
 

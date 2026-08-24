@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
@@ -122,6 +124,76 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SourceChargeID))
 		require.Nil(t, entry.SpendChargeID)
 	}
+}
+
+func TestOnFlatFeeCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testing.T) {
+	env := newFlatFeeHandlerTestEnv(t)
+	sourceChargeID := "fiat-credit-source"
+	fbo := env.fundPriorityForSource(t, 1, 6, sourceChargeID)
+
+	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
+	costBasis := alpacadecimal.NewFromFloat(0.25)
+	charge := env.newCustomCurrencyCreditThenInvoiceCharge(t, customCurrencyValue, costBasis)
+	run := env.newCustomOverageRun(totals.Totals{
+		Amount: alpacadecimal.NewFromInt(40),
+		Total:  alpacadecimal.NewFromInt(40),
+	})
+
+	// given: the full custom overage has already created a 10 USD receivable
+	_, err := env.handler.OnCustomCurrencyOverageAccrued(t.Context(), flatfee.OnCustomCurrencyOverageAccruedInput{
+		Charge: charge,
+		Run:    run,
+	})
+	require.NoError(t, err)
+
+	// when: charges requests 6 USD of existing fiat credit to settle it
+	allocations, err := env.handler.OnAllocateFiatOverageCredits(t.Context(), flatfee.AllocateFiatOverageCreditsInput{
+		Charge:           charge,
+		Run:              run,
+		BookedAt:         env.Now(),
+		AmountToAllocate: alpacadecimal.NewFromInt(6),
+	})
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(6), allocations[0].Amount.InexactFloat64())
+
+	zeroCostBasis := alpacadecimal.Zero
+	require.Equal(t, float64(0), env.sumBalance(t, fbo).InexactFloat64())
+	require.Equal(t, float64(6), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &zeroCostBasis)).InexactFloat64())
+	require.Equal(t, float64(-10), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
+
+	entries := env.TransactionGroupEntries(t, allocations[0].LedgerTransaction.TransactionGroupID)
+	for _, entry := range entries {
+		require.NotNil(t, entry.SourceChargeID)
+		require.Equal(t, sourceChargeID, strings.TrimSpace(*entry.SourceChargeID))
+		require.NotNil(t, entry.SpendChargeID)
+		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
+	}
+
+	allocation := allocations.AsCreateInputs()[0]
+	allocation.ID = ulid.Make().String()
+	realization := creditrealization.Realization{
+		NamespacedModel: models.NamespacedModel{Namespace: env.Namespace},
+		ManagedModel:    models.ManagedModel{CreatedAt: env.Now(), UpdatedAt: env.Now()},
+		CreateInput:     allocation,
+	}
+	fiatCurrency, err := charge.Intent.GetCostBasisIntent().GetFiatCurrency()
+	require.NoError(t, err)
+	request, err := (creditrealization.Realizations{realization}).CreateCorrectionRequest(alpacadecimal.NewFromInt(-6), fiatCurrency)
+	require.NoError(t, err)
+	run.FiatOverageCreditRealizations = creditrealization.Realizations{realization}
+
+	corrections, err := env.handler.OnCorrectFiatOverageCreditAllocations(t.Context(), flatfee.CorrectFiatOverageCreditAllocationsInput{
+		Charge:      charge,
+		Run:         run,
+		BookedAt:    env.Now(),
+		Corrections: request,
+	})
+	require.NoError(t, err)
+	require.Len(t, corrections, 1)
+	require.Equal(t, float64(6), env.sumBalance(t, fbo).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &zeroCostBasis)).InexactFloat64())
+	require.Equal(t, float64(-10), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
 }
 
 // TestOnFlatFeeCustomCurrencyOverageAccrued_RejectsNonPositiveFiatOutcomes

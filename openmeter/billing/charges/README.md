@@ -255,6 +255,8 @@ one.
   flat-fee run is a one-shot invoice-finalization effect. A persisted
   completion marker distinguishes pending allocation from a successful
   zero-allocation result, so retries do not re-enter completed allocation.
+  Charges owns whether this allocation is allowed; when disabled, it records a
+  successful zero-allocation result without invoking the ledger handler.
 - Invoice line finalization makes flat-fee and usage-based lines authoritative
   before billing synchronizes the external invoice. Custom-currency runs also
   prepare their reversible gross overage and allocate settlement-fiat credits

@@ -129,6 +129,74 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 	}
 }
 
+func TestOnUsageBasedCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testing.T) {
+	env := newUsageBasedHandlerTestEnv(t)
+	sourceChargeID := "fiat-credit-source"
+	fbo := env.fundPriorityForSource(t, 1, 6, sourceChargeID)
+
+	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
+	costBasis := alpacadecimal.NewFromFloat(0.25)
+	charge := env.newCustomCurrencyCreditThenInvoiceCharge(t, customCurrencyValue, costBasis)
+	run := env.newCustomOverageRun(totals.Totals{
+		Amount: alpacadecimal.NewFromInt(40),
+		Total:  alpacadecimal.NewFromInt(40),
+	})
+
+	// given: the full custom overage has already created a 10 USD receivable
+	_, err := env.handler.OnCustomCurrencyOverageAccrued(t.Context(), chargeusagebased.OnCustomCurrencyOverageAccruedInput{
+		Charge: charge,
+		Run:    run,
+	})
+	require.NoError(t, err)
+
+	// when: charges requests 6 USD of existing fiat credit to settle it
+	allocations, err := env.handler.OnAllocateFiatOverageCredits(t.Context(), chargeusagebased.AllocateFiatOverageCreditsInput{
+		Charge:           charge,
+		Run:              run,
+		BookedAt:         env.Now(),
+		AmountToAllocate: alpacadecimal.NewFromInt(6),
+	})
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(6), allocations[0].Amount.InexactFloat64())
+
+	// then: the gross FX-route receivable remains intact, while the source
+	// credit's own route offsets it at the receivable-account level.
+	zeroCostBasis := alpacadecimal.Zero
+	require.Equal(t, float64(0), env.sumBalance(t, fbo).InexactFloat64())
+	require.Equal(t, float64(6), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &zeroCostBasis)).InexactFloat64())
+	require.Equal(t, float64(-10), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
+
+	entries := env.TransactionGroupEntries(t, allocations[0].LedgerTransaction.TransactionGroupID)
+	for _, entry := range entries {
+		require.NotNil(t, entry.SourceChargeID)
+		require.Equal(t, sourceChargeID, strings.TrimSpace(*entry.SourceChargeID))
+		require.NotNil(t, entry.SpendChargeID)
+		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
+	}
+
+	// and: correcting the billing allocation restores the same FBO source and
+	// removes its receivable offset.
+	fiatCurrency, err := charge.Intent.GetCostBasisIntent().GetFiatCurrency()
+	require.NoError(t, err)
+	realizations := env.realizationsFromAllocations(allocations)
+	request, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-6), fiatCurrency)
+	require.NoError(t, err)
+	run.FiatOverageCreditRealizations = realizations
+
+	corrections, err := env.handler.OnCorrectFiatOverageCreditAllocations(t.Context(), chargeusagebased.CorrectFiatOverageCreditAllocationsInput{
+		Charge:      charge,
+		Run:         run,
+		BookedAt:    env.Now(),
+		Corrections: request,
+	})
+	require.NoError(t, err)
+	require.Len(t, corrections, 1)
+	require.Equal(t, float64(6), env.sumBalance(t, fbo).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &zeroCostBasis)).InexactFloat64())
+	require.Equal(t, float64(-10), env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
+}
+
 // TestOnUsageBasedCustomCurrencyOverageAccrued_RejectsNonPositiveFiatOutcomes
 // proves neither a zero native overage nor an overage that rounds to zero
 // fiat ever produces a ledger transaction: both fail before any transaction
