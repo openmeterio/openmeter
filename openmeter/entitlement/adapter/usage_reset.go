@@ -4,9 +4,12 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	db_entitlement "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type usageResetDBAdapter struct {
@@ -36,7 +39,25 @@ func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime metereden
 				return nil, err
 			}
 
-			_, err := repo.db.UsageReset.Create().
+			entitlementID := models.NamespacedID{
+				Namespace: usageResetTime.Namespace,
+				ID:        usageResetTime.EntitlementID,
+			}
+			entitlementExists, err := repo.db.Entitlement.Query().
+				Where(
+					db_entitlement.ID(entitlementID.ID),
+					db_entitlement.Namespace(entitlementID.Namespace),
+				).
+				Exist(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			if !entitlementExists {
+				return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
+			}
+
+			_, err = repo.db.UsageReset.Create().
 				SetEntitlementID(usageResetTime.EntitlementID).
 				SetNamespace(usageResetTime.Namespace).
 				SetResetTime(usageResetTime.ResetTime).
