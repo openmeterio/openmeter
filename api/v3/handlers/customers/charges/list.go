@@ -61,9 +61,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				})
 			}
 
-			// Every listed charge loads its full run history, and expands fan
-			// out to live rating and invoice hydration per row, so the page
-			// size is capped instead of trusting the caller.
+			// See maxListCustomerChargesPageSize.
 			if page.PageSize > maxListCustomerChargesPageSize {
 				return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx,
 					fmt.Errorf("page size must not exceed %d", maxListCustomerChargesPageSize),

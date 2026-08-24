@@ -298,11 +298,9 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 }
 
 // buildCustomerCharge assembles the API-facing CustomerCharge from the
-// domain charge and the entities loaded for the applied expands: the
-// side-loaded Customer/Feature/Subscription (nil unless their expand was
-// applied) and the charge-type-matching resolved realization history (with
-// per-run invoices when the realization-invoice expand loaded them). Credit
-// purchase charges only receive the customer.
+// domain charge, the entities loaded for the applied expands, and the
+// resolved realization history of its type. Credit purchase charges only
+// receive the customer.
 func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities) (charges.CustomerCharge, error) {
 	out := charges.CustomerCharge{
 		Charge: charge,
@@ -428,10 +426,9 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 	return out, nil
 }
 
-// customerChargeEntities holds the entities loaded per applied expand; the
-// customer stays nil and the maps stay empty when their expand was not
-// applied. The listing is scoped to exactly one customer, so it is a single
-// entity rather than a map.
+// customerChargeEntities holds the entities loaded for the applied expands;
+// members of unapplied expands stay nil or empty. The listing is scoped to
+// one customer, so the customer is a single entity rather than a map.
 type customerChargeEntities struct {
 	customer          *customer.Customer
 	featuresByRef     map[ref.IDOrKey]feature.Feature
@@ -474,11 +471,10 @@ func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace stri
 	return entities, nil
 }
 
-// getCustomerChargeCustomer loads the listing's single customer for the
-// customer expand. It goes through ListCustomers instead of GetCustomer
-// because charges outlive their customer and deleted customers must still
-// expand; a missing customer resolves to nil so the wire falls back to the
-// id reference instead of failing the listing.
+// getCustomerChargeCustomer loads the listing's customer for the customer
+// expand through ListCustomers rather than GetCustomer: charges outlive their
+// customer, and deleted customers must still expand. A missing customer
+// resolves to nil so the API falls back to the id reference.
 func (s *service) getCustomerChargeCustomer(ctx context.Context, namespace string, id string) (*customer.Customer, error) {
 	listed, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace:      namespace,
@@ -518,9 +514,9 @@ func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace stri
 	for _, featureRef := range refs {
 		featureMeter, err := featureMeters.Resolve(feature.FeatureMeterRef{IDOrKey: featureRef})
 		if err != nil {
-			// A stale reference must not fail the listing: the converter
-			// falls back to the id reference, mirroring how deleted
-			// customers and missing subscriptions degrade.
+			// A stale reference must not fail the listing; the converter
+			// falls back to the id reference, as for deleted customers and
+			// missing subscriptions.
 			if models.IsGenericNotFoundError(err) {
 				continue
 			}
@@ -536,9 +532,8 @@ func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace stri
 
 // listCustomerChargeSubscriptions bulk-loads the referenced subscriptions for
 // the subscription expand. The customer filter is defense-in-depth: the IDs
-// come from system-written charge references already scoped to the customer,
-// but an upstream integrity bug must not let another customer's subscription
-// ride along in this customer's listing.
+// are already customer-scoped, but an integrity bug must not expose another
+// customer's subscription in this listing.
 func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace string, customerID string, ids []string) (map[string]subscription.Subscription, error) {
 	out := make(map[string]subscription.Subscription, len(ids))
 	if len(ids) == 0 {
@@ -564,12 +559,11 @@ func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace
 }
 
 // listRealizationInvoiceLines loads the invoices referenced by realization
-// runs and indexes their header (lines stripped) by the ID of every line they
-// carry: realization runs book to a specific line, so the line ID is what the
-// expand resolves through, while the header is what the presentation needs.
-// There are no ID-only stubs without the expand; converters fall back to the
-// run's invoice ID. The customer filter is defense-in-depth against another
-// customer's invoice riding along through a corrupted run reference.
+// runs and indexes their header (without lines) by the ID of each line they
+// carry, since runs book to a specific line. Without the expand there are no
+// stubs; converters fall back to the run's invoice ID. The customer filter is
+// defense-in-depth against a corrupted run reference exposing another
+// customer's invoice.
 func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace string, customerID string, ids []string) (map[string]billing.StandardInvoice, error) {
 	out := make(map[string]billing.StandardInvoice)
 	if len(ids) == 0 {

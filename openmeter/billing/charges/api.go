@@ -50,10 +50,9 @@ func (i ListCustomerChargesInput) Validate() error {
 		errs = append(errs, errors.New("exactly one customer ID is required"))
 	}
 
-	// The customer-charge wire contract only carries flat fee and usage based
-	// charges (credit purchases are served by the credit grants API), and the
-	// converter fails on anything else — reject other types up front instead
-	// of failing a whole page at conversion time.
+	// The customer-charge API only serves flat fee and usage based charges;
+	// credit purchases belong to the credit grants API. Rejecting other types
+	// here avoids failing a whole page at conversion time.
 	if len(i.ChargeTypes) == 0 {
 		errs = append(errs, errors.New("at least one charge type is required"))
 	}
@@ -67,12 +66,11 @@ func (i ListCustomerChargesInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// ListCustomerChargesResult wraps the paginated charges together with the
-// expands the facade applied. The side-loaded entities and the resolved
-// realization view themselves ride on each CustomerCharge.
+// ListCustomerChargesResult is the paginated charges together with the
+// expands the facade applied; expanded entities are carried by each
+// CustomerCharge.
 type ListCustomerChargesResult struct {
 	Charges pagination.Result[CustomerCharge]
-	// Expands are the expands the facade applied.
 	Expands meta.Expands
 }
 

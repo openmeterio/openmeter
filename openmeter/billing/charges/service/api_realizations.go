@@ -31,8 +31,8 @@ func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[stri
 
 	servicePeriod := charge.Intent.GetEffectiveIntent().ServicePeriod
 
-	// A fresh allocation avoids writing into the caller's PriorRuns backing
-	// array when the current run is appended.
+	// Copied so appending the current run does not write into the caller's
+	// PriorRuns backing array.
 	runs := make(flatfee.RealizationRuns, 0, len(charge.Realizations.PriorRuns)+1)
 	runs = append(runs, charge.Realizations.PriorRuns...)
 	if charge.Realizations.CurrentRun != nil {
@@ -107,11 +107,10 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 	out := make([]charges.CustomerChargeUsageBasedRealization, 0, len(runs)+1)
 
 	coveredUntil := meta.NormalizeTimestamp(servicePeriod.From)
-	// maxCoveredTo tracks the furthest service-period end any non-voided run
-	// has booked, independent of creation order. The outstanding projection
-	// starts there: coveredUntil stitches per-entry periods in creation order
-	// and would let a later-created run with an earlier period end pull the
-	// outstanding start backwards over already-recognized time.
+	// maxCoveredTo is the furthest period end any live run has booked,
+	// independent of booking order. The outstanding entry starts there so a
+	// later run with an earlier period end cannot move it back over
+	// already-realized time.
 	maxCoveredTo := meta.NormalizeTimestamp(servicePeriod.From)
 	previousQuantity := alpacadecimal.Zero
 
@@ -152,10 +151,9 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 			Quantity:      alpacadecimal.Zero,
 		}
 
-		// Signed booked deltas telescope to the last non-voided cumulative,
-		// so the not-yet-booked remainder of the live read is simply the read
-		// minus that cumulative, floored at zero when booked history is ahead
-		// of the live read (late-arriving usage the next run will absorb).
+		// The unrealized remainder is the live read minus the last live
+		// cumulative, floored at zero when booked history is ahead of the
+		// read.
 		if charge.Expands.RealtimeQuantity != nil {
 			realtimeOutstanding := charge.Expands.RealtimeQuantity.Sub(previousQuantity)
 			if realtimeOutstanding.IsNegative() {

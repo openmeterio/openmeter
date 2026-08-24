@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// ToAPIBillingTotals maps a domain totals.Totals to the API BillingTotals type.
 func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
 	return api.BillingTotals{
 		Amount:              t.Amount.String(),
@@ -25,12 +24,10 @@ func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
 	}
 }
 
-// ConvertClosedPeriodToAPI maps a domain ClosedPeriod to the API type.
 func ConvertClosedPeriodToAPI(p timeutil.ClosedPeriod) api.ClosedPeriod {
 	return api.ClosedPeriod{From: p.From, To: p.To}
 }
 
-// ConvertSubscriptionRefToAPI maps a SubscriptionReference to the API type.
 func ConvertSubscriptionRefToAPI(ref meta.SubscriptionReference) api.BillingSubscriptionReference {
 	var out api.BillingSubscriptionReference
 	out.Id = ref.SubscriptionID
@@ -44,7 +41,6 @@ type lifecycleControllerConfig struct {
 	manualOverride bool
 }
 
-// LifecycleControllerOption configures lifecycle controller conversion.
 type LifecycleControllerOption func(*lifecycleControllerConfig)
 
 // WithManualOverride marks the API lifecycle controller manual when a charge
@@ -55,8 +51,6 @@ func WithManualOverride(manualOverride bool) LifecycleControllerOption {
 	}
 }
 
-// ConvertLifecycleControllerToAPI maps the internal lifecycle owner to the public
-// lifecycle controller.
 func ConvertLifecycleControllerToAPI(mb billing.InvoiceLineManagedBy, options ...LifecycleControllerOption) api.BillingLifecycleController {
 	config := lifecycleControllerConfig{}
 	for _, option := range options {

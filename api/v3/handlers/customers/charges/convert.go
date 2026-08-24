@@ -54,9 +54,8 @@ func FromAPICustomerChargesSortField(ctx context.Context, field string) (string,
 var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 
 // convertFlatFeeChargeToAPI maps the flat-fee branch of a CustomerCharge to
-// the API representation: it unwraps the domain charge from the union (failing
-// on any other charge type) and chooses reference vs full union branches based
-// on the entities the facade side-loaded onto the DTO.
+// the API representation. Expanded entities select the full union branches,
+// references are used otherwise.
 func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (api.BillingChargeFlatFee, error) {
 	flatFee, err := charge.AsFlatFeeCharge()
 	if err != nil {
@@ -135,9 +134,8 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 }
 
 // convertUsageBasedChargeToAPI maps the usage-based branch of a CustomerCharge
-// to the API representation: it unwraps the domain charge from the union
-// (failing on any other charge type) and chooses reference vs full union
-// branches based on the entities the facade side-loaded onto the DTO.
+// to the API representation. Expanded entities select the full union branches,
+// references are used otherwise.
 func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (api.BillingChargeUsageBased, error) {
 	usageBasedFee, err := charge.AsUsageBasedCharge()
 	if err != nil {
@@ -283,7 +281,6 @@ func convertFeatureIDToReference(id *string) *api.FeatureReference {
 	}
 }
 
-// convertSubscriptionToReference converts a nullable SubscriptionReference pointer to the API type.
 func convertSubscriptionToReference(source *meta.SubscriptionReference) (*api.SubscriptionOrReference, error) {
 	if source == nil {
 		return nil, nil
@@ -295,9 +292,6 @@ func convertSubscriptionToReference(source *meta.SubscriptionReference) (*api.Su
 	return &result, nil
 }
 
-// convertChargeSubscriptionToAPI picks the subscription union branch: the
-// full subscription when the facade attached one under the `subscription`
-// expand, the id/phase/item reference otherwise.
 func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded *subscription.Subscription) (*api.SubscriptionOrReference, error) {
 	if source == nil {
 		return nil, nil
@@ -306,9 +300,6 @@ func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded
 	if expanded != nil {
 		var out api.SubscriptionOrReference
 
-		// The charges expand side-loads bare subscriptions without their
-		// specs, so only the base fields convert: the view-derived fields
-		// (phases, current period) would need per-subscription view loads.
 		sub := subscriptions.ToAPIBillingSubscriptionBase(*expanded)
 
 		if err := out.FromBillingSubscription(sub); err != nil {
@@ -321,9 +312,6 @@ func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded
 	return convertSubscriptionToReference(source)
 }
 
-// convertChargeCustomerToAPI picks the customer union branch: the full
-// customer when the facade attached one under the `customer` expand, the id
-// reference otherwise.
 func convertChargeCustomerToAPI(id string, expanded *customer.Customer) (api.CustomerOrReference, error) {
 	if expanded != nil {
 		var out api.CustomerOrReference
@@ -337,10 +325,6 @@ func convertChargeCustomerToAPI(id string, expanded *customer.Customer) (api.Cus
 	return convertCustomerIDToReference(id)
 }
 
-// convertExpandedChargeFeatureToAPI picks the feature union branch: the full
-// feature when the facade attached one under the `feature` expand, the id
-// reference otherwise. Neither an expanded feature nor a feature id means the
-// charge has no feature, which is legal for flat fees and maps to nil.
 func convertExpandedChargeFeatureToAPI(featureID *string, expanded *feature.Feature) (*api.FeatureOrReference, error) {
 	var feature api.FeatureOrReference
 
@@ -364,19 +348,14 @@ func convertExpandedChargeFeatureToAPI(featureID *string, expanded *feature.Feat
 	return &feature, nil
 }
 
-// convertFlatFeeRealizationsToAPI maps the charge's resolved realization view
-// (attached by the service facade): either the booked history (runs in
-// creation order, voided runs as inert audit entries) or the single
-// whole-period outstanding projection, since flat fees are never partially
-// invoiced.
 func convertFlatFeeRealizationsToAPI(realizations []billingcharges.CustomerChargeFlatFeeRealization, expands meta.Expands) ([]api.BillingChargeRealization, error) {
 	out := make([]api.BillingChargeRealization, 0, len(realizations))
 
 	for _, resolved := range realizations {
 		if resolved.Run == nil {
-			// The outstanding entry is not a persisted run, so it carries no
-			// ID, invoice, line, or payment. A flat fee is not metered, so
-			// none of its realizations carry a usage field.
+			// The outstanding entry is not a persisted run, so it has no ID,
+			// invoice, line, or payment. Flat fees are not metered, so no entry
+			// carries usage.
 			out = append(out, api.BillingChargeRealization{
 				ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
 				Type:          api.BillingChargeRealizationTypeOutstanding,
@@ -421,19 +400,15 @@ func convertFlatFeeRealizationsToAPI(realizations []billingcharges.CustomerCharg
 	return out, nil
 }
 
-// convertUsageBasedRealizationsToAPI maps the charge's resolved realization
-// view (attached by the service facade): booked runs stitched into contiguous
-// service periods with per-run quantities, voided runs as inert audit entries,
-// and the outstanding projection for the tail no live run has booked yet.
 func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerChargeUsageBasedRealization, expands meta.Expands) ([]api.BillingChargeRealization, error) {
 	out := make([]api.BillingChargeRealization, 0, len(realizations))
 
 	for _, resolved := range realizations {
 		if resolved.Run == nil {
-			// The outstanding entry is not a persisted run, so it carries no
-			// ID, invoice, line, or payment; its quantity is the
-			// not-yet-booked remainder of a live metering read under the
-			// real_time_usage expand, zero otherwise.
+			// The outstanding entry is not a persisted run, so it has no ID,
+			// invoice, line, or payment. Its quantity is the not-yet-booked
+			// remainder of the live read under the real_time_usage expand, zero
+			// otherwise.
 			out = append(out, api.BillingChargeRealization{
 				ServicePeriod: ConvertClosedPeriodToAPI(resolved.ServicePeriod),
 				Type:          api.BillingChargeRealizationTypeOutstanding,
@@ -481,8 +456,6 @@ func convertUsageBasedRealizationsToAPI(realizations []billingcharges.CustomerCh
 }
 
 // convertFlatFeeRealizationTypeToAPI maps a flat fee run type to the API enum.
-// Voided runs (deleted or invalidated by an unsupported credit note) map to
-// the `voided` type regardless of the run type they were booked under.
 func convertFlatFeeRealizationTypeToAPI(t flatfee.RealizationRunType, voided bool) (api.BillingChargeRealizationType, error) {
 	if voided {
 		return api.BillingChargeRealizationTypeVoided, nil
@@ -497,8 +470,7 @@ func convertFlatFeeRealizationTypeToAPI(t flatfee.RealizationRunType, voided boo
 }
 
 // convertUsageBasedRealizationTypeToAPI maps a usage-based run type to the API
-// enum. Voided runs (deleted or invalidated by an unsupported credit note) map
-// to the `voided` type regardless of the run type they were booked under.
+// enum.
 func convertUsageBasedRealizationTypeToAPI(t usagebased.RealizationRunType, voided bool) (api.BillingChargeRealizationType, error) {
 	if voided {
 		return api.BillingChargeRealizationTypeVoided, nil
@@ -514,12 +486,6 @@ func convertUsageBasedRealizationTypeToAPI(t usagebased.RealizationRunType, void
 	}
 }
 
-// convertRealizationInvoiceToAPI picks the invoice union branch: the invoice
-// header of the run's booked line when the facade attached one to the
-// resolved realization under the `realization.invoice` expand, the id
-// reference otherwise (including when the referenced invoice no longer
-// exists). The header carries neither lines nor the customer snapshot: the
-// charge already identifies both.
 func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.StandardInvoice) (*api.ChargeRealizationInvoiceOrReference, error) {
 	if invoiceID == nil {
 		return nil, nil
@@ -542,8 +508,6 @@ func convertRealizationInvoiceToAPI(invoiceID *string, expanded *billing.Standar
 	return convertInvoiceIDToReference(invoiceID)
 }
 
-// convertInvoiceIDToReference serializes the reference branch of the invoice
-// union. Resolving the full invoice is the `realization.invoice` expand's job.
 func convertInvoiceIDToReference(invoiceID *string) (*api.ChargeRealizationInvoiceOrReference, error) {
 	if invoiceID == nil {
 		return nil, nil
@@ -557,8 +521,6 @@ func convertInvoiceIDToReference(invoiceID *string) (*api.ChargeRealizationInvoi
 	return &invoice, nil
 }
 
-// convertRealizationPaymentToAPI maps the run's payment settlement state. A run
-// only has one when the charge requires a fiat transaction to settle.
 func convertRealizationPaymentToAPI(p *payment.Invoiced) *api.BillingChargeRealizationPayment {
 	if p == nil {
 		return nil
@@ -569,8 +531,6 @@ func convertRealizationPaymentToAPI(p *payment.Invoiced) *api.BillingChargeReali
 	}
 }
 
-// convertFlatFeeDetailedLinesToAPI maps the run's rated breakdown. The option is
-// empty unless the detailed lines expand loaded them.
 func convertFlatFeeDetailedLinesToAPI(source mo.Option[flatfee.DetailedLines]) (*[]api.BillingChargeRealizationDetailedLine, error) {
 	if !source.IsPresent() {
 		return nil, nil
@@ -601,8 +561,6 @@ func convertFlatFeeDetailedLinesToAPI(source mo.Option[flatfee.DetailedLines]) (
 	return &lines, nil
 }
 
-// convertUsageBasedDetailedLinesToAPI maps the run's rated breakdown. The option
-// is empty unless the detailed lines expand loaded them.
 func convertUsageBasedDetailedLinesToAPI(source mo.Option[usagebased.DetailedLines]) (*[]api.BillingChargeRealizationDetailedLine, error) {
 	if !source.IsPresent() {
 		return nil, nil
@@ -635,8 +593,6 @@ func convertUsageBasedDetailedLinesToAPI(source mo.Option[usagebased.DetailedLin
 	return &lines, nil
 }
 
-// convertRealizationCreditsAppliedToAPI maps the credit allocations booked onto a
-// detailed line. Runs settled without credits carry none.
 func convertRealizationCreditsAppliedToAPI(source creditsapplied.CreditsApplied) *[]api.BillingChargeRealizationDetailedLineCreditApplied {
 	if len(source) == 0 {
 		return nil
@@ -682,8 +638,8 @@ func convertRealizationAmountDiscountsToAPI(source chargedetailedline.AmountDisc
 }
 
 // convertChargeToAPI dispatches on charge type and maps to the API union
-// type. The full related entities ride on the CustomerCharge DTO; expands is
-// only consulted for emission gating (realization totals).
+// type. Expanded entities are carried by the CustomerCharge; expands only
+// gates the emission of realization totals.
 func convertChargeToAPI(charge billingcharges.CustomerCharge, expands meta.Expands) (api.BillingCharge, error) {
 	var out api.BillingCharge
 

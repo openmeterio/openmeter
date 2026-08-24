@@ -63,11 +63,9 @@ func ToAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoice, erro
 	return out, nil
 }
 
-// ToAPIChargeRealizationInvoice maps the invoice a charge realization was
-// booked to onto the charges API's own embedding model: the standard invoice
-// entity without the customer snapshot, whose identity the embedding charge
-// already carries. The dedicated model keeps the shared invoice contract
-// untouched.
+// ToAPIChargeRealizationInvoice maps a realization's invoice to the charges
+// API's own embedded invoice model: the standard invoice without the customer
+// snapshot, which the embedding charge already identifies.
 func ToAPIChargeRealizationInvoice(std billing.StandardInvoice) (api.BillingChargeRealizationInvoice, error) {
 	stdAPI, err := toAPIStandardInvoice(std)
 	if err != nil {

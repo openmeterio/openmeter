@@ -234,10 +234,8 @@ func (i ListChargesInput) Validate() error {
 		}
 	}
 
-	// The service-period window is half-open ([from, to)), so each filter
-	// supports exactly one operator: an inclusive gte start and an exclusive
-	// lt end. Validate guarantees at most one operator is set, so requiring
-	// the supported one rejects every other shape, empty and And/Or included.
+	// The service-period window is half-open, [from, to): the start filter
+	// supports only gte and the end filter only lt.
 	if i.ServicePeriodFrom != nil {
 		if err := i.ServicePeriodFrom.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("service period from filter: %w", err))

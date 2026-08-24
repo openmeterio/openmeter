@@ -24,11 +24,10 @@ func (s *service) ListCharges(ctx context.Context, input charges.ListChargesInpu
 		return pagination.Result[charges.Charge]{}, err
 	}
 
-	// The type-specific loads run outside the search transaction on purpose:
-	// the realtime usage expand queries ClickHouse per charge, and a remote
-	// call must not pin a pooled Postgres connection for the whole request.
-	// Read-committed gives no cross-query snapshot anyway, so the transaction
-	// added no consistency between the search page and the type loads.
+	// The type-specific loads run outside the search transaction: the realtime
+	// usage expand queries ClickHouse per charge, and a remote call must not pin
+	// a pooled Postgres connection. Read-committed gives no cross-query snapshot,
+	// so the transaction added no consistency either.
 	chargesWithTypes, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[charges.ChargeSearchItem], error) {
 		return s.adapter.ListCharges(ctx, input)
 	})
