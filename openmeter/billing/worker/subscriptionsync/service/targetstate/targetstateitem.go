@@ -93,8 +93,17 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 	}
 
 	var featureKey string
-	if feature := r.SubscriptionItem.RateCard.AsMeta().Feature; feature != nil {
-		featureKey = lo.FromPtr(feature.Key)
+	feature := r.SubscriptionItem.RateCard.AsMeta().Feature
+	if feature != nil {
+		if err := feature.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid feature reference for billing line: %w", err)
+		}
+
+		if feature.Key == nil {
+			return nil, errors.New("feature key is required for billing line")
+		}
+
+		featureKey = *feature.Key
 	}
 
 	switch price.Type() {
@@ -119,6 +128,10 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 		}))
 		line.FeatureKey = featureKey
 	default:
+		if feature == nil {
+			return nil, errors.New("feature is required for usage-based price")
+		}
+
 		if r.SubscriptionItem.RateCard.AsMeta().Price == nil {
 			return nil, fmt.Errorf("price must be defined for usage based price")
 		}
