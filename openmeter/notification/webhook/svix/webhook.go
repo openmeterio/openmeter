@@ -72,6 +72,51 @@ func (h svixHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appID, endp
 	return tracex.Start[map[string]string](ctx, h.tracer, "svix.get_or_update_endpoint_headers").Wrap(fn)
 }
 
+// UpdateEndpointHeaders replaces the endpoint's custom header set with the given one.
+// Unlike GetOrUpdateEndpointHeaders it also sends an empty set: the channel update
+// contract replaces the whole webhook config, so headers omitted from the update must
+// be cleared in Svix too, otherwise deliveries keep sending headers the API and the
+// database report as removed.
+func (h svixHandler) UpdateEndpointHeaders(ctx context.Context, appID, endpointID string, headers map[string]string) (map[string]string, error) {
+	fn := func(ctx context.Context) (map[string]string, error) {
+		if appID == "" {
+			return nil, fmt.Errorf("appID is required")
+		}
+
+		if endpointID == "" {
+			return nil, fmt.Errorf("endpointID is required")
+		}
+
+		span := trace.SpanFromContext(ctx)
+
+		span.AddEvent("replacing endpoint headers", trace.WithAttributes(
+			attribute.String("svix.app_id", appID),
+			attribute.String("svix.endpoint_id", endpointID),
+		))
+
+		if headers == nil {
+			headers = map[string]string{}
+		}
+
+		input := svix.EndpointHeadersIn{
+			Headers: headers,
+		}
+
+		err := h.client.Endpoint.UpdateHeaders(ctx, appID, endpointID, input)
+		if err = internal.WrapSvixError(err); err != nil {
+			return nil, fmt.Errorf("failed to set custom headers for Svix endpoint: %w", err)
+		}
+
+		if len(headers) == 0 {
+			return nil, nil
+		}
+
+		return headers, nil
+	}
+
+	return tracex.Start[map[string]string](ctx, h.tracer, "svix.update_endpoint_headers").Wrap(fn)
+}
+
 func (h svixHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID, endpointID string, secret *string) (string, error) {
 	fn := func(ctx context.Context) (string, error) {
 		var resp string
@@ -295,13 +340,13 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 			return nil, err
 		}
 
-		// Set custom HTTP headers for webhook endpoint if provided
+		// Replace the custom HTTP headers of the webhook endpoint. The update replaces
+		// the whole webhook config, so an omitted or emptied header set clears the
+		// headers in Svix as well.
 
-		if len(params.CustomHeaders) > 0 {
-			wh.CustomHeaders, err = h.GetOrUpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
-			if err != nil {
-				return nil, err
-			}
+		wh.CustomHeaders, err = h.UpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
+		if err != nil {
+			return nil, err
 		}
 
 		return wh, nil
