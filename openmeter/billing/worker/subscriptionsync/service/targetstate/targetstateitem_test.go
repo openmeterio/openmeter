@@ -6,10 +6,12 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -161,6 +163,63 @@ func newExpectedLineTestStateItem(t *testing.T, fiatCurrency currencies.Currency
 		},
 		Currency: fiatCurrency,
 	}
+}
+
+func TestResolveSubscriptionItemCurrency(t *testing.T) {
+	newItem := func(reference *currencies.CurrencyReference) SubscriptionItemWithPeriods {
+		return SubscriptionItemWithPeriods{
+			SubscriptionItemView: subscription.SubscriptionItemView{
+				Spec: subscription.SubscriptionItemSpec{
+					CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+							RateCard: &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
+								Currency: reference,
+							}},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	t.Run("legacy item falls back to invoice currency", func(t *testing.T) {
+		currency, err := resolveSubscriptionItemCurrency(newItem(nil), currencyx.Code("USD"))
+
+		require.NoError(t, err)
+		require.True(t, currency.IsFiat())
+		require.Equal(t, currencyx.Code("USD"), currency.GetCode())
+	})
+
+	t.Run("fiat item keeps its materialized currency", func(t *testing.T) {
+		reference := currencies.NewCurrencyReference("EUR")
+		currency, err := resolveSubscriptionItemCurrency(newItem(&reference), currencyx.Code("USD"))
+
+		require.NoError(t, err)
+		require.True(t, currency.IsFiat())
+		require.Equal(t, currencyx.Code("EUR"), currency.GetCode())
+	})
+
+	t.Run("custom item keeps its managed currency snapshot", func(t *testing.T) {
+		managedCurrency := currenciestestutils.NewManagedCurrency(t, "namespace", "custom-currency-id", "CREDITS")
+		reference := managedCurrency.Reference()
+		currency, err := resolveSubscriptionItemCurrency(newItem(&reference), currencyx.Code("USD"))
+
+		require.NoError(t, err)
+		require.True(t, currency.IsCustom())
+		require.Equal(t, managedCurrency.ID, currency.ID)
+		require.Equal(t, managedCurrency.GetCode(), currency.GetCode())
+	})
+
+	t.Run("unresolved custom item is rejected", func(t *testing.T) {
+		reference := currencies.CurrencyReference{
+			Code:             "CREDITS",
+			CustomCurrencyID: lo.ToPtr("custom-currency-id"),
+		}
+
+		_, err := resolveSubscriptionItemCurrency(newItem(&reference), currencyx.Code("USD"))
+
+		require.ErrorContains(t, err, "custom currency reference is not resolved")
+	})
 }
 
 func TestStateItemShouldProrateSubscriptionEndMode(t *testing.T) {

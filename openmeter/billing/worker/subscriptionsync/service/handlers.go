@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -28,7 +27,6 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 			ctx,
 			newSubscriptionReferenceOrView(event.SubscriptionView),
 			now,
-			subscriptionsync.SkipCustomCurrencySubscriptions(),
 		)
 		if err != nil {
 			return err
@@ -42,7 +40,6 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 		ctx,
 		newSubscriptionReferenceOrView(event.SubscriptionView),
 		*event.Spec.ActiveTo,
-		subscriptionsync.SkipCustomCurrencySubscriptions(),
 	)
 	if err != nil {
 		return err
@@ -82,7 +79,6 @@ func (s *Service) HandleInvoiceCreation(ctx context.Context, event *billing.Stan
 				ID:        subscriptionID,
 			}),
 			clock.Now(),
-			subscriptionsync.SkipCustomCurrencySubscriptions(),
 		); err != nil {
 			return fmt.Errorf("syncing subscription[%s]: %w", subscriptionID, err)
 		}
@@ -98,7 +94,6 @@ func (s *Service) HandleDeletedEvent(ctx context.Context, event *subscription.De
 		ctx,
 		newSubscriptionReferenceOrView(event.Subscription.NamespacedID),
 		clock.Now(),
-		subscriptionsync.SkipCustomCurrencySubscriptions(),
 	)
 	return err
 }

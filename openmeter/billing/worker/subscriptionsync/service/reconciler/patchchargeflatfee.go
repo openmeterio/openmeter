@@ -94,6 +94,11 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 		return charges.ChargeIntent{}, err
 	}
 
+	costBasis, err := newChargeCostBasisIntent(target)
+	if err != nil {
+		return charges.ChargeIntent{}, fmt.Errorf("mapping cost basis: %w", err)
+	}
+
 	return charges.NewChargeIntent(chargesflatfee.Intent{
 		Intent: chargesmeta.Intent{
 			ManagedBy:         billing.SubscriptionManagedLine,
@@ -131,5 +136,6 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 		},
 		FeatureKey:     featureKey,
 		SettlementMode: target.Subscription.SettlementMode,
+		CostBasis:      costBasis,
 	}), nil
 }

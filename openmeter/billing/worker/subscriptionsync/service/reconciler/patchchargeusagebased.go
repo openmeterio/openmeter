@@ -101,6 +101,11 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 		return charges.ChargeIntent{}, err
 	}
 
+	costBasis, err := newChargeCostBasisIntent(target)
+	if err != nil {
+		return charges.ChargeIntent{}, fmt.Errorf("mapping cost basis: %w", err)
+	}
+
 	return charges.NewChargeIntent(chargesusagebased.Intent{
 		Intent: chargesmeta.Intent{
 			ManagedBy:         billing.SubscriptionManagedLine,
@@ -137,5 +142,6 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 		},
 		SettlementMode: target.Subscription.SettlementMode,
 		FeatureKey:     featureKey,
+		CostBasis:      costBasis,
 	}), nil
 }
