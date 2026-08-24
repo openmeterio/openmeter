@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -38,6 +39,33 @@ func inFilter(values []string) *filter.FilterString {
 	return &filter.FilterString{In: lo.ToPtr(slices.Clone(values))}
 }
 
+// ulidInFilter is inFilter for id-valued parameters.
+func ulidInFilter(values []string) *filter.FilterULID {
+	f := inFilter(values)
+	if f == nil {
+		return nil
+	}
+
+	return &filter.FilterULID{FilterString: *f}
+}
+
+// partitionAnnotationValues splits the legacy subject/feature parameter values into
+// key and id buckets by ULID validity. The v1 parameters accept ids and keys mixed in
+// one list, while ids and keys filter separate annotations: a request mixing the two
+// requires an event to match both buckets rather than either one.
+func partitionAnnotationValues(values []string) (keys []string, ids []string) {
+	for _, value := range values {
+		if _, err := ulid.ParseStrict(value); err == nil {
+			ids = append(ids, value)
+			continue
+		}
+
+		keys = append(keys, value)
+	}
+
+	return keys, ids
+}
+
 func (h *handler) ListEvents() ListEventsHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ListEventsParams) (ListEventsRequest, error) {
@@ -63,14 +91,18 @@ func (h *handler) ListEvents() ListEventsHandler {
 					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
 				},
 				CreatedAt: filter.NewFilterTime(params.From, params.To),
-				Subject:   inFilter(lo.FromPtr(params.Subject)),
-				Feature:   inFilter(lo.FromPtr(params.Feature)),
 				ChannelID: inFilter(lo.FromPtr(params.Channel)),
 			}
 
-			if rules := lo.FromPtr(params.Rule); len(rules) > 0 {
-				req.RuleID = &filter.FilterULID{FilterString: *inFilter(rules)}
-			}
+			subjectKeys, subjectIDs := partitionAnnotationValues(lo.FromPtr(params.Subject))
+			req.SubjectKey = inFilter(subjectKeys)
+			req.SubjectID = ulidInFilter(subjectIDs)
+
+			featureKeys, featureIDs := partitionAnnotationValues(lo.FromPtr(params.Feature))
+			req.FeatureKey = inFilter(featureKeys)
+			req.FeatureID = ulidInFilter(featureIDs)
+
+			req.RuleID = ulidInFilter(lo.FromPtr(params.Rule))
 
 			return req, nil
 		},

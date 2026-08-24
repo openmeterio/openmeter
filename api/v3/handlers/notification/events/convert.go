@@ -161,10 +161,9 @@ func mapAPIEnumFilter(f *filter.FilterString, mapValue func(string) (string, err
 
 // requireExactFilter rejects operators the backing predicate cannot express faithfully.
 // The channel and delivery-state filters are existential joins, so a negated predicate
-// means "has some other channel/state as well" rather than "does not have this one";
-// subject and feature live in a JSONB annotation document reachable only through
-// entutils.JSONBIn. In both cases a non-exact operator would return rows that do not
-// answer the question that was asked, so it fails loudly instead.
+// means "has some other channel/state as well" rather than "does not have this one".
+// A non-exact operator would return rows that do not answer the question that was
+// asked, so it fails loudly instead.
 func requireExactFilter(field string, f *filter.FilterString) error {
 	if f == nil || f.IsEmpty() {
 		return nil

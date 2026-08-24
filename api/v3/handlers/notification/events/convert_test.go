@@ -197,10 +197,10 @@ func TestRequireExactFilter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := requireExactFilter("subject", tc.in)
+			err := requireExactFilter("channel_id", tc.in)
 			if tc.wantErr {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "filter[subject]")
+				assert.Contains(t, err.Error(), "filter[channel_id]")
 				return
 			}
 

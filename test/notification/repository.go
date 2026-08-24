@@ -170,7 +170,7 @@ func (s *RepositoryTestSuite) TestFilterEventByFeature(t *testing.T) {
 
 	listedEvents, err := repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Feature:    &filter.FilterString{Eq: lo.ToPtr(TestFeatureID)},
+		FeatureID:  &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(TestFeatureID)}},
 	})
 
 	require.NoError(err)
@@ -179,7 +179,7 @@ func (s *RepositoryTestSuite) TestFilterEventByFeature(t *testing.T) {
 
 	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Feature:    &filter.FilterString{Eq: lo.ToPtr(TestFeatureKey)},
+		FeatureKey: &filter.FilterString{Eq: lo.ToPtr(TestFeatureKey)},
 	})
 
 	require.NoError(err)
@@ -188,7 +188,7 @@ func (s *RepositoryTestSuite) TestFilterEventByFeature(t *testing.T) {
 
 	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Feature:    &filter.FilterString{Eq: lo.ToPtr("invalid-feature")},
+		FeatureKey: &filter.FilterString{Eq: lo.ToPtr("invalid-feature")},
 	})
 
 	require.NoError(err)
@@ -203,19 +203,7 @@ func (s *RepositoryTestSuite) TestFilterEventBySubject(t *testing.T) {
 
 	listedEvents, err := repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Subject:    &filter.FilterString{Eq: lo.ToPtr(TestSubjectID)},
-	})
-
-	require.NoError(err)
-	require.Len(listedEvents.Items, 2)
-	require.ElementsMatch(eventIDsFromEventPaginatedResponse(listedEvents), []string{s.eventWithSubject1.ID, s.eventWithFeatureAndSubject.ID})
-
-	// The subject filter matches the subject key annotation as well as the id, mirroring
-	// the feature case above. This case previously repeated the id lookup verbatim, so
-	// the key half of the OR was never exercised.
-	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
-		Namespaces: []string{s.namespace},
-		Subject:    &filter.FilterString{Eq: lo.ToPtr(TestSubjectKey)},
+		SubjectID:  &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(TestSubjectID)}},
 	})
 
 	require.NoError(err)
@@ -224,7 +212,16 @@ func (s *RepositoryTestSuite) TestFilterEventBySubject(t *testing.T) {
 
 	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
 		Namespaces: []string{s.namespace},
-		Subject:    &filter.FilterString{Eq: lo.ToPtr("invalid-subject")},
+		SubjectKey: &filter.FilterString{Eq: lo.ToPtr(TestSubjectKey)},
+	})
+
+	require.NoError(err)
+	require.Len(listedEvents.Items, 2)
+	require.ElementsMatch(eventIDsFromEventPaginatedResponse(listedEvents), []string{s.eventWithSubject1.ID, s.eventWithFeatureAndSubject.ID})
+
+	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
+		Namespaces: []string{s.namespace},
+		SubjectKey: &filter.FilterString{Eq: lo.ToPtr("invalid-subject")},
 	})
 
 	require.NoError(err)

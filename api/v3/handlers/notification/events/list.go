@@ -191,23 +191,29 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	}
 	req.DeliveryStatus = deliveryStatus
 
-	subject, err := filters.FromAPIFilterStringExact(params.Subject)
+	subjectKey, err := filters.FromAPIFilterStringExact(params.SubjectKey)
 	if err != nil {
-		return badRequest("filter[subject]", err)
+		return badRequest("filter[subject_key]", err)
 	}
-	if err := requireExactFilter("subject", subject); err != nil {
-		return badRequest("filter[subject]", err)
-	}
-	req.Subject = subject
+	req.SubjectKey = subjectKey
 
-	feature, err := filters.FromAPIFilterStringExact(params.Feature)
+	subjectID, err := filters.FromAPIFilterULID(params.SubjectId)
 	if err != nil {
-		return badRequest("filter[feature]", err)
+		return badRequest("filter[subject_id]", err)
 	}
-	if err := requireExactFilter("feature", feature); err != nil {
-		return badRequest("filter[feature]", err)
+	req.SubjectID = subjectID
+
+	featureKey, err := filters.FromAPIFilterStringExact(params.FeatureKey)
+	if err != nil {
+		return badRequest("filter[feature_key]", err)
 	}
-	req.Feature = feature
+	req.FeatureKey = featureKey
+
+	featureID, err := filters.FromAPIFilterULID(params.FeatureId)
+	if err != nil {
+		return badRequest("filter[feature_id]", err)
+	}
+	req.FeatureID = featureID
 
 	return nil
 }

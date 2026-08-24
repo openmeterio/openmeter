@@ -170,18 +170,28 @@ model ListNotificationEventsParamsFilter {
   delivery_status?: Common.StringFieldFilterExact;
 
   /**
-   * Filter by the subject the event refers to, matched against both the subject key
-   * and the subject id. Only `eq` and `oeq` are supported; the value is held in a
-   * JSON document rather than a column, and other operators are rejected.
+   * Filter by the key of the subject the event refers to. Events without a subject
+   * are not matched by `neq`.
    */
-  subject?: Common.StringFieldFilterExact;
+  subject_key?: Common.StringFieldFilterExact;
 
   /**
-   * Filter by the feature the event refers to, matched against both the feature key
-   * and the feature id. Only `eq` and `oeq` are supported; the value is held in a
-   * JSON document rather than a column, and other operators are rejected.
+   * Filter by the id of the subject the event refers to. Events without a subject
+   * are not matched by `neq`.
    */
-  feature?: Common.StringFieldFilterExact;
+  subject_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter by the key of the feature the event refers to. Events without a feature
+   * are not matched by `neq`.
+   */
+  feature_key?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by the id of the feature the event refers to. Events without a feature
+   * are not matched by `neq`.
+   */
+  feature_id?: Common.ULIDFieldFilter;
 }
 
 interface NotificationEventOperations {
