@@ -93,10 +93,12 @@ type ListEventsInput struct {
 	ChannelID      *filter.FilterString `json:"channelId,omitempty"`
 	DeliveryStatus *filter.FilterString `json:"deliveryStatus,omitempty"`
 
-	// Filters resolved against JSONB annotation keys. Only equality and set membership
-	// are expressible; see annotationFilterValues in the adapter.
-	Subject *filter.FilterString `json:"subject,omitempty"`
-	Feature *filter.FilterString `json:"feature,omitempty"`
+	// Filters resolved against JSONB annotation keys. Missing annotations behave like
+	// NULL columns: negated operators do not match events without the annotation.
+	SubjectKey *filter.FilterString `json:"subjectKey,omitempty"`
+	SubjectID  *filter.FilterULID   `json:"subjectId,omitempty"`
+	FeatureKey *filter.FilterString `json:"featureKey,omitempty"`
+	FeatureID  *filter.FilterULID   `json:"featureId,omitempty"`
 
 	// Internal-only filters used by the delivery reconciliation loop and the event
 	// deduplication path. Not exposed on any HTTP API.
@@ -157,15 +159,27 @@ func (i ListEventsInput) Validate() error {
 		}
 	}
 
-	if i.Subject != nil {
-		if err := i.Subject.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid subject filter: %w", err))
+	if i.SubjectKey != nil {
+		if err := i.SubjectKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid subject_key filter: %w", err))
 		}
 	}
 
-	if i.Feature != nil {
-		if err := i.Feature.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid feature filter: %w", err))
+	if i.SubjectID != nil {
+		if err := i.SubjectID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid subject_id filter: %w", err))
+		}
+	}
+
+	if i.FeatureKey != nil {
+		if err := i.FeatureKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid feature_key filter: %w", err))
+		}
+	}
+
+	if i.FeatureID != nil {
+		if err := i.FeatureID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid feature_id filter: %w", err))
 		}
 	}
 

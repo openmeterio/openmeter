@@ -65,14 +65,18 @@ type NotificationEventFilter struct {
 	// are supported; negating an existential match would return events that merely
 	// have some other state as well, so `neq` is rejected.
 	DeliveryStatus *StringExactFilter
-	// Filter by the subject the event refers to, matched against both the subject key
-	// and the subject id. Only `eq` and `oeq` are supported; the value is held in a
-	// JSON document rather than a column, and other operators are rejected.
-	Subject *StringExactFilter
-	// Filter by the feature the event refers to, matched against both the feature key
-	// and the feature id. Only `eq` and `oeq` are supported; the value is held in a
-	// JSON document rather than a column, and other operators are rejected.
-	Feature *StringExactFilter
+	// Filter by the key of the subject the event refers to. Events without a subject
+	// are not matched by `neq`.
+	SubjectKey *StringExactFilter
+	// Filter by the id of the subject the event refers to. Events without a subject
+	// are not matched by `neq`.
+	SubjectID *StringExactFilter
+	// Filter by the key of the feature the event refers to. Events without a feature
+	// are not matched by `neq`.
+	FeatureKey *StringExactFilter
+	// Filter by the id of the feature the event refers to. Events without a feature
+	// are not matched by `neq`.
+	FeatureID *StringExactFilter
 }
 
 type NotificationEventListParams struct {
@@ -95,8 +99,10 @@ func (p NotificationEventListParams) values() url.Values {
 		addStringExactFilter(q, "filter[rule_id]", p.Filter.RuleID)
 		addStringExactFilter(q, "filter[channel_id]", p.Filter.ChannelID)
 		addStringExactFilter(q, "filter[delivery_status]", p.Filter.DeliveryStatus)
-		addStringExactFilter(q, "filter[subject]", p.Filter.Subject)
-		addStringExactFilter(q, "filter[feature]", p.Filter.Feature)
+		addStringExactFilter(q, "filter[subject_key]", p.Filter.SubjectKey)
+		addStringExactFilter(q, "filter[subject_id]", p.Filter.SubjectID)
+		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
+		addStringExactFilter(q, "filter[feature_id]", p.Filter.FeatureID)
 	}
 
 	return q

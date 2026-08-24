@@ -36,29 +36,6 @@ func EagerLoadRulesWithActiveChannels(at time.Time) func(query *entdb.Notificati
 	}
 }
 
-// annotationFilterValues reduces a filter on an annotation-backed field to the literal
-// values it matches. Annotations live in a JSONB column that is only reachable through
-// entutils.JSONBIn, so equality and set membership are the only expressible operators.
-// Anything else is rejected instead of silently ignored, which would return a superset of
-// the requested rows. The API layer rejects the same operators earlier with a 400; this is
-// the backstop for internal callers.
-func annotationFilterValues(name string, f *filter.FilterString) ([]string, error) {
-	if f == nil || f.IsEmpty() {
-		return nil, nil
-	}
-
-	switch {
-	case f.Eq != nil:
-		return []string{*f.Eq}, nil
-	case f.In != nil:
-		return *f.In, nil
-	default:
-		return nil, models.NewGenericValidationError(
-			fmt.Errorf("%s filter only supports equality and set membership", name),
-		)
-	}
-}
-
 func (a *adapter) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.Result[notification.Event], error) {
 	fn := func(ctx context.Context, a *adapter) (pagination.Result[notification.Event], error) {
 		query := a.db.NotificationEvent.Query().
@@ -89,33 +66,10 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			}
 		}
 
-		subjects, err := annotationFilterValues("subject", params.Subject)
-		if err != nil {
-			return pagination.Result[notification.Event]{}, err
-		}
-
-		if len(subjects) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, subjects),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, subjects),
-				),
-			)
-		}
-
-		features, err := annotationFilterValues("feature", params.Feature)
-		if err != nil {
-			return pagination.Result[notification.Event]{}, err
-		}
-
-		if len(features) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, features),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, features),
-				),
-			)
-		}
+		query = filter.ApplyToQueryJSONB(query, params.SubjectKey, eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey)
+		query = filter.ApplyToQueryJSONB(query, params.SubjectID, eventdb.FieldAnnotations, notification.AnnotationEventSubjectID)
+		query = filter.ApplyToQueryJSONB(query, params.FeatureKey, eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey)
+		query = filter.ApplyToQueryJSONB(query, params.FeatureID, eventdb.FieldAnnotations, notification.AnnotationEventFeatureID)
 
 		if len(params.DeduplicationHashes) > 0 {
 			query = query.Where(
