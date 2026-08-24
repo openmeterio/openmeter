@@ -145,7 +145,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			advancedCharges = append(advancedCharges, advancedChargesByID[chargeID])
 		}
 
-		currencies, err := collectCurrencies(advancedCharges)
+		currencies, err := collectEarningsRecognitionCurrencies(advancedCharges)
 		if err != nil {
 			return nil, err
 		}
