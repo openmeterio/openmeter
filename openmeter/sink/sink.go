@@ -820,12 +820,6 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 
 	switch e := event.(type) {
 	case kafka.AssignedPartitions:
-		// We resume the consumer after the partitions are assigned to start processing new messages.
-		err := s.resume()
-		if err != nil {
-			return fmt.Errorf("failed to resume after assigned partitions: %w", err)
-		}
-
 		// Logs newly assigned partitions only (doesn't log already assigned partitions)
 		logger.Info("kafka partition assignment", "partitions", prettyPartitions(e.Partitions))
 
@@ -842,9 +836,15 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		}
 
 		// IncrementalAssign adds the specified partitions to the current set of partitions to consume.
-		err = s.config.Consumer.IncrementalAssign(e.Partitions)
+		err := s.config.Consumer.IncrementalAssign(e.Partitions)
 		if err != nil {
 			return fmt.Errorf("failed to assign partitions: %w", err)
+		}
+
+		// We resume the consumer after the partitions are assigned to start processing new messages.
+		err = s.config.Consumer.Resume(e.Partitions)
+		if err != nil {
+			return fmt.Errorf("failed to resume after assigned partitions: %w", err)
 		}
 
 	case kafka.RevokedPartitions:
