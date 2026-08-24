@@ -394,3 +394,134 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 		})
 	}
 }
+
+// Non-flat prices require billing_cadence. The converter accepts the body
+// as-is (zero-cadence usage-based rate card); the defect surfaces as
+// billing_cadence_invalid_value on the draft and blocks publish.
+func TestV3AddonUnitPriceWithoutBillingCadence(t *testing.T) {
+	c := newV3Client(t)
+
+	meterKey := uniqueKey("no_cadence")
+
+	m, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
+		Key:           meterKey,
+		Name:          "Test Meter " + meterKey,
+		Aggregation:   v3sdk.MeterAggregationSum,
+		EventType:     uniqueKey("no_cadence_event"),
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, m)
+
+	featureKey := uniqueKey("no_cadence")
+
+	f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+		Key:  featureKey,
+		Name: "Test Feature " + featureKey,
+		Meter: &v3sdk.FeatureMeterReferenceInput{
+			ID: m.ID,
+		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, f)
+
+	rc := validUnitRateCard(*f)
+	rc.BillingCadence = nil
+
+	body := validAddonRequest("unit_no_cadence")
+	body.RateCards = []v3sdk.RateCardInput{rc}
+
+	var addonID string
+
+	t.Run("create accepts the invalid draft", func(t *testing.T) {
+		addon, err := c.Addons.Create(t.Context(), body)
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, addon)
+		assert.Equal(t, v3sdk.AddonStatusDraft, addon.Status)
+		addonID = addon.ID
+	})
+
+	t.Run("validation_errors surfaces on GET", func(t *testing.T) {
+		require.NotEmpty(t, addonID)
+		got, err := c.Addons.Get(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, got)
+		require.NotEmpty(t, got.ValidationErrors, "expected validation_errors on the draft")
+
+		var codes []string
+		for _, e := range got.ValidationErrors {
+			codes = append(codes, e.Code)
+		}
+		assert.Contains(t, codes, "billing_cadence_invalid_value")
+	})
+
+	t.Run("publish rejects with the same code", func(t *testing.T) {
+		require.NotEmpty(t, addonID)
+		_, err := c.Addons.Publish(t.Context(), addonID)
+		problem := requireProblem(t, err, http.StatusBadRequest)
+		assertValidationCode(t, problem, "billing_cadence_invalid_value")
+	})
+
+	t.Run("fix by setting billing_cadence", func(t *testing.T) {
+		require.NotEmpty(t, addonID)
+		update := v3sdk.UpsertAddonRequest{
+			Name:         body.Name,
+			InstanceType: body.InstanceType,
+			RateCards:    []v3sdk.RateCardInput{validUnitRateCard(*f)},
+		}
+		_, err := c.Addons.Update(t.Context(), addonID, update)
+		c.requireStatus(http.StatusOK, err)
+	})
+
+	t.Run("publish succeeds after fix", func(t *testing.T) {
+		require.NotEmpty(t, addonID)
+		addon, err := c.Addons.Publish(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, v3sdk.AddonStatusActive, addon.Status)
+	})
+}
+
+// An unrecognized price type discriminator has no domain price to map to; the
+// server must reject the body with a 400 rather than a 500. The typed SDK
+// cannot express an unknown discriminator, so this goes through the raw HTTP
+// escape hatch.
+func TestV3RateCardUnknownPriceType(t *testing.T) {
+	bogusRateCard := func() map[string]any {
+		return map[string]any{
+			"key":             uniqueKey("bogus_rc"),
+			"name":            "Bogus Price Rate Card",
+			"billing_cadence": "P1M",
+			"price":           map[string]any{"type": "bogus", "amount": "1"},
+		}
+	}
+
+	t.Run("addon create", func(t *testing.T) {
+		c := newV3Client(t)
+
+		status, raw, _ := c.doMalformedRequest(http.MethodPost, "/addons", map[string]any{
+			"key":           uniqueKey("bogus_price_addon"),
+			"name":          "Bogus Price Addon",
+			"currency":      "USD",
+			"instance_type": "single",
+			"rate_cards":    []map[string]any{bogusRateCard()},
+		})
+		assert.Equal(t, http.StatusBadRequest, status, "raw: %s", raw)
+	})
+
+	t.Run("plan create", func(t *testing.T) {
+		c := newV3Client(t)
+
+		status, raw, _ := c.doMalformedRequest(http.MethodPost, "/plans", map[string]any{
+			"key":             uniqueKey("bogus_price_plan"),
+			"name":            "Bogus Price Plan",
+			"currency":        "USD",
+			"billing_cadence": "P1M",
+			"phases": []map[string]any{{
+				"key":        uniqueKey("bogus_phase"),
+				"name":       "Bogus Phase",
+				"rate_cards": []map[string]any{bogusRateCard()},
+			}},
+		})
+		assert.Equal(t, http.StatusBadRequest, status, "raw: %s", raw)
+	})
+}

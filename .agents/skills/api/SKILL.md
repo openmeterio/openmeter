@@ -250,6 +250,20 @@ type (
 
 Reference: `api/v3/handlers/llmcost/list_prices.go`
 
+#### Converters (`convert.go`)
+
+Converters translate API request bodies into service/domain types faithfully —
+they must not enforce domain rules (valid type combinations, required-field
+semantics, cross-field constraints). Map invalid combinations onto the domain
+type as-is (zero values where needed) and let the domain `Validate()` report
+the issue; that path produces user-serviceable errors with codes, field paths,
+and severity, and keeps draft-with-issues semantics working (warning-severity
+issues are surfaced on the draft and block publish instead of failing create).
+
+A converter may only error when the body cannot be mapped at all — unknown
+union discriminator, unparsable amount or duration. Wrap such errors in
+`models.NewGenericValidationError` so they surface as 400, not 500.
+
 #### Error Mapping
 
 Domain errors auto-map to HTTP status codes via the error encoder:

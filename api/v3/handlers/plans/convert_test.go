@@ -310,6 +310,19 @@ func TestFromPlanWithPhases(t *testing.T) {
 }
 
 func TestFromRateCard(t *testing.T) {
+	t.Run("unknown price type is a validation error", func(t *testing.T) {
+		var price api.BillingPrice
+		require.NoError(t, json.Unmarshal([]byte(`{"type":"bogus"}`), &price))
+
+		_, err := FromAPIBillingRateCard(api.BillingRateCard{
+			Key:   "storage",
+			Name:  "Storage",
+			Price: price,
+		})
+		require.Error(t, err)
+		assert.True(t, models.IsGenericValidationError(err))
+	})
+
 	t.Run("custom currency override round trips", func(t *testing.T) {
 		custom := currencyx.Code("CREDITS")
 		reference := currencies.NewCurrencyReference(custom)

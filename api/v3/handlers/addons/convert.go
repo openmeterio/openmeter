@@ -883,14 +883,11 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 	}
 
 	if rc.BillingCadence == nil {
-		// FlatFeeRateCard
-		flatRC := &productcatalog.FlatFeeRateCard{
-			RateCardMeta: meta,
-		}
-
 		switch priceDiscriminator {
 		case string(apiv3.BillingPriceFreeTypeFree):
-			// nil price
+			return &productcatalog.FlatFeeRateCard{
+				RateCardMeta: meta,
+			}, nil
 		case string(apiv3.BillingPriceFlatTypeFlat):
 			flatAPI, err := rc.Price.AsBillingPriceFlat()
 			if err != nil {
@@ -901,18 +898,19 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 				return nil, err
 			}
 			flatPrice.PaymentTerm = paymentTerm
-			flatRC.Price = productcatalog.NewPriceFrom(flatPrice)
-		default:
-			return nil, fmt.Errorf("unsupported price type %q for flat fee rate card (billing_cadence must be set for non-flat prices)", priceDiscriminator)
-		}
 
-		return flatRC, nil
+			flatRC := &productcatalog.FlatFeeRateCard{
+				RateCardMeta: meta,
+			}
+			flatRC.Price = productcatalog.NewPriceFrom(flatPrice)
+
+			return flatRC, nil
+		}
 	}
 
-	// UsageBasedRateCard
 	usageRC := &productcatalog.UsageBasedRateCard{
 		RateCardMeta:   meta,
-		BillingCadence: *parsedBillingCadence,
+		BillingCadence: lo.FromPtr(parsedBillingCadence),
 	}
 
 	switch priceDiscriminator {
@@ -965,7 +963,7 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 		usageRC.Price = productcatalog.NewPriceFrom(tieredPrice)
 
 	default:
-		return nil, fmt.Errorf("unsupported price type for v3: %s", priceDiscriminator)
+		return nil, models.NewGenericValidationError(fmt.Errorf("unsupported price type: %s", priceDiscriminator))
 	}
 
 	return usageRC, nil
