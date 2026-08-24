@@ -20,9 +20,9 @@ import (
 //
 // A flat fee is never partially invoiced: one live run realizes the whole
 // service period. A charge with no live run is therefore wholly outstanding
-// and is presented as a single outstanding entry instead of its (necessarily
-// voided) history — except final and deleted charges, whose remainder nothing
-// will ever realize.
+// and its history is followed by a single outstanding entry for the whole
+// service period — except for final and deleted charges, whose remainder
+// nothing will ever realize.
 func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[string]billing.StandardInvoice) ([]charges.CustomerChargeFlatFeeRealization, error) {
 	status, err := charge.Status.ToMetaChargeStatus()
 	if err != nil {
@@ -70,9 +70,9 @@ func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[stri
 	}
 
 	if status != meta.ChargeStatusFinal && status != meta.ChargeStatusDeleted && !hasLiveRun {
-		return []charges.CustomerChargeFlatFeeRealization{{
+		out = append(out, charges.CustomerChargeFlatFeeRealization{
 			ServicePeriod: meta.NormalizeClosedPeriod(servicePeriod),
-		}}, nil
+		})
 	}
 
 	return out, nil

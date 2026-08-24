@@ -166,8 +166,8 @@ func TestResolveFlatFeeRealizations(t *testing.T) {
 
 	t.Run("deleted runs do not cover the period", func(t *testing.T) {
 		// given only a deleted (voided) run; voided history does not recognize
-		// the period, so the charge is entirely outstanding and the voided
-		// entry is dropped in favor of the projection
+		// the period, so the voided entry is kept as audit history and the
+		// whole period is projected as outstanding after it
 		deletedAt := periodStart.Add(time.Hour)
 		deletedRun := newRun("deleted-run", flatfee.RealizationRunTypeFinalRealization, periodStart, periodStart.Add(48*time.Hour), periodStart)
 		deletedRun.DeletedAt = &deletedAt
@@ -177,9 +177,11 @@ func TestResolveFlatFeeRealizations(t *testing.T) {
 		resolved, err := resolveFlatFeeRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
-		require.Len(t, resolved, 1)
-		require.Nil(t, resolved[0].Run)
-		require.Equal(t, servicePeriod, resolved[0].ServicePeriod)
+		require.Len(t, resolved, 2)
+		require.NotNil(t, resolved[0].Run)
+		require.True(t, resolved[0].Voided)
+		require.Nil(t, resolved[1].Run)
+		require.Equal(t, servicePeriod, resolved[1].ServicePeriod)
 	})
 
 	t.Run("attaches invoice lines by line id", func(t *testing.T) {

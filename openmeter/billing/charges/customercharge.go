@@ -32,8 +32,9 @@ type CustomerCharge struct {
 // CustomerChargeFlatFeeRealization is one entry of a flat-fee charge's
 // realization history: a booked run, or the outstanding entry when Run is
 // nil. A flat fee is never partially invoiced, so a charge without a live run
-// resolves to a single outstanding entry covering the whole service period.
-// There is no quantity: a flat fee's amount does not split across entries.
+// carries a single outstanding entry covering the whole service period after
+// its voided history. There is no quantity: a flat fee's amount does not
+// split across entries.
 type CustomerChargeFlatFeeRealization struct {
 	// Run is the booked run; nil marks the outstanding entry.
 	Run           *flatfee.RealizationRun
