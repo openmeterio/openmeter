@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -13,8 +12,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -55,15 +58,59 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 	feat := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
-	// The subscription expand is exercised against the side-loader directly:
-	// a charge-borne subscription reference is FK-constrained to real
-	// subscription rows, which this suite does not provision.
-	subscriptionID := ulid.Make().String()
-	s.FakeSubscriptionService.subscriptions = []subscription.Subscription{{
-		NamespacedID: models.NamespacedID{Namespace: namespace, ID: subscriptionID},
-		Name:         "api-list-subscription",
-	}}
-	defer func() { s.FakeSubscriptionService.subscriptions = nil }()
+	// The subscription expand is exercised against the side-loader directly
+	// with a subscription created through the real subscription stack; the
+	// charge intents below do not reference it.
+	testPlan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "api-list-plan",
+				Key:            "api-list-plan",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(USD),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Name: "first-phase", Key: "first-phase"},
+				RateCards: productcatalog.RateCards{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:  "flat",
+							Name: "flat",
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromInt(5),
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+						},
+						BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+					},
+				},
+			}},
+		},
+	})
+	require.NoError(s.T(), err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, namespace, productcatalogsubscription.PlanRefInput{
+		Key:     testPlan.Key,
+		Version: lo.ToPtr(1),
+	})
+	require.NoError(s.T(), err)
+
+	subscriptionView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Custom: lo.ToPtr(clock.Now())},
+			Name:   "api-list-subscription",
+		},
+		Namespace:  namespace,
+		CustomerID: cust.ID,
+	}, subscriptionPlan)
+	require.NoError(s.T(), err)
+	subscriptionID := subscriptionView.Subscription.ID
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: namespace,
@@ -258,6 +305,10 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		// - the listing succeeds and the deleted customer is still expanded,
 		//   which is why the loader goes through ListCustomers+IncludeDeleted
 		//   instead of GetCustomer
+		// A customer with an active subscription cannot be deleted, so the
+		// subscription is canceled first.
+		_, err := s.SubscriptionService.Cancel(ctx, models.NamespacedID{Namespace: namespace, ID: subscriptionID}, subscription.Timing{Custom: lo.ToPtr(clock.Now())})
+		require.NoError(s.T(), err)
 		require.NoError(s.T(), s.CustomerService.DeleteCustomer(ctx, cust.GetID()))
 
 		result, err := s.Charges.ListCustomerCharges(ctx, newListInput(meta.Expands{meta.ExpandCustomer}))
