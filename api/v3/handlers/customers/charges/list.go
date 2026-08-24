@@ -81,20 +81,17 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 			// expands the caller asked for.
 			expands := meta.ExpandNone
 			if args.Params.Expand != nil {
-				for _, apiExpand := range *args.Params.Expand {
-					expand, err := convertAPIChargesExpand(apiExpand)
-					if err != nil {
-						return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-							{
-								Field:  "expand",
-								Reason: err.Error(),
-								Source: apierrors.InvalidParamSourceQuery,
-							},
-						})
-					}
-
-					expands = expands.With(expand)
+				chargesExpands, err := lo.MapErr(*args.Params.Expand, slicesx.WrapMapFn(convertAPIChargesExpand))
+				if err != nil {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "expand",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
 				}
+				expands = expands.With(chargesExpands...)
 			}
 
 			req := ListCustomerChargesRequest{
@@ -150,6 +147,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 				// (eq/oeq) must lift that guard; neq never unhides them.
 				if f := args.Params.Filter.Status; f != nil {
 					deleted := string(meta.ChargeStatusDeleted)
+					// TODO: find a better solution to handle this
 					req.IncludeDeleted = lo.FromPtr(f.Eq) == deleted || lo.Contains(f.Oeq, deleted)
 				}
 
