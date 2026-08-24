@@ -21,9 +21,10 @@ import (
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
 type usageBasedHandler struct {
-	ledger    ledger.Ledger
-	deps      transactions.ResolverDependencies
-	collector collector.Service
+	ledger                ledger.Ledger
+	deps                  transactions.ResolverDependencies
+	collector             collector.Service
+	customCurrencyOverage *customCurrencyOverageHandler
 }
 
 var _ usagebased.Handler = (*usageBasedHandler)(nil)
@@ -34,9 +35,10 @@ func NewUsageBasedHandler(
 	collectorService collector.Service,
 ) usagebased.Handler {
 	return &usageBasedHandler{
-		ledger:    ledger,
-		deps:      deps,
-		collector: collectorService,
+		ledger:                ledger,
+		deps:                  deps,
+		collector:             collectorService,
+		customCurrencyOverage: newCustomCurrencyOverageHandler(ledger, deps),
 	}
 }
 
@@ -171,14 +173,6 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	}, nil
 }
 
-// OnCustomCurrencyOverageAccrued books uncovered custom-currency overage as a
-// credit purchase immediately consumed by the same charge: it purchases the
-// uncovered custom amount at the charge's persisted cost basis, consumes it
-// through the identical route so it never becomes spendable customer balance,
-// and converts the resulting custom-currency receivable into the
-// already-agreed, rounded fiat receivable the invoice will collect. This
-// keeps native amount, cost basis, and fiat provenance on the accrued leg
-// while the invoice and payment lifecycle stay entirely in fiat.
 func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
 	if err := input.Validate(); err != nil {
 		return usagebased.OnCustomCurrencyOverageAccruedResult{}, err
@@ -196,81 +190,26 @@ func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, 
 
 	intent := input.Charge.Intent
 	taxConfig := intent.GetTaxConfig()
-	customCurrency := input.CustomCurrency().Reference()
-	fiatCode := currencyx.Code(fiatOverage.Currency.GetFiatCode())
-	customAmount := input.GetCustomCurrencyAmountAccrued()
-
-	customerID := customer.CustomerID{
-		Namespace: input.Charge.Namespace,
-		ID:        intent.GetCustomerID(),
-	}
-	annotations := chargeAnnotationsForUsageBasedCharge(input.Charge)
-
-	inputs, err := transactions.ResolveTransactions(
-		ctx,
-		h.deps,
-		transactions.ResolutionScope{
-			CustomerID: customerID,
-			Namespace:  input.Charge.Namespace,
-		},
-		// Purchase the uncovered custom amount at the charge's persisted cost basis.
-		transactions.IssueCustomerReceivableTemplate{
-			At:                input.Run.ServicePeriodTo,
-			Amount:            customAmount,
-			Currency:          customCurrency,
-			CostBasisCurrency: &fiatCode,
-			CostBasis:         &costBasis,
-			SourceChargeID:    &input.Charge.ID,
-		},
-		// Immediately consume the purchase through the same charge, so it never
-		// becomes spendable customer balance.
-		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:                input.Run.ServicePeriodTo,
-			Amount:            customAmount,
-			Currency:          customCurrency,
-			TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
-			TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
-			CostBasisCurrency: &fiatCode,
-			CostBasis:         &costBasis,
-			SourceChargeID:    &input.Charge.ID,
-			SpendChargeID:     &input.Charge.ID,
-		},
-		// Convert the purchase-backed custom receivable into the already-agreed,
-		// rounded fiat receivable the invoice will collect.
-		transactions.ConvertCurrencyTemplate{
-			At:             input.Run.ServicePeriodTo,
-			SourceAmount:   fiatOverage.Amount,
-			TargetAmount:   customAmount,
-			CostBasis:      costBasis,
-			SourceCurrency: currencies.NewCurrencyReference(fiatCode),
-			TargetCurrency: customCurrency,
-			SourceChargeID: &input.Charge.ID,
-		},
-	)
+	transactionGroup, err := h.customCurrencyOverage.book(ctx, bookCustomCurrencyOverageInput{
+		Namespace:      input.Charge.Namespace,
+		ChargeID:       input.Charge.ID,
+		CustomerID:     intent.GetCustomerID(),
+		Annotations:    chargeAnnotationsForUsageBasedCharge(input.Charge),
+		BookedAt:       input.Run.ServicePeriodTo,
+		CustomCurrency: input.CustomCurrency().Reference(),
+		FiatCurrency:   currencyx.Code(fiatOverage.Currency.GetFiatCode()),
+		CustomAmount:   input.GetCustomCurrencyAmountAccrued(),
+		FiatAmount:     fiatOverage.Amount,
+		CostBasis:      costBasis,
+		TaxConfig:      taxConfig,
+	})
 	if err != nil {
-		return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("resolve transactions: %w", err)
-	}
-
-	for i, txInput := range inputs {
-		if txInput != nil {
-			inputs[i] = transactions.WithAnnotations(txInput, annotations)
-		}
-	}
-
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		input.Charge.Namespace,
-		annotations,
-		inputs...,
-	))
-	if err != nil {
-		return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, err
 	}
 
 	return usagebased.OnCustomCurrencyOverageAccruedResult{
-		TransactionGroup: ledgertransaction.GroupReference{
-			TransactionGroupID: transactionGroup.ID().ID,
-		},
-		TotalFiatAmount: fiatOverage.Amount,
+		TransactionGroup: transactionGroup,
+		TotalFiatAmount:  fiatOverage.Amount,
 	}, nil
 }
 
