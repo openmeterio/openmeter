@@ -14,16 +14,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// resolveFlatFeeRealizations derives the presentation view of a flat-fee
-// charge's realization history. Flat fees are never partially invoiced:
-// any live run recognizes the whole service period, so coverage is decided
-// by run existence, not by period arithmetic. When a live run exists the
-// booked history is returned as-is (prior and current runs ordered by
-// creation time, voided runs included as inert audit entries); when only
-// voided history (or none) exists — unless the charge is final or deleted,
-// whose remainder no further run will ever realize — the resolution is a
-// single outstanding projection spanning the whole service period, in place
-// of the (necessarily voided) history.
+// resolveFlatFeeRealizations presents a flat-fee charge's realization
+// history as the API sees it: every run in booking order, voided runs kept
+// as inert audit entries, with the booked invoice attached when expanded.
+//
+// A flat fee is never partially invoiced: one live run realizes the whole
+// service period. A charge with no live run is therefore wholly outstanding
+// and is presented as a single outstanding entry instead of its (necessarily
+// voided) history — except final and deleted charges, whose remainder nothing
+// will ever realize.
 func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[string]billing.StandardInvoice) ([]charges.CustomerChargeFlatFeeRealization, error) {
 	status, err := charge.Status.ToMetaChargeStatus()
 	if err != nil {
@@ -79,31 +78,16 @@ func resolveFlatFeeRealizations(charge flatfee.Charge, invoiceLinesByID map[stri
 	return out, nil
 }
 
-// resolveUsageBasedRealizations derives the presentation view of a
-// usage-based charge's realization history over its effective service
-// period: runs are ordered by creation time (runs snapshot a cumulative
-// quantity, so booking order is the meaningful sequence), each live run's
-// period starts where the previously created non-voided run ended (the first
-// at servicePeriod.From), and its quantity is the cumulative metered
-// quantity minus the previous non-voided run's. Voided runs are included as inert
-// audit entries. The uncovered tail is projected as an outstanding entry
-// spanning from the furthest non-voided service-period end to the effective
-// service period end — voided history never counts as coverage, and a
-// later-created run with an earlier period end cannot pull the outstanding
-// start backwards — unless the charge is final or deleted: those charges
-// keep their original service period even when their runs stop short of it,
-// and no further run will ever realize the remainder. When the realtime usage expand supplied a
-// live metered quantity, the outstanding projection reports the
-// not-yet-booked remainder of that read instead of zero.
+// resolveUsageBasedRealizations presents a usage-based charge's realization
+// history as the API sees it: every run in booking order, voided runs kept
+// as inert audit entries, and an outstanding entry for whatever part of the
+// service period is still unrealized.
 //
-// Booked entries report their delta signed: cumulative snapshots may
-// legitimately shrink (downward usage corrections are a supported rating
-// scenario, and voided runs may have snapshotted before their live
-// neighbors), and a negative quantity states that correction frankly instead
-// of fabricating a zero. Only the outstanding projection is floored at zero,
-// as the wire contract promises it is never negative. Billing-facing delta
-// calculations keep their own strict guards
-// (RealizationRuns.MapToBillingMeteredQuantity).
+// Runs are cumulative snapshots, so each entry reports only the usage it
+// realized since the previous live run; that delta stays signed because a
+// downward usage correction is a legitimate billing event.
+// Voided runs never count as realized coverage. Final and deleted charges
+// have no outstanding entry: nothing will ever realize their remainder.
 func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID map[string]billing.StandardInvoice) ([]charges.CustomerChargeUsageBasedRealization, error) {
 	status, err := charge.Status.ToMetaChargeStatus()
 	if err != nil {
