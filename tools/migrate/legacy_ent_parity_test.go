@@ -8,7 +8,6 @@ import (
 
 	"ariga.io/atlas/sql/migrate"
 	"ariga.io/atlas/sql/postgres"
-	"ariga.io/atlas/sql/schema"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -69,10 +68,9 @@ func TestLegacyEntAdoptionSchemaParity(t *testing.T) {
 	adoptedSchemaName := currentSchema(t, adoptedDB.PGDriver.DB())
 	require.Equal(t, canonicalSchemaName, adoptedSchemaName)
 
-	inspectOptions := &schema.InspectOptions{Exclude: []string{"distributed_locks"}}
-	canonicalSchema, err := canonicalAtlas.InspectSchema(t.Context(), canonicalSchemaName, inspectOptions)
+	canonicalSchema, err := canonicalAtlas.InspectSchema(t.Context(), canonicalSchemaName, nil)
 	require.NoError(t, err)
-	adoptedSchema, err := adoptedAtlas.InspectSchema(t.Context(), adoptedSchemaName, inspectOptions)
+	adoptedSchema, err := adoptedAtlas.InspectSchema(t.Context(), adoptedSchemaName, nil)
 	require.NoError(t, err)
 
 	changes, err := adoptedAtlas.SchemaDiff(adoptedSchema, canonicalSchema)
