@@ -280,14 +280,11 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 		return charges.ListCustomerChargesResult{}, err
 	}
 
-	customerCharges := make([]charges.CustomerCharge, 0, len(listed.Items))
-	for _, charge := range listed.Items {
-		customerCharge, err := buildCustomerCharge(charge, entities)
-		if err != nil {
-			return charges.ListCustomerChargesResult{}, err
-		}
-
-		customerCharges = append(customerCharges, customerCharge)
+	customerCharges, err := lo.MapErr(listed.Items, func(charge charges.Charge, _ int) (charges.CustomerCharge, error) {
+		return buildCustomerCharge(charge, entities)
+	})
+	if err != nil {
+		return charges.ListCustomerChargesResult{}, err
 	}
 
 	return charges.ListCustomerChargesResult{
