@@ -50,14 +50,20 @@ jobs:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           save: "true"
 
-      - name: Populate go caches - go mod download
-        run: nix develop --impure .#ci -c go mod download
+      - name: Populate Go module cache
+        run: |
+          nix develop --impure .#ci -c sh -eu -c '
+            go mod download
+            go -C collector mod download
+            go -C api/v3/client mod download
+            go -C e2e mod download
+          '
 
-      - name: Save go caches - go mod
+      - name: Save Go module cache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
 
   build:
     name: Build
@@ -94,16 +100,16 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Validate Nix flake
@@ -175,16 +181,16 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Ensure code generators are run
@@ -294,16 +300,16 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Ensure code generators are run
@@ -408,17 +414,16 @@ jobs:
       - name: Upsert Nix store
         run: nix develop --impure .#ci
 
-      # This shaves off 5s or so
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Wait for dependencies to be ready
@@ -486,15 +491,15 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Run migration checks
@@ -538,44 +543,30 @@ jobs:
       - name: Upsert Nix store
         run: nix develop --impure .#ci
 
-      # This shaves off 5s or so
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
-      - name: Get main fork point
-        id: base-commit
-        run: |
-          git fetch origin main
-
-          echo "base candidate:"
-          git log -1 --reverse --boundary HEAD ^origin/main
-
-          BASE_COMMIT=$(git log -1 --reverse --boundary --format=%h HEAD ^origin/main)
-          if [ -z "$BASE_COMMIT" ]; then
-            BASE_COMMIT=$(git log -1 --format=%h)
-          fi
-          echo "sha=${BASE_COMMIT}" >> "$GITHUB_OUTPUT"
-
-          echo "sha=${BASE_COMMIT}"
-
-      - name: Lint cache
+      # PR merge commits change on every update, so use the target commit to
+      # keep unchanged package analysis reusable across the pull request.
+      - name: Go lint caches
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/golangci-lint-cache
-          key: ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: |
+            .devenv/golangci-lint-cache
+            .devenv/state/go/build-cache
+          key: ${{ runner.os }}-openmeter-go-lint-${{ github.event.pull_request.base.sha || github.sha }}-${{ hashFiles('flake.*', '.golangci*.yaml', 'go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
-            ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-
-            ${{ runner.os }}-openmeter-golangci-lint-cache-
+            ${{ runner.os }}-openmeter-go-lint-${{ github.event.pull_request.base.sha || github.sha }}-
+            ${{ runner.os }}-openmeter-go-lint-
 
       - name: Run linters - go
         env:
@@ -783,15 +774,15 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Check container health
@@ -907,15 +898,15 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           # Prefer to restore the branch cache over the main cache
           restore-keys: |
             ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
             ${{ runner.os }}-openmeter-go-modules-main
 
       - name: Check container health
