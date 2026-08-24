@@ -2,6 +2,8 @@ package e2e
 
 import (
 	"net/http"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -78,6 +80,193 @@ func TestV3AppCatalogList(t *testing.T) {
 		assert.Equal(t, int(1), firstPage.Meta.Page.Number)
 		assert.Equal(t, int(1), firstPage.Meta.Page.Size)
 		assert.Equal(t, fullPage.Meta.Page.Total, firstPage.Meta.Page.Total, "total count should be independent of page size")
+	})
+}
+
+// externalInvoicingAppIDs returns the IDs of the page's apps, in page order.
+// It requires every item to be an external-invoicing app, which holds for any
+// list scoped to this suite's marker-named fixtures.
+func externalInvoicingAppIDs(t *testing.T, page *v3sdk.AppPagePaginatedResponse) []string {
+	t.Helper()
+
+	ids := make([]string, 0, len(page.Data))
+	for _, item := range page.Data {
+		app, err := item.AsAppExternalInvoicing()
+		require.NoError(t, err)
+		ids = append(ids, app.ID)
+	}
+
+	return ids
+}
+
+// TestV3AppListFiltersAndSort exercises the filter[...] and sort query
+// parameters of GET /api/v3/openmeter/apps. The e2e namespace is shared across
+// tests and re-runs, so every fixture name embeds a unique marker and every
+// assertion scopes the list with a filter[name][contains]=<marker> predicate
+// (or a globally unique app ID) instead of relying on namespace isolation.
+func TestV3AppListFiltersAndSort(t *testing.T) {
+	c := newV3Client(t)
+
+	marker := uniqueKey("applist")
+
+	// Installed in this order; app IDs are ULIDs, so both the id and the
+	// created_at orderings follow the install order.
+	names := []string{
+		"Billing App " + marker,
+		"Payment App " + marker,
+		"Other App " + marker,
+	}
+
+	installed := make([]v3sdk.AppExternalInvoicing, 0, len(names))
+	for _, name := range names {
+		req, err := v3sdk.InstallAppRequestFromInstallAppExternalInvoicing(v3sdk.InstallAppExternalInvoicing{
+			Type:                 v3sdk.AppTypeExternalInvoicing,
+			Name:                 name,
+			CreateBillingProfile: false,
+		})
+		require.NoError(t, err)
+
+		resp, err := c.Apps.Install(t.Context(), req)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		app, err := resp.App.AsAppExternalInvoicing()
+		require.NoError(t, err)
+		installed = append(installed, *app)
+	}
+
+	idsByInstall := lo.Map(installed, func(a v3sdk.AppExternalInvoicing, _ int) string { return a.ID })
+
+	listPage := &v3sdk.PageParams{Size: lo.ToPtr(1000)}
+	nameHasMarker := &v3sdk.StringFilter{Contains: lo.ToPtr(marker)}
+
+	t.Run("Should filter by id with eq and oeq", func(t *testing.T) {
+		page, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{ID: &v3sdk.StringExactFilter{Eq: lo.ToPtr(installed[0].ID)}},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 1, page.Meta.Page.Total)
+		require.Equal(t, idsByInstall[:1], externalInvoicingAppIDs(t, page))
+
+		page, err = c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{ID: &v3sdk.StringExactFilter{Oeq: []string{installed[0].ID, installed[1].ID}}},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 2, page.Meta.Page.Total)
+	})
+
+	t.Run("Should filter by name with eq and case-insensitive contains", func(t *testing.T) {
+		page, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{Name: &v3sdk.StringFilter{Eq: lo.ToPtr(names[0])}},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 1, page.Meta.Page.Total)
+		require.Equal(t, idsByInstall[:1], externalInvoicingAppIDs(t, page))
+
+		// contains translates to ILIKE, so the upper-cased marker must still
+		// match the lower-cased fixture names.
+		page, err = c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{Name: &v3sdk.StringFilter{Contains: lo.ToPtr(strings.ToUpper(marker))}},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 3, page.Meta.Page.Total)
+		assert.ElementsMatch(t, idsByInstall, externalInvoicingAppIDs(t, page))
+	})
+
+	t.Run("Should filter by type", func(t *testing.T) {
+		page, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page: listPage,
+			Filter: &v3sdk.AppFilter{
+				Type: &v3sdk.StringExactFilter{Eq: lo.ToPtr(string(v3sdk.AppTypeExternalInvoicing))},
+				Name: nameHasMarker,
+			},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 3, page.Meta.Page.Total)
+
+		// The marker fixtures are all external-invoicing apps, so a different
+		// type must filter every one of them out.
+		page, err = c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page: listPage,
+			Filter: &v3sdk.AppFilter{
+				Type: &v3sdk.StringExactFilter{Eq: lo.ToPtr(string(v3sdk.AppTypeSandbox))},
+				Name: nameHasMarker,
+			},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 0, page.Meta.Page.Total)
+	})
+
+	t.Run("Should filter by status", func(t *testing.T) {
+		// Freshly installed apps are ready; no public API can flip an app to
+		// unauthorized (that transition belongs to the Stripe credential
+		// checks), so the equality predicate is exercised through a matching
+		// and a non-matching status value instead.
+		page, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page: listPage,
+			Filter: &v3sdk.AppFilter{
+				Status: &v3sdk.StringExactFilter{Eq: lo.ToPtr(string(v3sdk.AppStatusReady))},
+				Name:   nameHasMarker,
+			},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 3, page.Meta.Page.Total)
+
+		page, err = c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page: listPage,
+			Filter: &v3sdk.AppFilter{
+				Status: &v3sdk.StringExactFilter{Eq: lo.ToPtr(string(v3sdk.AppStatusUnauthorized))},
+				Name:   nameHasMarker,
+			},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, 0, page.Meta.Page.Total)
+	})
+
+	newestFirst := slices.Clone(idsByInstall)
+	slices.Reverse(newestFirst)
+
+	t.Run("Should sort by id desc", func(t *testing.T) {
+		page, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{Name: nameHasMarker},
+			Sort:   &v3sdk.Sort{By: "id", Order: v3sdk.SortOrderDesc},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, newestFirst, externalInvoicingAppIDs(t, page))
+	})
+
+	t.Run("Should sort by created_at desc", func(t *testing.T) {
+		page, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{Name: nameHasMarker},
+			Sort:   &v3sdk.Sort{By: "created_at", Order: v3sdk.SortOrderDesc},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, newestFirst, externalInvoicingAppIDs(t, page))
+	})
+
+	t.Run("Should default to created_at asc without a sort parameter", func(t *testing.T) {
+		page, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{Name: nameHasMarker},
+		})
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, idsByInstall, externalInvoicingAppIDs(t, page))
+	})
+
+	t.Run("Should reject a malformed ULID in the id filter", func(t *testing.T) {
+		_, err := c.Apps.List(t.Context(), v3sdk.AppListParams{
+			Page:   listPage,
+			Filter: &v3sdk.AppFilter{ID: &v3sdk.StringExactFilter{Eq: lo.ToPtr("not-a-ulid")}},
+		})
+		// pkg/filter's FilterULID rejects non-ULID values (ulid.ParseStrict)
+		// when ListAppInput is validated in the app service.
+		requireProblem(t, err, http.StatusBadRequest)
 	})
 }
 
