@@ -1050,7 +1050,7 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 			return nil, fmt.Errorf("finalizing invoice line for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		updatedLine, err := patches.GetSingularStandardLineUpdate(stdLine.GetLineID(), input.Invoice.ID)
+		updatedLine, err := patches.GetSingularStandardLineUpdateOrEmpty(stdLine.GetLineID(), input.Invoice.ID)
 		if err != nil {
 			return nil, fmt.Errorf("validating finalizing update for line[%s]: %w", stdLine.ID, err)
 		}

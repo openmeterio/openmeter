@@ -76,9 +76,9 @@ func (p Patches) RequireSingularLineUpdatePatchForTarget(line billing.GenericInv
 	return updatePatch, nil
 }
 
-// GetSingularStandardLineUpdate returns nil when no line update was emitted and
-// the target standard line when exactly one matching update was emitted.
-func (p Patches) GetSingularStandardLineUpdate(lineID billing.LineID, invoiceID string) (*billing.StandardLine, error) {
+// GetSingularStandardLineUpdateOrEmpty returns nil when no line update was
+// emitted and the target standard line when exactly one matching update was emitted.
+func (p Patches) GetSingularStandardLineUpdateOrEmpty(lineID billing.LineID, invoiceID string) (*billing.StandardLine, error) {
 	if err := lineID.Validate(); err != nil {
 		return nil, fmt.Errorf("validating line ID: %w", err)
 	}

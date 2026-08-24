@@ -15,27 +15,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestPatchesGetSingularStandardLineUpdate(t *testing.T) {
+func TestPatchesGetSingularStandardLineUpdateOrEmpty(t *testing.T) {
 	target := newValidStandardLinePatchTarget()
 
 	line, err := Patches{
 		NewUpdateLinePatch(target.AsGenericLine()),
-	}.GetSingularStandardLineUpdate(target.GetLineID(), target.InvoiceID)
+	}.GetSingularStandardLineUpdateOrEmpty(target.GetLineID(), target.InvoiceID)
 
 	require.NoError(t, err)
 	require.Equal(t, target, line)
 }
 
-func TestPatchesGetSingularStandardLineUpdateAllowsNoUpdate(t *testing.T) {
+func TestPatchesGetSingularStandardLineUpdateOrEmptyAllowsNoUpdate(t *testing.T) {
 	target := newValidStandardLinePatchTarget()
 
-	line, err := Patches(nil).GetSingularStandardLineUpdate(target.GetLineID(), target.InvoiceID)
+	line, err := Patches(nil).GetSingularStandardLineUpdateOrEmpty(target.GetLineID(), target.InvoiceID)
 
 	require.NoError(t, err)
 	require.Nil(t, line)
 }
 
-func TestPatchesGetSingularStandardLineUpdateRejectsInvalidPatches(t *testing.T) {
+func TestPatchesGetSingularStandardLineUpdateOrEmptyRejectsInvalidPatches(t *testing.T) {
 	target := newValidStandardLinePatchTarget()
 
 	wrongLine, err := target.Clone()
@@ -116,7 +116,7 @@ func TestPatchesGetSingularStandardLineUpdateRejectsInvalidPatches(t *testing.T)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.patches.GetSingularStandardLineUpdate(target.GetLineID(), target.InvoiceID)
+			_, err := tt.patches.GetSingularStandardLineUpdateOrEmpty(target.GetLineID(), target.InvoiceID)
 
 			require.ErrorContains(t, err, tt.errContains)
 		})
