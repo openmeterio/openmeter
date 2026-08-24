@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -20,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -113,26 +113,50 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			return State{}, fmt.Errorf("correcting period start for upcoming lines: %w", err)
 		}
 
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(subs.Subscription.InvoiceCurrency).
-			Build()
+		items, err := slicesx.MapWithErr(inScopeLines, func(item SubscriptionItemWithPeriods) (StateItem, error) {
+			currency, err := resolveSubscriptionItemCurrency(item, subs.Subscription.InvoiceCurrency)
+			if err != nil {
+				return StateItem{}, fmt.Errorf("resolving currency for item [%s]: %w", item.UniqueID, err)
+			}
+
+			return StateItem{
+				SubscriptionItemWithPeriods:  item,
+				Currency:                     currency,
+				Subscription:                 subs.Subscription,
+				SubscriptionEndProrationMode: input.SubscriptionEndProrationMode,
+			}, nil
+		})
 		if err != nil {
-			return State{}, fmt.Errorf("getting currency calculator: %w", err)
+			return State{}, err
 		}
 
 		return State{
-			Items: lo.Map(inScopeLines, func(item SubscriptionItemWithPeriods, _ int) StateItem {
-				return StateItem{
-					SubscriptionItemWithPeriods: item,
-					// TODO[later]: Once subscriptions supports custom currencies, we need to use the currency from the subscription item.
-					Currency:                     currencies.Currency{Currency: currency},
-					Subscription:                 subs.Subscription,
-					SubscriptionEndProrationMode: input.SubscriptionEndProrationMode,
-				}
-			}),
+			Items:                  items,
 			MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
 		}, nil
 	})
+}
+
+func resolveSubscriptionItemCurrency(item SubscriptionItemWithPeriods, invoiceCurrency currencyx.Code) (currencies.Currency, error) {
+	reference := item.Spec.RateCard.AsMeta().Currency
+	if reference == nil {
+		return currencies.NewFiatCurrency(invoiceCurrency)
+	}
+
+	if err := reference.Validate(); err != nil {
+		return currencies.Currency{}, err
+	}
+
+	if reference.IsFiat() {
+		return currencies.NewFiatCurrency(reference.GetCode())
+	}
+
+	currency, ok := reference.CustomCurrency()
+	if !ok {
+		return currencies.Currency{}, fmt.Errorf("custom currency reference is not resolved: %s", reference)
+	}
+
+	return currency.Clone(), nil
 }
 
 type collectResult struct {

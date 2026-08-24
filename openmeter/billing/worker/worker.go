@@ -167,7 +167,6 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				ctx,
 				event.SubscriptionView,
 				time.Now(),
-				subscriptionsync.SkipCustomCurrencySubscriptions(),
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
@@ -193,7 +192,6 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				ctx,
 				event.SubscriptionView,
 				time.Now(),
-				subscriptionsync.SkipCustomCurrencySubscriptions(),
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
@@ -205,7 +203,6 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				ctx,
 				event.UpdatedView,
 				time.Now(),
-				subscriptionsync.SkipCustomCurrencySubscriptions(),
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {

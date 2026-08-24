@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -39,6 +40,8 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 		enableCredits           bool
 		rateCard                productcatalog.RateCard
 		expectedCollection      any
+		customCurrency          bool
+		wantErr                 bool
 	}{
 		{
 			name:               "credit only flat fee uses flat fee charges",
@@ -85,6 +88,31 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 			rateCard:                usageRateCard,
 			expectedCollection:      &usageBasedChargeCollection{},
 		},
+		{
+			name:           "custom currency requires charges",
+			settlementMode: productcatalog.CreditOnlySettlementMode,
+			rateCard:       flatRateCard,
+			customCurrency: true,
+			wantErr:        true,
+		},
+		{
+			name:                    "custom currency credit then invoice requires charge billing",
+			settlementMode:          productcatalog.CreditThenInvoiceSettlementMode,
+			enableCredits:           true,
+			enableCreditThenInvoice: false,
+			rateCard:                flatRateCard,
+			customCurrency:          true,
+			wantErr:                 true,
+		},
+		{
+			name:                    "custom currency credit then invoice uses charges",
+			settlementMode:          productcatalog.CreditThenInvoiceSettlementMode,
+			enableCredits:           true,
+			enableCreditThenInvoice: true,
+			rateCard:                flatRateCard,
+			customCurrency:          true,
+			expectedCollection:      &flatFeeChargeCollection{},
+		},
 	}
 
 	for _, tt := range testCases {
@@ -102,7 +130,17 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			collection, err := router.ResolveDefaultCollection(testTargetStateItem(tt.settlementMode, tt.rateCard))
+			target := testTargetStateItem(tt.settlementMode, tt.rateCard)
+			if tt.customCurrency {
+				target.Currency = currenciestestutils.NewManagedCurrency(t, "namespace", "custom-currency-id", "CREDITS")
+			}
+
+			collection, err := router.ResolveDefaultCollection(target)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+
 			require.NoError(t, err)
 			require.IsType(t, tt.expectedCollection, collection)
 		})

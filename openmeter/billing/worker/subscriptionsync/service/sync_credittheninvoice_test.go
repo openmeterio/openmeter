@@ -24,6 +24,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -160,6 +162,113 @@ func (s *CreditThenInvoiceTestSuite) BeforeTest(suiteName, testName string) {
 
 	_, err = s.LedgerResolver.CreateCustomerAccounts(s.T().Context(), s.Customer.GetID())
 	s.NoError(err)
+}
+
+func (s *CreditThenInvoiceTestSuite) TestCustomCurrencyPinnedCostBasisProvisioning() {
+	// given:
+	// - a custom-currency flat fee settled through credit then invoice
+	// - a subscription that pins the effective custom-to-USD cost basis
+	// when:
+	// - subscription sync provisions future billing periods
+	// then:
+	// - every charge keeps the custom currency and the subscription's pinned cost-basis resource
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{Client: s.DBClient})
+	s.NoError(err)
+	currencyService, err := currencyservice.New(currencyAdapter)
+	s.NoError(err)
+	customCurrency, err := currencyService.CreateCurrency(ctx, currenciestestutils.NewCreateCurrencyInput(
+		s.Namespace,
+		"CREDITS",
+		"Credits",
+		"CR",
+	))
+	s.NoError(err)
+	pinnedCostBasis, err := currencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
+		Namespace:  s.Namespace,
+		CurrencyID: customCurrency.ID,
+		FiatCode:   "USD",
+		Rate:       alpacadecimal.NewFromInt(2),
+	})
+	s.NoError(err)
+
+	createdPlan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Custom Currency Credit Then Invoice",
+				Key:            "custom-currency-credit-then-invoice",
+				Version:        1,
+				Currency:       customCurrency.Reference(),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: s.phaseMeta("first-phase", ""),
+				RateCards: productcatalog.RateCards{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Name: "flat-fee",
+							Key:  "flat-fee",
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromInt(25),
+								PaymentTerm: productcatalog.InAdvancePaymentTerm,
+							}),
+						},
+						BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+					},
+				},
+			}},
+		},
+	})
+	s.NoError(err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
+		Key:     createdPlan.Key,
+		Version: lo.ToPtr(1),
+	})
+	s.NoError(err)
+	subscriptionView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing:        subscription.Timing{Custom: lo.ToPtr(startAt)},
+			Name:          "custom-currency-pinned",
+			CostBasisMode: subscription.CostBasisModePinned,
+		},
+		Namespace:  s.Namespace,
+		CustomerID: s.Customer.ID,
+	}, subscriptionPlan)
+	s.NoError(err)
+	s.Len(subscriptionView.Subscription.CostBasisPins, 1)
+	s.Equal(pinnedCostBasis.ID, subscriptionView.Subscription.CostBasisPins[0].CostBasis.ID)
+
+	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+
+	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.NoError(err)
+	s.Len(result.Items, 2)
+	for _, item := range result.Items {
+		charge, err := item.AsFlatFeeCharge()
+		s.NoError(err)
+		s.True(charge.Intent.GetCurrency().IsCustom())
+		s.Equal(customCurrency.ID, charge.Intent.GetCurrency().ID)
+
+		costBasisIntent := charge.Intent.GetCostBasisIntent()
+		s.NotNil(costBasisIntent)
+		pinned, err := costBasisIntent.AsPinned()
+		s.NoError(err)
+		s.Equal(pinnedCostBasis.ID, pinned.CurrencyCostBasisID)
+	}
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {

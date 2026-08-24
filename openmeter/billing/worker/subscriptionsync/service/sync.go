@@ -64,7 +64,6 @@ func (s *Service) HandleSubscriptionSyncEvent(ctx context.Context, event *subscr
 		ctx,
 		newSubscriptionReferenceOrView(event.Subscription),
 		time.Now(),
-		subscriptionsync.SkipCustomCurrencySubscriptions(),
 	)
 }
 
@@ -113,7 +112,6 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 		}
 
 		var subsView *subscription.SubscriptionView
-		hasCustomCurrencyBillables := false
 		if subs.IsDeleted() {
 			subsView = nil
 		} else if refOrView.Type() == SubscriptionReferenceTypeView {
@@ -123,17 +121,17 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			}
 
 			subsView = &view
-			hasCustomCurrencyBillables = view.Spec.HasCustomCurrencyBillables()
-			if !hasCustomCurrencyBillables {
-				// Event-carried views can be older than the current subscription state.
-				// Check persisted state before allowing billing so a pre-edit fiat view
-				// cannot bypass the custom-currency boundary after a later edit.
-				currentView, err := s.subscriptionService.GetView(ctx, subscriptionID)
-				if err != nil {
-					return nil, err
-				}
+			currentView, err := s.subscriptionService.GetView(ctx, subscriptionID)
+			if err != nil {
+				return nil, err
+			}
 
-				hasCustomCurrencyBillables = currentView.Spec.HasCustomCurrencyBillables()
+			// Currency definitions are runtime-only snapshots and are deliberately not
+			// serialized into subscription events. Reload custom-priced views before
+			// planning so billing has authoritative identity and precision, and so a
+			// delayed event cannot reconcile obsolete custom-currency state.
+			if view.Spec.HasCustomCurrencyBillables() || currentView.Spec.HasCustomCurrencyBillables() {
+				subsView = &currentView
 			}
 		} else {
 			view, err := s.subscriptionService.GetView(ctx, subscriptionID)
@@ -142,23 +140,6 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			}
 
 			subsView = &view
-			hasCustomCurrencyBillables = view.Spec.HasCustomCurrencyBillables()
-		}
-
-		if hasCustomCurrencyBillables {
-			err := fmt.Errorf("%w [namespace=%s subscription_id=%s]", subscriptionsync.ErrCustomCurrencyBillingNotSupported, subscriptionID.Namespace, subscriptionID.ID)
-			if options.SkipCustomCurrencySubscriptions {
-				s.logger.InfoContext(ctx, "subscription uses custom-currency priced items, skipping billing sync",
-					"namespace", subscriptionID.Namespace,
-					"subscription_id", subscriptionID.ID,
-				)
-
-				// A nil result also prevents the wrapping automatic path from invoicing
-				// unrelated pending lines for this subscription's customer.
-				return nil, nil
-			}
-
-			return nil, models.NewGenericConflictError(err)
 		}
 
 		res := &synchronizeSubscriptionResult{
