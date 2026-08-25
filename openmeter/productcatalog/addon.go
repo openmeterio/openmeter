@@ -412,6 +412,14 @@ func AddonRateCardMatcherForAGivenPlanRateCard(planRateCard RateCard) func(addon
 	}
 }
 
+// ValidateAddonWithResolvedFeatures verifies that every feature reference has
+// its feature representation sideloaded.
+func ValidateAddonWithResolvedFeatures() models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		return ValidateRateCardsWithResolvedFeatures()(a.RateCards)
+	}
+}
+
 func ValidateAddonWithFeatures(ctx context.Context, resolver NamespacedFeatureResolver) models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
 		return ValidateRateCardsWithFeatures(ctx, resolver)(a.RateCards)

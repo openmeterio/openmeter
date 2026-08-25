@@ -10,6 +10,7 @@ import (
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -133,8 +134,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Metadata:            r.Metadata,
 		Annotations:         r.Annotations,
 		EntitlementTemplate: r.EntitlementTemplate,
-		FeatureKey:          r.FeatureKey,
-		FeatureID:           r.FeatureID,
+		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
@@ -142,17 +142,19 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Currency:            rateCardCurrency,
 	}
 
-	if r.FeatureID != nil || r.FeatureKey != nil {
-		ratecardFeature, err := r.Edges.FeaturesOrErr()
-		//if err != nil {
-		//	return nil, errors.New("feature is not loaded for ratecard")
-		//}
-		//
-		//meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
+	if meta.Feature != nil {
+		if err := meta.Feature.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid persisted feature reference: %w", err)
+		}
 
-		// FIXME(chrisgacsal): temporary fix until data is migrated
+		ratecardFeature, err := r.Edges.FeaturesOrErr()
 		if err == nil && ratecardFeature != nil {
-			meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
+			resolvedFeature := productcatalogadapter.MapFeatureEntity(ratecardFeature)
+			resolvedReference, err := meta.Feature.WithFeature(&resolvedFeature)
+			if err != nil {
+				return nil, fmt.Errorf("invalid resolved feature reference: %w", err)
+			}
+			meta.Feature = &resolvedReference
 		}
 	}
 
@@ -388,14 +390,29 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Description:         r.Description,
 		Metadata:            r.Metadata,
 		Annotations:         r.Annotations,
-		FeatureID:           r.FeatureID,
-		FeatureKey:          r.FeatureKey,
+		Feature:             productcatalog.NewFeatureReference(r.FeatureID, r.FeatureKey),
 		EntitlementTemplate: r.EntitlementTemplate,
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
 		Currency:            rateCardCurrency,
+	}
+
+	if meta.Feature != nil {
+		if err := meta.Feature.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid persisted feature reference: %w", err)
+		}
+
+		ratecardFeature, err := r.Edges.FeaturesOrErr()
+		if err == nil && ratecardFeature != nil {
+			resolvedFeature := productcatalogadapter.MapFeatureEntity(ratecardFeature)
+			resolvedReference, err := meta.Feature.WithFeature(&resolvedFeature)
+			if err != nil {
+				return nil, fmt.Errorf("invalid resolved feature reference: %w", err)
+			}
+			meta.Feature = &resolvedReference
+		}
 	}
 
 	// Map TaxCode if eagerly loaded.
@@ -457,14 +474,25 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		Description:         meta.Description,
 		EntitlementTemplate: meta.EntitlementTemplate,
 		TaxConfig:           meta.TaxConfig,
-		FeatureKey:          meta.FeatureKey,
-		FeatureID:           meta.FeatureID,
 		Price:               meta.Price,
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
 		UnitConfig:          meta.UnitConfig,
 		CurrencyCode:        currencyCode,
 		CustomCurrencyID:    customCurrencyID,
+	}
+
+	if meta.Feature != nil {
+		if err := meta.Feature.Validate(); err != nil {
+			return entdb.AddonRateCard{}, fmt.Errorf("invalid feature reference for persistence: %w", err)
+		}
+
+		if meta.Feature.ID == nil || meta.Feature.Key == nil {
+			return entdb.AddonRateCard{}, errors.New("feature reference must include both id and key for persistence")
+		}
+
+		ratecard.FeatureKey = meta.Feature.Key
+		ratecard.FeatureID = meta.Feature.ID
 	}
 
 	if managed, ok := r.(addon.ManagedRateCard); ok {

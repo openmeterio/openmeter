@@ -640,7 +640,11 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 			keyOrIDS := make(map[string]struct{}, len(items))
 
 			for _, item := range items {
-				fKey, fID := lo.FromPtr(item.RateCard.AsMeta().FeatureKey), lo.FromPtr(item.RateCard.AsMeta().FeatureID)
+				reference := item.RateCard.AsMeta().Feature
+				if reference == nil {
+					continue
+				}
+				fKey, fID := lo.FromPtr(reference.Key), lo.FromPtr(reference.ID)
 
 				if fKey != "" {
 					keyOrIDS[fKey] = struct{}{}
@@ -734,7 +738,11 @@ func (s *service) ExpandViews(ctx context.Context, subs []subscription.Subscript
 	featsOfItemsBySub := lo.MapEntries(itemsBySub, func(key string, items []subscription.SubscriptionItem) (string, []feature.Feature) {
 		found := make([]feature.Feature, 0)
 		for _, item := range items {
-			fKey, fID := lo.FromPtr(item.RateCard.AsMeta().FeatureKey), lo.FromPtr(item.RateCard.AsMeta().FeatureID)
+			reference := item.RateCard.AsMeta().Feature
+			if reference == nil {
+				continue
+			}
+			fKey, fID := lo.FromPtr(reference.Key), lo.FromPtr(reference.ID)
 
 			if fKey == "" && fID == "" {
 				continue

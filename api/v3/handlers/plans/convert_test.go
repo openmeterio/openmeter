@@ -450,9 +450,9 @@ func TestFromRateCard(t *testing.T) {
 		featureID := "01J8FEATURE000000000000000"
 		rc := &productcatalog.UsageBasedRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Key:       "tokens",
-				Name:      "Tokens",
-				FeatureID: &featureID,
+				Key:     "tokens",
+				Name:    "Tokens",
+				Feature: productcatalog.NewFeatureReference(&featureID, nil),
 			},
 			BillingCadence: cadence,
 		}
@@ -1429,8 +1429,9 @@ func TestToRateCard(t *testing.T) {
 
 		result, err := FromAPIBillingRateCard(rc)
 		require.NoError(t, err)
-		require.NotNil(t, result.AsMeta().FeatureID)
-		assert.Equal(t, "01FEATURE00000000", *result.AsMeta().FeatureID)
+		require.NotNil(t, result.AsMeta().Feature)
+		require.NotNil(t, result.AsMeta().Feature.ID)
+		assert.Equal(t, "01FEATURE00000000", *result.AsMeta().Feature.ID)
 	})
 
 	t.Run("graduated price creates usage based rate card", func(t *testing.T) {

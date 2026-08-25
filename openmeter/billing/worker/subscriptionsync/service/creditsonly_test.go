@@ -584,11 +584,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       s.APIRequestsTotalFeature.Key,
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-								Price:      unitPrice,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -698,11 +697,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       s.APIRequestsTotalFeature.Key,
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-								Price:      unitPrice,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -825,11 +823,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       s.APIRequestsTotalFeature.Key,
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-								Price:      unitPrice,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -960,11 +957,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       s.APIRequestsTotalFeature.Key,
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-								Price:      unitPrice,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -1180,11 +1176,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 						},
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       s.APIRequestsTotalFeature.Key,
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-								Price:      unitPrice,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
 							},
 							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 						},
@@ -1555,11 +1550,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       s.APIRequestsTotalFeature.Key,
-								Key:        s.APIRequestsTotalFeature.Key,
-								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
-								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
-								Price:      unitPrice,
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
 								TaxConfig: &productcatalog.TaxConfig{
 									Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 									TaxCodeID: &tc.ID,

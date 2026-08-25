@@ -29,11 +29,10 @@ import (
 func newTestFlatRateCard(feat feature.Feature, tc *productcatalog.TaxConfig, billingCadence *datetime.ISODuration) productcatalog.RateCard {
 	return &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
-			Key:        feat.Key,
-			Name:       feat.Name,
-			FeatureKey: lo.ToPtr(feat.Key),
-			FeatureID:  lo.ToPtr(feat.ID),
-			TaxConfig:  tc,
+			Key:       feat.Key,
+			Name:      feat.Name,
+			Feature:   productcatalog.NewFeatureReference(lo.ToPtr(feat.ID), lo.ToPtr(feat.Key)),
+			TaxConfig: tc,
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      decimal.NewFromInt(100),
 				PaymentTerm: productcatalog.InArrearsPaymentTerm,

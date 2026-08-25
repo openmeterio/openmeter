@@ -74,6 +74,11 @@ func (c *flatFeeChargeCollection) AddExtend(existing persistedstate.Item, target
 
 func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent, error) {
 	rateCardMeta := target.Spec.RateCard.AsMeta()
+	var featureKey *string
+	if rateCardMeta.Feature != nil {
+		featureKey = rateCardMeta.Feature.Key
+	}
+
 	price := rateCardMeta.Price
 	if price == nil {
 		return charges.ChargeIntent{}, fmt.Errorf("price is required for flat fee charge")
@@ -124,7 +129,7 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 			ProRating:             target.Subscription.ProRatingConfig,
 			AmountBeforeProration: flatPrice.Amount,
 		},
-		FeatureKey:     rateCardMeta.FeatureKey,
+		FeatureKey:     featureKey,
 		SettlementMode: target.Subscription.SettlementMode,
 	}), nil
 }

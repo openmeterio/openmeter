@@ -73,10 +73,9 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 						// Let's have an in-arrears monthly entitlement ratecard
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        feats[0].Key,
-								Name:       "Test Rate Card",
-								FeatureKey: lo.ToPtr(feats[0].Key),
-								FeatureID:  lo.ToPtr(feats[0].ID),
+								Key:     feats[0].Key,
+								Name:    "Test Rate Card",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[0].ID), lo.ToPtr(feats[0].Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
@@ -95,10 +94,9 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 						// Let's have an in-advance monthly ratecard
 						&productcatalog.FlatFeeRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        feats[1].Key,
-								Name:       "Test Rate Card 2",
-								FeatureKey: lo.ToPtr(feats[1].Key),
-								FeatureID:  lo.ToPtr(feats[1].ID),
+								Key:     feats[1].Key,
+								Name:    "Test Rate Card 2",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[1].ID), lo.ToPtr(feats[1].Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      alpacadecimal.NewFromInt(10),
 									PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -114,10 +112,9 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 						// Let's have an in arrears daily ratecard
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        feats[2].Key,
-								Name:       "Test Rate Card 3",
-								FeatureKey: lo.ToPtr(feats[2].Key),
-								FeatureID:  lo.ToPtr(feats[2].ID),
+								Key:     feats[2].Key,
+								Name:    "Test Rate Card 3",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[2].ID), lo.ToPtr(feats[2].Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(1),
 								}),
@@ -348,11 +345,10 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 				RateCards: productcatalog.RateCards{
 					&productcatalog.UsageBasedRateCard{
 						RateCardMeta: productcatalog.RateCardMeta{
-							Key:        feats[0].Key,
-							Name:       "FLAT_PRICE",
-							FeatureKey: lo.ToPtr(feats[0].Key),
-							FeatureID:  lo.ToPtr(feats[0].ID),
-							Price:      productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(1), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
+							Key:     feats[0].Key,
+							Name:    "FLAT_PRICE",
+							Feature: productcatalog.NewFeatureReference(lo.ToPtr(feats[0].ID), lo.ToPtr(feats[0].Key)),
+							Price:   productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(1), PaymentTerm: productcatalog.InArrearsPaymentTerm}),
 						},
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					},

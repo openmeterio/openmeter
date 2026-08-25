@@ -137,7 +137,7 @@ func Test_NamespacedFeatureResolver(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				var f *feature.Feature
 
-				f, err = namespacedResolver.Resolve(t.Context(), test.featureID, test.featureKey)
+				f, err = namespacedResolver.Resolve(t.Context(), feature.FeatureReference{ID: test.featureID, Key: test.featureKey})
 				if test.expectedError != nil {
 					assert.ErrorAsf(t, err, &test.expectedError, "expected error %v", test.expectedError)
 				} else {

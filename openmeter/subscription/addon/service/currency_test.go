@@ -190,8 +190,7 @@ func newBillableAddonInput(
 	err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
 		meta.Key = "subscription-currency-boundary"
 		meta.Name = "Subscription currency boundary"
-		meta.FeatureKey = nil
-		meta.FeatureID = nil
+		meta.Feature = nil
 		meta.Currency = currency
 
 		return meta, nil

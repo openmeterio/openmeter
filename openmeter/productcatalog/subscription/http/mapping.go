@@ -263,6 +263,11 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		pr = &prc
 	}
 
+	var featureKey *string
+	if feature := item.SubscriptionItem.RateCard.AsMeta().Feature; feature != nil {
+		featureKey = feature.Key
+	}
+
 	result := api.SubscriptionItem{
 		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
 		ActiveTo:       item.SubscriptionItem.ActiveTo,
@@ -273,7 +278,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		Id:             item.SubscriptionItem.ID,
 		Included:       included,
 		Key:            item.SubscriptionItem.Key,
-		FeatureKey:     item.SubscriptionItem.RateCard.AsMeta().FeatureKey,
+		FeatureKey:     featureKey,
 		Metadata:       lo.EmptyableToPtr(api.Metadata(item.SubscriptionItem.Metadata)),
 		Name:           item.SubscriptionItem.Name,
 		Price:          pr,

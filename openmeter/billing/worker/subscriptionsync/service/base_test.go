@@ -527,7 +527,9 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		item, itemFound := s.subscriptionItemByID(phase, itemKey, subscription.ItemID, childID, usageBasedCharge.DeletedAt != nil)
 		expectedFeatureKey := itemKey
 		if itemFound {
-			expectedFeatureKey = lo.FromPtrOr(item.Spec.RateCard.AsMeta().FeatureKey, itemKey)
+			if feature := item.Spec.RateCard.AsMeta().Feature; feature != nil {
+				expectedFeatureKey = lo.FromPtrOr(feature.Key, itemKey)
+			}
 		}
 		s.Equal(expectedFeatureKey, baseIntent.FeatureKey, "%s: feature key", childID)
 	case chargesmeta.ChargeTypeFlatFee:
@@ -1097,11 +1099,11 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 	var rc productcatalog.RateCard
 
 	meta := productcatalog.RateCardMeta{
-		Name:       i.ItemKey,
-		Key:        i.ItemKey,
-		Price:      i.Price,
-		FeatureKey: lo.EmptyableToPtr(i.FeatureKey),
-		TaxConfig:  i.TaxConfig,
+		Name:      i.ItemKey,
+		Key:       i.ItemKey,
+		Price:     i.Price,
+		Feature:   productcatalog.NewFeatureReference(nil, lo.EmptyableToPtr(i.FeatureKey)),
+		TaxConfig: i.TaxConfig,
 	}
 
 	switch {

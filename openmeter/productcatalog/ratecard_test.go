@@ -105,6 +105,46 @@ func TestRateCardMetaCloneDeepCopiesCurrency(t *testing.T) {
 	require.Equal(t, "currency-1", resolved.ID)
 }
 
+func TestValidateRateCardsWithResolvedFeatures(t *testing.T) {
+	featureID := "feature-id"
+	featureKey := "feature-key"
+	resolvedReference := feature.Feature{ID: featureID, Key: featureKey}.Reference()
+
+	tests := []struct {
+		name      string
+		reference *FeatureReference
+		wantError bool
+	}{
+		{name: "featureless rate card"},
+		{name: "unresolved partial reference", reference: NewFeatureReference(&featureID, nil), wantError: true},
+		{name: "unresolved complete reference", reference: NewFeatureReference(&featureID, &featureKey), wantError: true},
+		{name: "resolved reference", reference: &resolvedReference},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a rate card whose optional feature reference may or may not be sideloaded
+			rateCards := RateCards{&FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Key:     "rate-card",
+					Feature: tt.reference,
+				},
+			}}
+
+			// when: the service loading contract is validated
+			err := rateCards.ValidateWith(ValidateRateCardsWithResolvedFeatures())
+
+			// then: only feature references carrying their resolved feature are accepted
+			if tt.wantError {
+				require.ErrorContains(t, err, "feature reference must be resolved")
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestFlatFeeRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		tests := []struct {
@@ -122,8 +162,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "Flat 1",
 						},
-						FeatureKey: lo.ToPtr("feat-1"),
-						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+						Feature: NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							StaticEntitlementTemplate{
 								Metadata: map[string]string{
@@ -168,8 +207,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "Flat 2",
 						},
-						FeatureKey: lo.ToPtr("feat-2"),
-						FeatureID:  lo.ToPtr("01JBP3SGZ2YTM6DVH2W318TPNH"),
+						Feature: NewFeatureReference(lo.ToPtr("01JBP3SGZ2YTM6DVH2W318TPNH"), lo.ToPtr("feat-2")),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							StaticEntitlementTemplate{
 								Metadata: map[string]string{
@@ -284,8 +322,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "usage-1",
 						},
-						FeatureKey: lo.ToPtr("feat-1"),
-						FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+						Feature: NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							MeteredEntitlementTemplate{
 								Metadata: map[string]string{
@@ -327,8 +364,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 						Metadata: map[string]string{
 							"name": "usage-2",
 						},
-						FeatureKey: lo.ToPtr("feat-2"),
-						FeatureID:  lo.ToPtr("01JBWYR0G2PYB9DVADKQXF8E0P"),
+						Feature: NewFeatureReference(lo.ToPtr("01JBWYR0G2PYB9DVADKQXF8E0P"), lo.ToPtr("feat-2")),
 						EntitlementTemplate: NewEntitlementTemplateFrom(
 							MeteredEntitlementTemplate{
 								Metadata: map[string]string{
@@ -364,10 +400,9 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "valid, mixed discounts",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:        "feat-1",
-						Name:       "Usage 1",
-						FeatureKey: lo.ToPtr(feat1.Key),
-						FeatureID:  lo.ToPtr(feat1.ID),
+						Key:     "feat-1",
+						Name:    "Usage 1",
+						Feature: NewFeatureReference(lo.ToPtr(feat1.ID), lo.ToPtr(feat1.Key)),
 						Price: NewPriceFrom(
 							UnitPrice{
 								Amount: decimal.NewFromInt(1000),
@@ -394,10 +429,9 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "invalid, usage discount for flat price",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:        "feat-1",
-						Name:       "Usage 1",
-						FeatureKey: lo.ToPtr(feat1.Key),
-						FeatureID:  lo.ToPtr(feat1.ID),
+						Key:     "feat-1",
+						Name:    "Usage 1",
+						Feature: NewFeatureReference(lo.ToPtr(feat1.ID), lo.ToPtr(feat1.Key)),
 						Price: NewPriceFrom(
 							FlatPrice{
 								Amount: decimal.NewFromInt(1000),
@@ -420,10 +454,9 @@ func TestUsageBasedRateCard(t *testing.T) {
 				Name: "invalid, usage discount without price",
 				RateCard: UsageBasedRateCard{
 					RateCardMeta: RateCardMeta{
-						Key:        "feat-1",
-						Name:       "Usage 1",
-						FeatureKey: lo.ToPtr(feat1.Key),
-						FeatureID:  lo.ToPtr(feat1.ID),
+						Key:     "feat-1",
+						Name:    "Usage 1",
+						Feature: NewFeatureReference(lo.ToPtr(feat1.ID), lo.ToPtr(feat1.Key)),
 						Discounts: Discounts{
 							Percentage: &PercentageDiscount{
 								Percentage: models.NewPercentage(10),
@@ -521,8 +554,7 @@ func TestRateCardMetaUnitConfigValidation(t *testing.T) {
 			meta := RateCardMeta{
 				Key:        "feat-1",
 				Name:       "RC",
-				FeatureKey: lo.ToPtr("feat-1"),
-				FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+				Feature:    NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 				Price:      test.Price,
 				UnitConfig: unitConfig(),
 			}
@@ -571,8 +603,7 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							FeatureKey: lo.ToPtr("feat-1"),
-							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+							Feature: NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -620,8 +651,7 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							FeatureKey: lo.ToPtr("feat-1"),
-							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+							Feature: NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -673,8 +703,7 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							FeatureKey: lo.ToPtr("feat-1"),
-							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+							Feature: NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								MeteredEntitlementTemplate{
 									Metadata: map[string]string{
@@ -714,8 +743,7 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "Flat 1",
 							},
-							FeatureKey: lo.ToPtr("feat-1"),
-							FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+							Feature: NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 							EntitlementTemplate: NewEntitlementTemplateFrom(
 								StaticEntitlementTemplate{
 									Metadata: map[string]string{
@@ -752,8 +780,7 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							FeatureKey: lo.ToPtr(feat1.Key),
-							FeatureID:  lo.ToPtr(feat1.ID),
+							Feature: NewFeatureReference(lo.ToPtr(feat1.ID), lo.ToPtr(feat1.Key)),
 							Price: NewPriceFrom(
 								UnitPrice{
 									Amount: decimal.NewFromInt(1000),
@@ -784,8 +811,7 @@ func TestRateCardsEqual(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "usage-1",
 							},
-							FeatureKey: lo.ToPtr(feat1.Key),
-							FeatureID:  lo.ToPtr(feat1.ID),
+							Feature: NewFeatureReference(lo.ToPtr(feat1.ID), lo.ToPtr(feat1.Key)),
 							Price: NewPriceFrom(
 								UnitPrice{
 									Amount: decimal.NewFromInt(1000),
@@ -1033,8 +1059,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1056,8 +1081,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1083,8 +1107,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1109,8 +1132,7 @@ func TestRateCardsCompatible(t *testing.T) {
 						},
 						Amount: decimal.NewFromInt(10),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1136,8 +1158,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1159,8 +1180,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature2"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature2")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1186,8 +1206,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1209,8 +1228,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id2"),
+					Feature: NewFeatureReference(lo.ToPtr("id2"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1236,8 +1254,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1259,8 +1276,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1286,8 +1302,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1309,8 +1324,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						BooleanEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1331,8 +1345,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1354,8 +1367,7 @@ func TestRateCardsCompatible(t *testing.T) {
 					Price: NewPriceFrom(FlatPrice{
 						Amount: decimal.NewFromInt(1000),
 					}),
-					FeatureKey: lo.ToPtr("feature1"),
-					FeatureID:  lo.ToPtr("id1"),
+					Feature: NewFeatureReference(lo.ToPtr("id1"), lo.ToPtr("feature1")),
 					EntitlementTemplate: NewEntitlementTemplateFrom(
 						MeteredEntitlementTemplate{
 							Metadata: map[string]string{
@@ -1400,8 +1412,7 @@ func TestRateCardMetaUnitConfig(t *testing.T) {
 		return RateCardMeta{
 			Key:        "feat-1",
 			Name:       "Usage 1",
-			FeatureKey: lo.ToPtr("feat-1"),
-			FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+			Feature:    NewFeatureReference(lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"), lo.ToPtr("feat-1")),
 			Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
 			UnitConfig: uc,
 		}
@@ -1468,7 +1479,7 @@ func TestRateCardsHasUnitConfig(t *testing.T) {
 			RateCardMeta: RateCardMeta{
 				Key:        "feat-1",
 				Name:       "Feature 1",
-				FeatureKey: lo.ToPtr("feat-1"),
+				Feature:    NewFeatureReference(nil, lo.ToPtr("feat-1")),
 				Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
 				UnitConfig: uc,
 			},
@@ -1495,7 +1506,7 @@ func TestValidateRateCardsHaveCompatibleUnitConfig(t *testing.T) {
 			RateCardMeta: RateCardMeta{
 				Key:        "feat-1",
 				Name:       "Feature 1",
-				FeatureKey: lo.ToPtr("feat-1"),
+				Feature:    NewFeatureReference(nil, lo.ToPtr("feat-1")),
 				Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
 				UnitConfig: uc,
 			},

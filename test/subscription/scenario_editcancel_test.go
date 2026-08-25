@@ -75,10 +75,9 @@ func TestEditingAndCanceling(t *testing.T) {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        "test_feature_1",
-								Name:       "Test Rate Card",
-								FeatureKey: lo.ToPtr(f.Key),
-								FeatureID:  lo.ToPtr(f.ID),
+								Key:     "test_feature_1",
+								Name:    "Test Rate Card",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(f.ID), lo.ToPtr(f.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
@@ -197,7 +196,7 @@ func TestEditingAndCanceling(t *testing.T) {
 						RateCard: &productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
 								Name:                "Test Rate Card",
-								FeatureKey:          lo.ToPtr("test_feature_1"),
+								Feature:             productcatalog.NewFeatureReference(nil, lo.ToPtr("test_feature_1")),
 								Key:                 "test_feature_1",
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{

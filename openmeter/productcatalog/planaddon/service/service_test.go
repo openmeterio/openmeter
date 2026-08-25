@@ -88,8 +88,7 @@ func TestPlanAddonService(t *testing.T) {
 								Name:                features[0].Name,
 								Description:         lo.ToPtr("invalid RateCard 1"),
 								Metadata:            models.Metadata{"name": features[0].Name},
-								FeatureKey:          lo.ToPtr(features[0].Key),
-								FeatureID:           lo.ToPtr(features[0].ID),
+								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
@@ -120,8 +119,7 @@ func TestPlanAddonService(t *testing.T) {
 								Name:                features[0].Name,
 								Description:         lo.ToPtr("Trial RateCard 1"),
 								Metadata:            models.Metadata{"name": features[0].Name},
-								FeatureKey:          lo.ToPtr(features[0].Key),
-								FeatureID:           lo.ToPtr(features[0].ID),
+								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
@@ -175,8 +173,7 @@ func TestPlanAddonService(t *testing.T) {
 								Name:                features[0].Name,
 								Description:         lo.ToPtr("Pro RateCard 1"),
 								Metadata:            models.Metadata{"name": features[0].Name},
-								FeatureKey:          lo.ToPtr(features[0].Key),
-								FeatureID:           lo.ToPtr(features[0].ID),
+								Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 								TaxConfig: &productcatalog.TaxConfig{
 									Stripe: &productcatalog.StripeTaxConfig{
@@ -229,8 +226,7 @@ func TestPlanAddonService(t *testing.T) {
 						Name:                features[0].Name,
 						Description:         lo.ToPtr(features[0].Name),
 						Metadata:            models.Metadata{"name": features[0].Name},
-						FeatureKey:          lo.ToPtr(features[0].Key),
-						FeatureID:           lo.ToPtr(features[0].ID),
+						Feature:             productcatalog.NewFeatureReference(lo.ToPtr(features[0].ID), lo.ToPtr(features[0].Key)),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 						TaxConfig: &productcatalog.TaxConfig{
 							Stripe: &productcatalog.StripeTaxConfig{

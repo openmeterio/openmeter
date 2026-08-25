@@ -1048,7 +1048,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		return def, false, nil
 	}
 
-	if meta.FeatureKey == nil {
+	if meta.Feature == nil || meta.Feature.Key == nil {
 		return def, true, fmt.Errorf("feature is required for rate card where entitlement is present: %s", s.ItemKey)
 	}
 
@@ -1059,7 +1059,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 		Namespace:        opts.Customer.Namespace,
 		ActiveFrom:       lo.ToPtr(opts.Cadence.ActiveFrom),
 		ActiveTo:         opts.Cadence.ActiveTo,
-		FeatureKey:       meta.FeatureKey,
+		FeatureKey:       meta.Feature.Key,
 		UsageAttribution: opts.Customer.GetUsageAttribution(),
 	}
 

@@ -47,7 +47,7 @@ var ExampleAddonRateCard1 = productcatalog.FlatFeeRateCard{
 		Name:        "Test Addon Rate Card 1",
 		Description: lo.ToPtr("Test Addon Rate Card 1 Description"),
 		Key:         ExampleFeatureKey,
-		FeatureKey:  lo.ToPtr(ExampleFeatureKey),
+		Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey)),
 	},
 	BillingCadence: &ISOMonth,
 }
@@ -67,7 +67,7 @@ var ExampleAddonRateCard3 = productcatalog.FlatFeeRateCard{
 		Name:                "Test Addon Rate Card 3",
 		Description:         lo.ToPtr("Test Addon Rate Card 3 Description"),
 		Key:                 ExampleFeatureKey3,
-		FeatureKey:          lo.ToPtr(ExampleFeatureKey3),
+		Feature:             productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey3)),
 		EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      alpacadecimal.NewFromInt(100),
@@ -83,7 +83,7 @@ var ExampleAddonRateCard4 = productcatalog.FlatFeeRateCard{
 		Name:        "Test Addon Rate Card 4",
 		Description: lo.ToPtr("Test Addon Rate Card 4 Description"),
 		Key:         ExampleFeatureKey2,
-		FeatureKey:  lo.ToPtr(ExampleFeatureKey2),
+		Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey2)),
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      alpacadecimal.NewFromInt(100),
 			PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -98,7 +98,7 @@ var ExampleAddonRateCard5 = productcatalog.FlatFeeRateCard{
 		Name:        "Test Addon Rate Card 5",
 		Description: lo.ToPtr("Test Addon Rate Card 5 Description"),
 		Key:         ExampleFeatureKey,
-		FeatureKey:  lo.ToPtr(ExampleFeatureKey),
+		Feature:     productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey)),
 		EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 			IssueAfterReset: lo.ToPtr(50.0),
 			UsagePeriod:     ISOMonth,
@@ -113,7 +113,7 @@ var ExampleAddonRateCard6 = productcatalog.FlatFeeRateCard{
 		Name:                "Test Addon Rate Card 6",
 		Description:         lo.ToPtr("Test Addon Rate Card 6 Description"),
 		Key:                 ExampleFeatureKey,
-		FeatureKey:          lo.ToPtr(ExampleFeatureKey),
+		Feature:             productcatalog.NewFeatureReference(nil, lo.ToPtr(ExampleFeatureKey)),
 		EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 	},
 	BillingCadence: &ISOMonth,

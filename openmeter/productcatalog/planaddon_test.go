@@ -64,9 +64,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 							RateCards: RateCards{
 								&UsageBasedRateCard{
 									RateCardMeta: RateCardMeta{
-										Key:        "storage_capacity",
-										Name:       "Storage Capacity",
-										FeatureKey: lo.ToPtr("storage_capacity"),
+										Key:     "storage_capacity",
+										Name:    "Storage Capacity",
+										Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 										EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 											IsSoftLimit:             false,
 											IssueAfterReset:         lo.ToPtr(5000.0),
@@ -108,9 +108,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 							RateCards: RateCards{
 								&UsageBasedRateCard{
 									RateCardMeta: RateCardMeta{
-										Key:        "storage_capacity",
-										Name:       "Storage Capacity",
-										FeatureKey: lo.ToPtr("storage_capacity"),
+										Key:     "storage_capacity",
+										Name:    "Storage Capacity",
+										Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 										EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 											IsSoftLimit:             false,
 											IssueAfterReset:         lo.ToPtr(10000.0),
@@ -165,10 +165,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					RateCards: RateCards{
 						&UsageBasedRateCard{
 							RateCardMeta: RateCardMeta{
-								Key:        "storage_capacity",
-								Name:       "Storage Capacity",
-								FeatureKey: lo.ToPtr("storage_capacity"),
-								FeatureID:  nil,
+								Key:     "storage_capacity",
+								Name:    "Storage Capacity",
+								Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 								EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 									IsSoftLimit:             true,
 									IssueAfterReset:         lo.ToPtr(10000.0),
@@ -229,9 +228,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 							RateCards: RateCards{
 								&UsageBasedRateCard{
 									RateCardMeta: RateCardMeta{
-										Key:        "storage_capacity",
-										Name:       "Storage Capacity",
-										FeatureKey: lo.ToPtr("storage_capacity"),
+										Key:     "storage_capacity",
+										Name:    "Storage Capacity",
+										Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 										EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 											IsSoftLimit:             false,
 											IssueAfterReset:         lo.ToPtr(5000.0),
@@ -273,9 +272,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 							RateCards: RateCards{
 								&UsageBasedRateCard{
 									RateCardMeta: RateCardMeta{
-										Key:        "storage_capacity",
-										Name:       "Storage Capacity",
-										FeatureKey: lo.ToPtr("storage_capacity"),
+										Key:     "storage_capacity",
+										Name:    "Storage Capacity",
+										Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 										EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 											IsSoftLimit:             false,
 											IssueAfterReset:         lo.ToPtr(10000.0),
@@ -330,10 +329,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					RateCards: RateCards{
 						&UsageBasedRateCard{
 							RateCardMeta: RateCardMeta{
-								Key:        "storage_capacity",
-								Name:       "Storage Capacity",
-								FeatureKey: lo.ToPtr("storage_capacity"),
-								FeatureID:  nil,
+								Key:     "storage_capacity",
+								Name:    "Storage Capacity",
+								Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 								EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 									IsSoftLimit:             true,
 									IssueAfterReset:         lo.ToPtr(10000.0),
@@ -415,9 +413,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 							RateCards: RateCards{
 								&UsageBasedRateCard{
 									RateCardMeta: RateCardMeta{
-										Key:        "storage_capacity",
-										Name:       "Storage Capacity",
-										FeatureKey: lo.ToPtr("storage_capacity"),
+										Key:     "storage_capacity",
+										Name:    "Storage Capacity",
+										Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 										EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 											IsSoftLimit:             false,
 											IssueAfterReset:         lo.ToPtr(5000.0),
@@ -459,9 +457,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 							RateCards: RateCards{
 								&UsageBasedRateCard{
 									RateCardMeta: RateCardMeta{
-										Key:        "storage_capacity",
-										Name:       "Storage Capacity",
-										FeatureKey: lo.ToPtr("storage_capacity"),
+										Key:     "storage_capacity",
+										Name:    "Storage Capacity",
+										Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity")),
 										EntitlementTemplate: NewEntitlementTemplateFrom(MeteredEntitlementTemplate{
 											IsSoftLimit:             false,
 											IssueAfterReset:         lo.ToPtr(10000.0),
@@ -515,10 +513,9 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 					RateCards: RateCards{
 						&UsageBasedRateCard{
 							RateCardMeta: RateCardMeta{
-								Key:        "storage_capacity",
-								Name:       "Storage Capacity",
-								FeatureKey: lo.ToPtr("storage_capacity_x"),
-								FeatureID:  nil,
+								Key:     "storage_capacity",
+								Name:    "Storage Capacity",
+								Feature: NewFeatureReference(nil, lo.ToPtr("storage_capacity_x")),
 								EntitlementTemplate: NewEntitlementTemplateFrom(StaticEntitlementTemplate{
 									Config: []byte(`{"storage_capacity": 1000}`),
 								}),

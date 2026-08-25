@@ -74,10 +74,9 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:        "test_feature_1",
-								Name:       "Test Rate Card",
-								FeatureKey: lo.ToPtr(f.Key),
-								FeatureID:  lo.ToPtr(f.ID),
+								Key:     "test_feature_1",
+								Name:    "Test Rate Card",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(f.ID), lo.ToPtr(f.Key)),
 								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
@@ -168,9 +167,9 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 						ItemKey:  "test_feature_1",
 						RateCard: &productcatalog.UsageBasedRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Name:       "Test Rate Card",
-								FeatureKey: lo.ToPtr("test_feature_1"),
-								Key:        "test_feature_1",
+								Name:    "Test Rate Card",
+								Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr("test_feature_1")),
+								Key:     "test_feature_1",
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 									UsagePeriod:     datetime.MustParseDuration(t, "P1M"),
 									IssueAfterReset: lo.ToPtr(100.0), // So we have an update on the entitlement

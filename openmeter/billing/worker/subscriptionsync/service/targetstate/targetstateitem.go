@@ -92,6 +92,20 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 		return nil, fmt.Errorf("price must be defined for usage based price")
 	}
 
+	var featureKey string
+	feature := r.SubscriptionItem.RateCard.AsMeta().Feature
+	if feature != nil {
+		if err := feature.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid feature reference for billing line: %w", err)
+		}
+
+		if feature.Key == nil {
+			return nil, errors.New("feature key is required for billing line")
+		}
+
+		featureKey = *feature.Key
+	}
+
 	switch price.Type() {
 	case productcatalog.FlatPriceType:
 		price, err := price.AsFlat()
@@ -112,14 +126,18 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 			Amount:      perUnitAmount,
 			PaymentTerm: price.PaymentTerm,
 		}))
-		line.FeatureKey = lo.FromPtr(r.SubscriptionItem.RateCard.AsMeta().FeatureKey)
+		line.FeatureKey = featureKey
 	default:
+		if feature == nil {
+			return nil, errors.New("feature is required for usage-based price")
+		}
+
 		if r.SubscriptionItem.RateCard.AsMeta().Price == nil {
 			return nil, fmt.Errorf("price must be defined for usage based price")
 		}
 
 		line.Price = lo.FromPtr(r.SubscriptionItem.RateCard.AsMeta().Price)
-		line.FeatureKey = lo.FromPtr(r.SubscriptionItem.RateCard.AsMeta().FeatureKey)
+		line.FeatureKey = featureKey
 
 		// Snapshot the rate card's unit_config onto the gathering line so the legacy
 		// line-engine path converts raw metered quantity into billed units at rating,

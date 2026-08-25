@@ -1103,6 +1103,18 @@ func withTaxCodeIDAndCurrency(rc *productcatalog.FlatFeeRateCard, taxCodeID *str
 	return clone
 }
 
+func featureReferenceWithoutID(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+	if meta.Feature == nil || meta.Feature.Key == nil {
+		return meta, nil
+	}
+
+	feature := meta.Feature.Clone()
+	feature.ID = nil
+	meta.Feature = &feature
+
+	return meta, nil
+}
+
 func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.FlatFeeRateCard, targetAmount int, value productcatalog.RateCard, msgAndArgs ...interface{}) {
 	t.Helper()
 
@@ -1124,10 +1136,10 @@ func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.F
 	msgX := fmt.Sprintf("item %s not equal to target %s", b1, b2)
 
 	left := target.Clone()
-	left.SetFeature(nil, left.GetFeatureKey())
+	require.NoError(t, left.ChangeMeta(featureReferenceWithoutID))
 
 	right := value.Clone()
-	right.SetFeature(nil, right.GetFeatureKey())
+	require.NoError(t, right.ChangeMeta(featureReferenceWithoutID))
 
 	if len(msgAndArgs) > 0 {
 		customMsg := fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...)
