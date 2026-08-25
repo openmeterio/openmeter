@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -276,7 +277,9 @@ func (a *Factory) InstallApp(ctx context.Context, input app.AppFactoryInstallApp
 	// instances are functionally identical (no credentials, no external state).
 	existing, err := a.appService.ListApps(ctx, app.ListAppInput{
 		Namespace: input.Namespace,
-		Type:      lo.ToPtr(app.AppTypeSandbox),
+		Type: &filter.FilterString{
+			Eq: lo.ToPtr(string(app.AppTypeSandbox)),
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sandbox apps: %w", err)
