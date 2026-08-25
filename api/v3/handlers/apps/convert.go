@@ -297,13 +297,3 @@ func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta
 		EnableIssuingSyncHook: customInvoicingApp.Configuration.EnableIssuingSyncHook,
 	}, nil
 }
-
-// MustToAPIBillingAppCapabilityTypeFromCapabilityType is the strict version of the ToAPIBillingAppCapabilityTypeFromCapabilityType
-// use it with caution, only for constant mapping and/or testing
-func MustToAPIBillingAppCapabilityTypeFromCapabilityType(source app.CapabilityType) api.BillingAppCapabilityType {
-	result, err := ToAPIBillingAppCapabilityTypeFromCapabilityType(source)
-	if err != nil {
-		panic(fmt.Errorf("unable to convert capability type: %w", err))
-	}
-	return result
-}
