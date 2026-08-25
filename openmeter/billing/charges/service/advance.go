@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/pkg/filter"
-
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -16,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 

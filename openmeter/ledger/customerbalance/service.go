@@ -8,8 +8,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/filter"
-
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -26,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
