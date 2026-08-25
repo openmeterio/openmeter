@@ -62,6 +62,8 @@ const (
 	FieldCurrentUsagePeriodStart = "current_usage_period_start"
 	// FieldCurrentUsagePeriodEnd holds the string denoting the current_usage_period_end field in the database.
 	FieldCurrentUsagePeriodEnd = "current_usage_period_end"
+	// FieldBalanceSnapshotInvalidationVersion holds the string denoting the balance_snapshot_invalidation_version field in the database.
+	FieldBalanceSnapshotInvalidationVersion = "balance_snapshot_invalidation_version"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
@@ -147,6 +149,7 @@ var Columns = []string{
 	FieldUsagePeriodAnchor,
 	FieldCurrentUsagePeriodStart,
 	FieldCurrentUsagePeriodEnd,
+	FieldBalanceSnapshotInvalidationVersion,
 	FieldAnnotations,
 }
 
@@ -171,6 +174,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	FeatureKeyValidator func(string) error
+	// DefaultBalanceSnapshotInvalidationVersion holds the default value on creation for the "balance_snapshot_invalidation_version" field.
+	DefaultBalanceSnapshotInvalidationVersion uint64
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all Entitlement fields.
@@ -315,6 +320,11 @@ func ByCurrentUsagePeriodStart(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrentUsagePeriodEnd orders the results by the current_usage_period_end field.
 func ByCurrentUsagePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrentUsagePeriodEnd, opts...).ToFunc()
+}
+
+// ByBalanceSnapshotInvalidationVersion orders the results by the balance_snapshot_invalidation_version field.
+func ByBalanceSnapshotInvalidationVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBalanceSnapshotInvalidationVersion, opts...).ToFunc()
 }
 
 // ByAnnotations orders the results by the annotations field.
