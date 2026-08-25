@@ -4829,6 +4829,123 @@ export const appCatalogItemPagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
+export const installedAppStripe = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('stripe').describe('The app type.'),
+    definition: appCatalogItem,
+    status: appStatus,
+    accountId: z
+      .string()
+
+      .describe(
+        'The Stripe account ID associated with the connected Stripe account.',
+      ),
+    livemode: z
+      .boolean()
+
+      .describe(
+        'Indicates whether the app is connected to a live Stripe account.',
+      ),
+    maskedApiKey: z
+      .string()
+
+      .describe(
+        'The masked Stripe API key that only exposes the first and last few characters.',
+      ),
+    defaultForCapabilityTypes: z
+      .array(appCapabilityType)
+      .describe('Default capabilities of the installed app.'),
+  })
+  .describe('Response of an installed app.')
+
+export const installedAppSandbox = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('sandbox').describe('The app type.'),
+    definition: appCatalogItem,
+    status: appStatus,
+    defaultForCapabilityTypes: z
+      .array(appCapabilityType)
+      .describe('Default capabilities of the installed app.'),
+  })
+  .describe('Response of an installed app.')
+
+export const installedAppExternalInvoicing = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('external_invoicing').describe('The app type.'),
+    definition: appCatalogItem,
+    status: appStatus,
+    enableDraftSyncHook: z
+      .boolean()
+
+      .describe(
+        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
+      ),
+    enableIssuingSyncHook: z
+      .boolean()
+
+      .describe(
+        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
+      ),
+    defaultForCapabilityTypes: z
+      .array(appCapabilityType)
+      .describe('Default capabilities of the installed app.'),
+  })
+  .describe('Response of an installed app.')
+
 export const invoiceWorkflowSettings = z
   .object({
     apps: invoiceWorkflowAppsReferences.optional(),
@@ -5085,6 +5202,14 @@ export const app = z
   .discriminatedUnion('type', [appStripe, appSandbox, appExternalInvoicing])
   .describe('Installed application.')
 
+export const billingInstallAppResponse = z
+  .discriminatedUnion('type', [
+    installedAppStripe,
+    installedAppSandbox,
+    installedAppExternalInvoicing,
+  ])
+  .describe('Response of the app install.')
+
 export const entitlementAccessQueryResponse = z
   .object({
     data: z
@@ -5290,13 +5415,6 @@ export const appPagePaginatedResponse = z
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
-
-export const billingInstallAppResponse = z
-  .object({
-    app: app,
-    defaultForCapabilityTypes: z.array(appCapabilityType),
-  })
-  .describe('Response of the app install.')
 
 export const profileApps = z
   .object({
@@ -11828,6 +11946,123 @@ export const appCatalogItemPagePaginatedResponseWire = z
   })
   .describe('Page paginated response.')
 
+export const installedAppStripeWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('stripe').describe('The app type.'),
+    definition: appCatalogItemWire,
+    status: appStatusWire,
+    account_id: z
+      .string()
+
+      .describe(
+        'The Stripe account ID associated with the connected Stripe account.',
+      ),
+    livemode: z
+      .boolean()
+
+      .describe(
+        'Indicates whether the app is connected to a live Stripe account.',
+      ),
+    masked_api_key: z
+      .string()
+
+      .describe(
+        'The masked Stripe API key that only exposes the first and last few characters.',
+      ),
+    default_for_capability_types: z
+      .array(appCapabilityTypeWire)
+      .describe('Default capabilities of the installed app.'),
+  })
+  .describe('Response of an installed app.')
+
+export const installedAppSandboxWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('sandbox').describe('The app type.'),
+    definition: appCatalogItemWire,
+    status: appStatusWire,
+    default_for_capability_types: z
+      .array(appCapabilityTypeWire)
+      .describe('Default capabilities of the installed app.'),
+  })
+  .describe('Response of an installed app.')
+
+export const installedAppExternalInvoicingWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('external_invoicing').describe('The app type.'),
+    definition: appCatalogItemWire,
+    status: appStatusWire,
+    enable_draft_sync_hook: z
+      .boolean()
+
+      .describe(
+        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
+      ),
+    enable_issuing_sync_hook: z
+      .boolean()
+
+      .describe(
+        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
+      ),
+    default_for_capability_types: z
+      .array(appCapabilityTypeWire)
+      .describe('Default capabilities of the installed app.'),
+  })
+  .describe('Response of an installed app.')
+
 export const invoiceWorkflowSettingsWire = z
   .strictObject({
     apps: invoiceWorkflowAppsReferencesWire.optional(),
@@ -12089,6 +12324,14 @@ export const appWire = z
   ])
   .describe('Installed application.')
 
+export const billingInstallAppResponseWire = z
+  .discriminatedUnion('type', [
+    installedAppStripeWire,
+    installedAppSandboxWire,
+    installedAppExternalInvoicingWire,
+  ])
+  .describe('Response of the app install.')
+
 export const entitlementAccessQueryResponseWire = z
   .strictObject({
     data: z
@@ -12294,13 +12537,6 @@ export const appPagePaginatedResponseWire = z
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
-
-export const billingInstallAppResponseWire = z
-  .strictObject({
-    app: appWire,
-    default_for_capability_types: z.array(appCapabilityTypeWire),
-  })
-  .describe('Response of the app install.')
 
 export const profileAppsWire = z
   .strictObject({

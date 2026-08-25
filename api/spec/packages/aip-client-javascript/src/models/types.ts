@@ -4057,6 +4057,150 @@ export interface AppCatalogItemPagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/** Response of an installed app. */
+export interface InstalledAppStripe {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The app type. */
+  type: 'stripe'
+  /** The app catalog definition that this installed app is based on. */
+  definition: AppCatalogItem
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /** The Stripe account ID associated with the connected Stripe account. */
+  accountId: string
+  /** Indicates whether the app is connected to a live Stripe account. */
+  livemode: boolean
+  /** The masked Stripe API key that only exposes the first and last few characters. */
+  maskedApiKey: string
+  /** Default capabilities of the installed app. */
+  defaultForCapabilityTypes: (
+    | 'report_usage'
+    | 'report_events'
+    | 'calculate_tax'
+    | 'invoice_customers'
+    | 'collect_payments'
+  )[]
+}
+
+/** Response of an installed app. */
+export interface InstalledAppSandbox {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The app type. */
+  type: 'sandbox'
+  /** The app catalog definition that this installed app is based on. */
+  definition: AppCatalogItem
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /** Default capabilities of the installed app. */
+  defaultForCapabilityTypes: (
+    | 'report_usage'
+    | 'report_events'
+    | 'calculate_tax'
+    | 'invoice_customers'
+    | 'collect_payments'
+  )[]
+}
+
+/** Response of an installed app. */
+export interface InstalledAppExternalInvoicing {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The app type. */
+  type: 'external_invoicing'
+  /** The app catalog definition that this installed app is based on. */
+  definition: AppCatalogItem
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /**
+   * Enable draft synchronization hook.
+   *
+   * When enabled, invoices will pause at the draft state and wait for the
+   * integration to call the draft synchronized endpoint before progressing to the
+   * issuing state. This allows the external system to validate and prepare the
+   * invoice data.
+   *
+   * When disabled, invoices automatically progress through the draft state based on
+   * the configured workflow timing.
+   */
+  enableDraftSyncHook: boolean
+  /**
+   * Enable issuing synchronization hook.
+   *
+   * When enabled, invoices will pause at the issuing state and wait for the
+   * integration to call the issuing synchronized endpoint before progressing to the
+   * issued state. This ensures the external invoicing system has successfully
+   * created and finalized the invoice before it is marked as issued.
+   *
+   * When disabled, invoices automatically progress through the issuing state and are
+   * immediately marked as issued.
+   */
+  enableIssuingSyncHook: boolean
+  /** Default capabilities of the installed app. */
+  defaultForCapabilityTypes: (
+    | 'report_usage'
+    | 'report_events'
+    | 'calculate_tax'
+    | 'invoice_customers'
+    | 'collect_payments'
+  )[]
+}
+
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
 export interface InvoiceWorkflowSettings {
   /** The apps that will be used to orchestrate the invoice's workflow. */
@@ -4627,18 +4771,6 @@ export interface Workflow {
 export interface AppPagePaginatedResponse {
   data: App[]
   meta: PaginatedMeta
-}
-
-/** Response of the app install. */
-export interface BillingInstallAppResponse {
-  app: App
-  defaultForCapabilityTypes: (
-    | 'report_usage'
-    | 'report_events'
-    | 'calculate_tax'
-    | 'invoice_customers'
-    | 'collect_payments'
-  )[]
 }
 
 /** Applications used by a billing profile. */
@@ -5720,6 +5852,10 @@ export type UpdatePrice =
 
 /** Installed application. */
 export type App = AppStripe | AppSandbox | AppExternalInvoicing
+
+/** Response of the app install. */
+export type BillingInstallAppResponse =
+  InstalledAppStripe | InstalledAppSandbox | InstalledAppExternalInvoicing
 
 /** Customer charge. */
 export type CreateChargeRequest =

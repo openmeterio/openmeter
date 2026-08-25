@@ -120,11 +120,6 @@ func (h *handler) InstallApp() InstallAppHandler {
 				return InstallAppResponse{}, fmt.Errorf("failed to install app: %w", err)
 			}
 
-			billingApp, err := ToAPIBillingApp(resp.App)
-			if err != nil {
-				return InstallAppResponse{}, fmt.Errorf("error converting installed app to api: %w", err)
-			}
-
 			capabilities, err := lo.MapErr(resp.DefaultCapabilies, func(c app.CapabilityType, _ int) (api.BillingAppCapabilityType, error) {
 				return ToAPIBillingAppCapabilityTypeFromCapabilityType(c)
 			})
@@ -132,10 +127,12 @@ func (h *handler) InstallApp() InstallAppHandler {
 				return InstallAppResponse{}, fmt.Errorf("error converting default capabilities to api: %w", err)
 			}
 
-			return InstallAppResponse{
-				App:                       billingApp,
-				DefaultForCapabilityTypes: capabilities,
-			}, nil
+			response, err := ToAPIBillingInstallAppResponse(resp.App, capabilities)
+			if err != nil {
+				return InstallAppResponse{}, fmt.Errorf("error converting installed app to api: %w", err)
+			}
+
+			return response, nil
 		},
 		commonhttp.JSONResponseEncoder[InstallAppResponse],
 		httptransport.AppendOptions(

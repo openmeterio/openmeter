@@ -448,9 +448,108 @@ func InstallAppRequestFromInstallAppExternalInvoicing(value InstallAppExternalIn
 }
 
 // Response of the app install.
+//
+// InstallAppResponse is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the InstallAppResponseFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
 type InstallAppResponse struct {
-	App                       App                 `json:"app"`
-	DefaultForCapabilityTypes []AppCapabilityType `json:"default_for_capability_types"`
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *InstallAppResponse) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u InstallAppResponse) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u InstallAppResponse) AsInstalledAppStripe() (*InstalledAppStripe, error) {
+	if u.Type != "stripe" {
+		return nil, fmt.Errorf("InstallAppResponse: expected type %q, got %q", "stripe", u.Type)
+	}
+	var value InstalledAppStripe
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func InstallAppResponseFromInstalledAppStripe(value InstalledAppStripe) (InstallAppResponse, error) {
+	value.Type = "stripe"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return InstallAppResponse{}, err
+	}
+	var result InstallAppResponse
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return InstallAppResponse{}, err
+	}
+	return result, nil
+}
+
+func (u InstallAppResponse) AsInstalledAppSandbox() (*InstalledAppSandbox, error) {
+	if u.Type != "sandbox" {
+		return nil, fmt.Errorf("InstallAppResponse: expected type %q, got %q", "sandbox", u.Type)
+	}
+	var value InstalledAppSandbox
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func InstallAppResponseFromInstalledAppSandbox(value InstalledAppSandbox) (InstallAppResponse, error) {
+	value.Type = "sandbox"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return InstallAppResponse{}, err
+	}
+	var result InstallAppResponse
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return InstallAppResponse{}, err
+	}
+	return result, nil
+}
+
+func (u InstallAppResponse) AsInstalledAppExternalInvoicing() (*InstalledAppExternalInvoicing, error) {
+	if u.Type != "external_invoicing" {
+		return nil, fmt.Errorf("InstallAppResponse: expected type %q, got %q", "external_invoicing", u.Type)
+	}
+	var value InstalledAppExternalInvoicing
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func InstallAppResponseFromInstalledAppExternalInvoicing(value InstalledAppExternalInvoicing) (InstallAppResponse, error) {
+	value.Type = "external_invoicing"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return InstallAppResponse{}, err
+	}
+	var result InstallAppResponse
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return InstallAppResponse{}, err
+	}
+	return result, nil
 }
 
 // Base model for installing an app from the catalog.
@@ -475,6 +574,116 @@ type InstallAppStripeWithAPIKey struct {
 	CreateBillingProfile bool `json:"create_billing_profile"`
 	// API key for the app.
 	APIKey string `json:"api_key"`
+}
+
+// Response of an installed app.
+type InstalledAppExternalInvoicing struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The app type.
+	Type AppType `json:"type"`
+	// The app catalog definition that this installed app is based on.
+	Definition AppCatalogItem `json:"definition"`
+	// Status of the app connection.
+	Status AppStatus `json:"status"`
+	// Enable draft synchronization hook.
+	//
+	// When enabled, invoices will pause at the draft state and wait for the
+	// integration to call the draft synchronized endpoint before progressing to the
+	// issuing state. This allows the external system to validate and prepare the
+	// invoice data.
+	//
+	// When disabled, invoices automatically progress through the draft state based on
+	// the configured workflow timing.
+	EnableDraftSyncHook bool `json:"enable_draft_sync_hook"`
+	// Enable issuing synchronization hook.
+	//
+	// When enabled, invoices will pause at the issuing state and wait for the
+	// integration to call the issuing synchronized endpoint before progressing to the
+	// issued state. This ensures the external invoicing system has successfully
+	// created and finalized the invoice before it is marked as issued.
+	//
+	// When disabled, invoices automatically progress through the issuing state and are
+	// immediately marked as issued.
+	EnableIssuingSyncHook bool `json:"enable_issuing_sync_hook"`
+	// Default capabilities of the installed app.
+	DefaultForCapabilityTypes []AppCapabilityType `json:"default_for_capability_types"`
+}
+
+// Response of an installed app.
+type InstalledAppSandbox struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The app type.
+	Type AppType `json:"type"`
+	// The app catalog definition that this installed app is based on.
+	Definition AppCatalogItem `json:"definition"`
+	// Status of the app connection.
+	Status AppStatus `json:"status"`
+	// Default capabilities of the installed app.
+	DefaultForCapabilityTypes []AppCapabilityType `json:"default_for_capability_types"`
+}
+
+// Response of an installed app.
+type InstalledAppStripe struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The app type.
+	Type AppType `json:"type"`
+	// The app catalog definition that this installed app is based on.
+	Definition AppCatalogItem `json:"definition"`
+	// Status of the app connection.
+	Status AppStatus `json:"status"`
+	// The Stripe account ID associated with the connected Stripe account.
+	AccountID string `json:"account_id"`
+	// Indicates whether the app is connected to a live Stripe account.
+	Livemode bool `json:"livemode"`
+	// The masked Stripe API key that only exposes the first and last few characters.
+	MaskedAPIKey string `json:"masked_api_key"`
+	// Default capabilities of the installed app.
+	DefaultForCapabilityTypes []AppCapabilityType `json:"default_for_capability_types"`
 }
 
 // AppExternalInvoicing update request.

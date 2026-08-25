@@ -6386,20 +6386,16 @@ components:
       description: Request to install an app from the catalog.
     BillingInstallAppResponse:
       type: object
-      required:
-        - app
-        - default_for_capability_types
-      properties:
-        app:
-          allOf:
-            - $ref: '#/components/schemas/BillingApp'
-          readOnly: true
-        default_for_capability_types:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingAppCapabilityType'
-          readOnly: true
-      additionalProperties: false
+      oneOf:
+        - $ref: '#/components/schemas/BillingInstalledAppStripe'
+        - $ref: '#/components/schemas/BillingInstalledAppSandbox'
+        - $ref: '#/components/schemas/BillingInstalledAppExternalInvoicing'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/BillingInstalledAppStripe'
+          sandbox: '#/components/schemas/BillingInstalledAppSandbox'
+          external_invoicing: '#/components/schemas/BillingInstalledAppExternalInvoicing'
       description: Response of the app install.
     BillingInstallAppSandbox:
       type: object
@@ -6450,6 +6446,233 @@ components:
           description: API key for the app.
       additionalProperties: false
       description: Model for installing an app from the catalog with an API key.
+    BillingInstalledAppExternalInvoicing:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - definition
+        - status
+        - enable_draft_sync_hook
+        - enable_issuing_sync_hook
+        - default_for_capability_types
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+        type:
+          type: string
+          enum:
+            - external_invoicing
+          description: The app type.
+        definition:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCatalogItem'
+          description: The app catalog definition that this installed app is based on.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStatus'
+          description: Status of the app connection.
+        enable_draft_sync_hook:
+          type: boolean
+          description: |-
+            Enable draft synchronization hook.
+
+            When enabled, invoices will pause at the draft state and wait for the
+            integration to call the draft synchronized endpoint before progressing to the
+            issuing state. This allows the external system to validate and prepare the
+            invoice data.
+
+            When disabled, invoices automatically progress through the draft state based on
+            the configured workflow timing.
+        enable_issuing_sync_hook:
+          type: boolean
+          description: |-
+            Enable issuing synchronization hook.
+
+            When enabled, invoices will pause at the issuing state and wait for the
+            integration to call the issuing synchronized endpoint before progressing to the
+            issued state. This ensures the external invoicing system has successfully
+            created and finalized the invoice before it is marked as issued.
+
+            When disabled, invoices automatically progress through the issuing state and are
+            immediately marked as issued.
+        default_for_capability_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapabilityType'
+          description: Default capabilities of the installed app.
+      additionalProperties: false
+      description: Response of an installed app.
+    BillingInstalledAppSandbox:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - definition
+        - status
+        - default_for_capability_types
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+        type:
+          type: string
+          enum:
+            - sandbox
+          description: The app type.
+        definition:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCatalogItem'
+          description: The app catalog definition that this installed app is based on.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStatus'
+          description: Status of the app connection.
+        default_for_capability_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapabilityType'
+          description: Default capabilities of the installed app.
+      additionalProperties: false
+      description: Response of an installed app.
+    BillingInstalledAppStripe:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - definition
+        - status
+        - account_id
+        - livemode
+        - masked_api_key
+        - default_for_capability_types
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app type.
+        definition:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCatalogItem'
+          description: The app catalog definition that this installed app is based on.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStatus'
+          description: Status of the app connection.
+        account_id:
+          type: string
+          description: The Stripe account ID associated with the connected Stripe account.
+        livemode:
+          type: boolean
+          description: Indicates whether the app is connected to a live Stripe account.
+        masked_api_key:
+          type: string
+          description: The masked Stripe API key that only exposes the first and last few characters.
+        default_for_capability_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapabilityType'
+          description: Default capabilities of the installed app.
+      additionalProperties: false
+      description: Response of an installed app.
     BillingInvoice:
       type: object
       oneOf:
