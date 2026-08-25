@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -376,36 +377,19 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		}
 
 		if charge.Intent.GetCurrency().IsCustom() {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf(
-				"custom-currency flat fee line[%s] cannot be deleted: %w",
-				line.GetID(),
-				billing.ErrCannotUpdateChargeManagedLine,
-			)
+			if err := validateCustomCurrencyInvoiceLineDelete(input.Invoice, line, charge); err != nil {
+				return billing.OnMutableInvoiceUpdateResult{}, err
+			}
+		} else {
+			if err := validateManualDeleteLine(charge, line); err != nil {
+				return billing.OnMutableInvoiceUpdateResult{}, err
+			}
 		}
 
-		if err := validateManualDeleteLine(charge, line); err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, err
-		}
-
-		stateMachine, err := e.service.newStateMachineForCharge(charge)
-		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
-		}
-
-		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
-			ChangeSource: billing.ChangeSourceAPIRequest,
-			Policy:       meta.RefundAsCreditsDeletePolicy,
+		err = transaction.RunWithNoValue(ctx, e.service.adapter, func(ctx context.Context) error {
+			return e.deleteLineViaAPI(ctx, input.Invoice, charge, line, *chargeID)
 		})
 		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("creating flat fee line[%s] manual delete patch: %w", line.GetID(), err)
-		}
-
-		patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerDelete, deletePatch)
-		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerDelete, charge.ID, err)
-		}
-
-		if err := e.handleManualDeleteInvoicePatches(ctx, input.Invoice, line, *chargeID, patches); err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, err
 		}
 	}
@@ -414,6 +398,34 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		CreatedLines: createdLines,
 		UpdatedLines: updatedLines,
 	}, nil
+}
+
+func (e *LineEngine) deleteLineViaAPI(
+	ctx context.Context,
+	invoice billing.GenericInvoiceReader,
+	charge flatfee.Charge,
+	line billing.GenericInvoiceLine,
+	chargeID string,
+) error {
+	stateMachine, err := e.service.newStateMachineForCharge(charge)
+	if err != nil {
+		return fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
+	}
+
+	deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Policy:       meta.RefundAsCreditsDeletePolicy,
+	})
+	if err != nil {
+		return fmt.Errorf("creating flat fee line[%s] manual delete patch: %w", line.GetID(), err)
+	}
+
+	patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerDelete, deletePatch)
+	if err != nil {
+		return fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerDelete, charge.ID, err)
+	}
+
+	return e.handleManualDeleteInvoicePatches(ctx, invoice, line, chargeID, patches)
 }
 
 func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) error {
@@ -438,7 +450,7 @@ func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, i
 	}
 
 	for _, line := range input.Deleted {
-		if err := e.validateManualDeleteLineViaAPI(ctx, line); err != nil {
+		if err := e.validateManualDeleteLineViaAPI(ctx, input.Invoice, line); err != nil {
 			return err
 		}
 	}
@@ -495,7 +507,7 @@ func (e *LineEngine) validateManualUpdateLineViaAPI(ctx context.Context, overrid
 	return nil
 }
 
-func (e *LineEngine) validateManualDeleteLineViaAPI(ctx context.Context, line billing.GenericInvoiceLine) error {
+func (e *LineEngine) validateManualDeleteLineViaAPI(ctx context.Context, invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine) error {
 	chargeID := line.GetChargeID()
 	if chargeID == nil || *chargeID == "" {
 		return fmt.Errorf("flat fee line[%s]: charge id is required", line.GetID())
@@ -523,14 +535,37 @@ func (e *LineEngine) validateManualDeleteLineViaAPI(ctx context.Context, line bi
 	}
 
 	if charge.Intent.GetCurrency().IsCustom() {
-		return fmt.Errorf(
-			"custom-currency flat fee line[%s] cannot be deleted: %w",
-			line.GetID(),
-			billing.ErrCannotUpdateChargeManagedLine,
-		)
+		return validateCustomCurrencyInvoiceLineDelete(invoice, line, charge)
 	}
 
 	return validateManualDeleteLine(charge, line)
+}
+
+// validateCustomCurrencyInvoiceLineDelete verifies the invoice and charge
+// association required to delete a custom-currency line.
+func validateCustomCurrencyInvoiceLineDelete(invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine, charge flatfee.Charge) error {
+	if err := line.AsInvoiceLine().Type().Require(billing.InvoiceLineTypeStandard); err != nil {
+		return fmt.Errorf("custom-currency flat fee line[%s] must be a standard line: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	}
+
+	standardInvoice, err := invoice.AsInvoice().AsStandardInvoice()
+	if err != nil {
+		return fmt.Errorf("flat fee line[%s]: getting standard invoice: %w", line.GetID(), err)
+	}
+
+	if standardInvoice.Namespace != charge.Namespace || line.GetLineID().Namespace != charge.Namespace {
+		return fmt.Errorf("custom-currency flat fee line[%s] namespace does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
+	}
+	if line.GetChargeID() == nil || *line.GetChargeID() != charge.ID {
+		return fmt.Errorf("custom-currency flat fee line[%s] does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
+	}
+
+	currentRun := charge.Realizations.CurrentRun
+	if currentRun == nil || currentRun.LineID == nil || *currentRun.LineID != line.GetID() || currentRun.InvoiceID == nil || *currentRun.InvoiceID != standardInvoice.ID {
+		return fmt.Errorf("custom-currency flat fee line[%s] must reference the current realization run of charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
+	}
+
+	return nil
 }
 
 type manualCreatedInvoiceLine struct {
@@ -773,6 +808,12 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
 		}
 
+		// Issued runs remain durable billing history when their presentation
+		// line is deleted; only reversible runs enter correction cleanup.
+		if run.Immutable {
+			continue
+		}
+
 		if run.AccruedUsage != nil {
 			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] has invoice accrued allocation", stdLine.ID, run.ID.ID)
 		}
@@ -947,62 +988,30 @@ func (e *LineEngine) OnInvoiceFinalizing(ctx context.Context, input billing.OnIn
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
-		meta.ExpandRealizations,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	return slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
-		charge, ok := chargesByID[*stdLine.ChargeID]
-		if !ok {
-			return nil, fmt.Errorf("flat fee charge[%s] not found for finalizing line[%s]", *stdLine.ChargeID, stdLine.ID)
-		}
-
-		if stdLine.IsDeleted() ||
-			charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode ||
-			!charge.Intent.GetCurrency().IsCustom() {
+		if stdLine.IsDeleted() {
 			return stdLine, nil
 		}
 
-		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
 		if err != nil {
-			return nil, fmt.Errorf("getting realization run for finalizing line[%s]: %w", stdLine.ID, err)
+			return nil, err
 		}
 
-		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
-			return nil, fmt.Errorf(
-				"realization run[%s] for finalizing line[%s] is not associated with invoice[%s]",
-				run.ID.ID,
-				stdLine.ID,
-				input.Invoice.ID,
-			)
-		}
-
-		allocated, err := e.service.realizations.AllocateFiatOverageCredits(ctx, flatfeerealizations.AllocateFiatOverageCreditsInput{
-			Charge: charge,
-			Run:    run,
+		patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerInvoiceFinalizing, billing.StandardLineWithInvoiceHeader{
+			Line:    stdLine,
+			Invoice: input.Invoice,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", stdLine.ID, err)
+			return nil, fmt.Errorf("finalizing invoice line for charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		updatedLine, err := stdLine.Clone()
+		updatedLine, err := patches.RequireSingularStandardLineUpdateOrEmpty(stdLine.GetLineID(), input.Invoice.ID)
 		if err != nil {
-			return nil, fmt.Errorf("cloning finalizing line[%s]: %w", stdLine.ID, err)
+			return nil, fmt.Errorf("validating finalizing update for line[%s]: %w", stdLine.ID, err)
 		}
-
-		if err := populateFlatFeeStandardLineFromRun(updatedLine, populateFlatFeeStandardLineFromRunInput{
-			Charge: allocated.Charge,
-			Run:    allocated.Run,
-			Stage:  standardLinePopulationStageInvoiceFinalizing,
-		}); err != nil {
-			return nil, fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", stdLine.ID, run.ID.ID, err)
-		}
-
-		if err := updatedLine.Validate(); err != nil {
-			return nil, fmt.Errorf("validating finalizing line[%s]: %w", stdLine.ID, err)
+		if updatedLine == nil {
+			return stdLine, nil
 		}
 
 		return updatedLine, nil

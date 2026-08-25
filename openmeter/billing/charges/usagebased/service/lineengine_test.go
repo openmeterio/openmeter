@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -84,6 +85,33 @@ func TestLineEngineSplitGatheringLineKeepsChargeGroupingWithoutChildReferences(t
 	require.Nil(t, result.PostSplitAtLine.SplitLineGroupID)
 	require.Nil(t, result.PostSplitAtLine.ChildUniqueReferenceID)
 	require.Equal(t, splitAt, result.PostSplitAtLine.ServicePeriod.From)
+}
+
+func TestValidateCustomCurrencyInvoiceLineDeleteAllowsDraftInvoice(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	line := newUsageBasedStandardLineForTest(servicePeriod)
+	run := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID: usagebased.RealizationRunID{
+				Namespace: line.Namespace,
+				ID:        "run-id",
+			},
+			LineID:    lo.ToPtr(line.ID),
+			InvoiceID: lo.ToPtr(line.InvoiceID),
+		},
+	}
+	invoice := &billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			Namespace: line.Namespace,
+			ID:        line.InvoiceID,
+			Status:    billing.StandardInvoiceStatusDraftCreated,
+		},
+	}
+
+	require.NoError(t, validateCustomCurrencyInvoiceLineDelete(invoice, line.AsGenericLine(), run))
 }
 
 func billingtestFeatureMeters() feature.FeatureMeters {

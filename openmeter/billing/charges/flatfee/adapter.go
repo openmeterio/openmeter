@@ -53,6 +53,7 @@ type ChargeDetailedLineAdapter interface {
 
 type ChargeInvoicedUsageAdapter interface {
 	CreateInvoicedUsage(ctx context.Context, input CreateInvoicedUsageInput) (invoicedusage.AccruedUsage, error)
+	DeleteInvoicedUsage(ctx context.Context, id models.NamespacedID) error
 }
 
 type ChargeRunAdapter interface {

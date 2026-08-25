@@ -199,6 +199,20 @@ func (_c *ChargeFlatFeeRunCreate) SetNoFiatTransactionRequired(v bool) *ChargeFl
 	return _c
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (_c *ChargeFlatFeeRunCreate) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeFlatFeeRunCreate {
+	_c.mutation.SetFiatOverageCreditAllocationCompleted(v)
+	return _c
+}
+
+// SetNillableFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field if the given value is not nil.
+func (_c *ChargeFlatFeeRunCreate) SetNillableFiatOverageCreditAllocationCompleted(v *bool) *ChargeFlatFeeRunCreate {
+	if v != nil {
+		_c.SetFiatOverageCreditAllocationCompleted(*v)
+	}
+	return _c
+}
+
 // SetImmutable sets the "immutable" field.
 func (_c *ChargeFlatFeeRunCreate) SetImmutable(v bool) *ChargeFlatFeeRunCreate {
 	_c.mutation.SetImmutable(v)
@@ -394,6 +408,10 @@ func (_c *ChargeFlatFeeRunCreate) defaults() {
 		v := chargeflatfeerun.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.FiatOverageCreditAllocationCompleted(); !ok {
+		v := chargeflatfeerun.DefaultFiatOverageCreditAllocationCompleted
+		_c.mutation.SetFiatOverageCreditAllocationCompleted(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeflatfeerun.DefaultID()
 		_c.mutation.SetID(v)
@@ -480,6 +498,9 @@ func (_c *ChargeFlatFeeRunCreate) check() error {
 	}
 	if _, ok := _c.mutation.NoFiatTransactionRequired(); !ok {
 		return &ValidationError{Name: "no_fiat_transaction_required", err: errors.New(`db: missing required field "ChargeFlatFeeRun.no_fiat_transaction_required"`)}
+	}
+	if _, ok := _c.mutation.FiatOverageCreditAllocationCompleted(); !ok {
+		return &ValidationError{Name: "fiat_overage_credit_allocation_completed", err: errors.New(`db: missing required field "ChargeFlatFeeRun.fiat_overage_credit_allocation_completed"`)}
 	}
 	if _, ok := _c.mutation.Immutable(); !ok {
 		return &ValidationError{Name: "immutable", err: errors.New(`db: missing required field "ChargeFlatFeeRun.immutable"`)}
@@ -594,6 +615,10 @@ func (_c *ChargeFlatFeeRunCreate) createSpec() (*ChargeFlatFeeRun, *sqlgraph.Cre
 	if value, ok := _c.mutation.NoFiatTransactionRequired(); ok {
 		_spec.SetField(chargeflatfeerun.FieldNoFiatTransactionRequired, field.TypeBool, value)
 		_node.NoFiatTransactionRequired = value
+	}
+	if value, ok := _c.mutation.FiatOverageCreditAllocationCompleted(); ok {
+		_spec.SetField(chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted, field.TypeBool, value)
+		_node.FiatOverageCreditAllocationCompleted = value
 	}
 	if value, ok := _c.mutation.Immutable(); ok {
 		_spec.SetField(chargeflatfeerun.FieldImmutable, field.TypeBool, value)
@@ -1004,6 +1029,18 @@ func (u *ChargeFlatFeeRunUpsert) UpdateNoFiatTransactionRequired() *ChargeFlatFe
 	return u
 }
 
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (u *ChargeFlatFeeRunUpsert) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeFlatFeeRunUpsert {
+	u.Set(chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted, v)
+	return u
+}
+
+// UpdateFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsert) UpdateFiatOverageCreditAllocationCompleted() *ChargeFlatFeeRunUpsert {
+	u.SetExcluded(chargeflatfeerun.FieldFiatOverageCreditAllocationCompleted)
+	return u
+}
+
 // SetImmutable sets the "immutable" field.
 func (u *ChargeFlatFeeRunUpsert) SetImmutable(v bool) *ChargeFlatFeeRunUpsert {
 	u.Set(chargeflatfeerun.FieldImmutable, v)
@@ -1332,6 +1369,20 @@ func (u *ChargeFlatFeeRunUpsertOne) SetNoFiatTransactionRequired(v bool) *Charge
 func (u *ChargeFlatFeeRunUpsertOne) UpdateNoFiatTransactionRequired() *ChargeFlatFeeRunUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
 		s.UpdateNoFiatTransactionRequired()
+	})
+}
+
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (u *ChargeFlatFeeRunUpsertOne) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetFiatOverageCreditAllocationCompleted(v)
+	})
+}
+
+// UpdateFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertOne) UpdateFiatOverageCreditAllocationCompleted() *ChargeFlatFeeRunUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateFiatOverageCreditAllocationCompleted()
 	})
 }
 
@@ -1832,6 +1883,20 @@ func (u *ChargeFlatFeeRunUpsertBulk) SetNoFiatTransactionRequired(v bool) *Charg
 func (u *ChargeFlatFeeRunUpsertBulk) UpdateNoFiatTransactionRequired() *ChargeFlatFeeRunUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
 		s.UpdateNoFiatTransactionRequired()
+	})
+}
+
+// SetFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field.
+func (u *ChargeFlatFeeRunUpsertBulk) SetFiatOverageCreditAllocationCompleted(v bool) *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.SetFiatOverageCreditAllocationCompleted(v)
+	})
+}
+
+// UpdateFiatOverageCreditAllocationCompleted sets the "fiat_overage_credit_allocation_completed" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunUpsertBulk) UpdateFiatOverageCreditAllocationCompleted() *ChargeFlatFeeRunUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunUpsert) {
+		s.UpdateFiatOverageCreditAllocationCompleted()
 	})
 }
 

@@ -7,7 +7,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
+	dbchargeflatfeeruninvoicedusage "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ flatfee.ChargeInvoicedUsageAdapter = (*adapter)(nil)
@@ -37,5 +39,21 @@ func (a *adapter) CreateInvoicedUsage(ctx context.Context, input flatfee.CreateI
 		}
 
 		return invoicedusage.MapAccruedUsageFromDB(entity), nil
+	})
+}
+
+func (a *adapter) DeleteInvoicedUsage(ctx context.Context, id models.NamespacedID) error {
+	if err := id.Validate(); err != nil {
+		return err
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		if err := tx.db.ChargeFlatFeeRunInvoicedUsage.DeleteOneID(id.ID).
+			Where(dbchargeflatfeeruninvoicedusage.NamespaceEQ(id.Namespace)).
+			Exec(ctx); err != nil {
+			return fmt.Errorf("deleting flat fee invoiced usage [id=%s]: %w", id.ID, err)
+		}
+
+		return nil
 	})
 }

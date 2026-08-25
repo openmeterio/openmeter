@@ -304,12 +304,12 @@ func (i AllocateFiatOverageCreditsInput) Validate() error {
 		))
 	}
 
-	if i.Run.AccruedUsage != nil {
-		errs = append(errs, errors.New("run already has accrued invoice usage"))
+	if i.Run.AccruedUsage == nil {
+		errs = append(errs, errors.New("run must have prepared invoice usage before fiat allocation"))
 	}
 
-	if len(i.Run.FiatOverageCreditRealizations) > 0 {
-		errs = append(errs, errors.New("run already has fiat overage credit realizations"))
+	if i.Run.FiatOverageCreditAllocationCompleted {
+		errs = append(errs, errors.New("fiat overage credit allocation already completed"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -331,33 +331,44 @@ func (s *Service) AllocateFiatOverageCredits(
 		return AllocateFiatOverageCreditsResult{}, err
 	}
 
-	fiatOverage, err := in.Charge.ConvertCustomCurrencyOverageToFiat(in.Run.Totals)
+	fiatCurrency, err := in.Charge.GetInvoiceCurrency()
 	if err != nil {
-		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("convert custom currency overage to fiat: %w", err)
+		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("get invoice currency: %w", err)
 	}
+	grossFiatAmount := in.Run.AccruedUsage.Totals.Total
 
 	run := in.Run
-	allocationResult, err := creditreconciliation.Allocate(ctx, creditreconciliation.AllocateInput{
-		Amount: fiatOverage.Amount,
-		Handler: s.NewFiatOverageCreditReconciliationHandler(CreditReconciliationHandlerInput{
-			Charge: in.Charge,
-			Run:    run,
-			// Fiat overage allocation is an invoice-finalization effect. Current
-			// time makes the outstanding settlement-fiat balance eligible then.
-			AllocateAt: clock.Now(),
-		}),
-	})
-	if err != nil {
-		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("allocate fiat overage credits: %w", err)
+	if len(run.FiatOverageCreditRealizations) == 0 {
+		allocationResult, err := creditreconciliation.Allocate(ctx, creditreconciliation.AllocateInput{
+			Amount: grossFiatAmount,
+			Handler: s.NewFiatOverageCreditReconciliationHandler(CreditReconciliationHandlerInput{
+				Charge: in.Charge,
+				Run:    run,
+				// Fiat overage allocation is an invoice-finalization effect. Current
+				// time makes the outstanding settlement-fiat balance eligible then.
+				AllocateAt: clock.Now(),
+			}),
+		})
+		if err != nil {
+			return AllocateFiatOverageCreditsResult{}, fmt.Errorf("allocate fiat overage credits: %w", err)
+		}
+
+		run.FiatOverageCreditRealizations = allocationResult.Realizations
 	}
 
-	run.FiatOverageCreditRealizations = allocationResult.Realizations
-
-	allocated := fiatOverage.Currency.RoundToPrecision(run.FiatOverageCreditRealizations.Sum())
-	remainingFiatOverage := fiatOverage.Currency.RoundToPrecision(fiatOverage.Amount.Sub(allocated))
+	fiatCurrencyCalculator, err := currencyx.NewFiatCurrency(fiatCurrency)
+	if err != nil {
+		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("create invoice currency calculator: %w", err)
+	}
+	allocated := fiatCurrencyCalculator.RoundToPrecision(run.FiatOverageCreditRealizations.Sum())
+	if allocated.GreaterThan(grossFiatAmount) {
+		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("fiat overage credit allocations exceed prepared gross amount: %s > %s", allocated, grossFiatAmount)
+	}
+	remainingFiatOverage := fiatCurrencyCalculator.RoundToPrecision(grossFiatAmount.Sub(allocated))
 	runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-		ID:                        run.ID,
-		NoFiatTransactionRequired: mo.Some(remainingFiatOverage.IsZero()),
+		ID:                                   run.ID,
+		NoFiatTransactionRequired:            mo.Some(remainingFiatOverage.IsZero()),
+		FiatOverageCreditAllocationCompleted: mo.Some(true),
 	})
 	if err != nil {
 		return AllocateFiatOverageCreditsResult{}, fmt.Errorf("update realization run after fiat overage allocation: %w", err)
@@ -374,8 +385,7 @@ func (s *Service) AllocateFiatOverageCredits(
 }
 
 // CorrectAllCreditRealizations reverses every active credit allocation for a
-// flat-fee run. Custom-currency credit-then-invoice runs unwind settlement
-// fiat before the charge currency from which that overage was derived.
+// flat-fee run without changing its accrued invoice usage.
 func (s *Service) CorrectAllCreditRealizations(
 	ctx context.Context,
 	input CreditReconciliationHandlerInput,
@@ -384,15 +394,74 @@ func (s *Service) CorrectAllCreditRealizations(
 		return err
 	}
 
-	if input.Charge.Intent.GetSettlementMode() == productcatalog.CreditThenInvoiceSettlementMode &&
-		input.Charge.Intent.GetCurrency().IsCustom() {
-		if _, err := creditreconciliation.CorrectAll(ctx, creditreconciliation.CorrectAllInput{
-			Handler: s.NewFiatOverageCreditReconciliationHandler(input),
-		}); err != nil {
-			return fmt.Errorf("correct all fiat overage credit realizations: %w", err)
-		}
+	if err := s.correctFiatOverageCreditRealizations(ctx, input); err != nil {
+		return err
 	}
 
+	return s.correctChargeCurrencyCreditRealizations(ctx, input)
+}
+
+// CorrectPreparedCustomCurrencyInvoiceRealizations unwinds a prepared custom-
+// currency invoice run in reverse accounting order while keeping accrued-usage
+// correction separate from credit realization correction.
+func (s *Service) CorrectPreparedCustomCurrencyInvoiceRealizations(
+	ctx context.Context,
+	input CreditReconciliationHandlerInput,
+) (flatfee.RealizationRun, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.RealizationRun{}, err
+	}
+
+	accruedUsageInput := CorrectAccruedUsageInput{
+		Charge: input.Charge,
+		Run:    input.Run,
+	}
+	if err := accruedUsageInput.Validate(); err != nil {
+		return flatfee.RealizationRun{}, err
+	}
+
+	if err := s.correctFiatOverageCreditRealizations(ctx, input); err != nil {
+		return flatfee.RealizationRun{}, err
+	}
+
+	run, err := s.CorrectAccruedUsage(ctx, accruedUsageInput)
+	if err != nil {
+		return flatfee.RealizationRun{}, err
+	}
+	input.Run = run
+
+	if err := s.correctChargeCurrencyCreditRealizations(ctx, input); err != nil {
+		return flatfee.RealizationRun{}, err
+	}
+
+	runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+		ID:                                   input.Run.ID,
+		FiatOverageCreditAllocationCompleted: mo.Some(false),
+	})
+	if err != nil {
+		return flatfee.RealizationRun{}, fmt.Errorf("reset invoice preparation state: %w", err)
+	}
+	input.Run.RealizationRunBase = runBase
+
+	return input.Run, nil
+}
+
+func (s *Service) correctFiatOverageCreditRealizations(ctx context.Context, input CreditReconciliationHandlerInput) error {
+	if input.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode ||
+		!input.Charge.Intent.GetCurrency().IsCustom() {
+		return nil
+	}
+
+	if _, err := creditreconciliation.CorrectAll(ctx, creditreconciliation.CorrectAllInput{
+		Handler: s.NewFiatOverageCreditReconciliationHandler(input),
+	}); err != nil {
+		return fmt.Errorf("correct all fiat overage credit realizations: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) correctChargeCurrencyCreditRealizations(ctx context.Context, input CreditReconciliationHandlerInput) error {
 	if _, err := creditreconciliation.CorrectAll(ctx, creditreconciliation.CorrectAllInput{
 		Handler: s.NewChargeCurrencyCreditReconciliationHandler(input),
 	}); err != nil {

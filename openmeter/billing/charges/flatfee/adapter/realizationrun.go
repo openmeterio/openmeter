@@ -112,6 +112,10 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input flatfee.Update
 			update = update.SetNoFiatTransactionRequired(input.NoFiatTransactionRequired.OrEmpty())
 		}
 
+		if input.FiatOverageCreditAllocationCompleted.IsPresent() {
+			update = update.SetFiatOverageCreditAllocationCompleted(input.FiatOverageCreditAllocationCompleted.OrEmpty())
+		}
+
 		if input.Immutable.IsPresent() {
 			update = update.SetImmutable(input.Immutable.OrEmpty())
 		}

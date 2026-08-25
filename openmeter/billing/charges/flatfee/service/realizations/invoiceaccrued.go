@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -150,16 +151,92 @@ func (s *Service) AccrueInvoiceUsage(ctx context.Context, in AccrueInvoiceUsageI
 			result.Run.AccruedUsage = &accruedUsage
 		}
 
-		runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-			ID:        currentRun.ID,
-			Immutable: mo.Some(true),
-		})
-		if err != nil {
-			return AccrueInvoiceUsageResult{}, fmt.Errorf("updating standard invoice run: %w", err)
-		}
-
-		result.Run.RealizationRunBase = runBase
-
 		return result, nil
 	})
+}
+
+type CorrectAccruedUsageInput struct {
+	Charge flatfee.Charge
+	Run    flatfee.RealizationRun
+}
+
+func (i CorrectAccruedUsageInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		errs = append(errs, errors.New("settlement mode must be credit_then_invoice"))
+	}
+
+	if !i.Charge.Intent.GetCurrency().IsCustom() {
+		errs = append(errs, errors.New("charge currency must be custom"))
+	}
+
+	if i.Run.Immutable {
+		errs = append(errs, errors.New("cannot correct accrued usage for immutable run"))
+	}
+
+	if i.Run.AccruedUsage == nil {
+		errs = append(errs, errors.New("run must have accrued usage"))
+	}
+
+	if i.Charge.Realizations.CurrentRun == nil {
+		errs = append(errs, errors.New("charge has no current realization run"))
+	} else if i.Charge.Realizations.CurrentRun.ID != i.Run.ID {
+		errs = append(errs, fmt.Errorf(
+			"run is not the charge's current realization run [current_run_id=%s run_id=%s]",
+			i.Charge.Realizations.CurrentRun.ID.ID,
+			i.Run.ID.ID,
+		))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// CorrectAccruedUsage reverses a mutable custom-currency run's prepared gross
+// overage and removes the transient preparation so the run can be prepared again.
+func (s *Service) CorrectAccruedUsage(ctx context.Context, input CorrectAccruedUsageInput) (flatfee.RealizationRun, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.RealizationRun{}, err
+	}
+
+	correctionInput := flatfee.OnCustomCurrencyOverageAccruedCorrectionInput{
+		Charge: input.Charge,
+		Run:    input.Run,
+	}
+	if err := correctionInput.Validate(); err != nil {
+		return flatfee.RealizationRun{}, fmt.Errorf("validate custom-currency overage accrual correction: %w", err)
+	}
+	if err := s.handler.OnCustomCurrencyOverageAccruedCorrection(ctx, correctionInput); err != nil {
+		return flatfee.RealizationRun{}, fmt.Errorf("correct custom-currency overage accrual: %w", err)
+	}
+
+	if err := s.adapter.DeleteInvoicedUsage(ctx, input.Run.AccruedUsage.NamespacedID); err != nil {
+		return flatfee.RealizationRun{}, fmt.Errorf("delete custom-currency overage preparation: %w", err)
+	}
+
+	input.Run.AccruedUsage = nil
+
+	return input.Run, nil
+}
+
+func (s *Service) MarkInvoiceIssued(ctx context.Context, run flatfee.RealizationRun) (flatfee.RealizationRun, error) {
+	runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+		ID:        run.ID,
+		Immutable: mo.Some(true),
+	})
+	if err != nil {
+		return flatfee.RealizationRun{}, fmt.Errorf("updating issued realization run: %w", err)
+	}
+
+	run.RealizationRunBase = runBase
+
+	return run, nil
 }

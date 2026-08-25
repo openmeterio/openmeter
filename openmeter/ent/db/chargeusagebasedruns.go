@@ -79,6 +79,8 @@ type ChargeUsageBasedRuns struct {
 	NoFiatTransactionRequired bool `json:"no_fiat_transaction_required,omitempty"`
 	// Immutable holds the value of the "immutable" field.
 	Immutable bool `json:"immutable,omitempty"`
+	// FiatOverageCreditAllocationCompleted holds the value of the "fiat_overage_credit_allocation_completed" field.
+	FiatOverageCreditAllocationCompleted bool `json:"fiat_overage_credit_allocation_completed,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedRunsQuery when eager-loading is set.
 	Edges        ChargeUsageBasedRunsEdges `json:"edges"`
@@ -245,7 +247,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeteredQuantity:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebasedruns.FieldDetailedLinesPresent, chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, chargeusagebasedruns.FieldNoFiatTransactionRequired, chargeusagebasedruns.FieldImmutable:
+		case chargeusagebasedruns.FieldDetailedLinesPresent, chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, chargeusagebasedruns.FieldNoFiatTransactionRequired, chargeusagebasedruns.FieldImmutable, chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted:
 			values[i] = new(sql.NullBool)
 		case chargeusagebasedruns.FieldSchemaLevel:
 			values[i] = new(sql.NullInt64)
@@ -440,6 +442,12 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.Immutable = value.Bool
 			}
+		case chargeusagebasedruns.FieldFiatOverageCreditAllocationCompleted:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field fiat_overage_credit_allocation_completed", values[i])
+			} else if value.Valid {
+				_m.FiatOverageCreditAllocationCompleted = value.Bool
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -624,6 +632,9 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("immutable=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Immutable))
+	builder.WriteString(", ")
+	builder.WriteString("fiat_overage_credit_allocation_completed=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FiatOverageCreditAllocationCompleted))
 	builder.WriteByte(')')
 	return builder.String()
 }

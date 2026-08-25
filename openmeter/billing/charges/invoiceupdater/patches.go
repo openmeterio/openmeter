@@ -1,6 +1,7 @@
 package invoiceupdater
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -73,6 +74,56 @@ func (p Patches) RequireSingularLineUpdatePatchForTarget(line billing.GenericInv
 	}
 
 	return updatePatch, nil
+}
+
+// RequireSingularStandardLineUpdateOrEmpty returns nil when no line update was
+// emitted and the target standard line when exactly one matching update was emitted.
+func (p Patches) RequireSingularStandardLineUpdateOrEmpty(lineID billing.LineID, invoiceID string) (*billing.StandardLine, error) {
+	if err := lineID.Validate(); err != nil {
+		return nil, fmt.Errorf("validating line ID: %w", err)
+	}
+
+	if invoiceID == "" {
+		return nil, errors.New("invoice ID is required")
+	}
+
+	if len(p) == 0 {
+		return nil, nil
+	}
+
+	patch, err := p.requireSingularPatch("standard line update")
+	if err != nil {
+		return nil, err
+	}
+
+	updatePatch, err := patch.AsUpdateLinePatch()
+	if err != nil {
+		return nil, err
+	}
+
+	target := updatePatch.TargetState
+	if target == nil {
+		return nil, errors.New("target state is required")
+	}
+
+	if target.GetLineID() != lineID {
+		return nil, fmt.Errorf("target line[%s] does not match line[%s]", target.GetLineID(), lineID)
+	}
+
+	if target.GetInvoiceID() != invoiceID {
+		return nil, fmt.Errorf("target invoice[%s] does not match invoice[%s]", target.GetInvoiceID(), invoiceID)
+	}
+
+	line, err := target.AsInvoiceLine().AsStandardLine()
+	if err != nil {
+		return nil, fmt.Errorf("target state must be a standard line: %w", err)
+	}
+
+	if err := line.Validate(); err != nil {
+		return nil, fmt.Errorf("validating target standard line: %w", err)
+	}
+
+	return &line, nil
 }
 
 func (p Patches) RequireSingularGatheringLinePatchForCharge(chargeID string) (Patch, error) {

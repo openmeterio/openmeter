@@ -97,6 +97,7 @@ func (i CreateCreditRealizationsInput) Validate() error {
 
 type RealizationRunInvoiceUsageAdapter interface {
 	CreateRunInvoicedUsage(ctx context.Context, runID RealizationRunID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
+	DeleteRunInvoicedUsage(ctx context.Context, id models.NamespacedID) error
 }
 
 type RealizationRunPaymentAdapter interface {
