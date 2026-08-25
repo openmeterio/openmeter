@@ -301,7 +301,6 @@ interface PlanAddonOperations {
   @operationId("list-plan-addons")
   @summary("List add-ons for plan")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   listPlanAddons(
     @path planId: Shared.ULID,
     ...Common.PagePaginationQuery,

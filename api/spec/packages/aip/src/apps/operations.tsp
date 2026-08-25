@@ -23,8 +23,6 @@ interface AppsOperations {
   @operationId("list-apps")
   @summary("List apps")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   list(...Common.PagePaginationQuery):
     | Shared.PagePaginatedResponse<App>
     | Common.ErrorResponses;
@@ -36,8 +34,6 @@ interface AppsOperations {
   @operationId("get-app")
   @summary("Get app")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   get(@path appId: Shared.ULID):
     | Shared.GetResponse<App>
     | Common.NotFound
@@ -50,8 +46,6 @@ interface AppsOperations {
   @operationId("uninstall-app")
   @summary("Uninstall app")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   uninstall(@path appId: Shared.ULID):
     | Shared.DeleteResponse
     | Common.NotFound
@@ -64,8 +58,6 @@ interface AppsOperations {
   @operationId("update-app")
   @summary("Update app")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   update(@path appId: Shared.ULID, @body body: UpdateAppRequest):
     | Shared.UpdateResponse<App>
     | Common.NotFound
@@ -80,8 +72,6 @@ interface AppCatalogOperations {
   @operationId("list-app-catalog")
   @summary("List app catalog")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   list(...Common.PagePaginationQuery):
     | Shared.PagePaginatedResponse<AppCatalogItem>
     | Common.ErrorResponses;
@@ -94,8 +84,6 @@ interface AppCatalogOperations {
   @operationId("get-app-catalog-item")
   @summary("Get app catalog item by type")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   get(@path appType: AppType):
     | Shared.GetResponse<AppCatalogItem>
     | Common.NotFound
@@ -111,8 +99,6 @@ interface AppCatalogOperations {
   @operationId("install-app")
   @summary("Install app from the catalog")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.RPCEndpointExtension, true)
   install(@body body: InstallAppRequest):
     | Shared.CreateResponse<InstallAppResponse>

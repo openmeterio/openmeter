@@ -6,7 +6,9 @@ import { Meters } from './meters.js'
 import { Customers } from './customers.js'
 import { Entitlements } from './entitlements.js'
 import { Subscriptions } from './subscriptions.js'
+import { Apps } from './apps.js'
 import { Billing } from './billing.js'
+import { Invoices } from './invoices.js'
 import { Tax } from './tax.js'
 import { Features } from './features.js'
 import { LLMCost } from './llmCost.js'
@@ -42,9 +44,19 @@ export class OpenMeter extends Client {
     return (this._subscriptions ??= new Subscriptions(this))
   }
 
+  private _apps?: Apps
+  get apps(): Apps {
+    return (this._apps ??= new Apps(this))
+  }
+
   private _billing?: Billing
   get billing(): Billing {
     return (this._billing ??= new Billing(this))
+  }
+
+  private _invoices?: Invoices
+  get invoices(): Invoices {
+    return (this._invoices ??= new Invoices(this))
   }
 
   private _tax?: Tax
