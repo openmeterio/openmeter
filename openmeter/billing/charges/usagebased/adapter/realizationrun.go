@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -21,6 +22,10 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 		return usagebased.RealizationRunBase{}, err
 	}
 
+	if input.PriorRunID != nil && input.PriorRunID.Namespace != chargeID.Namespace {
+		return usagebased.RealizationRunBase{}, fmt.Errorf("prior run namespace must match charge namespace")
+	}
+
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.RealizationRunBase, error) {
 		create := tx.db.ChargeUsageBasedRuns.Create().
 			SetNamespace(chargeID.Namespace).
@@ -30,11 +35,16 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			SetInitialType(input.Type).
 			SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT)).
 			SetServicePeriodTo(meta.NormalizeTimestamp(input.ServicePeriodTo)).
+			SetSchemaLevel(usagebased.CurrentRealizationRunSchemaLevel).
 			SetDetailedLinesPresent(false).
 			SetNillableBillingInvoiceLineID(input.LineID).
 			SetNillableBillingInvoiceID(input.InvoiceID).
 			SetMeteredQuantity(input.MeteredQuantity).
 			SetNoFiatTransactionRequired(input.NoFiatTransactionRequired)
+
+		if input.PriorRunID != nil {
+			create = create.SetPriorRunID(input.PriorRunID.ID)
+		}
 
 		create = totals.Set(create, input.Totals)
 
@@ -43,7 +53,7 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			return usagebased.RealizationRunBase{}, err
 		}
 
-		return fromDBRunBase(dbRun), nil
+		return fromDBRunBase(dbRun)
 	})
 }
 
@@ -95,6 +105,6 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 			return usagebased.RealizationRunBase{}, err
 		}
 
-		return fromDBRunBase(dbRun), nil
+		return fromDBRunBase(dbRun)
 	})
 }

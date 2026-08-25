@@ -156,6 +156,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		Type:                      in.Type,
 		StoredAtLT:                in.StoredAtLT,
 		ServicePeriodTo:           in.ServicePeriodTo,
+		PriorRunID:                in.Charge.Realizations.PriorRunIDForNextRun(),
 		LineID:                    in.LineID,
 		InvoiceID:                 in.InvoiceID,
 		MeteredQuantity:           ratingResult.Quantity,

@@ -77900,6 +77900,8 @@ type ChargeUsageBasedRunsMutation struct {
 	initial_type                              *usagebased.RealizationRunType
 	stored_at_lt                              *time.Time
 	service_period_to                         *time.Time
+	schema_level                              *int
+	addschema_level                           *int
 	detailed_lines_present                    *bool
 	detailed_lines_include_credit_allocations *bool
 	metered_quantity                          *alpacadecimal.Decimal
@@ -77914,6 +77916,11 @@ type ChargeUsageBasedRunsMutation struct {
 	clearedbilling_invoice_line               bool
 	billing_invoice                           *string
 	clearedbilling_invoice                    bool
+	next_runs                                 map[string]struct{}
+	removednext_runs                          map[string]struct{}
+	clearednext_runs                          bool
+	prior_run                                 *string
+	clearedprior_run                          bool
 	credit_allocations                        map[string]struct{}
 	removedcredit_allocations                 map[string]struct{}
 	clearedcredit_allocations                 bool
@@ -78700,6 +78707,111 @@ func (m *ChargeUsageBasedRunsMutation) ResetServicePeriodTo() {
 	m.service_period_to = nil
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (m *ChargeUsageBasedRunsMutation) SetSchemaLevel(i int) {
+	m.schema_level = &i
+	m.addschema_level = nil
+}
+
+// SchemaLevel returns the value of the "schema_level" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) SchemaLevel() (r int, exists bool) {
+	v := m.schema_level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSchemaLevel returns the old "schema_level" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldSchemaLevel(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSchemaLevel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSchemaLevel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSchemaLevel: %w", err)
+	}
+	return oldValue.SchemaLevel, nil
+}
+
+// AddSchemaLevel adds i to the "schema_level" field.
+func (m *ChargeUsageBasedRunsMutation) AddSchemaLevel(i int) {
+	if m.addschema_level != nil {
+		*m.addschema_level += i
+	} else {
+		m.addschema_level = &i
+	}
+}
+
+// AddedSchemaLevel returns the value that was added to the "schema_level" field in this mutation.
+func (m *ChargeUsageBasedRunsMutation) AddedSchemaLevel() (r int, exists bool) {
+	v := m.addschema_level
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSchemaLevel resets all changes to the "schema_level" field.
+func (m *ChargeUsageBasedRunsMutation) ResetSchemaLevel() {
+	m.schema_level = nil
+	m.addschema_level = nil
+}
+
+// SetPriorRunID sets the "prior_run_id" field.
+func (m *ChargeUsageBasedRunsMutation) SetPriorRunID(s string) {
+	m.prior_run = &s
+}
+
+// PriorRunID returns the value of the "prior_run_id" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) PriorRunID() (r string, exists bool) {
+	v := m.prior_run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPriorRunID returns the old "prior_run_id" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldPriorRunID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPriorRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPriorRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPriorRunID: %w", err)
+	}
+	return oldValue.PriorRunID, nil
+}
+
+// ClearPriorRunID clears the value of the "prior_run_id" field.
+func (m *ChargeUsageBasedRunsMutation) ClearPriorRunID() {
+	m.prior_run = nil
+	m.clearedFields[chargeusagebasedruns.FieldPriorRunID] = struct{}{}
+}
+
+// PriorRunIDCleared returns if the "prior_run_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunsMutation) PriorRunIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedruns.FieldPriorRunID]
+	return ok
+}
+
+// ResetPriorRunID resets all changes to the "prior_run_id" field.
+func (m *ChargeUsageBasedRunsMutation) ResetPriorRunID() {
+	m.prior_run = nil
+	delete(m.clearedFields, chargeusagebasedruns.FieldPriorRunID)
+}
+
 // SetDetailedLinesPresent sets the "detailed_lines_present" field.
 func (m *ChargeUsageBasedRunsMutation) SetDetailedLinesPresent(b bool) {
 	m.detailed_lines_present = &b
@@ -79125,6 +79237,87 @@ func (m *ChargeUsageBasedRunsMutation) ResetBillingInvoice() {
 	m.clearedbilling_invoice = false
 }
 
+// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRuns entity by ids.
+func (m *ChargeUsageBasedRunsMutation) AddNextRunIDs(ids ...string) {
+	if m.next_runs == nil {
+		m.next_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.next_runs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearNextRuns clears the "next_runs" edge to the ChargeUsageBasedRuns entity.
+func (m *ChargeUsageBasedRunsMutation) ClearNextRuns() {
+	m.clearednext_runs = true
+}
+
+// NextRunsCleared reports if the "next_runs" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *ChargeUsageBasedRunsMutation) NextRunsCleared() bool {
+	return m.clearednext_runs
+}
+
+// RemoveNextRunIDs removes the "next_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (m *ChargeUsageBasedRunsMutation) RemoveNextRunIDs(ids ...string) {
+	if m.removednext_runs == nil {
+		m.removednext_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.next_runs, ids[i])
+		m.removednext_runs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedNextRuns returns the removed IDs of the "next_runs" edge to the ChargeUsageBasedRuns entity.
+func (m *ChargeUsageBasedRunsMutation) RemovedNextRunsIDs() (ids []string) {
+	for id := range m.removednext_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// NextRunsIDs returns the "next_runs" edge IDs in the mutation.
+func (m *ChargeUsageBasedRunsMutation) NextRunsIDs() (ids []string) {
+	for id := range m.next_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetNextRuns resets all changes to the "next_runs" edge.
+func (m *ChargeUsageBasedRunsMutation) ResetNextRuns() {
+	m.next_runs = nil
+	m.clearednext_runs = false
+	m.removednext_runs = nil
+}
+
+// ClearPriorRun clears the "prior_run" edge to the ChargeUsageBasedRuns entity.
+func (m *ChargeUsageBasedRunsMutation) ClearPriorRun() {
+	m.clearedprior_run = true
+	m.clearedFields[chargeusagebasedruns.FieldPriorRunID] = struct{}{}
+}
+
+// PriorRunCleared reports if the "prior_run" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *ChargeUsageBasedRunsMutation) PriorRunCleared() bool {
+	return m.PriorRunIDCleared() || m.clearedprior_run
+}
+
+// PriorRunIDs returns the "prior_run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PriorRunID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunsMutation) PriorRunIDs() (ids []string) {
+	if id := m.prior_run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPriorRun resets all changes to the "prior_run" edge.
+func (m *ChargeUsageBasedRunsMutation) ResetPriorRun() {
+	m.prior_run = nil
+	m.clearedprior_run = false
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by ids.
 func (m *ChargeUsageBasedRunsMutation) AddCreditAllocationIDs(ids ...string) {
 	if m.credit_allocations == nil {
@@ -79453,7 +79646,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 25)
+	fields := make([]string, 0, 27)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -79507,6 +79700,12 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	}
 	if m.service_period_to != nil {
 		fields = append(fields, chargeusagebasedruns.FieldServicePeriodTo)
+	}
+	if m.schema_level != nil {
+		fields = append(fields, chargeusagebasedruns.FieldSchemaLevel)
+	}
+	if m.prior_run != nil {
+		fields = append(fields, chargeusagebasedruns.FieldPriorRunID)
 	}
 	if m.detailed_lines_present != nil {
 		fields = append(fields, chargeusagebasedruns.FieldDetailedLinesPresent)
@@ -79573,6 +79772,10 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.StoredAtLt()
 	case chargeusagebasedruns.FieldServicePeriodTo:
 		return m.ServicePeriodTo()
+	case chargeusagebasedruns.FieldSchemaLevel:
+		return m.SchemaLevel()
+	case chargeusagebasedruns.FieldPriorRunID:
+		return m.PriorRunID()
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		return m.DetailedLinesPresent()
 	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
@@ -79632,6 +79835,10 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldStoredAtLt(ctx)
 	case chargeusagebasedruns.FieldServicePeriodTo:
 		return m.OldServicePeriodTo(ctx)
+	case chargeusagebasedruns.FieldSchemaLevel:
+		return m.OldSchemaLevel(ctx)
+	case chargeusagebasedruns.FieldPriorRunID:
+		return m.OldPriorRunID(ctx)
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		return m.OldDetailedLinesPresent(ctx)
 	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
@@ -79781,6 +79988,20 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetServicePeriodTo(v)
 		return nil
+	case chargeusagebasedruns.FieldSchemaLevel:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSchemaLevel(v)
+		return nil
+	case chargeusagebasedruns.FieldPriorRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPriorRunID(v)
+		return nil
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		v, ok := value.(bool)
 		if !ok {
@@ -79837,13 +80058,21 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *ChargeUsageBasedRunsMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addschema_level != nil {
+		fields = append(fields, chargeusagebasedruns.FieldSchemaLevel)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *ChargeUsageBasedRunsMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeusagebasedruns.FieldSchemaLevel:
+		return m.AddedSchemaLevel()
+	}
 	return nil, false
 }
 
@@ -79852,6 +80081,13 @@ func (m *ChargeUsageBasedRunsMutation) AddedField(name string) (ent.Value, bool)
 // type.
 func (m *ChargeUsageBasedRunsMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case chargeusagebasedruns.FieldSchemaLevel:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSchemaLevel(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns numeric field %s", name)
 }
@@ -79862,6 +80098,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearedFields() []string {
 	var fields []string
 	if m.FieldCleared(chargeusagebasedruns.FieldDeletedAt) {
 		fields = append(fields, chargeusagebasedruns.FieldDeletedAt)
+	}
+	if m.FieldCleared(chargeusagebasedruns.FieldPriorRunID) {
+		fields = append(fields, chargeusagebasedruns.FieldPriorRunID)
 	}
 	if m.FieldCleared(chargeusagebasedruns.FieldLineID) {
 		fields = append(fields, chargeusagebasedruns.FieldLineID)
@@ -79885,6 +80124,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearField(name string) error {
 	switch name {
 	case chargeusagebasedruns.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case chargeusagebasedruns.FieldPriorRunID:
+		m.ClearPriorRunID()
 		return nil
 	case chargeusagebasedruns.FieldLineID:
 		m.ClearLineID()
@@ -79954,6 +80196,12 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 	case chargeusagebasedruns.FieldServicePeriodTo:
 		m.ResetServicePeriodTo()
 		return nil
+	case chargeusagebasedruns.FieldSchemaLevel:
+		m.ResetSchemaLevel()
+		return nil
+	case chargeusagebasedruns.FieldPriorRunID:
+		m.ResetPriorRunID()
+		return nil
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		m.ResetDetailedLinesPresent()
 		return nil
@@ -79981,7 +80229,7 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 12)
 	if m.usage_based != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -79993,6 +80241,12 @@ func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeBillingInvoice)
+	}
+	if m.next_runs != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeNextRuns)
+	}
+	if m.prior_run != nil {
+		edges = append(edges, chargeusagebasedruns.EdgePriorRun)
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -80035,6 +80289,16 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 		if id := m.billing_invoice; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeusagebasedruns.EdgeNextRuns:
+		ids := make([]ent.Value, 0, len(m.next_runs))
+		for id := range m.next_runs {
+			ids = append(ids, id)
+		}
+		return ids
+	case chargeusagebasedruns.EdgePriorRun:
+		if id := m.prior_run; id != nil {
+			return []ent.Value{*id}
+		}
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		ids := make([]ent.Value, 0, len(m.credit_allocations))
 		for id := range m.credit_allocations {
@@ -80073,7 +80337,10 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedRunsMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 12)
+	if m.removednext_runs != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeNextRuns)
+	}
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
 	}
@@ -80093,6 +80360,12 @@ func (m *ChargeUsageBasedRunsMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case chargeusagebasedruns.EdgeNextRuns:
+		ids := make([]ent.Value, 0, len(m.removednext_runs))
+		for id := range m.removednext_runs {
+			ids = append(ids, id)
+		}
+		return ids
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		ids := make([]ent.Value, 0, len(m.removedcredit_allocations))
 		for id := range m.removedcredit_allocations {
@@ -80123,7 +80396,7 @@ func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 10)
+	edges := make([]string, 0, 12)
 	if m.clearedusage_based {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -80135,6 +80408,12 @@ func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice {
 		edges = append(edges, chargeusagebasedruns.EdgeBillingInvoice)
+	}
+	if m.clearednext_runs {
+		edges = append(edges, chargeusagebasedruns.EdgeNextRuns)
+	}
+	if m.clearedprior_run {
+		edges = append(edges, chargeusagebasedruns.EdgePriorRun)
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -80169,6 +80448,10 @@ func (m *ChargeUsageBasedRunsMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice_line
 	case chargeusagebasedruns.EdgeBillingInvoice:
 		return m.clearedbilling_invoice
+	case chargeusagebasedruns.EdgeNextRuns:
+		return m.clearednext_runs
+	case chargeusagebasedruns.EdgePriorRun:
+		return m.clearedprior_run
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
 	case chargeusagebasedruns.EdgeFiatOverageCreditAllocations:
@@ -80201,6 +80484,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearEdge(name string) error {
 	case chargeusagebasedruns.EdgeBillingInvoice:
 		m.ClearBillingInvoice()
 		return nil
+	case chargeusagebasedruns.EdgePriorRun:
+		m.ClearPriorRun()
+		return nil
 	case chargeusagebasedruns.EdgeInvoicedUsage:
 		m.ClearInvoicedUsage()
 		return nil
@@ -80226,6 +80512,12 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebasedruns.EdgeBillingInvoice:
 		m.ResetBillingInvoice()
+		return nil
+	case chargeusagebasedruns.EdgeNextRuns:
+		m.ResetNextRuns()
+		return nil
+	case chargeusagebasedruns.EdgePriorRun:
+		m.ResetPriorRun()
 		return nil
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		m.ResetCreditAllocations()

@@ -102,6 +102,8 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 			},
 		},
 	}
+	priorRunID := priorRun.ID
+	run.PriorRunID = mo.Some(&priorRunID)
 
 	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
 		Charge: usagebased.Charge{
@@ -175,6 +177,8 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 			MeteredQuantity: alpacadecimal.NewFromInt(5),
 		},
 	}
+	priorRunID := priorRun.ID
+	run.PriorRunID = mo.Some(&priorRunID)
 
 	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
 		Charge: usagebased.Charge{
@@ -225,6 +229,7 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 			},
 		},
 	}
+	run.PriorRunID = mo.Some[*usagebased.RealizationRunID](nil)
 
 	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
 		Charge: usagebased.Charge{

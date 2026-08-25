@@ -360,6 +360,20 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 		field.Time("service_period_to").
 			Immutable(),
 
+		field.Int("schema_level").
+			Default(usagebased.RealizationRunSchemaLevelLegacy).
+			SchemaType(map[string]string{
+				dialect.Postgres: "smallint",
+			}),
+
+		field.String("prior_run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
+
 		field.Bool("detailed_lines_present"),
 
 		field.Bool("detailed_lines_include_credit_allocations").
@@ -419,6 +433,13 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 			Unique().
 			Immutable().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
+		edge.To("next_runs", ChargeUsageBasedRuns.Type).
+			StorageKey(edge.Symbol("charge_ub_run_prior_run")),
+		edge.From("prior_run", ChargeUsageBasedRuns.Type).
+			Ref("next_runs").
+			Field("prior_run_id").
+			Unique().
+			Immutable(),
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),

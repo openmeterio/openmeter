@@ -6,8 +6,10 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -20,6 +22,8 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 		name        string
 		runs        RealizationRuns
 		currentRun  RealizationRun
+		priorRunID  *RealizationRunID
+		knownFirst  bool
 		wantLine    float64
 		wantPreLine float64
 		wantErr     bool
@@ -32,6 +36,7 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 				periodStart.Add(24*time.Hour),
 				5,
 			),
+			knownFirst:  true,
 			wantLine:    5,
 			wantPreLine: 0,
 		},
@@ -57,6 +62,7 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 				periodStart.Add(72*time.Hour),
 				20,
 			),
+			priorRunID:  lo.ToPtr(RealizationRunID{Namespace: "namespace", ID: "run-2"}),
 			wantLine:    12,
 			wantPreLine: 8,
 		},
@@ -76,7 +82,8 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 				periodStart.Add(48*time.Hour),
 				5,
 			),
-			wantErr: true,
+			priorRunID: lo.ToPtr(RealizationRunID{Namespace: "namespace", ID: "run-1"}),
+			wantErr:    true,
 		},
 		{
 			name: "ignores deleted prior runs",
@@ -104,6 +111,7 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 				periodStart.Add(72*time.Hour),
 				20,
 			),
+			priorRunID:  lo.ToPtr(RealizationRunID{Namespace: "namespace", ID: "run-1"}),
 			wantLine:    15,
 			wantPreLine: 5,
 		},
@@ -129,6 +137,7 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 				periodStart.Add(72*time.Hour),
 				20,
 			),
+			priorRunID:  lo.ToPtr(RealizationRunID{Namespace: "namespace", ID: "run-1"}),
 			wantLine:    15,
 			wantPreLine: 5,
 		},
@@ -136,6 +145,10 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.knownFirst || tt.priorRunID != nil {
+				tt.currentRun.PriorRunID = mo.Some(tt.priorRunID)
+			}
+
 			billingMeteredQuantity, err := tt.runs.MapToBillingMeteredQuantity(tt.currentRun)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -147,6 +160,88 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 			require.Equal(t, tt.wantPreLine, billingMeteredQuantity.PreLinePeriod.InexactFloat64())
 		})
 	}
+}
+
+func TestRealizationRuns_MapToBillingMeteredQuantityUsesPriorRunLineage(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	runs := RealizationRuns{
+		newRealizationRunForBillingMeteredQuantityTest(
+			"referenced-run",
+			RealizationRunTypePartialInvoice,
+			periodStart.Add(24*time.Hour),
+			5,
+		),
+		newRealizationRunForBillingMeteredQuantityTest(
+			"later-unreferenced-run",
+			RealizationRunTypePartialInvoice,
+			periodStart.Add(48*time.Hour),
+			8,
+		),
+	}
+	currentRun := newRealizationRunForBillingMeteredQuantityTest(
+		"current",
+		RealizationRunTypeFinalRealization,
+		periodStart.Add(72*time.Hour),
+		20,
+	)
+	priorRunID := runs[0].ID
+	currentRun.PriorRunID = mo.Some(&priorRunID)
+
+	billingMeteredQuantity, err := runs.MapToBillingMeteredQuantity(currentRun)
+	require.NoError(t, err)
+	require.Equal(t, 15.0, billingMeteredQuantity.LinePeriod.InexactFloat64())
+	require.Equal(t, 5.0, billingMeteredQuantity.PreLinePeriod.InexactFloat64())
+}
+
+func TestRealizationRuns_MapToBillingMeteredQuantityUsesZeroForKnownFirstRun(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	runs := RealizationRuns{
+		newRealizationRunForBillingMeteredQuantityTest(
+			"unrelated-run",
+			RealizationRunTypePartialInvoice,
+			periodStart.Add(24*time.Hour),
+			5,
+		),
+	}
+	currentRun := newRealizationRunForBillingMeteredQuantityTest(
+		"current",
+		RealizationRunTypeFinalRealization,
+		periodStart.Add(48*time.Hour),
+		20,
+	)
+	currentRun.PriorRunID = mo.Some[*RealizationRunID](nil)
+
+	billingMeteredQuantity, err := runs.MapToBillingMeteredQuantity(currentRun)
+	require.NoError(t, err)
+	require.Equal(t, 20.0, billingMeteredQuantity.LinePeriod.InexactFloat64())
+	require.Equal(t, 0.0, billingMeteredQuantity.PreLinePeriod.InexactFloat64())
+}
+
+func TestRealizationRuns_MapToBillingMeteredQuantityRejectsMissingPriorRun(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	currentRun := newRealizationRunForBillingMeteredQuantityTest(
+		"current",
+		RealizationRunTypeFinalRealization,
+		periodStart.Add(48*time.Hour),
+		20,
+	)
+	priorRunID := RealizationRunID{Namespace: "namespace", ID: "missing-run"}
+	currentRun.PriorRunID = mo.Some(&priorRunID)
+
+	_, err := (RealizationRuns{}).MapToBillingMeteredQuantity(currentRun)
+	require.ErrorContains(t, err, "resolve prior realization run missing-run")
+}
+
+func TestRealizationRuns_MapToBillingMeteredQuantityRejectsUnknownPriorRunLineage(t *testing.T) {
+	currentRun := newRealizationRunForBillingMeteredQuantityTest(
+		"current",
+		RealizationRunTypeFinalRealization,
+		time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
+		20,
+	)
+
+	_, err := (RealizationRuns{}).MapToBillingMeteredQuantity(currentRun)
+	require.ErrorContains(t, err, "prior realization run lineage is unknown")
 }
 
 func TestRealizationRunType_IsVoidedBillingHistory(t *testing.T) {
@@ -277,7 +372,7 @@ func TestRealizationRuns_GetByLineID(t *testing.T) {
 	require.ErrorContains(t, err, "realization run not found")
 }
 
-func TestRealizationRuns_BisectByTimestamp(t *testing.T) {
+func TestCharge_BisectRealizationRunsByTimestamp(t *testing.T) {
 	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	servicePeriod := timeutil.ClosedPeriod{
 		From: periodStart,
@@ -316,8 +411,10 @@ func TestRealizationRuns_BisectByTimestamp(t *testing.T) {
 			1,
 		),
 	}
+	charge := newChargeWithRealizationsForServicePeriodTest(servicePeriod, runs)
 
-	before, containingOrAfter := runs.BisectByTimestamp(servicePeriod, at)
+	before, containingOrAfter, err := charge.BisectRealizationRunsByTimestamp(at)
+	require.NoError(t, err)
 
 	require.Equal(t, []string{"before-run"}, lo.Map(before, func(run RealizationRun, _ int) string {
 		return run.ID.ID
@@ -326,7 +423,8 @@ func TestRealizationRuns_BisectByTimestamp(t *testing.T) {
 		return run.ID.ID
 	}))
 
-	before, containingOrAfter = runs.BisectByTimestamp(servicePeriod, periodStart.Add(48*time.Hour))
+	before, containingOrAfter, err = charge.BisectRealizationRunsByTimestamp(periodStart.Add(48 * time.Hour))
+	require.NoError(t, err)
 
 	require.Equal(t, []string{"before-run", "containing-run"}, lo.Map(before, func(run RealizationRun, _ int) string {
 		return run.ID.ID
@@ -334,6 +432,106 @@ func TestRealizationRuns_BisectByTimestamp(t *testing.T) {
 	require.Equal(t, []string{"after-run"}, lo.Map(containingOrAfter, func(run RealizationRun, _ int) string {
 		return run.ID.ID
 	}))
+}
+
+func TestCharge_ServicePeriodForUsesPriorRunLineage(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	intentPeriod := timeutil.ClosedPeriod{
+		From: periodStart,
+		To:   periodStart.Add(96 * time.Hour),
+	}
+	priorRun := newRealizationRunForBillingMeteredQuantityTest(
+		"prior-run",
+		RealizationRunTypePartialInvoice,
+		periodStart.Add(24*time.Hour),
+		5,
+	)
+	currentRun := newRealizationRunForBillingMeteredQuantityTest(
+		"current-run",
+		RealizationRunTypeFinalRealization,
+		periodStart.Add(72*time.Hour),
+		20,
+	)
+	priorRunID := priorRun.ID
+	currentRun.PriorRunID = mo.Some(&priorRunID)
+	charge := newChargeWithRealizationsForServicePeriodTest(intentPeriod, RealizationRuns{priorRun, currentRun})
+
+	period, err := charge.ServicePeriodFor(currentRun)
+	require.NoError(t, err)
+	require.Equal(t, priorRun.ServicePeriodTo, period.From)
+	require.Equal(t, currentRun.ServicePeriodTo, period.To)
+}
+
+func TestCharge_ServicePeriodForKnownFirstRunUsesIntentStart(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	intentPeriod := timeutil.ClosedPeriod{
+		From: periodStart,
+		To:   periodStart.Add(48 * time.Hour),
+	}
+	currentRun := newRealizationRunForBillingMeteredQuantityTest(
+		"current-run",
+		RealizationRunTypeFinalRealization,
+		periodStart.Add(24*time.Hour),
+		20,
+	)
+	currentRun.PriorRunID = mo.Some[*RealizationRunID](nil)
+	charge := newChargeWithRealizationsForServicePeriodTest(intentPeriod, RealizationRuns{currentRun})
+
+	period, err := charge.ServicePeriodFor(currentRun)
+	require.NoError(t, err)
+	require.Equal(t, intentPeriod.From, period.From)
+	require.Equal(t, currentRun.ServicePeriodTo, period.To)
+}
+
+func newChargeWithRealizationsForServicePeriodTest(servicePeriod timeutil.ClosedPeriod, runs RealizationRuns) Charge {
+	return Charge{
+		ChargeBase: ChargeBase{
+			Intent: Intent{
+				IntentMutableFields: IntentMutableFields{
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						ServicePeriod: servicePeriod,
+					},
+				},
+			}.AsOverridableIntent(),
+		},
+		Realizations: runs,
+	}
+}
+
+func TestRealizationRuns_PriorRunIDForNextRunUsesCreatedOrderAndSkipsVoidedHistory(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	deletedAt := periodStart.Add(time.Hour)
+
+	validRun := newRealizationRunForBillingMeteredQuantityTest(
+		"valid-run",
+		RealizationRunTypePartialInvoice,
+		periodStart.Add(24*time.Hour),
+		5,
+	)
+	newerValidRun := newRealizationRunForBillingMeteredQuantityTest(
+		"newer-valid-run",
+		RealizationRunTypePartialInvoice,
+		periodStart.Add(12*time.Hour),
+		3,
+	)
+	newerValidRun.CreatedAt = periodStart.Add(96 * time.Hour)
+	invalidRun := newRealizationRunForBillingMeteredQuantityTest(
+		"invalid-run",
+		RealizationRunTypeInvalidDueToUnsupportedCreditNote,
+		periodStart.Add(48*time.Hour),
+		8,
+	)
+	deletedRun := newRealizationRunForBillingMeteredQuantityTest(
+		"deleted-run",
+		RealizationRunTypePartialInvoice,
+		periodStart.Add(72*time.Hour),
+		10,
+	)
+	deletedRun.DeletedAt = &deletedAt
+
+	priorRunID := (RealizationRuns{validRun, newerValidRun, invalidRun, deletedRun}).PriorRunIDForNextRun()
+	require.Equal(t, &newerValidRun.ID, priorRunID)
+	require.Nil(t, (RealizationRuns{}).PriorRunIDForNextRun())
 }
 
 func newRealizationRunForBillingMeteredQuantityTest(id string, typ RealizationRunType, servicePeriodTo time.Time, meteredQuantity int64) RealizationRun {

@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type RealizationRunType string
@@ -54,6 +53,16 @@ func (i RealizationRunID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }
 
+const (
+	// RealizationRunSchemaLevelLegacy identifies runs created before explicit
+	// prior-run lineage was persisted.
+	RealizationRunSchemaLevelLegacy = 1
+	// RealizationRunSchemaLevelPriorRun identifies runs whose PriorRunID is
+	// known, including first runs for which it is explicitly nil.
+	RealizationRunSchemaLevelPriorRun = 2
+	CurrentRealizationRunSchemaLevel  = RealizationRunSchemaLevelPriorRun
+)
+
 // BillingMeteredQuantity maps a cumulative charge run quantity to the quantity
 // semantics expected by billing.StandardLine. RealizationRun.MeteredQuantity is
 // cumulative from the charge service-period start to the run's ServicePeriodTo,
@@ -73,6 +82,7 @@ type CreateRealizationRunInput struct {
 	Type                      RealizationRunType    `json:"type"`
 	StoredAtLT                time.Time             `json:"storedAtLT"`
 	ServicePeriodTo           time.Time             `json:"servicePeriodTo"`
+	PriorRunID                *RealizationRunID     `json:"priorRunId,omitempty"`
 	LineID                    *string               `json:"lineId,omitempty"`
 	InvoiceID                 *string               `json:"invoiceId,omitempty"`
 	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
@@ -116,6 +126,12 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if r.ServicePeriodTo.IsZero() {
 		errs = append(errs, fmt.Errorf("service period to must be set"))
+	}
+
+	if r.PriorRunID != nil {
+		if err := r.PriorRunID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prior run id: %w", err))
+		}
 	}
 
 	if r.LineID != nil && *r.LineID == "" {
@@ -208,6 +224,9 @@ type RealizationRunBase struct {
 	StoredAtLT  time.Time          `json:"storedAtLT"`
 	// ServicePeriodTo is the end of the service period for the realization run.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
+	// PriorRunID distinguishes legacy runs with unknown lineage (None) from
+	// runs with known lineage (Some). Some(nil) identifies the first run.
+	PriorRunID mo.Option[*RealizationRunID] `json:"priorRunId,omitzero"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
 	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
 	// Totals includes credit allocations and excludes taxes.
@@ -281,6 +300,23 @@ func (r RealizationRunBase) Validate() error {
 		errs = append(errs, fmt.Errorf("service period to must be set"))
 	}
 
+	if r.PriorRunID.IsPresent() {
+		priorRunID := r.PriorRunID.OrEmpty()
+		if priorRunID != nil {
+			if err := priorRunID.Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("prior run id: %w", err))
+			}
+
+			if priorRunID.Namespace != r.ID.Namespace {
+				errs = append(errs, fmt.Errorf("prior run namespace must match run namespace"))
+			}
+
+			if *priorRunID == r.ID {
+				errs = append(errs, fmt.Errorf("prior run id cannot reference the run itself"))
+			}
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -352,73 +388,35 @@ func (r RealizationRun) IsVoidedBillingHistory() bool {
 
 type RealizationRuns []RealizationRun
 
-// BisectByTimestamp splits non-voided realization runs by their
-// derived service period relative to at.
-//
-// The returned before slice contains every non-voided run whose derived
-// service period ends at or before at. The returned containingOrAfter slice
-// contains every non-voided run whose derived service period contains at, or
-// whose derived service period starts after at. Each run's service-period start
-// is derived from the previous non-voided run's ServicePeriodTo, with the first
-// run starting at chargeIntentServicePeriod.From. Both returned slices are
-// sorted by ServicePeriodTo and then CreatedAt.
-func (r RealizationRuns) BisectByTimestamp(chargeIntentServicePeriod timeutil.ClosedPeriod, at time.Time) (before RealizationRuns, containingOrAfter RealizationRuns) {
-	previousServicePeriodTo := meta.NormalizeTimestamp(chargeIntentServicePeriod.From)
-	at = meta.NormalizeTimestamp(at)
-
-	nonVoidedRuns := r.WithoutVoidedBillingHistory()
-
-	slices.SortStableFunc(nonVoidedRuns, func(a RealizationRun, b RealizationRun) int {
-		if c := meta.NormalizeTimestamp(a.ServicePeriodTo).Compare(meta.NormalizeTimestamp(b.ServicePeriodTo)); c != 0 {
-			return c
-		}
-
-		return a.CreatedAt.Compare(b.CreatedAt)
-	})
-
-	for _, run := range nonVoidedRuns {
-		runPeriodTo := meta.NormalizeTimestamp(run.ServicePeriodTo)
-
-		containsAt := !at.Before(previousServicePeriodTo) && at.Before(runPeriodTo)
-		startsAfterAt := previousServicePeriodTo.After(at)
-		if containsAt || startsAfterAt {
-			containingOrAfter = append(containingOrAfter, run)
-		} else {
-			before = append(before, run)
-		}
-
-		previousServicePeriodTo = runPeriodTo
-	}
-
-	return before, containingOrAfter
-}
-
 func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) (BillingMeteredQuantity, error) {
 	preLinePeriod := alpacadecimal.Zero
-	var latestPriorRun *RealizationRun
 
-	for idx := range r {
-		if r[idx].IsVoidedBillingHistory() {
-			continue
-		}
-
-		if !r[idx].ServicePeriodTo.Before(currentRun.ServicePeriodTo) {
-			continue
-		}
-
-		if latestPriorRun == nil || r[idx].ServicePeriodTo.After(latestPriorRun.ServicePeriodTo) {
-			latestPriorRun = &r[idx]
-		}
+	if currentRun.PriorRunID.IsAbsent() {
+		return BillingMeteredQuantity{}, fmt.Errorf("prior realization run lineage is unknown for run %s", currentRun.ID.ID)
 	}
 
-	if latestPriorRun != nil {
-		// Standard invoice line quantities intentionally use the prior run's
-		// persisted cumulative quantity. That value may have been captured with
-		// an older StoredAtLT than the current run. Period-preserving rating may
-		// still freshly snapshot prior event-time periods with the current
-		// StoredAtLT for correction calculation, but invoice line quantities
-		// should reflect what was previously billed.
-		preLinePeriod = latestPriorRun.MeteredQuantity
+	// Standard invoice line quantities intentionally use the prior run's
+	// persisted cumulative quantity. That value may have been captured with an
+	// older StoredAtLT than the current run. Period-preserving rating may still
+	// freshly snapshot prior event-time periods with the current StoredAtLT for
+	// correction calculation, but invoice line quantities should reflect what
+	// was previously billed.
+	priorRunID := currentRun.PriorRunID.OrEmpty()
+	if priorRunID != nil {
+		priorRun, err := r.GetByID(priorRunID.ID)
+		if err != nil {
+			return BillingMeteredQuantity{}, fmt.Errorf("resolve prior realization run %s for run %s: %w", priorRunID.ID, currentRun.ID.ID, err)
+		}
+
+		if priorRun.ID.Namespace != currentRun.ID.Namespace {
+			return BillingMeteredQuantity{}, fmt.Errorf("prior realization run %s namespace does not match run %s namespace", priorRun.ID.ID, currentRun.ID.ID)
+		}
+
+		if priorRun.ID == currentRun.ID {
+			return BillingMeteredQuantity{}, fmt.Errorf("prior realization run cannot reference run %s itself", currentRun.ID.ID)
+		}
+
+		preLinePeriod = priorRun.MeteredQuantity
 	}
 
 	linePeriod := currentRun.MeteredQuantity.Sub(preLinePeriod)
@@ -459,6 +457,26 @@ func (r RealizationRuns) Latest() (RealizationRun, bool) {
 
 		return run.CreatedAt.After(latest.CreatedAt)
 	}), true
+}
+
+// PriorRunIDForNextRun returns the most recently created run that still
+// represents effective billing history. A nil result identifies the first
+// effective run.
+func (r RealizationRuns) PriorRunIDForNextRun() *RealizationRunID {
+	nonVoidedRuns := r.WithoutVoidedBillingHistory()
+	if len(nonVoidedRuns) == 0 {
+		return nil
+	}
+
+	priorRun := lo.MaxBy(nonVoidedRuns, func(run RealizationRun, latest RealizationRun) bool {
+		if c := run.CreatedAt.Compare(latest.CreatedAt); c != 0 {
+			return c > 0
+		}
+
+		return run.ID.ID > latest.ID.ID
+	})
+
+	return lo.ToPtr(priorRun.ID)
 }
 
 func (r RealizationRuns) Validate() error {

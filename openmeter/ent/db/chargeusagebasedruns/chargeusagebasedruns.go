@@ -52,6 +52,10 @@ const (
 	FieldStoredAtLt = "stored_at_lt"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
 	FieldServicePeriodTo = "service_period_to"
+	// FieldSchemaLevel holds the string denoting the schema_level field in the database.
+	FieldSchemaLevel = "schema_level"
+	// FieldPriorRunID holds the string denoting the prior_run_id field in the database.
+	FieldPriorRunID = "prior_run_id"
 	// FieldDetailedLinesPresent holds the string denoting the detailed_lines_present field in the database.
 	FieldDetailedLinesPresent = "detailed_lines_present"
 	// FieldDetailedLinesIncludeCreditAllocations holds the string denoting the detailed_lines_include_credit_allocations field in the database.
@@ -74,6 +78,10 @@ const (
 	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
+	// EdgeNextRuns holds the string denoting the next_runs edge name in mutations.
+	EdgeNextRuns = "next_runs"
+	// EdgePriorRun holds the string denoting the prior_run edge name in mutations.
+	EdgePriorRun = "prior_run"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeFiatOverageCreditAllocations holds the string denoting the fiat_overage_credit_allocations edge name in mutations.
@@ -116,6 +124,14 @@ const (
 	BillingInvoiceInverseTable = "billing_invoices"
 	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
 	BillingInvoiceColumn = "invoice_id"
+	// NextRunsTable is the table that holds the next_runs relation/edge.
+	NextRunsTable = "charge_usage_based_runs"
+	// NextRunsColumn is the table column denoting the next_runs relation/edge.
+	NextRunsColumn = "prior_run_id"
+	// PriorRunTable is the table that holds the prior_run relation/edge.
+	PriorRunTable = "charge_usage_based_runs"
+	// PriorRunColumn is the table column denoting the prior_run relation/edge.
+	PriorRunColumn = "prior_run_id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_usage_based_run_credit_allocations"
 	// CreditAllocationsInverseTable is the table name for the ChargeUsageBasedRunCreditAllocations entity.
@@ -181,6 +197,8 @@ var Columns = []string{
 	FieldInitialType,
 	FieldStoredAtLt,
 	FieldServicePeriodTo,
+	FieldSchemaLevel,
+	FieldPriorRunID,
 	FieldDetailedLinesPresent,
 	FieldDetailedLinesIncludeCreditAllocations,
 	FieldLineID,
@@ -211,6 +229,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	FeatureIDValidator func(string) error
+	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
+	DefaultSchemaLevel int
 	// DefaultDetailedLinesIncludeCreditAllocations holds the default value on creation for the "detailed_lines_include_credit_allocations" field.
 	DefaultDetailedLinesIncludeCreditAllocations bool
 	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
@@ -341,6 +361,16 @@ func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
 }
 
+// BySchemaLevel orders the results by the schema_level field.
+func BySchemaLevel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSchemaLevel, opts...).ToFunc()
+}
+
+// ByPriorRunID orders the results by the prior_run_id field.
+func ByPriorRunID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPriorRunID, opts...).ToFunc()
+}
+
 // ByDetailedLinesPresent orders the results by the detailed_lines_present field.
 func ByDetailedLinesPresent(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDetailedLinesPresent, opts...).ToFunc()
@@ -401,6 +431,27 @@ func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderO
 func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByNextRunsCount orders the results by next_runs count.
+func ByNextRunsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNextRunsStep(), opts...)
+	}
+}
+
+// ByNextRuns orders the results by next_runs terms.
+func ByNextRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNextRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPriorRunField orders the results by prior_run field.
+func ByPriorRunField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPriorRunStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -499,6 +550,20 @@ func newBillingInvoiceStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
+	)
+}
+func newNextRunsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NextRunsTable, NextRunsColumn),
+	)
+}
+func newPriorRunStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PriorRunTable, PriorRunColumn),
 	)
 }
 func newCreditAllocationsStep() *sqlgraph.Step {

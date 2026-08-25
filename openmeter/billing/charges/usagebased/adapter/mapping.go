@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
@@ -152,7 +153,30 @@ func fromDBRuns(entity *entdb.ChargeUsageBased) (usagebased.RealizationRuns, err
 	return runs, nil
 }
 
-func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunBase {
+func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRunBase, error) {
+	priorRunID := mo.None[*usagebased.RealizationRunID]()
+	switch dbRun.SchemaLevel {
+	case usagebased.RealizationRunSchemaLevelLegacy:
+		if dbRun.PriorRunID != nil {
+			return usagebased.RealizationRunBase{}, fmt.Errorf("legacy usage-based realization run has prior run id [id=%s]", dbRun.ID)
+		}
+	case usagebased.RealizationRunSchemaLevelPriorRun:
+		var mappedPriorRunID *usagebased.RealizationRunID
+		if dbRun.PriorRunID != nil {
+			if *dbRun.PriorRunID == dbRun.ID {
+				return usagebased.RealizationRunBase{}, fmt.Errorf("usage-based realization run cannot reference itself as prior run [id=%s]", dbRun.ID)
+			}
+
+			mappedPriorRunID = &usagebased.RealizationRunID{
+				Namespace: dbRun.Namespace,
+				ID:        *dbRun.PriorRunID,
+			}
+		}
+		priorRunID = mo.Some(mappedPriorRunID)
+	default:
+		return usagebased.RealizationRunBase{}, fmt.Errorf("unsupported usage-based realization run schema level: %d", dbRun.SchemaLevel)
+	}
+
 	return usagebased.RealizationRunBase{
 		ID: usagebased.RealizationRunID{
 			Namespace: dbRun.Namespace,
@@ -167,19 +191,24 @@ func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunB
 		InitialType:                           dbRun.InitialType,
 		StoredAtLT:                            dbRun.StoredAtLt.UTC(),
 		ServicePeriodTo:                       dbRun.ServicePeriodTo.UTC(),
+		PriorRunID:                            priorRunID,
 		MeteredQuantity:                       dbRun.MeteredQuantity,
 		Totals:                                totals.FromDB(dbRun),
 		NoFiatTransactionRequired:             dbRun.NoFiatTransactionRequired,
 		Immutable:                             dbRun.Immutable,
 		DetailedLinesIncludeCreditAllocations: dbRun.DetailedLinesIncludeCreditAllocations,
-	}
+	}, nil
 }
 
 func fromDBRun(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
-	run := usagebased.RealizationRun{
-		RealizationRunBase: fromDBRunBase(dbRun),
+	base, err := fromDBRunBase(dbRun)
+	if err != nil {
+		return usagebased.RealizationRun{}, err
 	}
-	var err error
+
+	run := usagebased.RealizationRun{
+		RealizationRunBase: base,
+	}
 
 	run.CreditsAllocated, err = creditrealization.FromDBRealizationsOrErr(dbRun.Edges.CreditAllocationsOrErr())
 	if err != nil {

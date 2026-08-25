@@ -37,6 +37,8 @@ type ChargeUsageBasedRunsQuery struct {
 	withFeature                      *FeatureQuery
 	withBillingInvoiceLine           *BillingInvoiceLineQuery
 	withBillingInvoice               *BillingInvoiceQuery
+	withNextRuns                     *ChargeUsageBasedRunsQuery
+	withPriorRun                     *ChargeUsageBasedRunsQuery
 	withCreditAllocations            *ChargeUsageBasedRunCreditAllocationsQuery
 	withFiatOverageCreditAllocations *ChargeUsageBasedRunOverageCreditAllocationsQuery
 	withDetailedLines                *ChargeUsageBasedRunDetailedLineQuery
@@ -161,6 +163,50 @@ func (_q *ChargeUsageBasedRunsQuery) QueryBillingInvoice() *BillingInvoiceQuery 
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.BillingInvoiceTable, chargeusagebasedruns.BillingInvoiceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNextRuns chains the current query on the "next_runs" edge.
+func (_q *ChargeUsageBasedRunsQuery) QueryNextRuns() *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.NextRunsTable, chargeusagebasedruns.NextRunsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPriorRun chains the current query on the "prior_run" edge.
+func (_q *ChargeUsageBasedRunsQuery) QueryPriorRun() *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.PriorRunTable, chargeusagebasedruns.PriorRunColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -496,6 +542,8 @@ func (_q *ChargeUsageBasedRunsQuery) Clone() *ChargeUsageBasedRunsQuery {
 		withFeature:                      _q.withFeature.Clone(),
 		withBillingInvoiceLine:           _q.withBillingInvoiceLine.Clone(),
 		withBillingInvoice:               _q.withBillingInvoice.Clone(),
+		withNextRuns:                     _q.withNextRuns.Clone(),
+		withPriorRun:                     _q.withPriorRun.Clone(),
 		withCreditAllocations:            _q.withCreditAllocations.Clone(),
 		withFiatOverageCreditAllocations: _q.withFiatOverageCreditAllocations.Clone(),
 		withDetailedLines:                _q.withDetailedLines.Clone(),
@@ -549,6 +597,28 @@ func (_q *ChargeUsageBasedRunsQuery) WithBillingInvoice(opts ...func(*BillingInv
 		opt(query)
 	}
 	_q.withBillingInvoice = query
+	return _q
+}
+
+// WithNextRuns tells the query-builder to eager-load the nodes that are connected to
+// the "next_runs" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunsQuery) WithNextRuns(opts ...func(*ChargeUsageBasedRunsQuery)) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withNextRuns = query
+	return _q
+}
+
+// WithPriorRun tells the query-builder to eager-load the nodes that are connected to
+// the "prior_run" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunsQuery) WithPriorRun(opts ...func(*ChargeUsageBasedRunsQuery)) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPriorRun = query
 	return _q
 }
 
@@ -696,11 +766,13 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	var (
 		nodes       = []*ChargeUsageBasedRuns{}
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [12]bool{
 			_q.withUsageBased != nil,
 			_q.withFeature != nil,
 			_q.withBillingInvoiceLine != nil,
 			_q.withBillingInvoice != nil,
+			_q.withNextRuns != nil,
+			_q.withPriorRun != nil,
 			_q.withCreditAllocations != nil,
 			_q.withFiatOverageCreditAllocations != nil,
 			_q.withDetailedLines != nil,
@@ -751,6 +823,19 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := _q.withBillingInvoice; query != nil {
 		if err := _q.loadBillingInvoice(ctx, query, nodes, nil,
 			func(n *ChargeUsageBasedRuns, e *BillingInvoice) { n.Edges.BillingInvoice = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withNextRuns; query != nil {
+		if err := _q.loadNextRuns(ctx, query, nodes,
+			func(n *ChargeUsageBasedRuns) { n.Edges.NextRuns = []*ChargeUsageBasedRuns{} },
+			func(n *ChargeUsageBasedRuns, e *ChargeUsageBasedRuns) { n.Edges.NextRuns = append(n.Edges.NextRuns, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPriorRun; query != nil {
+		if err := _q.loadPriorRun(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedRuns, e *ChargeUsageBasedRuns) { n.Edges.PriorRun = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -922,6 +1007,71 @@ func (_q *ChargeUsageBasedRunsQuery) loadBillingInvoice(ctx context.Context, que
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "invoice_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRunsQuery) loadNextRuns(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *ChargeUsageBasedRuns)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeUsageBasedRuns)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedruns.FieldPriorRunID)
+	}
+	query.Where(predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeusagebasedruns.NextRunsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PriorRunID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "prior_run_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "prior_run_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRunsQuery) loadPriorRun(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *ChargeUsageBasedRuns)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedRuns)
+	for i := range nodes {
+		if nodes[i].PriorRunID == nil {
+			continue
+		}
+		fk := *nodes[i].PriorRunID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeusagebasedruns.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "prior_run_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -1146,6 +1296,9 @@ func (_q *ChargeUsageBasedRunsQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withBillingInvoice != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldInvoiceID)
+		}
+		if _q.withPriorRun != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldPriorRunID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

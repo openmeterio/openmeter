@@ -707,10 +707,10 @@ func (s *CreditThenInvoiceStateMachine) ResolveDynamicCostBasis(ctx context.Cont
 func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 	servicePeriod := s.Charge.Intent.GetEffectiveServicePeriod()
 	newServicePeriodTo := meta.NormalizeTimestamp(servicePeriod.To)
-	runsToKeep, runsToBeDeleted := s.Charge.Realizations.BisectByTimestamp(
-		servicePeriod,
-		newServicePeriodTo,
-	)
+	runsToKeep, runsToBeDeleted, err := s.Charge.BisectRealizationRunsByTimestamp(newServicePeriodTo)
+	if err != nil {
+		return fmt.Errorf("bisecting usage-based realization runs: %w", err)
+	}
 
 	for _, run := range runsToBeDeleted {
 		if run.LineID == nil || run.InvoiceID == nil {
