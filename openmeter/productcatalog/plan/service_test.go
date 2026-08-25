@@ -80,6 +80,8 @@ func TestUpdatePlanInputEqualDescriptionPresence(t *testing.T) {
 		{name: "omitted equals absent", input: nil, stored: nil, expectEqual: true},
 		{name: "omitted must clear a stored value", input: nil, stored: lo.ToPtr("desc"), expectEqual: false},
 		{name: "omitted must clear a stored empty string", input: nil, stored: lo.ToPtr(""), expectEqual: false},
+		{name: "explicit empty differs from absent", input: lo.ToPtr(""), stored: nil, expectEqual: false},
+		{name: "explicit empty matches stored empty string", input: lo.ToPtr(""), stored: lo.ToPtr(""), expectEqual: true},
 		{name: "matching values are equal", input: lo.ToPtr("desc"), stored: lo.ToPtr("desc"), expectEqual: true},
 		{name: "differing values are not equal", input: lo.ToPtr("new"), stored: lo.ToPtr("old"), expectEqual: false},
 	}
