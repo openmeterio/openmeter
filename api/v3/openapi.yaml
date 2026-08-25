@@ -378,7 +378,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
-      x-unstable: true
   /openmeter/apps/{appId}:
     get:
       operationId: get-app
@@ -407,7 +406,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
-      x-unstable: true
     delete:
       operationId: uninstall-app
       summary: Uninstall app
