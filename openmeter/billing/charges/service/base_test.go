@@ -39,6 +39,8 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -71,6 +73,10 @@ type BaseSuite struct {
 	// actual recognition behavior sets it in its own SetupSuite (before calling
 	// BaseSuite.SetupSuite).
 	UseRealRecognizer bool
+	// UseRealLedgerHandlers wires the production flat-fee and usage-based ledger
+	// handlers while keeping credit-purchase setup independent. Derived suites
+	// enable it before calling BaseSuite.SetupSuite.
+	UseRealLedgerHandlers bool
 
 	Charges                   *service
 	UsageBasedService         usagebased.Service
@@ -85,6 +91,7 @@ type BaseSuite struct {
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
+	LedgerDeps                ledgertestutils.Deps
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -127,18 +134,26 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 	s.LineageService = lineageService
 
+	var (
+		ledgerDeps         ledgertestutils.Deps
+		ledgerResolverDeps transactions.ResolverDependencies
+	)
+	if s.UseRealRecognizer || s.UseRealLedgerHandlers {
+		ledgerDeps, err = ledgertestutils.InitDeps(s.DBClient, slog.Default())
+		s.NoError(err)
+		s.LedgerDeps = ledgerDeps
+		ledgerResolverDeps = transactions.ResolverDependencies{
+			AccountService: ledgerDeps.ResolversService,
+			AccountCatalog: ledgerDeps.AccountService,
+			BalanceQuerier: ledgerDeps.HistoricalLedger,
+		}
+	}
+
 	var recognizerService recognizer.Service = recognizer.NoopService{}
 	if s.UseRealRecognizer {
-		ledgerDeps, err := ledgertestutils.InitDeps(s.DBClient, slog.Default())
-		s.NoError(err)
-
 		recognizerService, err = recognizer.NewService(recognizer.Config{
-			Ledger: ledgerDeps.HistoricalLedger,
-			Dependencies: transactions.ResolverDependencies{
-				AccountService: ledgerDeps.ResolversService,
-				AccountCatalog: ledgerDeps.AccountService,
-				BalanceQuerier: ledgerDeps.HistoricalLedger,
-			},
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       ledgerResolverDeps,
 			Lineage:            lineageService,
 			TransactionManager: enttx.NewCreator(s.DBClient),
 		})
@@ -152,10 +167,32 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.FlatFeeAdapter = flatFeeAdapter
+	var flatFeeHandler flatfee.Handler = s.FlatFeeTestHandler
+	var usageBasedHandler usagebased.Handler = s.UsageBasedTestHandler
+	if s.UseRealLedgerHandlers {
+		collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       ledgerResolverDeps,
+			AccountLocker:      ledgerDeps.AccountService,
+			TransactionManager: enttx.NewCreator(s.DBClient),
+		})
+		s.NoError(err)
+
+		flatFeeHandler = ledgerchargeadapter.NewFlatFeeHandler(
+			ledgerDeps.HistoricalLedger,
+			ledgerResolverDeps,
+			collectorService,
+		)
+		usageBasedHandler = ledgerchargeadapter.NewUsageBasedHandler(
+			ledgerDeps.HistoricalLedger,
+			ledgerResolverDeps,
+			collectorService,
+		)
+	}
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:       flatFeeAdapter,
-		Handler:       s.FlatFeeTestHandler,
+		Handler:       flatFeeHandler,
 		Lineage:       lineageService,
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
@@ -184,7 +221,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
-		Handler:                 s.UsageBasedTestHandler,
+		Handler:                 usageBasedHandler,
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,

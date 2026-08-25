@@ -303,8 +303,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 		},
 	}
 
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	for _, test := range tests {
 		s.Run(test.name, func() {
 			ctx := s.T().Context()
@@ -784,7 +782,6 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 
 	s.FlatFeeTestHandler.Reset()
 	s.T().Cleanup(s.FlatFeeTestHandler.Reset)
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
 
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
 	invoiceAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime()
@@ -1211,8 +1208,6 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceReratingDefersFiatOverageAllocationUntilFinalization() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-rerating")
 
@@ -1459,8 +1454,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceR
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceMutableRunDeletionCorrectsChargeCurrencyRealizations() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-deletion")
 
@@ -1689,8 +1682,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceM
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAndAPILineMutation() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-managed-lines")
 
@@ -2008,8 +1999,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResultPersistsNoUsageOrPayment() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	tests := []struct {
 		name               string
 		accrualResult      flatfee.OnCustomCurrencyOverageAccruedResult
@@ -2226,8 +2215,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceShrinkExtendMutableLine() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-shrink-extend")
 
@@ -6011,43 +5998,6 @@ func (s *InvoicableChargesTestSuite) mustGetFlatFeeChargeByIDWithDetailedLines(c
 	s.NoError(err)
 
 	return flatFeeCharge
-}
-
-func (s *InvoicableChargesTestSuite) enableFlatFeeCustomCurrenciesWithMockLineage() {
-	s.T().Helper()
-
-	// TODO: use the real lineage service once it supports custom currencies.
-	lineageMock := &mockLineageService{Service: s.LineageService}
-	lineageMock.On("CreateInitialLineages", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("PersistCorrectionLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-
-	customCurrencyFlatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:       s.FlatFeeAdapter,
-		Handler:       s.FlatFeeTestHandler,
-		Lineage:       lineageMock,
-		MetaAdapter:   s.MetaAdapter,
-		Locker:        s.Locker,
-		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:    s.CurrencyService,
-	})
-	s.Require().NoError(err)
-
-	originalFlatFeeService := s.Charges.flatFeeService
-	s.Charges.flatFeeService = customCurrencyFlatFeeService
-	s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeFlatFee))
-	s.Require().NoError(s.BillingService.RegisterLineEngine(customCurrencyFlatFeeService.GetLineEngine()))
-	s.T().Cleanup(func() {
-		s.Charges.flatFeeService = originalFlatFeeService
-		s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeFlatFee))
-		s.Require().NoError(s.BillingService.RegisterLineEngine(originalFlatFeeService.GetLineEngine()))
-	})
 }
 
 func mustGetFlatFeeChargeWithExpands(s *BaseSuite, chargeID meta.ChargeID, expands meta.Expands) flatfee.Charge {

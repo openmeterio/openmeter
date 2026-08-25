@@ -9,7 +9,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -22,8 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
-	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -263,47 +260,6 @@ func (s *UsageBasedChargesTestSuite) requireIndependentCreditRealizationHistorie
 	}
 }
 
-func (s *UsageBasedChargesTestSuite) useCustomCurrencyUsageBasedServiceWithMockedLineage() {
-	s.T().Helper()
-
-	// TODO: use the real lineage service once it supports custom currencies.
-	lineageMock := &mockLineageService{Service: s.LineageService}
-	lineageMock.On("CreateInitialLineages", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("PersistCorrectionLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-
-	customCurrencyUsageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 s.UsageBasedAdapter,
-		Handler:                 s.UsageBasedTestHandler,
-		Lineage:                 lineageMock,
-		Locker:                  s.Locker,
-		MetaAdapter:             s.MetaAdapter,
-		InvoiceUpdater:          s.InvoiceUpdater,
-		CustomerOverrideService: s.BillingService,
-		FeatureMeterResolver:    s.FeatureMeterResolver,
-		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:              s.CurrencyService,
-		StreamingConnector:      s.MockStreamingConnector,
-	})
-	s.Require().NoError(err)
-
-	originalUsageBasedService := s.Charges.usageBasedService
-	s.Charges.usageBasedService = customCurrencyUsageBasedService
-	s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeUsageBased))
-	s.Require().NoError(s.BillingService.RegisterLineEngine(customCurrencyUsageBasedService.GetLineEngine()))
-	s.T().Cleanup(func() {
-		s.Charges.usageBasedService = originalUsageBasedService
-		s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeUsageBased))
-		s.Require().NoError(s.BillingService.RegisterLineEngine(originalUsageBasedService.GetLineEngine()))
-	})
-}
-
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoiceLifecycle() {
 	s.runUsageBasedCustomCurrencyCreditThenInvoiceLifecycle(customCurrencyCreditThenInvoiceRealizationVariant{
 		invoiceAt:                        datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -362,7 +318,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 	s.T().Cleanup(s.UsageBasedTestHandler.Reset)
 	s.MockStreamingConnector.Reset()
 	s.T().Cleanup(s.MockStreamingConnector.Reset)
-	s.useCustomCurrencyUsageBasedServiceWithMockedLineage()
 
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
 	invoiceAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime()
@@ -828,7 +783,6 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 	s.T().Cleanup(s.MockStreamingConnector.Reset)
 	clock.UnFreeze()
 	s.T().Cleanup(clock.UnFreeze)
-	s.useCustomCurrencyUsageBasedServiceWithMockedLineage()
 
 	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -1391,8 +1345,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 			expectLineDeleted: true,
 		},
 	}
-
-	s.useCustomCurrencyUsageBasedServiceWithMockedLineage()
 
 	for _, test := range tests {
 		s.Run(test.name, func() {
