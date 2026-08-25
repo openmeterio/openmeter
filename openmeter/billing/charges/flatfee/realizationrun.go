@@ -144,8 +144,9 @@ type RealizationRunBase struct {
 	// FiatOverageCreditAllocationCompleted distinguishes a successful
 	// zero-allocation result from pending allocation.
 	FiatOverageCreditAllocationCompleted bool `json:"fiatOverageCreditAllocationCompleted"`
-	// Immutable means the backing invoice line can no longer be updated in place.
-	// When true, deleting this run requires issuing a credit note instead of mutating the invoice line.
+	// Immutable means the backing invoice crossed the external issuance boundary.
+	// AccruedUsage records preparation before that boundary and can be reversed
+	// only through invoice-owned cancellation.
 	Immutable bool `json:"immutable"`
 }
 

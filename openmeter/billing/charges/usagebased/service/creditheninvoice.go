@@ -212,7 +212,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		// effective period to that completed run, and the next transition still
 		// owns routing the charge to active or payment settlement.
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
-		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.ValidateInvoiceIssuedRun)).
+		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceIssuedRun)).
 		OnActive(s.ReleaseInvoiceIssuedRun)
 
 	// Payment + final
@@ -398,16 +398,6 @@ func (s *CreditThenInvoiceStateMachine) updateGatheringLineForEffectiveIntent() 
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if s.Charge.State.CurrentRealizationRunID != nil {
-		currentRun, err := s.Charge.GetCurrentRealizationRun()
-		if err != nil {
-			return fmt.Errorf("get current realization run before delete: %w", err)
-		}
-		if currentRun.InvoiceUsage != nil {
-			return fmt.Errorf("usage based charge[%s] cannot be deleted after invoice issuance preparation", s.Charge.ID)
-		}
-	}
-
 	deletedAt := lo.ToPtr(clock.Now())
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
@@ -433,7 +423,52 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	return nil
 }
 
+func (s *CreditThenInvoiceStateMachine) correctReversibleCurrentRun(ctx context.Context) error {
+	if s.Charge.State.CurrentRealizationRunID == nil {
+		return nil
+	}
+
+	run, err := s.Charge.GetCurrentRealizationRun()
+	if err != nil {
+		return fmt.Errorf("getting current realization run before delete: %w", err)
+	}
+	if run.InvoiceUsage == nil || run.Immutable {
+		return nil
+	}
+
+	if err := s.Runs.CorrectAllCreditRealizations(ctx, usagebasedrun.CreditReconciliationHandlerInput{
+		Charge:     s.Charge,
+		Run:        run,
+		AllocateAt: run.ServicePeriodTo,
+	}); err != nil {
+		return fmt.Errorf("correcting prepared realization run[%s]: %w", run.ID.ID, err)
+	}
+
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:        run.ID,
+		DeletedAt: mo.Some(lo.ToPtr(clock.Now())),
+	})
+	if err != nil {
+		return fmt.Errorf("marking prepared realization run[%s] deleted: %w", run.ID.ID, err)
+	}
+	run.RealizationRunBase = runBase
+
+	s.Charge.Realizations = s.Charge.Realizations.Without(run.ID)
+	s.Charge.State.CurrentRealizationRunID = nil
+	updatedChargeBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.ChargeBase)
+	if err != nil {
+		return fmt.Errorf("detaching prepared realization run[%s]: %w", run.ID.ID, err)
+	}
+	s.Charge.ChargeBase = updatedChargeBase
+
+	return nil
+}
+
 func (s *CreditThenInvoiceStateMachine) reconcileDeletedCharge(ctx context.Context) error {
+	if err := s.correctReversibleCurrentRun(ctx); err != nil {
+		return err
+	}
+
 	patches := invoiceupdater.Patches{
 		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
 	}
@@ -555,6 +590,10 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch 
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkToRealizedPeriod(ctx context.Context, patch meta.PatchShrinkToRealizedPeriod) error {
+	if err := s.rejectReversibleInvoicePreparation(patch.Op()); err != nil {
+		return err
+	}
+
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
@@ -619,6 +658,10 @@ type creditThenInvoiceApplyPeriodPatchResult struct {
 }
 
 func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(ctx context.Context, patch periodPatch) (creditThenInvoiceApplyPeriodPatchResult, error) {
+	if err := s.rejectReversibleInvoicePreparation(patch.Op()); err != nil {
+		return creditThenInvoiceApplyPeriodPatchResult{}, err
+	}
+
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("getting patch target layer: %w", err)
@@ -648,6 +691,22 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(ctx context.Context, pa
 	return creditThenInvoiceApplyPeriodPatchResult{
 		OldServicePeriod: oldServicePeriod,
 	}, nil
+}
+
+func (s *CreditThenInvoiceStateMachine) rejectReversibleInvoicePreparation(op meta.PatchType) error {
+	if s.Charge.State.CurrentRealizationRunID != nil {
+		currentRun, err := s.Charge.GetCurrentRealizationRun()
+		if err != nil {
+			return fmt.Errorf("getting current realization run before %s: %w", op, err)
+		}
+		if currentRun.InvoiceUsage != nil && !currentRun.Immutable {
+			return models.NewGenericPreConditionFailedError(
+				fmt.Errorf("cannot %s usage-based charge %s while current realization run %s has reversible invoice preparation", op, s.Charge.ID, currentRun.ID.ID),
+			)
+		}
+	}
+
+	return nil
 }
 
 func (s *CreditThenInvoiceStateMachine) UnsupportedExtendOperation(_ context.Context, _ meta.PatchExtend) error {
@@ -1140,7 +1199,6 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 				return fmt.Errorf("accrue invoice usage: %w", err)
 			}
 			currentRun = accrueResult.Run
-
 		}
 	} else {
 		if currentRun.InvoiceUsage == nil && (len(currentRun.FiatOverageCreditRealizations) > 0 || currentRun.FiatOverageCreditAllocationCompleted) {
@@ -1195,27 +1253,14 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 		s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(line.AsGenericLine()))
 	}
 
-	runBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:        currentRun.ID,
-		Immutable: mo.Some(true),
-	})
-	if err != nil {
-		return fmt.Errorf("marking issued realization run[%s] immutable: %w", currentRun.ID.ID, err)
-	}
-	currentRun.RealizationRunBase = runBase
-
-	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
-		return fmt.Errorf("updating realization run[%s]: %w", currentRun.ID.ID, err)
-	}
-
 	s.Charge.State.AdvanceAfter = nil
 
 	return nil
 }
 
-// ValidateInvoiceIssuedRun verifies that invoice finalization prepared the
-// current run before accepting the external issuance event.
-func (s *CreditThenInvoiceStateMachine) ValidateInvoiceIssuedRun(_ context.Context, input billing.StandardLineWithInvoiceHeader) error {
+// FinalizeInvoiceIssuedRun verifies the prepared run and marks its externally
+// issued invoice history immutable.
+func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceIssuedRun(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -1239,6 +1284,19 @@ func (s *CreditThenInvoiceStateMachine) ValidateInvoiceIssuedRun(_ context.Conte
 	}
 	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
 		return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
+	}
+
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:        currentRun.ID,
+		Immutable: mo.Some(true),
+	})
+	if err != nil {
+		return fmt.Errorf("marking issued realization run[%s] immutable: %w", currentRun.ID.ID, err)
+	}
+	currentRun.RealizationRunBase = runBase
+
+	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
+		return fmt.Errorf("updating issued realization run[%s]: %w", currentRun.ID.ID, err)
 	}
 
 	return nil

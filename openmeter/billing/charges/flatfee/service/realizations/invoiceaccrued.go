@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/samber/mo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
@@ -149,16 +147,6 @@ func (s *Service) AccrueInvoiceUsage(ctx context.Context, in AccrueInvoiceUsageI
 			result.AccruedUsage = &accruedUsage
 			result.Run.AccruedUsage = &accruedUsage
 		}
-
-		runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-			ID:        currentRun.ID,
-			Immutable: mo.Some(true),
-		})
-		if err != nil {
-			return AccrueInvoiceUsageResult{}, fmt.Errorf("updating standard invoice run: %w", err)
-		}
-
-		result.Run.RealizationRunBase = runBase
 
 		return result, nil
 	})

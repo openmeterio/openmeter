@@ -378,13 +378,8 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 
 		if charge.Intent.GetCurrency().IsCustom() {
 			err := transaction.RunWithNoValue(ctx, e.service.adapter, func(ctx context.Context) error {
-				if err := validatePreparedCustomCurrencyInvoiceDelete(input.Invoice, charge, line); err != nil {
+				if err := validateCustomCurrencyInvoiceLineDelete(input.Invoice, line, charge); err != nil {
 					return err
-				}
-
-				charge, err = e.cancelPreparedCustomCurrencyRun(ctx, charge)
-				if err != nil {
-					return fmt.Errorf("canceling prepared flat fee run for line[%s]: %w", line.GetID(), err)
 				}
 
 				return e.deleteLineViaAPI(ctx, input.Invoice, charge, line, *chargeID)
@@ -546,13 +541,15 @@ func (e *LineEngine) validateManualDeleteLineViaAPI(ctx context.Context, invoice
 	}
 
 	if charge.Intent.GetCurrency().IsCustom() {
-		return validatePreparedCustomCurrencyInvoiceDelete(invoice, charge, line)
+		return validateCustomCurrencyInvoiceLineDelete(invoice, line, charge)
 	}
 
 	return validateManualDeleteLine(charge, line)
 }
 
-func validatePreparedCustomCurrencyInvoiceDelete(invoice billing.GenericInvoiceReader, charge flatfee.Charge, line billing.GenericInvoiceLine) error {
+// validateCustomCurrencyInvoiceLineDelete verifies the billing-owned invoice
+// state and charge association required to delete a custom-currency line.
+func validateCustomCurrencyInvoiceLineDelete(invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine, charge flatfee.Charge) error {
 	if err := line.AsInvoiceLine().Type().Require(billing.InvoiceLineTypeStandard); err != nil {
 		return fmt.Errorf("custom-currency flat fee line[%s] must be a standard line: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
 	}
@@ -570,52 +567,19 @@ func validatePreparedCustomCurrencyInvoiceDelete(invoice billing.GenericInvoiceR
 		return fmt.Errorf("custom-currency flat fee line[%s] cannot be deleted before invoice synchronization: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
 	}
 
-	run := charge.Realizations.CurrentRun
-	if run == nil || run.LineID == nil || *run.LineID != line.GetID() || run.InvoiceID == nil || *run.InvoiceID != standardInvoice.ID {
-		return fmt.Errorf("custom-currency flat fee line[%s] must reference the current realization run: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	if standardInvoice.Namespace != charge.Namespace || line.GetLineID().Namespace != charge.Namespace {
+		return fmt.Errorf("custom-currency flat fee line[%s] namespace does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
 	}
-	if run.AccruedUsage == nil || !run.FiatOverageCreditAllocationCompleted || !run.Immutable {
-		return fmt.Errorf("custom-currency flat fee line[%s] does not have completed invoice issuance preparation: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+	if line.GetChargeID() == nil || *line.GetChargeID() != charge.ID {
+		return fmt.Errorf("custom-currency flat fee line[%s] does not match charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
 	}
-	if run.Payment != nil {
-		return fmt.Errorf("custom-currency flat fee line[%s] cannot be deleted after payment booking: %w", line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+
+	currentRun := charge.Realizations.CurrentRun
+	if currentRun == nil || currentRun.LineID == nil || *currentRun.LineID != line.GetID() || currentRun.InvoiceID == nil || *currentRun.InvoiceID != standardInvoice.ID {
+		return fmt.Errorf("custom-currency flat fee line[%s] must reference the current realization run of charge[%s]: %w", line.GetID(), charge.ID, billing.ErrCannotUpdateChargeManagedLine)
 	}
 
 	return nil
-}
-
-func (e *LineEngine) cancelPreparedCustomCurrencyRun(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
-	run := *charge.Realizations.CurrentRun
-	if err := e.service.realizations.CorrectAllCreditRealizations(ctx, flatfeerealizations.CreditReconciliationHandlerInput{
-		Charge:     charge,
-		Run:        run,
-		AllocateAt: flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod),
-	}); err != nil {
-		return flatfee.Charge{}, fmt.Errorf("correcting prepared realization run[%s]: %w", run.ID.ID, err)
-	}
-
-	if err := e.service.adapter.UpsertDetailedLines(ctx, run.ID, nil); err != nil {
-		return flatfee.Charge{}, fmt.Errorf("deleting detailed lines for prepared realization run[%s]: %w", run.ID.ID, err)
-	}
-
-	deletedAt := clock.Now()
-	runBase, err := e.service.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-		ID:        run.ID,
-		DeletedAt: mo.Some(lo.ToPtr(deletedAt)),
-	})
-	if err != nil {
-		return flatfee.Charge{}, fmt.Errorf("marking prepared realization run[%s] deleted: %w", run.ID.ID, err)
-	}
-	run.RealizationRunBase = runBase
-
-	if err := e.service.adapter.DetachCurrentRun(ctx, charge.GetChargeID()); err != nil {
-		return flatfee.Charge{}, fmt.Errorf("detaching prepared realization run[%s]: %w", run.ID.ID, err)
-	}
-
-	charge.Realizations.PriorRuns = append(charge.Realizations.PriorRuns, run)
-	charge.Realizations.CurrentRun = nil
-
-	return charge, nil
 }
 
 type manualCreatedInvoiceLine struct {
@@ -758,6 +722,9 @@ func validateManualDeleteLine(charge flatfee.Charge, line billing.GenericInvoice
 		if currentRun.Immutable {
 			return fmt.Errorf("immutable current run [charge_id=%s,run_id=%s,line_id=%s]: %w", charge.ID, currentRun.ID.ID, line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
 		}
+		if currentRun.AccruedUsage != nil {
+			return fmt.Errorf("prepared current run [charge_id=%s,run_id=%s,line_id=%s]: %w", charge.ID, currentRun.ID.ID, line.GetID(), billing.ErrCannotUpdateChargeManagedLine)
+		}
 
 		if currentRun.LineID == nil || *currentRun.LineID != line.GetID() {
 			return fmt.Errorf("line[%s]: current realization run must be attached to deleted line", line.GetID())
@@ -856,6 +823,12 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 
 		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
 			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
+		}
+
+		// Issued runs remain durable billing history when their presentation
+		// line is deleted; only reversible runs enter correction cleanup.
+		if run.Immutable {
+			continue
 		}
 
 		if run.AccruedUsage != nil {

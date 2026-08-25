@@ -184,7 +184,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
-		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.ValidateInvoiceIssuedRun))
+		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceIssuedRun))
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
@@ -338,13 +338,6 @@ func (s *CreditThenInvoiceStateMachine) ClearDeletedChargeOverride(ctx context.C
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if (s.Charge.Status == flatfee.StatusActiveRealizationProcessing ||
-		s.Charge.Status == flatfee.StatusActiveRealizationIssuing) &&
-		s.Charge.Realizations.CurrentRun != nil &&
-		s.Charge.Realizations.CurrentRun.AccruedUsage != nil {
-		return fmt.Errorf("flat fee charge[%s] cannot be deleted after invoice issuance preparation", s.Charge.ID)
-	}
-
 	deletedAt := lo.ToPtr(clock.Now())
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
@@ -368,7 +361,49 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	return nil
 }
 
+func (s *CreditThenInvoiceStateMachine) correctReversibleCurrentRun(ctx context.Context) error {
+	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun == nil || currentRun.AccruedUsage == nil || currentRun.Immutable {
+		return nil
+	}
+
+	run := *currentRun
+	if err := s.Realizations.CorrectAllCreditRealizations(ctx, flatfeerealizations.CreditReconciliationHandlerInput{
+		Charge:     s.Charge,
+		Run:        run,
+		AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod),
+	}); err != nil {
+		return fmt.Errorf("correcting prepared realization run[%s]: %w", run.ID.ID, err)
+	}
+
+	if err := s.Adapter.UpsertDetailedLines(ctx, run.ID, nil); err != nil {
+		return fmt.Errorf("deleting detailed lines for prepared realization run[%s]: %w", run.ID.ID, err)
+	}
+
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+		ID:        run.ID,
+		DeletedAt: mo.Some(lo.ToPtr(clock.Now())),
+	})
+	if err != nil {
+		return fmt.Errorf("marking prepared realization run[%s] deleted: %w", run.ID.ID, err)
+	}
+	run.RealizationRunBase = runBase
+
+	if err := s.Adapter.DetachCurrentRun(ctx, s.Charge.GetChargeID()); err != nil {
+		return fmt.Errorf("detaching prepared realization run[%s]: %w", run.ID.ID, err)
+	}
+
+	s.Charge.Realizations.PriorRuns = append(s.Charge.Realizations.PriorRuns, run)
+	s.Charge.Realizations.CurrentRun = nil
+
+	return nil
+}
+
 func (s *CreditThenInvoiceStateMachine) reconcileDeletedCharge(ctx context.Context) error {
+	if err := s.correctReversibleCurrentRun(ctx); err != nil {
+		return err
+	}
+
 	s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
 
 	if err := s.cancelCurrentRealization(ctx); err != nil {
@@ -444,6 +479,9 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 
 		if currentRun.Immutable {
 			return fmt.Errorf("immutable current run [charge_id=%s,run_id=%s]: %w", s.Charge.ID, currentRun.ID.ID, billing.ErrCannotUpdateChargeManagedLine)
+		}
+		if currentRun.AccruedUsage != nil {
+			return fmt.Errorf("prepared current run [charge_id=%s,run_id=%s]: %w", s.Charge.ID, currentRun.ID.ID, billing.ErrCannotUpdateChargeManagedLine)
 		}
 
 		if currentRun.LineID == nil || *currentRun.LineID != editedLine.GetID() {
@@ -785,9 +823,9 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 	return nil
 }
 
-// ValidateInvoiceIssuedRun verifies that invoice finalization left the current
-// run in the durable state required to accept the external issuance event.
-func (s *CreditThenInvoiceStateMachine) ValidateInvoiceIssuedRun(_ context.Context, input billing.StandardLineWithInvoiceHeader) error {
+// FinalizeInvoiceIssuedRun verifies the prepared run and marks its externally
+// issued invoice history immutable.
+func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceIssuedRun(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -806,15 +844,22 @@ func (s *CreditThenInvoiceStateMachine) ValidateInvoiceIssuedRun(_ context.Conte
 		}
 	}
 
-	if !currentRun.Immutable {
-		return fmt.Errorf("prepared realization run[%s] must be immutable", currentRun.ID.ID)
-	}
 	if currentRun.LineID == nil || *currentRun.LineID != input.Line.ID {
 		return fmt.Errorf("prepared realization run[%s] line does not match issued line[%s]", currentRun.ID.ID, input.Line.ID)
 	}
 	if currentRun.InvoiceID == nil || *currentRun.InvoiceID != input.Invoice.ID {
 		return fmt.Errorf("prepared realization run[%s] invoice does not match issued invoice[%s]", currentRun.ID.ID, input.Invoice.ID)
 	}
+
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+		ID:        currentRun.ID,
+		Immutable: mo.Some(true),
+	})
+	if err != nil {
+		return fmt.Errorf("marking issued realization run[%s] immutable: %w", currentRun.ID.ID, err)
+	}
+
+	currentRun.RealizationRunBase = runBase
 
 	return nil
 }
@@ -854,9 +899,9 @@ func (s *CreditThenInvoiceStateMachine) IsCurrentRunZeroFiatAmountOverage() bool
 	return fiatOverage.ShouldOmitInvoiceLine
 }
 
-// FinalizeZeroFiatAmountOverageRun seals the persisted current run while the
-// state machine is in zero-fiat-amount overage completion.
-func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(ctx context.Context) error {
+// FinalizeZeroFiatAmountOverageRun completes a run without crossing the
+// external invoice issuance boundary.
+func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(_ context.Context) error {
 	currentRun := s.Charge.Realizations.CurrentRun
 	if currentRun == nil {
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
@@ -871,18 +916,6 @@ func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(ctx con
 		return fmt.Errorf("current realization run %s is not a zero fiat amount overage", currentRun.ID.ID)
 	}
 
-	// Mark the run immutable because its deleted line might already belong to an
-	// issued invoice. This is safe because a zero-fiat line cannot yield a credit note, where
-	// the deleted line would be an issue.
-	runBase, err := s.Adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-		ID:        currentRun.ID,
-		Immutable: mo.Some(true),
-	})
-	if err != nil {
-		return fmt.Errorf("mark zero-fiat-amount overage run immutable: %w", err)
-	}
-
-	currentRun.RealizationRunBase = runBase
 	s.Charge.State.AdvanceAfter = nil
 
 	return nil
@@ -897,6 +930,11 @@ type reconcileInvoicingStateInput struct {
 
 func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Context, input reconcileInvoicingStateInput) error {
 	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun != nil && currentRun.AccruedUsage != nil && !currentRun.Immutable {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("cannot %s flat-fee charge %s while current realization run %s has reversible invoice preparation", input.Op, s.Charge.ID, currentRun.ID.ID),
+		)
+	}
 
 	// TODO(credit-note support): this branch is a temporary fallback for
 	// immutable invoice lines until the line updater can correct them with
@@ -994,8 +1032,8 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		)
 	}
 
-	// If the run is not immutable, we can just update the invoice standard line.
-	if !currentRun.Immutable {
+	// A mutable, non-terminal run can update its draft invoice standard line in place.
+	if !currentRun.Immutable && !s.IsCurrentRunZeroFiatAmountOverage() {
 		// Case #1: If the new amount is zero we just need to delete the old line
 		if input.NewAmountAfterProration.IsZero() {
 			s.AddInvoicePatch(invoiceupdater.NewDeleteLinePatch(
@@ -1058,7 +1096,8 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		return nil
 	}
 
-	// Final case: we have an immutable invoice, so we need to invoke the prorating path, unless the amount haven't changed
+	// Final case: externally issued and zero-fiat terminal history cannot be
+	// rerated in place, so invoke the replacement path unless the amount is unchanged.
 	if input.NewAmountAfterProration.Equal(input.OldAmountAfterProration) {
 		return nil
 	}

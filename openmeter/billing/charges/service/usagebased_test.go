@@ -553,6 +553,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 		run, err := charge.GetCurrentRealizationRun()
 		s.Require().NoError(err)
 		s.Require().NotNil(run.InvoiceUsage)
+		s.False(run.Immutable)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.InvoiceUsage.Totals)
 		s.Empty(run.FiatOverageCreditRealizations)
 		s.False(run.FiatOverageCreditAllocationCompleted)
@@ -591,6 +592,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 		s.Require().NoError(err)
 		runID = run.ID
 		s.Require().NotNil(run.InvoiceUsage)
+		s.False(run.Immutable)
 		s.Require().NotNil(run.InvoiceUsage.LedgerTransaction)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.InvoiceUsage.Totals)
 		s.True(run.FiatOverageCreditAllocationCompleted)
@@ -602,19 +604,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 		)
 
 		s.Require().NotNil(invoice.StatusDetails.AvailableActions.Delete)
-
-		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
-			ChangeSource: billing.ChangeSourceSystem,
-			Policy:       meta.RefundAsCreditsDeletePolicy,
-		})
-		s.Require().NoError(err)
-		err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
-			CustomerID: customer.GetID(),
-			PatchesByChargeID: map[string]charges.Patch{
-				chargeID.ID: deletePatch,
-			},
-		})
-		s.ErrorContains(err, "cannot be deleted after invoice issuance preparation")
 
 		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),
@@ -1691,6 +1680,7 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				realizedRun, ok := charge.Realizations.Latest()
 				s.Require().True(ok)
 				s.Equal(realizationVariant.expectedRunType, realizedRun.Type)
+				s.Equal(!test.expectLineDeleted, realizedRun.Immutable)
 				s.Equal(
 					test.onCollectionComplete.expectRunTotals.CreditsTotal,
 					realizedRun.CreditsAllocated.Sum().InexactFloat64(),
@@ -1800,6 +1790,32 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					s.True(servicePeriod.To.Equal(remainingLine.ServicePeriod.To))
 				}
 			})
+
+			if test.name == "happy path" && !realizationVariant.enableProgressiveBilling {
+				s.Run("delete issued charge without correcting immutable run", func() {
+					deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+						ChangeSource: billing.ChangeSourceSystem,
+						Policy:       meta.RefundAsCreditsDeletePolicy,
+					})
+					s.Require().NoError(err)
+					s.Require().NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+						CustomerID: customer.GetID(),
+						PatchesByChargeID: map[string]charges.Patch{
+							chargeID.ID: deletePatch,
+						},
+					}))
+
+					charge := s.mustGetUsageBasedChargeByID(chargeID)
+					s.Equal(usagebased.StatusDeleted, charge.Status)
+					s.Nil(charge.State.CurrentRealizationRunID)
+					s.Require().Len(charge.Realizations, 1)
+					run, ok := charge.Realizations.Latest()
+					s.Require().True(ok)
+					s.True(run.Immutable)
+					s.Nil(run.DeletedAt)
+					s.Require().NotNil(run.InvoiceUsage)
+				})
+			}
 		})
 	}
 }

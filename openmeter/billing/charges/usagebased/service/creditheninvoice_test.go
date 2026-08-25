@@ -563,6 +563,46 @@ func TestShrinkToRealizedPeriodFinalizesCurrentPartialRunAndPreservesChargeState
 	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
 }
 
+func TestShrinkToRealizedPeriodRejectsReversibleInvoicePreparation(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+	}
+	currentRunID := "run-1"
+	newServicePeriodTo := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	run := newUsageBasedRunForShrinkTest(currentRunID, usagebased.RealizationRunTypePartialInvoice, newServicePeriodTo)
+	run.InvoiceUsage = &invoicedusage.AccruedUsage{
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: servicePeriod.From,
+			To:   newServicePeriodTo,
+		},
+	}
+
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
+				ID:              "charge-id",
+			},
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+			Status: usagebased.StatusActiveRealizationProcessing,
+			State: usagebased.State{
+				CurrentRealizationRunID: &currentRunID,
+			},
+		},
+		Realizations: usagebased.RealizationRuns{run},
+	})
+
+	err := machine.ShrinkToRealizedPeriod(t.Context(), mustNewPatchShrinkToRealizedPeriod(t, newServicePeriodTo))
+
+	require.ErrorContains(t, err, "has reversible invoice preparation")
+	charge := machine.GetCharge()
+	require.False(t, charge.Intent.HasOverrideLayer())
+	run, err = charge.Realizations.GetByID(currentRunID)
+	require.NoError(t, err)
+	require.Equal(t, usagebased.RealizationRunTypePartialInvoice, run.Type)
+}
+
 func newCreditThenInvoiceStateMachineForTest(t *testing.T, status usagebased.Status) *CreditThenInvoiceStateMachine {
 	t.Helper()
 

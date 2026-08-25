@@ -551,7 +551,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Len(run.CreditRealizations, expectedCreditsApplied)
 				s.Len(run.DetailedLines.OrEmpty()[0].CreditsApplied, expectedCreditsApplied)
 				s.Equal(test.expectLineDeleted, run.NoFiatTransactionRequired)
-				s.Equal(test.expectLineDeleted, run.Immutable)
+				s.False(run.Immutable)
 				s.Equal(1, allocationCallback.nrInvocations)
 				s.Zero(fiatOverageAllocationInvocations)
 			})
@@ -639,7 +639,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Require().NotNil(charge.Realizations.CurrentRun)
 				s.Empty(charge.Realizations.PriorRuns)
 				run := charge.Realizations.CurrentRun
-				s.True(run.Immutable)
+				s.Equal(!test.expectLineDeleted, run.Immutable)
 
 				s.Equal(runID, run.ID.ID)
 				s.RequireTotals(test.expectRunTotals, run.Totals)
@@ -743,6 +743,31 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 					s.Nil(line.DeletedAt)
 				}
 			})
+
+			if test.name == "happy path" {
+				s.Run("delete issued charge without correcting immutable run", func() {
+					deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+						ChangeSource: billing.ChangeSourceSystem,
+						Policy:       meta.RefundAsCreditsDeletePolicy,
+					})
+					s.Require().NoError(err)
+					s.Require().NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+						CustomerID: customer.GetID(),
+						PatchesByChargeID: map[string]charges.Patch{
+							chargeID.ID: deletePatch,
+						},
+					}))
+
+					charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+					s.Equal(flatfee.StatusDeleted, charge.Status)
+					s.Nil(charge.Realizations.CurrentRun)
+					s.Require().Len(charge.Realizations.PriorRuns, 1)
+					run := charge.Realizations.PriorRuns[0]
+					s.True(run.Immutable)
+					s.Nil(run.DeletedAt)
+					s.Require().NotNil(run.AccruedUsage)
+				})
+			}
 		})
 	}
 }
@@ -966,6 +991,7 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 		s.Require().NotNil(charge.Realizations.CurrentRun)
 		run := charge.Realizations.CurrentRun
 		s.Require().NotNil(run.AccruedUsage)
+		s.False(run.Immutable)
 		s.Require().NotNil(run.AccruedUsage.LedgerTransaction)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.AccruedUsage.Totals)
 		s.False(run.FiatOverageCreditAllocationCompleted)
@@ -977,19 +1003,6 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 			DeletionSource: billing.ChangeSourceSystem,
 		})
 		s.ErrorContains(err, "invoice action not available")
-
-		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
-			ChangeSource: billing.ChangeSourceSystem,
-			Policy:       meta.RefundAsCreditsDeletePolicy,
-		})
-		s.Require().NoError(err)
-		err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
-			CustomerID: customer.GetID(),
-			PatchesByChargeID: map[string]charges.Patch{
-				chargeID.ID: deletePatch,
-			},
-		})
-		s.ErrorContains(err, "cannot be deleted after invoice issuance preparation")
 	})
 
 	returnFiatAllocationError = false
@@ -1011,6 +1024,7 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 		s.Require().NotNil(charge.Realizations.CurrentRun)
 		run := charge.Realizations.CurrentRun
 		s.Require().NotNil(run.AccruedUsage)
+		s.False(run.Immutable)
 		s.Require().NotNil(run.AccruedUsage.LedgerTransaction)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, run.AccruedUsage.Totals)
 		s.True(run.FiatOverageCreditAllocationCompleted)
@@ -1020,19 +1034,6 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 		s.Equal(float64(5), run.FiatOverageCreditRealizations[0].Amount.InexactFloat64())
 
 		s.Require().NotNil(invoice.StatusDetails.AvailableActions.Delete)
-
-		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
-			ChangeSource: billing.ChangeSourceSystem,
-			Policy:       meta.RefundAsCreditsDeletePolicy,
-		})
-		s.Require().NoError(err)
-		err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
-			CustomerID: customer.GetID(),
-			PatchesByChargeID: map[string]charges.Patch{
-				chargeID.ID: deletePatch,
-			},
-		})
-		s.ErrorContains(err, "cannot be deleted after invoice issuance preparation")
 
 		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),
@@ -2409,7 +2410,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Equal(zeroFiatServicePeriodTo, charge.Realizations.CurrentRun.ServicePeriod.To)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001}, charge.Realizations.CurrentRun.Totals)
 		s.True(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
-		s.True(charge.Realizations.CurrentRun.Immutable)
+		s.False(charge.Realizations.CurrentRun.Immutable)
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
 		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
@@ -2454,7 +2455,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Require().Len(charge.Realizations.PriorRuns, 1)
 		s.Equal(runID, charge.Realizations.PriorRuns[0].ID)
 		s.True(charge.Realizations.PriorRuns[0].NoFiatTransactionRequired)
-		s.True(charge.Realizations.PriorRuns[0].Immutable)
+		s.False(charge.Realizations.PriorRuns[0].Immutable)
 
 		gatheringLines := activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID)
 		s.Require().Len(gatheringLines, 1)
@@ -3480,7 +3481,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		s.Equal(flatfee.StatusActiveRealizationIssuing, updatedFlatFeeCharge.Status)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
 		s.Nil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage)
-		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)
+		s.False(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)
 		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
 		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), len(invoice.Lines.OrEmpty()[0].DetailedLines))
 
@@ -3500,7 +3501,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 		})
 		s.NoError(err)
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
-		s.Equal(flatfee.StatusFinal, s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID).Status)
+		updatedFlatFeeCharge = s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.Equal(flatfee.StatusFinal, updatedFlatFeeCharge.Status)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)
 	})
 }
 
@@ -3631,6 +3635,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		updatedFlatFeeCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
 		s.Equal(flatfee.StatusActiveRealizationIssuing, updatedFlatFeeCharge.Status)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.False(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage)
 		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage.LedgerTransaction)
 		s.Equal(invoiceUsageAccruedCallback.id, updatedFlatFeeCharge.Realizations.CurrentRun.AccruedUsage.LedgerTransaction.TransactionGroupID)
@@ -3646,7 +3651,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		})
 		s.NoError(err)
 		s.Equal(1, invoiceUsageAccruedCallback.nrInvocations)
-		s.Equal(flatfee.StatusActiveAwaitingPaymentSettlement, s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID).Status)
+		updatedFlatFeeCharge = s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.Equal(flatfee.StatusActiveAwaitingPaymentSettlement, updatedFlatFeeCharge.Status)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.True(updatedFlatFeeCharge.Realizations.CurrentRun.Immutable)
 	})
 }
 
@@ -4731,6 +4739,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Len(usageBasedCharge.Realizations, 1)
 
 		preparedRun := usageBasedCharge.Realizations[0]
+		s.False(preparedRun.Immutable)
 		s.Equal(float64(100), preparedRun.MeteredQuantity.InexactFloat64())
 		s.NotNil(preparedRun.LineID)
 		s.Equal(stdLineID.ID, *preparedRun.LineID)
