@@ -168,6 +168,7 @@ interface InvoicesOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   advance(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound
@@ -195,6 +196,7 @@ interface InvoicesOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   approve(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound
@@ -217,6 +219,7 @@ interface InvoicesOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   retry(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound
@@ -241,6 +244,7 @@ interface InvoicesOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   snapshotQuantities(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound

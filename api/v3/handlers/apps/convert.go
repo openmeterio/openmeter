@@ -120,6 +120,113 @@ func ToAPIBillingApp(item app.App) (api.BillingApp, error) {
 	}
 }
 
+func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []api.BillingAppCapabilityType) (api.BillingInstallAppResponse, error) {
+	if item == nil {
+		return api.BillingInstallAppResponse{}, errors.New("invalid app: nil")
+	}
+
+	response := api.BillingInstallAppResponse{}
+
+	switch item.GetType() {
+	case app.AppTypeStripe:
+		stripeApp, ok := item.(appstripe.App)
+		if !ok {
+			return response, fmt.Errorf("expected stripe app, got %T", item)
+		}
+
+		base, err := toAPIBillingAppStripe(stripeApp.Meta)
+		if err != nil {
+			return response, fmt.Errorf("failed to map stripe app to API: %w", err)
+		}
+
+		if err := response.FromBillingInstalledAppStripe(api.BillingInstalledAppStripe{
+			Id:          base.Id,
+			Type:        api.BillingInstalledAppStripeTypeStripe,
+			Name:        base.Name,
+			Status:      base.Status,
+			Definition:  base.Definition,
+			Labels:      base.Labels,
+			Description: base.Description,
+			CreatedAt:   base.CreatedAt,
+			UpdatedAt:   base.UpdatedAt,
+			DeletedAt:   base.DeletedAt,
+
+			MaskedApiKey: base.MaskedApiKey,
+			AccountId:    base.AccountId,
+			Livemode:     base.Livemode,
+
+			DefaultForCapabilityTypes: defaultForCapabilityTypes,
+		}); err != nil {
+			return response, err
+		}
+
+		return response, nil
+	case app.AppTypeSandbox:
+		sandboxApp, ok := item.(appsandbox.App)
+		if !ok {
+			return response, fmt.Errorf("expected sandbox app, got %T", item)
+		}
+
+		base, err := toAPIBillingAppSandbox(sandboxApp.Meta)
+		if err != nil {
+			return response, fmt.Errorf("failed to map sandbox app to API: %w", err)
+		}
+
+		if err := response.FromBillingInstalledAppSandbox(api.BillingInstalledAppSandbox{
+			Id:          base.Id,
+			Type:        api.BillingInstalledAppSandboxTypeSandbox,
+			Name:        base.Name,
+			Status:      base.Status,
+			Definition:  base.Definition,
+			Labels:      base.Labels,
+			Description: base.Description,
+			CreatedAt:   base.CreatedAt,
+			UpdatedAt:   base.UpdatedAt,
+			DeletedAt:   base.DeletedAt,
+
+			DefaultForCapabilityTypes: defaultForCapabilityTypes,
+		}); err != nil {
+			return response, err
+		}
+
+		return response, nil
+	case app.AppTypeCustomInvoicing:
+		customInvoicingApp, ok := item.(appcustominvoicing.App)
+		if !ok {
+			return response, fmt.Errorf("expected custom invoicing app, got %T", item)
+		}
+
+		base, err := toAPIBillingAppExternalInvoicing(customInvoicingApp.Meta)
+		if err != nil {
+			return response, fmt.Errorf("failed to map custom invoicing app to API: %w", err)
+		}
+
+		if err := response.FromBillingInstalledAppExternalInvoicing(api.BillingInstalledAppExternalInvoicing{
+			Id:          base.Id,
+			Type:        api.BillingInstalledAppExternalInvoicingTypeExternalInvoicing,
+			Name:        base.Name,
+			Status:      base.Status,
+			Definition:  base.Definition,
+			Labels:      base.Labels,
+			Description: base.Description,
+			CreatedAt:   base.CreatedAt,
+			UpdatedAt:   base.UpdatedAt,
+			DeletedAt:   base.DeletedAt,
+
+			EnableDraftSyncHook:   base.EnableDraftSyncHook,
+			EnableIssuingSyncHook: base.EnableIssuingSyncHook,
+
+			DefaultForCapabilityTypes: defaultForCapabilityTypes,
+		}); err != nil {
+			return response, err
+		}
+
+		return response, nil
+	default:
+		return response, fmt.Errorf("unsupported app type: %s", item.GetType())
+	}
+}
+
 func toAPIBillingAppSandbox(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, error) {
 	definition, err := ToAPIBillingAppCatalogItem(sandboxApp.GetListing())
 	if err != nil {
@@ -189,14 +296,4 @@ func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta
 		EnableDraftSyncHook:   customInvoicingApp.Configuration.EnableDraftSyncHook,
 		EnableIssuingSyncHook: customInvoicingApp.Configuration.EnableIssuingSyncHook,
 	}, nil
-}
-
-// MustToAPIBillingAppCapabilityTypeFromCapabilityType is the strict version of the ToAPIBillingAppCapabilityTypeFromCapabilityType
-// use it with caution, only for constant mapping and/or testing
-func MustToAPIBillingAppCapabilityTypeFromCapabilityType(source app.CapabilityType) api.BillingAppCapabilityType {
-	result, err := ToAPIBillingAppCapabilityTypeFromCapabilityType(source)
-	if err != nil {
-		panic(fmt.Errorf("unable to convert capability type: %w", err))
-	}
-	return result
 }

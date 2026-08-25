@@ -6,8 +6,6 @@ import { paginatePages } from '../lib/paginate.js'
 import { voidCreditGrant } from '../funcs/customers.js'
 import { createSubscriptionAddon } from '../funcs/subscriptions.js'
 import {
-  listApps,
-  getApp,
   uninstallApp,
   updateApp,
   listAppCatalog,
@@ -42,10 +40,6 @@ import type {
   CreateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
 import type {
-  ListAppsRequest,
-  ListAppsResponse,
-  GetAppRequest,
-  GetAppResponse,
   UninstallAppRequest,
   UninstallAppResponse,
   UpdateAppRequest,
@@ -96,7 +90,6 @@ import type {
   QueryEntitlementAccessResponse,
 } from '../models/operations/entitlementAccess.js'
 import type {
-  App,
   AppCatalogItem,
   CostBasis,
   Currency,
@@ -214,54 +207,6 @@ export class InternalSubscriptions {
 
 export class InternalApps {
   constructor(private readonly _client: Client) {}
-
-  /**
-   * List apps
-   *
-   * List installed apps.
-   *
-   * GET /openmeter/apps
-   */
-  async list(
-    request?: ListAppsRequest,
-    options?: RequestOptions,
-  ): Promise<ListAppsResponse> {
-    return unwrap(await listApps(this._client, request, options))
-  }
-
-  /**
-   * List apps
-   *
-   * List installed apps.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/apps
-   */
-  listAll(
-    request?: ListAppsRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<App> {
-    return paginatePages(
-      (req, opts) => listApps(this._client, req, opts),
-      request ?? {},
-      options,
-    )
-  }
-
-  /**
-   * Get app
-   *
-   * Get an installed app.
-   *
-   * GET /openmeter/apps/{appId}
-   */
-  async get(
-    request: GetAppRequest,
-    options?: RequestOptions,
-  ): Promise<GetAppResponse> {
-    return unwrap(await getApp(this._client, request, options))
-  }
 
   /**
    * Uninstall app

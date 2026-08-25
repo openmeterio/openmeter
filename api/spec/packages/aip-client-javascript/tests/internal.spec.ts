@@ -27,36 +27,31 @@ describe('internal sub-client', () => {
     const sdk = client()
     expect(sdk.internal).toBe(sdk.internal)
     // x-internal operations must not leak onto the public sub-clients.
-    expect('createAddon' in sdk.subscriptions).toBe(false)
+    expect('void' in sdk.customers.credits.grants).toBe(false)
     // Entirely-internal groups have no public getter at all.
     expect('currencies' in sdk).toBe(false)
   })
 
-  it('routes internal.subscriptions.createAddon() to the subscription addons resource', async () => {
+  it('routes internal.customers.credits.grants.void() to the credit grant void action', async () => {
     fetchMock.route('*', {
       body: {
-        id: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-        name: 'Addon',
-        addon: { id: '01ARZ3NDEKTSV4RRFFQ69G5FAW' },
-        quantity: 1,
-        quantity_at: '2024-01-01T00:00:00Z',
-        active_from: '2024-01-01T00:00:00Z',
-        rate_cards: [],
+        id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+        name: 'Grant',
+        funding_method: 'none',
+        currency: 'USD',
+        amount: '100',
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       },
       headers: { 'Content-Type': 'application/json' },
     })
-    await client().internal.subscriptions.createAddon({
-      subscriptionId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-      body: {
-        addon: { id: '01ARZ3NDEKTSV4RRFFQ69G5FAW' },
-        quantity: 1,
-        timing: 'immediate',
-      },
+    await client().internal.customers.credits.grants.void({
+      customerId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      creditGrantId: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+      body: {},
     })
     expect(lastUrl()).toBe(
-      'https://eu.api.konghq.com/v3/openmeter/subscriptions/01ARZ3NDEKTSV4RRFFQ69G5FAV/addons',
+      'https://eu.api.konghq.com/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/credits/grants/01ARZ3NDEKTSV4RRFFQ69G5FAW/void',
     )
   })
 

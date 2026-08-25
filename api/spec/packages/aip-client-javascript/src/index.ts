@@ -6,6 +6,7 @@ export { Meters } from './sdk/meters.js'
 export { Customers } from './sdk/customers.js'
 export { Entitlements } from './sdk/entitlements.js'
 export { Subscriptions } from './sdk/subscriptions.js'
+export { Apps } from './sdk/apps.js'
 export { Billing } from './sdk/billing.js'
 export { Tax } from './sdk/tax.js'
 export { Features } from './sdk/features.js'
@@ -298,6 +299,9 @@ export type {
   AppSandbox,
   AppExternalInvoicing,
   AppCatalogItemPagePaginatedResponse,
+  InstalledAppStripe,
+  InstalledAppSandbox,
+  InstalledAppExternalInvoicing,
   InvoiceWorkflowSettings,
   InvoiceDetailedLine,
   UpdateInvoiceWorkflowSettings,
@@ -319,7 +323,6 @@ export type {
   FeaturePagePaginatedResponse,
   Workflow,
   AppPagePaginatedResponse,
-  BillingInstallAppResponse,
   ProfileApps,
   ChargeUsageBased,
   SubscriptionItem,
@@ -366,6 +369,7 @@ export type {
   Price,
   UpdatePrice,
   App,
+  BillingInstallAppResponse,
   CreateChargeRequest,
   Charge,
   InvoiceLine,

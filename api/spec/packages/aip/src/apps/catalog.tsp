@@ -149,10 +149,29 @@ model InstallAppWithApiKey<T extends AppType> {
  * Response of the app install.
  */
 @friendlyName("BillingInstallAppResponse")
-model InstallAppResponse {
-  @visibility(Lifecycle.Read)
-  app: App;
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union InstallAppResponse {
+  @summary("Stripe")
+  stripe: InstalledApp<AppStripe>,
 
+  @summary("Sandbox")
+  sandbox: InstalledApp<AppSandbox>,
+
+  @summary("External Invoicing")
+  external_invoicing: InstalledApp<AppExternalInvoicing>,
+}
+
+/**
+ * Response of an installed app.
+ */
+@friendlyName("BillingInstalled{name}", T)
+@withVisibility(Lifecycle.Read)
+model InstalledApp<T extends {}> {
+  ...T;
+
+  /**
+   * Default capabilities of the installed app.
+   */
   @visibility(Lifecycle.Read)
   default_for_capability_types: AppCapabilityType[];
 }

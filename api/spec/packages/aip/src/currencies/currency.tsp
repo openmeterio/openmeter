@@ -46,6 +46,7 @@ union Currency {
  */
 @friendlyName("BillingCurrencyCode")
 @extension("x-go-type", "string")
+@oneOf
 union CurrencyCode {
   Shared.CurrencyCode,
   CurrencyCodeCustom,

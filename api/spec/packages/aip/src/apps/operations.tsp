@@ -22,9 +22,6 @@ interface AppsOperations {
   @get
   @operationId("list-apps")
   @summary("List apps")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   list(...Common.PagePaginationQuery):
     | Shared.PagePaginatedResponse<App>
     | Common.ErrorResponses;
@@ -35,9 +32,6 @@ interface AppsOperations {
   @get
   @operationId("get-app")
   @summary("Get app")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   get(@path appId: Shared.ULID):
     | Shared.GetResponse<App>
     | Common.NotFound
@@ -113,6 +107,7 @@ interface AppCatalogOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   install(@body body: InstallAppRequest):
     | Shared.CreateResponse<InstallAppResponse>
     | Common.ErrorResponses;
