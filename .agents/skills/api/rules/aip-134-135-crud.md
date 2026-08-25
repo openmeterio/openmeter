@@ -72,6 +72,19 @@ Two things stay out of the replace surface:
   path, or they will clear everything the caller did not repeat. Give them their own named
   adapter method — see `UpdatePlanEffectivePeriod` / `UpdateAddonEffectivePeriod`.
 
+This is the default, so **do not comment it**. Do not explain in code that a field is
+cleared because PUT replaces, that `SetOrClear` is used instead of `SetNillable`, or that
+`Equal()`/`applyTo` are presence-aware. Comment only deviations: a field that is
+deliberately merged, or a nil that means "leave alone" rather than "clear".
+
+Tests to add with the change:
+
+- Handler: an omitted field maps to its zero/nil value (a plain converter test — no
+  `given`/`when`/`then` narration).
+- Adapter: an update that omits a field clears it in the returned entity **and** on
+  re-read.
+- Lifecycle operations (publish, archive, …): unrelated fields survive.
+
 The one deliberate exception is a write-only credential with no cleared state, such as the
 Stripe app's `secret_api_key`: make the field **required** so nothing silently persists,
 rather than clearing a key the app cannot run without.
