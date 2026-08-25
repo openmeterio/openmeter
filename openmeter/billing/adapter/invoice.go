@@ -737,16 +737,6 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 			return billing.StandardInvoice{}, err
 		}
 
-		hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines.AsGenericLines())
-		if err != nil {
-			return billing.StandardInvoice{}, err
-		}
-
-		mappedLines, err = withSplitLineHierarchyForLines[*billing.StandardLine](mappedLines, hierarchyByLineID)
-		if err != nil {
-			return billing.StandardInvoice{}, err
-		}
-
 		res.Lines = billing.NewStandardInvoiceLines(mappedLines)
 	}
 
