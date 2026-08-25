@@ -327,6 +327,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingInstallAppRequest'
+      x-rpc-endpoint: true
       x-private: true
       x-internal: true
       x-unstable: true

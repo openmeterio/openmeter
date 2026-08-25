@@ -48,3 +48,5 @@ const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 // The functionality is private and should not be exposed to customers.
 const PrivateExtension = "x-private";
+// The endpoint is POST and doesn't follow the REST API syntax
+const RPCEndpointExtension = "x-rpc-endpoint";

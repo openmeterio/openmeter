@@ -113,6 +113,7 @@ interface AppCatalogOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   install(@body body: InstallAppRequest):
     | Shared.CreateResponse<InstallAppResponse>
     | Common.ErrorResponses;
