@@ -3,8 +3,10 @@ package reconciler
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
@@ -96,33 +98,33 @@ func (c *lineHierarchyPatchCollection) AddShrink(uniqueID string, existing persi
 		}
 
 		if !child.Line.GetServicePeriod().To.Equal(expectedLine.ServicePeriod.To) {
-			updatedLine, err := child.Line.CloneWithoutChildren()
-			if err != nil {
-				return fmt.Errorf("cloning child: %w", err)
+			updatedPeriod := child.Line.GetServicePeriod()
+			updatedPeriod.To = expectedLine.ServicePeriod.To
+			updateInput := invoiceupdater.NewUpdateLinePatchInput{
+				Line:          child.Line.GetLineID(),
+				InvoiceID:     child.Line.GetInvoiceID(),
+				ServicePeriod: mo.Some(updatedPeriod),
 			}
-
-			updatedLine.UpdateServicePeriod(func(p *timeutil.ClosedPeriod) {
-				p.To = expectedLine.ServicePeriod.To
-			})
 
 			if child.Invoice.AsInvoice().Type() == billing.InvoiceTypeGathering {
-				invoiceAtAccessor, ok := updatedLine.(billing.InvoiceAtAccessor)
-				if !ok {
-					return fmt.Errorf("last child is not an invoice at accessor: %T", updatedLine)
-				}
-				invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
+				updateInput.InvoiceAt = mo.Some(expectedLine.InvoiceAt)
 			}
 
-			if updatedLine.GetManagedBy() == billing.SubscriptionManagedLine {
-				updatedLine.SetDeletedAt(nil)
+			if child.Line.GetManagedBy() == billing.SubscriptionManagedLine && child.Line.GetDeletedAt() != nil {
+				updateInput.DeletedAt = mo.Some[*time.Time](nil)
 			}
 
-			if updatedLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
+			if updatedPeriod.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 				patches = append(patches, invoiceupdater.NewDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
 				continue
 			}
 
-			patches = append(patches, invoiceupdater.NewUpdateLinePatch(updatedLine))
+			patch, err := invoiceupdater.NewUpdateLinePatch(updateInput)
+			if err != nil {
+				return fmt.Errorf("creating update line patch: %w", err)
+			}
+
+			patches = append(patches, patch)
 		}
 	}
 
@@ -158,34 +160,34 @@ func (c *lineHierarchyPatchCollection) AddExtend(existing persistedstate.Item, t
 	patches := make([]invoiceupdater.Patch, 0, 2)
 
 	if len(existingHierarchy.Lines) > 0 {
-		lines := existingHierarchy.Lines
+		lines := slices.Clone(existingHierarchy.Lines)
 		slices.SortFunc(lines, func(i, j billing.LineWithInvoiceHeader) int {
 			return timeutil.Compare(i.Line.GetServicePeriod().To, j.Line.GetServicePeriod().To)
 		})
 
-		lastChild, err := lines[len(lines)-1].Line.CloneWithoutChildren()
+		lastChild := lines[len(lines)-1]
+		updatedPeriod := lastChild.Line.GetServicePeriod()
+		updatedPeriod.To = expectedLine.ServicePeriod.To
+		updateInput := invoiceupdater.NewUpdateLinePatchInput{
+			Line:          lastChild.Line.GetLineID(),
+			InvoiceID:     lastChild.Line.GetInvoiceID(),
+			ServicePeriod: mo.Some(updatedPeriod),
+		}
+
+		if lastChild.Line.GetManagedBy() == billing.SubscriptionManagedLine && lastChild.Line.GetDeletedAt() != nil {
+			updateInput.DeletedAt = mo.Some[*time.Time](nil)
+		}
+
+		if lastChild.Invoice.AsInvoice().Type() == billing.InvoiceTypeGathering {
+			updateInput.InvoiceAt = mo.Some(expectedLine.InvoiceAt)
+		}
+
+		patch, err := invoiceupdater.NewUpdateLinePatch(updateInput)
 		if err != nil {
-			return fmt.Errorf("cloning last child: %w", err)
+			return fmt.Errorf("creating update line patch: %w", err)
 		}
 
-		if lastChild.GetManagedBy() == billing.SubscriptionManagedLine {
-			lastChild.SetDeletedAt(nil)
-		}
-
-		lastChild.UpdateServicePeriod(func(p *timeutil.ClosedPeriod) {
-			p.To = expectedLine.ServicePeriod.To
-		})
-
-		if lines[len(lines)-1].Invoice.AsInvoice().Type() == billing.InvoiceTypeGathering {
-			invoiceAtAccessor, ok := lastChild.(billing.InvoiceAtAccessor)
-			if !ok {
-				return fmt.Errorf("last child is not an invoice at accessor: %T", lastChild)
-			}
-
-			invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
-		}
-
-		patches = append(patches, invoiceupdater.NewUpdateLinePatch(lastChild))
+		patches = append(patches, patch)
 	}
 
 	updatedGroup := existingHierarchy.Group.ToUpdate()
