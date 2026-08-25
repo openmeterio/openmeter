@@ -175,6 +175,7 @@ interface SubscriptionAddonOperations {
   @operationId("create-subscription-addon")
   @summary("Create a new subscription add-on")
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   create(
     @path subscriptionId: Shared.ULID,
     @body request: Shared.CreateRequest<SubscriptionAddon>,

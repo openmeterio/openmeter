@@ -27,7 +27,6 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Subscriptions](#subscriptions)
   - [Apps](#apps)
   - [Billing](#billing)
-  - [Invoices](#invoices)
   - [Tax](#tax)
   - [Features](#features)
   - [LLMCost](#llmcost)
@@ -37,7 +36,11 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Defaults](#defaults)
 - [Internal Operations](#internal-operations)
   - [Internal Customers](#internal-customers)
+  - [Internal Subscriptions](#internal-subscriptions)
+  - [Internal Apps](#internal-apps)
+  - [Internal Invoices](#internal-invoices)
   - [Internal Currencies](#internal-currencies)
+  - [Internal PlanAddons](#internal-planaddons)
   - [Internal EntitlementAccess](#internal-entitlementaccess)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
@@ -317,21 +320,15 @@ The full call path, HTTP route, and a short description are listed below.
 | `client.subscriptions.cancel`                | `POST /openmeter/subscriptions/{subscriptionId}/cancel`                      | Cancels the subscription. Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time. |
 | `client.subscriptions.unscheduleCancelation` | `POST /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation`      | Unschedules the subscription cancelation.                                                                                                      |
 | `client.subscriptions.change`                | `POST /openmeter/subscriptions/{subscriptionId}/change`                      | Closes a running subscription and starts a new one according to the specification. Can be used for upgrades, downgrades, and plan changes.     |
-| `client.subscriptions.createAddon`           | `POST /openmeter/subscriptions/{subscriptionId}/addons`                      | Add add-on to a subscription.                                                                                                                  |
 | `client.subscriptions.listAddons`            | `GET /openmeter/subscriptions/{subscriptionId}/addons`                       | List the add-ons of a subscription.                                                                                                            |
 | `client.subscriptions.getAddon`              | `GET /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}` | Get an add-on association for a subscription.                                                                                                  |
 
 ### Apps
 
-| Method                       | HTTP                                   | Description                      |
-| ---------------------------- | -------------------------------------- | -------------------------------- |
-| `client.apps.list`           | `GET /openmeter/apps`                  | List installed apps.             |
-| `client.apps.get`            | `GET /openmeter/apps/{appId}`          | Get an installed app.            |
-| `client.apps.uninstall`      | `DELETE /openmeter/apps/{appId}`       | Uninstall an app by ID.          |
-| `client.apps.update`         | `PUT /openmeter/apps/{appId}`          | Update an installed app.         |
-| `client.apps.listCatalog`    | `GET /openmeter/app-catalog`           | List available apps.             |
-| `client.apps.getCatalogItem` | `GET /openmeter/app-catalog/{appType}` | Get an app catalog item by type. |
-| `client.apps.install`        | `POST /openmeter/app-catalog/install`  | Install an app from the catalog. |
+| Method             | HTTP                          | Description           |
+| ------------------ | ----------------------------- | --------------------- |
+| `client.apps.list` | `GET /openmeter/apps`         | List installed apps.  |
+| `client.apps.get`  | `GET /openmeter/apps/{appId}` | Get an installed app. |
 
 ### Billing
 
@@ -342,19 +339,6 @@ The full call path, HTTP route, and a short description are listed below.
 | `client.billing.getProfile`    | `GET /openmeter/profiles/{id}`    | Get a billing profile.                                                                                                                                                                                                                                                                                                   |
 | `client.billing.updateProfile` | `PUT /openmeter/profiles/{id}`    | Update a billing profile.                                                                                                                                                                                                                                                                                                |
 | `client.billing.deleteProfile` | `DELETE /openmeter/profiles/{id}` | Delete a billing profile. Only such billing profiles can be deleted that are: - not the default profile - not pinned to any customer using customer overrides - only have finalized invoices                                                                                                                             |
-
-### Invoices
-
-| Method                               | HTTP                                                               | Description                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.invoices.list`               | `GET /openmeter/billing/invoices`                                  | List billing invoices. Returns a page of invoices. Gathering invoices are never included. Use `filter` to narrow by status, customer, dates, or service period start. Use `sort` to control ordering.                                                                                                                                                                                                                 |
-| `client.invoices.get`                | `GET /openmeter/billing/invoices/{invoiceId}`                      | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot.                                                                                                                                                                                                                                                                     |
-| `client.invoices.update`             | `PUT /openmeter/billing/invoices/{invoiceId}`                      | Update a billing invoice. Only the mutable fields of the invoice can be edited: description, labels, supplier, customer, workflow settings, and top-level lines. Top-level lines are matched by `id`; lines without an `id` are created, and existing lines omitted from `lines` are deleted. Detailed (child) lines are always computed and cannot be edited directly. Only invoices in draft status can be updated. |
-| `client.invoices.delete`             | `DELETE /openmeter/billing/invoices/{invoiceId}`                   | Delete a billing invoice. Only standard invoices in draft status can be deleted. Deleting an invoice will also delete all associated line items and workflow configuration.                                                                                                                                                                                                                                           |
-| `client.invoices.advance`            | `POST /openmeter/billing/invoices/{invoiceId}/advance`             | Advance a billing invoice. Advances the invoice to the next workflow state. The next state is determined by the invoice's current status and workflow configuration. Only invoices in draft or issued status can be advanced.                                                                                                                                                                                         |
-| `client.invoices.approve`            | `POST /openmeter/billing/invoices/{invoiceId}/approve`             | Approve a billing invoice. This call instantly sends the invoice to the customer using the configured billing profile app. This call is valid in two invoice statuses: - draft: the invoice will be sent to the customer, the invoice state becomes issued - manual_approval_needed: the invoice will be sent to the customer, the invoice state becomes issued                                                       |
-| `client.invoices.retry`              | `POST /openmeter/billing/invoices/{invoiceId}/retry`               | Retry sending a billing invoice. Retry advancing the invoice after a failed attempt. The action can be called when the invoice's statusDetails' actions field contain the "retry" action.                                                                                                                                                                                                                             |
-| `client.invoices.snapshotQuantities` | `POST /openmeter/billing/invoices/{invoiceId}/snapshot-quantities` | Snapshot quantities for usage-based line items. This call will snapshot the quantities for all usage based line items in the invoice. This call is only valid in draft.waiting_for_collection status, where the collection period can be skipped using this action.                                                                                                                                                   |
 
 ### Tax
 
@@ -415,7 +399,6 @@ The full call path, HTTP route, and a short description are listed below.
 
 | Method                     | HTTP                                                    | Description                              |
 | -------------------------- | ------------------------------------------------------- | ---------------------------------------- |
-| `client.planAddons.list`   | `GET /openmeter/plans/{planId}/addons`                  | List add-ons associated with a plan.     |
 | `client.planAddons.create` | `POST /openmeter/plans/{planId}/addons`                 | Add an add-on to a plan.                 |
 | `client.planAddons.get`    | `GET /openmeter/plans/{planId}/addons/{planAddonId}`    | Get an add-on association for a plan.    |
 | `client.planAddons.update` | `PUT /openmeter/plans/{planId}/addons/{planAddonId}`    | Update an add-on association for a plan. |
@@ -441,6 +424,35 @@ they can change or be removed without notice or semver consideration.
 | ----------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `client.internal.customers.credits.grants.void` | `POST /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void` | Void a credit grant, forfeiting the remaining unused balance. Voiding is a forward-looking, irreversible operation. Credits already consumed by usage remain unaffected — only the remaining balance is forfeited. The grant reads as `voided` status afterwards. Payment state is not adjusted when `payment_adjustment` is `none`, so invoice-backed or externally collected payments may still collect the original amount. Only `active` grants can be voided; voiding a pending, expired, or fully consumed grant returns a conflict. Retrying a successful void is an idempotent success. |
 
+### Internal Subscriptions
+
+| Method                                      | HTTP                                                    | Description                   |
+| ------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
+| `client.internal.subscriptions.createAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons` | Add add-on to a subscription. |
+
+### Internal Apps
+
+| Method                                | HTTP                                   | Description                      |
+| ------------------------------------- | -------------------------------------- | -------------------------------- |
+| `client.internal.apps.uninstall`      | `DELETE /openmeter/apps/{appId}`       | Uninstall an app by ID.          |
+| `client.internal.apps.update`         | `PUT /openmeter/apps/{appId}`          | Update an installed app.         |
+| `client.internal.apps.listCatalog`    | `GET /openmeter/app-catalog`           | List available apps.             |
+| `client.internal.apps.getCatalogItem` | `GET /openmeter/app-catalog/{appType}` | Get an app catalog item by type. |
+| `client.internal.apps.install`        | `POST /openmeter/app-catalog/install`  | Install an app from the catalog. |
+
+### Internal Invoices
+
+| Method                                        | HTTP                                                               | Description                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.invoices.list`               | `GET /openmeter/billing/invoices`                                  | List billing invoices. Returns a page of invoices. Gathering invoices are never included. Use `filter` to narrow by status, customer, dates, or service period start. Use `sort` to control ordering.                                                                                                                                                                                                                 |
+| `client.internal.invoices.get`                | `GET /openmeter/billing/invoices/{invoiceId}`                      | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot.                                                                                                                                                                                                                                                                     |
+| `client.internal.invoices.update`             | `PUT /openmeter/billing/invoices/{invoiceId}`                      | Update a billing invoice. Only the mutable fields of the invoice can be edited: description, labels, supplier, customer, workflow settings, and top-level lines. Top-level lines are matched by `id`; lines without an `id` are created, and existing lines omitted from `lines` are deleted. Detailed (child) lines are always computed and cannot be edited directly. Only invoices in draft status can be updated. |
+| `client.internal.invoices.delete`             | `DELETE /openmeter/billing/invoices/{invoiceId}`                   | Delete a billing invoice. Only standard invoices in draft status can be deleted. Deleting an invoice will also delete all associated line items and workflow configuration.                                                                                                                                                                                                                                           |
+| `client.internal.invoices.advance`            | `POST /openmeter/billing/invoices/{invoiceId}/advance`             | Advance a billing invoice. Advances the invoice to the next workflow state. The next state is determined by the invoice's current status and workflow configuration. Only invoices in draft or issued status can be advanced.                                                                                                                                                                                         |
+| `client.internal.invoices.approve`            | `POST /openmeter/billing/invoices/{invoiceId}/approve`             | Approve a billing invoice. This call instantly sends the invoice to the customer using the configured billing profile app. This call is valid in two invoice statuses: - draft: the invoice will be sent to the customer, the invoice state becomes issued - manual_approval_needed: the invoice will be sent to the customer, the invoice state becomes issued                                                       |
+| `client.internal.invoices.retry`              | `POST /openmeter/billing/invoices/{invoiceId}/retry`               | Retry sending a billing invoice. Retry advancing the invoice after a failed attempt. The action can be called when the invoice's statusDetails' actions field contain the "retry" action.                                                                                                                                                                                                                             |
+| `client.internal.invoices.snapshotQuantities` | `POST /openmeter/billing/invoices/{invoiceId}/snapshot-quantities` | Snapshot quantities for usage-based line items. This call will snapshot the quantities for all usage based line items in the invoice. This call is only valid in draft.waiting_for_collection status, where the collection period can be skipped using this action.                                                                                                                                                   |
+
 ### Internal Currencies
 
 | Method                                            | HTTP                                                        | Description                                                                                                                    |
@@ -450,6 +462,12 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.currencies.getCustomCurrency`    | `GET /openmeter/currencies/custom/{currencyId}`             | Get a custom currency.                                                                                                         |
 | `client.internal.currencies.listCostBases`        | `GET /openmeter/currencies/custom/{currencyId}/cost-bases`  | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates. |
 | `client.internal.currencies.createCostBasis`      | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency.                                                                                            |
+
+### Internal PlanAddons
+
+| Method                            | HTTP                                   | Description                          |
+| --------------------------------- | -------------------------------------- | ------------------------------------ |
+| `client.internal.planAddons.list` | `GET /openmeter/plans/{planId}/addons` | List add-ons associated with a plan. |
 
 ### Internal EntitlementAccess
 

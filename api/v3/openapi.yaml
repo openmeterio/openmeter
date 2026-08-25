@@ -298,6 +298,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/app-catalog/install:
     post:
@@ -326,6 +328,8 @@ paths:
             schema:
               $ref: '#/components/schemas/BillingInstallAppRequest'
       x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/app-catalog/{appType}:
     get:
@@ -355,6 +359,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/apps:
     get:
@@ -429,6 +435,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
       x-unstable: true
     put:
       operationId: update-app
@@ -463,6 +471,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingUpdateAppRequest'
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/billing/invoices:
     get:
@@ -521,6 +531,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}:
     get:
@@ -554,6 +566,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
       x-unstable: true
     put:
       operationId: update-invoice
@@ -595,6 +609,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateInvoiceRequest'
+      x-private: true
+      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-invoice
@@ -623,6 +639,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/advance:
     post:
@@ -658,6 +676,8 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/approve:
     post:
@@ -699,6 +719,8 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/retry:
     post:
@@ -735,6 +757,8 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/snapshot-quantities:
     post:
@@ -774,6 +798,8 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/currencies:
     get:
@@ -2744,6 +2770,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
+      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan-addon
@@ -3220,6 +3247,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
+      x-internal: true
       x-unstable: true
     get:
       operationId: list-subscription-addons

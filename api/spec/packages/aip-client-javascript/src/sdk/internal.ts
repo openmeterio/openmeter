@@ -4,6 +4,24 @@ import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import { voidCreditGrant } from '../funcs/customers.js'
+import { createSubscriptionAddon } from '../funcs/subscriptions.js'
+import {
+  uninstallApp,
+  updateApp,
+  listAppCatalog,
+  getAppCatalogItem,
+  installApp,
+} from '../funcs/apps.js'
+import {
+  listInvoices,
+  getInvoice,
+  updateInvoice,
+  deleteInvoice,
+  advanceInvoice,
+  approveInvoice,
+  retryInvoice,
+  snapshotQuantitiesInvoice,
+} from '../funcs/invoices.js'
 import {
   listCurrencies,
   createCustomCurrency,
@@ -11,11 +29,46 @@ import {
   listCostBases,
   createCostBasis,
 } from '../funcs/currencies.js'
+import { listPlanAddons } from '../funcs/planAddons.js'
 import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
 import type {
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
 } from '../models/operations/customers.js'
+import type {
+  CreateSubscriptionAddonRequest,
+  CreateSubscriptionAddonResponse,
+} from '../models/operations/subscriptions.js'
+import type {
+  UninstallAppRequest,
+  UninstallAppResponse,
+  UpdateAppRequest,
+  UpdateAppResponse,
+  ListAppCatalogRequest,
+  ListAppCatalogResponse,
+  GetAppCatalogItemRequest,
+  GetAppCatalogItemResponse,
+  InstallAppRequest,
+  InstallAppResponse,
+} from '../models/operations/apps.js'
+import type {
+  ListInvoicesRequest,
+  ListInvoicesResponse,
+  GetInvoiceRequest,
+  GetInvoiceResponse,
+  UpdateInvoiceRequest,
+  UpdateInvoiceResponse,
+  DeleteInvoiceRequest,
+  DeleteInvoiceResponse,
+  AdvanceInvoiceRequest,
+  AdvanceInvoiceResponse,
+  ApproveInvoiceRequest,
+  ApproveInvoiceResponse,
+  RetryInvoiceRequest,
+  RetryInvoiceResponse,
+  SnapshotQuantitiesInvoiceRequest,
+  SnapshotQuantitiesInvoiceResponse,
+} from '../models/operations/invoices.js'
 import type {
   ListCurrenciesRequest,
   ListCurrenciesResponse,
@@ -29,10 +82,20 @@ import type {
   CreateCostBasisResponse,
 } from '../models/operations/currencies.js'
 import type {
+  ListPlanAddonsRequest,
+  ListPlanAddonsResponse,
+} from '../models/operations/planAddons.js'
+import type {
   QueryEntitlementAccessRequest,
   QueryEntitlementAccessResponse,
 } from '../models/operations/entitlementAccess.js'
-import type { CostBasis, Currency } from '../models/types.js'
+import type {
+  AppCatalogItem,
+  CostBasis,
+  Currency,
+  Invoice,
+  PlanAddon,
+} from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -47,9 +110,29 @@ export class Internal {
     return (this._customers ??= new InternalCustomers(this._client))
   }
 
+  private _subscriptions?: InternalSubscriptions
+  get subscriptions(): InternalSubscriptions {
+    return (this._subscriptions ??= new InternalSubscriptions(this._client))
+  }
+
+  private _apps?: InternalApps
+  get apps(): InternalApps {
+    return (this._apps ??= new InternalApps(this._client))
+  }
+
+  private _invoices?: InternalInvoices
+  get invoices(): InternalInvoices {
+    return (this._invoices ??= new InternalInvoices(this._client))
+  }
+
   private _currencies?: InternalCurrencies
   get currencies(): InternalCurrencies {
     return (this._currencies ??= new InternalCurrencies(this._client))
+  }
+
+  private _planAddons?: InternalPlanAddons
+  get planAddons(): InternalPlanAddons {
+    return (this._planAddons ??= new InternalPlanAddons(this._client))
   }
 
   private _entitlementAccess?: InternalEntitlementAccess
@@ -101,6 +184,301 @@ export class InternalCustomersCreditsGrants {
     options?: RequestOptions,
   ): Promise<VoidCreditGrantResponse> {
     return unwrap(await voidCreditGrant(this._client, request, options))
+  }
+}
+
+export class InternalSubscriptions {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Create a new subscription add-on
+   *
+   * Add add-on to a subscription.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/addons
+   */
+  async createAddon(
+    request: CreateSubscriptionAddonRequest,
+    options?: RequestOptions,
+  ): Promise<CreateSubscriptionAddonResponse> {
+    return unwrap(await createSubscriptionAddon(this._client, request, options))
+  }
+}
+
+export class InternalApps {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Uninstall app
+   *
+   * Uninstall an app by ID.
+   *
+   * DELETE /openmeter/apps/{appId}
+   */
+  async uninstall(
+    request: UninstallAppRequest,
+    options?: RequestOptions,
+  ): Promise<UninstallAppResponse> {
+    return unwrap(await uninstallApp(this._client, request, options))
+  }
+
+  /**
+   * Update app
+   *
+   * Update an installed app.
+   *
+   * PUT /openmeter/apps/{appId}
+   */
+  async update(
+    request: UpdateAppRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateAppResponse> {
+    return unwrap(await updateApp(this._client, request, options))
+  }
+
+  /**
+   * List app catalog
+   *
+   * List available apps.
+   *
+   * GET /openmeter/app-catalog
+   */
+  async listCatalog(
+    request?: ListAppCatalogRequest,
+    options?: RequestOptions,
+  ): Promise<ListAppCatalogResponse> {
+    return unwrap(await listAppCatalog(this._client, request, options))
+  }
+
+  /**
+   * List app catalog
+   *
+   * List available apps.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/app-catalog
+   */
+  listCatalogAll(
+    request?: ListAppCatalogRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<AppCatalogItem> {
+    return paginatePages(
+      (req, opts) => listAppCatalog(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get app catalog item by type
+   *
+   * Get an app catalog item by type.
+   *
+   * GET /openmeter/app-catalog/{appType}
+   */
+  async getCatalogItem(
+    request: GetAppCatalogItemRequest,
+    options?: RequestOptions,
+  ): Promise<GetAppCatalogItemResponse> {
+    return unwrap(await getAppCatalogItem(this._client, request, options))
+  }
+
+  /**
+   * Install app from the catalog
+   *
+   * Install an app from the catalog.
+   *
+   * POST /openmeter/app-catalog/install
+   */
+  async install(
+    request: InstallAppRequest,
+    options?: RequestOptions,
+  ): Promise<InstallAppResponse> {
+    return unwrap(await installApp(this._client, request, options))
+  }
+}
+
+export class InternalInvoices {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List billing invoices
+   *
+   * List billing invoices.
+   *
+   * Returns a page of invoices. Gathering invoices are never included. Use `filter`
+   * to narrow by status, customer, dates, or service period start. Use `sort` to
+   * control ordering.
+   *
+   * GET /openmeter/billing/invoices
+   */
+  async list(
+    request?: ListInvoicesRequest,
+    options?: RequestOptions,
+  ): Promise<ListInvoicesResponse> {
+    return unwrap(await listInvoices(this._client, request, options))
+  }
+
+  /**
+   * List billing invoices
+   *
+   * List billing invoices.
+   *
+   * Returns a page of invoices. Gathering invoices are never included. Use `filter`
+   * to narrow by status, customer, dates, or service period start. Use `sort` to
+   * control ordering.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/billing/invoices
+   */
+  listAll(
+    request?: ListInvoicesRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<Invoice> {
+    return paginatePages(
+      (req, opts) => listInvoices(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get a billing invoice
+   *
+   * Get a billing invoice by ID.
+   *
+   * Returns the full invoice resource including line items, status details, totals,
+   * and workflow configuration snapshot.
+   *
+   * GET /openmeter/billing/invoices/{invoiceId}
+   */
+  async get(
+    request: GetInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<GetInvoiceResponse> {
+    return unwrap(await getInvoice(this._client, request, options))
+  }
+
+  /**
+   * Update a billing invoice
+   *
+   * Update a billing invoice.
+   *
+   * Only the mutable fields of the invoice can be edited: description, labels,
+   * supplier, customer, workflow settings, and top-level lines. Top-level lines are
+   * matched by `id`; lines without an `id` are created, and existing lines omitted
+   * from `lines` are deleted. Detailed (child) lines are always computed and cannot
+   * be edited directly. Only invoices in draft status can be updated.
+   *
+   * PUT /openmeter/billing/invoices/{invoiceId}
+   */
+  async update(
+    request: UpdateInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateInvoiceResponse> {
+    return unwrap(await updateInvoice(this._client, request, options))
+  }
+
+  /**
+   * Delete a billing invoice
+   *
+   * Delete a billing invoice.
+   *
+   * Only standard invoices in draft status can be deleted. Deleting an invoice will
+   * also delete all associated line items and workflow configuration.
+   *
+   * DELETE /openmeter/billing/invoices/{invoiceId}
+   */
+  async delete(
+    request: DeleteInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<DeleteInvoiceResponse> {
+    return unwrap(await deleteInvoice(this._client, request, options))
+  }
+
+  /**
+   * Advance billing invoice's next status
+   *
+   * Advance a billing invoice.
+   *
+   * Advances the invoice to the next workflow state. The next state is determined by
+   * the invoice's current status and workflow configuration. Only invoices in draft
+   * or issued status can be advanced.
+   *
+   * POST /openmeter/billing/invoices/{invoiceId}/advance
+   */
+  async advance(
+    request: AdvanceInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<AdvanceInvoiceResponse> {
+    return unwrap(await advanceInvoice(this._client, request, options))
+  }
+
+  /**
+   * Send the invoice to the customer
+   *
+   * Approve a billing invoice.
+   *
+   * This call instantly sends the invoice to the customer using the configured
+   * billing profile app.
+   *
+   * This call is valid in two invoice statuses:
+   *
+   * - draft: the invoice will be sent to the customer, the invoice state becomes
+   * issued
+   * - manual_approval_needed: the invoice will be sent to the customer, the invoice
+   * state becomes issued
+   *
+   * POST /openmeter/billing/invoices/{invoiceId}/approve
+   */
+  async approve(
+    request: ApproveInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<ApproveInvoiceResponse> {
+    return unwrap(await approveInvoice(this._client, request, options))
+  }
+
+  /**
+   * Retry advancing the invoice after a failed attempt
+   *
+   * Retry sending a billing invoice.
+   *
+   * Retry advancing the invoice after a failed attempt.
+   *
+   * The action can be called when the invoice's statusDetails' actions field contain
+   * the "retry" action.
+   *
+   * POST /openmeter/billing/invoices/{invoiceId}/retry
+   */
+  async retry(
+    request: RetryInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<RetryInvoiceResponse> {
+    return unwrap(await retryInvoice(this._client, request, options))
+  }
+
+  /**
+   * Snapshot quantities for usage based line items
+   *
+   * Snapshot quantities for usage-based line items.
+   *
+   * This call will snapshot the quantities for all usage based line items in the
+   * invoice.
+   *
+   * This call is only valid in draft.waiting_for_collection status, where the
+   * collection period can be skipped using this action.
+   *
+   * POST /openmeter/billing/invoices/{invoiceId}/snapshot-quantities
+   */
+  async snapshotQuantities(
+    request: SnapshotQuantitiesInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<SnapshotQuantitiesInvoiceResponse> {
+    return unwrap(
+      await snapshotQuantitiesInvoice(this._client, request, options),
+    )
   }
 }
 
@@ -218,6 +596,44 @@ export class InternalCurrencies {
     options?: RequestOptions,
   ): Promise<CreateCostBasisResponse> {
     return unwrap(await createCostBasis(this._client, request, options))
+  }
+}
+
+export class InternalPlanAddons {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List add-ons for plan
+   *
+   * List add-ons associated with a plan.
+   *
+   * GET /openmeter/plans/{planId}/addons
+   */
+  async list(
+    request: ListPlanAddonsRequest,
+    options?: RequestOptions,
+  ): Promise<ListPlanAddonsResponse> {
+    return unwrap(await listPlanAddons(this._client, request, options))
+  }
+
+  /**
+   * List add-ons for plan
+   *
+   * List add-ons associated with a plan.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/plans/{planId}/addons
+   */
+  listAll(
+    request: ListPlanAddonsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<PlanAddon> {
+    return paginatePages(
+      (req, opts) => listPlanAddons(this._client, req, opts),
+      request,
+      options,
+    )
   }
 }
 
