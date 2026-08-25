@@ -32,6 +32,7 @@ import (
 	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	notificationchannelshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/channels"
+	notificationeventshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
 	planshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
@@ -266,6 +267,7 @@ type Server struct {
 	customersEntitlementHandler customersentitlementhandler.Handler
 	entitlementAccessHandler    entitlementaccesshandler.Handler
 	notificationChannelsHandler notificationchannelshandler.Handler
+	notificationEventsHandler   notificationeventshandler.Handler
 	metersHandler               metershandler.Handler
 	subscriptionsHandler        subscriptionshandler.Handler
 	subscriptionAddonsHandler   subscriptionaddonshandler.Handler
@@ -350,6 +352,7 @@ func NewServer(config *Config) (*Server, error) {
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
 	entitlementAccessHandler := entitlementaccesshandler.New(resolveNamespace, config.EntitlementAccessService, httptransport.WithErrorHandler(config.ErrorHandler))
 	notificationChannelsHandler := notificationchannelshandler.New(resolveNamespace, config.NotificationService, httptransport.WithErrorHandler(config.ErrorHandler))
+	notificationEventsHandler := notificationeventshandler.New(resolveNamespace, config.NotificationService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {
@@ -386,6 +389,7 @@ func NewServer(config *Config) (*Server, error) {
 		featureCostHandler:          featureCostH,
 		entitlementAccessHandler:    entitlementAccessHandler,
 		notificationChannelsHandler: notificationChannelsHandler,
+		notificationEventsHandler:   notificationEventsHandler,
 	}, nil
 }
 

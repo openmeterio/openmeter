@@ -601,3 +601,17 @@ func (s *Server) UpdateNotificationChannel(w http.ResponseWriter, r *http.Reques
 func (s *Server) DeleteNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
 	s.notificationChannelsHandler.DeleteNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
 }
+
+// Notification Events
+
+func (s *Server) ListNotificationEvents(w http.ResponseWriter, r *http.Request, params api.ListNotificationEventsParams) {
+	s.notificationEventsHandler.ListNotificationEvents().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetNotificationEvent(w http.ResponseWriter, r *http.Request, notificationEventId api.ULID) {
+	s.notificationEventsHandler.GetNotificationEvent().With(notificationEventId).ServeHTTP(w, r)
+}
+
+func (s *Server) ResendNotificationEvent(w http.ResponseWriter, r *http.Request, notificationEventId api.ULID) {
+	s.notificationEventsHandler.ResendNotificationEvent().With(notificationEventId).ServeHTTP(w, r)
+}

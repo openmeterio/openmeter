@@ -340,10 +340,6 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 			return nil, err
 		}
 
-		// Replace the custom HTTP headers of the webhook endpoint. The update replaces
-		// the whole webhook config, so an omitted or emptied header set clears the
-		// headers in Svix as well.
-
 		wh.CustomHeaders, err = h.UpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
 		if err != nil {
 			return nil, err

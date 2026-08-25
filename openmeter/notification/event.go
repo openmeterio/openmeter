@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -75,42 +76,111 @@ type ListEventsInput struct {
 	pagination.Page
 
 	Namespaces []string `json:"namespaces,omitempty"`
-	Events     []string `json:"events,omitempty"`
-
-	From time.Time `json:"from,omitempty"`
-	To   time.Time `json:"to,omitempty"`
-
-	Subjects []string `json:"subjects,omitempty"`
-	Features []string `json:"features,omitempty"`
-
-	Rules    []string `json:"rules,omitempty"`
-	Channels []string `json:"channels,omitempty"`
-
-	DeduplicationHashes []string `json:"deduplicationHashes,omitempty"`
-
-	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`
-
-	NextAttemptBefore time.Time `json:"nextAttemptBefore,omitempty"`
 
 	OrderBy OrderBy
 	Order   sortx.Order
+
+	// Filters backed by columns on the notification_event table.
+	ID        *filter.FilterULID   `json:"id,omitempty"`
+	Type      *filter.FilterString `json:"type,omitempty"`
+	CreatedAt *filter.FilterTime   `json:"createdAt,omitempty"`
+	RuleID    *filter.FilterULID   `json:"ruleId,omitempty"`
+
+	// Filters resolved through edges. Both are existential: ChannelID matches events
+	// whose generating rule targets the channel, DeliveryStatus matches events with at
+	// least one delivery status in the given state. Negation is therefore not
+	// expressible and is rejected by the API layer rather than silently mismatched.
+	ChannelID      *filter.FilterString `json:"channelId,omitempty"`
+	DeliveryStatus *filter.FilterString `json:"deliveryStatus,omitempty"`
+
+	// Filters resolved against JSONB annotation keys. Missing annotations behave like
+	// NULL columns: negated operators do not match events without the annotation.
+	SubjectKey *filter.FilterString `json:"subjectKey,omitempty"`
+	SubjectID  *filter.FilterULID   `json:"subjectId,omitempty"`
+	FeatureKey *filter.FilterString `json:"featureKey,omitempty"`
+	FeatureID  *filter.FilterULID   `json:"featureId,omitempty"`
+
+	// Internal-only filters used by the delivery reconciliation loop and the event
+	// deduplication path. Not exposed on any HTTP API.
+	DeduplicationHashes []string  `json:"deduplicationHashes,omitempty"`
+	NextAttemptBefore   time.Time `json:"nextAttemptBefore,omitempty"`
 }
 
 func (i ListEventsInput) ValidateWith(validators ...models.ValidatorFunc[ListEventsInput]) error {
 	return models.Validate(i, validators...)
 }
 
+// Validate deliberately does not require Namespaces, unlike ListChannelsInput. The
+// delivery reconciliation loop (notification/eventhandler) lists events across all
+// tenants to find deliveries due for retry, so an unscoped list is a legitimate
+// internal use. Tenant scoping for API traffic is applied by the HTTP handlers.
 func (i ListEventsInput) Validate() error {
 	var errs []error
 
-	if i.From.After(i.To) {
-		errs = append(errs, fmt.Errorf("invalid time period: period start (%s) is after the period end (%s)", i.From, i.To))
-	}
-
 	switch i.OrderBy {
-	case OrderByID, OrderByCreatedAt, "":
+	case OrderByID, OrderByType, OrderByCreatedAt, "":
 	default:
 		errs = append(errs, fmt.Errorf("invalid event order_by: %s", i.OrderBy))
+	}
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid id filter: %w", err))
+		}
+	}
+
+	if i.Type != nil {
+		if err := i.Type.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid type filter: %w", err))
+		}
+	}
+
+	if i.CreatedAt != nil {
+		if err := i.CreatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid created_at filter: %w", err))
+		}
+	}
+
+	if i.RuleID != nil {
+		if err := i.RuleID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid rule_id filter: %w", err))
+		}
+	}
+
+	if i.ChannelID != nil {
+		if err := i.ChannelID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid channel_id filter: %w", err))
+		}
+	}
+
+	if i.DeliveryStatus != nil {
+		if err := i.DeliveryStatus.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid delivery_status filter: %w", err))
+		}
+	}
+
+	if i.SubjectKey != nil {
+		if err := i.SubjectKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid subject_key filter: %w", err))
+		}
+	}
+
+	if i.SubjectID != nil {
+		if err := i.SubjectID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid subject_id filter: %w", err))
+		}
+	}
+
+	if i.FeatureKey != nil {
+		if err := i.FeatureKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid feature_key filter: %w", err))
+		}
+	}
+
+	if i.FeatureID != nil {
+		if err := i.FeatureID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid feature_id filter: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

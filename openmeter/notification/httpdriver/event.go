@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -24,12 +27,59 @@ type (
 	ListEventsHandler  httptransport.HandlerWithArgs[ListEventsRequest, ListEventsResponse, ListEventsParams]
 )
 
+// inFilter converts a legacy repeated query parameter into a set-membership filter.
+// An absent or empty parameter yields nil so that no predicate is applied at all —
+// an empty In list would otherwise match nothing. The values are cloned so the filter
+// does not alias the request's parsed query parameters.
+func inFilter(values []string) *filter.FilterString {
+	if len(values) == 0 {
+		return nil
+	}
+
+	return &filter.FilterString{In: lo.ToPtr(slices.Clone(values))}
+}
+
+// ulidInFilter is inFilter for id-valued parameters.
+func ulidInFilter(values []string) *filter.FilterULID {
+	f := inFilter(values)
+	if f == nil {
+		return nil
+	}
+
+	return &filter.FilterULID{FilterString: *f}
+}
+
+// partitionAnnotationValues splits the legacy subject/feature parameter values into
+// key and id buckets by ULID validity. The v1 parameters accept ids and keys mixed in
+// one list, while ids and keys filter separate annotations: a request mixing the two
+// requires an event to match both buckets rather than either one.
+func partitionAnnotationValues(values []string) (keys []string, ids []string) {
+	for _, value := range values {
+		if _, err := ulid.ParseStrict(value); err == nil {
+			ids = append(ids, value)
+			continue
+		}
+
+		keys = append(keys, value)
+	}
+
+	return keys, ids
+}
+
 func (h *handler) ListEvents() ListEventsHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ListEventsParams) (ListEventsRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return ListEventsRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			// ListEventsInput no longer range-checks the period, so keep the v1 error
+			// here rather than degrading an inverted period to an empty result set.
+			if params.From != nil && params.To != nil && params.From.After(*params.To) {
+				return ListEventsRequest{}, models.NewGenericValidationError(
+					fmt.Errorf("invalid time period: period start (%s) is after the period end (%s)", *params.From, *params.To),
+				)
 			}
 
 			req := ListEventsRequest{
@@ -40,13 +90,19 @@ func (h *handler) ListEvents() ListEventsHandler {
 					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
 				},
-				Subjects: lo.FromPtr(params.Subject),
-				Features: lo.FromPtr(params.Feature),
-				Rules:    lo.FromPtr(params.Rule),
-				Channels: lo.FromPtr(params.Channel),
-				From:     lo.FromPtr(params.From),
-				To:       lo.FromPtr(params.To),
+				CreatedAt: filter.NewFilterTime(params.From, params.To),
+				ChannelID: inFilter(lo.FromPtr(params.Channel)),
 			}
+
+			subjectKeys, subjectIDs := partitionAnnotationValues(lo.FromPtr(params.Subject))
+			req.SubjectKey = inFilter(subjectKeys)
+			req.SubjectID = ulidInFilter(subjectIDs)
+
+			featureKeys, featureIDs := partitionAnnotationValues(lo.FromPtr(params.Feature))
+			req.FeatureKey = inFilter(featureKeys)
+			req.FeatureID = ulidInFilter(featureIDs)
+
+			req.RuleID = ulidInFilter(lo.FromPtr(params.Rule))
 
 			return req, nil
 		},
