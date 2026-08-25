@@ -177,6 +177,11 @@ func NoFiatTransactionRequired(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldNoFiatTransactionRequired, v))
 }
 
+// Immutable applies equality check predicate on the "immutable" field. It's identical to ImmutableEQ.
+func Immutable(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldImmutable, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldNamespace, v))
@@ -1180,6 +1185,16 @@ func NoFiatTransactionRequiredEQ(v bool) predicate.ChargeUsageBasedRuns {
 // NoFiatTransactionRequiredNEQ applies the NEQ predicate on the "no_fiat_transaction_required" field.
 func NoFiatTransactionRequiredNEQ(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldNoFiatTransactionRequired, v))
+}
+
+// ImmutableEQ applies the EQ predicate on the "immutable" field.
+func ImmutableEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldImmutable, v))
+}
+
+// ImmutableNEQ applies the NEQ predicate on the "immutable" field.
+func ImmutableNEQ(v bool) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldImmutable, v))
 }
 
 // HasUsageBased applies the HasEdge predicate on the "usage_based" edge.

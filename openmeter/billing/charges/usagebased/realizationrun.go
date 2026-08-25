@@ -139,6 +139,7 @@ type UpdateRealizationRunInput struct {
 	MeteredQuantity           mo.Option[alpacadecimal.Decimal] `json:"meteredQuantity"`
 	Totals                    mo.Option[totals.Totals]         `json:"totals"`
 	NoFiatTransactionRequired mo.Option[bool]                  `json:"noFiatTransactionRequired"`
+	Immutable                 mo.Option[bool]                  `json:"immutable"`
 }
 
 func (r UpdateRealizationRunInput) Normalized() UpdateRealizationRunInput {
@@ -212,6 +213,8 @@ type RealizationRunBase struct {
 	// Totals includes credit allocations and excludes taxes.
 	Totals                    totals.Totals `json:"totals"`
 	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
+	// Immutable means the backing invoice crossed the external issuance boundary.
+	Immutable bool `json:"immutable"`
 	// DetailedLinesIncludeCreditAllocations describes if credit allocation is applied to the detailed lines.
 	// Credits-only: always false
 	// Credit-then-invoice:

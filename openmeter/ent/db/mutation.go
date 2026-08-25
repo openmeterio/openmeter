@@ -77904,6 +77904,7 @@ type ChargeUsageBasedRunsMutation struct {
 	detailed_lines_include_credit_allocations *bool
 	metered_quantity                          *alpacadecimal.Decimal
 	no_fiat_transaction_required              *bool
+	immutable                                 *bool
 	clearedFields                             map[string]struct{}
 	usage_based                               *string
 	clearedusage_based                        bool
@@ -78941,6 +78942,42 @@ func (m *ChargeUsageBasedRunsMutation) ResetNoFiatTransactionRequired() {
 	m.no_fiat_transaction_required = nil
 }
 
+// SetImmutable sets the "immutable" field.
+func (m *ChargeUsageBasedRunsMutation) SetImmutable(b bool) {
+	m.immutable = &b
+}
+
+// Immutable returns the value of the "immutable" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) Immutable() (r bool, exists bool) {
+	v := m.immutable
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImmutable returns the old "immutable" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldImmutable(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImmutable is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImmutable requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImmutable: %w", err)
+	}
+	return oldValue.Immutable, nil
+}
+
+// ResetImmutable resets all changes to the "immutable" field.
+func (m *ChargeUsageBasedRunsMutation) ResetImmutable() {
+	m.immutable = nil
+}
+
 // SetUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by id.
 func (m *ChargeUsageBasedRunsMutation) SetUsageBasedID(id string) {
 	m.usage_based = &id
@@ -79416,7 +79453,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 24)
+	fields := make([]string, 0, 25)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -79489,6 +79526,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	if m.no_fiat_transaction_required != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNoFiatTransactionRequired)
 	}
+	if m.immutable != nil {
+		fields = append(fields, chargeusagebasedruns.FieldImmutable)
+	}
 	return fields
 }
 
@@ -79545,6 +79585,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.MeteredQuantity()
 	case chargeusagebasedruns.FieldNoFiatTransactionRequired:
 		return m.NoFiatTransactionRequired()
+	case chargeusagebasedruns.FieldImmutable:
+		return m.Immutable()
 	}
 	return nil, false
 }
@@ -79602,6 +79644,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldMeteredQuantity(ctx)
 	case chargeusagebasedruns.FieldNoFiatTransactionRequired:
 		return m.OldNoFiatTransactionRequired(ctx)
+	case chargeusagebasedruns.FieldImmutable:
+		return m.OldImmutable(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)
 }
@@ -79779,6 +79823,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetNoFiatTransactionRequired(v)
 		return nil
+	case chargeusagebasedruns.FieldImmutable:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImmutable(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)
 }
@@ -79920,6 +79971,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldNoFiatTransactionRequired:
 		m.ResetNoFiatTransactionRequired()
+		return nil
+	case chargeusagebasedruns.FieldImmutable:
+		m.ResetImmutable()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns field %s", name)

@@ -4149,6 +4149,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Len(usageBasedCharge.Realizations, 1)
 
 		finalRun := usageBasedCharge.Realizations[0]
+		s.True(finalRun.Immutable)
 		s.Equal(float64(125), finalRun.MeteredQuantity.InexactFloat64())
 		s.NotNil(finalRun.LineID)
 		s.Equal(stdLineID.ID, *finalRun.LineID)
@@ -4403,6 +4404,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Len(usageBasedCharge.Realizations, 1)
 
 		finalRun := usageBasedCharge.Realizations[0]
+		s.True(finalRun.Immutable)
 		s.Equal(float64(100), finalRun.MeteredQuantity.InexactFloat64())
 		s.NotNil(finalRun.LineID)
 		s.Equal(stdLineID.ID, *finalRun.LineID)

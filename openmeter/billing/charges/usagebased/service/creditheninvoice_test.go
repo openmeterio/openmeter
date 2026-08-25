@@ -731,6 +731,9 @@ func (a *creditThenInvoiceStateMachineAdapter) UpdateRealizationRun(_ context.Co
 	if input.Type.IsPresent() {
 		run.Type = input.Type.OrEmpty()
 	}
+	if input.Immutable.IsPresent() {
+		run.Immutable = input.Immutable.OrEmpty()
+	}
 
 	a.runs[input.ID.ID] = run
 	return run, nil

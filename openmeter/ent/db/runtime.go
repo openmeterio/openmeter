@@ -1841,6 +1841,10 @@ func init() {
 	chargeusagebasedrunsDescInvoiceID := chargeusagebasedrunsFields[9].Descriptor()
 	// chargeusagebasedruns.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
 	chargeusagebasedruns.InvoiceIDValidator = chargeusagebasedrunsDescInvoiceID.Validators[0].(func(string) error)
+	// chargeusagebasedrunsDescImmutable is the schema descriptor for immutable field.
+	chargeusagebasedrunsDescImmutable := chargeusagebasedrunsFields[12].Descriptor()
+	// chargeusagebasedruns.DefaultImmutable holds the default value on creation for the immutable field.
+	chargeusagebasedruns.DefaultImmutable = chargeusagebasedrunsDescImmutable.Default.(bool)
 	// chargeusagebasedrunsDescID is the schema descriptor for id field.
 	chargeusagebasedrunsDescID := chargeusagebasedrunsMixinFields1[0].Descriptor()
 	// chargeusagebasedruns.DefaultID holds the default value on creation for the id field.

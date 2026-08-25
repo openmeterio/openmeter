@@ -1120,6 +1120,14 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 		return fmt.Errorf("accrue invoice usage: %w", err)
 	}
 	currentRun = accrueResult.Run
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:        currentRun.ID,
+		Immutable: mo.Some(true),
+	})
+	if err != nil {
+		return fmt.Errorf("marking issued realization run[%s] immutable: %w", currentRun.ID.ID, err)
+	}
+	currentRun.RealizationRunBase = runBase
 
 	if err := s.Charge.Realizations.SetRealizationRun(currentRun); err != nil {
 		return fmt.Errorf("update realization run: %w", err)

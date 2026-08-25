@@ -226,6 +226,20 @@ func (_c *ChargeUsageBasedRunsCreate) SetNoFiatTransactionRequired(v bool) *Char
 	return _c
 }
 
+// SetImmutable sets the "immutable" field.
+func (_c *ChargeUsageBasedRunsCreate) SetImmutable(v bool) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetImmutable(v)
+	return _c
+}
+
+// SetNillableImmutable sets the "immutable" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableImmutable(v *bool) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetImmutable(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeUsageBasedRunsCreate) SetID(v string) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetID(v)
@@ -439,6 +453,10 @@ func (_c *ChargeUsageBasedRunsCreate) defaults() {
 		v := chargeusagebasedruns.DefaultDetailedLinesIncludeCreditAllocations
 		_c.mutation.SetDetailedLinesIncludeCreditAllocations(v)
 	}
+	if _, ok := _c.mutation.Immutable(); !ok {
+		v := chargeusagebasedruns.DefaultImmutable
+		_c.mutation.SetImmutable(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeusagebasedruns.DefaultID()
 		_c.mutation.SetID(v)
@@ -539,6 +557,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	}
 	if _, ok := _c.mutation.NoFiatTransactionRequired(); !ok {
 		return &ValidationError{Name: "no_fiat_transaction_required", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.no_fiat_transaction_required"`)}
+	}
+	if _, ok := _c.mutation.Immutable(); !ok {
+		return &ValidationError{Name: "immutable", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.immutable"`)}
 	}
 	if len(_c.mutation.UsageBasedIDs()) == 0 {
 		return &ValidationError{Name: "usage_based", err: errors.New(`db: missing required edge "ChargeUsageBasedRuns.usage_based"`)}
@@ -661,6 +682,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.NoFiatTransactionRequired(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldNoFiatTransactionRequired, field.TypeBool, value)
 		_node.NoFiatTransactionRequired = value
+	}
+	if value, ok := _c.mutation.Immutable(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldImmutable, field.TypeBool, value)
+		_node.Immutable = value
 	}
 	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1094,6 +1119,18 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateNoFiatTransactionRequired() *ChargeUs
 	return u
 }
 
+// SetImmutable sets the "immutable" field.
+func (u *ChargeUsageBasedRunsUpsert) SetImmutable(v bool) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldImmutable, v)
+	return u
+}
+
+// UpdateImmutable sets the "immutable" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateImmutable() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldImmutable)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1412,6 +1449,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetNoFiatTransactionRequired(v bool) *Ch
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateNoFiatTransactionRequired()
+	})
+}
+
+// SetImmutable sets the "immutable" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetImmutable(v bool) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetImmutable(v)
+	})
+}
+
+// UpdateImmutable sets the "immutable" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateImmutable() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateImmutable()
 	})
 }
 
@@ -1900,6 +1951,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetNoFiatTransactionRequired(v bool) *C
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNoFiatTransactionRequired() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateNoFiatTransactionRequired()
+	})
+}
+
+// SetImmutable sets the "immutable" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetImmutable(v bool) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetImmutable(v)
+	})
+}
+
+// UpdateImmutable sets the "immutable" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateImmutable() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateImmutable()
 	})
 }
 
