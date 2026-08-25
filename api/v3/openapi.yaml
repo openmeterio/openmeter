@@ -5827,7 +5827,7 @@ components:
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
     BillingCurrencyCode:
-      anyOf:
+      oneOf:
         - $ref: '#/components/schemas/CurrencyCode'
         - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
@@ -10235,7 +10235,7 @@ components:
         including for externally funded grants.
       title: Tax configuration for a credit grant
     CreateCurrencyCode:
-      anyOf:
+      oneOf:
         - $ref: '#/components/schemas/CurrencyCode'
         - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
