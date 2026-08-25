@@ -158,6 +158,7 @@ interface InvoicesOperations {
   @operationId("advance-invoice")
   @summary("Advance billing invoice's next status")
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   advance(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound
@@ -183,6 +184,7 @@ interface InvoicesOperations {
   @operationId("approve-invoice")
   @summary("Send the invoice to the customer")
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   approve(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound
@@ -203,6 +205,7 @@ interface InvoicesOperations {
   @operationId("retry-invoice")
   @summary("Retry advancing the invoice after a failed attempt")
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   retry(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound
@@ -225,6 +228,7 @@ interface InvoicesOperations {
   @operationId("snapshot-quantities-invoice")
   @summary("Snapshot quantities for usage based line items")
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   snapshotQuantities(@path invoiceId: Shared.ULID):
     | Invoice
     | Common.NotFound

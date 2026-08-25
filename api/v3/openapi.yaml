@@ -657,6 +657,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
+      x-rpc-endpoint: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/approve:
     post:
@@ -697,6 +698,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
+      x-rpc-endpoint: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/retry:
     post:
@@ -732,6 +734,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
+      x-rpc-endpoint: true
       x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/snapshot-quantities:
     post:
@@ -770,6 +773,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
+      x-rpc-endpoint: true
       x-unstable: true
   /openmeter/currencies:
     get:
