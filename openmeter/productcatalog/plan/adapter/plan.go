@@ -464,10 +464,6 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 		}
 
 		if !params.Equal(*p) {
-			// The schedule, billing cadence, pro-rating config, and settlement mode are
-			// outside the v3 update request body -- the schedule is moved by
-			// UpdatePlanEffectivePeriod -- so they stay SetNillable and survive an update
-			// that omits them. Description and metadata are inside it, so nil clears them.
 			query := a.db.Plan.UpdateOneID(p.ID).
 				Where(plandb.Namespace(params.Namespace)).
 				SetNillableName(params.Name).
@@ -539,9 +535,6 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 	return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)
 }
 
-// UpdatePlanEffectivePeriod exists because UpdatePlan is a replace: routing the publish
-// and archive flows through UpdatePlan would clear the description and labels they do
-// not carry.
 func (a *adapter) UpdatePlanEffectivePeriod(ctx context.Context, params plan.UpdatePlanEffectivePeriodInput) (*plan.Plan, error) {
 	fn := func(ctx context.Context, a *adapter) (*plan.Plan, error) {
 		if err := params.Validate(); err != nil {

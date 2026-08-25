@@ -249,9 +249,6 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	// Compared presence-aware, unlike the guarded fields above: nil means the update omitted
-	// the description and is about to clear it, so nil only equals an already-absent stored
-	// value -- an explicitly empty stored description still needs the clearing write.
 	if (i.Description == nil) != (p.Description == nil) || lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
@@ -386,8 +383,6 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 		p.Name = *i.Name
 	}
 
-	// Assigned unguarded, unlike the fields below: the adapter clears these when the update
-	// omits them, so validation has to see the cleared state rather than the stored one.
 	p.Description = i.Description
 	p.Metadata = lo.FromPtr(i.Metadata)
 
@@ -412,10 +407,8 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 
 var _ models.Validator = (*UpdatePlanEffectivePeriodInput)(nil)
 
-// UpdatePlanEffectivePeriodInput is deliberately separate from UpdatePlanInput, whose PUT
-// replace semantics clear an omitted description and metadata. Publishing and archiving
-// shift only the schedule, so reusing UpdatePlanInput for them would wipe those fields.
-// Each boundary is updated independently, so a publish can set only EffectiveFrom.
+// UpdatePlanEffectivePeriodInput moves only the plan's schedule; a nil boundary is left
+// untouched rather than cleared, so a publish can set EffectiveFrom alone.
 type UpdatePlanEffectivePeriodInput struct {
 	models.NamespacedID
 

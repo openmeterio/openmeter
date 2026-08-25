@@ -529,8 +529,7 @@ func TestPostgresAdapter(t *testing.T) {
 			require.NoErrorf(t, err, "updating plan must not fail")
 			require.NotNilf(t, updated, "plan must not be nil")
 
-			// then: the update replaced them rather than carrying them over, and the
-			// change is persisted rather than only reflected in the returned value
+			// then: both are cleared, in the returned plan and in storage
 			assert.Nilf(t, updated.Description, "omitted description must be cleared")
 			assert.Emptyf(t, updated.Metadata, "omitted labels must be cleared")
 

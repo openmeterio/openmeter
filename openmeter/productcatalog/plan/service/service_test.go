@@ -548,9 +548,6 @@ func TestPlanService(t *testing.T) {
 				})
 
 				t.Run("Delete", func(t *testing.T) {
-					// UpdatePlanInput is the plan's full replacement state, so the fields that
-					// should survive have to be carried over explicitly; anything left out is
-					// cleared.
 					updateInput = plan.UpdatePlanInput{
 						NamespacedID: models.NamespacedID{
 							Namespace: planInput.Namespace,
@@ -600,8 +597,6 @@ func TestPlanService(t *testing.T) {
 				assert.Equalf(t, productcatalog.PlanStatusActive, publishedPlanV1.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedPlanV1.Status())
 
-				// Publishing only moves the plan's schedule. It must not ride the replace
-				// update path, which would clear every field the publish input does not repeat.
 				assert.Equalf(t, draftPlanV1.Name, publishedPlanV1.Name, "publishing must preserve the name")
 				assert.Equalf(t, draftPlanV1.Description, publishedPlanV1.Description, "publishing must preserve the description")
 				assert.Equalf(t, draftPlanV1.Metadata, publishedPlanV1.Metadata, "publishing must preserve the labels")

@@ -1067,35 +1067,26 @@ func TestToUpdatePlanInput(t *testing.T) {
 		assert.Equal(t, "prod", (*result.Metadata)["env"])
 	})
 
-	t.Run("omitted labels clear metadata", func(t *testing.T) {
-		// given a PUT body that leaves labels out
+	t.Run("omitted labels map to empty metadata", func(t *testing.T) {
 		body := api.UpsertPlanRequest{
 			Name:   "Plan",
 			Phases: []api.BillingPlanPhase{},
 		}
 
-		// when it is converted to an update input
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
 		require.NoError(t, err)
-
-		// then metadata is present but empty, so the update replaces the stored labels
-		// instead of leaving them in place
 		require.NotNil(t, result.Metadata)
 		assert.Empty(t, *result.Metadata)
 	})
 
-	t.Run("omitted description clears the stored description", func(t *testing.T) {
-		// given a PUT body that leaves description out
+	t.Run("omitted description maps to nil", func(t *testing.T) {
 		body := api.UpsertPlanRequest{
 			Name:   "Plan",
 			Phases: []api.BillingPlanPhase{},
 		}
 
-		// when it is converted to an update input
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
 		require.NoError(t, err)
-
-		// then the input carries no description, which the adapter turns into a clear
 		assert.Nil(t, result.Description)
 	})
 
