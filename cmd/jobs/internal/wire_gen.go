@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
@@ -418,6 +419,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, service, customerService, secretserviceService, billingRegistry, eventbusPublisher)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	factory, err := common.NewAppSandboxFactory(appsConfiguration, service, billingRegistry)
 	if err != nil {
 		cleanup7()
@@ -613,6 +625,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Migrator:                      migrator,
 		App:                           service,
 		AppStripe:                     appstripeService,
+		AppCustomInvoicing:            appcustominvoicingService,
 		AppSandboxProvisioner:         appSandboxProvisioner,
 		Customer:                      customerService,
 		BillingRegistry:               billingRegistry,
@@ -655,8 +668,13 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	App                           app.Service
-	AppStripe                     appstripe.Service
+	App       app.Service
+	AppStripe appstripe.Service
+	// Constructing the custom invoicing service registers its marketplace
+	// listing; without it the subscription sync reconciler cannot resolve
+	// a billing profile driven by the custom_invoicing app
+	// ("listing with type not found: custom_invoicing").
+	AppCustomInvoicing            appcustominvoicing.Service
 	AppSandboxProvisioner         common.AppSandboxProvisioner
 	Customer                      customer.Service
 	BillingRegistry               common.BillingRegistry
