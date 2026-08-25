@@ -168,6 +168,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 		if err != nil {
 			return nil, err
 		}
+
 		if g.VoidedAt != nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("grant already voided"))
 		}
@@ -176,6 +177,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 		if err != nil {
 			return nil, err
 		}
+
 		if voidAt.Before(periodStart) {
 			return nil, models.NewGenericValidationError(fmt.Errorf("void time %s is before the current usage period start %s", voidAt, periodStart))
 		}

@@ -89,6 +89,7 @@ func setupConnectorWithStreaming(t *testing.T, wrap func(streaming.Connector) st
 	if wrap != nil {
 		creditStreamingConnector = wrap(streamingConnector)
 	}
+
 	testMeterID := ulid.Make().String()
 	testMeters := []meter.Meter{{
 		ManagedResource: models.ManagedResource{

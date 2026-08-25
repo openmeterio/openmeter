@@ -234,6 +234,7 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 				if err != nil {
 					return fmt.Errorf("failed to get snapshot invalidation version: %w", err)
 				}
+
 				if currentVersion != snapParams.snapshotInvalidationVersion {
 					return nil
 				}

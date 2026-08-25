@@ -42,6 +42,7 @@ func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner models.
 			if err != nil {
 				return err
 			}
+
 			if updated == 0 {
 				return grant.NewOwnerNotFoundError(owner, "entitlement")
 			}
