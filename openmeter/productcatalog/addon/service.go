@@ -246,9 +246,6 @@ func (i UpdateAddonInput) Equal(p Addon) bool {
 		return false
 	}
 
-	// Compared presence-aware, unlike the guarded fields above: nil means the update omitted
-	// the description and is about to clear it, so nil only equals an already-absent stored
-	// value -- an explicitly empty stored description still needs the clearing write.
 	if (i.Description == nil) != (p.Description == nil) || lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
@@ -345,8 +342,6 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 		a.Name = *i.Name
 	}
 
-	// Assigned unguarded, unlike the fields below: the adapter clears these when the update
-	// omits them, so validation has to see the cleared state rather than the stored one.
 	a.Description = i.Description
 	a.Metadata = lo.FromPtr(i.Metadata)
 
@@ -367,10 +362,8 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 
 var _ models.Validator = (*UpdateAddonEffectivePeriodInput)(nil)
 
-// UpdateAddonEffectivePeriodInput is deliberately separate from UpdateAddonInput, whose PUT
-// replace semantics clear an omitted description and metadata. Publishing and archiving
-// shift only the schedule, so reusing UpdateAddonInput for them would wipe those fields.
-// Each boundary is updated independently, so a publish can set only EffectiveFrom.
+// UpdateAddonEffectivePeriodInput moves only the add-on's schedule; a nil boundary is left
+// untouched rather than cleared, so a publish can set EffectiveFrom alone.
 type UpdateAddonEffectivePeriodInput struct {
 	models.NamespacedID
 

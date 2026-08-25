@@ -303,6 +303,36 @@ func TestPostgresAdapter(t *testing.T) {
 				addon.AssertAddonUpdateInputEqual(t, addonV1Update, *addonV1)
 			})
 
+			t.Run("UpdateClearsOmittedFields", func(t *testing.T) {
+				require.NotNilf(t, addonV1.Description, "add-on must have a description to clear")
+				require.NotEmptyf(t, addonV1.Metadata, "add-on must have labels to clear")
+
+				updated, err := env.AddonRepository.UpdateAddon(ctx, addon.UpdateAddonInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: namespace,
+						ID:        addonV1.ID,
+					},
+					Name: lo.ToPtr("Addon v1 Published"),
+				})
+				require.NoErrorf(t, err, "updating add-on must not fail")
+				require.NotNilf(t, updated, "add-on must not be nil")
+
+				assert.Nilf(t, updated.Description, "omitted description must be cleared")
+				assert.Emptyf(t, updated.Metadata, "omitted labels must be cleared")
+
+				fetched, err := env.AddonRepository.GetAddon(ctx, addon.GetAddonInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: namespace,
+						ID:        addonV1.ID,
+					},
+				})
+				require.NoErrorf(t, err, "getting add-on by id must not fail")
+				assert.Nilf(t, fetched.Description, "cleared description must be persisted")
+				assert.Emptyf(t, fetched.Metadata, "cleared labels must be persisted")
+
+				addonV1 = updated
+			})
+
 			t.Run("Delete", func(t *testing.T) {
 				err = env.AddonRepository.DeleteAddon(ctx, addon.DeleteAddonInput{
 					NamespacedID: models.NamespacedID{

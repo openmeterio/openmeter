@@ -532,3 +532,18 @@ func TestUnitConfigMapping(t *testing.T) {
 		assert.Equal(t, lo.ToPtr("GB"), uc.DisplayUnit)
 	})
 }
+
+func TestFromAPIUpsertAddonRequestOmittedFields(t *testing.T) {
+	body := apiv3.UpsertAddonRequest{
+		Name:         "Addon",
+		InstanceType: apiv3.AddonInstanceTypeMultiple,
+		RateCards:    []apiv3.BillingRateCard{},
+	}
+
+	result, err := FromAPIUpsertAddonRequest("ns", "id", body)
+	require.NoError(t, err)
+
+	assert.Nil(t, result.Description)
+	require.NotNil(t, result.Metadata)
+	assert.Empty(t, *result.Metadata)
+}

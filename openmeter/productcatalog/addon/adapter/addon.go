@@ -491,9 +491,6 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 		}
 
 		if !params.Equal(*add) {
-			// The effective period is outside the update request body -- it is moved by
-			// UpdateAddonEffectivePeriod -- and annotations are server-managed, so both must
-			// survive an update that omits them.
 			query := a.db.Addon.UpdateOneID(add.ID).
 				Where(addondb.Namespace(params.Namespace)).
 				SetNillableName(params.Name).
@@ -583,9 +580,6 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 	return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)
 }
 
-// UpdateAddonEffectivePeriod exists because UpdateAddon is a replace: routing the publish
-// and archive flows through UpdateAddon would clear the description and labels they do
-// not carry.
 func (a *adapter) UpdateAddonEffectivePeriod(ctx context.Context, params addon.UpdateAddonEffectivePeriodInput) (*addon.Addon, error) {
 	fn := func(ctx context.Context, a *adapter) (*addon.Addon, error) {
 		if err := params.Validate(); err != nil {
