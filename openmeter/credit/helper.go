@@ -197,13 +197,6 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 	ctx, span := m.Tracer.Start(ctx, "credit.snapshotEngineResult", cTrace.WithOwner(snapParams.owner))
 	defer span.End()
 
-	if err := transaction.RunWithNoValue(ctx, m.GrantRepo, func(ctx context.Context) error {
-		return m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false)
-	}); err != nil {
-		// If we failed to acquire the lock we simply don't save the snapshot
-		return nil
-	}
-
 	// Skip snapshotting for LATEST type entitlements as the values fluctuate and snapshots can't be used
 	if snapParams.meter.Aggregation == meter.MeterAggregationLatest {
 		m.Logger.Debug("skipping snapshot for LATEST aggregation type entitlement", "owner", snapParams.owner, "meter", snapParams.meter.Key)
@@ -224,11 +217,26 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 				return fmt.Errorf("failed to get snapshot at start of segment: %w", err)
 			}
 
-			if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {
-				return fmt.Errorf("failed to save snapshot: %w", err)
+			var lockErr error
+			err = transaction.RunWithNoValue(ctx, m.GrantRepo, func(ctx context.Context) error {
+				if err := m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false); err != nil {
+					lockErr = err
+					return err
+				}
+
+				if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {
+					return fmt.Errorf("failed to save snapshot: %w", err)
+				}
+
+				return nil
+			})
+			if lockErr != nil {
+				// Snapshotting is opportunistic. If the owner is being changed,
+				// that operation is responsible for invalidating affected snapshots.
+				return nil
 			}
 
-			break
+			return err
 		}
 	}
 

@@ -69,6 +69,12 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 		if input.Recurrence != nil {
 			input.Recurrence.Anchor = input.Recurrence.Anchor.Truncate(granularity)
 		}
+
+		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)
+		if err != nil {
+			return nil, err
+		}
+
 		periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
 		if err != nil {
 			return nil, err
@@ -78,10 +84,6 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 			return nil, models.NewGenericValidationError(fmt.Errorf("grant effective date %s is before the current usage period %s", input.EffectiveAt, periodStart))
 		}
 
-		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)
-		if err != nil {
-			return nil, err
-		}
 		repoInp := grant.RepoCreateInput{
 			OwnerID:          ownerID.ID,
 			Namespace:        ownerID.Namespace,
@@ -132,10 +134,6 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 		return err
 	}
 
-	if g.VoidedAt != nil {
-		return models.NewGenericValidationError(fmt.Errorf("grant already voided"))
-	}
-
 	// Resolve the void time: use provided `at` or default to now.
 	voidAt := clock.Now()
 	if at != nil {
@@ -150,22 +148,8 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 
 	ownerID := models.NamespacedID{Namespace: grantID.Namespace, ID: g.OwnerID}
 
-	// Validate: at must be within the current usage period
-	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
-	if err != nil {
-		return err
-	}
-	if voidAt.Before(periodStart) {
-		return models.NewGenericValidationError(fmt.Errorf("void time %s is before the current usage period start %s", voidAt, periodStart))
-	}
-
 	_, err = transaction.Run(ctx, m.GrantRepo, func(ctx context.Context) (*interface{}, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +159,29 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 			return nil, err
 		}
 
-		err = m.GrantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, voidAt)
+		txGrantRepo := m.GrantRepo.WithTx(ctx, tx)
+		g, err = txGrantRepo.GetGrant(ctx, grantID)
+		if err != nil {
+			return nil, err
+		}
+		if g.VoidedAt != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("grant already voided"))
+		}
+
+		periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
+		if err != nil {
+			return nil, err
+		}
+		if voidAt.Before(periodStart) {
+			return nil, models.NewGenericValidationError(fmt.Errorf("void time %s is before the current usage period start %s", voidAt, periodStart))
+		}
+
+		owner, err := m.OwnerConnector.DescribeOwner(ctx, ownerID)
+		if err != nil {
+			return nil, err
+		}
+
+		err = txGrantRepo.VoidGrant(ctx, grantID, voidAt)
 		if err != nil {
 			return nil, err
 		}
