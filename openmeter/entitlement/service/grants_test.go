@@ -1,6 +1,8 @@
 package service_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,14 +11,28 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	credithook "github.com/openmeterio/openmeter/openmeter/credit/hook"
+	db_grant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+type failingPublisher struct {
+	eventbus.Publisher
+	err error
+}
+
+func (p failingPublisher) Publish(context.Context, marshaler.Event) error {
+	return p.err
+}
 
 // TestListEntitlementGrantsPagination pins that the caller controlled window is honored in both
 // pagination modes. The HTTP layer picks one of the two, so silently falling back to the defaults
@@ -158,4 +174,77 @@ func TestListEntitlementGrantsPagination(t *testing.T) {
 		// then the offset is rejected rather than silently ignored by the repository
 		require.EqualError(t, err, "validation error: offset cannot be negative: -1")
 	})
+}
+
+func TestDeleteEntitlementRollsBackGrantCleanup(t *testing.T) {
+	// given: a metered entitlement with a grant and a publisher that fails after
+	// the deletion hooks have run
+	namespace := "ns-delete-rollback"
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     namespace,
+		Name:          "Meter 1",
+		Key:           "meter1",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	createMeterInPG(t, deps.dbClient, mtr)
+
+	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+		Name:      "feature1",
+		Key:       "feature1",
+		Namespace: namespace,
+		MeterID:   lo.ToPtr(mtr.ID),
+	})
+	require.NoError(t, err)
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust1", "Customer 1")
+	effectiveAt := time.Now().Truncate(time.Minute)
+	ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		FeatureKey:       lo.ToPtr(feat.Key),
+		UsageAttribution: cust.GetUsageAttribution(),
+		EntitlementType:  entitlement.EntitlementTypeMetered,
+		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Interval: timeutil.RecurrencePeriodDaily,
+			Anchor:   effectiveAt,
+		})),
+	}, []entitlement.CreateEntitlementGrantInputs{{
+		CreateGrantInput: credit.CreateGrantInput{
+			Amount:      1,
+			EffectiveAt: effectiveAt,
+		},
+	}})
+	require.NoError(t, err)
+
+	publishErr := errors.New("publish failed")
+	deletionService := entitlementservice.NewEntitlementService(entitlementservice.ServiceConfig{
+		EntitlementRepo: deps.registry.EntitlementRepo,
+		CustomerService: deps.customerService,
+		Publisher: failingPublisher{
+			Publisher: eventbus.NewMock(t),
+			err:       publishErr,
+		},
+	})
+	deletionService.RegisterHooks(credithook.NewEntitlementHook(deps.registry.GrantRepo))
+
+	// when: event publication makes the entitlement deletion roll back
+	err = deletionService.DeleteEntitlement(t.Context(), namespace, ent.ID, effectiveAt.Add(time.Hour))
+	require.ErrorIs(t, err, publishErr)
+
+	// then: grant cleanup rolls back with the entitlement instead of committing independently
+	entitlementRow, err := deps.dbClient.Entitlement.Get(t.Context(), ent.ID)
+	require.NoError(t, err)
+	require.Nil(t, entitlementRow.DeletedAt)
+
+	grantRows, err := deps.dbClient.Grant.Query().
+		Where(db_grant.Namespace(namespace), db_grant.OwnerID(ent.ID)).
+		All(t.Context())
+	require.NoError(t, err)
+	require.Len(t, grantRows, 1)
+	require.Nil(t, grantRows[0].DeletedAt)
 }

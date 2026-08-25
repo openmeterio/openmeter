@@ -35,7 +35,6 @@ func NewPostgresGrantRepo(db *db.Client) grant.Repo {
 }
 
 func (g *grantDBADapter) CreateGrant(ctx context.Context, grant grant.RepoCreateInput) (*grant.Grant, error) {
-	// TODO: transaction and locking
 	if err := ensureEntitlementOwnerExists(ctx, g.db, models.NamespacedID{
 		Namespace: grant.Namespace,
 		ID:        grant.OwnerID,
@@ -82,7 +81,6 @@ func (g *grantDBADapter) DeleteOwnerGrants(ctx context.Context, ownerID models.N
 
 // translates to a delete
 func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error {
-	// TODO: transaction and locking
 	command := g.db.Grant.Update().
 		SetVoidedAt(at).
 		Where(db_grant.ID(grantID.ID), db_grant.Namespace(grantID.Namespace))
