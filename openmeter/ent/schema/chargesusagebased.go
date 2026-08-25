@@ -388,6 +388,9 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			}),
 
 		field.Bool("no_fiat_transaction_required"),
+
+		field.Bool("immutable").
+			Default(false),
 	}
 }
 

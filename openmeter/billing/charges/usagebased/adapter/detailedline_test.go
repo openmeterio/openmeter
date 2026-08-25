@@ -507,6 +507,40 @@ func (s *DetailedLineAdapterSuite) TestExpandRealizationsExcludesDeletedRuns() {
 	s.Equal(runBase.ID, fetchedCharge.Realizations[0].ID)
 }
 
+func (s *DetailedLineAdapterSuite) TestRealizationRunImmutableFlag() {
+	ctx := s.T().Context()
+	charge, _, servicePeriod := s.createChargeWithRun("usagebased-run-immutable")
+
+	createdRun, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), usagebased.CreateRealizationRunInput{
+		FeatureID:       charge.State.FeatureID,
+		Type:            usagebased.RealizationRunTypePartialInvoice,
+		StoredAtLT:      servicePeriod.To,
+		ServicePeriodTo: servicePeriod.To,
+		MeteredQuantity: alpacadecimal.Zero,
+		Totals:          totals.Totals{},
+	})
+	s.Require().NoError(err)
+	s.False(createdRun.Immutable)
+
+	updatedRun, err := s.adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:        createdRun.ID,
+		Immutable: mo.Some(true),
+	})
+	s.Require().NoError(err)
+	s.True(updatedRun.Immutable)
+
+	fetchedCharge, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
+		ChargeID: charge.GetChargeID(),
+		Expands:  chargesmeta.Expands{chargesmeta.ExpandRealizations},
+	})
+	s.Require().NoError(err)
+	fetchedRun, ok := lo.Find(fetchedCharge.Realizations, func(run usagebased.RealizationRun) bool {
+		return run.ID == createdRun.ID
+	})
+	s.Require().True(ok)
+	s.True(fetchedRun.Immutable)
+}
+
 func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usagebased.Charge, usagebased.RealizationRunBase, timeutil.ClosedPeriod) {
 	s.T().Helper()
 

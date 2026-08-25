@@ -64,6 +64,8 @@ const (
 	FieldMeteredQuantity = "metered_quantity"
 	// FieldNoFiatTransactionRequired holds the string denoting the no_fiat_transaction_required field in the database.
 	FieldNoFiatTransactionRequired = "no_fiat_transaction_required"
+	// FieldImmutable holds the string denoting the immutable field in the database.
+	FieldImmutable = "immutable"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
@@ -185,6 +187,7 @@ var Columns = []string{
 	FieldInvoiceID,
 	FieldMeteredQuantity,
 	FieldNoFiatTransactionRequired,
+	FieldImmutable,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -214,6 +217,8 @@ var (
 	LineIDValidator func(string) error
 	// InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
 	InvoiceIDValidator func(string) error
+	// DefaultImmutable holds the default value on creation for the "immutable" field.
+	DefaultImmutable bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -364,6 +369,11 @@ func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
 // ByNoFiatTransactionRequired orders the results by the no_fiat_transaction_required field.
 func ByNoFiatTransactionRequired(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNoFiatTransactionRequired, opts...).ToFunc()
+}
+
+// ByImmutable orders the results by the immutable field.
+func ByImmutable(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldImmutable, opts...).ToFunc()
 }
 
 // ByUsageBasedField orders the results by usage_based field.

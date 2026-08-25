@@ -73,6 +73,8 @@ type ChargeUsageBasedRuns struct {
 	MeteredQuantity alpacadecimal.Decimal `json:"metered_quantity,omitempty"`
 	// NoFiatTransactionRequired holds the value of the "no_fiat_transaction_required" field.
 	NoFiatTransactionRequired bool `json:"no_fiat_transaction_required,omitempty"`
+	// Immutable holds the value of the "immutable" field.
+	Immutable bool `json:"immutable,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedRunsQuery when eager-loading is set.
 	Edges        ChargeUsageBasedRunsEdges `json:"edges"`
@@ -215,7 +217,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeteredQuantity:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebasedruns.FieldDetailedLinesPresent, chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, chargeusagebasedruns.FieldNoFiatTransactionRequired:
+		case chargeusagebasedruns.FieldDetailedLinesPresent, chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, chargeusagebasedruns.FieldNoFiatTransactionRequired, chargeusagebasedruns.FieldImmutable:
 			values[i] = new(sql.NullBool)
 		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldInitialType, chargeusagebasedruns.FieldLineID, chargeusagebasedruns.FieldInvoiceID:
 			values[i] = new(sql.NullString)
@@ -389,6 +391,12 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.NoFiatTransactionRequired = value.Bool
 			}
+		case chargeusagebasedruns.FieldImmutable:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field immutable", values[i])
+			} else if value.Valid {
+				_m.Immutable = value.Bool
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -552,6 +560,9 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("no_fiat_transaction_required=")
 	builder.WriteString(fmt.Sprintf("%v", _m.NoFiatTransactionRequired))
+	builder.WriteString(", ")
+	builder.WriteString("immutable=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Immutable))
 	builder.WriteByte(')')
 	return builder.String()
 }
