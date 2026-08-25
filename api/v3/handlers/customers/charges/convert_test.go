@@ -25,8 +25,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -80,19 +78,9 @@ func TestConvertExpandedUnionBranches(t *testing.T) {
 	t.Run("subscription expands to the full entity", func(t *testing.T) {
 		source := &meta.SubscriptionReference{SubscriptionID: "sub-1", PhaseID: "phase-1", ItemID: "item-1"}
 
-		out, err := convertChargeSubscriptionToAPI(source, &subscription.SubscriptionView{
-			Subscription: subscription.Subscription{
-				NamespacedID: models.NamespacedID{Namespace: "ns", ID: "sub-1"},
-				Name:         "Full Subscription",
-			},
-			Spec: subscription.SubscriptionSpec{
-				CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
-					BillingCadence: datetime.MustParseDuration(t, "P1M"),
-				},
-				CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
-					ActiveFrom: clock.Now().Add(time.Hour),
-				},
-			},
+		out, err := convertChargeSubscriptionToAPI(source, &subscription.Subscription{
+			NamespacedID: models.NamespacedID{Namespace: "ns", ID: "sub-1"},
+			Name:         "Full Subscription",
 		})
 		require.NoError(t, err)
 		require.NotNil(t, out)

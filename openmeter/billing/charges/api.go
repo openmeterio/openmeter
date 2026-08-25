@@ -32,7 +32,7 @@ type CustomerChargeAPIService interface {
 // SubscriptionService is the narrow subscription dependency of the
 // customer-charge API facade; subscription.Service satisfies it.
 type SubscriptionService interface {
-	ListViews(ctx context.Context, input subscription.ListSubscriptionsInput) (pagination.Result[subscription.SubscriptionView], error)
+	List(ctx context.Context, input subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error)
 }
 
 type ListCustomerChargesInput struct {
