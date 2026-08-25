@@ -94,7 +94,7 @@ func TestV3AppInstall(t *testing.T) {
 		resp, err := c.Apps.Install(t.Context(), req)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		assert.Equal(t, string(v3sdk.AppTypeExternalInvoicing), resp.App.Type)
+		assert.Equal(t, string(v3sdk.AppTypeExternalInvoicing), resp.Type)
 	})
 }
 
@@ -112,7 +112,7 @@ func TestV3AppUninstall(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, installResp)
 
-		installed, err := installResp.App.AsAppExternalInvoicing()
+		installed, err := installResp.AsInstalledAppExternalInvoicing()
 		require.NoError(t, err)
 		require.NotEmpty(t, installed.ID)
 

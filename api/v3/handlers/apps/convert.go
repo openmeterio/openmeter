@@ -120,8 +120,6 @@ func ToAPIBillingApp(item app.App) (api.BillingApp, error) {
 	}
 }
 
-// ToAPIBillingInstallAppResponse maps an installed app and the capability types it became
-// the default for to the install response union.
 func ToAPIBillingInstallAppResponse(item app.App, defaultForCapabilityTypes []api.BillingAppCapabilityType) (api.BillingInstallAppResponse, error) {
 	if item == nil {
 		return api.BillingInstallAppResponse{}, errors.New("invalid app: nil")
