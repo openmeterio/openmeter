@@ -8,6 +8,7 @@ import (
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -26,13 +27,12 @@ func (a *adapter) ListChannels(ctx context.Context, params notification.ListChan
 			query = query.Where(channeldb.NamespaceIn(params.Namespaces...))
 		}
 
-		if len(params.Channels) > 0 {
-			query = query.Where(channeldb.IDIn(params.Channels...))
-		}
-
-		if !params.IncludeDisabled {
-			query = query.Where(channeldb.Disabled(false))
-		}
+		query = filter.ApplyToQuery(query, params.ID, channeldb.FieldID)
+		query = filter.ApplyToQuery(query, params.Name, channeldb.FieldName)
+		query = filter.ApplyToQuery(query, params.Type, channeldb.FieldType)
+		query = filter.ApplyToQuery(query, params.Disabled, channeldb.FieldDisabled)
+		query = filter.ApplyToQuery(query, params.CreatedAt, channeldb.FieldCreatedAt)
+		query = filter.ApplyToQuery(query, params.UpdatedAt, channeldb.FieldUpdatedAt)
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !params.Order.IsDefaultValue() {

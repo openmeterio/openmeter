@@ -34,6 +34,7 @@ TypeSpec definitions and ships typed request and response models.
   - [PlanAddons](#planaddons)
   - [Defaults](#defaults)
   - [EntitlementAccess](#entitlementaccess)
+  - [Notifications](#notifications)
 - [Error Handling](#error-handling)
 - [Pagination and Streaming](#pagination-and-streaming)
 
@@ -318,6 +319,16 @@ The full call path, HTTP route, and a short description are listed below.
 | Method | HTTP | Description |
 | --- | --- | --- |
 | `om.EntitlementAccess.Query` | `POST /openmeter/entitlement-access/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
+
+### Notifications
+
+| Method | HTTP | Description |
+| --- | --- | --- |
+| `om.Notifications.ListChannels` | `GET /openmeter/notification/channels` | List all notification channels. |
+| `om.Notifications.CreateChannel` | `POST /openmeter/notification/channels` | Create a notification channel. |
+| `om.Notifications.GetChannel` | `GET /openmeter/notification/channels/{notificationChannelId}` | Get a notification channel by id. |
+| `om.Notifications.UpdateChannel` | `PUT /openmeter/notification/channels/{notificationChannelId}` | Update a notification channel by id. |
+| `om.Notifications.DeleteChannel` | `DELETE /openmeter/notification/channels/{notificationChannelId}` | Delete a notification channel by id. |
 
 ## Error Handling
 
