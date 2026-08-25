@@ -48,6 +48,9 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(20), allocations[0].Amount.InexactFloat64())
+	originKind, err := creditrealization.LineageOriginKindFromAnnotations(allocations[0].Annotations)
+	require.NoError(t, err)
+	require.Equal(t, creditrealization.LineageOriginKindRealCredit, originKind)
 
 	// then: FBO -> receivable retains the purchased source and overage spend.
 	require.Equal(t, float64(10), env.SumBalance(t, fbo).InexactFloat64())
