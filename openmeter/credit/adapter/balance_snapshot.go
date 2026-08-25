@@ -66,6 +66,10 @@ func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner models
 
 func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedID, balances []balance.Snapshot) error {
 	return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {
+		if len(balances) == 0 {
+			return nil
+		}
+
 		commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
 		for _, snapshot := range balances {
 			if snapshot.UsageSnapshot == nil {
@@ -91,6 +95,11 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedI
 			}
 			commands = append(commands, command)
 		}
+
+		if err := ensureEntitlementOwnerExists(ctx, rep.db, owner); err != nil {
+			return err
+		}
+
 		_, err := rep.db.BalanceSnapshot.CreateBulk(commands...).Save(ctx)
 		return err
 	})

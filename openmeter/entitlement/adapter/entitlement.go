@@ -119,6 +119,23 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
 			now := clock.Now().UTC()
 
+			featureExists, err := repo.db.Feature.Query().
+				Where(
+					db_feature.Namespace(ent.Namespace),
+					db_feature.ID(ent.FeatureID),
+					db_feature.Key(ent.FeatureKey),
+				).
+				Exist(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve feature: %w", err)
+			}
+
+			if !featureExists {
+				return nil, models.NewGenericNotFoundError(
+					fmt.Errorf("feature with id %s and key %s not found in %s namespace", ent.FeatureID, ent.FeatureKey, ent.Namespace),
+				)
+			}
+
 			query := repo.db.Customer.Query().Where(
 				customerdb.Namespace(ent.Namespace),
 				customerdb.ID(ent.UsageAttribution.ID),
@@ -184,7 +201,10 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 
 			// Query the created entitlement back with customer and subject edges loaded
 			entWithEdges, err := repo.db.Entitlement.Query().
-				Where(db_entitlement.ID(res.ID)).
+				Where(
+					db_entitlement.ID(res.ID),
+					db_entitlement.Namespace(res.Namespace),
+				).
 				Only(ctx)
 			if err != nil {
 				if db.IsNotFound(err) {
@@ -701,11 +721,9 @@ func (a *entitlementDBAdapter) UpsertEntitlementCurrentPeriods(ctx context.Conte
 
 			// We will check that all provided entitlements exist as we don't want to create any, just update the current usage period
 			entitlements, err := repo.db.Entitlement.Query().
-				// We're ignoring namespace here but as IDs are globally unique this should be fine
 				Where(db_entitlement.IDIn(slicesx.Map(updates, func(u entitlement.UpsertEntitlementCurrentPeriodElement) string {
 					return u.ID
-				})...),
-				).
+				})...)).
 				All(ctx)
 			if err != nil {
 				return err
@@ -725,8 +743,8 @@ func (a *entitlementDBAdapter) UpsertEntitlementCurrentPeriods(ctx context.Conte
 			dbUpdates := make([]*db.EntitlementCreate, 0, len(updates))
 			for _, update := range updates {
 				ent, ok := entMap[update.ID]
-				if !ok {
-					return fmt.Errorf("inconsistency error: entitlement %s not found", update.ID)
+				if !ok || ent.Namespace != update.Namespace {
+					return &entitlement.NotFoundError{EntitlementID: update.NamespacedID}
 				}
 
 				create := repo.db.Entitlement.Create().

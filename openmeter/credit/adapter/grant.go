@@ -34,6 +34,13 @@ func NewPostgresGrantRepo(db *db.Client) grant.Repo {
 
 func (g *grantDBADapter) CreateGrant(ctx context.Context, grant grant.RepoCreateInput) (*grant.Grant, error) {
 	// TODO: transaction and locking
+	if err := ensureEntitlementOwnerExists(ctx, g.db, models.NamespacedID{
+		Namespace: grant.Namespace,
+		ID:        grant.OwnerID,
+	}); err != nil {
+		return nil, err
+	}
+
 	command := g.db.Grant.Create().
 		SetNamespace(grant.Namespace).
 		SetOwnerID(grant.OwnerID).
