@@ -110,12 +110,21 @@ func (c testOwnerConnector) LockOwnerForTx(ctx context.Context, id models.Namesp
 }
 
 type testSnapshotRepo struct {
-	invalidateAfter func(context.Context, models.NamespacedID, time.Time) error
-	save            func(context.Context, models.NamespacedID, []balance.Snapshot) error
+	invalidateAfter        func(context.Context, models.NamespacedID, time.Time) error
+	getInvalidationVersion func(context.Context, models.NamespacedID) (balance.SnapshotInvalidationVersion, error)
+	save                   func(context.Context, models.NamespacedID, []balance.Snapshot) error
 }
 
 func (r testSnapshotRepo) InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error {
 	return r.invalidateAfter(ctx, owner, at)
+}
+
+func (r testSnapshotRepo) GetInvalidationVersion(ctx context.Context, owner models.NamespacedID) (balance.SnapshotInvalidationVersion, error) {
+	if r.getInvalidationVersion == nil {
+		return 0, nil
+	}
+
+	return r.getInvalidationVersion(ctx, owner)
 }
 
 func (testSnapshotRepo) GetLatestValidAt(context.Context, models.NamespacedID, time.Time) (balance.Snapshot, error) {
@@ -312,6 +321,9 @@ func TestSnapshotSaveUsesOwnerLockTransaction(t *testing.T) {
 	}
 	snapshotRepo := testSnapshotRepo{
 		invalidateAfter: func(context.Context, models.NamespacedID, time.Time) error { return nil },
+		getInvalidationVersion: func(context.Context, models.NamespacedID) (balance.SnapshotInvalidationVersion, error) {
+			return 4, nil
+		},
 		save: func(ctx context.Context, _ models.NamespacedID, _ []balance.Snapshot) error {
 			require.True(t, locked)
 			require.False(t, driver.committed)
@@ -323,9 +335,10 @@ func TestSnapshotSaveUsesOwnerLockTransaction(t *testing.T) {
 
 	// when: the calculated snapshot is persisted
 	err = connector.snapshotEngineResult(t.Context(), snapshotParams{
-		meter:    meter.Meter{Aggregation: meter.MeterAggregationSum},
-		owner:    models.NamespacedID{Namespace: "ns", ID: "owner"},
-		notAfter: start.Add(2 * time.Minute),
+		meter:                       meter.Meter{Aggregation: meter.MeterAggregationSum},
+		owner:                       models.NamespacedID{Namespace: "ns", ID: "owner"},
+		notAfter:                    start.Add(2 * time.Minute),
+		snapshotInvalidationVersion: 4,
 	}, engine.RunResult{History: history})
 
 	// then: persistence still has the transaction that holds the owner lock

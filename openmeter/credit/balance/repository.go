@@ -8,8 +8,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type SnapshotInvalidationVersion uint64
+
 type SnapshotRepo interface {
 	InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error
+	GetInvalidationVersion(ctx context.Context, owner models.NamespacedID) (SnapshotInvalidationVersion, error)
 	// GetLatestValidAt returns the latest complete snapshot.
 	GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error)
 	Save(ctx context.Context, owner models.NamespacedID, balances []Snapshot) error

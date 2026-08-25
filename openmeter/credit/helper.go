@@ -190,6 +190,9 @@ type snapshotParams struct {
 	// unitConfig is the owner's current conversion regime, stamped onto the saved
 	// snapshot so the resume path can detect a later regime change (OM-400). Nil = raw.
 	unitConfig *unitconfig.UnitConfig
+	// snapshotInvalidationVersion is captured before the balance calculation starts.
+	// Opportunistic persistence is skipped if an input mutation increments it.
+	snapshotInvalidationVersion balance.SnapshotInvalidationVersion
 }
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
@@ -222,6 +225,14 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 				if err := m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false); err != nil {
 					lockErr = err
 					return err
+				}
+
+				currentVersion, err := m.BalanceSnapshotService.GetInvalidationVersion(ctx, snapParams.owner)
+				if err != nil {
+					return fmt.Errorf("failed to get snapshot invalidation version: %w", err)
+				}
+				if currentVersion != snapParams.snapshotInvalidationVersion {
+					return nil
 				}
 
 				if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {

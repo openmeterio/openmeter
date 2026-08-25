@@ -8,10 +8,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_balancesnapshot "github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	db_entitlement "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -27,16 +30,53 @@ func NewPostgresBalanceSnapshotRepo(db *db.Client) *balanceSnapshotRepo {
 }
 
 func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error {
-	return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {
-		return rep.db.BalanceSnapshot.Update().
+	return transaction.RunWithNoValue(ctx, b, func(ctx context.Context) error {
+		return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {
+			updated, err := rep.db.Entitlement.Update().
+				Where(
+					db_entitlement.ID(owner.ID),
+					db_entitlement.Namespace(owner.Namespace),
+				).
+				AddBalanceSnapshotInvalidationVersion(1).
+				Save(ctx)
+			if err != nil {
+				return err
+			}
+			if updated == 0 {
+				return grant.NewOwnerNotFoundError(owner, "entitlement")
+			}
+
+			return rep.db.BalanceSnapshot.Update().
+				Where(
+					db_balancesnapshot.OwnerID(owner.ID),
+					db_balancesnapshot.Namespace(owner.Namespace),
+					db_balancesnapshot.AtGT(at),
+					db_balancesnapshot.DeletedAtIsNil(),
+				).
+				SetDeletedAt(clock.Now()).
+				Exec(ctx)
+		})
+	})
+}
+
+func (b *balanceSnapshotRepo) GetInvalidationVersion(ctx context.Context, owner models.NamespacedID) (balance.SnapshotInvalidationVersion, error) {
+	return entutils.TransactingRepo(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) (balance.SnapshotInvalidationVersion, error) {
+		entitlement, err := rep.db.Entitlement.Query().
 			Where(
-				db_balancesnapshot.OwnerID(owner.ID),
-				db_balancesnapshot.Namespace(owner.Namespace),
-				db_balancesnapshot.AtGT(at),
-				db_balancesnapshot.DeletedAtIsNil(),
+				db_entitlement.ID(owner.ID),
+				db_entitlement.Namespace(owner.Namespace),
 			).
-			SetDeletedAt(clock.Now()).
-			Exec(ctx)
+			Select(db_entitlement.FieldBalanceSnapshotInvalidationVersion).
+			Only(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return 0, grant.NewOwnerNotFoundError(owner, "entitlement")
+			}
+
+			return 0, err
+		}
+
+		return balance.SnapshotInvalidationVersion(entitlement.BalanceSnapshotInvalidationVersion), nil
 	})
 }
 

@@ -29,6 +29,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
@@ -77,9 +78,17 @@ var m sync.Mutex
 
 // builds connector with mock streaming and real PG
 func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) {
+	return setupConnectorWithStreaming(t, nil)
+}
+
+func setupConnectorWithStreaming(t *testing.T, wrap func(streaming.Connector) streaming.Connector) (meteredentitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 	tracer := noop.NewTracerProvider().Tracer("test")
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+	var creditStreamingConnector streaming.Connector = streamingConnector
+	if wrap != nil {
+		creditStreamingConnector = wrap(streamingConnector)
+	}
 	testMeterID := ulid.Make().String()
 	testMeters := []meter.Meter{{
 		ManagedResource: models.ManagedResource{
@@ -164,7 +173,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 			GrantRepo:              grantRepo,
 			BalanceSnapshotService: snapshotService,
 			OwnerConnector:         ownerConnector,
-			StreamingConnector:     streamingConnector,
+			StreamingConnector:     creditStreamingConnector,
 			Logger:                 testLogger,
 			Tracer:                 tracer,
 			Granularity:            time.Minute,
@@ -175,7 +184,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	)
 
 	connector := meteredentitlement.NewMeteredEntitlementConnector(
-		streamingConnector,
+		creditStreamingConnector,
 		ownerConnector,
 		creditConnector,
 		creditConnector,

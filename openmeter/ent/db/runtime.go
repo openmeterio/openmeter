@@ -2168,8 +2168,12 @@ func init() {
 	// entitlementDescUnitConfig is the schema descriptor for unit_config field.
 	entitlementDescUnitConfig := entitlementFields[12].Descriptor()
 	entitlement.ValueScanner.UnitConfig = entitlementDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
+	// entitlementDescBalanceSnapshotInvalidationVersion is the schema descriptor for balance_snapshot_invalidation_version field.
+	entitlementDescBalanceSnapshotInvalidationVersion := entitlementFields[17].Descriptor()
+	// entitlement.DefaultBalanceSnapshotInvalidationVersion holds the default value on creation for the balance_snapshot_invalidation_version field.
+	entitlement.DefaultBalanceSnapshotInvalidationVersion = entitlementDescBalanceSnapshotInvalidationVersion.Default.(uint64)
 	// entitlementDescAnnotations is the schema descriptor for annotations field.
-	entitlementDescAnnotations := entitlementFields[17].Descriptor()
+	entitlementDescAnnotations := entitlementFields[18].Descriptor()
 	entitlement.ValueScanner.Annotations = entitlementDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// entitlementDescID is the schema descriptor for id field.
 	entitlementDescID := entitlementMixinFields0[0].Descriptor()
