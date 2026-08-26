@@ -9,8 +9,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !contains(github.ref, 'refs/heads/main') && !contains(github.ref, 'refs/tags/') }}
+  # Supersede stale pull request runs, but never let a queued main run block a
+  # later push from rebuilding the shared caches.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   cache-rebuild:
