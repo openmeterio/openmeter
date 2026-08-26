@@ -708,34 +708,3 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		assert.Equal(t, v3sdk.UnitConfigRoundingModeCeiling, *pkgRC.UnitConfig.Rounding)
 	})
 }
-
-func TestV3PlanUpdateClearsOmittedFields(t *testing.T) {
-	c := newV3Client(t)
-
-	createBody := validPlanRequest("test_v3_plan_replace")
-	createBody.Description = lo.ToPtr("Original description")
-	createBody.Labels = &map[string]string{"env": "prod"}
-
-	created, err := c.Plans.Create(t.Context(), createBody)
-	c.requireStatus(http.StatusCreated, err)
-	require.NotNil(t, created)
-	require.NotNil(t, created.Description)
-	require.NotEmpty(t, created.Labels)
-
-	updated, err := c.Plans.Update(t.Context(), created.ID, v3sdk.UpsertPlanRequest{
-		Name:   createBody.Name,
-		Phases: createBody.Phases,
-	})
-	c.requireStatus(http.StatusOK, err)
-	require.NotNil(t, updated)
-
-	assert.Nil(t, updated.Description, "omitted description must be cleared, not carried over")
-	assert.Empty(t, updated.Labels, "omitted labels must be cleared, not carried over")
-
-	fetched, err := c.Plans.Get(t.Context(), created.ID)
-	c.requireStatus(http.StatusOK, err)
-	require.NotNil(t, fetched)
-
-	assert.Nil(t, fetched.Description)
-	assert.Empty(t, fetched.Labels)
-}

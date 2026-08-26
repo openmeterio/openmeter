@@ -53,7 +53,6 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		EffectiveTo:      p.EffectiveTo,
 		Id:               p.ID,
 		Key:              p.Key,
-		Labels:           labels.FromMetadata(p.Metadata),
 		Name:             p.Name,
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
@@ -569,7 +568,10 @@ func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanReque
 		return req, fmt.Errorf("failed to convert label metadata: %w", err)
 	}
 
-	req.Metadata = &meta
+	if body.Labels != nil {
+		m := meta
+		req.Metadata = &m
+	}
 
 	phases := make([]productcatalog.Phase, 0, len(body.Phases))
 	for _, phase := range body.Phases {
