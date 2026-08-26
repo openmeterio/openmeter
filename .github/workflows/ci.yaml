@@ -639,29 +639,6 @@ jobs:
       - name: Dependency Review
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
 
-  fossa-scan:
-    name: FOSSA Scan
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    environment: prod
-
-    steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Run FOSSA Scan
-        uses: fossas/fossa-action@29693cc50323968e039056be419b32989fc5880c # v2.0.0
-        with:
-          api-key: ${{secrets.FOSSA_API_KEY}}
-
   quickstart:
     name: Quickstart
     runs-on: depot-ubuntu-latest-8
