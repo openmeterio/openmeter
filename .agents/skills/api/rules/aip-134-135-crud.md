@@ -40,6 +40,58 @@ Both `PATCH` and `PUT` are **required** for all entities (mandate introduced 202
 - **Creation via PUT only works when the entity uses customer-supplied IDs** (unique within the organization or parent scope, not globally).
 - For entities with system-generated globally-unique IDs, PUT only supports **replacement**; missing entities must return `404 Not Found`.
 
+#### PUT is a replace, all the way down
+
+The request body is the resource's complete new representation. A field the client
+left out is **cleared**, never carried over from the stored value. This holds
+recursively: an omitted sub-object resets that whole sub-object, and an omitted array
+is the same as an empty one.
+
+Use `Shared.UpsertRequest<T>` so required fields stay required — `Shared.UpdateRequest<T>`
+makes every property optional and belongs to PATCH. A `@put` operation paired with
+`UpdateRequest<T>` publishes a contract that says "everything is optional" while the
+server still rejects a missing required field.
+
+Implementing it takes both layers:
+
+- **v3 handler / `convert.go`** builds the complete target state. No `if body.X != nil { … }`
+  guards on a PUT path — always hand the service a value, the zero value included.
+- **Adapter** uses the generated `SetOrClear<Field>` helpers (nil clears), never Ent's
+  stock `SetNillable<Field>` (nil is a no-op). This choice is the replace-vs-merge switch.
+- **`Equal()` short-circuits** must compare an omitted field against the stored value, or
+  they skip the write that would have cleared it.
+- **`applyTo` / validation projections** must apply the same clearing, so validation sees
+  the state the update is about to produce.
+
+Two things stay out of the replace surface:
+
+- **Fields the representation does not expose**, such as server-managed annotations.
+  A client cannot send them, so a PUT cannot clear them.
+- **Partial internal mutations.** Lifecycle operations that move one attribute (publishing
+  or archiving a plan shifts only its effective period) must not ride the general update
+  path, or they will clear everything the caller did not repeat. Give them their own named
+  adapter method — see `UpdatePlanEffectivePeriod` / `UpdateAddonEffectivePeriod`.
+
+This is the default, so **do not comment it**. Do not explain in code that a field is
+cleared because PUT replaces, that `SetOrClear` is used instead of `SetNillable`, or that
+`Equal()`/`applyTo` are presence-aware. Comment only deviations: a field that is
+deliberately merged, or a nil that means "leave alone" rather than "clear".
+
+Tests to add with the change:
+
+- Handler: an omitted field maps to its zero/nil value (a plain converter test — no
+  `given`/`when`/`then` narration).
+- Adapter: an update that omits a field clears it in the returned entity **and** on
+  re-read.
+- Lifecycle operations (publish, archive, …): unrelated fields survive.
+
+The one deliberate exception is a write-only credential with no cleared state, such as the
+Stripe app's `secret_api_key`: make the field **required** so nothing silently persists,
+rather than clearing a key the app cannot run without.
+
+PATCH is the partial-update verb and v3 currently ships it only for `update-feature`;
+adding it for the remaining entities per the AIP-134 mandate is outstanding.
+
 ## AIP-135 delete rules
 
 - DELETE returns `204 No Content` on success.
