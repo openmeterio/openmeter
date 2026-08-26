@@ -1080,7 +1080,7 @@ func TestToUpdatePlanInput(t *testing.T) {
 		assert.Equal(t, "prod", (*result.Metadata)["env"])
 	})
 
-	t.Run("nil labels result in nil metadata", func(t *testing.T) {
+	t.Run("omitted labels map to empty metadata", func(t *testing.T) {
 		body := api.UpsertPlanRequest{
 			Name:   "Plan",
 			Phases: []api.BillingPlanPhase{},
@@ -1088,7 +1088,19 @@ func TestToUpdatePlanInput(t *testing.T) {
 
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
 		require.NoError(t, err)
-		assert.Nil(t, result.Metadata)
+		require.NotNil(t, result.Metadata)
+		assert.Empty(t, *result.Metadata)
+	})
+
+	t.Run("omitted description maps to nil", func(t *testing.T) {
+		body := api.UpsertPlanRequest{
+			Name:   "Plan",
+			Phases: []api.BillingPlanPhase{},
+		}
+
+		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
+		require.NoError(t, err)
+		assert.Nil(t, result.Description)
 	})
 
 	t.Run("pro rating enabled maps correctly", func(t *testing.T) {

@@ -249,11 +249,11 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 		return false
 	}
 
-	if i.Description != nil && lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
+	if (i.Description == nil) != (p.Description == nil) || lo.FromPtr(i.Description) != lo.FromPtr(p.Description) {
 		return false
 	}
 
-	if i.Metadata != nil && !i.Metadata.Equal(p.Metadata) {
+	if !lo.FromPtr(i.Metadata).Equal(p.Metadata) {
 		return false
 	}
 
@@ -383,13 +383,8 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 		p.Name = *i.Name
 	}
 
-	if i.Description != nil {
-		p.Description = i.Description
-	}
-
-	if i.Metadata != nil {
-		p.Metadata = *i.Metadata
-	}
+	p.Description = i.Description
+	p.Metadata = lo.FromPtr(i.Metadata)
 
 	if i.BillingCadence != nil {
 		p.BillingCadence = *i.BillingCadence
@@ -408,6 +403,36 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 	}
 
 	return p
+}
+
+var _ models.Validator = (*UpdatePlanEffectivePeriodInput)(nil)
+
+// UpdatePlanEffectivePeriodInput moves only the plan's schedule; a nil boundary is left
+// untouched rather than cleared, so a publish can set EffectiveFrom alone.
+type UpdatePlanEffectivePeriodInput struct {
+	models.NamespacedID
+
+	productcatalog.EffectivePeriod
+}
+
+func (i UpdatePlanEffectivePeriodInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, productcatalog.ErrNamespaceEmpty)
+	}
+
+	if i.ID == "" {
+		errs = append(errs, productcatalog.ErrIDEmpty)
+	}
+
+	if i.EffectiveFrom != nil || i.EffectiveTo != nil {
+		if err := i.EffectivePeriod.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ExpandFields defines which fields to expand when returning the Plan.

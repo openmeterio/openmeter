@@ -548,6 +548,9 @@ func TestPlanService(t *testing.T) {
 							Namespace: planInput.Namespace,
 							ID:        draftPlanV1.ID,
 						},
+						Name:        lo.ToPtr(draftPlanV1.Name),
+						Description: draftPlanV1.Description,
+						Metadata:    lo.ToPtr(draftPlanV1.Metadata),
 						Phases: lo.ToPtr(lo.Map(draftPlanV1.Phases, func(p plan.Phase, _ int) productcatalog.Phase {
 							return productcatalog.Phase{
 								PhaseMeta: p.PhaseMeta,
@@ -588,6 +591,10 @@ func TestPlanService(t *testing.T) {
 
 				assert.Equalf(t, productcatalog.PlanStatusActive, publishedPlanV1.Status(),
 					"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusActive, publishedPlanV1.Status())
+
+				assert.Equalf(t, draftPlanV1.Name, publishedPlanV1.Name, "publishing must preserve the name")
+				assert.Equalf(t, draftPlanV1.Description, publishedPlanV1.Description, "publishing must preserve the description")
+				assert.Equalf(t, draftPlanV1.Metadata, publishedPlanV1.Metadata, "publishing must preserve the labels")
 
 				t.Run("Update", func(t *testing.T) {
 					updateInput := plan.UpdatePlanInput{
