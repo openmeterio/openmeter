@@ -147,6 +147,16 @@ func ServicePeriodTo(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldServicePeriodTo, v))
 }
 
+// SchemaLevel applies equality check predicate on the "schema_level" field. It's identical to SchemaLevelEQ.
+func SchemaLevel(v int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldSchemaLevel, v))
+}
+
+// PriorRunID applies equality check predicate on the "prior_run_id" field. It's identical to PriorRunIDEQ.
+func PriorRunID(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldPriorRunID, v))
+}
+
 // DetailedLinesPresent applies equality check predicate on the "detailed_lines_present" field. It's identical to DetailedLinesPresentEQ.
 func DetailedLinesPresent(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
@@ -967,6 +977,121 @@ func ServicePeriodToLTE(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldServicePeriodTo, v))
 }
 
+// SchemaLevelEQ applies the EQ predicate on the "schema_level" field.
+func SchemaLevelEQ(v int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldSchemaLevel, v))
+}
+
+// SchemaLevelNEQ applies the NEQ predicate on the "schema_level" field.
+func SchemaLevelNEQ(v int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldSchemaLevel, v))
+}
+
+// SchemaLevelIn applies the In predicate on the "schema_level" field.
+func SchemaLevelIn(vs ...int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldSchemaLevel, vs...))
+}
+
+// SchemaLevelNotIn applies the NotIn predicate on the "schema_level" field.
+func SchemaLevelNotIn(vs ...int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldSchemaLevel, vs...))
+}
+
+// SchemaLevelGT applies the GT predicate on the "schema_level" field.
+func SchemaLevelGT(v int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldSchemaLevel, v))
+}
+
+// SchemaLevelGTE applies the GTE predicate on the "schema_level" field.
+func SchemaLevelGTE(v int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldSchemaLevel, v))
+}
+
+// SchemaLevelLT applies the LT predicate on the "schema_level" field.
+func SchemaLevelLT(v int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldSchemaLevel, v))
+}
+
+// SchemaLevelLTE applies the LTE predicate on the "schema_level" field.
+func SchemaLevelLTE(v int) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldSchemaLevel, v))
+}
+
+// PriorRunIDEQ applies the EQ predicate on the "prior_run_id" field.
+func PriorRunIDEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldPriorRunID, v))
+}
+
+// PriorRunIDNEQ applies the NEQ predicate on the "prior_run_id" field.
+func PriorRunIDNEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldPriorRunID, v))
+}
+
+// PriorRunIDIn applies the In predicate on the "prior_run_id" field.
+func PriorRunIDIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldPriorRunID, vs...))
+}
+
+// PriorRunIDNotIn applies the NotIn predicate on the "prior_run_id" field.
+func PriorRunIDNotIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldPriorRunID, vs...))
+}
+
+// PriorRunIDGT applies the GT predicate on the "prior_run_id" field.
+func PriorRunIDGT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldPriorRunID, v))
+}
+
+// PriorRunIDGTE applies the GTE predicate on the "prior_run_id" field.
+func PriorRunIDGTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldPriorRunID, v))
+}
+
+// PriorRunIDLT applies the LT predicate on the "prior_run_id" field.
+func PriorRunIDLT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldPriorRunID, v))
+}
+
+// PriorRunIDLTE applies the LTE predicate on the "prior_run_id" field.
+func PriorRunIDLTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldPriorRunID, v))
+}
+
+// PriorRunIDContains applies the Contains predicate on the "prior_run_id" field.
+func PriorRunIDContains(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContains(FieldPriorRunID, v))
+}
+
+// PriorRunIDHasPrefix applies the HasPrefix predicate on the "prior_run_id" field.
+func PriorRunIDHasPrefix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasPrefix(FieldPriorRunID, v))
+}
+
+// PriorRunIDHasSuffix applies the HasSuffix predicate on the "prior_run_id" field.
+func PriorRunIDHasSuffix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasSuffix(FieldPriorRunID, v))
+}
+
+// PriorRunIDIsNil applies the IsNil predicate on the "prior_run_id" field.
+func PriorRunIDIsNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIsNull(FieldPriorRunID))
+}
+
+// PriorRunIDNotNil applies the NotNil predicate on the "prior_run_id" field.
+func PriorRunIDNotNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotNull(FieldPriorRunID))
+}
+
+// PriorRunIDEqualFold applies the EqualFold predicate on the "prior_run_id" field.
+func PriorRunIDEqualFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEqualFold(FieldPriorRunID, v))
+}
+
+// PriorRunIDContainsFold applies the ContainsFold predicate on the "prior_run_id" field.
+func PriorRunIDContainsFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContainsFold(FieldPriorRunID, v))
+}
+
 // DetailedLinesPresentEQ applies the EQ predicate on the "detailed_lines_present" field.
 func DetailedLinesPresentEQ(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
@@ -1281,6 +1406,52 @@ func HasBillingInvoice() predicate.ChargeUsageBasedRuns {
 func HasBillingInvoiceWith(preds ...predicate.BillingInvoice) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
 		step := newBillingInvoiceStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNextRuns applies the HasEdge predicate on the "next_runs" edge.
+func HasNextRuns() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NextRunsTable, NextRunsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNextRunsWith applies the HasEdge predicate on the "next_runs" edge with a given conditions (other predicates).
+func HasNextRunsWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := newNextRunsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPriorRun applies the HasEdge predicate on the "prior_run" edge.
+func HasPriorRun() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PriorRunTable, PriorRunColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPriorRunWith applies the HasEdge predicate on the "prior_run" edge with a given conditions (other predicates).
+func HasPriorRunWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := newPriorRunStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

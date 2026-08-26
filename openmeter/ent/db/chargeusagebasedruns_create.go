@@ -166,6 +166,34 @@ func (_c *ChargeUsageBasedRunsCreate) SetServicePeriodTo(v time.Time) *ChargeUsa
 	return _c
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (_c *ChargeUsageBasedRunsCreate) SetSchemaLevel(v int) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetSchemaLevel(v)
+	return _c
+}
+
+// SetNillableSchemaLevel sets the "schema_level" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableSchemaLevel(v *int) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetSchemaLevel(*v)
+	}
+	return _c
+}
+
+// SetPriorRunID sets the "prior_run_id" field.
+func (_c *ChargeUsageBasedRunsCreate) SetPriorRunID(v string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetPriorRunID(v)
+	return _c
+}
+
+// SetNillablePriorRunID sets the "prior_run_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillablePriorRunID(v *string) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetPriorRunID(*v)
+	}
+	return _c
+}
+
 // SetDetailedLinesPresent sets the "detailed_lines_present" field.
 func (_c *ChargeUsageBasedRunsCreate) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetDetailedLinesPresent(v)
@@ -306,6 +334,26 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillableBillingInvoiceID(id *string) *C
 // SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
 func (_c *ChargeUsageBasedRunsCreate) SetBillingInvoice(v *BillingInvoice) *ChargeUsageBasedRunsCreate {
 	return _c.SetBillingInvoiceID(v.ID)
+}
+
+// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (_c *ChargeUsageBasedRunsCreate) AddNextRunIDs(ids ...string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.AddNextRunIDs(ids...)
+	return _c
+}
+
+// AddNextRuns adds the "next_runs" edges to the ChargeUsageBasedRuns entity.
+func (_c *ChargeUsageBasedRunsCreate) AddNextRuns(v ...*ChargeUsageBasedRuns) *ChargeUsageBasedRunsCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddNextRunIDs(ids...)
+}
+
+// SetPriorRun sets the "prior_run" edge to the ChargeUsageBasedRuns entity.
+func (_c *ChargeUsageBasedRunsCreate) SetPriorRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunsCreate {
+	return _c.SetPriorRunID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
@@ -449,6 +497,10 @@ func (_c *ChargeUsageBasedRunsCreate) defaults() {
 		v := chargeusagebasedruns.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.SchemaLevel(); !ok {
+		v := chargeusagebasedruns.DefaultSchemaLevel
+		_c.mutation.SetSchemaLevel(v)
+	}
 	if _, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); !ok {
 		v := chargeusagebasedruns.DefaultDetailedLinesIncludeCreditAllocations
 		_c.mutation.SetDetailedLinesIncludeCreditAllocations(v)
@@ -535,6 +587,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	}
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.service_period_to"`)}
+	}
+	if _, ok := _c.mutation.SchemaLevel(); !ok {
+		return &ValidationError{Name: "schema_level", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.schema_level"`)}
 	}
 	if _, ok := _c.mutation.DetailedLinesPresent(); !ok {
 		return &ValidationError{Name: "detailed_lines_present", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.detailed_lines_present"`)}
@@ -667,6 +722,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 		_spec.SetField(chargeusagebasedruns.FieldServicePeriodTo, field.TypeTime, value)
 		_node.ServicePeriodTo = value
 	}
+	if value, ok := _c.mutation.SchemaLevel(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldSchemaLevel, field.TypeInt, value)
+		_node.SchemaLevel = value
+	}
 	if value, ok := _c.mutation.DetailedLinesPresent(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
 		_node.DetailedLinesPresent = value
@@ -753,6 +812,39 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.InvoiceID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.NextRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.NextRunsTable,
+			Columns: []string{chargeusagebasedruns.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PriorRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.PriorRunTable,
+			Columns: []string{chargeusagebasedruns.PriorRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PriorRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
@@ -1053,6 +1145,24 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateStoredAtLt() *ChargeUsageBasedRunsUps
 	return u
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (u *ChargeUsageBasedRunsUpsert) SetSchemaLevel(v int) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldSchemaLevel, v)
+	return u
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateSchemaLevel() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldSchemaLevel)
+	return u
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *ChargeUsageBasedRunsUpsert) AddSchemaLevel(v int) *ChargeUsageBasedRunsUpsert {
+	u.Add(chargeusagebasedruns.FieldSchemaLevel, v)
+	return u
+}
+
 // SetDetailedLinesPresent sets the "detailed_lines_present" field.
 func (u *ChargeUsageBasedRunsUpsert) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldDetailedLinesPresent, v)
@@ -1165,6 +1275,9 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		}
 		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
+		}
+		if _, exists := u.create.mutation.PriorRunID(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldPriorRunID)
 		}
 		if _, exists := u.create.mutation.InvoiceID(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)
@@ -1372,6 +1485,27 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetStoredAtLt(v time.Time) *ChargeUsageB
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateStoredAtLt() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateStoredAtLt()
+	})
+}
+
+// SetSchemaLevel sets the "schema_level" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetSchemaLevel(v int) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetSchemaLevel(v)
+	})
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *ChargeUsageBasedRunsUpsertOne) AddSchemaLevel(v int) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.AddSchemaLevel(v)
+	})
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateSchemaLevel() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateSchemaLevel()
 	})
 }
 
@@ -1667,6 +1801,9 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			if _, exists := b.mutation.ServicePeriodTo(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldServicePeriodTo)
 			}
+			if _, exists := b.mutation.PriorRunID(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldPriorRunID)
+			}
 			if _, exists := b.mutation.InvoiceID(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)
 			}
@@ -1874,6 +2011,27 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetStoredAtLt(v time.Time) *ChargeUsage
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateStoredAtLt() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateStoredAtLt()
+	})
+}
+
+// SetSchemaLevel sets the "schema_level" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetSchemaLevel(v int) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetSchemaLevel(v)
+	})
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) AddSchemaLevel(v int) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.AddSchemaLevel(v)
+	})
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateSchemaLevel() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateSchemaLevel()
 	})
 }
 

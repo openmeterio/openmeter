@@ -222,13 +222,25 @@ one.
   `ServicePeriod.To`. Full-service, billing-period, and invoice timing reconcile
   to their target values independently; charge-type lifecycles use the service
   direction when deciding how to preserve or replace realizations.
-- A usage-based realization run is a persisted checkpoint. `ServicePeriodTo`
-  is the exclusive event-time bound; `StoredAtLT` is the exclusive ingestion
-  bound. Waiting and correction logic uses the persisted bounds rather than
-  recomputing them.
-- Usage-based run metered quantity is cumulative from charge start to the run
+- A usage-based realization run is a persisted checkpoint. Its nominal service
+  period starts at the preceding non-voided run's persisted `ServicePeriodTo`,
+  or at the effective intent's service-period start for the first run. The
+  persisted `PriorRunID` records which case applies. Schema-level-2 runs always
+  carry known lineage: a null prior identifies the first run, while an ID names
+  its predecessor. Schema-level-1 runs predate that lineage and retain the
+  ordering-based fallback until backfill. The run's own `ServicePeriodTo` is the
+  exclusive event-time bound; `StoredAtLT` is the exclusive ingestion bound.
+  Waiting and correction logic uses persisted run boundaries and lineage; only
+  a known first run takes its start from the effective intent.
+- A run can include late-arriving events whose event time belongs to an earlier
+  nominal period. Its service period therefore describes the nominal checkpoint
+  covered by the run, not strict provenance for every event included in its
+  metered quantity.
+- A usage-based run's metered quantity is cumulative from charge start to the run
   boundary. A billing standard line expects line-period and pre-line-period
-  quantities, so charge mappers translate rather than copy it.
+  quantities, so charge mappers translate rather than copy it. Translation
+  for schema-level-2 runs reads the referenced run's persisted quantity;
+  schema-level-1 runs retain the ordering-based fallback until backfill.
 - Corrections reconcile against persisted allocations in the same realization
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.

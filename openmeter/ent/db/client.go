@@ -10567,6 +10567,38 @@ func (c *ChargeUsageBasedRunsClient) QueryBillingInvoice(_m *ChargeUsageBasedRun
 	return query
 }
 
+// QueryNextRuns queries the next_runs edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryNextRuns(_m *ChargeUsageBasedRuns) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.NextRunsTable, chargeusagebasedruns.NextRunsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPriorRun queries the prior_run edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryPriorRun(_m *ChargeUsageBasedRuns) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.PriorRunTable, chargeusagebasedruns.PriorRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCreditAllocations queries the credit_allocations edge of a ChargeUsageBasedRuns.
 func (c *ChargeUsageBasedRunsClient) QueryCreditAllocations(_m *ChargeUsageBasedRuns) *ChargeUsageBasedRunCreditAllocationsQuery {
 	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: c.config}).Query()
