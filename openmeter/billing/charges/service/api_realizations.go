@@ -94,7 +94,7 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 		return nil, fmt.Errorf("converting charge status: %w", err)
 	}
 
-	servicePeriod := charge.Intent.GetEffectiveIntent().ServicePeriod
+	servicePeriod := charge.Intent.GetEffectiveServicePeriod()
 
 	// Sorting the charge's own slice in place would mutate domain state the
 	// caller still holds.
@@ -106,24 +106,35 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 
 	out := make([]charges.CustomerChargeUsageBasedRealization, 0, len(runs)+1)
 
-	coveredUntil := meta.NormalizeTimestamp(servicePeriod.From)
 	// maxCoveredTo is the furthest period end any live run has booked,
 	// independent of booking order. The outstanding entry starts there so a
 	// later run with an earlier period end cannot move it back over
 	// already-realized time.
 	maxCoveredTo := meta.NormalizeTimestamp(servicePeriod.From)
-	previousQuantity := alpacadecimal.Zero
 
 	for idx := range runs {
 		run := runs[idx]
 		voided := run.IsVoidedBillingHistory()
 
-		quantity := run.MeteredQuantity.Sub(previousQuantity)
+		runPeriod, err := charge.ServicePeriodFor(run)
+		if err != nil {
+			return nil, fmt.Errorf("resolving service period for run %s: %w", run.ID.ID, err)
+		}
+
+		priorQuantity := alpacadecimal.Zero
+		if run.PriorRunID != nil {
+			priorRun, err := charge.Realizations.GetByID(run.PriorRunID.ID)
+			if err != nil {
+				return nil, fmt.Errorf("resolving prior run for run %s: %w", run.ID.ID, err)
+			}
+
+			priorQuantity = priorRun.MeteredQuantity
+		}
 
 		entry := charges.CustomerChargeUsageBasedRealization{
 			Run:           &runs[idx],
-			ServicePeriod: timeutil.ClosedPeriod{From: coveredUntil, To: meta.NormalizeTimestamp(run.ServicePeriodTo)},
-			Quantity:      quantity,
+			ServicePeriod: runPeriod,
+			Quantity:      run.MeteredQuantity.Sub(priorQuantity),
 			Voided:        voided,
 		}
 
@@ -135,12 +146,8 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 
 		out = append(out, entry)
 
-		if !voided {
-			coveredUntil = meta.NormalizeTimestamp(run.ServicePeriodTo)
-			if coveredUntil.After(maxCoveredTo) {
-				maxCoveredTo = coveredUntil
-			}
-			previousQuantity = run.MeteredQuantity
+		if !voided && runPeriod.To.After(maxCoveredTo) {
+			maxCoveredTo = runPeriod.To
 		}
 	}
 
@@ -151,11 +158,21 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 			Quantity:      alpacadecimal.Zero,
 		}
 
-		// The unrealized remainder is the live read minus the last live
-		// cumulative, floored at zero when booked history is ahead of the
-		// read.
+		// The unrealized remainder is the live read minus the cumulative of
+		// the run the next run would chain from, floored at zero when booked
+		// history is ahead of the read.
 		if charge.Expands.RealtimeQuantity != nil {
-			realtimeOutstanding := charge.Expands.RealtimeQuantity.Sub(previousQuantity)
+			bookedQuantity := alpacadecimal.Zero
+			if priorRunID := charge.Realizations.PriorRunIDForNextRun(); priorRunID != nil {
+				priorRun, err := charge.Realizations.GetByID(priorRunID.ID)
+				if err != nil {
+					return nil, fmt.Errorf("resolving last live run: %w", err)
+				}
+
+				bookedQuantity = priorRun.MeteredQuantity
+			}
+
+			realtimeOutstanding := charge.Expands.RealtimeQuantity.Sub(bookedQuantity)
 			if realtimeOutstanding.IsNegative() {
 				realtimeOutstanding = alpacadecimal.Zero
 			}

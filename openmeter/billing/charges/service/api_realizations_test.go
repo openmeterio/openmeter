@@ -238,6 +238,13 @@ func newUsageBasedRealizationRun(id string, typ usagebased.RealizationRunType, s
 	}
 }
 
+// chainAfter links run to prior through the persisted lineage that
+// resolveUsageBasedRealizations derives service periods and deltas from.
+func chainAfter(run usagebased.RealizationRun, prior usagebased.RealizationRun) usagebased.RealizationRun {
+	run.PriorRunID = lo.ToPtr(prior.ID)
+	return run
+}
+
 // TestResolveUsageBasedRealizations ports the deleted
 // usagebased.RealizationRuns.Resolve and
 // usagebased.ResolvedRealizations.ApplyRealtimeQuantity tests (respectively
@@ -256,18 +263,20 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 
 	deletedAt := periodStart.Add(time.Hour)
 
-	newDeletedRun := func(id string, servicePeriodTo time.Time, meteredQuantity int64) usagebased.RealizationRun {
-		run := newUsageBasedRealizationRun(id, usagebased.RealizationRunTypePartialInvoice, servicePeriodTo, meteredQuantity)
+	newDeletedRun := func(id string, prior usagebased.RealizationRun, servicePeriodTo time.Time, meteredQuantity int64) usagebased.RealizationRun {
+		run := chainAfter(newUsageBasedRealizationRun(id, usagebased.RealizationRunTypePartialInvoice, servicePeriodTo, meteredQuantity), prior)
 		run.DeletedAt = &deletedAt
 		return run
 	}
 
 	t.Run("orders, stitches and de-cumulates around voided history", func(t *testing.T) {
 		// given two live runs supplied out of order plus a deleted one
+		run1 := newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10)
+		run2 := chainAfter(newUsageBasedRealizationRun("run-2", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(48*time.Hour), 25), run1)
 		runs := usagebased.RealizationRuns{
-			newUsageBasedRealizationRun("run-2", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(48*time.Hour), 25),
-			newDeletedRun("deleted-run", periodStart.Add(72*time.Hour), 40),
-			newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10),
+			run2,
+			newDeletedRun("deleted-run", run2, periodStart.Add(72*time.Hour), 40),
+			run1,
 		}
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, nil)
 
@@ -275,8 +284,8 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		resolved, err := resolveUsageBasedRealizations(charge, map[string]billing.StandardInvoice{})
 		require.NoError(t, err)
 
-		// then live runs are stitched into contiguous periods with per-run
-		// quantities, the voided run is an inert audit entry, and the tail not
+		// then live runs take their periods and per-run quantities from the
+		// persisted lineage, the voided run is an inert audit entry, and the tail not
 		// covered by live runs is projected as outstanding
 		require.Len(t, resolved, 4)
 
@@ -309,7 +318,7 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		// (Max over non-voided ServicePeriodTo), not at the last-created
 		// run's end, or it would re-open already-recognized time.
 		early := newUsageBasedRealizationRun("run-early", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(72*time.Hour), 30)
-		late := newUsageBasedRealizationRun("run-late", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(48*time.Hour), 25)
+		late := chainAfter(newUsageBasedRealizationRun("run-late", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(48*time.Hour), 25), early)
 		late.CreatedAt = periodStart.Add(73 * time.Hour)
 		late.UpdatedAt = late.CreatedAt
 
@@ -356,9 +365,10 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 	t.Run("emits a live run's shrunken cumulative as a signed delta", func(t *testing.T) {
 		// given a downward usage correction: run-2's cumulative snapshot is
 		// smaller than run-1's
+		run1 := newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10)
 		runs := usagebased.RealizationRuns{
-			newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10),
-			newUsageBasedRealizationRun("run-2", usagebased.RealizationRunTypeFinalRealization, periodStart.Add(48*time.Hour), 5),
+			run1,
+			chainAfter(newUsageBasedRealizationRun("run-2", usagebased.RealizationRunTypeFinalRealization, periodStart.Add(48*time.Hour), 5), run1),
 		}
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, nil)
 
@@ -374,9 +384,10 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 
 	t.Run("emits a voided run's negative delta signed", func(t *testing.T) {
 		// given a voided run whose quantity snapshot predates the live run's
+		run1 := newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10)
 		runs := usagebased.RealizationRuns{
-			newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10),
-			newDeletedRun("deleted-run", periodStart.Add(48*time.Hour), 4),
+			run1,
+			newDeletedRun("deleted-run", run1, periodStart.Add(48*time.Hour), 4),
 		}
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, nil)
 
@@ -391,12 +402,10 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 	t.Run("outstanding gets the not-yet-booked remainder of the live read", func(t *testing.T) {
 		// given a booked run (cumulative 10), a voided run, and an outstanding
 		// tail, with a live cumulative read of 14
-		deletedRun := newUsageBasedRealizationRun("deleted-run", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(48*time.Hour), 12)
-		deletedRun.DeletedAt = &deletedAt
-
+		run1 := newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10)
 		runs := usagebased.RealizationRuns{
-			newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10),
-			deletedRun,
+			run1,
+			newDeletedRun("deleted-run", run1, periodStart.Add(48*time.Hour), 12),
 		}
 		realtimeQuantity := alpacadecimal.NewFromInt(14)
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, &realtimeQuantity)
@@ -447,9 +456,10 @@ func TestResolveUsageBasedRealizations(t *testing.T) {
 		// given two live runs with cumulative MeteredQuantity 10 then 4 (a
 		// legitimate downward correction): the signed per-entry deltas are 10
 		// and -6, so the booked total telescopes to the last cumulative (4)
+		run1 := newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10)
 		runs := usagebased.RealizationRuns{
-			newUsageBasedRealizationRun("run-1", usagebased.RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 10),
-			newUsageBasedRealizationRun("run-2", usagebased.RealizationRunTypeFinalRealization, periodStart.Add(48*time.Hour), 4),
+			run1,
+			chainAfter(newUsageBasedRealizationRun("run-2", usagebased.RealizationRunTypeFinalRealization, periodStart.Add(48*time.Hour), 4), run1),
 		}
 		realtimeQuantity := alpacadecimal.NewFromInt(6)
 		charge := newUsageBasedCharge(t, usagebased.StatusActive, servicePeriod, runs, &realtimeQuantity)
