@@ -121,14 +121,9 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 			return nil, fmt.Errorf("resolving service period for run %s: %w", run.ID.ID, err)
 		}
 
-		priorQuantity := alpacadecimal.Zero
-		if run.PriorRunID != nil {
-			priorRun, err := charge.Realizations.GetByID(run.PriorRunID.ID)
-			if err != nil {
-				return nil, fmt.Errorf("resolving prior run for run %s: %w", run.ID.ID, err)
-			}
-
-			priorQuantity = priorRun.MeteredQuantity
+		priorQuantity, err := charge.Realizations.PriorMeteredQuantity(run.PriorRunID)
+		if err != nil {
+			return nil, fmt.Errorf("resolving prior quantity for run %s: %w", run.ID.ID, err)
 		}
 
 		entry := charges.CustomerChargeUsageBasedRealization{
@@ -162,14 +157,9 @@ func resolveUsageBasedRealizations(charge usagebased.Charge, invoiceLinesByID ma
 		// the run the next run would chain from, floored at zero when booked
 		// history is ahead of the read.
 		if charge.Expands.RealtimeQuantity != nil {
-			bookedQuantity := alpacadecimal.Zero
-			if priorRunID := charge.Realizations.PriorRunIDForNextRun(); priorRunID != nil {
-				priorRun, err := charge.Realizations.GetByID(priorRunID.ID)
-				if err != nil {
-					return nil, fmt.Errorf("resolving last live run: %w", err)
-				}
-
-				bookedQuantity = priorRun.MeteredQuantity
+			bookedQuantity, err := charge.Realizations.PriorMeteredQuantity(charge.Realizations.PriorRunIDForNextRun())
+			if err != nil {
+				return nil, fmt.Errorf("resolving booked quantity for outstanding entry: %w", err)
 			}
 
 			realtimeOutstanding := charge.Expands.RealtimeQuantity.Sub(bookedQuantity)
