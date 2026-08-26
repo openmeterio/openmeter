@@ -361,7 +361,7 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			Immutable(),
 
 		field.Int("schema_level").
-			Default(usagebased.RealizationRunSchemaLevelLegacy).
+			Default(usagebased.CurrentRealizationRunSchemaLevel).
 			SchemaType(map[string]string{
 				dialect.Postgres: "smallint",
 			}),

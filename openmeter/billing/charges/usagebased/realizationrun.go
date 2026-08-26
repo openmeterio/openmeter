@@ -54,13 +54,7 @@ func (i RealizationRunID) Validate() error {
 }
 
 const (
-	// RealizationRunSchemaLevelLegacy identifies runs created before explicit
-	// prior-run lineage was persisted.
-	RealizationRunSchemaLevelLegacy = 1
-	// RealizationRunSchemaLevelPriorRun identifies runs whose PriorRunID is
-	// known, including first runs for which it is explicitly nil.
-	RealizationRunSchemaLevelPriorRun = 2
-	CurrentRealizationRunSchemaLevel  = RealizationRunSchemaLevelPriorRun
+	CurrentRealizationRunSchemaLevel = 2
 )
 
 // BillingMeteredQuantity maps a cumulative charge run quantity to the quantity
@@ -217,9 +211,9 @@ type RealizationRunBase struct {
 	StoredAtLT  time.Time          `json:"storedAtLT"`
 	// ServicePeriodTo is the end of the service period for the realization run.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
-	// PriorRunID distinguishes legacy runs with unknown lineage (None) from
-	// runs with known lineage (Some). Some(nil) identifies the first run.
-	PriorRunID mo.Option[*RealizationRunID] `json:"priorRunId,omitzero"`
+	// PriorRunID identifies the preceding non-voided realization run. It is nil
+	// for the first run.
+	PriorRunID *RealizationRunID `json:"priorRunId,omitempty"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
 	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
 	// Totals includes credit allocations and excludes taxes.
@@ -293,20 +287,17 @@ func (r RealizationRunBase) Validate() error {
 		errs = append(errs, fmt.Errorf("service period to must be set"))
 	}
 
-	if r.PriorRunID.IsPresent() {
-		priorRunID := r.PriorRunID.OrEmpty()
-		if priorRunID != nil {
-			if err := priorRunID.Validate(); err != nil {
-				errs = append(errs, fmt.Errorf("prior run id: %w", err))
-			}
+	if r.PriorRunID != nil {
+		if err := r.PriorRunID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prior run id: %w", err))
+		}
 
-			if priorRunID.Namespace != r.ID.Namespace {
-				errs = append(errs, fmt.Errorf("prior run namespace must match run namespace"))
-			}
+		if r.PriorRunID.Namespace != r.ID.Namespace {
+			errs = append(errs, fmt.Errorf("prior run namespace must match run namespace"))
+		}
 
-			if *priorRunID == r.ID {
-				errs = append(errs, fmt.Errorf("prior run id cannot reference the run itself"))
-			}
+		if *r.PriorRunID == r.ID {
+			errs = append(errs, fmt.Errorf("prior run id cannot reference the run itself"))
 		}
 	}
 
@@ -383,46 +374,20 @@ type RealizationRuns []RealizationRun
 
 func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) (BillingMeteredQuantity, error) {
 	preLinePeriod := alpacadecimal.Zero
-	var priorRun *RealizationRun
-
-	if currentRun.PriorRunID.IsPresent() {
-		priorRunID := currentRun.PriorRunID.OrEmpty()
-		if priorRunID != nil {
-			resolvedPriorRun, err := r.GetByID(priorRunID.ID)
-			if err != nil {
-				return BillingMeteredQuantity{}, fmt.Errorf("resolve prior realization run %s for run %s: %w", priorRunID.ID, currentRun.ID.ID, err)
-			}
-
-			if resolvedPriorRun.ID.Namespace != currentRun.ID.Namespace {
-				return BillingMeteredQuantity{}, fmt.Errorf("prior realization run %s namespace does not match run %s namespace", resolvedPriorRun.ID.ID, currentRun.ID.ID)
-			}
-
-			if resolvedPriorRun.ID == currentRun.ID {
-				return BillingMeteredQuantity{}, fmt.Errorf("prior realization run cannot reference run %s itself", currentRun.ID.ID)
-			}
-
-			priorRun = &resolvedPriorRun
+	if currentRun.PriorRunID != nil {
+		priorRun, err := r.GetByID(currentRun.PriorRunID.ID)
+		if err != nil {
+			return BillingMeteredQuantity{}, fmt.Errorf("resolve prior realization run %s for run %s: %w", currentRun.PriorRunID.ID, currentRun.ID.ID, err)
 		}
-	} else {
-		// TODO: Remove once schema-level-1 support has been removed.
-		// Schema-level-1 runs and unsaved previews do not carry lineage. Keep the
-		// legacy ordering fallback until persisted runs have been backfilled.
-		for idx := range r {
-			if r[idx].IsVoidedBillingHistory() {
-				continue
-			}
 
-			if !r[idx].ServicePeriodTo.Before(currentRun.ServicePeriodTo) {
-				continue
-			}
-
-			if priorRun == nil || r[idx].ServicePeriodTo.After(priorRun.ServicePeriodTo) {
-				priorRun = &r[idx]
-			}
+		if priorRun.ID.Namespace != currentRun.ID.Namespace {
+			return BillingMeteredQuantity{}, fmt.Errorf("prior realization run %s namespace does not match run %s namespace", priorRun.ID.ID, currentRun.ID.ID)
 		}
-	}
 
-	if priorRun != nil {
+		if priorRun.ID == currentRun.ID {
+			return BillingMeteredQuantity{}, fmt.Errorf("prior realization run cannot reference run %s itself", currentRun.ID.ID)
+		}
+
 		// Standard invoice line quantities intentionally use the prior run's
 		// persisted cumulative quantity. That value may have been captured with
 		// an older StoredAtLT than the current run. Period-preserving rating may

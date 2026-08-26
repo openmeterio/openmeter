@@ -3514,7 +3514,7 @@ var (
 		{Name: "initial_type", Type: field.TypeEnum, Enums: []string{"final_realization", "partial_invoice", "invalid_due_to_unsupported_credit_note"}},
 		{Name: "stored_at_lt", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
-		{Name: "schema_level", Type: field.TypeInt, Default: 1, SchemaType: map[string]string{"postgres": "smallint"}},
+		{Name: "schema_level", Type: field.TypeInt, Default: 2, SchemaType: map[string]string{"postgres": "smallint"}},
 		{Name: "detailed_lines_present", Type: field.TypeBool},
 		{Name: "detailed_lines_include_credit_allocations", Type: field.TypeBool, Default: false},
 		{Name: "metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},

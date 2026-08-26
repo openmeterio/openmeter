@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
@@ -154,27 +153,20 @@ func fromDBRuns(entity *entdb.ChargeUsageBased) (usagebased.RealizationRuns, err
 }
 
 func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRunBase, error) {
-	priorRunID := mo.None[*usagebased.RealizationRunID]()
-	switch dbRun.SchemaLevel {
-	case usagebased.RealizationRunSchemaLevelLegacy:
-		if dbRun.PriorRunID != nil {
-			return usagebased.RealizationRunBase{}, fmt.Errorf("legacy usage-based realization run has prior run id [id=%s]", dbRun.ID)
-		}
-	case usagebased.RealizationRunSchemaLevelPriorRun:
-		var mappedPriorRunID *usagebased.RealizationRunID
-		if dbRun.PriorRunID != nil {
-			if *dbRun.PriorRunID == dbRun.ID {
-				return usagebased.RealizationRunBase{}, fmt.Errorf("usage-based realization run cannot reference itself as prior run [id=%s]", dbRun.ID)
-			}
-
-			mappedPriorRunID = &usagebased.RealizationRunID{
-				Namespace: dbRun.Namespace,
-				ID:        *dbRun.PriorRunID,
-			}
-		}
-		priorRunID = mo.Some(mappedPriorRunID)
-	default:
+	if dbRun.SchemaLevel != usagebased.CurrentRealizationRunSchemaLevel {
 		return usagebased.RealizationRunBase{}, fmt.Errorf("unsupported usage-based realization run schema level: %d", dbRun.SchemaLevel)
+	}
+
+	var priorRunID *usagebased.RealizationRunID
+	if dbRun.PriorRunID != nil {
+		if *dbRun.PriorRunID == dbRun.ID {
+			return usagebased.RealizationRunBase{}, fmt.Errorf("usage-based realization run cannot reference itself as prior run [id=%s]", dbRun.ID)
+		}
+
+		priorRunID = &usagebased.RealizationRunID{
+			Namespace: dbRun.Namespace,
+			ID:        *dbRun.PriorRunID,
+		}
 	}
 
 	return usagebased.RealizationRunBase{

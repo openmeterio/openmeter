@@ -624,8 +624,7 @@ func (s *DetailedLineAdapterSuite) TestCreateRealizationRunPersistsPriorRunSchem
 	ctx := s.T().Context()
 	charge, firstRun, servicePeriod := s.createChargeWithRun("usagebased-run-lineage-" + ulid.Make().String())
 
-	s.Require().True(firstRun.PriorRunID.IsPresent())
-	s.Require().Nil(firstRun.PriorRunID.OrEmpty())
+	s.Require().Nil(firstRun.PriorRunID)
 
 	secondRun, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), usagebased.CreateRealizationRunAdapterInput{
 		CreateRealizationRunInput: usagebased.CreateRealizationRunInput{
@@ -643,18 +642,17 @@ func (s *DetailedLineAdapterSuite) TestCreateRealizationRunPersistsPriorRunSchem
 		PriorRunID: &firstRun.ID,
 	})
 	s.Require().NoError(err)
-	s.Require().True(secondRun.PriorRunID.IsPresent())
-	s.Require().Equal(&firstRun.ID, secondRun.PriorRunID.OrEmpty())
+	s.Require().Equal(&firstRun.ID, secondRun.PriorRunID)
 
 	persisted, err := s.dbClient.ChargeUsageBasedRuns.Get(ctx, secondRun.ID.ID)
 	s.Require().NoError(err)
-	s.Equal(usagebased.RealizationRunSchemaLevelPriorRun, persisted.SchemaLevel)
+	s.Equal(usagebased.CurrentRealizationRunSchemaLevel, persisted.SchemaLevel)
 	s.Equal(firstRun.ID.ID, lo.FromPtr(persisted.PriorRunID))
 }
 
-func (s *DetailedLineAdapterSuite) TestSchemaDefaultCreatesLegacyRun() {
+func (s *DetailedLineAdapterSuite) TestSchemaDefaultCreatesCurrentRun() {
 	ctx := s.T().Context()
-	charge, _, servicePeriod := s.createChargeWithRun("usagebased-run-legacy-" + ulid.Make().String())
+	charge, _, servicePeriod := s.createChargeWithRun("usagebased-run-current-" + ulid.Make().String())
 
 	create := s.dbClient.ChargeUsageBasedRuns.Create().
 		SetNamespace(charge.Namespace).
@@ -669,24 +667,13 @@ func (s *DetailedLineAdapterSuite) TestSchemaDefaultCreatesLegacyRun() {
 		SetNoFiatTransactionRequired(true)
 	create = totals.Set(create, totals.Totals{})
 
-	legacyRun, err := create.Save(ctx)
+	run, err := create.Save(ctx)
 	s.Require().NoError(err)
-	s.Equal(usagebased.RealizationRunSchemaLevelLegacy, legacyRun.SchemaLevel)
+	s.Equal(usagebased.CurrentRealizationRunSchemaLevel, run.SchemaLevel)
 
-	mapped, err := fromDBRunBase(legacyRun)
+	mapped, err := fromDBRunBase(run)
 	s.Require().NoError(err)
-	s.True(mapped.PriorRunID.IsAbsent())
-
-	updatedRun, err := s.dbClient.ChargeUsageBasedRuns.UpdateOneID(legacyRun.ID).
-		SetSchemaLevel(usagebased.RealizationRunSchemaLevelPriorRun).
-		Save(ctx)
-	s.Require().NoError(err)
-	s.Equal(usagebased.RealizationRunSchemaLevelPriorRun, updatedRun.SchemaLevel)
-
-	mapped, err = fromDBRunBase(updatedRun)
-	s.Require().NoError(err)
-	s.True(mapped.PriorRunID.IsPresent())
-	s.Nil(mapped.PriorRunID.OrEmpty())
+	s.Nil(mapped.PriorRunID)
 }
 
 func (s *DetailedLineAdapterSuite) createCustomer(namespace string) string {
