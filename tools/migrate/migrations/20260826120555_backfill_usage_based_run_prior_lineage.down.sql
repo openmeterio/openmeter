@@ -1,0 +1,2 @@
+-- Intentionally no-op. Demoting schema-level-2 runs would discard known
+-- lineage and could also overwrite realization runs created after the backfill.
