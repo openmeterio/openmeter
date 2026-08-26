@@ -35,6 +35,15 @@
               go = {
                 enable = true;
                 package = pkgs.go_1_27;
+
+                delve.package = pkgs.delve.overrideAttrs (old: {
+                  # Delve runs these generator checks only with the latest Go release. They invoke
+                  # `go run ...@latest`, which cannot query modules while buildGoModule uses -mod=vendor.
+                  # Keep the remaining Delve tests enabled until upstream packaging skips these checks.
+                  checkFlags = (old.checkFlags or [ ]) ++ [
+                    "-skip=TestGeneratedDoc|TestTypecheckRPC"
+                  ];
+                });
               };
 
               python = {
