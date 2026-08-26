@@ -171,58 +171,34 @@ func (c Charge) GetCurrentRealizationRun() (RealizationRun, error) {
 }
 
 // ServicePeriodFor returns the nominal service period of a realization run.
-// Runs with explicit lineage use the referenced run's persisted end as their
-// start. Legacy runs retain the ordering-based fallback until their lineage is
-// backfilled.
+// A run starts at its referenced predecessor's persisted end, or at the
+// effective intent's service-period start when it has no predecessor.
 func (c Charge) ServicePeriodFor(currentRun RealizationRun) (timeutil.ClosedPeriod, error) {
-	chargeIntentServicePeriod := c.Intent.GetEffectiveServicePeriod()
 	periodTo := meta.NormalizeTimestamp(currentRun.ServicePeriodTo)
-	periodFrom := meta.NormalizeTimestamp(chargeIntentServicePeriod.From)
-
-	if currentRun.PriorRunID.IsPresent() {
-		priorRunID := currentRun.PriorRunID.OrEmpty()
-		if priorRunID == nil {
-			return timeutil.ClosedPeriod{From: periodFrom, To: periodTo}, nil
-		}
-
-		priorRun, err := c.Realizations.GetByID(priorRunID.ID)
-		if err != nil {
-			return timeutil.ClosedPeriod{}, fmt.Errorf("resolve prior realization run %s for run %s: %w", priorRunID.ID, currentRun.ID.ID, err)
-		}
-
-		if priorRun.ID.Namespace != currentRun.ID.Namespace {
-			return timeutil.ClosedPeriod{}, fmt.Errorf("prior realization run %s namespace does not match run %s namespace", priorRun.ID.ID, currentRun.ID.ID)
-		}
-
-		if priorRun.ID == currentRun.ID {
-			return timeutil.ClosedPeriod{}, fmt.Errorf("prior realization run cannot reference run %s itself", currentRun.ID.ID)
-		}
-
+	if currentRun.PriorRunID == nil {
 		return timeutil.ClosedPeriod{
-			From: meta.NormalizeTimestamp(priorRun.ServicePeriodTo),
+			From: meta.NormalizeTimestamp(c.Intent.GetEffectiveServicePeriod().From),
 			To:   periodTo,
 		}, nil
 	}
 
-	// TODO: Remove once schema-level-1 support has been removed.
-	legacyRuns := c.Realizations.WithoutVoidedBillingHistory()
-	slices.SortStableFunc(legacyRuns, func(a RealizationRun, b RealizationRun) int {
-		if comparison := meta.NormalizeTimestamp(a.ServicePeriodTo).Compare(meta.NormalizeTimestamp(b.ServicePeriodTo)); comparison != 0 {
-			return comparison
-		}
-
-		return a.CreatedAt.Compare(b.CreatedAt)
-	})
-
-	for _, run := range legacyRuns {
-		if run.ID == currentRun.ID {
-			return timeutil.ClosedPeriod{From: periodFrom, To: periodTo}, nil
-		}
-
-		periodFrom = meta.NormalizeTimestamp(run.ServicePeriodTo)
+	priorRun, err := c.Realizations.GetByID(currentRun.PriorRunID.ID)
+	if err != nil {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("resolve prior realization run %s for run %s: %w", currentRun.PriorRunID.ID, currentRun.ID.ID, err)
 	}
 
-	return timeutil.ClosedPeriod{}, fmt.Errorf("realization run not found while resolving service period [id=%s]", currentRun.ID.ID)
+	if priorRun.ID.Namespace != currentRun.ID.Namespace {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("prior realization run %s namespace does not match run %s namespace", priorRun.ID.ID, currentRun.ID.ID)
+	}
+
+	if priorRun.ID == currentRun.ID {
+		return timeutil.ClosedPeriod{}, fmt.Errorf("prior realization run cannot reference run %s itself", currentRun.ID.ID)
+	}
+
+	return timeutil.ClosedPeriod{
+		From: meta.NormalizeTimestamp(priorRun.ServicePeriodTo),
+		To:   periodTo,
+	}, nil
 }
 
 // BisectRealizationRunsByTimestamp splits non-voided realization runs by their
