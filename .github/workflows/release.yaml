@@ -152,17 +152,14 @@ jobs:
             ${{ runner.os }}-openmeter-nix-build-main-
             ${{ runner.os }}-openmeter-nix-build-
 
-      - name: Restore go.mod cache if exists
+      - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .devenv/state/go
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{
-            hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{
+            hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Build benthos-collector binary
         # Untrusted github.ref_name passed via env; matrix values are
