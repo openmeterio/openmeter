@@ -16,5 +16,4 @@ type Repository interface {
 	DeletePlan(ctx context.Context, params DeletePlanInput) error
 	GetPlan(ctx context.Context, params GetPlanInput) (*Plan, error)
 	UpdatePlan(ctx context.Context, params UpdatePlanInput) (*Plan, error)
-	UpdatePlanEffectivePeriod(ctx context.Context, params UpdatePlanEffectivePeriodInput) (*Plan, error)
 }

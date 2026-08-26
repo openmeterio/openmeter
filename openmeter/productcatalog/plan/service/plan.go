@@ -573,7 +573,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			}
 		}
 
-		input := plan.UpdatePlanEffectivePeriodInput{
+		input := plan.UpdatePlanInput{
 			NamespacedID: params.NamespacedID,
 		}
 
@@ -585,7 +585,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			input.EffectiveTo = lo.ToPtr(params.EffectiveTo.UTC())
 		}
 
-		p, err = s.adapter.UpdatePlanEffectivePeriod(ctx, input)
+		p, err = s.adapter.UpdatePlan(ctx, input)
 		if err != nil {
 			return nil, fmt.Errorf("failed to publish Plan: %w", err)
 		}
@@ -657,7 +657,7 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		// In other words, modify the surrounding Plans only if the user is allowed it otherwise return a validation error
 		// in case the lifecycle of the Plan is not continuous (there are time gaps between versions).
 
-		p, err = s.adapter.UpdatePlanEffectivePeriod(ctx, plan.UpdatePlanEffectivePeriodInput{
+		p, err = s.adapter.UpdatePlan(ctx, plan.UpdatePlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: p.Namespace,
 				ID:        p.ID,
