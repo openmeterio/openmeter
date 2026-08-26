@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -1089,7 +1090,7 @@ type UsageBasedLine struct {
 	// UnitConfig is the unit_config snapshot captured at billing time.
 	// It is nil for lines billed before unit_config was introduced, or for lines
 	// on prices that do not support unit conversion.
-	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
+	UnitConfig *unitconfig.UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
