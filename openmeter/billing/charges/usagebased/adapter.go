@@ -41,10 +41,34 @@ type ChargeAdapter interface {
 }
 
 type RealizationRunAdapter interface {
-	CreateRealizationRun(ctx context.Context, chargeID meta.ChargeID, input CreateRealizationRunInput) (RealizationRunBase, error)
+	CreateRealizationRun(ctx context.Context, chargeID meta.ChargeID, input CreateRealizationRunAdapterInput) (RealizationRunBase, error)
 	UpdateRealizationRun(ctx context.Context, input UpdateRealizationRunInput) (RealizationRunBase, error)
 	UpsertRunDetailedLines(ctx context.Context, input UpsertRunDetailedLinesInput) error
 	FetchDetailedLines(ctx context.Context, charge Charge) (Charge, error)
+}
+
+type CreateRealizationRunAdapterInput struct {
+	CreateRealizationRunInput
+
+	PriorRunID *RealizationRunID
+}
+
+var _ models.Validator = (*CreateRealizationRunAdapterInput)(nil)
+
+func (i CreateRealizationRunAdapterInput) Validate() error {
+	var errs []error
+
+	if err := i.CreateRealizationRunInput.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.PriorRunID != nil {
+		if err := i.PriorRunID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prior run id: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type RealizationRunCreditAllocationAdapter interface {

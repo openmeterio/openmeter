@@ -13,7 +13,7 @@ import (
 
 var _ usagebased.RealizationRunAdapter = (*adapter)(nil)
 
-func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.ChargeID, input usagebased.CreateRealizationRunInput) (usagebased.RealizationRunBase, error) {
+func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.ChargeID, input usagebased.CreateRealizationRunAdapterInput) (usagebased.RealizationRunBase, error) {
 	if err := chargeID.Validate(); err != nil {
 		return usagebased.RealizationRunBase{}, err
 	}

@@ -232,16 +232,42 @@ func TestRealizationRuns_MapToBillingMeteredQuantityRejectsMissingPriorRun(t *te
 	require.ErrorContains(t, err, "resolve prior realization run missing-run")
 }
 
-func TestRealizationRuns_MapToBillingMeteredQuantityRejectsUnknownPriorRunLineage(t *testing.T) {
+func TestRealizationRuns_MapToBillingMeteredQuantityFallsBackForUnknownPriorRunLineage(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	deletedAt := periodStart.Add(time.Hour)
+	deletedRun := newRealizationRunForBillingMeteredQuantityTest(
+		"deleted-run",
+		RealizationRunTypePartialInvoice,
+		periodStart.Add(48*time.Hour),
+		100,
+	)
+	deletedRun.DeletedAt = &deletedAt
+	runs := RealizationRuns{
+		deletedRun,
+		newRealizationRunForBillingMeteredQuantityTest(
+			"later-run",
+			RealizationRunTypePartialInvoice,
+			periodStart.Add(72*time.Hour),
+			30,
+		),
+		newRealizationRunForBillingMeteredQuantityTest(
+			"prior-run",
+			RealizationRunTypePartialInvoice,
+			periodStart.Add(24*time.Hour),
+			5,
+		),
+	}
 	currentRun := newRealizationRunForBillingMeteredQuantityTest(
 		"current",
 		RealizationRunTypeFinalRealization,
-		time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
+		periodStart.Add(48*time.Hour),
 		20,
 	)
 
-	_, err := (RealizationRuns{}).MapToBillingMeteredQuantity(currentRun)
-	require.ErrorContains(t, err, "prior realization run lineage is unknown")
+	billingMeteredQuantity, err := runs.MapToBillingMeteredQuantity(currentRun)
+	require.NoError(t, err)
+	require.Equal(t, 15.0, billingMeteredQuantity.LinePeriod.InexactFloat64())
+	require.Equal(t, 5.0, billingMeteredQuantity.PreLinePeriod.InexactFloat64())
 }
 
 func TestRealizationRunType_IsVoidedBillingHistory(t *testing.T) {
@@ -532,6 +558,27 @@ func TestRealizationRuns_PriorRunIDForNextRunUsesCreatedOrderAndSkipsVoidedHisto
 	priorRunID := (RealizationRuns{validRun, newerValidRun, invalidRun, deletedRun}).PriorRunIDForNextRun()
 	require.Equal(t, &newerValidRun.ID, priorRunID)
 	require.Nil(t, (RealizationRuns{}).PriorRunIDForNextRun())
+}
+
+func TestRealizationRuns_PriorRunIDForNextRunUsesIDToBreakCreatedAtTie(t *testing.T) {
+	createdAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	firstRun := newRealizationRunForBillingMeteredQuantityTest(
+		"01-first-run",
+		RealizationRunTypePartialInvoice,
+		createdAt.Add(24*time.Hour),
+		5,
+	)
+	firstRun.CreatedAt = createdAt
+	secondRun := newRealizationRunForBillingMeteredQuantityTest(
+		"02-second-run",
+		RealizationRunTypePartialInvoice,
+		createdAt.Add(48*time.Hour),
+		10,
+	)
+	secondRun.CreatedAt = createdAt
+
+	priorRunID := (RealizationRuns{secondRun, firstRun}).PriorRunIDForNextRun()
+	require.Equal(t, &secondRun.ID, priorRunID)
 }
 
 func newRealizationRunForBillingMeteredQuantityTest(id string, typ RealizationRunType, servicePeriodTo time.Time, meteredQuantity int64) RealizationRun {

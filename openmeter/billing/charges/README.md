@@ -236,11 +236,11 @@ one.
   nominal period. Its service period therefore describes the nominal checkpoint
   covered by the run, not strict provenance for every event included in its
   metered quantity.
-- Usage-based run metered quantity is cumulative from charge start to the run
+- A usage-based run's metered quantity is cumulative from charge start to the run
   boundary. A billing standard line expects line-period and pre-line-period
   quantities, so charge mappers translate rather than copy it. Translation
-  requires known run lineage and reads the referenced run's persisted quantity;
-  it does not infer a predecessor from run timestamps.
+  for schema-level-2 runs reads the referenced run's persisted quantity;
+  schema-level-1 runs retain the ordering-based fallback until backfill.
 - Corrections reconcile against persisted allocations in the same realization
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.

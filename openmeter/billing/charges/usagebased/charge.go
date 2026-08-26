@@ -204,8 +204,9 @@ func (c Charge) ServicePeriodFor(currentRun RealizationRun) (timeutil.ClosedPeri
 		}, nil
 	}
 
-	nonVoidedRuns := c.Realizations.WithoutVoidedBillingHistory()
-	slices.SortStableFunc(nonVoidedRuns, func(a RealizationRun, b RealizationRun) int {
+	// TODO: Remove once schema-level-1 support has been removed.
+	legacyRuns := c.Realizations.WithoutVoidedBillingHistory()
+	slices.SortStableFunc(legacyRuns, func(a RealizationRun, b RealizationRun) int {
 		if comparison := meta.NormalizeTimestamp(a.ServicePeriodTo).Compare(meta.NormalizeTimestamp(b.ServicePeriodTo)); comparison != 0 {
 			return comparison
 		}
@@ -213,7 +214,7 @@ func (c Charge) ServicePeriodFor(currentRun RealizationRun) (timeutil.ClosedPeri
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
 
-	for _, run := range nonVoidedRuns {
+	for _, run := range legacyRuns {
 		if run.ID == currentRun.ID {
 			return timeutil.ClosedPeriod{From: periodFrom, To: periodTo}, nil
 		}

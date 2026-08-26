@@ -102,7 +102,10 @@ func (s *Service) createNewRealizationRun(ctx context.Context, charge usagebased
 		return usagebased.Charge{}, fmt.Errorf("current realization run already exists [charge_id=%s]", charge.GetChargeID())
 	}
 
-	run, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), in)
+	run, err := s.adapter.CreateRealizationRun(ctx, charge.GetChargeID(), usagebased.CreateRealizationRunAdapterInput{
+		CreateRealizationRunInput: in,
+		PriorRunID:                charge.Realizations.PriorRunIDForNextRun(),
+	})
 	if err != nil {
 		return usagebased.Charge{}, fmt.Errorf("create realization run: %w", err)
 	}
@@ -156,7 +159,6 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		Type:                      in.Type,
 		StoredAtLT:                in.StoredAtLT,
 		ServicePeriodTo:           in.ServicePeriodTo,
-		PriorRunID:                in.Charge.Realizations.PriorRunIDForNextRun(),
 		LineID:                    in.LineID,
 		InvoiceID:                 in.InvoiceID,
 		MeteredQuantity:           ratingResult.Quantity,

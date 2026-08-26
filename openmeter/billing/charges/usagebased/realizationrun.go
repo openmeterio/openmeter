@@ -82,7 +82,6 @@ type CreateRealizationRunInput struct {
 	Type                      RealizationRunType    `json:"type"`
 	StoredAtLT                time.Time             `json:"storedAtLT"`
 	ServicePeriodTo           time.Time             `json:"servicePeriodTo"`
-	PriorRunID                *RealizationRunID     `json:"priorRunId,omitempty"`
 	LineID                    *string               `json:"lineId,omitempty"`
 	InvoiceID                 *string               `json:"invoiceId,omitempty"`
 	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
@@ -126,12 +125,6 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if r.ServicePeriodTo.IsZero() {
 		errs = append(errs, fmt.Errorf("service period to must be set"))
-	}
-
-	if r.PriorRunID != nil {
-		if err := r.PriorRunID.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("prior run id: %w", err))
-		}
 	}
 
 	if r.LineID != nil && *r.LineID == "" {
@@ -390,32 +383,52 @@ type RealizationRuns []RealizationRun
 
 func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) (BillingMeteredQuantity, error) {
 	preLinePeriod := alpacadecimal.Zero
+	var priorRun *RealizationRun
 
-	if currentRun.PriorRunID.IsAbsent() {
-		return BillingMeteredQuantity{}, fmt.Errorf("prior realization run lineage is unknown for run %s", currentRun.ID.ID)
+	if currentRun.PriorRunID.IsPresent() {
+		priorRunID := currentRun.PriorRunID.OrEmpty()
+		if priorRunID != nil {
+			resolvedPriorRun, err := r.GetByID(priorRunID.ID)
+			if err != nil {
+				return BillingMeteredQuantity{}, fmt.Errorf("resolve prior realization run %s for run %s: %w", priorRunID.ID, currentRun.ID.ID, err)
+			}
+
+			if resolvedPriorRun.ID.Namespace != currentRun.ID.Namespace {
+				return BillingMeteredQuantity{}, fmt.Errorf("prior realization run %s namespace does not match run %s namespace", resolvedPriorRun.ID.ID, currentRun.ID.ID)
+			}
+
+			if resolvedPriorRun.ID == currentRun.ID {
+				return BillingMeteredQuantity{}, fmt.Errorf("prior realization run cannot reference run %s itself", currentRun.ID.ID)
+			}
+
+			priorRun = &resolvedPriorRun
+		}
+	} else {
+		// TODO: Remove once schema-level-1 support has been removed.
+		// Schema-level-1 runs and unsaved previews do not carry lineage. Keep the
+		// legacy ordering fallback until persisted runs have been backfilled.
+		for idx := range r {
+			if r[idx].IsVoidedBillingHistory() {
+				continue
+			}
+
+			if !r[idx].ServicePeriodTo.Before(currentRun.ServicePeriodTo) {
+				continue
+			}
+
+			if priorRun == nil || r[idx].ServicePeriodTo.After(priorRun.ServicePeriodTo) {
+				priorRun = &r[idx]
+			}
+		}
 	}
 
-	// Standard invoice line quantities intentionally use the prior run's
-	// persisted cumulative quantity. That value may have been captured with an
-	// older StoredAtLT than the current run. Period-preserving rating may still
-	// freshly snapshot prior event-time periods with the current StoredAtLT for
-	// correction calculation, but invoice line quantities should reflect what
-	// was previously billed.
-	priorRunID := currentRun.PriorRunID.OrEmpty()
-	if priorRunID != nil {
-		priorRun, err := r.GetByID(priorRunID.ID)
-		if err != nil {
-			return BillingMeteredQuantity{}, fmt.Errorf("resolve prior realization run %s for run %s: %w", priorRunID.ID, currentRun.ID.ID, err)
-		}
-
-		if priorRun.ID.Namespace != currentRun.ID.Namespace {
-			return BillingMeteredQuantity{}, fmt.Errorf("prior realization run %s namespace does not match run %s namespace", priorRun.ID.ID, currentRun.ID.ID)
-		}
-
-		if priorRun.ID == currentRun.ID {
-			return BillingMeteredQuantity{}, fmt.Errorf("prior realization run cannot reference run %s itself", currentRun.ID.ID)
-		}
-
+	if priorRun != nil {
+		// Standard invoice line quantities intentionally use the prior run's
+		// persisted cumulative quantity. That value may have been captured with
+		// an older StoredAtLT than the current run. Period-preserving rating may
+		// still freshly snapshot prior event-time periods with the current
+		// StoredAtLT for correction calculation, but invoice line quantities
+		// should reflect what was previously billed.
 		preLinePeriod = priorRun.MeteredQuantity
 	}
 
