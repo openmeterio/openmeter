@@ -9,6 +9,7 @@ import (
 
 type SnapshotService interface {
 	InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error
+	GetInvalidationVersion(ctx context.Context, owner models.NamespacedID) (SnapshotInvalidationVersion, error)
 	GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error)
 	Save(ctx context.Context, owner models.NamespacedID, balances []Snapshot) error
 	// To make sure repo doesn't implement the service interface
@@ -33,6 +34,10 @@ func (s *service) service() {}
 
 func (s *service) InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error {
 	return s.Repo.InvalidateAfter(ctx, owner, at)
+}
+
+func (s *service) GetInvalidationVersion(ctx context.Context, owner models.NamespacedID) (SnapshotInvalidationVersion, error) {
+	return s.Repo.GetInvalidationVersion(ctx, owner)
 }
 
 func (s *service) GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error) {

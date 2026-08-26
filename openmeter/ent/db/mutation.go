@@ -87515,52 +87515,54 @@ func (m *CustomerSubjectsMutation) ResetEdge(name string) error {
 // EntitlementMutation represents an operation that mutates the Entitlement nodes in the graph.
 type EntitlementMutation struct {
 	config
-	op                            Op
-	typ                           string
-	id                            *string
-	namespace                     *string
-	metadata                      *map[string]string
-	created_at                    *time.Time
-	updated_at                    *time.Time
-	deleted_at                    *time.Time
-	entitlement_type              *entitlement.EntitlementType
-	active_from                   *time.Time
-	active_to                     *time.Time
-	feature_key                   *string
-	measure_usage_from            *time.Time
-	issue_after_reset             *float64
-	addissue_after_reset          *float64
-	issue_after_reset_priority    *uint8
-	addissue_after_reset_priority *int8
-	is_soft_limit                 *bool
-	preserve_overage_at_reset     *bool
-	_config                       *string
-	unit_config                   **unitconfig.UnitConfig
-	usage_period_interval         *datetime.ISODurationString
-	usage_period_anchor           *time.Time
-	current_usage_period_start    *time.Time
-	current_usage_period_end      *time.Time
-	annotations                   *models.Annotations
-	clearedFields                 map[string]struct{}
-	usage_reset                   map[string]struct{}
-	removedusage_reset            map[string]struct{}
-	clearedusage_reset            bool
-	grant                         map[string]struct{}
-	removedgrant                  map[string]struct{}
-	clearedgrant                  bool
-	balance_snapshot              map[int]struct{}
-	removedbalance_snapshot       map[int]struct{}
-	clearedbalance_snapshot       bool
-	subscription_item             map[string]struct{}
-	removedsubscription_item      map[string]struct{}
-	clearedsubscription_item      bool
-	feature                       *string
-	clearedfeature                bool
-	customer                      *string
-	clearedcustomer               bool
-	done                          bool
-	oldValue                      func(context.Context) (*Entitlement, error)
-	predicates                    []predicate.Entitlement
+	op                                       Op
+	typ                                      string
+	id                                       *string
+	namespace                                *string
+	metadata                                 *map[string]string
+	created_at                               *time.Time
+	updated_at                               *time.Time
+	deleted_at                               *time.Time
+	entitlement_type                         *entitlement.EntitlementType
+	active_from                              *time.Time
+	active_to                                *time.Time
+	feature_key                              *string
+	measure_usage_from                       *time.Time
+	issue_after_reset                        *float64
+	addissue_after_reset                     *float64
+	issue_after_reset_priority               *uint8
+	addissue_after_reset_priority            *int8
+	is_soft_limit                            *bool
+	preserve_overage_at_reset                *bool
+	_config                                  *string
+	unit_config                              **unitconfig.UnitConfig
+	usage_period_interval                    *datetime.ISODurationString
+	usage_period_anchor                      *time.Time
+	current_usage_period_start               *time.Time
+	current_usage_period_end                 *time.Time
+	balance_snapshot_invalidation_version    *uint64
+	addbalance_snapshot_invalidation_version *int64
+	annotations                              *models.Annotations
+	clearedFields                            map[string]struct{}
+	usage_reset                              map[string]struct{}
+	removedusage_reset                       map[string]struct{}
+	clearedusage_reset                       bool
+	grant                                    map[string]struct{}
+	removedgrant                             map[string]struct{}
+	clearedgrant                             bool
+	balance_snapshot                         map[int]struct{}
+	removedbalance_snapshot                  map[int]struct{}
+	clearedbalance_snapshot                  bool
+	subscription_item                        map[string]struct{}
+	removedsubscription_item                 map[string]struct{}
+	clearedsubscription_item                 bool
+	feature                                  *string
+	clearedfeature                           bool
+	customer                                 *string
+	clearedcustomer                          bool
+	done                                     bool
+	oldValue                                 func(context.Context) (*Entitlement, error)
+	predicates                               []predicate.Entitlement
 }
 
 var _ ent.Mutation = (*EntitlementMutation)(nil)
@@ -88696,6 +88698,62 @@ func (m *EntitlementMutation) ResetCurrentUsagePeriodEnd() {
 	delete(m.clearedFields, entitlement.FieldCurrentUsagePeriodEnd)
 }
 
+// SetBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field.
+func (m *EntitlementMutation) SetBalanceSnapshotInvalidationVersion(u uint64) {
+	m.balance_snapshot_invalidation_version = &u
+	m.addbalance_snapshot_invalidation_version = nil
+}
+
+// BalanceSnapshotInvalidationVersion returns the value of the "balance_snapshot_invalidation_version" field in the mutation.
+func (m *EntitlementMutation) BalanceSnapshotInvalidationVersion() (r uint64, exists bool) {
+	v := m.balance_snapshot_invalidation_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBalanceSnapshotInvalidationVersion returns the old "balance_snapshot_invalidation_version" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldBalanceSnapshotInvalidationVersion(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBalanceSnapshotInvalidationVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBalanceSnapshotInvalidationVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBalanceSnapshotInvalidationVersion: %w", err)
+	}
+	return oldValue.BalanceSnapshotInvalidationVersion, nil
+}
+
+// AddBalanceSnapshotInvalidationVersion adds u to the "balance_snapshot_invalidation_version" field.
+func (m *EntitlementMutation) AddBalanceSnapshotInvalidationVersion(u int64) {
+	if m.addbalance_snapshot_invalidation_version != nil {
+		*m.addbalance_snapshot_invalidation_version += u
+	} else {
+		m.addbalance_snapshot_invalidation_version = &u
+	}
+}
+
+// AddedBalanceSnapshotInvalidationVersion returns the value that was added to the "balance_snapshot_invalidation_version" field in this mutation.
+func (m *EntitlementMutation) AddedBalanceSnapshotInvalidationVersion() (r int64, exists bool) {
+	v := m.addbalance_snapshot_invalidation_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBalanceSnapshotInvalidationVersion resets all changes to the "balance_snapshot_invalidation_version" field.
+func (m *EntitlementMutation) ResetBalanceSnapshotInvalidationVersion() {
+	m.balance_snapshot_invalidation_version = nil
+	m.addbalance_snapshot_invalidation_version = nil
+}
+
 // SetAnnotations sets the "annotations" field.
 func (m *EntitlementMutation) SetAnnotations(value models.Annotations) {
 	m.annotations = &value
@@ -89049,7 +89107,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 23)
+	fields := make([]string, 0, 24)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -89116,6 +89174,9 @@ func (m *EntitlementMutation) Fields() []string {
 	if m.current_usage_period_end != nil {
 		fields = append(fields, entitlement.FieldCurrentUsagePeriodEnd)
 	}
+	if m.balance_snapshot_invalidation_version != nil {
+		fields = append(fields, entitlement.FieldBalanceSnapshotInvalidationVersion)
+	}
 	if m.annotations != nil {
 		fields = append(fields, entitlement.FieldAnnotations)
 	}
@@ -89171,6 +89232,8 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.CurrentUsagePeriodStart()
 	case entitlement.FieldCurrentUsagePeriodEnd:
 		return m.CurrentUsagePeriodEnd()
+	case entitlement.FieldBalanceSnapshotInvalidationVersion:
+		return m.BalanceSnapshotInvalidationVersion()
 	case entitlement.FieldAnnotations:
 		return m.Annotations()
 	}
@@ -89226,6 +89289,8 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldCurrentUsagePeriodStart(ctx)
 	case entitlement.FieldCurrentUsagePeriodEnd:
 		return m.OldCurrentUsagePeriodEnd(ctx)
+	case entitlement.FieldBalanceSnapshotInvalidationVersion:
+		return m.OldBalanceSnapshotInvalidationVersion(ctx)
 	case entitlement.FieldAnnotations:
 		return m.OldAnnotations(ctx)
 	}
@@ -89391,6 +89456,13 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCurrentUsagePeriodEnd(v)
 		return nil
+	case entitlement.FieldBalanceSnapshotInvalidationVersion:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBalanceSnapshotInvalidationVersion(v)
+		return nil
 	case entitlement.FieldAnnotations:
 		v, ok := value.(models.Annotations)
 		if !ok {
@@ -89412,6 +89484,9 @@ func (m *EntitlementMutation) AddedFields() []string {
 	if m.addissue_after_reset_priority != nil {
 		fields = append(fields, entitlement.FieldIssueAfterResetPriority)
 	}
+	if m.addbalance_snapshot_invalidation_version != nil {
+		fields = append(fields, entitlement.FieldBalanceSnapshotInvalidationVersion)
+	}
 	return fields
 }
 
@@ -89424,6 +89499,8 @@ func (m *EntitlementMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedIssueAfterReset()
 	case entitlement.FieldIssueAfterResetPriority:
 		return m.AddedIssueAfterResetPriority()
+	case entitlement.FieldBalanceSnapshotInvalidationVersion:
+		return m.AddedBalanceSnapshotInvalidationVersion()
 	}
 	return nil, false
 }
@@ -89446,6 +89523,13 @@ func (m *EntitlementMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddIssueAfterResetPriority(v)
+		return nil
+	case entitlement.FieldBalanceSnapshotInvalidationVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBalanceSnapshotInvalidationVersion(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement numeric field %s", name)
@@ -89638,6 +89722,9 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldCurrentUsagePeriodEnd:
 		m.ResetCurrentUsagePeriodEnd()
+		return nil
+	case entitlement.FieldBalanceSnapshotInvalidationVersion:
+		m.ResetBalanceSnapshotInvalidationVersion()
 		return nil
 	case entitlement.FieldAnnotations:
 		m.ResetAnnotations()

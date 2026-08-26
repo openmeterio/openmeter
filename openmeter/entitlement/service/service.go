@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -172,7 +173,12 @@ func (c *service) GetEntitlementWithCustomer(ctx context.Context, namespace stri
 
 func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
 	doInTx := func(ctx context.Context) (*entitlement.Entitlement, error) {
-		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		entitlementID := models.NamespacedID{Namespace: namespace, ID: id}
+		if err := c.lockEntitlementForTx(ctx, entitlementID); err != nil {
+			return nil, err
+		}
+
+		ent, err := c.entitlementRepo.GetEntitlement(ctx, entitlementID)
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +197,7 @@ func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id st
 			return nil, err
 		}
 
-		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id}, at)
+		err = c.entitlementRepo.DeleteEntitlement(ctx, entitlementID, at)
 		if err != nil {
 			return nil, err
 		}
@@ -206,6 +212,17 @@ func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id st
 
 	_, err := transaction.Run(ctx, c.entitlementRepo, doInTx)
 	return err
+}
+
+// lockEntitlementForTx keeps lifecycle hooks in the same entitlement-then-dependent-row
+// lock order used by credit mutations.
+func (c *service) lockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error {
+	tx, err := entutils.GetDriverFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	return c.entitlementRepo.LockEntitlementForTx(ctx, tx, entitlementID, true)
 }
 
 func (c *service) GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]entitlement.Entitlement, error) {

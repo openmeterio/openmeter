@@ -190,19 +190,15 @@ type snapshotParams struct {
 	// unitConfig is the owner's current conversion regime, stamped onto the saved
 	// snapshot so the resume path can detect a later regime change (OM-400). Nil = raw.
 	unitConfig *unitconfig.UnitConfig
+	// snapshotInvalidationVersion is captured before the balance calculation starts.
+	// Opportunistic persistence is skipped if an input mutation increments it.
+	snapshotInvalidationVersion balance.SnapshotInvalidationVersion
 }
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
 func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapshotParams, runRes engine.RunResult) error {
 	ctx, span := m.Tracer.Start(ctx, "credit.snapshotEngineResult", cTrace.WithOwner(snapParams.owner))
 	defer span.End()
-
-	if err := transaction.RunWithNoValue(ctx, m.GrantRepo, func(ctx context.Context) error {
-		return m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false)
-	}); err != nil {
-		// If we failed to acquire the lock we simply don't save the snapshot
-		return nil
-	}
 
 	// Skip snapshotting for LATEST type entitlements as the values fluctuate and snapshots can't be used
 	if snapParams.meter.Aggregation == meter.MeterAggregationLatest {
@@ -224,11 +220,34 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 				return fmt.Errorf("failed to get snapshot at start of segment: %w", err)
 			}
 
-			if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {
-				return fmt.Errorf("failed to save snapshot: %w", err)
+			var lockErr error
+			err = transaction.RunWithNoValue(ctx, m.GrantRepo, func(ctx context.Context) error {
+				if err := m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false); err != nil {
+					lockErr = err
+					return err
+				}
+
+				currentVersion, err := m.BalanceSnapshotService.GetInvalidationVersion(ctx, snapParams.owner)
+				if err != nil {
+					return fmt.Errorf("failed to get snapshot invalidation version: %w", err)
+				}
+				if currentVersion != snapParams.snapshotInvalidationVersion {
+					return nil
+				}
+
+				if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {
+					return fmt.Errorf("failed to save snapshot: %w", err)
+				}
+
+				return nil
+			})
+			if lockErr != nil {
+				// Snapshotting is opportunistic. If the owner is being changed,
+				// that operation is responsible for invalidating affected snapshots.
+				return nil
 			}
 
-			break
+			return err
 		}
 	}
 

@@ -883,6 +883,9 @@ func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, tx *ent
 		}()...).
 		Only(ctx)
 	if err != nil {
+		if db.IsNotFound(err) {
+			return &entitlement.NotFoundError{EntitlementID: entitlementID}
+		}
 		if strings.Contains(err.Error(), pgLockNotAvailableErrorCode) {
 			// TODO: return a more specific error
 			return fmt.Errorf("acquiring lock for entitlement %s failed: %w", entitlementID.ID, err)

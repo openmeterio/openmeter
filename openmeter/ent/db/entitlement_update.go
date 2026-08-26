@@ -171,6 +171,27 @@ func (_u *EntitlementUpdate) ClearCurrentUsagePeriodEnd() *EntitlementUpdate {
 	return _u
 }
 
+// SetBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field.
+func (_u *EntitlementUpdate) SetBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpdate {
+	_u.mutation.ResetBalanceSnapshotInvalidationVersion()
+	_u.mutation.SetBalanceSnapshotInvalidationVersion(v)
+	return _u
+}
+
+// SetNillableBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field if the given value is not nil.
+func (_u *EntitlementUpdate) SetNillableBalanceSnapshotInvalidationVersion(v *uint64) *EntitlementUpdate {
+	if v != nil {
+		_u.SetBalanceSnapshotInvalidationVersion(*v)
+	}
+	return _u
+}
+
+// AddBalanceSnapshotInvalidationVersion adds value to the "balance_snapshot_invalidation_version" field.
+func (_u *EntitlementUpdate) AddBalanceSnapshotInvalidationVersion(v int64) *EntitlementUpdate {
+	_u.mutation.AddBalanceSnapshotInvalidationVersion(v)
+	return _u
+}
+
 // SetAnnotations sets the "annotations" field.
 func (_u *EntitlementUpdate) SetAnnotations(v models.Annotations) *EntitlementUpdate {
 	_u.mutation.SetAnnotations(v)
@@ -459,6 +480,12 @@ func (_u *EntitlementUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if _u.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
+	}
+	if value, ok := _u.mutation.BalanceSnapshotInvalidationVersion(); ok {
+		_spec.SetField(entitlement.FieldBalanceSnapshotInvalidationVersion, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedBalanceSnapshotInvalidationVersion(); ok {
+		_spec.AddField(entitlement.FieldBalanceSnapshotInvalidationVersion, field.TypeUint64, value)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)
@@ -808,6 +835,27 @@ func (_u *EntitlementUpdateOne) ClearCurrentUsagePeriodEnd() *EntitlementUpdateO
 	return _u
 }
 
+// SetBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field.
+func (_u *EntitlementUpdateOne) SetBalanceSnapshotInvalidationVersion(v uint64) *EntitlementUpdateOne {
+	_u.mutation.ResetBalanceSnapshotInvalidationVersion()
+	_u.mutation.SetBalanceSnapshotInvalidationVersion(v)
+	return _u
+}
+
+// SetNillableBalanceSnapshotInvalidationVersion sets the "balance_snapshot_invalidation_version" field if the given value is not nil.
+func (_u *EntitlementUpdateOne) SetNillableBalanceSnapshotInvalidationVersion(v *uint64) *EntitlementUpdateOne {
+	if v != nil {
+		_u.SetBalanceSnapshotInvalidationVersion(*v)
+	}
+	return _u
+}
+
+// AddBalanceSnapshotInvalidationVersion adds value to the "balance_snapshot_invalidation_version" field.
+func (_u *EntitlementUpdateOne) AddBalanceSnapshotInvalidationVersion(v int64) *EntitlementUpdateOne {
+	_u.mutation.AddBalanceSnapshotInvalidationVersion(v)
+	return _u
+}
+
 // SetAnnotations sets the "annotations" field.
 func (_u *EntitlementUpdateOne) SetAnnotations(v models.Annotations) *EntitlementUpdateOne {
 	_u.mutation.SetAnnotations(v)
@@ -1126,6 +1174,12 @@ func (_u *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlement
 	}
 	if _u.mutation.CurrentUsagePeriodEndCleared() {
 		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
+	}
+	if value, ok := _u.mutation.BalanceSnapshotInvalidationVersion(); ok {
+		_spec.SetField(entitlement.FieldBalanceSnapshotInvalidationVersion, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedBalanceSnapshotInvalidationVersion(); ok {
+		_spec.AddField(entitlement.FieldBalanceSnapshotInvalidationVersion, field.TypeUint64, value)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		vv, err := entitlement.ValueScanner.Annotations.Value(value)

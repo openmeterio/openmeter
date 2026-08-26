@@ -138,8 +138,13 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 
 func (c *service) SupersedeEntitlement(ctx context.Context, entitlementId string, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.Entitlement, error) {
+		oldEntitlementID := models.NamespacedID{Namespace: input.Namespace, ID: entitlementId}
+		if err := c.lockEntitlementForTx(ctx, oldEntitlementID); err != nil {
+			return nil, err
+		}
+
 		// Find the entitlement to override
-		oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: entitlementId})
+		oldEnt, err := c.entitlementRepo.GetEntitlement(ctx, oldEntitlementID)
 		if err != nil {
 			return nil, err
 		}

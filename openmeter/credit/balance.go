@@ -41,7 +41,13 @@ type BalanceConnector interface {
 var _ BalanceConnector = &connector{}
 
 // GetBalanceSinceSnapshot returns the result of the engine.Run since a given snapshot.
-func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
+func (m *connector) getBalanceSinceSnapshot(
+	ctx context.Context,
+	ownerID models.NamespacedID,
+	snap balance.Snapshot,
+	at time.Time,
+	snapshotInvalidationVersion balance.SnapshotInvalidationVersion,
+) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
@@ -109,11 +115,12 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	// TODO: it might be the case that we don't save any snapshots as they require a history breakpoint. To solve this,
 	// we should introduce artificial history breakpoints in the engine, but that would result in more streaming.Query calls, so first lets improve the visibility of what's happening.
 	if err := m.snapshotEngineResult(ctx, snapshotParams{
-		grants:     grants,
-		owner:      ownerID,
-		notAfter:   m.getSnapshotNotAfter(periodStart, clock.Now()),
-		meter:      owner.Meter,
-		unitConfig: owner.UnitConfig,
+		grants:                      grants,
+		owner:                       ownerID,
+		notAfter:                    m.getSnapshotNotAfter(periodStart, clock.Now()),
+		meter:                       owner.Meter,
+		unitConfig:                  owner.UnitConfig,
+		snapshotInvalidationVersion: snapshotInvalidationVersion,
 	}, result); err != nil {
 		return def, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
@@ -136,13 +143,18 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 		at = trunc.Add(time.Minute)
 	}
 
+	snapshotInvalidationVersion, err := m.BalanceSnapshotService.GetInvalidationVersion(ctx, ownerID)
+	if err != nil {
+		return def, fmt.Errorf("failed to get snapshot invalidation version for owner %s: %w", ownerID.ID, err)
+	}
+
 	// get last valid grantbalances
 	snap, err := m.GetLastValidSnapshotAt(ctx, ownerID, at)
 	if err != nil {
 		return def, err
 	}
 
-	return m.getBalanceSinceSnapshot(ctx, ownerID, snap, at)
+	return m.getBalanceSinceSnapshot(ctx, ownerID, snap, at, snapshotInvalidationVersion)
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error) {
