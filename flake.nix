@@ -34,7 +34,7 @@
             languages = {
               go = {
                 enable = true;
-                package = pkgs.go_1_26;
+                package = pkgs.go_1_27;
               };
 
               python = {
@@ -155,7 +155,7 @@
               # Share downloaded modules across worktrees; keep GOPATH and build artifacts local.
               export GOMODCACHE="$HOME/go/pkg/mod"
 
-              ${lib.optionalString pkgs.stdenv.isDarwin ''
+              ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
                 # Workaround for XCBUILD.XCRUN cosmetic issue due to incompatible plists (see https://github.com/NixOS/nixpkgs/issues/376958)
                 # 1) Filter out the buggy Nix version of xcbuild/xcrun from PATH
                 export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "xcbuild" | tr '\n' ':')
