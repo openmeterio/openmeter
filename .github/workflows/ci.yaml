@@ -46,13 +46,18 @@ jobs:
         run: |
           nix flake check --impure
           nix develop --impure .#ci
-      - name: Save Nix store cache
-        uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+
+      - name: Restore Go module cache
+        id: go-module-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          save: "true"
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Populate Go module cache
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
         run: |
           nix develop --impure .#ci -c sh -eu -c '
             go mod download
@@ -62,10 +67,17 @@ jobs:
           '
 
       - name: Save Go module cache
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
+
+      - name: Save Nix store cache
+        uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          save: "true"
 
   build:
     name: Build
@@ -106,13 +118,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          # Prefer to restore the branch cache over the main cache
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Validate Nix flake
         run: nix flake check --impure
@@ -187,13 +195,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          # Prefer to restore the branch cache over the main cache
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Ensure code generators are run
         run: |
@@ -306,13 +310,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          # Prefer to restore the branch cache over the main cache
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Ensure code generators are run
         run: |
@@ -420,13 +420,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          # Prefer to restore the branch cache over the main cache
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Wait for dependencies to be ready
         run: |
@@ -497,12 +493,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Run migration checks
         run: nix develop --impure .#ci -c make migrate-check
@@ -549,13 +542,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          # Prefer to restore the branch cache over the main cache
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       # PR merge commits change on every update, so use the target commit to
       # keep unchanged package analysis reusable across the pull request.
@@ -780,12 +769,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          # Prefer to restore the branch cache over the main cache
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -904,12 +890,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          # Prefer to restore the branch cache over the main cache
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-go-modules-main-${{ hashFiles('flake.*', 'go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-            ${{ runner.os }}-openmeter-go-modules-main
+            ${{ runner.os }}-openmeter-go-modules-
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
