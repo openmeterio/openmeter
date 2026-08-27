@@ -57,6 +57,11 @@ and an optional mutable override layer.
 - When present, the override is the effective customer-facing mutable intent.
 - Customer-facing lifecycle, rating, invoice, and API behavior reads the
   effective layer.
+- A usage-based charge's price, including its spend commitments, and optional
+  unit conversion configuration form one mutable rating snapshot. Subscription
+  sync persists them together, and a complete override replaces both; a nil
+  override unit config explicitly clears conversion rather than inheriting it
+  from the base layer.
 - Subscription sync, repair, and adapter base persistence read the base layer.
 - Immutable attribution such as customer, currency, subscription identity,
   feature identity, settlement mode, cost-basis intent, and tax configuration

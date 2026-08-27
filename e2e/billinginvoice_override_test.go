@@ -693,10 +693,8 @@ func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invo
 	assert.Equal(t, line.Period.From, charge.ServicePeriod.From, "service period from")
 	assert.Equal(t, line.Period.To, charge.ServicePeriod.To, "service period to")
 
-	price, err := charge.Price.AsPriceFlat()
-	require.NoError(t, err)
-	assert.Equal(t, v3sdk.PriceTypeFlat, price.Type)
-	assert.Equal(t, flatInvoiceLineAmount(t, line), price.Amount)
+	assert.Equal(t, v3sdk.PriceTypeFlat, charge.Price.Type)
+	assert.Equal(t, flatInvoiceLineAmount(t, line), charge.Price.Amount)
 }
 
 func requireFlatFeeChargeSystemIntentMatchesLine(t *testing.T, charges map[string]invoiceOverrideCharge, name string, line api.InvoiceLine, amount string) {

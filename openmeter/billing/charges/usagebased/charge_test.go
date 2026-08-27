@@ -260,3 +260,22 @@ func TestOverridableIntentGetEffectiveUnitConfig(t *testing.T) {
 		require.Nil(t, cleared.GetEffectiveUnitConfig())
 	})
 }
+
+func TestIntentMutableFieldsRejectsUnitConfigWithoutUsagePrice(t *testing.T) {
+	intent := newValidIntent(
+		t,
+		currenciestestutils.NewFiatCurrency(t, "USD"),
+		productcatalog.CreditThenInvoiceSettlementMode,
+	)
+	intent.Price = *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+		Amount: alpacadecimal.NewFromInt(10),
+	})
+	intent.UnitConfig = &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+	}
+
+	err := intent.IntentMutableFields.Validate()
+
+	require.ErrorContains(t, err, "unit config requires a usage-based price")
+}

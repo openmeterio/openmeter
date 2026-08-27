@@ -40,8 +40,8 @@ enum UnitConfigRoundingMode {
  * Unit conversion configuration.
  *
  * Transforms raw metered quantities into billing-ready units before pricing and
- * entitlement evaluation. Applied at the rate card level so the same feature can
- * be billed in different units across plans.
+ * entitlement evaluation. Stored with a resource's rating configuration so the
+ * same metered feature can be billed in different units across plans and charges.
  *
  * Examples:
  *

@@ -7,6 +7,7 @@ import (
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -70,12 +71,13 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 	}
 }
 
-func TestToAPIBillingChargeUsageBasedSystemIntentReturnsUnsupportedBasePriceError(t *testing.T) {
+func TestToAPIBillingChargeUsageBasedSystemIntentMapsLegacyDynamicPrice(t *testing.T) {
 	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
 	period := timeutil.ClosedPeriod{
 		From: now,
 		To:   now.Add(time.Hour),
 	}
+	minimumAmount := decimal.NewFromInt(10)
 
 	intent := usagebased.NewOverridableIntent(usagebased.Intent{
 		Intent: meta.Intent{
@@ -92,7 +94,10 @@ func TestToAPIBillingChargeUsageBasedSystemIntentReturnsUnsupportedBasePriceErro
 			},
 			InvoiceAt: now,
 			Price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
-				Multiplier: decimal.NewFromInt(1),
+				Multiplier: decimal.NewFromFloat(1.2),
+				Commitments: productcatalog.Commitments{
+					MinimumAmount: &minimumAmount,
+				},
 			}),
 		},
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
@@ -112,8 +117,155 @@ func TestToAPIBillingChargeUsageBasedSystemIntentReturnsUnsupportedBasePriceErro
 
 	systemIntent, err := toAPIBillingChargeUsageBasedSystemIntent(intent)
 
-	assert.Nil(t, systemIntent)
-	assert.ErrorContains(t, err, "converting price")
+	require.NoError(t, err)
+	require.NotNil(t, systemIntent)
+
+	price, err := systemIntent.Price.AsBillingPriceUnit()
+	require.NoError(t, err)
+	assert.Equal(t, api.Numeric("1"), price.Amount)
+	require.NotNil(t, systemIntent.Commitments)
+	assert.Equal(t, lo.ToPtr(api.Numeric("10")), systemIntent.Commitments.MinimumAmount)
+	require.NotNil(t, systemIntent.UnitConfig)
+	assert.Equal(t, api.BillingUnitConfigOperationMultiply, systemIntent.UnitConfig.Operation)
+	assert.Equal(t, api.Numeric("1.2"), systemIntent.UnitConfig.ConversionFactor)
+}
+
+func TestConvertUsageBasedChargeToAPIMapsLegacyPackagePrice(t *testing.T) {
+	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+	period := timeutil.ClosedPeriod{
+		From: now,
+		To:   now.Add(time.Hour),
+	}
+	maximumAmount := decimal.NewFromInt(100)
+
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{ID: "charge-id"},
+			Status:          usagebased.StatusCreated,
+			State:           usagebased.State{FeatureID: "feature-id"},
+			Intent: usagebased.NewOverridableIntent(usagebased.Intent{
+				Intent: meta.Intent{
+					ManagedBy:  billing.SubscriptionManagedLine,
+					CustomerID: "customer-id",
+					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
+				},
+				IntentMutableFields: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "package charge",
+						ServicePeriod:     period,
+						FullServicePeriod: period,
+						BillingPeriod:     period,
+					},
+					InvoiceAt: now,
+					Price: *productcatalog.NewPriceFrom(productcatalog.PackagePrice{
+						Amount:             decimal.NewFromInt(10),
+						QuantityPerPackage: decimal.NewFromInt(1000),
+						Commitments: productcatalog.Commitments{
+							MaximumAmount: &maximumAmount,
+						},
+					}),
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				FeatureKey:     "feature-key",
+			}, nil),
+		},
+	}
+
+	result, err := convertUsageBasedChargeToAPI(charge)
+	require.NoError(t, err)
+
+	price, err := result.Price.AsBillingPriceUnit()
+	require.NoError(t, err)
+	assert.Equal(t, api.Numeric("10"), price.Amount)
+	require.NotNil(t, result.Commitments)
+	assert.Equal(t, lo.ToPtr(api.Numeric("100")), result.Commitments.MaximumAmount)
+	require.NotNil(t, result.UnitConfig)
+	assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+	assert.Equal(t, api.Numeric("1000"), result.UnitConfig.ConversionFactor)
+	assert.Equal(t, lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling), result.UnitConfig.Rounding)
+}
+
+func TestToAPIBillingUsageBasedRatingConfigurationPreservesStoredUnitConfig(t *testing.T) {
+	minimumAmount := decimal.NewFromInt(5)
+	displayUnit := "K requests"
+	intent := usagebased.IntentMutableFields{
+		Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: decimal.NewFromFloat(0.25),
+			Commitments: productcatalog.Commitments{
+				MinimumAmount: &minimumAmount,
+			},
+		}),
+		UnitConfig: &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: decimal.NewFromInt(1000),
+			Rounding:         productcatalog.UnitConfigRoundingModeHalfUp,
+			Precision:        2,
+			DisplayUnit:      &displayUnit,
+		},
+	}
+
+	result, err := toAPIBillingUsageBasedRatingConfiguration(intent)
+	require.NoError(t, err)
+
+	price, err := result.Price.AsBillingPriceUnit()
+	require.NoError(t, err)
+	assert.Equal(t, api.Numeric("0.25"), price.Amount)
+	require.NotNil(t, result.Commitments)
+	assert.Equal(t, lo.ToPtr(api.Numeric("5")), result.Commitments.MinimumAmount)
+	require.NotNil(t, result.UnitConfig)
+	assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+	assert.Equal(t, api.Numeric("1000"), result.UnitConfig.ConversionFactor)
+	assert.Equal(t, lo.ToPtr(api.BillingUnitConfigRoundingModeHalfUp), result.UnitConfig.Rounding)
+	assert.Equal(t, lo.ToPtr(2), result.UnitConfig.Precision)
+	assert.Equal(t, &displayUnit, result.UnitConfig.DisplayUnit)
+}
+
+func TestFromAPICreateChargeUsageBasedRequestMapsRatingConfiguration(t *testing.T) {
+	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+	period := api.ClosedPeriod{
+		From: now,
+		To:   now.Add(time.Hour),
+	}
+
+	var price api.BillingPriceUsageBased
+	require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{
+		Amount: "0.25",
+		Type:   api.BillingPriceUnitTypeUnit,
+	}))
+
+	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", api.CreateChargeUsageBasedRequest{
+		Commitments: &api.BillingSpendCommitments{
+			MaximumAmount: lo.ToPtr(api.Numeric("50")),
+			MinimumAmount: lo.ToPtr(api.Numeric("5")),
+		},
+		Currency:       api.CurrencyCode("USD"),
+		FeatureId:      "feature-id",
+		InvoiceAt:      now,
+		Name:           "usage charge",
+		Price:          price,
+		ServicePeriod:  period,
+		SettlementMode: api.BillingSettlementModeCreditThenInvoice,
+		Type:           api.CreateChargeUsageBasedRequestTypeUsageBased,
+		UnitConfig: &api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationDivide,
+			ConversionFactor: "1000",
+			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, input.UsageBased)
+
+	unitPrice, err := input.UsageBased.IntentMutableFields.Price.AsUnit()
+	require.NoError(t, err)
+	assert.Equal(t, "0.25", unitPrice.Amount.String())
+	require.NotNil(t, unitPrice.Commitments.MinimumAmount)
+	assert.Equal(t, "5", unitPrice.Commitments.MinimumAmount.String())
+	require.NotNil(t, unitPrice.Commitments.MaximumAmount)
+	assert.Equal(t, "50", unitPrice.Commitments.MaximumAmount.String())
+	require.NotNil(t, input.UsageBased.IntentMutableFields.UnitConfig)
+	assert.Equal(t, productcatalog.UnitConfigOperationDivide, input.UsageBased.IntentMutableFields.UnitConfig.Operation)
+	assert.Equal(t, "1000", input.UsageBased.IntentMutableFields.UnitConfig.ConversionFactor.String())
+	assert.Equal(t, productcatalog.UnitConfigRoundingModeCeiling, input.UsageBased.IntentMutableFields.UnitConfig.Rounding)
 }
 
 // The API exposes two distinct feature references: feature_key is the charge's logical
@@ -203,5 +355,9 @@ func TestConvertChargeToAPIReadsFeatureIDFromState(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, lo.ToPtr("flat-fee-feature-key"), out.FeatureKey)
 		assert.Equal(t, lo.ToPtr("flat-fee-feature-version-id"), out.FeatureId)
+		assert.Equal(t, api.BillingPriceFlat{
+			Amount: "10",
+			Type:   api.BillingPriceFlatTypeFlat,
+		}, out.Price)
 	})
 }

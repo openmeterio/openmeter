@@ -601,9 +601,56 @@ func TestFromBillingPrice(t *testing.T) {
 	})
 }
 
-func TestToAPIBillingRateCardUnitConfig(t *testing.T) {
+func TestBillingPriceUsageBasedConversions(t *testing.T) {
+	t.Run("legacy dynamic price maps to usage-based unit price", func(t *testing.T) {
+		price := productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
+			Multiplier: decimal.NewFromFloat(1.2),
+		})
+
+		result, err := ToAPIBillingPriceUsageBased(price)
+		require.NoError(t, err)
+
+		unit, err := result.AsBillingPriceUnit()
+		require.NoError(t, err)
+		assert.Equal(t, api.Numeric("1"), unit.Amount)
+	})
+
+	t.Run("flat price is outside the usage-based union", func(t *testing.T) {
+		price := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount: decimal.NewFromInt(10),
+		})
+
+		_, err := ToAPIBillingPriceUsageBased(price)
+
+		require.ErrorContains(t, err, "unsupported usage-based price type: flat")
+	})
+
+	t.Run("API unit price preserves commitments", func(t *testing.T) {
+		var price api.BillingPriceUsageBased
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{
+			Amount: "0.25",
+			Type:   api.BillingPriceUnitTypeUnit,
+		}))
+
+		result, err := FromAPIBillingPriceUsageBased(price, &api.BillingSpendCommitments{
+			MinimumAmount: lo.ToPtr(api.Numeric("5")),
+			MaximumAmount: lo.ToPtr(api.Numeric("50")),
+		})
+		require.NoError(t, err)
+
+		unit, err := result.AsUnit()
+		require.NoError(t, err)
+		assert.Equal(t, "0.25", unit.Amount.String())
+		require.NotNil(t, unit.MinimumAmount)
+		assert.Equal(t, "5", unit.MinimumAmount.String())
+		require.NotNil(t, unit.MaximumAmount)
+		assert.Equal(t, "50", unit.MaximumAmount.String())
+	})
+}
+
+func TestToAPIBillingUnitConfigFromLegacyPrice(t *testing.T) {
 	t.Run("nil price has no unit config", func(t *testing.T) {
-		result, err := ToAPIBillingRateCardUnitConfig(nil)
+		result, err := ToAPIBillingUnitConfigFromLegacyPrice(nil)
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
@@ -611,7 +658,7 @@ func TestToAPIBillingRateCardUnitConfig(t *testing.T) {
 	t.Run("flat price has no unit config", func(t *testing.T) {
 		p := productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: decimal.NewFromFloat(5)})
 
-		result, err := ToAPIBillingRateCardUnitConfig(p)
+		result, err := ToAPIBillingUnitConfigFromLegacyPrice(p)
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
@@ -619,7 +666,7 @@ func TestToAPIBillingRateCardUnitConfig(t *testing.T) {
 	t.Run("unit price has no unit config", func(t *testing.T) {
 		p := productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromFloat(0.05)})
 
-		result, err := ToAPIBillingRateCardUnitConfig(p)
+		result, err := ToAPIBillingUnitConfigFromLegacyPrice(p)
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
@@ -629,7 +676,7 @@ func TestToAPIBillingRateCardUnitConfig(t *testing.T) {
 			Multiplier: decimal.NewFromFloat(1.2),
 		})
 
-		result, err := ToAPIBillingRateCardUnitConfig(p)
+		result, err := ToAPIBillingUnitConfigFromLegacyPrice(p)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, api.BillingUnitConfigOperationMultiply, result.Operation)
@@ -645,7 +692,7 @@ func TestToAPIBillingRateCardUnitConfig(t *testing.T) {
 			QuantityPerPackage: decimal.NewFromInt(1000),
 		})
 
-		result, err := ToAPIBillingRateCardUnitConfig(p)
+		result, err := ToAPIBillingUnitConfigFromLegacyPrice(p)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, api.BillingUnitConfigOperationDivide, result.Operation)

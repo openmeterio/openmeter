@@ -631,19 +631,6 @@ export interface PriceFlat {
   amount: string
 }
 
-/**
- * Unit price.
- *
- * Charges a fixed rate per billing unit. When UnitConfig is present on the rate
- * card, billing units are the converted quantities (e.g. GB instead of bytes).
- */
-export interface PriceUnit {
-  /** The type of the price. */
-  type: 'unit'
-  /** The amount of the unit price. */
-  amount: string
-}
-
 /** Discount configuration for a rate card. */
 export interface RateCardDiscounts {
   /** Percentage discount applied to the price (0–100). */
@@ -677,8 +664,21 @@ export interface Totals {
 }
 
 /**
- * Spend commitments for a rate card. The customer is committed to spend at least
- * the minimum amount and at most the maximum amount.
+ * Unit price.
+ *
+ * Charges a fixed rate per billing unit. When UnitConfig is present on the object,
+ * billing units are the converted quantities (e.g. GB instead of bytes).
+ */
+export interface PriceUnit {
+  /** The type of the price. */
+  type: 'unit'
+  /** The amount of the unit price. */
+  amount: string
+}
+
+/**
+ * Spend commitments for a usage-based price. The customer is committed to spend at
+ * least the minimum amount and at most the maximum amount.
  */
 export interface SpendCommitments {
   /** The customer is committed to spend at least the amount. */
@@ -723,8 +723,8 @@ export interface UpdatePriceFlat {
 /**
  * Unit price.
  *
- * Charges a fixed rate per billing unit. When UnitConfig is present on the rate
- * card, billing units are the converted quantities (e.g. GB instead of bytes).
+ * Charges a fixed rate per billing unit. When UnitConfig is present on the object,
+ * billing units are the converted quantities (e.g. GB instead of bytes).
  */
 export interface UpdatePriceUnit {
   /** The type of the price. */
@@ -1924,46 +1924,12 @@ export interface SubscriptionProRatingConfig {
   mode: 'no_proration' | 'prorate_prices'
 }
 
-/** Subscription create request. */
-export interface SubscriptionCreate {
-  labels?: Labels
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   *
-   * If not provided, the subscription will be created with the subscription's
-   * creation time as the billing anchor.
-   */
-  billingAnchor?: Date
-  /** Controls how custom-currency cost bases are selected for the subscription. */
-  costBasisMode: 'dynamic' | 'pinned'
-}
-
 /**
  * Unit conversion configuration.
  *
  * Transforms raw metered quantities into billing-ready units before pricing and
- * entitlement evaluation. Applied at the rate card level so the same feature can
- * be billed in different units across plans.
+ * entitlement evaluation. Stored with a resource's rating configuration so the
+ * same metered feature can be billed in different units across plans and charges.
  *
  * Examples:
  *
@@ -2015,6 +1981,40 @@ export interface UnitConfig {
    * Optional. When omitted, no unit label is rendered.
    */
   displayUnit?: string
+}
+
+/** Subscription create request. */
+export interface SubscriptionCreate {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /** The plan reference of the subscription. */
+  plan: { id?: string; key?: string; version?: number }
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode: 'dynamic' | 'pinned'
 }
 
 /** Mapping of app types to tax codes. */
@@ -2417,26 +2417,7 @@ export interface CreditTransaction {
 }
 
 /**
- * A price tier used in graduated and volume pricing.
- *
- * At least one price component (flat_price or unit_price) must be set. When
- * UnitConfig is present on the rate card, up_to_amount is expressed in converted
- * billing units.
- */
-export interface PriceTier {
-  /**
-   * Up to and including this quantity will be contained in the tier. If undefined,
-   * the tier is open-ended (the last tier).
-   */
-  upToAmount?: string
-  /** The flat price component of the tier. Charged once when the tier is entered. */
-  flatPrice?: PriceFlat
-  /** The unit price component of the tier. Charged per billing unit within the tier. */
-  unitPrice?: PriceUnit
-}
-
-/**
- * The totals of a change.
+ * The totals of a charge.
  *
  * RealTime is only expanded when the `real_time_usage` expand is used.
  */
@@ -2455,8 +2436,27 @@ export interface ChargeTotals {
  * A price tier used in graduated and volume pricing.
  *
  * At least one price component (flat_price or unit_price) must be set. When
- * UnitConfig is present on the rate card, up_to_amount is expressed in converted
- * billing units.
+ * UnitConfig is present on the containing resource, up_to_amount is expressed in
+ * converted billing units.
+ */
+export interface PriceTier {
+  /**
+   * Up to and including this quantity will be contained in the tier. If undefined,
+   * the tier is open-ended (the last tier).
+   */
+  upToAmount?: string
+  /** The flat price component of the tier. Charged once when the tier is entered. */
+  flatPrice?: PriceFlat
+  /** The unit price component of the tier. Charged per billing unit within the tier. */
+  unitPrice?: PriceUnit
+}
+
+/**
+ * A price tier used in graduated and volume pricing.
+ *
+ * At least one price component (flat_price or unit_price) must be set. When
+ * UnitConfig is present on the containing resource, up_to_amount is expressed in
+ * converted billing units.
  */
 export interface UpdatePriceTier {
   /**
@@ -3444,8 +3444,8 @@ export interface CreditTransactionPaginatedResponse {
  * Each tier's rate applies only to the usage within that tier. Pricing can change
  * as cumulative usage crosses tier boundaries.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
- * expressed in converted billing units.
+ * When UnitConfig is present on the containing resource, tier boundaries
+ * (up_to_amount) are expressed in converted billing units.
  */
 export interface PriceGraduated {
   /** The type of the price. */
@@ -3460,8 +3460,8 @@ export interface PriceGraduated {
  * The maximum quantity within a period determines the per-unit price for all units
  * in that period.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
- * expressed in converted billing units.
+ * When UnitConfig is present on the containing resource, tier boundaries
+ * (up_to_amount) are expressed in converted billing units.
  */
 export interface PriceVolume {
   /** The type of the price. */
@@ -3476,8 +3476,8 @@ export interface PriceVolume {
  * Each tier's rate applies only to the usage within that tier. Pricing can change
  * as cumulative usage crosses tier boundaries.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
- * expressed in converted billing units.
+ * When UnitConfig is present on the containing resource, tier boundaries
+ * (up_to_amount) are expressed in converted billing units.
  */
 export interface UpdatePriceGraduated {
   /** The type of the price. */
@@ -3492,8 +3492,8 @@ export interface UpdatePriceGraduated {
  * The maximum quantity within a period determines the per-unit price for all units
  * in that period.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
- * expressed in converted billing units.
+ * When UnitConfig is present on the containing resource, tier boundaries
+ * (up_to_amount) are expressed in converted billing units.
  */
 export interface UpdatePriceVolume {
   /** The type of the price. */
@@ -3905,6 +3905,87 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
   redirectOnCompletion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollection
+}
+
+/** A flat fee charge for a customer. */
+export interface ChargeFlatFee {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /** The customer owning the charge. */
+  customer: BillingCustomerReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+   * overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   */
+  subscription?: SubscriptionReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advanceAfter?: Date
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** Payment term of the flat fee charge. */
+  paymentTerm: PricePaymentTerm
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /** The feature associated with the charge, when applicable. */
+  featureKey?: string
+  /** The feature ID associated with the charge. */
+  featureId?: string
+  /** The proration configuration of the charge. */
+  prorationConfiguration: RateCardProrationConfiguration
+  /** The amount after proration of the charge. */
+  amountAfterProration: CurrencyAmount
+  /** The price of the charge. */
+  price: PriceFlat
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  systemIntent?: ChargeFlatFeeSystemIntent
 }
 
 /** Page paginated response. */
@@ -4499,87 +4580,6 @@ export interface EntitlementAccessQueryResponse {
   meta: CursorMeta
 }
 
-/** A flat fee charge for a customer. */
-export interface ChargeFlatFee {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The type of the charge. */
-  type: 'flat_fee'
-  /** The customer owning the charge. */
-  customer: BillingCustomerReference
-  /**
-   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
-   * overridden by the API user.
-   */
-  lifecycleController: 'system' | 'manual'
-  /**
-   * The subscription that originated the charge, when the charge was created from a
-   * subscription item.
-   */
-  subscription?: SubscriptionReference
-  /** The currency of the charge. */
-  currency: string
-  /** The lifecycle status of the charge. */
-  status: 'created' | 'active' | 'final' | 'deleted'
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod: ClosedPeriod
-  /**
-   * The earliest time when the charge should be advanced again by background
-   * processing.
-   */
-  advanceAfter?: Date
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Payment term of the flat fee charge. */
-  paymentTerm: PricePaymentTerm
-  /** The discounts applied to the charge. */
-  discounts?: ChargeFlatFeeDiscounts
-  /** The feature associated with the charge, when applicable. */
-  featureKey?: string
-  /** The feature ID associated with the charge. */
-  featureId?: string
-  /** The proration configuration of the charge. */
-  prorationConfiguration: RateCardProrationConfiguration
-  /** The amount after proration of the charge. */
-  amountAfterProration: CurrencyAmount
-  /** The price of the charge. */
-  price: Price
-  /**
-   * Current intent from the system lifecycle controller for a charge that has an
-   * active manual override. The top-level charge fields remain the effective
-   * customer-facing intent.
-   */
-  systemIntent?: ChargeFlatFeeSystemIntent
-}
-
 /**
  * Usage-based intent fields from the system lifecycle controller shadowed by a
  * manual override.
@@ -4609,7 +4609,20 @@ export interface ChargeUsageBasedSystemIntent {
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
   /** The price of the charge. */
-  price: Price
+  price: PriceUsageBased
+  /** Spend commitments for the charge. */
+  commitments?: SpendCommitments
+  /**
+   * Unit conversion configuration for the charge.
+   *
+   * Synthesized on read for charges created from v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  unitConfig?: UnitConfig
   /**
    * The timestamp when the system lifecycle controller intent was deleted. The
    * effective charge can remain visible while a manual override is active.
@@ -4651,7 +4664,20 @@ export interface CreateChargeUsageBasedRequest {
   /** The feature ID associated with the charge. */
   featureId: string
   /** The price of the charge. */
-  price: Price
+  price: PriceUsageBased
+  /** Spend commitments for the charge. */
+  commitments?: SpendCommitments
+  /**
+   * Unit conversion configuration for the charge.
+   *
+   * Synthesized on read for charges created from v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  unitConfig?: UnitConfig
   /** The full, unprorated service period of the charge. */
   fullServicePeriod?: ClosedPeriod
   /** The billing period the charge belongs to. */
@@ -4851,7 +4877,20 @@ export interface ChargeUsageBased {
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
   /** The price of the charge. */
-  price: Price
+  price: PriceUsageBased
+  /** Spend commitments for the charge. */
+  commitments?: SpendCommitments
+  /**
+   * Unit conversion configuration for the charge.
+   *
+   * Synthesized on read for charges created from v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  unitConfig?: UnitConfig
   /**
    * Current intent from the system lifecycle controller for a charge that has an
    * active manual override. The top-level charge fields remain the effective
@@ -5838,6 +5877,14 @@ export type Currency = CurrencyFiat | CurrencyCustom
 export type WorkflowCollectionAlignment =
   WorkflowCollectionAlignmentSubscription | WorkflowCollectionAlignmentAnchored
 
+/**
+ * Usage-based price types for a rate card or charge.
+ *
+ * When UnitConfig is present on the object, these price types operate on billing
+ * units (i.e. post-conversion quantities), not raw metered units.
+ */
+export type PriceUsageBased = PriceUnit | PriceGraduated | PriceVolume
+
 /** Price. */
 export type Price =
   PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
@@ -6173,46 +6220,12 @@ export interface VoidCreditGrantRequestInput {
   paymentAdjustment?: 'none'
 }
 
-/** Subscription create request. */
-export interface SubscriptionCreateInput {
-  labels?: Labels
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   *
-   * If not provided, the subscription will be created with the subscription's
-   * creation time as the billing anchor.
-   */
-  billingAnchor?: Date
-  /** Controls how custom-currency cost bases are selected for the subscription. */
-  costBasisMode?: 'dynamic' | 'pinned'
-}
-
 /**
  * Unit conversion configuration.
  *
  * Transforms raw metered quantities into billing-ready units before pricing and
- * entitlement evaluation. Applied at the rate card level so the same feature can
- * be billed in different units across plans.
+ * entitlement evaluation. Stored with a resource's rating configuration so the
+ * same metered feature can be billed in different units across plans and charges.
  *
  * Examples:
  *
@@ -6264,6 +6277,40 @@ export interface UnitConfigInput {
    * Optional. When omitted, no unit label is rendered.
    */
   displayUnit?: string
+}
+
+/** Subscription create request. */
+export interface SubscriptionCreateInput {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /** The plan reference of the subscription. */
+  plan: { id?: string; key?: string; version?: number }
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode?: 'dynamic' | 'pinned'
 }
 
 /** Invoice settings for a billing workflow. */
@@ -6780,6 +6827,110 @@ export interface WorkflowCollectionSettingsInput {
   interval?: string
 }
 
+/**
+ * Usage-based intent fields from the system lifecycle controller shadowed by a
+ * manual override.
+ */
+export interface ChargeUsageBasedSystemIntentInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /** The price of the charge. */
+  price: PriceUsageBased
+  /** Spend commitments for the charge. */
+  commitments?: SpendCommitments
+  /**
+   * Unit conversion configuration for the charge.
+   *
+   * Synthesized on read for charges created from v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  unitConfig?: UnitConfigInput
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  deletedAt?: Date
+}
+
+/** Usage-based charge create request. */
+export interface CreateChargeUsageBasedRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'usage_based'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /** The feature ID associated with the charge. */
+  featureId: string
+  /** The price of the charge. */
+  price: PriceUsageBased
+  /** Spend commitments for the charge. */
+  commitments?: SpendCommitments
+  /**
+   * Unit conversion configuration for the charge.
+   *
+   * Synthesized on read for charges created from v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  unitConfig?: UnitConfigInput
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod?: ClosedPeriod
+}
+
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCardInput {
   /**
@@ -6869,6 +7020,96 @@ export interface WorkflowInput {
   payment?: WorkflowPaymentSettingsInput
   /** The tax settings for this workflow */
   tax?: WorkflowTaxSettingsInput
+}
+
+/** A usage-based charge for a customer. */
+export interface ChargeUsageBasedInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge. */
+  type: 'usage_based'
+  /** The customer owning the charge. */
+  customer: BillingCustomerReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+   * overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   */
+  subscription?: SubscriptionReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advanceAfter?: Date
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /** The feature associated with the charge. */
+  featureKey: string
+  /** The feature ID associated with the charge. */
+  featureId: string
+  /** Aggregated booked and realtime totals for the charge. */
+  totals: ChargeTotals
+  /** The price of the charge. */
+  price: PriceUsageBased
+  /** Spend commitments for the charge. */
+  commitments?: SpendCommitments
+  /**
+   * Unit conversion configuration for the charge.
+   *
+   * Synthesized on read for charges created from v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  unitConfig?: UnitConfigInput
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  systemIntent?: ChargeUsageBasedSystemIntentInput
 }
 
 /** A subscription item pins a rate card to a cadence within a subscription phase. */
@@ -7437,6 +7678,12 @@ export interface ProfilePagePaginatedResponseInput {
   meta: PaginatedMeta
 }
 
+/** Page paginated response. */
+export interface ChargePagePaginatedResponseInput {
+  data: ChargeInput[]
+  meta: PaginatedMeta
+}
+
 /** Subscription. */
 export interface SubscriptionInput {
   id: string
@@ -7696,6 +7943,13 @@ export type RateCardEntitlementInput =
   | RateCardMeteredEntitlementInput
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
+
+/** Customer charge. */
+export type CreateChargeRequestInput =
+  CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequestInput
+
+/** Customer charge. */
+export type ChargeInput = ChargeFlatFee | ChargeUsageBasedInput
 
 /**
  * A top-level line item on an invoice.

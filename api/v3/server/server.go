@@ -336,7 +336,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	var chargesH chargeshandler.Handler
 	if config.ChargeService != nil {
-		chargesH = chargeshandler.New(resolveNamespace, config.ChargeService, httptransport.WithErrorHandler(config.ErrorHandler))
+		chargesH = chargeshandler.New(resolveNamespace, config.ChargeService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
 	}
 
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))

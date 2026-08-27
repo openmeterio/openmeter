@@ -106,6 +106,8 @@ model ChargeUsageBasedSystemIntent {
     | "billing_period"
     | "discounts"
     | "price"
+    | "commitments"
+    | "unit_config"
   >;
 
   /**
@@ -292,7 +294,7 @@ model ChargeFlatFee {
    */
   @visibility(Lifecycle.Read)
   @summary("Price")
-  price: ProductCatalog.Price;
+  price: ProductCatalog.PriceFlat;
 
   /**
    * Current intent from the system lifecycle controller for a charge that has an
@@ -305,7 +307,7 @@ model ChargeFlatFee {
 }
 
 /**
- * The totals of a change.
+ * The totals of a charge.
  *
  * RealTime is only expanded when the `real_time_usage` expand is used.
  */
@@ -371,7 +373,28 @@ model ChargeUsageBased {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Price")
-  price: ProductCatalog.Price;
+  price: ProductCatalog.PriceUsageBased;
+
+  /**
+   * Spend commitments for the charge.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Commitments")
+  commitments?: ProductCatalog.SpendCommitments;
+
+  /**
+   * Unit conversion configuration for the charge.
+   *
+   * Synthesized on read for charges created from v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Unit config")
+  unit_config?: ProductCatalog.UnitConfig;
 
   /**
    * Current intent from the system lifecycle controller for a charge that has an

@@ -46,12 +46,9 @@ var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee, error) {
 	intent := source.ChargeBase.Intent.GetEffectiveIntent()
 
-	var price api.BillingPrice
-	if err := price.FromBillingPriceFlat(api.BillingPriceFlat{
+	price := api.BillingPriceFlat{
 		Amount: intent.AmountBeforeProration.String(),
 		Type:   api.BillingPriceFlatTypeFlat,
-	}); err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("setting flat fee price union: %w", err)
 	}
 
 	return api.BillingChargeFlatFee{
@@ -96,9 +93,9 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 
 	intent := source.ChargeBase.Intent.GetEffectiveIntent()
 
-	price, err := toAPIBillingPrice(intent.Price)
+	ratingConfiguration, err := toAPIBillingUsageBasedRatingConfiguration(intent.IntentMutableFields)
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting price: %w", err)
+		return api.BillingChargeUsageBased{}, fmt.Errorf("converting rating configuration: %w", err)
 	}
 
 	systemIntent, err := toAPIBillingChargeUsageBasedSystemIntent(source.ChargeBase.Intent)
@@ -109,6 +106,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 	return api.BillingChargeUsageBased{
 		AdvanceAfter:        source.State.AdvanceAfter,
 		BillingPeriod:       ConvertClosedPeriodToAPI(intent.BillingPeriod),
+		Commitments:         ratingConfiguration.Commitments,
 		CreatedAt:           source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:            ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
 		Customer:            ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
@@ -123,7 +121,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		Labels:              ConvertMetadataToLabels(intent.Metadata),
 		LifecycleController: ConvertLifecycleControllerToAPI(intent.ManagedBy, WithManualOverride(source.ChargeBase.Intent.HasOverrideLayer())),
 		Name:                intent.Name,
-		Price:               price,
+		Price:               ratingConfiguration.Price,
 		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
 		SettlementMode:      ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
 		Status:              lo.FromPtr(status),
@@ -132,6 +130,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		TaxConfig:           convertTaxCodeConfigToAPI(intent.TaxConfig),
 		Totals:              convertUsageBasedChargeTotals(source),
 		Type:                api.BillingChargeUsageBasedTypeUsageBased,
+		UnitConfig:          ratingConfiguration.UnitConfig,
 		UniqueReferenceId:   source.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:           source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
@@ -167,13 +166,14 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 
 	baseIntent := intent.GetBaseIntent()
 
-	price, err := toAPIBillingPrice(baseIntent.Price)
+	ratingConfiguration, err := toAPIBillingUsageBasedRatingConfiguration(baseIntent.IntentMutableFields)
 	if err != nil {
-		return nil, fmt.Errorf("converting price: %w", err)
+		return nil, fmt.Errorf("converting rating configuration: %w", err)
 	}
 
 	return &api.BillingChargeUsageBasedSystemIntent{
 		BillingPeriod:     ConvertClosedPeriodToAPI(baseIntent.BillingPeriod),
+		Commitments:       ratingConfiguration.Commitments,
 		DeletedAt:         baseIntent.IntentDeletedAt,
 		Description:       baseIntent.Description,
 		Discounts:         convertUsageBasedDiscounts(baseIntent.Discounts),
@@ -181,8 +181,9 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 		InvoiceAt:         baseIntent.InvoiceAt,
 		Labels:            ConvertMetadataToLabels(baseIntent.Metadata),
 		Name:              baseIntent.Name,
-		Price:             price,
+		Price:             ratingConfiguration.Price,
 		ServicePeriod:     ConvertClosedPeriodToAPI(baseIntent.ServicePeriod),
+		UnitConfig:        ratingConfiguration.UnitConfig,
 	}, nil
 }
 
@@ -265,88 +266,40 @@ func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
 	}
 }
 
-// toAPIBillingPrice maps a domain productcatalog.Price to the API BillingPrice union type.
-// DynamicPrice and PackagePrice have no API equivalent and return an error.
-func toAPIBillingPrice(p productcatalog.Price) (api.BillingPrice, error) {
-	var out api.BillingPrice
-
-	switch p.Type() {
-	case productcatalog.FlatPriceType:
-		flat, err := p.AsFlat()
-		if err != nil {
-			return out, fmt.Errorf("reading flat price: %w", err)
-		}
-		if err := out.FromBillingPriceFlat(api.BillingPriceFlat{
-			Amount: flat.Amount.String(),
-			Type:   api.BillingPriceFlatTypeFlat,
-		}); err != nil {
-			return out, fmt.Errorf("setting flat price union: %w", err)
-		}
-
-	case productcatalog.UnitPriceType:
-		unit, err := p.AsUnit()
-		if err != nil {
-			return out, fmt.Errorf("reading unit price: %w", err)
-		}
-		if err := out.FromBillingPriceUnit(api.BillingPriceUnit{
-			Amount: unit.Amount.String(),
-			Type:   api.BillingPriceUnitTypeUnit,
-		}); err != nil {
-			return out, fmt.Errorf("setting unit price union: %w", err)
-		}
-
-	case productcatalog.TieredPriceType:
-		tiered, err := p.AsTiered()
-		if err != nil {
-			return out, fmt.Errorf("reading tiered price: %w", err)
-		}
-		tiers := lo.Map(tiered.Tiers, toAPIBillingPriceTier)
-		switch tiered.Mode {
-		case productcatalog.GraduatedTieredPrice:
-			if err := out.FromBillingPriceGraduated(api.BillingPriceGraduated{
-				Tiers: tiers,
-				Type:  api.BillingPriceGraduatedTypeGraduated,
-			}); err != nil {
-				return out, fmt.Errorf("setting graduated price union: %w", err)
-			}
-		case productcatalog.VolumeTieredPrice:
-			if err := out.FromBillingPriceVolume(api.BillingPriceVolume{
-				Tiers: tiers,
-				Type:  api.BillingPriceVolumeTypeVolume,
-			}); err != nil {
-				return out, fmt.Errorf("setting volume price union: %w", err)
-			}
-		default:
-			return out, fmt.Errorf("unsupported tiered price mode: %s", tiered.Mode)
-		}
-
-	default:
-		return out, fmt.Errorf("unsupported price type: %s", p.Type())
-	}
-
-	return out, nil
+type apiUsageBasedRatingConfiguration struct {
+	Price       api.BillingPriceUsageBased
+	Commitments *api.BillingSpendCommitments
+	UnitConfig  *api.BillingUnitConfig
 }
 
-// toAPIBillingPriceTier maps a domain PriceTier to the API BillingPriceTier type.
-func toAPIBillingPriceTier(t productcatalog.PriceTier, _ int) api.BillingPriceTier {
-	tier := api.BillingPriceTier{}
-	if t.UpToAmount != nil {
-		s := t.UpToAmount.String()
-		tier.UpToAmount = &s
+// toAPIBillingUsageBasedRatingConfiguration maps the complete rating snapshot.
+// Stored unit config takes precedence; legacy dynamic and package prices
+// synthesize the same v3 unit-price representation used by plans and
+// subscriptions. Commitments remain attached to the projected price semantics.
+func toAPIBillingUsageBasedRatingConfiguration(intent usagebased.IntentMutableFields) (apiUsageBasedRatingConfiguration, error) {
+	price, err := plans.ToAPIBillingPriceUsageBased(&intent.Price)
+	if err != nil {
+		return apiUsageBasedRatingConfiguration{}, fmt.Errorf("converting price: %w", err)
 	}
-	if t.FlatPrice != nil {
-		tier.FlatPrice = &api.BillingPriceFlat{
-			Amount: t.FlatPrice.Amount.String(),
-			Type:   api.BillingPriceFlatTypeFlat,
-		}
+
+	result := apiUsageBasedRatingConfiguration{
+		Price:       price,
+		Commitments: plans.ToAPIBillingSpendCommitments(intent.Price.GetCommitments()),
 	}
-	if t.UnitPrice != nil {
-		tier.UnitPrice = &api.BillingPriceUnit{
-			Amount: t.UnitPrice.Amount.String(),
-			Type:   api.BillingPriceUnitTypeUnit,
-		}
+
+	if intent.UnitConfig != nil {
+		result.UnitConfig = lo.ToPtr(plans.ToAPIBillingUnitConfig(*intent.UnitConfig))
+
+		return result, nil
 	}
-	return tier
+
+	legacyUnitConfig, err := plans.ToAPIBillingUnitConfigFromLegacyPrice(&intent.Price)
+	if err != nil {
+		return apiUsageBasedRatingConfiguration{}, fmt.Errorf("converting unit config: %w", err)
+	}
+	result.UnitConfig = legacyUnitConfig
+
+	return result, nil
 }
 
 // convertFlatFeeDiscounts maps the optional percentage discount to the anonymous API struct.
@@ -615,10 +568,19 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		discounts = discounts.UpsertCorrelationIDs()
 	}
 
-	price, err := plans.FromAPIBillingPrice(usageBasedFee.Price, lo.ToPtr(api.BillingPricePaymentTermInArrears))
+	price, err := plans.FromAPIBillingPriceUsageBased(usageBasedFee.Price, usageBasedFee.Commitments)
 	if err != nil {
 		return zero, fmt.Errorf("invalid price: %w", err)
 	}
+
+	var unitConfig *productcatalog.UnitConfig
+	if usageBasedFee.UnitConfig != nil {
+		unitConfig, err = plans.FromAPIBillingUnitConfig(*usageBasedFee.UnitConfig)
+		if err != nil {
+			return zero, fmt.Errorf("invalid unit config: %w", err)
+		}
+	}
+
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
@@ -635,9 +597,10 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 					FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.FullServicePeriod, usageBasedFee.ServicePeriod)),
 					BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.BillingPeriod, usageBasedFee.ServicePeriod)),
 				},
-				InvoiceAt: usageBasedFee.InvoiceAt,
-				Price:     *price,
-				Discounts: discounts,
+				InvoiceAt:  usageBasedFee.InvoiceAt,
+				Price:      *price,
+				Discounts:  discounts,
+				UnitConfig: unitConfig,
 			},
 			FeatureID:      usageBasedFee.FeatureId,
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),

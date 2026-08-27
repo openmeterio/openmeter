@@ -4933,7 +4933,7 @@ components:
           readOnly: true
         price:
           allOf:
-            - $ref: '#/components/schemas/BillingPrice'
+            - $ref: '#/components/schemas/BillingPriceFlat'
           description: The price of the charge.
           title: Price
           readOnly: true
@@ -5101,7 +5101,7 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        The totals of a change.
+        The totals of a charge.
 
         RealTime is only expanded when the `real_time_usage` expand is used.
     BillingChargeUsageBased:
@@ -5267,9 +5267,27 @@ components:
           readOnly: true
         price:
           allOf:
-            - $ref: '#/components/schemas/BillingPrice'
+            - $ref: '#/components/schemas/BillingPriceUsageBased'
           description: The price of the charge.
           title: Price
+        commitments:
+          allOf:
+            - $ref: '#/components/schemas/BillingSpendCommitments'
+          description: Spend commitments for the charge.
+          title: Commitments
+        unit_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfig'
+          description: |-
+            Unit conversion configuration for the charge.
+
+            Synthesized on read for charges created from v1 dynamic or package prices:
+            dynamic prices map to a unit price with a multiply unit config, and package
+            prices map to a unit price with a divide unit config.
+
+            Accepted on create only when the UnitConfig feature is enabled on the
+            deployment; otherwise rejected.
+          title: Unit config
         system_intent:
           allOf:
             - $ref: '#/components/schemas/BillingChargeUsageBasedSystemIntent'
@@ -5338,9 +5356,27 @@ components:
           title: Discounts
         price:
           allOf:
-            - $ref: '#/components/schemas/BillingPrice'
+            - $ref: '#/components/schemas/BillingPriceUsageBased'
           description: The price of the charge.
           title: Price
+        commitments:
+          allOf:
+            - $ref: '#/components/schemas/BillingSpendCommitments'
+          description: Spend commitments for the charge.
+          title: Commitments
+        unit_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfig'
+          description: |-
+            Unit conversion configuration for the charge.
+
+            Synthesized on read for charges created from v1 dynamic or package prices:
+            dynamic prices map to a unit price with a multiply unit config, and package
+            prices map to a unit price with a divide unit config.
+
+            Accepted on create only when the UnitConfig feature is enabled on the
+            deployment; otherwise rejected.
+          title: Unit config
         deleted_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -7986,8 +8022,8 @@ components:
         Each tier's rate applies only to the usage within that tier. Pricing can change
         as cumulative usage crosses tier boundaries.
 
-        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
-        expressed in converted billing units.
+        When UnitConfig is present on the containing resource, tier boundaries
+        (up_to_amount) are expressed in converted billing units.
     BillingPricePaymentTerm:
       type: string
       enum:
@@ -8019,8 +8055,8 @@ components:
         A price tier used in graduated and volume pricing.
 
         At least one price component (flat_price or unit_price) must be set. When
-        UnitConfig is present on the rate card, up_to_amount is expressed in converted
-        billing units.
+        UnitConfig is present on the containing resource, up_to_amount is expressed in
+        converted billing units.
     BillingPriceUnit:
       type: object
       required:
@@ -8042,8 +8078,25 @@ components:
       description: |-
         Unit price.
 
-        Charges a fixed rate per billing unit. When UnitConfig is present on the rate
-        card, billing units are the converted quantities (e.g. GB instead of bytes).
+        Charges a fixed rate per billing unit. When UnitConfig is present on the object,
+        billing units are the converted quantities (e.g. GB instead of bytes).
+    BillingPriceUsageBased:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingPriceUnit'
+        - $ref: '#/components/schemas/BillingPriceGraduated'
+        - $ref: '#/components/schemas/BillingPriceVolume'
+      discriminator:
+        propertyName: type
+        mapping:
+          unit: '#/components/schemas/BillingPriceUnit'
+          graduated: '#/components/schemas/BillingPriceGraduated'
+          volume: '#/components/schemas/BillingPriceVolume'
+      description: |-
+        Usage-based price types for a rate card or charge.
+
+        When UnitConfig is present on the object, these price types operate on billing
+        units (i.e. post-conversion quantities), not raw metered units.
     BillingPriceVolume:
       type: object
       required:
@@ -8070,8 +8123,8 @@ components:
         The maximum quantity within a period determines the per-unit price for all units
         in that period.
 
-        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
-        expressed in converted billing units.
+        When UnitConfig is present on the containing resource, tier boundaries
+        (up_to_amount) are expressed in converted billing units.
     BillingProfile:
       type: object
       required:
@@ -8451,8 +8504,8 @@ components:
           title: Maximum amount
       additionalProperties: false
       description: |-
-        Spend commitments for a rate card. The customer is committed to spend at least
-        the minimum amount and at most the maximum amount.
+        Spend commitments for a usage-based price. The customer is committed to spend at
+        least the minimum amount and at most the maximum amount.
     BillingSubscription:
       type: object
       required:
@@ -9418,8 +9471,8 @@ components:
         Unit conversion configuration.
 
         Transforms raw metered quantities into billing-ready units before pricing and
-        entitlement evaluation. Applied at the rate card level so the same feature can
-        be billed in different units across plans.
+        entitlement evaluation. Stored with a resource's rating configuration so the
+        same metered feature can be billed in different units across plans and charges.
 
         Examples:
 
@@ -10033,9 +10086,27 @@ components:
           title: Feature id
         price:
           allOf:
-            - $ref: '#/components/schemas/BillingPrice'
+            - $ref: '#/components/schemas/BillingPriceUsageBased'
           description: The price of the charge.
           title: Price
+        commitments:
+          allOf:
+            - $ref: '#/components/schemas/BillingSpendCommitments'
+          description: Spend commitments for the charge.
+          title: Commitments
+        unit_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfig'
+          description: |-
+            Unit conversion configuration for the charge.
+
+            Synthesized on read for charges created from v1 dynamic or package prices:
+            dynamic prices map to a unit price with a multiply unit config, and package
+            prices map to a unit price with a divide unit config.
+
+            Accepted on create only when the UnitConfig feature is enabled on the
+            deployment; otherwise rejected.
+          title: Unit config
         full_service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
@@ -13473,8 +13544,8 @@ components:
         Each tier's rate applies only to the usage within that tier. Pricing can change
         as cumulative usage crosses tier boundaries.
 
-        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
-        expressed in converted billing units.
+        When UnitConfig is present on the containing resource, tier boundaries
+        (up_to_amount) are expressed in converted billing units.
     UpdatePriceTier:
       type: object
       properties:
@@ -13500,8 +13571,8 @@ components:
         A price tier used in graduated and volume pricing.
 
         At least one price component (flat_price or unit_price) must be set. When
-        UnitConfig is present on the rate card, up_to_amount is expressed in converted
-        billing units.
+        UnitConfig is present on the containing resource, up_to_amount is expressed in
+        converted billing units.
     UpdatePriceUnit:
       type: object
       required:
@@ -13523,8 +13594,8 @@ components:
       description: |-
         Unit price.
 
-        Charges a fixed rate per billing unit. When UnitConfig is present on the rate
-        card, billing units are the converted quantities (e.g. GB instead of bytes).
+        Charges a fixed rate per billing unit. When UnitConfig is present on the object,
+        billing units are the converted quantities (e.g. GB instead of bytes).
     UpdatePriceVolume:
       type: object
       required:
@@ -13551,8 +13622,8 @@ components:
         The maximum quantity within a period determines the per-unit price for all units
         in that period.
 
-        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
-        expressed in converted billing units.
+        When UnitConfig is present on the containing resource, tier boundaries
+        (up_to_amount) are expressed in converted billing units.
     UpdateRateCardTaxConfig:
       type: object
       required:
