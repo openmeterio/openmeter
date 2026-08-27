@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type Service interface {
@@ -15,8 +17,9 @@ type Service interface {
 }
 
 type Config struct {
-	Collector Collector
-	Logger    *slog.Logger
+	Collector   Collector
+	Logger      *slog.Logger
+	MetricMeter metric.Meter
 }
 
 func (c Config) Validate() error {
@@ -30,13 +33,18 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("logger is required"))
 	}
 
+	if c.MetricMeter == nil {
+		errs = append(errs, errors.New("metric meter is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
 // service implements the ingestion service.
 type service struct {
-	collector Collector
-	logger    *slog.Logger
+	collector               Collector
+	logger                  *slog.Logger
+	requestEventCountMetric metric.Int64Histogram
 }
 
 func NewService(config Config) (Service, error) {
@@ -44,9 +52,19 @@ func NewService(config Config) (Service, error) {
 		return nil, err
 	}
 
+	requestEventCountMetric, err := config.MetricMeter.Int64Histogram(
+		"openmeter.ingest.request.events",
+		metric.WithDescription("Number of events in an ingest request"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request event count histogram: %w", err)
+	}
+
 	return &service{
-		collector: config.Collector,
-		logger:    config.Logger,
+		collector:               config.Collector,
+		logger:                  config.Logger,
+		requestEventCountMetric: requestEventCountMetric,
 	}, nil
 }
 
@@ -56,6 +74,10 @@ type IngestEventsRequest struct {
 }
 
 func (s service) IngestEvents(ctx context.Context, request IngestEventsRequest) (bool, error) {
+	s.requestEventCountMetric.Record(ctx, int64(len(request.Events)), metric.WithAttributes(
+		attribute.String("namespace", request.Namespace),
+	))
+
 	for _, ev := range request.Events {
 		err := s.processEvent(ctx, ev, request.Namespace)
 		if err != nil {

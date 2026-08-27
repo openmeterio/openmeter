@@ -14,6 +14,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
@@ -24,8 +25,9 @@ func TestIngestEvents(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
 	ingestSvc, err := ingest.NewService(ingest.Config{
-		Collector: collector,
-		Logger:    slog.Default(),
+		Collector:   collector,
+		Logger:      slog.Default(),
+		MetricMeter: metricnoop.NewMeterProvider().Meter("test"),
 	})
 	require.NoError(t, err)
 
@@ -73,8 +75,9 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
 	ingestSvc, err := ingest.NewService(ingest.Config{
-		Collector: collector,
-		Logger:    slog.Default(),
+		Collector:   collector,
+		Logger:      slog.Default(),
+		MetricMeter: metricnoop.NewMeterProvider().Meter("test"),
 	})
 	require.NoError(t, err)
 
@@ -98,8 +101,9 @@ func TestBatchHandler(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 
 	ingestSvc, err := ingest.NewService(ingest.Config{
-		Collector: collector,
-		Logger:    slog.Default(),
+		Collector:   collector,
+		Logger:      slog.Default(),
+		MetricMeter: metricnoop.NewMeterProvider().Meter("test"),
 	})
 	require.NoError(t, err)
 
