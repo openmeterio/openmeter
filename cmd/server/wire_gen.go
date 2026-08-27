@@ -634,7 +634,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ingestService, err := common.NewIngestService(ingestCollector, logger)
+	ingestService, err := common.NewIngestService(ingestCollector, logger, meter)
 	if err != nil {
 		cleanup8()
 		cleanup7()
