@@ -383,7 +383,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 			CalculatedAt: &calculatedAt,
 
-			Value:              convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
+			Value:              convert.ToPointer(snapshot.EntitlementValue(mappedValues)),
 			CurrentUsagePeriod: ent.CurrentUsagePeriod,
 		},
 	)

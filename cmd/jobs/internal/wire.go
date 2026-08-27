@@ -40,8 +40,8 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	App                           app.Service
-	AppStripe                     appstripe.Service
+	App       app.Service
+	AppStripe appstripe.Service
 	// Constructing the custom invoicing service registers its marketplace
 	// listing; without it the subscription sync reconciler cannot resolve
 	// a billing profile driven by the custom_invoicing app

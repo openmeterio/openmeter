@@ -109,14 +109,14 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockRows1.On("Scan", mock.Anything).Run(func(args mock.Arguments) {
 		dest := args.Get(0).([]interface{})
 		// Different scanRows implementations might use different indices, adjust accordingly
-		*(dest[0].(*time.Time)) = windowStart
-		*(dest[1].(*time.Time)) = windowEnd
+		*dest[0].(*time.Time) = windowStart
+		*dest[1].(*time.Time) = windowEnd
 		nullDecimal := dest[2].(*NullDecimal)
 		nullDecimal.Valid = true
 		nullDecimal.Decimal = decimal.NewFromFloat(value)
 		// If there are more fields used in scanRows, set them appropriately
 		if len(dest) > 3 {
-			*(dest[3].(*string)) = subject
+			*dest[3].(*string) = subject
 		}
 	}).Return(nil)
 	mockRows1.On("Next").Return(false)

@@ -47,7 +47,7 @@ func TestAmountDiscountsValidateRequiresStableReferenceAndReason(t *testing.T) {
 func TestAmountDiscountsClonePreservesNilAndEmptyCollections(t *testing.T) {
 	t.Parallel()
 
-	require.Nil(t, (AmountDiscounts(nil)).Clone())
+	require.Nil(t, AmountDiscounts(nil).Clone())
 
 	cloned := (AmountDiscounts{}).Clone()
 	require.NotNil(t, cloned)

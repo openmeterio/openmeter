@@ -28,15 +28,15 @@ import (
 type Application struct {
 	common.GlobalInitializer
 
-	FlushHandler     flushhandler.FlushEventHandler
-	Logger           *slog.Logger
-	Metadata         common.Metadata
-	Meter            metric.Meter
-	Streaming        streaming.Connector
-	TelemetryServer  common.TelemetryServer
-	TopicProvisioner pkgkafka.TopicProvisioner
-	TopicResolver    *topicresolver.NamespacedTopicResolver
-	Tracer           trace.Tracer
+	FlushHandler            flushhandler.FlushEventHandler
+	Logger                  *slog.Logger
+	Metadata                common.Metadata
+	Meter                   metric.Meter
+	Streaming               streaming.Connector
+	TelemetryServer         common.TelemetryServer
+	TopicProvisioner        pkgkafka.TopicProvisioner
+	TopicResolver           *topicresolver.NamespacedTopicResolver
+	Tracer                  trace.Tracer
 	MeterService            meter.Service
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
 	Sink                    *sink.Sink
