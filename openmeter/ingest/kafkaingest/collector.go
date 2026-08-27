@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -40,7 +39,7 @@ func FromIngestedAt(s string) (time.Time, error) {
 type Collector struct {
 	Producer         *kafka.Producer
 	Serializer       serializer.Serializer
-	TopicResolver    topicresolver.Resolver
+	Topic            string
 	TopicProvisioner pkgkafka.TopicProvisioner
 	TopicPartitions  int
 
@@ -51,7 +50,7 @@ type Collector struct {
 func NewCollector(
 	producer *kafka.Producer,
 	serializer serializer.Serializer,
-	resolver topicresolver.Resolver,
+	topic string,
 	provisioner pkgkafka.TopicProvisioner,
 	partitions int,
 	logger *slog.Logger,
@@ -63,8 +62,8 @@ func NewCollector(
 	if serializer == nil {
 		return nil, fmt.Errorf("serializer is required")
 	}
-	if resolver == nil {
-		return nil, fmt.Errorf("topic name resolver is required")
+	if topic == "" {
+		return nil, fmt.Errorf("topic is required")
 	}
 
 	if provisioner == nil {
@@ -80,7 +79,7 @@ func NewCollector(
 	return &Collector{
 		Producer:         producer,
 		Serializer:       serializer,
-		TopicResolver:    resolver,
+		Topic:            topic,
 		TopicProvisioner: provisioner,
 		TopicPartitions:  partitions,
 		Logger:           logger,
@@ -105,12 +104,7 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		span.End()
 	}()
 
-	span.AddEvent("resolved namespace to kafka topic")
-	topicName, err := s.TopicResolver.Resolve(ctx, namespace)
-	if err != nil {
-		err = fmt.Errorf("failed to resolve namespace to topic name: %w", err)
-		return err
-	}
+	topicName := s.Topic
 	span.SetAttributes(semconv.MessagingDestinationName(topicName))
 
 	// Make sure topic is provisioned
