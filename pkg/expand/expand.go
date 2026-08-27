@@ -45,7 +45,7 @@ func (e Expand[T]) With(value ...T) Expand[T] {
 
 	for _, v := range value {
 		if slices.Contains(cloned, v) {
-			return cloned
+			continue
 		}
 
 		cloned = append(cloned, v)
