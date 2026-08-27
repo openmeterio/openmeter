@@ -42,30 +42,24 @@ func TestIngestEventsRecordsRequestEventCount(t *testing.T) {
 	var metrics metricdata.ResourceMetrics
 	require.NoError(t, reader.Collect(t.Context(), &metrics))
 
-	histogram := findInt64Histogram(t, metrics, "openmeter.ingest.request.events")
+	var histogram metricdata.Histogram[int64]
+	found := false
+	for _, scopeMetrics := range metrics.ScopeMetrics {
+		for _, metric := range scopeMetrics.Metrics {
+			if metric.Name == "openmeter.ingest.request.events" {
+				var ok bool
+				histogram, ok = metric.Data.(metricdata.Histogram[int64])
+				require.True(t, ok)
+				found = true
+			}
+		}
+	}
+	require.True(t, found)
+
 	require.Len(t, histogram.DataPoints, 1)
 	require.Equal(t, uint64(2), histogram.DataPoints[0].Count)
 	require.Equal(t, int64(4), histogram.DataPoints[0].Sum)
 	namespace, ok := histogram.DataPoints[0].Attributes.Value(attribute.Key("namespace"))
 	require.True(t, ok)
 	require.Equal(t, "default", namespace.AsString())
-}
-
-func findInt64Histogram(t *testing.T, metrics metricdata.ResourceMetrics, name string) metricdata.Histogram[int64] {
-	t.Helper()
-
-	for _, scopeMetrics := range metrics.ScopeMetrics {
-		for _, metric := range scopeMetrics.Metrics {
-			if metric.Name == name {
-				histogram, ok := metric.Data.(metricdata.Histogram[int64])
-				require.True(t, ok)
-
-				return histogram
-			}
-		}
-	}
-
-	require.FailNow(t, "metric not found", name)
-
-	return metricdata.Histogram[int64]{}
 }
