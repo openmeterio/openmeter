@@ -141,8 +141,14 @@ func (i OnCustomCurrencyOverageAccruedInput) Validate() error {
 
 type OnCustomCurrencyOverageAccruedResult struct {
 	TransactionGroup ledgertransaction.GroupReference `json:"transactionGroup"`
-	TotalFiatAmount  alpacadecimal.Decimal            `json:"totalFiatAmount"`
+	// TotalFiatAmount is the authoritative rounded gross amount persisted for
+	// invoice projection and later settlement-credit allocation.
+	TotalFiatAmount alpacadecimal.Decimal `json:"totalFiatAmount"`
 }
+
+// OnCustomCurrencyOverageAccruedCorrectionInput identifies the prepared gross
+// overage that must be corrected when invoice synchronization cannot complete.
+type OnCustomCurrencyOverageAccruedCorrectionInput = OnCustomCurrencyOverageAccruedInput
 
 func (r OnCustomCurrencyOverageAccruedResult) Validate() error {
 	var errs []error
@@ -339,14 +345,21 @@ type Handler interface {
 	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
 
-	// OnCustomCurrencyOverageAccrued is called when uncovered custom-currency flat-fee value is accrued in fiat.
-	// This must be modeled as a credit purchase flow from the ledger point of view.
+	// OnCustomCurrencyOverageAccrued prepares the gross custom-currency overage
+	// during invoice line finalization, before settlement-fiat credit allocation.
 	OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error)
+
+	// OnCustomCurrencyOverageAccruedCorrection reverses the prepared gross
+	// overage before its realization run is deleted. The implementation must
+	// participate in the caller's transaction; billing can invoke it again only
+	// after that transaction rolls back.
+	OnCustomCurrencyOverageAccruedCorrection(ctx context.Context, input OnCustomCurrencyOverageAccruedCorrectionInput) error
 
 	// OnCorrectCreditAllocations is called when a credit allocation needs to be corrected.
 	OnCorrectCreditAllocations(ctx context.Context, input CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
 
-	// OnAllocateFiatOverageCredits allocates settlement-fiat credits against a custom-currency overage.
+	// OnAllocateFiatOverageCredits allocates settlement-fiat credits against an
+	// already-prepared custom-currency overage.
 	OnAllocateFiatOverageCredits(ctx context.Context, input AllocateFiatOverageCreditsInput) (creditrealization.CreateAllocationInputs, error)
 
 	// OnCorrectFiatOverageCreditAllocations corrects settlement-fiat allocations for a custom-currency overage.

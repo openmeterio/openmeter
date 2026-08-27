@@ -8,6 +8,7 @@ var (
 	TriggerNext                   Trigger = "next"
 	TriggerInvoiceCreated         Trigger = "invoice_created"
 	TriggerCollectionCompleted    Trigger = "collection_completed"
+	TriggerInvoiceFinalizing      Trigger = "invoice_finalizing"
 	TriggerInvoiceIssued          Trigger = "invoice_issued"
 	TriggerLineManualEdit         Trigger = "line_manual_edit"
 	TriggerSetOverride            Trigger = "set_override"

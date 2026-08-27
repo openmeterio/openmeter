@@ -287,7 +287,8 @@ type LineEngine interface {
 	// Implementations may persist retry-safe engine-owned effects and must return fully calculated
 	// lines with exactly the same IDs as the input.
 	OnInvoiceFinalizing(ctx context.Context, input OnInvoiceFinalizingInput) (StandardLines, error)
-	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
+	// OnInvoiceIssued is invoked after external invoice issuance succeeds, while
+	// billing books charge effects, and before entering the issued state.
 	OnInvoiceIssued(ctx context.Context, input OnInvoiceIssuedInput) error
 	// OnPaymentAuthorized is invoked when a standard invoice reaches the payment authorized state.
 	OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) error

@@ -70,6 +70,8 @@ const (
 	FieldNoFiatTransactionRequired = "no_fiat_transaction_required"
 	// FieldImmutable holds the string denoting the immutable field in the database.
 	FieldImmutable = "immutable"
+	// FieldFiatOverageCreditAllocationCompleted holds the string denoting the fiat_overage_credit_allocation_completed field in the database.
+	FieldFiatOverageCreditAllocationCompleted = "fiat_overage_credit_allocation_completed"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
@@ -206,6 +208,7 @@ var Columns = []string{
 	FieldMeteredQuantity,
 	FieldNoFiatTransactionRequired,
 	FieldImmutable,
+	FieldFiatOverageCreditAllocationCompleted,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -239,6 +242,8 @@ var (
 	InvoiceIDValidator func(string) error
 	// DefaultImmutable holds the default value on creation for the "immutable" field.
 	DefaultImmutable bool
+	// DefaultFiatOverageCreditAllocationCompleted holds the default value on creation for the "fiat_overage_credit_allocation_completed" field.
+	DefaultFiatOverageCreditAllocationCompleted bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -404,6 +409,11 @@ func ByNoFiatTransactionRequired(opts ...sql.OrderTermOption) OrderOption {
 // ByImmutable orders the results by the immutable field.
 func ByImmutable(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldImmutable, opts...).ToFunc()
+}
+
+// ByFiatOverageCreditAllocationCompleted orders the results by the fiat_overage_credit_allocation_completed field.
+func ByFiatOverageCreditAllocationCompleted(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatOverageCreditAllocationCompleted, opts...).ToFunc()
 }
 
 // ByUsageBasedField orders the results by usage_based field.

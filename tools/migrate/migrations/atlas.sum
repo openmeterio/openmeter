@@ -1,4 +1,4 @@
-h1:Seuv0C/YTYzCTePS9krruO9WAuqxJ2e4CcH8ZVEDaDY=
+h1:NJkByX7l8bxNbBh1hdcAAvD27fowunB8rdRv/wsInQs=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -274,3 +274,4 @@ h1:Seuv0C/YTYzCTePS9krruO9WAuqxJ2e4CcH8ZVEDaDY=
 20260826113408_backfill_usage_based_run_immutable.up.sql h1:D0b69QdV15gKaqoQ5PEKvw60rtNWEHMk1Iv/rign4kI=
 20260826120555_backfill_usage_based_run_prior_lineage.up.sql h1:6WJ8jhOtRTCNDa01cCTuyiq777slyDS+PgydKK40dfQ=
 20260826131456_usage_based_run_schema_level_2_only.up.sql h1:t6pW+zlYNcF/nR4hdXHoLsEKxyDledrehUaVxXNxshM=
+20260827103408_add_charge_overage_preparation_state.up.sql h1:BmCUpvxwwWOPo4OhPJoB32kELVamexLpaOlGQqbvRPc=

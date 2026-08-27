@@ -242,9 +242,18 @@ one.
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.
 - Settlement-fiat overage allocation for a custom-currency usage-based or
-  flat-fee run is a one-shot invoice-finalization effect. It requires an empty
-  settlement-fiat realization history; later cleanup corrects the persisted
-  facts instead of re-entering allocation.
+  flat-fee run is a one-shot invoice-finalization effect. A persisted
+  completion marker distinguishes pending allocation from a successful
+  zero-allocation result, so retries do not re-enter completed allocation.
+- Invoice line finalization makes flat-fee and usage-based lines authoritative
+  before billing synchronizes the external invoice. Custom-currency runs also
+  prepare their reversible gross overage and allocate settlement-fiat credits
+  at this boundary because those effects determine the final line. Any line
+  change is emitted as an explicit invoice update patch; no patch means the
+  existing line remains authoritative. Regular-fiat invoice usage is accrued
+  only after external issuance succeeds. The invoice-issued callback books that
+  non-reversible effect and marks the run immutable; custom-currency runs use it
+  to validate and seal their already-prepared accounting history.
 - Amount discounts on persisted detailed lines are signed realization facts.
   Their rounded amounts and rounding adjustments reconcile to the line's
   `DiscountsTotal`; correction lines can therefore carry negative discount
@@ -287,9 +296,22 @@ Within the charges domain, custom-currency `credit_then_invoice`:
 
 Charge-currency and settlement-fiat allocations are separate realization and
 lineage domains. Rating and mutable rerating reconcile charge-currency facts;
-invoice finalization allocates settlement-fiat credits once against the final
-converted overage. Cleanup reverses persisted settlement-fiat allocations
-before the charge-currency allocations from which the overage was derived.
+invoice finalization first persists the gross converted overage, then allocates
+settlement-fiat credits once against it. This preparation remains reversible
+until the invoice-issued callback marks its run immutable after successful
+external synchronization. Deleting a charge corrects settlement-fiat
+allocations, the gross overage, and charge-currency allocations while the run
+is still reversible. Successful correction deletes the transient accrued-usage
+preparation and resets its allocation-completion marker, leaving the realization
+run clean for rerating or preparation retry. The immutable ledger retains the
+original transaction and its correction; an immutable issued run remains durable
+billing history.
+A line-finalization failure remains retry-only. If synchronization with the
+invoicing app fails after preparation, invoice deletion enters the same charge
+deletion path. Cleanup and its ledger effects share the billing transaction.
+Failed cleanup rolls back and leaves preparation attached for retry from
+`delete.failed`. Committed cleanup removes the preparation and sets run
+`DeletedAt`, so later invoice-delete sync retries do not dispatch it again.
 
 The converted post-allocation overage and the required fiat transaction are
 separate settlement facts. A zero converted overage controls line omission and
