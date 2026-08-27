@@ -759,11 +759,11 @@ func (e *LineEngine) handleManualDeleteInvoicePatches(ctx context.Context, invoi
 				return fmt.Errorf("line[%s]: getting standard line for manual delete cleanup: %w", line.GetID(), err)
 			}
 
-			if err := e.cleanupDeletedStandardLines(ctx, billing.StandardLineEventInput{
+			if err := e.validateDeletedStandardLines(ctx, billing.StandardLineEventInput{
 				Invoice: standardInvoice,
 				Lines:   billing.StandardLines{&standardLine},
 			}); err != nil {
-				return fmt.Errorf("line[%s]: cleaning up manual delete line patch: %w", line.GetID(), err)
+				return fmt.Errorf("line[%s]: validating manual delete line patch result: %w", line.GetID(), err)
 			}
 		default:
 			return fmt.Errorf("line[%s]: unexpected manual delete invoice patch %s", line.GetID(), patch.Op())
@@ -778,10 +778,13 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	return e.cleanupDeletedStandardLines(ctx, input)
+	return e.validateDeletedStandardLines(ctx, input)
 }
 
-func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input billing.StandardLineEventInput) error {
+// validateDeletedStandardLines confirms that charge lifecycle handling ran
+// before billing persisted a standard-line deletion. It never changes charge
+// accounting or realization state.
+func (e *LineEngine) validateDeletedStandardLines(ctx context.Context, input billing.StandardLineEventInput) error {
 	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
 		meta.ExpandRealizations,
 	})
@@ -800,30 +803,20 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 			return err
 		}
 
-		if run.DeletedAt != nil {
-			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is already deleted", stdLine.ID, run.ID.ID)
-		}
-
 		if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
 			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
 		}
 
-		// Issued runs remain durable billing history when their presentation
-		// line is deleted; only reversible runs enter correction cleanup.
-		if run.Immutable {
+		// A deleted run proves that its state machine completed reversible
+		// cleanup before handing the invoice effect to billing.
+		if run.DeletedAt != nil {
 			continue
 		}
 
-		if run.AccruedUsage != nil {
-			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] has invoice accrued allocation", stdLine.ID, run.ID.ID)
-		}
-
-		if run.Payment != nil {
-			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] has payment allocation", stdLine.ID, run.ID.ID)
-		}
-
-		if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.ID.ID == run.ID.ID {
-			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is still current for charge[%s]", stdLine.ID, run.ID.ID, charge.ID)
+		// Immutable runs retain their accounting when billing can only record
+		// unsupported invoice drift.
+		if run.Immutable {
+			continue
 		}
 
 		// Collection deletes only the presentation line for a zero-fiat-amount
@@ -837,24 +830,7 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 			continue
 		}
 
-		if err := e.service.realizations.CorrectAllCreditRealizations(ctx, flatfeerealizations.CreditReconciliationHandlerInput{
-			Charge:     charge,
-			Run:        run,
-			AllocateAt: flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod),
-		}); err != nil {
-			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
-		}
-
-		if err := e.service.adapter.UpsertDetailedLines(ctx, run.ID, nil); err != nil {
-			return fmt.Errorf("deleting detailed lines for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
-		}
-
-		if _, err := e.service.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-			ID:        run.ID,
-			DeletedAt: mo.Some(lo.ToPtr(clock.Now())),
-		}); err != nil {
-			return fmt.Errorf("marking realization run[%s] deleted for flat fee standard line[%s]: %w", run.ID.ID, stdLine.ID, err)
-		}
+		return fmt.Errorf("flat fee standard line[%s] cannot be deleted because mutable realization run[%s] was not canceled by the charge state machine", stdLine.ID, run.ID.ID)
 	}
 
 	return nil
@@ -890,8 +866,11 @@ func (e *LineEngine) OnUnsupportedCreditNote(ctx context.Context, input billing.
 			return fmt.Errorf("flat fee standard line[%s] cannot be marked unsupported credit note because realization run[%s] is not associated with invoice[%s]", stdLine.ID, run.ID.ID, input.Invoice.ID)
 		}
 
+		// Charge deletion can reconcile the run before its patch reaches an
+		// immutable invoice. Billing still records the validation issue, but the
+		// completed charge cleanup must remain authoritative.
 		if run.DeletedAt != nil {
-			return fmt.Errorf("flat fee standard line[%s] cannot be marked unsupported credit note because realization run[%s] is already deleted", stdLine.ID, run.ID.ID)
+			continue
 		}
 
 		if run.Type == flatfee.RealizationRunTypeInvalidDueToUnsupportedCreditNote {
