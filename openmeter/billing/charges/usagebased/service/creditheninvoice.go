@@ -173,6 +173,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		).
 		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(triggerSystemInvoiceLineDeleted, statelessx.WithParameters(s.SystemInvoiceLineDeleted)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		// Extend is rejected while invoice callbacks own this state.
