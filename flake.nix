@@ -26,6 +26,12 @@
 
           overlays = [
             inputs.llm-agents.overlays.shared-nixpkgs
+            # LOCAL-ONLY (do not commit): nodejs-slim 26.7.0 has no darwin binary cache and its
+            # test suite fails two network tests (inspector-ip-detection, dgram-udp6-link-local)
+            # on this machine. Skip the checks so the ~40min compile does not get thrown away.
+            (final: prev: {
+              nodejs-slim_26 = prev.nodejs-slim_26.overrideAttrs (_: { doCheck = false; });
+            })
           ];
         };
 
