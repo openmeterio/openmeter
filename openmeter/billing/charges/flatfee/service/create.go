@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -22,6 +23,11 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flatfee.ChargeWithGatheringLine, error) {
+	input.Intents = slices.Clone(input.Intents)
+	for idx := range input.Intents {
+		input.Intents[idx].PercentageDiscounts = input.Intents[idx].PercentageDiscounts.UpsertCorrelationID()
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}

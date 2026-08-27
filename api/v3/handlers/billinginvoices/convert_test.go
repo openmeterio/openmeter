@@ -117,6 +117,26 @@ func TestMapRateCardOmitsUnitConfigWhenAbsent(t *testing.T) {
 	require.Nil(t, rc.UnitConfig)
 }
 
+func TestMergeStandardLineFromAPIPreservesDiscountCorrelationID(t *testing.T) {
+	period := mergeTestPeriod()
+	line := standardLineForMergeTest(t, "line-id", period)
+	line.RateCardDiscounts = billing.Discounts{
+		Percentage: &billing.PercentageDiscount{
+			PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(10)},
+			CorrelationID:      "existing-percentage",
+		},
+	}
+
+	apiLine, err := apiLineForMergeTest(t, period, lo.ToPtr(line.ID)).AsUpdateInvoiceStandardLine()
+	require.NoError(t, err)
+	apiLine.RateCard.Discounts = &api.UpdateDiscounts{Percentage: lo.ToPtr(float32(20))}
+
+	mergedLine, err := mergeStandardLineFromAPI(line, apiLine)
+	require.NoError(t, err)
+	require.Equal(t, models.NewPercentage(20), mergedLine.RateCardDiscounts.Percentage.Percentage)
+	require.Equal(t, "existing-percentage", mergedLine.RateCardDiscounts.Percentage.CorrelationID)
+}
+
 func TestMapUsageQuantityDetailSurfacesStoredQuantities(t *testing.T) {
 	period := mergeTestPeriod()
 
