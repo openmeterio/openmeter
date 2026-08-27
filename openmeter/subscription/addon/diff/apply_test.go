@@ -299,7 +299,7 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should add multiple instances of new item to the subscription", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
-			exampleAddonRateCard3, ok := (subscriptiontestutils.ExampleAddonRateCard3.Clone()).(*productcatalog.FlatFeeRateCard)
+			exampleAddonRateCard3, ok := subscriptiontestutils.ExampleAddonRateCard3.Clone().(*productcatalog.FlatFeeRateCard)
 			require.True(t, ok, "expected FlatFeeRateCard, got %T", exampleAddonRateCard3)
 
 			p, a := subscriptiontestutils.CreatePlanWithAddon(

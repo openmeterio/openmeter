@@ -62,19 +62,23 @@ func NewIngestCollector(
 			return nil, nil, fmt.Errorf("failed to initialize deduplicator: %w", err)
 		}
 
-		return ingest.DeduplicatingCollector{
-				Collector:    collector,
-				Deduplicator: deduplicator,
-			}, func() {
-				collector.Close()
+		deduplicatingCollector := ingest.DeduplicatingCollector{
+			Collector:    collector,
+			Deduplicator: deduplicator,
+		}
 
-				logger.Info("closing deduplicator")
+		closeCollector := func() {
+			collector.Close()
 
-				err := deduplicator.Close()
-				if err != nil {
-					logger.Error("failed to close deduplicator", "error", err)
-				}
-			}, nil
+			logger.Info("closing deduplicator")
+
+			err := deduplicator.Close()
+			if err != nil {
+				logger.Error("failed to close deduplicator", "error", err)
+			}
+		}
+
+		return deduplicatingCollector, closeCollector, nil
 	}
 
 	// Note: closing function is called by dedupe as well

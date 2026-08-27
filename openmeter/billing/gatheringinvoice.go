@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
@@ -448,7 +449,7 @@ type GatheringLineBase struct {
 	// GetUnitConfig) applies it. The charges path snapshots its own config directly on
 	// the standard line instead, so this field is only populated on legacy-path lines.
 	// Nil for lines without a unit_config rate card.
-	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
+	UnitConfig *unitconfig.UnitConfig `json:"unitConfig,omitempty"`
 
 	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`

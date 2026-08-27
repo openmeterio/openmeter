@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	_ httptransport.ErrorHandler = (Handler)(nil)
+	_ httptransport.ErrorHandler = Handler(nil)
 	_ Handler                    = (*SlogHandler)(nil)
 	_ Handler                    = (*NopHandler)(nil)
 )

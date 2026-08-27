@@ -690,7 +690,7 @@ const (
 	DebugContextAll DebugContext = "all"
 )
 
-var _ fmt.Stringer = (DebugContexts)(nil)
+var _ fmt.Stringer = DebugContexts(nil)
 
 type DebugContexts []DebugContext
 
@@ -886,7 +886,7 @@ const (
 	PartitionAssignmentStrategyCooperativeSticky PartitionAssignmentStrategy = "cooperative-sticky"
 )
 
-var _ fmt.Stringer = (PartitionAssignmentStrategies)(nil)
+var _ fmt.Stringer = PartitionAssignmentStrategies(nil)
 
 // PartitionAssignmentStrategies one or more partition assignment strategies.
 // If there is more than one eligible strategy, preference is determined by the configured order of strategies.

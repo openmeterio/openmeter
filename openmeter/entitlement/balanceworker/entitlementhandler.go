@@ -300,7 +300,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 	return w.snapshotToEvent(ctx, snapshotToEventInput{
 		Entitlement:       entitlementEntity,
 		Feature:           feat,
-		Value:             convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
+		Value:             convert.ToPointer(snapshot.EntitlementValue(mappedValues)),
 		CalculatedAt:      calculatedAt,
 		Source:            opts.source,
 		OverrideOperation: opts.sourceOperation,

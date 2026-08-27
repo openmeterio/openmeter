@@ -25,7 +25,7 @@ func TestGatheringInvoiceLineInvoiceAtAccessor(t *testing.T) {
 	wrapper.SetInvoiceAt(target)
 	require.Equal(t, target, wrapper.GetInvoiceAt())
 
-	accessor, ok := (GenericInvoiceLine)(wrapper).(InvoiceAtAccessor)
+	accessor, ok := GenericInvoiceLine(wrapper).(InvoiceAtAccessor)
 	if !ok {
 		t.Fatalf("wrapper is not an InvoiceAtAccessor")
 	}

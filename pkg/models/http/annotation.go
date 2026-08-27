@@ -8,7 +8,7 @@ import (
 )
 
 func FromAnnotations(annotations models.Annotations) *api.Annotations {
-	return lo.ToPtr((api.Annotations)(annotations))
+	return lo.ToPtr(api.Annotations(annotations))
 }
 
 func AsAnnotations(annotations *api.Annotations) models.Annotations {
@@ -16,5 +16,5 @@ func AsAnnotations(annotations *api.Annotations) models.Annotations {
 		return nil
 	}
 
-	return (models.Annotations)(*annotations)
+	return models.Annotations(*annotations)
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func FromMetadata(metadata models.Metadata) *api.Metadata {
-	return lo.ToPtr((api.Metadata)(metadata))
+	return lo.ToPtr(api.Metadata(metadata))
 }
 
 func AsMetadata(metadata *api.Metadata) models.Metadata {
@@ -16,5 +16,5 @@ func AsMetadata(metadata *api.Metadata) models.Metadata {
 		return nil
 	}
 
-	return (models.Metadata)(*metadata)
+	return models.Metadata(*metadata)
 }

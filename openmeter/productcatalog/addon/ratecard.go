@@ -67,7 +67,7 @@ func (r *RateCard) ManagedFields() RateCardManagedFields {
 }
 
 func (r *RateCard) Equal(v productcatalog.RateCard) bool {
-	if managed, ok := (v).(ManagedRateCard); ok {
+	if managed, ok := v.(ManagedRateCard); ok {
 		if !r.RateCardManagedFields.Equal(managed.ManagedFields()) {
 			return false
 		}
