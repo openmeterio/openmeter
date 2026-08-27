@@ -621,7 +621,7 @@ type ChargeFlatFee struct {
 	// The amount after proration of the charge.
 	AmountAfterProration CurrencyAmount `json:"amount_after_proration"`
 	// The price of the charge.
-	Price Price `json:"price"`
+	Price PriceFlat `json:"price"`
 	// Current intent from the system lifecycle controller for a charge that has an
 	// active manual override. The top-level charge fields remain the effective
 	// customer-facing intent.
@@ -702,7 +702,7 @@ func (value ChargeStatus) Valid() bool {
 	}
 }
 
-// The totals of a change.
+// The totals of a charge.
 //
 // RealTime is only expanded when the `real_time_usage` expand is used.
 type ChargeTotals struct {
@@ -794,7 +794,18 @@ type ChargeUsageBased struct {
 	// Aggregated booked and realtime totals for the charge.
 	Totals ChargeTotals `json:"totals"`
 	// The price of the charge.
-	Price Price `json:"price"`
+	Price PriceUsageBased `json:"price"`
+	// Spend commitments for the charge.
+	Commitments *SpendCommitments `json:"commitments,omitempty"`
+	// Unit conversion configuration for the charge.
+	//
+	// Synthesized on read for charges created from v1 dynamic or package prices:
+	// dynamic prices map to a unit price with a multiply unit config, and package
+	// prices map to a unit price with a divide unit config.
+	//
+	// Accepted on create only when the UnitConfig feature is enabled on the
+	// deployment; otherwise rejected.
+	UnitConfig *UnitConfig `json:"unit_config,omitempty"`
 	// Current intent from the system lifecycle controller for a charge that has an
 	// active manual override. The top-level charge fields remain the effective
 	// customer-facing intent.
@@ -824,7 +835,18 @@ type ChargeUsageBasedSystemIntent struct {
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The price of the charge.
-	Price Price `json:"price"`
+	Price PriceUsageBased `json:"price"`
+	// Spend commitments for the charge.
+	Commitments *SpendCommitments `json:"commitments,omitempty"`
+	// Unit conversion configuration for the charge.
+	//
+	// Synthesized on read for charges created from v1 dynamic or package prices:
+	// dynamic prices map to a unit price with a multiply unit config, and package
+	// prices map to a unit price with a divide unit config.
+	//
+	// Accepted on create only when the UnitConfig feature is enabled on the
+	// deployment; otherwise rejected.
+	UnitConfig *UnitConfig `json:"unit_config,omitempty"`
 	// The timestamp when the system lifecycle controller intent was deleted. The
 	// effective charge can remain visible while a manual override is active.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
@@ -1002,7 +1024,18 @@ type CreateChargeUsageBasedRequest struct {
 	// The feature ID associated with the charge.
 	FeatureID string `json:"feature_id"`
 	// The price of the charge.
-	Price Price `json:"price"`
+	Price PriceUsageBased `json:"price"`
+	// Spend commitments for the charge.
+	Commitments *SpendCommitments `json:"commitments,omitempty"`
+	// Unit conversion configuration for the charge.
+	//
+	// Synthesized on read for charges created from v1 dynamic or package prices:
+	// dynamic prices map to a unit price with a multiply unit config, and package
+	// prices map to a unit price with a divide unit config.
+	//
+	// Accepted on create only when the UnitConfig feature is enabled on the
+	// deployment; otherwise rejected.
+	UnitConfig *UnitConfig `json:"unit_config,omitempty"`
 	// The full, unprorated service period of the charge.
 	FullServicePeriod *ClosedPeriod `json:"full_service_period,omitempty"`
 	// The billing period the charge belongs to.
@@ -1501,6 +1534,114 @@ type CustomerStripeCreateCheckoutSessionRequest struct {
 type CustomerStripeCreateCustomerPortalSessionRequest struct {
 	// Options for configuring the Stripe Customer Portal Session.
 	StripeOptions AppStripeCreateCustomerPortalSessionOptions `json:"stripe_options"`
+}
+
+// Usage-based price types for a rate card or charge.
+//
+// When UnitConfig is present on the object, these price types operate on billing
+// units (i.e. post-conversion quantities), not raw metered units.
+//
+// PriceUsageBased is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the PriceUsageBasedFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type PriceUsageBased struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *PriceUsageBased) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u PriceUsageBased) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u PriceUsageBased) AsPriceUnit() (*PriceUnit, error) {
+	if u.Type != "unit" {
+		return nil, fmt.Errorf("PriceUsageBased: expected type %q, got %q", "unit", u.Type)
+	}
+	var value PriceUnit
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func PriceUsageBasedFromPriceUnit(value PriceUnit) (PriceUsageBased, error) {
+	value.Type = "unit"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return PriceUsageBased{}, err
+	}
+	var result PriceUsageBased
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return PriceUsageBased{}, err
+	}
+	return result, nil
+}
+
+func (u PriceUsageBased) AsPriceGraduated() (*PriceGraduated, error) {
+	if u.Type != "graduated" {
+		return nil, fmt.Errorf("PriceUsageBased: expected type %q, got %q", "graduated", u.Type)
+	}
+	var value PriceGraduated
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func PriceUsageBasedFromPriceGraduated(value PriceGraduated) (PriceUsageBased, error) {
+	value.Type = "graduated"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return PriceUsageBased{}, err
+	}
+	var result PriceUsageBased
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return PriceUsageBased{}, err
+	}
+	return result, nil
+}
+
+func (u PriceUsageBased) AsPriceVolume() (*PriceVolume, error) {
+	if u.Type != "volume" {
+		return nil, fmt.Errorf("PriceUsageBased: expected type %q, got %q", "volume", u.Type)
+	}
+	var value PriceVolume
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func PriceUsageBasedFromPriceVolume(value PriceVolume) (PriceUsageBased, error) {
+	value.Type = "volume"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return PriceUsageBased{}, err
+	}
+	var result PriceUsageBased
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return PriceUsageBased{}, err
+	}
+	return result, nil
 }
 
 // The proration configuration of the rate card.

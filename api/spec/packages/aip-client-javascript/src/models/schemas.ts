@@ -668,23 +668,6 @@ export const rateCardProrationMode = z
     'The proration mode of the rate card. Values: - `no_proration`: No proration. - `prorate_prices`: Prorate the price based on the time remaining in the billing period.',
   )
 
-export const priceFree = z
-  .object({
-    type: z.literal('free').describe('The type of the price.'),
-  })
-  .describe('Free price.')
-
-export const subscriptionCostBasisMode = z
-  .enum(['dynamic', 'pinned'])
-
-  .describe(
-    'Controls how custom-currency cost bases are selected for the subscription.',
-  )
-
-export const subscriptionStatus = z
-  .enum(['active', 'inactive', 'canceled', 'scheduled'])
-  .describe('Subscription status.')
-
 export const unitConfigOperation = z
   .enum(['divide', 'multiply'])
 
@@ -698,6 +681,23 @@ export const unitConfigRoundingMode = z
   .describe(
     'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
   )
+
+export const subscriptionCostBasisMode = z
+  .enum(['dynamic', 'pinned'])
+
+  .describe(
+    'Controls how custom-currency cost bases are selected for the subscription.',
+  )
+
+export const subscriptionStatus = z
+  .enum(['active', 'inactive', 'canceled', 'scheduled'])
+  .describe('Subscription status.')
+
+export const priceFree = z
+  .object({
+    type: z.literal('free').describe('The type of the price.'),
+  })
+  .describe('Free price.')
 
 export const rateCardStaticEntitlement = z
   .object({
@@ -1586,16 +1586,6 @@ export const priceFlat = z
   })
   .describe('Flat price.')
 
-export const priceUnit = z
-  .object({
-    type: z.literal('unit').describe('The type of the price.'),
-    amount: numeric,
-  })
-
-  .describe(
-    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
-  )
-
 export const rateCardDiscounts = z
   .object({
     percentage: z
@@ -1624,6 +1614,16 @@ export const totals = z
     'Totals contains the summaries of all calculations for a billing resource.',
   )
 
+export const priceUnit = z
+  .object({
+    type: z.literal('unit').describe('The type of the price.'),
+    amount: numeric,
+  })
+
+  .describe(
+    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the object, billing units are the converted quantities (e.g. GB instead of bytes).',
+  )
+
 export const spendCommitments = z
   .object({
     minimumAmount: numeric.optional(),
@@ -1631,7 +1631,7 @@ export const spendCommitments = z
   })
 
   .describe(
-    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
+    'Spend commitments for a usage-based price. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
   )
 
 export const invoiceLineCreditsApplied = z
@@ -1676,7 +1676,7 @@ export const updatePriceUnit = z
   })
 
   .describe(
-    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
+    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the object, billing units are the converted quantities (e.g. GB instead of bytes).',
   )
 
 export const updateDiscounts = z
@@ -2889,6 +2889,33 @@ export const subscriptionProRatingConfig = z
   })
   .describe('The pro-rating configuration of a subscription.')
 
+export const unitConfig = z
+  .object({
+    operation: unitConfigOperation,
+    conversionFactor: numeric,
+    rounding: unitConfigRoundingMode.optional().default('none'),
+    precision: z
+      .number()
+      .int()
+      .optional()
+      .default(0)
+
+      .describe(
+        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
+      ),
+    displayUnit: z
+      .string()
+      .optional()
+
+      .describe(
+        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
+      ),
+  })
+
+  .describe(
+    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Stored with a resource\'s rating configuration so the same metered feature can be billed in different units across plans and charges. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
+  )
+
 export const subscriptionCreate = z
   .object({
     labels: labels.optional(),
@@ -2917,33 +2944,6 @@ export const subscriptionCreate = z
     costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
   })
   .describe('Subscription create request.')
-
-export const unitConfig = z
-  .object({
-    operation: unitConfigOperation,
-    conversionFactor: numeric,
-    rounding: unitConfigRoundingMode.optional().default('none'),
-    precision: z
-      .number()
-      .int()
-      .optional()
-      .default(0)
-
-      .describe(
-        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
-      ),
-    displayUnit: z
-      .string()
-      .optional()
-
-      .describe(
-        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
-      ),
-  })
-
-  .describe(
-    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
-  )
 
 export const subscriptionEditTiming = z
   .union([subscriptionEditTimingEnum, dateTime])
@@ -3348,6 +3348,16 @@ export const creditTransaction = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
+export const chargeTotals = z
+  .object({
+    booked: totals,
+    realtime: totals.optional(),
+  })
+
+  .describe(
+    'The totals of a charge. RealTime is only expanded when the `real_time_usage` expand is used.',
+  )
+
 export const priceTier = z
   .object({
     upToAmount: numeric.optional(),
@@ -3356,17 +3366,7 @@ export const priceTier = z
   })
 
   .describe(
-    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
-  )
-
-export const chargeTotals = z
-  .object({
-    booked: totals,
-    realtime: totals.optional(),
-  })
-
-  .describe(
-    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
+    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the containing resource, up_to_amount is expressed in converted billing units.',
   )
 
 export const updatePriceTier = z
@@ -3377,7 +3377,7 @@ export const updatePriceTier = z
   })
 
   .describe(
-    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
+    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the containing resource, up_to_amount is expressed in converted billing units.',
   )
 
 export const featureLlmUnitCost = z
@@ -4306,7 +4306,7 @@ export const priceGraduated = z
   })
 
   .describe(
-    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.",
+    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.",
   )
 
 export const priceVolume = z
@@ -4322,7 +4322,7 @@ export const priceVolume = z
   })
 
   .describe(
-    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
+    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
 
 export const updatePriceGraduated = z
@@ -4338,7 +4338,7 @@ export const updatePriceGraduated = z
   })
 
   .describe(
-    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.",
+    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.",
   )
 
 export const updatePriceVolume = z
@@ -4354,7 +4354,7 @@ export const updatePriceVolume = z
   })
 
   .describe(
-    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
+    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
 
 export const featureUnitCost = z
@@ -4704,6 +4704,60 @@ export const workflowCollectionAlignment = z
     'The alignment for collecting the pending line items into an invoice. Defaults to subscription, which means that we are to create a new invoice every time the a subscription period starts (for in advance items) or ends (for in arrears items).',
   )
 
+export const chargeFlatFee = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    customer: billingCustomerReference,
+    lifecycleController: lifecycleController,
+    subscription: subscriptionReference.optional(),
+    currency: currencyCode,
+    status: chargeStatus,
+    invoiceAt: dateTime,
+    servicePeriod: closedPeriod,
+    fullServicePeriod: closedPeriod,
+    billingPeriod: closedPeriod,
+    advanceAfter: dateTime.optional(),
+    uniqueReferenceId: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlementMode: settlementMode,
+    taxConfig: taxConfig.optional(),
+    paymentTerm: pricePaymentTerm,
+    discounts: chargeFlatFeeDiscounts.optional(),
+    featureKey: z
+      .string()
+      .optional()
+      .describe('The feature associated with the charge, when applicable.'),
+    featureId: z
+      .string()
+      .optional()
+      .describe('The feature ID associated with the charge.'),
+    prorationConfiguration: rateCardProrationConfiguration,
+    amountAfterProration: currencyAmount,
+    price: priceFlat,
+    systemIntent: chargeFlatFeeSystemIntent.optional(),
+  })
+  .describe('A flat fee charge for a customer.')
+
 export const taxCodePagePaginatedResponse = z
   .object({
     data: z.array(taxCode),
@@ -5022,6 +5076,13 @@ export const entitlementAccessQueryResult = z
   })
   .describe('Access evaluation result for a single resolved customer.')
 
+export const priceUsageBased = z
+  .discriminatedUnion('type', [priceUnit, priceGraduated, priceVolume])
+
+  .describe(
+    'Usage-based price types for a rate card or charge. When UnitConfig is present on the object, these price types operate on billing units (i.e. post-conversion quantities), not raw metered units.',
+  )
+
 export const price = z
   .discriminatedUnion('type', [
     priceFree,
@@ -5031,13 +5092,6 @@ export const price = z
     priceVolume,
   ])
   .describe('Price.')
-
-export const priceUsageBased = z
-  .discriminatedUnion('type', [priceUnit, priceGraduated, priceVolume])
-
-  .describe(
-    'Usage-based price types that can appear on a usage-based rate card. When UnitConfig is present on the rate card, these price types operate on billing units (i.e. post-conversion quantities), not raw metered units.',
-  )
 
 export const updatePrice = z
   .discriminatedUnion('type', [
@@ -5222,60 +5276,6 @@ export const entitlementAccessQueryResponse = z
   })
   .describe('Response of the entitlement access query.')
 
-export const chargeFlatFee = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReference,
-    lifecycleController: lifecycleController,
-    subscription: subscriptionReference.optional(),
-    currency: currencyCode,
-    status: chargeStatus,
-    invoiceAt: dateTime,
-    servicePeriod: closedPeriod,
-    fullServicePeriod: closedPeriod,
-    billingPeriod: closedPeriod,
-    advanceAfter: dateTime.optional(),
-    uniqueReferenceId: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlementMode: settlementMode,
-    taxConfig: taxConfig.optional(),
-    paymentTerm: pricePaymentTerm,
-    discounts: chargeFlatFeeDiscounts.optional(),
-    featureKey: z
-      .string()
-      .optional()
-      .describe('The feature associated with the charge, when applicable.'),
-    featureId: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
-    prorationConfiguration: rateCardProrationConfiguration,
-    amountAfterProration: currencyAmount,
-    price: price,
-    systemIntent: chargeFlatFeeSystemIntent.optional(),
-  })
-  .describe('A flat fee charge for a customer.')
-
 export const chargeUsageBasedSystemIntent = z
   .object({
     name: z
@@ -5297,7 +5297,9 @@ export const chargeUsageBasedSystemIntent = z
     fullServicePeriod: closedPeriod,
     billingPeriod: closedPeriod,
     discounts: rateCardDiscounts.optional(),
-    price: price,
+    price: priceUsageBased,
+    commitments: spendCommitments.optional(),
+    unitConfig: unitConfig.optional(),
     deletedAt: dateTime.optional(),
   })
 
@@ -5335,7 +5337,9 @@ export const createChargeUsageBasedRequest = z
     featureId: z
       .string()
       .describe('The feature ID associated with the charge.'),
-    price: price,
+    price: priceUsageBased,
+    commitments: spendCommitments.optional(),
+    unitConfig: unitConfig.optional(),
     fullServicePeriod: closedPeriod.optional(),
     billingPeriod: closedPeriod.optional(),
   })
@@ -5467,7 +5471,9 @@ export const chargeUsageBased = z
       .string()
       .describe('The feature ID associated with the charge.'),
     totals: chargeTotals,
-    price: price,
+    price: priceUsageBased,
+    commitments: spendCommitments.optional(),
+    unitConfig: unitConfig.optional(),
     systemIntent: chargeUsageBasedSystemIntent.optional(),
   })
   .describe('A usage-based charge for a customer.')
@@ -7807,23 +7813,6 @@ export const rateCardProrationModeWire = z
     'The proration mode of the rate card. Values: - `no_proration`: No proration. - `prorate_prices`: Prorate the price based on the time remaining in the billing period.',
   )
 
-export const priceFreeWire = z
-  .strictObject({
-    type: z.literal('free').describe('The type of the price.'),
-  })
-  .describe('Free price.')
-
-export const subscriptionCostBasisModeWire = z
-  .enum(['dynamic', 'pinned'])
-
-  .describe(
-    'Controls how custom-currency cost bases are selected for the subscription.',
-  )
-
-export const subscriptionStatusWire = z
-  .enum(['active', 'inactive', 'canceled', 'scheduled'])
-  .describe('Subscription status.')
-
 export const unitConfigOperationWire = z
   .enum(['divide', 'multiply'])
 
@@ -7837,6 +7826,23 @@ export const unitConfigRoundingModeWire = z
   .describe(
     'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
   )
+
+export const subscriptionCostBasisModeWire = z
+  .enum(['dynamic', 'pinned'])
+
+  .describe(
+    'Controls how custom-currency cost bases are selected for the subscription.',
+  )
+
+export const subscriptionStatusWire = z
+  .enum(['active', 'inactive', 'canceled', 'scheduled'])
+  .describe('Subscription status.')
+
+export const priceFreeWire = z
+  .strictObject({
+    type: z.literal('free').describe('The type of the price.'),
+  })
+  .describe('Free price.')
 
 export const rateCardStaticEntitlementWire = z
   .strictObject({
@@ -8719,16 +8725,6 @@ export const priceFlatWire = z
   })
   .describe('Flat price.')
 
-export const priceUnitWire = z
-  .strictObject({
-    type: z.literal('unit').describe('The type of the price.'),
-    amount: numericWire,
-  })
-
-  .describe(
-    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
-  )
-
 export const rateCardDiscountsWire = z
   .strictObject({
     percentage: z
@@ -8757,6 +8753,16 @@ export const totalsWire = z
     'Totals contains the summaries of all calculations for a billing resource.',
   )
 
+export const priceUnitWire = z
+  .strictObject({
+    type: z.literal('unit').describe('The type of the price.'),
+    amount: numericWire,
+  })
+
+  .describe(
+    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the object, billing units are the converted quantities (e.g. GB instead of bytes).',
+  )
+
 export const spendCommitmentsWire = z
   .strictObject({
     minimum_amount: numericWire.optional(),
@@ -8764,7 +8770,7 @@ export const spendCommitmentsWire = z
   })
 
   .describe(
-    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
+    'Spend commitments for a usage-based price. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
   )
 
 export const invoiceLineCreditsAppliedWire = z
@@ -8809,7 +8815,7 @@ export const updatePriceUnitWire = z
   })
 
   .describe(
-    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
+    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the object, billing units are the converted quantities (e.g. GB instead of bytes).',
   )
 
 export const updateDiscountsWire = z
@@ -10010,6 +10016,32 @@ export const subscriptionProRatingConfigWire = z
   })
   .describe('The pro-rating configuration of a subscription.')
 
+export const unitConfigWire = z
+  .strictObject({
+    operation: unitConfigOperationWire,
+    conversion_factor: numericWire,
+    rounding: unitConfigRoundingModeWire.optional(),
+    precision: z
+      .number()
+      .int()
+      .optional()
+
+      .describe(
+        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
+      ),
+    display_unit: z
+      .string()
+      .optional()
+
+      .describe(
+        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
+      ),
+  })
+
+  .describe(
+    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Stored with a resource\'s rating configuration so the same metered feature can be billed in different units across plans and charges. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
+  )
+
 export const subscriptionCreateWire = z
   .strictObject({
     labels: labelsWire.optional(),
@@ -10038,32 +10070,6 @@ export const subscriptionCreateWire = z
     cost_basis_mode: subscriptionCostBasisModeWire.optional(),
   })
   .describe('Subscription create request.')
-
-export const unitConfigWire = z
-  .strictObject({
-    operation: unitConfigOperationWire,
-    conversion_factor: numericWire,
-    rounding: unitConfigRoundingModeWire.optional(),
-    precision: z
-      .number()
-      .int()
-      .optional()
-
-      .describe(
-        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
-      ),
-    display_unit: z
-      .string()
-      .optional()
-
-      .describe(
-        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
-      ),
-  })
-
-  .describe(
-    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
-  )
 
 export const subscriptionEditTimingWire = z
   .union([subscriptionEditTimingEnumWire, dateTimeWire])
@@ -10463,6 +10469,16 @@ export const creditTransactionWire = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
+export const chargeTotalsWire = z
+  .strictObject({
+    booked: totalsWire,
+    realtime: totalsWire.optional(),
+  })
+
+  .describe(
+    'The totals of a charge. RealTime is only expanded when the `real_time_usage` expand is used.',
+  )
+
 export const priceTierWire = z
   .strictObject({
     up_to_amount: numericWire.optional(),
@@ -10471,17 +10487,7 @@ export const priceTierWire = z
   })
 
   .describe(
-    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
-  )
-
-export const chargeTotalsWire = z
-  .strictObject({
-    booked: totalsWire,
-    realtime: totalsWire.optional(),
-  })
-
-  .describe(
-    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
+    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the containing resource, up_to_amount is expressed in converted billing units.',
   )
 
 export const updatePriceTierWire = z
@@ -10492,7 +10498,7 @@ export const updatePriceTierWire = z
   })
 
   .describe(
-    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
+    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the containing resource, up_to_amount is expressed in converted billing units.',
   )
 
 export const featureLlmUnitCostWire = z
@@ -11425,7 +11431,7 @@ export const priceGraduatedWire = z
   })
 
   .describe(
-    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.",
+    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.",
   )
 
 export const priceVolumeWire = z
@@ -11441,7 +11447,7 @@ export const priceVolumeWire = z
   })
 
   .describe(
-    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
+    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
 
 export const updatePriceGraduatedWire = z
@@ -11457,7 +11463,7 @@ export const updatePriceGraduatedWire = z
   })
 
   .describe(
-    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.",
+    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.",
   )
 
 export const updatePriceVolumeWire = z
@@ -11473,7 +11479,7 @@ export const updatePriceVolumeWire = z
   })
 
   .describe(
-    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
+    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the containing resource, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
 
 export const featureUnitCostWire = z
@@ -11821,6 +11827,60 @@ export const workflowCollectionAlignmentWire = z
     'The alignment for collecting the pending line items into an invoice. Defaults to subscription, which means that we are to create a new invoice every time the a subscription period starts (for in advance items) or ends (for in arrears items).',
   )
 
+export const chargeFlatFeeWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    customer: billingCustomerReferenceWire,
+    lifecycle_controller: lifecycleControllerWire,
+    subscription: subscriptionReferenceWire.optional(),
+    currency: currencyCodeWire,
+    status: chargeStatusWire,
+    invoice_at: dateTimeWire,
+    service_period: closedPeriodWire,
+    full_service_period: closedPeriodWire,
+    billing_period: closedPeriodWire,
+    advance_after: dateTimeWire.optional(),
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementModeWire,
+    tax_config: taxConfigWire.optional(),
+    payment_term: pricePaymentTermWire,
+    discounts: chargeFlatFeeDiscountsWire.optional(),
+    feature_key: z
+      .string()
+      .optional()
+      .describe('The feature associated with the charge, when applicable.'),
+    feature_id: z
+      .string()
+      .optional()
+      .describe('The feature ID associated with the charge.'),
+    proration_configuration: rateCardProrationConfigurationWire,
+    amount_after_proration: currencyAmountWire,
+    price: priceFlatWire,
+    system_intent: chargeFlatFeeSystemIntentWire.optional(),
+  })
+  .describe('A flat fee charge for a customer.')
+
 export const taxCodePagePaginatedResponseWire = z
   .strictObject({
     data: z.array(taxCodeWire),
@@ -12139,6 +12199,17 @@ export const entitlementAccessQueryResultWire = z
   })
   .describe('Access evaluation result for a single resolved customer.')
 
+export const priceUsageBasedWire = z
+  .discriminatedUnion('type', [
+    priceUnitWire,
+    priceGraduatedWire,
+    priceVolumeWire,
+  ])
+
+  .describe(
+    'Usage-based price types for a rate card or charge. When UnitConfig is present on the object, these price types operate on billing units (i.e. post-conversion quantities), not raw metered units.',
+  )
+
 export const priceWire = z
   .discriminatedUnion('type', [
     priceFreeWire,
@@ -12148,17 +12219,6 @@ export const priceWire = z
     priceVolumeWire,
   ])
   .describe('Price.')
-
-export const priceUsageBasedWire = z
-  .discriminatedUnion('type', [
-    priceUnitWire,
-    priceGraduatedWire,
-    priceVolumeWire,
-  ])
-
-  .describe(
-    'Usage-based price types that can appear on a usage-based rate card. When UnitConfig is present on the rate card, these price types operate on billing units (i.e. post-conversion quantities), not raw metered units.',
-  )
 
 export const updatePriceWire = z
   .discriminatedUnion('type', [
@@ -12344,60 +12404,6 @@ export const entitlementAccessQueryResponseWire = z
   })
   .describe('Response of the entitlement access query.')
 
-export const chargeFlatFeeWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReferenceWire,
-    lifecycle_controller: lifecycleControllerWire,
-    subscription: subscriptionReferenceWire.optional(),
-    currency: currencyCodeWire,
-    status: chargeStatusWire,
-    invoice_at: dateTimeWire,
-    service_period: closedPeriodWire,
-    full_service_period: closedPeriodWire,
-    billing_period: closedPeriodWire,
-    advance_after: dateTimeWire.optional(),
-    unique_reference_id: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlement_mode: settlementModeWire,
-    tax_config: taxConfigWire.optional(),
-    payment_term: pricePaymentTermWire,
-    discounts: chargeFlatFeeDiscountsWire.optional(),
-    feature_key: z
-      .string()
-      .optional()
-      .describe('The feature associated with the charge, when applicable.'),
-    feature_id: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
-    proration_configuration: rateCardProrationConfigurationWire,
-    amount_after_proration: currencyAmountWire,
-    price: priceWire,
-    system_intent: chargeFlatFeeSystemIntentWire.optional(),
-  })
-  .describe('A flat fee charge for a customer.')
-
 export const chargeUsageBasedSystemIntentWire = z
   .strictObject({
     name: z
@@ -12419,7 +12425,9 @@ export const chargeUsageBasedSystemIntentWire = z
     full_service_period: closedPeriodWire,
     billing_period: closedPeriodWire,
     discounts: rateCardDiscountsWire.optional(),
-    price: priceWire,
+    price: priceUsageBasedWire,
+    commitments: spendCommitmentsWire.optional(),
+    unit_config: unitConfigWire.optional(),
     deleted_at: dateTimeWire.optional(),
   })
 
@@ -12457,7 +12465,9 @@ export const createChargeUsageBasedRequestWire = z
     feature_id: z
       .string()
       .describe('The feature ID associated with the charge.'),
-    price: priceWire,
+    price: priceUsageBasedWire,
+    commitments: spendCommitmentsWire.optional(),
+    unit_config: unitConfigWire.optional(),
     full_service_period: closedPeriodWire.optional(),
     billing_period: closedPeriodWire.optional(),
   })
@@ -12589,7 +12599,9 @@ export const chargeUsageBasedWire = z
       .string()
       .describe('The feature ID associated with the charge.'),
     totals: chargeTotalsWire,
-    price: priceWire,
+    price: priceUsageBasedWire,
+    commitments: spendCommitmentsWire.optional(),
+    unit_config: unitConfigWire.optional(),
     system_intent: chargeUsageBasedSystemIntentWire.optional(),
   })
   .describe('A usage-based charge for a customer.')

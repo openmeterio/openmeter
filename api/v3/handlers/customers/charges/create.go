@@ -2,6 +2,7 @@ package charges
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -77,6 +79,17 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 						{
 							Field:  "params",
 							Reason: "unable to parse charge type",
+							Source: apierrors.InvalidParamSourceBody,
+						},
+					})
+				}
+
+				if usageBasedFee.UnitConfig != nil && !h.unitConfigEnabled {
+					err := models.NewGenericValidationError(errors.New("unit_config is not enabled on this deployment of OpenMeter"))
+					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "unit_config",
+							Reason: err.Error(),
 							Source: apierrors.InvalidParamSourceBody,
 						},
 					})

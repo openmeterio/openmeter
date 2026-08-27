@@ -190,7 +190,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 	if meta.UnitConfig != nil {
 		result.UnitConfig = lo.ToPtr(ToAPIBillingUnitConfig(*meta.UnitConfig))
 	} else {
-		unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
+		unitConfig, err := ToAPIBillingUnitConfigFromLegacyPrice(meta.Price)
 		if err != nil {
 			return result, fmt.Errorf("failed to convert unit config: %w", err)
 		}
@@ -263,11 +263,11 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 	return out, nil
 }
 
-// ToAPIBillingRateCardUnitConfig synthesizes a v3 unit config from a v1 dynamic
-// or package price. v3 does not surface dynamic or package prices directly;
-// instead they are rendered as a unit price paired with a unit config that
-// describes the conversion that v1 applied implicitly.
-func ToAPIBillingRateCardUnitConfig(p *productcatalog.Price) (*api.BillingUnitConfig, error) {
+// ToAPIBillingUnitConfigFromLegacyPrice synthesizes a v3 unit config from a v1 dynamic or
+// package price. v3 does not surface dynamic or package prices directly; instead
+// they are rendered as a unit price paired with a unit config that describes the
+// conversion that v1 applied implicitly.
+func ToAPIBillingUnitConfigFromLegacyPrice(p *productcatalog.Price) (*api.BillingUnitConfig, error) {
 	if p == nil {
 		return nil, nil
 	}
@@ -445,6 +445,57 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 
 	default:
 		return result, fmt.Errorf("unknown price type: %s", p.Type())
+	}
+
+	return result, nil
+}
+
+// ToAPIBillingPriceUsageBased maps a domain usage price to the public
+// unit/graduated/volume union. Legacy dynamic and package prices are normalized
+// by ToAPIBillingPrice to their v3 unit-price representation.
+func ToAPIBillingPriceUsageBased(p *productcatalog.Price) (api.BillingPriceUsageBased, error) {
+	var result api.BillingPriceUsageBased
+
+	price, err := ToAPIBillingPrice(p)
+	if err != nil {
+		return result, err
+	}
+
+	discriminator, err := price.Discriminator()
+	if err != nil {
+		return result, fmt.Errorf("failed to read converted price type: %w", err)
+	}
+
+	switch discriminator {
+	case "unit":
+		unit, err := price.AsBillingPriceUnit()
+		if err != nil {
+			return result, fmt.Errorf("failed to read converted unit price: %w", err)
+		}
+
+		if err := result.FromBillingPriceUnit(unit); err != nil {
+			return result, fmt.Errorf("failed to set usage-based unit price: %w", err)
+		}
+	case "graduated":
+		graduated, err := price.AsBillingPriceGraduated()
+		if err != nil {
+			return result, fmt.Errorf("failed to read converted graduated price: %w", err)
+		}
+
+		if err := result.FromBillingPriceGraduated(graduated); err != nil {
+			return result, fmt.Errorf("failed to set usage-based graduated price: %w", err)
+		}
+	case "volume":
+		volume, err := price.AsBillingPriceVolume()
+		if err != nil {
+			return result, fmt.Errorf("failed to read converted volume price: %w", err)
+		}
+
+		if err := result.FromBillingPriceVolume(volume); err != nil {
+			return result, fmt.Errorf("failed to set usage-based volume price: %w", err)
+		}
+	default:
+		return result, fmt.Errorf("unsupported usage-based price type: %s", discriminator)
 	}
 
 	return result, nil
@@ -977,6 +1028,51 @@ func FromAPIBillingPriceWithCommitments(p api.BillingPrice, commitments *api.Bil
 	default:
 		return nil, fmt.Errorf("unsupported usage-based price type: %s", disc)
 	}
+}
+
+// FromAPIBillingPriceUsageBased maps the public unit/graduated/volume union and
+// its sibling commitments into the domain price representation.
+func FromAPIBillingPriceUsageBased(p api.BillingPriceUsageBased, commitments *api.BillingSpendCommitments) (*productcatalog.Price, error) {
+	var price api.BillingPrice
+
+	discriminator, err := p.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read usage-based price type: %w", err)
+	}
+
+	switch discriminator {
+	case "unit":
+		unit, err := p.AsBillingPriceUnit()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read usage-based unit price: %w", err)
+		}
+
+		if err := price.FromBillingPriceUnit(unit); err != nil {
+			return nil, fmt.Errorf("failed to set unit price: %w", err)
+		}
+	case "graduated":
+		graduated, err := p.AsBillingPriceGraduated()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read usage-based graduated price: %w", err)
+		}
+
+		if err := price.FromBillingPriceGraduated(graduated); err != nil {
+			return nil, fmt.Errorf("failed to set graduated price: %w", err)
+		}
+	case "volume":
+		volume, err := p.AsBillingPriceVolume()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read usage-based volume price: %w", err)
+		}
+
+		if err := price.FromBillingPriceVolume(volume); err != nil {
+			return nil, fmt.Errorf("failed to set volume price: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported usage-based price type: %s", discriminator)
+	}
+
+	return FromAPIBillingPriceWithCommitments(price, commitments)
 }
 
 func ParseCommitments(c *api.BillingSpendCommitments) (productcatalog.Commitments, error) {

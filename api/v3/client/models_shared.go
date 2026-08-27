@@ -436,8 +436,8 @@ type PriceFree struct {
 // Each tier's rate applies only to the usage within that tier. Pricing can change
 // as cumulative usage crosses tier boundaries.
 //
-// When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
-// expressed in converted billing units.
+// When UnitConfig is present on the containing resource, tier boundaries
+// (up_to_amount) are expressed in converted billing units.
 type PriceGraduated struct {
 	// The type of the price.
 	Type PriceType `json:"type"`
@@ -465,8 +465,8 @@ func (value PricePaymentTerm) Valid() bool {
 // A price tier used in graduated and volume pricing.
 //
 // At least one price component (flat_price or unit_price) must be set. When
-// UnitConfig is present on the rate card, up_to_amount is expressed in converted
-// billing units.
+// UnitConfig is present on the containing resource, up_to_amount is expressed in
+// converted billing units.
 type PriceTier struct {
 	// Up to and including this quantity will be contained in the tier. If undefined,
 	// the tier is open-ended (the last tier).
@@ -507,8 +507,8 @@ func (value PriceType) Valid() bool {
 
 // Unit price.
 //
-// Charges a fixed rate per billing unit. When UnitConfig is present on the rate
-// card, billing units are the converted quantities (e.g. GB instead of bytes).
+// Charges a fixed rate per billing unit. When UnitConfig is present on the object,
+// billing units are the converted quantities (e.g. GB instead of bytes).
 type PriceUnit struct {
 	// The type of the price.
 	Type PriceType `json:"type"`
@@ -521,8 +521,8 @@ type PriceUnit struct {
 // The maximum quantity within a period determines the per-unit price for all units
 // in that period.
 //
-// When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
-// expressed in converted billing units.
+// When UnitConfig is present on the containing resource, tier boundaries
+// (up_to_amount) are expressed in converted billing units.
 type PriceVolume struct {
 	// The type of the price.
 	Type PriceType `json:"type"`
@@ -929,8 +929,8 @@ func (value SettlementMode) Valid() bool {
 	}
 }
 
-// Spend commitments for a rate card. The customer is committed to spend at least
-// the minimum amount and at most the maximum amount.
+// Spend commitments for a usage-based price. The customer is committed to spend at
+// least the minimum amount and at most the maximum amount.
 type SpendCommitments struct {
 	// The customer is committed to spend at least the amount.
 	MinimumAmount *Numeric `json:"minimum_amount,omitempty"`
@@ -1040,8 +1040,8 @@ type Totals struct {
 // Unit conversion configuration.
 //
 // Transforms raw metered quantities into billing-ready units before pricing and
-// entitlement evaluation. Applied at the rate card level so the same feature can
-// be billed in different units across plans.
+// entitlement evaluation. Stored with a resource's rating configuration so the
+// same metered feature can be billed in different units across plans and charges.
 //
 // Examples:
 //

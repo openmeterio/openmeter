@@ -45,10 +45,10 @@ union Price {
 }
 
 /**
- * Usage-based price types that can appear on a usage-based rate card.
+ * Usage-based price types for a rate card or charge.
  *
- * When UnitConfig is present on the rate card, these price types operate on
- * billing units (i.e. post-conversion quantities), not raw metered units.
+ * When UnitConfig is present on the object, these price types operate on billing
+ * units (i.e. post-conversion quantities), not raw metered units.
  */
 @friendlyName("BillingPriceUsageBased")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
@@ -110,8 +110,8 @@ model PriceFlat {
 /**
  * Unit price.
  *
- * Charges a fixed rate per billing unit. When UnitConfig is present on the rate
- * card, billing units are the converted quantities (e.g. GB instead of bytes).
+ * Charges a fixed rate per billing unit. When UnitConfig is present on the object,
+ * billing units are the converted quantities (e.g. GB instead of bytes).
  */
 @friendlyName("BillingPriceUnit")
 model PriceUnit {
@@ -136,8 +136,8 @@ model PriceUnit {
  * Each tier's rate applies only to the usage within that tier. Pricing can change
  * as cumulative usage crosses tier boundaries.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
- * expressed in converted billing units.
+ * When UnitConfig is present on the containing resource, tier boundaries
+ * (up_to_amount) are expressed in converted billing units.
  */
 @friendlyName("BillingPriceGraduated")
 model PriceGraduated {
@@ -163,8 +163,8 @@ model PriceGraduated {
  * The maximum quantity within a period determines the per-unit price for all units
  * in that period.
  *
- * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
- * expressed in converted billing units.
+ * When UnitConfig is present on the containing resource, tier boundaries
+ * (up_to_amount) are expressed in converted billing units.
  */
 @friendlyName("BillingPriceVolume")
 model PriceVolume {
@@ -188,8 +188,8 @@ model PriceVolume {
  * A price tier used in graduated and volume pricing.
  *
  * At least one price component (flat_price or unit_price) must be set. When
- * UnitConfig is present on the rate card, up_to_amount is expressed in converted
- * billing units.
+ * UnitConfig is present on the containing resource, up_to_amount is expressed in
+ * converted billing units.
  */
 @friendlyName("BillingPriceTier")
 model PriceTier {
@@ -217,8 +217,8 @@ model PriceTier {
 }
 
 /**
- * Spend commitments for a rate card. The customer is committed to spend at least
- * the minimum amount and at most the maximum amount.
+ * Spend commitments for a usage-based price. The customer is committed to spend at
+ * least the minimum amount and at most the maximum amount.
  */
 @friendlyName("BillingSpendCommitments")
 model SpendCommitments {

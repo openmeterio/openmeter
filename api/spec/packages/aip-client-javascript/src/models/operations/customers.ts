@@ -9,7 +9,7 @@ import type {
   AppStripeCreateCustomerPortalSessionResult,
   Charge,
   ChargePagePaginatedResponse,
-  CreateChargeRequest,
+  CreateChargeRequestInput,
   CreateCreditAdjustmentRequest as CreateCreditAdjustmentRequestBody,
   CreateCreditGrantRequestInput,
   CreateCustomerRequest as CreateCustomerRequestBody,
@@ -221,6 +221,6 @@ export type ListCustomerChargesResponse = ChargePagePaginatedResponse
 
 export type CreateCustomerChargesRequest = AcceptDateStrings<{
   customerId: string
-  body: CreateChargeRequest
+  body: CreateChargeRequestInput
 }>
 export type CreateCustomerChargesResponse = Charge

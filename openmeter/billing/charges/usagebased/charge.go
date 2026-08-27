@@ -764,6 +764,10 @@ func (f IntentMutableFields) Validate() error {
 		errs = append(errs, fmt.Errorf("unit config: %w", err))
 	}
 
+	if f.UnitConfig != nil && !f.Price.SupportsUnitConfig() {
+		errs = append(errs, errors.New("unit config requires a usage-based price (unit, graduated, or volume)"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

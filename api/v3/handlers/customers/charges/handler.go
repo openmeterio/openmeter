@@ -13,19 +13,22 @@ type Handler interface {
 }
 
 type handler struct {
-	resolveNamespace func(ctx context.Context) (string, error)
-	service          billingcharges.Service
-	options          []httptransport.HandlerOption
+	resolveNamespace  func(ctx context.Context) (string, error)
+	service           billingcharges.Service
+	unitConfigEnabled bool
+	options           []httptransport.HandlerOption
 }
 
 func New(
 	resolveNamespace func(ctx context.Context) (string, error),
 	service billingcharges.Service,
+	unitConfigEnabled bool,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		resolveNamespace: resolveNamespace,
-		service:          service,
-		options:          options,
+		resolveNamespace:  resolveNamespace,
+		service:           service,
+		unitConfigEnabled: unitConfigEnabled,
+		options:           options,
 	}
 }
