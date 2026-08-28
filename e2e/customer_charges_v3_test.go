@@ -213,7 +213,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 	// A flat price keeps this smoke test free of meter setup; metered price
 	// types (unit/graduated/volume) are accepted too via
 	// fromAPIChargeBillingPrice (customers/charges/convert.go).
-	price, err := v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{Amount: "1.5"})
+	price, err := v3sdk.PriceUsageBasedFromPriceUnit(v3sdk.PriceUnit{Amount: "1.5", Type: v3sdk.PriceTypeFlat})
 	require.NoError(t, err)
 
 	createReq, err := v3sdk.CreateChargeRequestFromCreateChargeUsageBasedRequest(v3sdk.CreateChargeUsageBasedRequest{
@@ -255,7 +255,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 		assert.Equal(t, feature.ID, featureRef.ID)
 
 		require.Equal(t, string(v3sdk.PriceTypeFlat), usageBased.Price.Type)
-		flatPrice, err := usageBased.Price.AsPriceFlat()
+		flatPrice, err := usageBased.Price.AsPriceUnit()
 		require.NoError(t, err)
 		priceAmount, err := strconv.ParseFloat(flatPrice.Amount, 64)
 		require.NoError(t, err)
