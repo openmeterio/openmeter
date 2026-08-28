@@ -72,4 +72,42 @@ config:
       debug: true
 ```
 
+## Per-component scheduling and resources
+
+Each OpenMeter component reads its own `resources`, `nodeSelector`, `tolerations`, and `affinity` values. A component value replaces the equivalent chart-wide value. If you do not set a component value, the chart-wide value applies.
+
+The components are `api`, `balanceWorker`, `notificationService`, `sinkWorker`, `billingWorker`, `svix`, `jobs.subscriptionSync`, `jobs.billingCollectInvoices`, and `jobs.billingAdvanceInvoices`.
+
+```yaml
+# Chart-wide default for every component.
+nodeSelector:
+  workload: openmeter
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# The sink worker needs more memory and a dedicated node pool.
+sinkWorker:
+  nodeSelector:
+    workload: openmeter-sink
+  tolerations:
+    - key: openmeter-sink
+      operator: Exists
+      effect: NoSchedule
+  resources:
+    limits:
+      cpu: "2"
+      memory: 4Gi
+    requests:
+      cpu: "1"
+      memory: 2Gi
+
+# The cron jobs run on spot nodes.
+jobs:
+  billingCollectInvoices:
+    nodeSelector:
+      workload: openmeter-batch
+```
+
 {{ template "chart.valuesSection" . }}
