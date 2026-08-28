@@ -416,6 +416,19 @@ func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) 
 	}, nil
 }
 
+func (r RealizationRuns) PriorMeteredQuantity(priorRunID *RealizationRunID) (alpacadecimal.Decimal, error) {
+	if priorRunID == nil {
+		return alpacadecimal.Zero, nil
+	}
+
+	priorRun, err := r.GetByID(priorRunID.ID)
+	if err != nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("resolve prior realization run %s: %w", priorRunID.ID, err)
+	}
+
+	return priorRun.MeteredQuantity, nil
+}
+
 // WithoutVoidedBillingHistory returns runs that still represent effective
 // invoice or ledger history.
 func (r RealizationRuns) WithoutVoidedBillingHistory() RealizationRuns {

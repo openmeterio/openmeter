@@ -30,11 +30,31 @@ export function GoUnion({ program, union, name, mode, doc }: GoUnionProps) {
   const modelVariants = [...union.variants.values()].flatMap((variant) =>
     variant.type.kind === 'Model' ? [variant.type] : [],
   )
+  // A union-typed variant (`Invoice | InvoiceReference`, where `Invoice` is the
+  // discriminated union of its concrete types) contributes its own models to the
+  // same ambiguity: the outer union has no discriminator, so an As* accessor
+  // decodes the preserved payload whichever side produced it.
+  const nestedVariants = nestedUnionModelVariants(union)
   const discriminator = discriminatorProperty(program, union, modelVariants)
-  if (!discriminator && modelVariants.length > 1) {
-    throw new Error(
-      `typespec-go: union ${name} has multiple object variants but no discriminator; add @discriminated so Go accessors can select variants safely`,
+  if (!discriminator && modelVariants.length + nestedVariants.length > 1) {
+    // Without a discriminator an As* accessor cannot verify it was handed its
+    // own variant — it just unmarshals the preserved payload into the variant
+    // type. That is still faithful when the variants agree on every JSON key
+    // they share and differ only in which keys they declare (a reference model
+    // versus the full resource): each accessor then reads exactly the subset of
+    // the payload its type describes. A key with two different types across
+    // variants would decode into the wrong Go type, so that still has to be
+    // discriminated.
+    const conflict = conflictingVariantProperty(
+      program,
+      modelVariants,
+      nestedVariants,
     )
+    if (conflict) {
+      throw new Error(
+        `typespec-go: union ${name} has object variants that disagree on ${conflict}; add @discriminated so Go accessors can select variants safely (variants whose properties are a subset of another's are supported)`,
+      )
+    }
   }
   // The discriminated path assumes every selectable variant is a model: the
   // From* constructors envelope the payload under the discriminator property
@@ -63,10 +83,7 @@ export function GoUnion({ program, union, name, mode, doc }: GoUnionProps) {
       {
         variant,
         type: variant.type,
-        name:
-          variant.type.kind === 'Model' && typeof mapped === 'string'
-            ? mapped
-            : variantAccessorName(program, name, variant),
+        name: variantGoName(program, name, variant, mode),
         goType: mapped,
         discriminatorValue:
           variant.type.kind === 'Model'
@@ -271,6 +288,125 @@ function accessorBody({
     }
     return &value, nil
   `
+}
+
+/**
+ * The first JSON key two model variants declare with different types, described
+ * for the build error — or undefined when the variants only differ in which keys
+ * they declare, which every accessor can decode from the same payload.
+ *
+ * `nestedVariants` are the models a union-typed variant contributes. They are
+ * checked against `variants` but never against each other, and never added to
+ * the comparison map: a nested DISCRIMINATED union's models legitimately disagree
+ * on non-discriminator keys, because that union selects on its discriminator
+ * rather than by shape. Comparing them with each other would fail the build on
+ * unions that decode correctly.
+ */
+export function conflictingVariantProperty(
+  program: Program,
+  variants: Model[],
+  nestedVariants: Model[] = [],
+): string | undefined {
+  const byKey = new Map<string, { type: Type; variant: string }>()
+  for (const model of variants) {
+    for (const [key, property] of variantProperties(program, model)) {
+      const seen = byKey.get(key)
+      if (!seen) {
+        byKey.set(key, { type: property.type, variant: model.name })
+        continue
+      }
+      if (seen.type !== property.type) {
+        return `"${key}" (different types in ${seen.variant} and ${model.name})`
+      }
+    }
+  }
+
+  for (const model of nestedVariants) {
+    for (const [key, property] of variantProperties(program, model)) {
+      const seen = byKey.get(key)
+      if (seen && seen.type !== property.type) {
+        return `"${key}" (different types in ${seen.variant} and ${model.name})`
+      }
+    }
+  }
+  return undefined
+}
+
+/**
+ * The model variants reachable through a union's union-typed variants, at any
+ * nesting depth. Cycle-guarded, so a self-referential union contributes each of
+ * its models once instead of recursing forever.
+ */
+export function nestedUnionModelVariants(
+  union: Union,
+  seen = new Set<Union>(),
+): Model[] {
+  const models: Model[] = []
+  for (const variant of union.variants.values()) {
+    const nested = variant.type
+    if (nested.kind !== 'Union' || seen.has(nested)) {
+      continue
+    }
+    seen.add(nested)
+    for (const nestedVariant of nested.variants.values()) {
+      if (nestedVariant.type.kind === 'Model') {
+        models.push(nestedVariant.type)
+      }
+    }
+    models.push(...nestedUnionModelVariants(nested, seen))
+  }
+  return models
+}
+
+/**
+ * A model's properties keyed by their JSON name, including inherited ones, with
+ * an override shadowing the property it replaces.
+ */
+function variantProperties(
+  program: Program,
+  model: Model,
+): Map<string, ModelProperty> {
+  const properties = new Map<string, ModelProperty>()
+  for (
+    let current: Model | undefined = model;
+    current;
+    current = current.baseModel
+  ) {
+    for (const property of current.properties.values()) {
+      const key = resolveEncodedName(
+        program,
+        property as ModelProperty & { name: string },
+        'application/json',
+      )
+      if (!properties.has(key)) {
+        properties.set(key, property)
+      }
+    }
+  }
+  return properties
+}
+
+/**
+ * The Go name a union member's accessors carry (AsX / FromX / XFromY). A variant
+ * whose type is a named model or a named union uses that type's mapped Go name —
+ * a nested union variant (`Invoice` inside `InvoiceOrReference`) must not fall
+ * through to the anonymous-variant fallback, which would emit a placeholder like
+ * `AsVariantName` into the published SDK surface.
+ */
+export function variantGoName(
+  program: Program,
+  unionName: string,
+  variant: UnionVariant,
+  mode?: 'input' | 'output',
+): string {
+  const mapped = goType(program, variant.type, { mode }).type
+  if (
+    (variant.type.kind === 'Model' || variant.type.kind === 'Union') &&
+    typeof mapped === 'string'
+  ) {
+    return mapped
+  }
+  return variantAccessorName(program, unionName, variant)
 }
 
 export function variantAccessorName(

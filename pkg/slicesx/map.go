@@ -47,3 +47,9 @@ func MapWithErr[T any, S any](s []T, f func(T) (S, error)) ([]S, error) {
 
 	return n, nil
 }
+
+func WrapMapFn[T, O any](fn func(T) (O, error)) func(T, int) (O, error) {
+	return func(t T, _ int) (O, error) {
+		return fn(t)
+	}
+}

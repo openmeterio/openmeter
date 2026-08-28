@@ -3,6 +3,7 @@ import {
   isCamelCaseNoAcronyms,
   isPascalCaseNoAcronyms,
   isSnakeCase,
+  isSnakeCasePath,
 } from './utils.js'
 
 export const casingRule = createRule({
@@ -83,12 +84,16 @@ export const casingErrorsRule = createRule({
   },
   create: (context) => ({
     enum: (model) => {
-      // Check enum member values are snake_case
+      // Check enum member values are snake_case, or a dot-separated path of
+      // snake_case segments when the value names a nested field.
       for (const member of model.members.values()) {
         if (member.value && typeof member.value === 'string') {
-          if (!isSnakeCase(member.value)) {
+          if (!isSnakeCasePath(member.value)) {
             context.reportDiagnostic({
-              format: { type: 'Enum Value', casing: 'snake_case' },
+              format: {
+                type: 'Enum Value',
+                casing: 'snake_case (dot-separated paths allowed)',
+              },
               target: member,
               messageId: 'value',
             })
