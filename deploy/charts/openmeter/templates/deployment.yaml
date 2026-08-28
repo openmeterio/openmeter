@@ -62,7 +62,7 @@ spec:
               path: /healthz/ready
               port: telemetry-http
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.api.resources | default .Values.resources) | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
@@ -80,15 +80,15 @@ spec:
           configMap:
             name: ca-certificates
         {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with (.Values.api.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with (.Values.api.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with (.Values.api.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -154,7 +154,7 @@ spec:
               path: /healthz/ready
               port: telemetry-http
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.balanceWorker.resources | default .Values.resources) | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
@@ -172,15 +172,15 @@ spec:
           configMap:
             name: ca-certificates
         {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with (.Values.balanceWorker.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with (.Values.balanceWorker.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with (.Values.balanceWorker.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -246,7 +246,7 @@ spec:
               path: /healthz/ready
               port: telemetry-http
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.notificationService.resources | default .Values.resources) | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
@@ -264,15 +264,15 @@ spec:
           configMap:
             name: ca-certificates
         {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with (.Values.notificationService.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with (.Values.notificationService.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with (.Values.notificationService.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -338,7 +338,7 @@ spec:
               path: /healthz/ready
               port: telemetry-http
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.sinkWorker.resources | default .Values.resources) | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
@@ -356,15 +356,15 @@ spec:
           configMap:
             name: ca-certificates
         {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with (.Values.sinkWorker.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with (.Values.sinkWorker.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with (.Values.sinkWorker.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -430,7 +430,7 @@ spec:
               path: /healthz/ready
               port: telemetry-http
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.billingWorker.resources | default .Values.resources) | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /etc/openmeter
@@ -448,15 +448,15 @@ spec:
           configMap:
             name: ca-certificates
         {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with (.Values.billingWorker.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with (.Values.billingWorker.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with (.Values.billingWorker.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
