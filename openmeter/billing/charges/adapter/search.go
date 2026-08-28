@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargessearchv1 "github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -79,6 +80,12 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 		if len(input.StatusNotIn) > 0 {
 			query = query.Where(dbchargessearchv1.StatusNotIn(input.StatusNotIn...))
 		}
+
+		query = filter.ApplyToQuery(query, input.Status, dbchargessearchv1.FieldStatus)
+		query = filter.ApplyToQuery(query, input.FeatureID, dbchargessearchv1.FieldFeatureID)
+		query = filter.ApplyToQuery(query, input.FeatureKey, dbchargessearchv1.FieldFeatureKey)
+		query = filter.ApplyToQuery(query, input.ServicePeriodFrom, dbchargessearchv1.FieldServicePeriodFrom)
+		query = filter.ApplyToQuery(query, input.ServicePeriodTo, dbchargessearchv1.FieldServicePeriodTo)
 
 		// Apply ordering: default to created_at asc with id as tie-breaker.
 		ord := entutils.GetOrdering(input.Order)

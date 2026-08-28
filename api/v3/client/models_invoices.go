@@ -75,29 +75,6 @@ func InvoiceFromInvoiceStandard(value InvoiceStandard) (Invoice, error) {
 	return result, nil
 }
 
-// Details about an available invoice action including the resulting state.
-type InvoiceAvailableActionDetails struct {
-	// The extended status the invoice will transition to after performing this action.
-	ResultingState string `json:"resulting_state"`
-}
-
-// The set of state-transition actions available for an invoice in its current
-// status.
-//
-// A field is present only when that action is permitted from the current state.
-type InvoiceAvailableActions struct {
-	// Advance the invoice to the next workflow step.
-	Advance *InvoiceAvailableActionDetails `json:"advance,omitempty"`
-	// Approve the invoice for issuance.
-	Approve *InvoiceAvailableActionDetails `json:"approve,omitempty"`
-	// Delete the invoice.
-	Delete *InvoiceAvailableActionDetails `json:"delete,omitempty"`
-	// Retry a failed workflow step.
-	Retry *InvoiceAvailableActionDetails `json:"retry,omitempty"`
-	// Snapshot the current usage quantities.
-	SnapshotQuantities *InvoiceAvailableActionDetails `json:"snapshot_quantities,omitempty"`
-}
-
 // Snapshot of the customer's information at the time the invoice was issued.
 type InvoiceCustomer struct {
 	// Display name of the resource.
@@ -189,14 +166,6 @@ func (value InvoiceDiscountReason) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// External identifiers assigned to an invoice by third-party systems.
-type InvoiceExternalReferences struct {
-	// The ID assigned by the external invoicing app (e.g. Stripe invoice ID).
-	InvoicingID *string `json:"invoicing_id,omitempty"`
-	// The ID assigned by the external payment app (e.g. Stripe payment intent ID).
-	PaymentID *string `json:"payment_id,omitempty"`
 }
 
 // A top-level line item on an invoice.
@@ -479,58 +448,6 @@ type InvoiceStandardLine struct {
 	Charge *ChargeReference `json:"charge,omitempty"`
 }
 
-// Lifecycle status of a standard invoice.
-type InvoiceStandardStatus string
-
-const (
-	InvoiceStandardStatusDraft             InvoiceStandardStatus = "draft"
-	InvoiceStandardStatusIssuing           InvoiceStandardStatus = "issuing"
-	InvoiceStandardStatusIssued            InvoiceStandardStatus = "issued"
-	InvoiceStandardStatusPaymentProcessing InvoiceStandardStatus = "payment_processing"
-	InvoiceStandardStatusOverdue           InvoiceStandardStatus = "overdue"
-	InvoiceStandardStatusPaid              InvoiceStandardStatus = "paid"
-	InvoiceStandardStatusUncollectible     InvoiceStandardStatus = "uncollectible"
-	InvoiceStandardStatusVoided            InvoiceStandardStatus = "voided"
-)
-
-func (value InvoiceStandardStatus) Valid() bool {
-	switch value {
-	case InvoiceStandardStatusDraft, InvoiceStandardStatusIssuing, InvoiceStandardStatusIssued, InvoiceStandardStatusPaymentProcessing, InvoiceStandardStatusOverdue, InvoiceStandardStatusPaid, InvoiceStandardStatusUncollectible, InvoiceStandardStatusVoided:
-		return true
-	default:
-		return false
-	}
-}
-
-// Detailed status information for a standard invoice.
-type InvoiceStatusDetails struct {
-	// Whether the invoice is immutable (i.e. cannot be modified or deleted).
-	Immutable bool `json:"immutable"`
-	// Whether the invoice is in a failed state.
-	Failed bool `json:"failed"`
-	// Fine-grained internal status string providing additional workflow detail beyond
-	// the top-level status enum.
-	ExtendedStatus string `json:"extended_status"`
-	// The set of state-transition actions currently available for this invoice.
-	AvailableActions InvoiceAvailableActions `json:"available_actions"`
-}
-
-// The type of a billing invoice.
-type InvoiceType string
-
-const (
-	InvoiceTypeStandard InvoiceType = "standard"
-)
-
-func (value InvoiceType) Valid() bool {
-	switch value {
-	case InvoiceTypeStandard:
-		return true
-	default:
-		return false
-	}
-}
-
 // Usage quantity details on an invoice line item when UnitConfig is in effect.
 //
 // Provides the full audit trail from raw meter output to the invoiced amount.
@@ -542,112 +459,6 @@ type InvoiceUsageQuantityDetail struct {
 	InvoicedQuantity Numeric `json:"invoiced_quantity"`
 	// The display unit label (e.g., "GB", "hours", "M tokens").
 	DisplayUnit *string `json:"display_unit,omitempty"`
-}
-
-// A validation issue found during invoice processing.
-//
-// Converges on the same structure used by plan and subscription validation errors:
-// a machine-readable `code`, a human-readable `message`, optional structured
-// `attributes`, plus a `severity` and optional `field` path.
-type InvoiceValidationIssue struct {
-	// Machine-readable error code.
-	Code string `json:"code"`
-	// Human-readable description of the error.
-	Message string `json:"message"`
-	// Additional structured context.
-	Attributes map[string]any `json:"attributes,omitempty"`
-	// Severity of the validation issue.
-	Severity InvoiceValidationIssueSeverity `json:"severity"`
-	// JSON path to the field that caused this validation issue, if applicable.
-	//
-	// For example: `lines/0/rate_card/price`.
-	Field *string `json:"field,omitempty"`
-}
-
-// Severity level of an invoice validation issue.
-type InvoiceValidationIssueSeverity string
-
-const (
-	InvoiceValidationIssueSeverityCritical InvoiceValidationIssueSeverity = "critical"
-	InvoiceValidationIssueSeverityWarning  InvoiceValidationIssueSeverity = "warning"
-)
-
-func (value InvoiceValidationIssueSeverity) Valid() bool {
-	switch value {
-	case InvoiceValidationIssueSeverityCritical, InvoiceValidationIssueSeverityWarning:
-		return true
-	default:
-		return false
-	}
-}
-
-// Invoice-level snapshot of the workflow configuration.
-//
-// Contains only the settings that are meaningful for an already-created invoice:
-// invoicing behaviour and payment settings. Collection alignment and tax policy
-// are gather-time / profile-wide concerns and are not included.
-type InvoiceWorkflow struct {
-	// Invoicing settings for this invoice.
-	Invoicing *InvoiceWorkflowInvoicingSettings `json:"invoicing,omitempty"`
-	// Payment settings for this invoice.
-	Payment *WorkflowPaymentSettings `json:"payment,omitempty"`
-}
-
-// BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps
-// used by a billing profile
-type InvoiceWorkflowAppsReferences struct {
-	// The tax app used for this workflow
-	Tax AppReference `json:"tax"`
-	// The invoicing app used for this workflow
-	Invoicing AppReference `json:"invoicing"`
-	// The payment app used for this workflow
-	Payment AppReference `json:"payment"`
-}
-
-// Invoice-level invoicing settings.
-//
-// A subset of BillingWorkflowInvoicingSettings limited to fields that are
-// meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
-// profile-level decision.
-type InvoiceWorkflowInvoicingSettings struct {
-	// Whether to automatically issue the invoice after the draft_period has passed.
-	AutoAdvance *bool `json:"auto_advance,omitempty"`
-	// The period for the invoice to be kept in draft status for manual reviews.
-	DraftPeriod *string `json:"draft_period,omitempty"`
-	// The period after which the invoice is considered overdue if not paid.
-	DueAfter *string `json:"due_after,omitempty"`
-}
-
-// Snapshot of the billing workflow configuration captured at invoice creation.
-type InvoiceWorkflowSettings struct {
-	// The apps that will be used to orchestrate the invoice's workflow.
-	Apps *InvoiceWorkflowAppsReferences `json:"apps,omitempty"`
-	// The billing profile that was the source of this workflow snapshot.
-	SourceBillingProfile ProfileReference `json:"source_billing_profile"`
-	// The workflow configuration that was active when the invoice was created.
-	//
-	// Only the fields that are meaningful at the per-invoice level are included:
-	// invoicing behaviour (auto-advance, draft period) and payment settings
-	// (collection method, due date). Profile-wide settings such as collection
-	// alignment, progressive billing, and tax policy are omitted.
-	Workflow InvoiceWorkflow `json:"workflow"`
-}
-
-// Snapshot of the supplier's information at the time the invoice was issued.
-//
-// Structurally a read-only subset of `BillingParty` (the type configured on the
-// billing profile), so the snapshot stays aligned with the source. `key` is
-// omitted because it is not part of the snapshotted supplier data.
-type Supplier struct {
-	// Legal name or representation of the party.
-	Name *string `json:"name,omitempty"`
-	// The entity's legal identification used for tax purposes. They may have other
-	// numbers, but we're only interested in those valid for tax purposes.
-	TaxID *PartyTaxIdentity `json:"tax_id,omitempty"`
-	// Address for where information should be sent if needed.
-	Addresses *PartyAddresses `json:"addresses,omitempty"`
-	// Unique identifier for the party.
-	ID *string `json:"id,omitempty"`
 }
 
 // Invoice-level snapshot of the workflow configuration.

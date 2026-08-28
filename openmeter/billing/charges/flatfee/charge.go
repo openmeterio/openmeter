@@ -119,6 +119,22 @@ type Charge struct {
 	Realizations Realizations `json:"realizations"`
 }
 
+// GetFeatureRef returns the charge's feature reference, or nil for the
+// feature-less flat fees. Charges with a persisted resolved feature snapshot
+// use it; the rest fall back to the immutable feature key from the base
+// intent.
+func (c Charge) GetFeatureRef() *ref.IDOrKey {
+	if c.State.FeatureID != nil && *c.State.FeatureID != "" {
+		return &ref.IDOrKey{ID: *c.State.FeatureID}
+	}
+
+	if key := c.Intent.GetFeatureKey(); key != "" {
+		return &ref.IDOrKey{Key: key}
+	}
+
+	return nil
+}
+
 func (c Charge) GetStatus() Status {
 	return c.Status
 }

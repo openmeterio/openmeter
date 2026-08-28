@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -34,6 +35,11 @@ type service struct {
 	taxCodeService        taxcode.Service
 	currencyResolver      currencies.CurrencyResolver
 
+	// customerService and subscriptionService side-load full entities for the
+	// customer-charge API facade's expands.
+	customerService     customer.Service
+	subscriptionService charges.SubscriptionService
+
 	fsNamespaceLockdown []string
 }
 
@@ -53,6 +59,9 @@ type Config struct {
 
 	TaxCodeService   taxcode.Service
 	CurrencyResolver currencies.CurrencyResolver
+
+	CustomerService     customer.Service
+	SubscriptionService charges.SubscriptionService
 
 	FSNamespaceLockdown []string
 }
@@ -104,6 +113,14 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("currency resolver cannot be null"))
 	}
 
+	if c.CustomerService == nil {
+		errs = append(errs, errors.New("customer service cannot be null"))
+	}
+
+	if c.SubscriptionService == nil {
+		errs = append(errs, errors.New("subscription service cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -132,6 +149,8 @@ func New(config Config) (*service, error) {
 		recognizerService:     config.RecognizerService,
 		taxCodeService:        config.TaxCodeService,
 		currencyResolver:      config.CurrencyResolver,
+		customerService:       config.CustomerService,
+		subscriptionService:   config.SubscriptionService,
 		fsNamespaceLockdown:   config.FSNamespaceLockdown,
 	}
 

@@ -258,6 +258,8 @@ func NewBillingRegistry(
 			taxCodeService,
 			currencyResolver,
 			currenciesService,
+			customerService,
+			subscriptionServices.Service,
 			fsConfig.NamespaceLockdown,
 			creditsConfig,
 			featureGate,

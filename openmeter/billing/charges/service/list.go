@@ -24,21 +24,25 @@ func (s *service) ListCharges(ctx context.Context, input charges.ListChargesInpu
 		return pagination.Result[charges.Charge]{}, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[charges.Charge], error) {
-		chargesWithTypes, err := s.adapter.ListCharges(ctx, input)
-		if err != nil {
-			return pagination.Result[charges.Charge]{}, err
-		}
-
-		expandedCharges, err := s.expandChargesWithTypes(ctx, input.Namespace, chargesWithTypes.Items, input.Expands)
-		if err != nil {
-			return pagination.Result[charges.Charge]{}, err
-		}
-
-		return pagination.Result[charges.Charge]{
-			Page:       chargesWithTypes.Page,
-			TotalCount: chargesWithTypes.TotalCount,
-			Items:      expandedCharges,
-		}, nil
+	// The type-specific loads run outside the search transaction: the realtime
+	// usage expand queries ClickHouse per charge, and a remote call must not pin
+	// a pooled Postgres connection. Read-committed gives no cross-query snapshot,
+	// so the transaction added no consistency either.
+	chargesWithTypes, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[charges.ChargeSearchItem], error) {
+		return s.adapter.ListCharges(ctx, input)
 	})
+	if err != nil {
+		return pagination.Result[charges.Charge]{}, err
+	}
+
+	expandedCharges, err := s.expandChargesWithTypes(ctx, input.Namespace, chargesWithTypes.Items, input.Expands)
+	if err != nil {
+		return pagination.Result[charges.Charge]{}, err
+	}
+
+	return pagination.Result[charges.Charge]{
+		Page:       chargesWithTypes.Page,
+		TotalCount: chargesWithTypes.TotalCount,
+		Items:      expandedCharges,
+	}, nil
 }

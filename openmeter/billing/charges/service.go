@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -143,9 +144,24 @@ type ListChargesInput struct {
 	CustomerIDs     []string
 	SubscriptionIDs []string
 	ChargeTypes     []meta.ChargeType
-	StatusIn        []meta.ChargeStatus
-	StatusNotIn     []meta.ChargeStatus
-	IncludeDeleted  bool
+	// Status filters on the charge status column; the API layer feeds it, while
+	// internal callers keep using the enum-typed StatusIn/StatusNotIn.
+	Status *filter.FilterString
+	// Deprecated: use Status instead.
+	StatusIn []meta.ChargeStatus
+	// Deprecated: use Status instead.
+	StatusNotIn []meta.ChargeStatus
+	// FeatureID and FeatureKey filter on the charge's feature reference;
+	// credit purchase charges carry no feature reference and never match.
+	FeatureID  *filter.FilterULID
+	FeatureKey *filter.FilterString
+	// ServicePeriodFrom and ServicePeriodTo filter on the charge's effective
+	// service period bounds independently. The v3 API restricts them to gte
+	// and lt respectively, so combined they express a half-open [from, to)
+	// window; the domain applies whatever operators are set.
+	ServicePeriodFrom *filter.FilterTime
+	ServicePeriodTo   *filter.FilterTime
+	IncludeDeleted    bool
 	// DeletedAtFilter selects which deleted-at field is used when IncludeDeleted is false.
 	// Empty defaults to effective charge deletion.
 	DeletedAtFilter ListChargesDeletedAtFilter
@@ -198,6 +214,42 @@ func (i ListChargesInput) Validate() error {
 
 	if len(i.StatusIn) > 0 && len(i.StatusNotIn) > 0 {
 		errs = append(errs, errors.New("status_in and status_not_in cannot be set at the same time"))
+	}
+
+	if i.Status != nil {
+		if err := i.Status.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("status filter: %w", err))
+		}
+	}
+
+	if i.FeatureID != nil {
+		if err := i.FeatureID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature id filter: %w", err))
+		}
+	}
+
+	if i.FeatureKey != nil {
+		if err := i.FeatureKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature key filter: %w", err))
+		}
+	}
+
+	// The service-period window is half-open, [from, to): the start filter
+	// supports only gte and the end filter only lt.
+	if i.ServicePeriodFrom != nil {
+		if err := i.ServicePeriodFrom.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service period from filter: %w", err))
+		} else if i.ServicePeriodFrom.Gte == nil {
+			errs = append(errs, errors.New("service period from filter supports only the gte operator"))
+		}
+	}
+
+	if i.ServicePeriodTo != nil {
+		if err := i.ServicePeriodTo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service period to filter: %w", err))
+		} else if i.ServicePeriodTo.Lt == nil {
+			errs = append(errs, errors.New("service period to filter supports only the lt operator"))
+		}
 	}
 
 	if err := i.DeletedAtFilter.Validate(); err != nil {
