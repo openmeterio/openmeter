@@ -44,6 +44,7 @@ func (s *CreditThenInvoiceTestSuite) mustListChargeWireOverHTTP(ns string, custo
 	handler := chargeshandler.New(
 		func(ctx context.Context) (string, error) { return ns, nil },
 		s.Charges,
+		true,
 	)
 
 	rec := httptest.NewRecorder()

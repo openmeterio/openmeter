@@ -226,59 +226,6 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 	}
 }
 
-func TestFromAPIChargeBillingPrice(t *testing.T) {
-	newUnionPrice := func(t *testing.T, set func(*api.BillingPrice) error) api.BillingPrice {
-		t.Helper()
-
-		var p api.BillingPrice
-		require.NoError(t, set(&p))
-		return p
-	}
-
-	t.Run("unit price maps to a domain unit price", func(t *testing.T) {
-		price := newUnionPrice(t, func(p *api.BillingPrice) error {
-			return p.FromBillingPriceUnit(api.BillingPriceUnit{
-				Type:   api.BillingPriceUnitTypeUnit,
-				Amount: "2.5",
-			})
-		})
-
-		got, err := fromAPIChargeBillingPrice(price)
-		require.NoError(t, err)
-		require.NotNil(t, got)
-		require.Equal(t, productcatalog.UnitPriceType, got.Type())
-
-		unit, err := got.AsUnit()
-		require.NoError(t, err)
-		require.Equal(t, 2.5, unit.Amount.InexactFloat64())
-	})
-
-	t.Run("flat price maps to a domain flat price", func(t *testing.T) {
-		price := newUnionPrice(t, func(p *api.BillingPrice) error {
-			return p.FromBillingPriceFlat(api.BillingPriceFlat{
-				Type:   api.BillingPriceFlatTypeFlat,
-				Amount: "10",
-			})
-		})
-
-		got, err := fromAPIChargeBillingPrice(price)
-		require.NoError(t, err)
-		require.NotNil(t, got)
-		require.Equal(t, productcatalog.FlatPriceType, got.Type())
-	})
-
-	t.Run("free price is rejected", func(t *testing.T) {
-		price := newUnionPrice(t, func(p *api.BillingPrice) error {
-			return p.FromBillingPriceFree(api.BillingPriceFree{
-				Type: api.BillingPriceFreeTypeFree,
-			})
-		})
-
-		_, err := fromAPIChargeBillingPrice(price)
-		require.ErrorContains(t, err, "free price")
-	})
-}
-
 func TestToAPIBillingChargeUsageBasedSystemIntentMapsLegacyDynamicPrice(t *testing.T) {
 	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
 	period := timeutil.ClosedPeriod{
@@ -346,40 +293,41 @@ func TestConvertUsageBasedChargeToAPIMapsLegacyPackagePrice(t *testing.T) {
 	}
 	maximumAmount := decimal.NewFromInt(100)
 
-	charge := usagebased.Charge{
-		ChargeBase: usagebased.ChargeBase{
-			ManagedResource: meta.ManagedResource{ID: "charge-id"},
-			Status:          usagebased.StatusCreated,
-			State:           usagebased.State{FeatureID: "feature-id"},
-			Intent: usagebased.NewOverridableIntent(usagebased.Intent{
-				Intent: meta.Intent{
-					ManagedBy:  billing.SubscriptionManagedLine,
-					CustomerID: "customer-id",
-					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
-				},
-				IntentMutableFields: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "package charge",
-						ServicePeriod:     period,
-						FullServicePeriod: period,
-						BillingPeriod:     period,
+	charge := billingcharges.CustomerCharge{
+		Charge: billingcharges.NewCharge(usagebased.Charge{
+			ChargeBase: usagebased.ChargeBase{
+				ManagedResource: meta.ManagedResource{ID: "charge-id"},
+				Status:          usagebased.StatusCreated,
+				State:           usagebased.State{FeatureID: "feature-id"},
+				Intent: usagebased.NewOverridableIntent(usagebased.Intent{
+					Intent: meta.Intent{
+						ManagedBy:  billing.SubscriptionManagedLine,
+						CustomerID: "customer-id",
+						Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 					},
-					InvoiceAt: now,
-					Price: *productcatalog.NewPriceFrom(productcatalog.PackagePrice{
-						Amount:             decimal.NewFromInt(10),
-						QuantityPerPackage: decimal.NewFromInt(1000),
-						Commitments: productcatalog.Commitments{
-							MaximumAmount: &maximumAmount,
+					IntentMutableFields: usagebased.IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "package charge",
+							ServicePeriod:     period,
+							FullServicePeriod: period,
+							BillingPeriod:     period,
 						},
-					}),
-				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				FeatureKey:     "feature-key",
-			}, nil),
-		},
+						InvoiceAt: now,
+						Price: *productcatalog.NewPriceFrom(productcatalog.PackagePrice{
+							Amount:             decimal.NewFromInt(10),
+							QuantityPerPackage: decimal.NewFromInt(1000),
+							Commitments: productcatalog.Commitments{
+								MaximumAmount: &maximumAmount,
+							},
+						}),
+					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					FeatureKey:     "feature-key",
+				}, nil),
+			},
+		}),
 	}
-
-	result, err := convertUsageBasedChargeToAPI(charge)
+	result, err := convertUsageBasedChargeToAPI(charge, meta.ExpandNone)
 	require.NoError(t, err)
 
 	price, err := result.Price.AsBillingPriceUnit()
@@ -446,8 +394,10 @@ func TestFromAPICreateChargeUsageBasedRequestMapsRatingConfiguration(t *testing.
 			MaximumAmount: lo.ToPtr(api.Numeric("50")),
 			MinimumAmount: lo.ToPtr(api.Numeric("5")),
 		},
-		Currency:       api.CurrencyCode("USD"),
-		FeatureId:      "feature-id",
+		Currency: api.CurrencyCode("USD"),
+		Feature: api.FeatureReference{
+			Id: "feature-id",
+		},
 		InvoiceAt:      now,
 		Name:           "usage charge",
 		Price:          price,
