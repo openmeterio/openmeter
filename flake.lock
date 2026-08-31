@@ -367,6 +367,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-node": {
+      "locked": {
+        "lastModified": 1787844123,
+        "narHash": "sha256-Kec21Rc+GlaVM3YjuNbuJVcOa7a9RvaNx19XbkFn/AQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "04a1d3aa7f0c1ef4fd84974b757ba4c279747642",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "04a1d3aa7f0c1ef4fd84974b757ba4c279747642",
+        "type": "github"
+      }
+    },
     "nixpkgs-src": {
       "flake": false,
       "locked": {
@@ -402,11 +418,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1787631388,
-        "narHash": "sha256-vMiXptXarfSdJb1Gkc+FYVOAibuBRj7qxGa8z68q1Uw=",
+        "lastModified": 1787964612,
+        "narHash": "sha256-0N9nghg3nwzX6b6qc77EzjR9cu/Z+UR66FlfsCqiURs=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ac6b2166e7a9375683b8e98f860f273222337b16",
+        "rev": "e8be7818e19ada32105a8af937a6a473b38167ca",
         "type": "github"
       },
       "original": {
@@ -423,6 +439,7 @@
         "git-hooks": "git-hooks_2",
         "llm-agents": "llm-agents",
         "nixpkgs": "nixpkgs_3",
+        "nixpkgs-node": "nixpkgs-node",
         "pre-commit-hooks": [
           "git-hooks"
         ]
