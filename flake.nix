@@ -152,20 +152,30 @@
             ];
 
             env = {
-              # Go's action cache identifies the linker by its reported Go version, which is
-              # unchanged when Nix rebuilds that version against a different libc. Include the
-              # complete Go store-path basename so those linker generations cannot share results.
+              # Go's action cache does not include Nix store identities in its linker key. Include
+              # both the complete Go output and runtime-loader store basenames so neither a Go
+              # rebuild nor a stdenv/glibc update can reuse link results from another generation.
               GOCACHE =
                 let
                   goToolchainID = builtins.baseNameOf (toString config.devenv.shells.default.languages.go.package);
+                  runtimeLinkerID =
+                    if pkgs.stdenv.hostPlatform.isLinux then
+                      builtins.elemAt (builtins.match "/nix/store/([^/]+)/.*" pkgs.stdenv.cc.bintools.dynamicLinker) 0
+                    else
+                      "native";
                 in
-                "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache/${goToolchainID}";
+                "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache/${goToolchainID}/${runtimeLinkerID}";
               KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
               KIND_CLUSTER_NAME = "openmeter";
 
               HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
               HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
               HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
+            } // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+              # Nixpkgs patches Go's internal linker to honor GO_LDSO, but the fallback baked into
+              # the Go package can lag behind the active stdenv. Always link against this shell's
+              # declared loader instead of retaining that stale build-time path.
+              GO_LDSO = pkgs.stdenv.cc.bintools.dynamicLinker;
             };
 
             enterShell = ''

@@ -38,12 +38,20 @@ jobs:
 
           GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
             runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
+            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
+            go env -json GOCACHE GOROOT GOTOOLDIR
+            printf 'GO_LDSO=%s\n' "${GO_LDSO:-<unset>}"
+
+            if [[ "${GO_LDSO:-}" != "${expected_interpreter}" ]]; then
+              echo "GO_LDSO uses ${GO_LDSO:-<unset>}; expected ${expected_interpreter}"
+              exit 1
+            fi
+
             go -C api/v3/client test -c -o "${runtime_probe}" .
 
             # A cached Go link action can retain the loader from an older Nixpkgs
             # generation. Never publish a cache containing such an executable.
             interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
-            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
             if [[ "${interpreter}" != "${expected_interpreter}" ]]; then
               echo "Go runtime probe uses ${interpreter:-<none>}; expected ${expected_interpreter}"
               exit 1
@@ -179,7 +187,7 @@ jobs:
           TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
         run: |
           mkdir -p "${GOTMPDIR}" "${TMPDIR}"
-          # GOCACHE deliberately comes from the Nix shell: flake.nix namespaces
-          # it by the complete Go store path so restoring cannot cross generations.
+          # GOCACHE deliberately comes from the Nix shell: flake.nix namespaces it
+          # by the complete Go and runtime-loader store identities.
           nix develop --impure .#ci -c make patch-oapi-templates
           nix develop --impure .#ci -c go generate ./...
