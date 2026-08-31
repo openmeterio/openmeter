@@ -9,6 +9,7 @@ permissions:
 jobs:
   publish:
     name: Publish isolated Nix cache
+    if: github.event.action == 'opened'
     runs-on: depot-ubuntu-latest-4
 
     steps:
@@ -39,7 +40,6 @@ jobs:
 
   restore-and-generate:
     name: Restore isolated Nix cache and run Go generate
-    needs: publish
     runs-on: depot-ubuntu-latest-8
 
     steps:
@@ -60,12 +60,16 @@ jobs:
       - name: Restore isolated Nix store cache
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-reproduction-${{ github.run_id }}-${{ github.run_attempt }}-${{ hashFiles('flake.*') }}
+          primary-key: Linux-openmeter-nix-reproduction-33407613225-1-7c539a65ada552b3e146c5696cb3f89a1908a3b92b1d192f21bbe19b587f2780
           fail-on: primary-key.not-restored
           save: "false"
 
       - name: Probe dynamically linked Go executable
+        env:
+          GOTMPDIR: ${{ github.workspace }}/.cache-diagnostics/go-tmp
+          TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
         run: |
+          mkdir -p "${GOTMPDIR}" "${TMPDIR}"
           nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
             probe_source="$(mktemp --suffix=.go)"
             probe_binary="$(mktemp)"
@@ -80,5 +84,63 @@ jobs:
             "${probe_binary}"
           EOF
 
+      - name: Inspect representative Go binaries
+        env:
+          GOTMPDIR: ${{ github.workspace }}/.cache-diagnostics/go-tmp
+          TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
+        run: |
+          mkdir -p "${GOTMPDIR}" "${TMPDIR}"
+          nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+            inspect_binary() {
+              local label="$1"
+              local binary="$2"
+              shift 2
+
+              echo "::group::${label}"
+              file "${binary}"
+              go version -m "${binary}" || true
+
+              local interpreter
+              interpreter="$(readelf -l "${binary}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
+              printf 'interpreter=%s\n' "${interpreter:-<none>}"
+
+              if [ -n "${interpreter}" ]; then
+                ls -la "${interpreter}" || true
+
+                local store_name="${interpreter#/nix/store/}"
+                local store_path="/nix/store/${store_name%%/*}"
+                nix-store --verify-path "${store_path}" || true
+              fi
+
+              set +e
+              "${binary}" "$@"
+              local exit_code=$?
+              set -e
+              printf 'exit_code=%s\n' "${exit_code}"
+              echo "::endgroup::"
+
+              return "${exit_code}"
+            }
+
+            go env GOOS GOARCH GOFLAGS CGO_ENABLED CC CXX
+
+            client_test="$(mktemp)"
+            go -C api/v3/client test -c -o "${client_test}" .
+            inspect_binary "Go SDK test binary" "${client_test}" -test.run '^$' || true
+
+            oapi_codegen="$(mktemp)"
+            go build -o "${oapi_codegen}" github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
+            inspect_binary "oapi-codegen" "${oapi_codegen}" -version || true
+
+            entc="$(mktemp)"
+            go build -o "${entc}" ./openmeter/ent/entc.go
+            inspect_binary "entc" "${entc}" -h || true
+          EOF
+
       - name: Run Go generators
-        run: nix develop --impure .#ci -c go generate ./...
+        env:
+          GOTMPDIR: ${{ github.workspace }}/.cache-diagnostics/go-tmp
+          TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
+        run: |
+          mkdir -p "${GOTMPDIR}" "${TMPDIR}"
+          nix develop --impure .#ci -c go generate ./...
