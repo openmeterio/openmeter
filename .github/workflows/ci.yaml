@@ -17,7 +17,7 @@ concurrency:
 jobs:
   cache-rebuild:
     name: Select or rebuild Nix cache
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-latest-16
     outputs:
       cache-key: ${{ steps.cache-key.outputs.cache-key }}
 
@@ -118,6 +118,10 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Nix defaults to one local build at a time. Balance independent
+            # builds with per-build parallelism across this 16-vCPU runner.
+            max-jobs = 8
+            cores = 2
 
       - name: Build nix environment
         if: steps.cache-key.outputs.rebuild == 'true'
@@ -217,6 +221,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -293,6 +300,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -407,6 +417,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -470,6 +483,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 2
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -512,6 +528,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -587,6 +606,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -632,6 +654,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -840,6 +865,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
@@ -960,6 +988,9 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
       - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
