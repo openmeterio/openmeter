@@ -185,7 +185,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 
 	templateCodes := make([]string, 0, len(corrections.Items))
 	for _, transaction := range corrections.Items {
-		require.True(t, run.ServicePeriodTo.Equal(transaction.BookedAt()), "expected %s, got %s", run.ServicePeriodTo, transaction.BookedAt())
+		requireLedgerBookedAtEqual(t, run.ServicePeriodTo, transaction.BookedAt())
 		templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)

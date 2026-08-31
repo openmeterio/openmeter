@@ -184,7 +184,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 	bookedAt := flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod)
 	templateCodes := make([]string, 0, len(corrections.Items))
 	for _, transaction := range corrections.Items {
-		require.True(t, bookedAt.Equal(transaction.BookedAt()), "expected %s, got %s", bookedAt, transaction.BookedAt())
+		requireLedgerBookedAtEqual(t, bookedAt, transaction.BookedAt())
 		templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)
