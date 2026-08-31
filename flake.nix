@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-node.url = "github:NixOS/nixpkgs/04a1d3aa7f0c1ef4fd84974b757ba4c279747642";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
     git-hooks.url = "github:cachix/git-hooks.nix";
@@ -56,7 +57,7 @@
 
               javascript = {
                 enable = true;
-                package = pkgs.nodejs-slim_26;
+                package = inputs'.nixpkgs-node.legacyPackages.nodejs-slim_26;
                 pnpm = {
                   enable = true;
                 };
