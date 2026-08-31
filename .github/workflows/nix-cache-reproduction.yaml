@@ -145,10 +145,11 @@ jobs:
 
       - name: Run Go generators
         env:
+          GOCACHE: ${{ github.workspace }}/.cache-diagnostics/fixed-go-cache
           GOTMPDIR: ${{ github.workspace }}/.cache-diagnostics/go-tmp
           TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
         run: |
-          mkdir -p "${GOTMPDIR}" "${TMPDIR}"
+          mkdir -p "${GOCACHE}" "${GOTMPDIR}" "${TMPDIR}"
           nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
             export GO_LDSO="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
             printf 'GO_LDSO override=%s\n' "${GO_LDSO}"
