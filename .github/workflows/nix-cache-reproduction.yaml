@@ -1,0 +1,84 @@
+name: Nix Cache Reproduction
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish isolated Nix cache
+    runs-on: depot-ubuntu-latest-4
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Build Nix environment
+        run: |
+          nix flake check --impure
+          nix develop --impure .#ci
+
+      - name: Save isolated Nix store cache
+        uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-reproduction-${{ github.run_id }}-${{ github.run_attempt }}-${{ hashFiles('flake.*') }}
+          save: "true"
+
+  restore-and-generate:
+    name: Restore isolated Nix cache and run Go generate
+    needs: publish
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore isolated Nix store cache
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-reproduction-${{ github.run_id }}-${{ github.run_attempt }}-${{ hashFiles('flake.*') }}
+          fail-on: primary-key.not-restored
+          save: "false"
+
+      - name: Probe dynamically linked Go executable
+        run: |
+          nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+            probe_source="$(mktemp --suffix=.go)"
+            probe_binary="$(mktemp)"
+            printf "%s\n" \
+              "package main" \
+              "/* #include <stdlib.h> */" \
+              "import \"C\"" \
+              "func main() {}" > "${probe_source}"
+            go build -o "${probe_binary}" "${probe_source}"
+            file "${probe_binary}"
+            readelf -l "${probe_binary}" | grep "Requesting program interpreter"
+            "${probe_binary}"
+          EOF
+
+      - name: Run Go generators
+        run: nix develop --impure .#ci -c go generate ./...
