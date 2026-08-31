@@ -73,7 +73,7 @@ jobs:
           path: ~/go/pkg/mod
           key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
 
-      - name: Realize Go runtime loader
+      - name: Verify Go runtime loader
         run: |
           runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
           mkdir -p "${runtime_dir}/go-tmp"
@@ -82,17 +82,14 @@ jobs:
             runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
             go -C api/v3/client test -c -o "${runtime_probe}" .
 
+            # A cached Go link action can retain the loader from an older Nixpkgs
+            # generation. Never publish a cache containing such an executable.
             interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
-            if [[ "${interpreter}" != /nix/store/* ]]; then
-              echo "Go runtime probe has an unexpected interpreter: ${interpreter:-<none>}"
+            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
+            if [[ "${interpreter}" != "${expected_interpreter}" ]]; then
+              echo "Go runtime probe uses ${interpreter:-<none>}; expected ${expected_interpreter}"
               exit 1
             fi
-
-            store_name="${interpreter#/nix/store/}"
-            store_path="/nix/store/${store_name%%/*}"
-            nix-store --realise "${store_path}" \
-              --add-root "${RUNNER_TEMP}/openmeter-go-runtime/loader-root" \
-              --indirect
 
             "${runtime_probe}" -test.run '^$'
           EOF
@@ -132,11 +129,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -209,11 +205,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -324,11 +319,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -388,11 +382,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Run Go SDK checks
         run: nix develop --impure .#ci -c make test-go-sdk
@@ -431,11 +424,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Upsert Nix store
         run: nix develop --impure .#ci
@@ -507,11 +499,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -553,11 +544,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Upsert Nix store
         run: nix develop --impure .#ci
@@ -571,17 +561,19 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-
 
       # PR merge commits change on every update, so use the target commit to
-      # keep unchanged package analysis reusable across the pull request.
+      # keep unchanged package analysis reusable across the pull request. Keep
+      # the complete flake hash in every fallback because this cache also holds
+      # Go linker results whose embedded Nix store paths are toolchain-specific.
       - name: Go lint caches
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .devenv/golangci-lint-cache
             .devenv/state/go/build-cache
-          key: ${{ runner.os }}-openmeter-go-lint-${{ github.event.pull_request.base.sha || github.sha }}-${{ hashFiles('flake.*', '.golangci*.yaml', 'go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          key: ${{ runner.os }}-openmeter-go-lint-${{ hashFiles('flake.*') }}-${{ github.event.pull_request.base.sha || github.sha }}-${{ hashFiles('.golangci*.yaml', 'go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-lint-${{ github.event.pull_request.base.sha || github.sha }}-
-            ${{ runner.os }}-openmeter-go-lint-
+            ${{ runner.os }}-openmeter-go-lint-${{ hashFiles('flake.*') }}-${{ github.event.pull_request.base.sha || github.sha }}-
+            ${{ runner.os }}-openmeter-go-lint-${{ hashFiles('flake.*') }}-
 
       - name: Run linters - go
         env:
@@ -760,11 +752,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -881,11 +872,10 @@ jobs:
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          # Cached Go-linked outputs can retain Nix store paths from their producer.
+          # Only fall back to main when the complete flake generation is identical.
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
             ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-v2-main-
-            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

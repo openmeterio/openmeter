@@ -152,7 +152,14 @@
             ];
 
             env = {
-              GOCACHE = "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache";
+              # Go's action cache identifies the linker by its reported Go version, which is
+              # unchanged when Nix rebuilds that version against a different libc. Include the
+              # complete Go store-path basename so those linker generations cannot share results.
+              GOCACHE =
+                let
+                  goToolchainID = builtins.baseNameOf (toString config.devenv.shells.default.languages.go.package);
+                in
+                "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache/${goToolchainID}";
               KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
               KIND_CLUSTER_NAME = "openmeter";
 

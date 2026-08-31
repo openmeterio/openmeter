@@ -31,7 +31,7 @@ jobs:
           nix flake check --impure
           nix develop --impure .#ci
 
-      - name: Realize Go runtime loader
+      - name: Verify Go runtime loader
         run: |
           runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
           mkdir -p "${runtime_dir}/go-tmp"
@@ -40,17 +40,14 @@ jobs:
             runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
             go -C api/v3/client test -c -o "${runtime_probe}" .
 
+            # A cached Go link action can retain the loader from an older Nixpkgs
+            # generation. Never publish a cache containing such an executable.
             interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
-            if [[ "${interpreter}" != /nix/store/* ]]; then
-              echo "Go runtime probe has an unexpected interpreter: ${interpreter:-<none>}"
+            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
+            if [[ "${interpreter}" != "${expected_interpreter}" ]]; then
+              echo "Go runtime probe uses ${interpreter:-<none>}; expected ${expected_interpreter}"
               exit 1
             fi
-
-            store_name="${interpreter#/nix/store/}"
-            store_path="/nix/store/${store_name%%/*}"
-            nix-store --realise "${store_path}" \
-              --add-root "${RUNNER_TEMP}/openmeter-go-runtime/loader-root" \
-              --indirect
 
             "${runtime_probe}" -test.run '^$'
           EOF
@@ -115,6 +112,8 @@ jobs:
         run: |
           mkdir -p "${GOTMPDIR}" "${TMPDIR}"
           nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
+
             inspect_binary() {
               local label="$1"
               local binary="$2"
@@ -129,6 +128,13 @@ jobs:
               printf 'interpreter=%s\n' "${interpreter:-<none>}"
 
               if [ -n "${interpreter}" ]; then
+                # Fail on stale link results even if their old loader happens to
+                # be present in the restored Nix store and the binary can run.
+                if [ "${interpreter}" != "${expected_interpreter}" ]; then
+                  echo "${label} uses ${interpreter}; expected ${expected_interpreter}"
+                  exit 1
+                fi
+
                 ls -la "${interpreter}" || true
 
                 local store_name="${interpreter#/nix/store/}"
@@ -146,7 +152,7 @@ jobs:
               return "${exit_code}"
             }
 
-            go env GOOS GOARCH GOFLAGS CGO_ENABLED CC CXX
+            go env GOOS GOARCH GOFLAGS CGO_ENABLED CC CXX GOCACHE
             printf 'GO_LDSO=%s\n' "${GO_LDSO:-<unset>}"
             printf 'NIX_CC=%s\n' "${NIX_CC:-<unset>}"
             if [ -r "${NIX_CC}/nix-support/dynamic-linker" ]; then
@@ -169,10 +175,11 @@ jobs:
 
       - name: Run Go generators
         env:
-          GOCACHE: ${{ github.workspace }}/.cache-diagnostics/fixed-go-cache
           GOTMPDIR: ${{ github.workspace }}/.cache-diagnostics/go-tmp
           TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
         run: |
-          mkdir -p "${GOCACHE}" "${GOTMPDIR}" "${TMPDIR}"
+          mkdir -p "${GOTMPDIR}" "${TMPDIR}"
+          # GOCACHE deliberately comes from the Nix shell: flake.nix namespaces
+          # it by the complete Go store path so restoring cannot cross generations.
           nix develop --impure .#ci -c make patch-oapi-templates
           nix develop --impure .#ci -c go generate ./...
