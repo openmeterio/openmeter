@@ -151,7 +151,15 @@ jobs:
         run: |
           mkdir -p "${GOCACHE}" "${GOTMPDIR}" "${TMPDIR}"
           nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
-            export GO_LDSO="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
-            printf 'GO_LDSO override=%s\n' "${GO_LDSO}"
+            runtime_probe="${TMPDIR}/go-runtime-probe"
+            go -C api/v3/client test -c -o "${runtime_probe}" .
+
+            interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
+            store_name="${interpreter#/nix/store/}"
+            store_path="/nix/store/${store_name%%/*}"
+            printf 'realizing Go interpreter store path=%s\n' "${store_path}"
+            nix-store --realise "${store_path}"
+
+            "${runtime_probe}" -test.run '^$'
             go generate ./...
           EOF
