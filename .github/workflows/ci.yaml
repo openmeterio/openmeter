@@ -189,7 +189,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Restore Go module cache
@@ -266,7 +265,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Restore Go module cache
@@ -381,7 +379,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Restore Go module cache
@@ -445,7 +442,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Run Go SDK checks
@@ -488,7 +484,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Upsert Nix store
@@ -564,7 +559,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Restore Go module cache
@@ -610,7 +604,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Upsert Nix store
@@ -819,7 +812,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Restore Go module cache
@@ -940,7 +932,6 @@ jobs:
           # The cache gate either selected main's exact input-addressed cache or
           # published this PR's environment under a unique key.
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          fail-on: primary-key.not-restored
           save: "false"
 
       - name: Restore Go module cache
