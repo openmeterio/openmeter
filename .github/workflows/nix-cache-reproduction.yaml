@@ -123,6 +123,12 @@ jobs:
             }
 
             go env GOOS GOARCH GOFLAGS CGO_ENABLED CC CXX
+            printf 'GO_LDSO=%s\n' "${GO_LDSO:-<unset>}"
+            printf 'NIX_CC=%s\n' "${NIX_CC:-<unset>}"
+            if [ -r "${NIX_CC}/nix-support/dynamic-linker" ]; then
+              printf 'active_dynamic_linker='
+              cat "${NIX_CC}/nix-support/dynamic-linker"
+            fi
 
             client_test="$(mktemp)"
             go -C api/v3/client test -c -o "${client_test}" .
@@ -143,4 +149,8 @@ jobs:
           TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
         run: |
           mkdir -p "${GOTMPDIR}" "${TMPDIR}"
-          nix develop --impure .#ci -c go generate ./...
+          nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+            export GO_LDSO="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
+            printf 'GO_LDSO override=%s\n' "${GO_LDSO}"
+            go generate ./...
+          EOF
