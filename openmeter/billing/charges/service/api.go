@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -12,23 +15,28 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
-func (s *service) CreateCustomerCharge(ctx context.Context, input charges.CreateCustomerChargeInput) (charges.Charge, error) {
+func (s *service) CreateCustomerCharge(ctx context.Context, input charges.CreateCustomerChargeInput) (charges.CustomerCharge, error) {
 	if err := input.Validate(); err != nil {
-		return charges.Charge{}, err
+		return charges.CustomerCharge{}, err
 	}
 
 	currency, err := s.currencyResolver.ResolveCurrency(ctx, input.Namespace, currencies.CurrencyRef{
 		Code: input.CurrencyCode,
 	})
 	if err != nil {
-		return charges.Charge{}, fmt.Errorf("resolving currency: %w", err)
+		return charges.CustomerCharge{}, fmt.Errorf("resolving currency: %w", err)
 	}
 
 	if currency.IsCustom() {
-		return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
+		return charges.CustomerCharge{}, models.NewGenericValidationError(fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
 	intent := meta.Intent{
@@ -62,14 +70,17 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		Intents:   charges.ChargeIntents{chargeIntent},
 	})
 	if err != nil {
-		return charges.Charge{}, err
+		return charges.CustomerCharge{}, err
 	}
 
 	if len(created) != 1 {
-		return charges.Charge{}, fmt.Errorf("expected one created charge, got %d", len(created))
+		return charges.CustomerCharge{}, fmt.Errorf("expected one created charge, got %d", len(created))
 	}
 
-	return created[0], nil
+	// The API response includes the realization view (the whole service period
+	// is outstanding on a fresh charge), so it is built here just like on the
+	// list path. No expands apply on the create path.
+	return buildCustomerCharge(created[0], customerChargeEntities{})
 }
 
 func (s *service) DeleteCustomerCharge(ctx context.Context, input charges.DeleteCustomerChargeInput) error {
@@ -239,4 +250,361 @@ func (s *service) ClearCustomerChargeOverride(ctx context.Context, input charges
 	}
 
 	return s.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+}
+
+func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCustomerChargesInput) (charges.ListCustomerChargesResult, error) {
+	if err := input.Validate(); err != nil {
+		return charges.ListCustomerChargesResult{}, err
+	}
+
+	listInput := input.ListChargesInput
+	// Realization runs always load: booked totals and the resolved realization
+	// view depend on them. Deleted runs load too, so voided history surfaces
+	// as audit entries.
+	listInput.Expands = listInput.Expands.
+		With(meta.ExpandRealizations).
+		With(meta.ExpandDeletedRealizations)
+
+	listed, err := s.ListCharges(ctx, listInput)
+	if err != nil {
+		return charges.ListCustomerChargesResult{}, err
+	}
+
+	refs, err := collectCustomerChargeReferences(listed.Items)
+	if err != nil {
+		return charges.ListCustomerChargesResult{}, err
+	}
+
+	entities, err := s.loadCustomerChargeEntities(ctx, input.Namespace, input.CustomerIDs[0], refs, listInput.Expands)
+	if err != nil {
+		return charges.ListCustomerChargesResult{}, err
+	}
+
+	customerCharges, err := lo.MapErr(listed.Items, func(charge charges.Charge, _ int) (charges.CustomerCharge, error) {
+		return buildCustomerCharge(charge, entities)
+	})
+	if err != nil {
+		return charges.ListCustomerChargesResult{}, err
+	}
+
+	return charges.ListCustomerChargesResult{
+		Charges: pagination.Result[charges.CustomerCharge]{
+			Page:       listed.Page,
+			TotalCount: listed.TotalCount,
+			Items:      customerCharges,
+		},
+		Expands: listInput.Expands,
+	}, nil
+}
+
+// buildCustomerCharge assembles the API-facing CustomerCharge from the
+// domain charge, the entities loaded for the applied expands, and the
+// resolved realization history of its type. Credit purchase charges only
+// receive the customer.
+func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities) (charges.CustomerCharge, error) {
+	out := charges.CustomerCharge{
+		Charge: charge,
+		// The listing is scoped to a single customer, so every charge on the
+		// page shares the one loaded customer (nil without the expand).
+		Customer: entities.customer,
+	}
+
+	switch charge.Type() {
+	case meta.ChargeTypeUsageBased:
+		ub, err := charge.AsUsageBasedCharge()
+		if err != nil {
+			return charges.CustomerCharge{}, err
+		}
+
+		resolved, err := resolveUsageBasedRealizations(ub, entities.invoiceLinesByID)
+		if err != nil {
+			return charges.CustomerCharge{}, fmt.Errorf("charge %s: resolving realizations: %w", ub.ID, err)
+		}
+
+		out.UsageBasedRealizations = resolved
+
+		if feat, ok := entities.featuresByRef[ub.GetFeatureKeyOrID()]; ok {
+			out.Feature = &feat
+		}
+
+		if sub := ub.Intent.GetSubscription(); sub != nil {
+			if subEntity, ok := entities.subscriptionsByID[sub.SubscriptionID]; ok {
+				out.Subscription = &subEntity
+			}
+		}
+	case meta.ChargeTypeFlatFee:
+		ff, err := charge.AsFlatFeeCharge()
+		if err != nil {
+			return charges.CustomerCharge{}, err
+		}
+
+		resolved, err := resolveFlatFeeRealizations(ff, entities.invoiceLinesByID)
+		if err != nil {
+			return charges.CustomerCharge{}, fmt.Errorf("charge %s: resolving realizations: %w", ff.ID, err)
+		}
+
+		out.FlatFeeRealizations = resolved
+
+		if featureRef := ff.GetFeatureRef(); featureRef != nil {
+			if feat, ok := entities.featuresByRef[*featureRef]; ok {
+				out.Feature = &feat
+			}
+		}
+
+		if sub := ff.Intent.GetSubscription(); sub != nil {
+			if subEntity, ok := entities.subscriptionsByID[sub.SubscriptionID]; ok {
+				out.Subscription = &subEntity
+			}
+		}
+	}
+
+	return out, nil
+}
+
+// customerChargeReferences collects the entity references a page of charges
+// points at, so the facade bulk-loads each kind once.
+type customerChargeReferences struct {
+	featureRefs     []ref.IDOrKey
+	subscriptionIDs []string
+	invoiceIDs      []string
+}
+
+func collectCustomerChargeReferences(items charges.Charges) (customerChargeReferences, error) {
+	out := customerChargeReferences{}
+
+	for _, item := range items {
+		switch item.Type() {
+		case meta.ChargeTypeUsageBased:
+			ub, err := item.AsUsageBasedCharge()
+			if err != nil {
+				return customerChargeReferences{}, err
+			}
+
+			if featureRef := ub.GetFeatureKeyOrID(); featureRef != (ref.IDOrKey{}) {
+				out.featureRefs = append(out.featureRefs, featureRef)
+			}
+
+			if sub := ub.Intent.GetSubscription(); sub != nil {
+				out.subscriptionIDs = append(out.subscriptionIDs, sub.SubscriptionID)
+			}
+
+			for _, run := range ub.Realizations {
+				if run.InvoiceID != nil {
+					out.invoiceIDs = append(out.invoiceIDs, *run.InvoiceID)
+				}
+			}
+		case meta.ChargeTypeFlatFee:
+			ff, err := item.AsFlatFeeCharge()
+			if err != nil {
+				return customerChargeReferences{}, err
+			}
+
+			if featureRef := ff.GetFeatureRef(); featureRef != nil {
+				out.featureRefs = append(out.featureRefs, *featureRef)
+			}
+
+			if sub := ff.Intent.GetSubscription(); sub != nil {
+				out.subscriptionIDs = append(out.subscriptionIDs, sub.SubscriptionID)
+			}
+
+			runs := ff.Realizations.PriorRuns
+			if ff.Realizations.CurrentRun != nil {
+				runs = append(slices.Clone(runs), *ff.Realizations.CurrentRun)
+			}
+			for _, run := range runs {
+				if run.InvoiceID != nil {
+					out.invoiceIDs = append(out.invoiceIDs, *run.InvoiceID)
+				}
+			}
+		}
+	}
+
+	out.featureRefs = lo.Uniq(out.featureRefs)
+	out.subscriptionIDs = lo.Uniq(out.subscriptionIDs)
+	out.invoiceIDs = lo.Uniq(out.invoiceIDs)
+
+	return out, nil
+}
+
+// customerChargeEntities holds the entities loaded for the applied expands;
+// members of unapplied expands stay nil or empty. The listing is scoped to
+// one customer, so the customer is a single entity rather than a map.
+type customerChargeEntities struct {
+	customer          *customer.Customer
+	featuresByRef     map[ref.IDOrKey]feature.Feature
+	subscriptionsByID map[string]subscription.Subscription
+	invoiceLinesByID  map[string]billing.StandardInvoice
+}
+
+func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace string, customerID string, refs customerChargeReferences, expands meta.Expands) (customerChargeEntities, error) {
+	entities := customerChargeEntities{}
+	var err error
+
+	if expands.Has(meta.ExpandCustomer) {
+		entities.customer, err = s.getCustomerChargeCustomer(ctx, namespace, customerID)
+		if err != nil {
+			return customerChargeEntities{}, fmt.Errorf("loading customer: %w", err)
+		}
+	}
+
+	if expands.Has(meta.ExpandFeature) {
+		entities.featuresByRef, err = s.listCustomerChargeFeatures(ctx, namespace, refs.featureRefs)
+		if err != nil {
+			return customerChargeEntities{}, fmt.Errorf("loading features: %w", err)
+		}
+	}
+
+	if expands.Has(meta.ExpandSubscription) {
+		entities.subscriptionsByID, err = s.listCustomerChargeSubscriptions(ctx, namespace, customerID, refs.subscriptionIDs)
+		if err != nil {
+			return customerChargeEntities{}, fmt.Errorf("loading subscriptions: %w", err)
+		}
+	}
+
+	if expands.Has(meta.ExpandRealizationInvoice) {
+		entities.invoiceLinesByID, err = s.listRealizationInvoiceLines(ctx, namespace, customerID, refs.invoiceIDs)
+		if err != nil {
+			return customerChargeEntities{}, fmt.Errorf("loading realization invoices: %w", err)
+		}
+	}
+
+	return entities, nil
+}
+
+// getCustomerChargeCustomer loads the listing's customer for the customer
+// expand through ListCustomers rather than GetCustomer: charges outlive their
+// customer, and deleted customers must still expand. A missing customer
+// resolves to nil so the API falls back to the id reference.
+func (s *service) getCustomerChargeCustomer(ctx context.Context, namespace string, id string) (*customer.Customer, error) {
+	listed, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+		Namespace:      namespace,
+		Page:           pagination.NewPage(1, 1),
+		IncludeDeleted: true,
+		CustomerIDs:    []string{id},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listing customers: %w", err)
+	}
+
+	if len(listed.Items) == 0 {
+		return nil, nil
+	}
+
+	return lo.ToPtr(listed.Items[0]), nil
+}
+
+// listCustomerChargeFeatures bulk-loads the referenced features for the
+// feature expand. Refs mix resolved IDs (active charges) and keys (created
+// charges), which ResolveFeatureMeters handles natively.
+func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace string, refs []ref.IDOrKey) (map[ref.IDOrKey]feature.Feature, error) {
+	out := make(map[ref.IDOrKey]feature.Feature, len(refs))
+	if len(refs) == 0 {
+		return out, nil
+	}
+
+	meterRefs := lo.Map(refs, func(featureRef ref.IDOrKey, _ int) feature.FeatureMeterRef {
+		return feature.FeatureMeterRef{IDOrKey: featureRef}
+	})
+
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, meterRefs...)
+	if err != nil {
+		return nil, fmt.Errorf("resolving features: %w", err)
+	}
+
+	for _, featureRef := range refs {
+		featureMeter, err := featureMeters.Resolve(feature.FeatureMeterRef{IDOrKey: featureRef})
+		if err != nil {
+			// A stale reference must not fail the listing; the converter
+			// falls back to the id reference, as for deleted customers and
+			// missing subscriptions.
+			if models.IsGenericNotFoundError(err) {
+				continue
+			}
+
+			return nil, fmt.Errorf("resolving feature %v: %w", featureRef, err)
+		}
+
+		out[featureRef] = featureMeter.Feature
+	}
+
+	return out, nil
+}
+
+// listCustomerChargeSubscriptions bulk-loads the referenced subscriptions for
+// the subscription expand. The customer filter is defense-in-depth: the IDs
+// are already customer-scoped, but an integrity bug must not expose another
+// customer's subscription in this listing.
+func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace string, customerID string, ids []string) (map[string]subscription.Subscription, error) {
+	out := make(map[string]subscription.Subscription, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+
+	listed, err := s.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
+		Namespaces:     []string{namespace},
+		Page:           pagination.NewPage(1, len(ids)),
+		IncludeDeleted: true,
+		ID:             &filter.FilterULID{FilterString: filter.FilterString{In: &ids}},
+		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerID}},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listing subscriptions: %w", err)
+	}
+
+	for _, item := range listed.Items {
+		out[item.ID] = item
+	}
+
+	return out, nil
+}
+
+// listRealizationInvoiceLines loads the invoices referenced by realization
+// runs and indexes their header (without lines) by the ID of each line they
+// carry, since runs book to a specific line. Without the expand there are no
+// stubs; converters fall back to the run's invoice ID. The customer filter is
+// defense-in-depth against a corrupted run reference exposing another
+// customer's invoice.
+func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace string, customerID string, ids []string) (map[string]billing.StandardInvoice, error) {
+	out := make(map[string]billing.StandardInvoice)
+	if len(ids) == 0 {
+		return out, nil
+	}
+
+	listed, err := s.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespace:      namespace,
+		Page:           pagination.NewPage(1, len(ids)),
+		IncludeDeleted: true,
+		IDs:            ids,
+		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerID}},
+		Expand:         billing.InvoiceExpandAll,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listing invoices: %w", err)
+	}
+
+	for _, item := range listed.Items {
+		// Realization runs only ever book to standard invoices; anything else
+		// carries no bookable lines, so it cannot satisfy a run reference.
+		if item.Type() != billing.InvoiceTypeStandard {
+			continue
+		}
+
+		std, err := item.AsStandardInvoice()
+		if err != nil {
+			return nil, fmt.Errorf("reading invoice: %w", err)
+		}
+
+		header := std
+		header.Lines = billing.StandardInvoiceLines{}
+
+		for _, line := range std.Lines.OrEmpty() {
+			if line == nil {
+				continue
+			}
+
+			out[line.ID] = header
+		}
+	}
+
+	return out, nil
 }

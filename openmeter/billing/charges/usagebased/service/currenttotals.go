@@ -66,7 +66,8 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 	}
 
 	return usagebased.GetCurrentTotalsResult{
-		Charge:    charge,
-		DueTotals: dueTotals,
+		Charge:          charge,
+		DueTotals:       dueTotals.Totals,
+		MeteredQuantity: dueTotals.MeteredQuantity,
 	}, nil
 }

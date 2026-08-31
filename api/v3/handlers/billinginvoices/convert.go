@@ -10,8 +10,8 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/addons"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
-	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -63,6 +63,42 @@ func ToAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoice, erro
 	return out, nil
 }
 
+// ToAPIChargeRealizationInvoice maps a realization's invoice to the charges
+// API's own embedded invoice model: the standard invoice without the customer
+// snapshot, which the embedding charge already identifies.
+func ToAPIChargeRealizationInvoice(std billing.StandardInvoice) (api.BillingChargeRealizationInvoice, error) {
+	stdAPI, err := toAPIStandardInvoice(std)
+	if err != nil {
+		return api.BillingChargeRealizationInvoice{}, err
+	}
+
+	return api.BillingChargeRealizationInvoice{
+		CollectionAt:          stdAPI.CollectionAt,
+		CreatedAt:             stdAPI.CreatedAt,
+		Currency:              stdAPI.Currency,
+		DeletedAt:             stdAPI.DeletedAt,
+		Description:           stdAPI.Description,
+		DraftUntil:            stdAPI.DraftUntil,
+		DueAt:                 stdAPI.DueAt,
+		ExternalReferences:    stdAPI.ExternalReferences,
+		Id:                    stdAPI.Id,
+		IssuedAt:              stdAPI.IssuedAt,
+		Labels:                stdAPI.Labels,
+		Number:                stdAPI.Number,
+		QuantitySnapshottedAt: stdAPI.QuantitySnapshottedAt,
+		SentToCustomerAt:      stdAPI.SentToCustomerAt,
+		ServicePeriod:         stdAPI.ServicePeriod,
+		Status:                stdAPI.Status,
+		StatusDetails:         stdAPI.StatusDetails,
+		Supplier:              stdAPI.Supplier,
+		Totals:                stdAPI.Totals,
+		Type:                  api.BillingChargeRealizationInvoiceTypeStandard,
+		UpdatedAt:             stdAPI.UpdatedAt,
+		ValidationIssues:      stdAPI.ValidationIssues,
+		Workflow:              stdAPI.Workflow,
+	}, nil
+}
+
 func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoiceStandard, error) {
 	// Sort lines for consistent output — matches v1 behavior.
 	std.SortLines()
@@ -98,7 +134,7 @@ func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoiceStanda
 		StatusDetails:         toAPIStatusDetails(std.StatusDetails, std.Status),
 		Customer:              toAPIInvoiceCustomer(std.Customer),
 		Supplier:              billingprofiles.ToAPIBillingSupplier(std.Supplier),
-		Totals:                chargeshandler.ToAPIBillingTotals(std.Totals),
+		Totals:                billingcommon.ToAPIBillingTotals(std.Totals),
 		ValidationIssues:      mapValidationIssues(std.ValidationIssues),
 		ExternalReferences:    toAPIInvoiceExternalReferences(std.ExternalIDs),
 		Workflow:              workflow,
@@ -288,7 +324,7 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 
 	var subRef *api.BillingSubscriptionReference
 	if line.Subscription != nil {
-		subRef = lo.ToPtr(chargeshandler.ConvertSubscriptionRefToAPI(meta.SubscriptionReference{
+		subRef = lo.ToPtr(billingcommon.ConvertSubscriptionRefToAPI(meta.SubscriptionReference{
 			SubscriptionID: line.Subscription.SubscriptionID,
 			PhaseID:        line.Subscription.PhaseID,
 			ItemID:         line.Subscription.ItemID,
@@ -304,9 +340,9 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 		UpdatedAt:           line.UpdatedAt,
 		DeletedAt:           line.DeletedAt,
 		Type:                api.BillingInvoiceStandardLineTypeStandardLine,
-		LifecycleController: chargeshandler.ConvertLifecycleControllerToAPI(line.ManagedBy),
-		ServicePeriod:       chargeshandler.ConvertClosedPeriodToAPI(line.Period),
-		Totals:              chargeshandler.ToAPIBillingTotals(line.Totals),
+		LifecycleController: billingcommon.ConvertLifecycleControllerToAPI(line.ManagedBy),
+		ServicePeriod:       billingcommon.ConvertClosedPeriodToAPI(line.Period),
+		Totals:              billingcommon.ToAPIBillingTotals(line.Totals),
 		Charge:              chargeRef,
 		Subscription:        subRef,
 		ExternalReferences:  toAPILineExternalReferences(line.ExternalIDs),
@@ -395,10 +431,10 @@ func mapDetailedLine(dl billing.DetailedLine) (api.BillingInvoiceDetailedLine, e
 		UpdatedAt:          dl.UpdatedAt,
 		DeletedAt:          dl.DeletedAt,
 		Category:           api.BillingInvoiceDetailedLineCostCategory(dl.Category),
-		ServicePeriod:      chargeshandler.ConvertClosedPeriodToAPI(dl.ServicePeriod),
+		ServicePeriod:      billingcommon.ConvertClosedPeriodToAPI(dl.ServicePeriod),
 		Quantity:           dl.Quantity.String(),
 		UnitPrice:          dl.PerUnitAmount.String(),
-		Totals:             chargeshandler.ToAPIBillingTotals(dl.Totals),
+		Totals:             billingcommon.ToAPIBillingTotals(dl.Totals),
 		CreditsApplied:     mapCreditApplies(dl.CreditsApplied),
 		Discounts:          mapAmountDiscounts(dl.AmountDiscounts),
 		ExternalReferences: toAPILineExternalReferences(dl.ExternalIDs),

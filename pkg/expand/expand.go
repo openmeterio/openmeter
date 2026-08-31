@@ -40,14 +40,16 @@ func (e Expand[T]) Clone() Expand[T] {
 	return out
 }
 
-func (e Expand[T]) With(value T) Expand[T] {
+func (e Expand[T]) With(value ...T) Expand[T] {
 	cloned := e.Clone()
 
-	if slices.Contains(cloned, value) {
-		return cloned
-	}
+	for _, v := range value {
+		if slices.Contains(cloned, v) {
+			continue
+		}
 
-	cloned = append(cloned, value)
+		cloned = append(cloned, v)
+	}
 
 	return cloned
 }

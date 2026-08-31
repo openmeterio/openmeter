@@ -441,7 +441,8 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			require.Equal(t, tt.expectTotal, out.Total.InexactFloat64())
+			require.Equal(t, tt.expectTotal, out.Totals.Total.InexactFloat64())
+			require.Equal(t, float64(12), out.MeteredQuantity.InexactFloat64())
 		})
 	}
 }

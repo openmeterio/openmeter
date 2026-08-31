@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -568,9 +569,7 @@ func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customer
 				ChargeTypes: []meta.ChargeType{
 					meta.ChargeTypeCreditPurchase,
 				},
-				StatusNotIn: []meta.ChargeStatus{
-					meta.ChargeStatusDeleted,
-				},
+				Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusDeleted)}},
 				Expands: meta.Expands{meta.ExpandRealizations},
 			})
 		}),
@@ -659,8 +658,8 @@ func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID cu
 					meta.ChargeTypeFlatFee,
 					meta.ChargeTypeUsageBased,
 				},
-				StatusNotIn: []meta.ChargeStatus{meta.ChargeStatusFinal},
-				Expands:     meta.Expands{meta.ExpandRealizations},
+				Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusFinal)}},
+				Expands: meta.Expands{meta.ExpandRealizations},
 			})
 		}),
 		chargeListPageSize,

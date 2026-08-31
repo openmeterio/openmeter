@@ -28,6 +28,7 @@ import (
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -45,6 +46,10 @@ type Config struct {
 	StreamingConnector streaming.Connector
 	RecognizerService  recognizer.Service
 	TaxCodeService     taxcode.Service
+	CustomerService    customer.Service
+	// SubscriptionService defaults to an empty FakeSubscriptionService, so
+	// suites without a real subscription stack keep working.
+	SubscriptionService charges.SubscriptionService
 
 	FlatFeeHandler        flatfee.Handler
 	CreditPurchaseHandler creditpurchase.Handler
@@ -86,6 +91,10 @@ func (c Config) Validate() error {
 		errs = append(errs, fmt.Errorf("tax code service is required"))
 	}
 
+	if c.CustomerService == nil {
+		errs = append(errs, fmt.Errorf("customer service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -103,6 +112,10 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 
 	if config.RecognizerService == nil {
 		config.RecognizerService = recognizer.NoopService{}
+	}
+
+	if config.SubscriptionService == nil {
+		config.SubscriptionService = &FakeSubscriptionService{}
 	}
 
 	if err := config.Validate(); err != nil {
@@ -271,6 +284,8 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		BillingService:        config.BillingService,
 		TaxCodeService:        config.TaxCodeService,
 		CurrencyResolver:      currencyResolver,
+		CustomerService:       config.CustomerService,
+		SubscriptionService:   config.SubscriptionService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating charges service: %w", err)

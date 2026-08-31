@@ -49,6 +49,7 @@ const USD = currencyx.Code(currency.USD)
 
 type BaseSuite struct {
 	billingtest.BaseSuite
+	billingtest.SubscriptionMixin
 
 	// UnitConfigEnabled toggles the unitConfig.enabled rating flag for the charges
 	// stack the suite builds. Defaults to false; a derived suite sets it in its own
@@ -72,6 +73,7 @@ type BaseSuite struct {
 
 func (s *BaseSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
+	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
 
 	s.FlatFeeTestHandler = newFlatFeeTestHandler()
 	s.CreditPurchaseTestHandler = newCreditPurchaseTestHandler()
@@ -215,9 +217,11 @@ func (s *BaseSuite) SetupSuite() {
 		UsageBasedService:     usageBasedService,
 		RecognizerService:     recognizer.NoopService{},
 
-		BillingService:   s.BillingService,
-		TaxCodeService:   s.TaxCodeService,
-		CurrencyResolver: currencyResolver,
+		BillingService:      s.BillingService,
+		TaxCodeService:      s.TaxCodeService,
+		CurrencyResolver:    currencyResolver,
+		CustomerService:     s.CustomerService,
+		SubscriptionService: s.SubscriptionService,
 	})
 	s.NoError(err)
 	s.Charges = chargesService

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -210,6 +211,9 @@ func (i GetCurrentTotalsInput) Validate() error {
 type GetCurrentTotalsResult struct {
 	Charge    Charge
 	DueTotals totals.Totals
+	// MeteredQuantity is the cumulative live metered quantity the due totals
+	// were rated from.
+	MeteredQuantity alpacadecimal.Decimal
 }
 
 func validateExpands(expands meta.Expands) error {

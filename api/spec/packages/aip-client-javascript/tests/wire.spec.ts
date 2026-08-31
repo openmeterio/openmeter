@@ -407,11 +407,144 @@ describe('wire walker edge cases', () => {
 
   it('renames the object variant of a scalar-or-object union', () => {
     // The realistic non-discriminated shape (a filter field: string | { op }).
-    // The codegen gate guarantees at most one object variant, so it is picked
-    // unambiguously; scalar data flows through the scalar branch unchanged.
+    // Only one option is object-shaped, so it is picked unambiguously; scalar
+    // data flows through the scalar branch unchanged.
     const union = z.union([z.string(), z.object({ fooBar: z.string() })])
     expect(toWire({ fooBar: 'x' }, union)).toEqual({ foo_bar: 'x' })
     expect(toWire('plain', union)).toBe('plain')
+  })
+
+  it('picks the object variant that covers the data in a subset union', () => {
+    // The realistic subset shape (charge.customer: the full customer, or just a
+    // reference to it). The codegen gate guarantees such variants agree on every
+    // key they share, so the pick only decides which keys survive.
+    const union = z.union([
+      z.object({ id: z.string(), fooBar: z.string() }),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ id: 'x', fooBar: 'y' }, union)).toEqual({
+      id: 'x',
+      foo_bar: 'y',
+    })
+    expect(fromWire({ id: 'x', foo_bar: 'y' }, union)).toEqual({
+      id: 'x',
+      fooBar: 'y',
+    })
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(fromWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+  })
+
+  it('does not apply a wider variant default to narrow-variant data', () => {
+    // The narrowest shape wins a tie on matched keys, so a required-with-default
+    // field the value never carried is not materialized onto the wire.
+    const union = z.union([
+      z.object({ id: z.string(), kind: z.string().default('full') }),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(toWire({ id: 'x', kind: 'full' }, union)).toEqual({
+      id: 'x',
+      kind: 'full',
+    })
+  })
+
+  // Data covering none of the variants' keys still resolves a variant — the
+  // narrowest — rather than passing through. Three variants of different widths,
+  // with the narrowest neither first nor last, so the tie-break is pinned as
+  // deterministic rather than incidental on a pair. The default on the narrow
+  // variant is what makes the pick observable.
+  it('selects the narrowest variant for data that matches no variant key', () => {
+    const union = z.union([
+      z.object({ id: z.string(), fooBar: z.string(), bazQux: z.string() }),
+      z.object({ kind: z.string().default('narrow') }),
+      z.object({ id: z.string(), fooBar: z.string() }),
+    ])
+    expect(toWire({}, union)).toEqual({ kind: 'narrow' })
+    expect(fromWire({}, union)).toEqual({})
+  })
+
+  // The consequence of selecting a variant instead of passing through: the
+  // variant's object walk drops keys the schema does not declare, the same way
+  // the object branch does for a non-union field. Passing them through would put
+  // snake_case keys into a value fromWire types as camelCase.
+  it('drops keys no variant declares instead of passing them through', () => {
+    const union = z.union([
+      z.object({ id: z.string(), fooBar: z.string() }),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ unknownField: 'x' }, union)).toEqual({})
+    expect(fromWire({ unknown_field: 'x' }, union)).toEqual({})
+  })
+
+  // The surprising corollary: with the narrow variant selected, toWire still
+  // materializes ITS required-with-default fields even though the data carried
+  // nothing the schema recognized.
+  it('applies the selected narrow variant defaults to zero-coverage data', () => {
+    const union = z.union([
+      z.object({ id: z.string(), fooBar: z.string() }),
+      z.object({ kind: z.string().default('ref') }),
+    ])
+    expect(toWire({ unknownField: 'x' }, union)).toEqual({ kind: 'ref' })
+  })
+
+  // The path the pass-through above is actually for: no variant is object-shaped,
+  // so nothing claims the object data and its keys stay exactly as given.
+  it('passes object data through a union with no object variant', () => {
+    const union = z.union([z.string(), z.number()])
+    expect(toWire({ fooBar: 'x' }, union)).toEqual({ fooBar: 'x' })
+    expect(fromWire({ foo_bar: 'x' }, union)).toEqual({ foo_bar: 'x' })
+  })
+
+  it('resolves a nested union variant before scoring it against its siblings', () => {
+    // The expandable-reference shape whose expanded side is itself a union
+    // (charge realization's `invoice`: the full Invoice — a discriminated union
+    // of its concrete types — or a bare reference). The nested union is no
+    // object, so unless it is resolved first it never competes and the
+    // reference variant wins every time, dropping the whole expanded resource.
+    const union = z.union([
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('standard'),
+          id: z.string(),
+          fooBar: z.string(),
+        }),
+        z.object({
+          type: z.literal('other'),
+          id: z.string(),
+          bazQux: z.string(),
+        }),
+      ]),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ type: 'standard', id: 'x', fooBar: 'y' }, union)).toEqual({
+      type: 'standard',
+      id: 'x',
+      foo_bar: 'y',
+    })
+    expect(fromWire({ type: 'other', id: 'x', baz_qux: 'y' }, union)).toEqual({
+      type: 'other',
+      id: 'x',
+      bazQux: 'y',
+    })
+    // Reference data carries no discriminator, so the nested union contributes
+    // no candidate and the reference variant wins on its own merits.
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(fromWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+  })
+
+  it('resolves a nested non-discriminated union by its own key coverage', () => {
+    const union = z.union([
+      z.union([
+        z.object({ id: z.string(), fooBar: z.string() }),
+        z.object({ id: z.string() }),
+      ]),
+      z.object({ bazQux: z.string() }),
+    ])
+    expect(toWire({ id: 'x', fooBar: 'y' }, union)).toEqual({
+      id: 'x',
+      foo_bar: 'y',
+    })
+    expect(toWire({ bazQux: 'y' }, union)).toEqual({ baz_qux: 'y' })
   })
 
   it('fails closed on a discriminated union with an unknown discriminator value', () => {

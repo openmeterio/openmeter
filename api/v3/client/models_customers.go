@@ -472,12 +472,6 @@ type AppStripeCreateCustomerPortalSessionResult struct {
 	URL string `json:"url"`
 }
 
-// Customer reference.
-type BillingCustomerReference struct {
-	// The ID of the customer.
-	ID string `json:"id"`
-}
-
 // Customer charge.
 //
 // Charge is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the ChargeFrom* constructors.
@@ -580,13 +574,19 @@ type ChargeFlatFee struct {
 	// The type of the charge.
 	Type ChargeType `json:"type"`
 	// The customer owning the charge.
-	Customer BillingCustomerReference `json:"customer"`
-	// Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+	//
+	// By default, only the `id` of the customer is returned. For more details use the
+	// `customer` expand.
+	Customer CustomerOrReference `json:"customer"`
+	// Indicates whether the charge lifecycle is controlled by the system or manually
 	// overridden by the API user.
 	LifecycleController LifecycleController `json:"lifecycle_controller"`
 	// The subscription that originated the charge, when the charge was created from a
 	// subscription item.
-	Subscription *SubscriptionReference `json:"subscription,omitempty"`
+	//
+	// By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+	// returned. For more details use the `subscription` expand.
+	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
 	Currency string `json:"currency"`
 	// The lifecycle status of the charge.
@@ -608,14 +608,14 @@ type ChargeFlatFee struct {
 	SettlementMode SettlementMode `json:"settlement_mode"`
 	// Tax configuration of the charge.
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
+	// The realization runs of the charge, sorted by `created_at`.
+	Realizations []ChargeRealization `json:"realizations"`
 	// Payment term of the flat fee charge.
 	PaymentTerm PricePaymentTerm `json:"payment_term"`
 	// The discounts applied to the charge.
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge, when applicable.
-	FeatureKey *string `json:"feature_key,omitempty"`
-	// The feature ID associated with the charge.
-	FeatureID *string `json:"feature_id,omitempty"`
+	Feature *FeatureOrReference `json:"feature,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount after proration of the charge.
@@ -676,6 +676,433 @@ type ChargePagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
+// A realization run of a charge.
+//
+// `totals` and `detailed_lines` are only populated with the `realization.totals`
+// and `realization.detailed_lines` expands, respectively, since computing them
+// requires re-deriving the run's rated breakdown. `invoice` is an ID reference
+// unless the `realization.invoice` expand is used, which resolves it to the
+// invoice header of the run's booked line: the invoice entity without its `lines`
+// and without the `customer` snapshot (the charge itself already identifies the
+// customer).
+type ChargeRealization struct {
+	// The ID of the realization run. Not present on `outstanding` entries, which are
+	// projections rather than persisted runs.
+	ID *string `json:"id,omitempty"`
+	// The ID of the invoice line this realization was booked to, when the realization
+	// has been invoiced.
+	LineID *string `json:"line_id,omitempty"`
+	// The reference of the invoice related to the realization.
+	Invoice *ChargeRealizationInvoiceOrReference `json:"invoice,omitempty"`
+	// The type of the realization run.
+	Type ChargeRealizationType `json:"type"`
+	// The service period covered by this realization run.
+	ServicePeriod ClosedPeriod `json:"service_period"`
+	// The metered usage quantity this realization run accounts for. Only present on
+	// usage-based charges; flat fees are not metered, so their realizations carry no
+	// usage.
+	//
+	// Booked entries report a signed delta: a negative value states a downward usage
+	// correction (or a voided run that snapshotted behind its live neighbors) instead
+	// of masking it as zero.
+	//
+	// On an `outstanding` entry this is `0` unless the `real_time_usage` expand is
+	// applied, in which case it is the not-yet-booked remainder of the live metering
+	// read (never negative).
+	Usage *Numeric `json:"usage,omitempty"`
+	// The payment state of the realization, when the charge requires a fiat
+	// transaction to settle.
+	Payment *ChargeRealizationPayment `json:"payment,omitempty"`
+	// Financial totals for the realization run, including credit allocations.
+	//
+	// Requires the `realization.totals` expand.
+	Totals *Totals `json:"totals,omitempty"`
+	// The detailed (rated) lines produced by the realization run.
+	//
+	// Requires the `realization.detailed_lines` expand.
+	DetailedLines []ChargeRealizationDetailedLine `json:"detailed_lines,omitempty"`
+}
+
+// A discount applied to a charge realization detailed line.
+type ChargeRealizationAmountDiscount struct {
+	// The amount of the discount applied to the charge.
+	Amount Numeric `json:"amount"`
+	// The reason for the discount applied to the charge.
+	Reason string `json:"reason"`
+	// Optional human-readable description of the discount.
+	Description *string `json:"description,omitempty"`
+	// The discount amount applied to the charge, rounded to the nearest cent (or
+	// currency equivalent) and adjusted to compensate for rounding errors across
+	// multiple discounted detail lines.
+	RoundingAmount *Numeric `json:"rounding_amount,omitempty"`
+	// Unique reference ID of the discount applied to the charge.
+	ChildUniqueReferenceID string `json:"child_unique_reference_id"`
+}
+
+// A detailed (child) line type of a charge realization run.
+//
+// This is distinct from an invoice's own detailed lines: it represents the
+// rated/priced breakdown produced by the realization run itself, before that
+// breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice
+// runs include credit allocations in these lines, while credits-only runs keep the
+// gross rated detail.
+//
+// ChargeRealizationDetailedLine is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the ChargeRealizationDetailedLineFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type ChargeRealizationDetailedLine struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *ChargeRealizationDetailedLine) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u ChargeRealizationDetailedLine) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u ChargeRealizationDetailedLine) AsChargeRealizationDetailedLineFlatFee() (*ChargeRealizationDetailedLineFlatFee, error) {
+	if u.Type != "flat_fee" {
+		return nil, fmt.Errorf("ChargeRealizationDetailedLine: expected type %q, got %q", "flat_fee", u.Type)
+	}
+	var value ChargeRealizationDetailedLineFlatFee
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeRealizationDetailedLineFromChargeRealizationDetailedLineFlatFee(value ChargeRealizationDetailedLineFlatFee) (ChargeRealizationDetailedLine, error) {
+	value.Type = "flat_fee"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	var result ChargeRealizationDetailedLine
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	return result, nil
+}
+
+func (u ChargeRealizationDetailedLine) AsChargeRealizationDetailedLineUsageBased() (*ChargeRealizationDetailedLineUsageBased, error) {
+	if u.Type != "usage_based" {
+		return nil, fmt.Errorf("ChargeRealizationDetailedLine: expected type %q, got %q", "usage_based", u.Type)
+	}
+	var value ChargeRealizationDetailedLineUsageBased
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeRealizationDetailedLineFromChargeRealizationDetailedLineUsageBased(value ChargeRealizationDetailedLineUsageBased) (ChargeRealizationDetailedLine, error) {
+	value.Type = "usage_based"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	var result ChargeRealizationDetailedLine
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	return result, nil
+}
+
+// Cost category of a charge realization detailed line.
+//
+// Values:
+//
+// - `regular`: A regular charge line, based on usage or subscription pricing.
+// - `commitment`: A commitment-derived line, such as minimum spend.
+type ChargeRealizationDetailedLineCategory string
+
+const (
+	ChargeRealizationDetailedLineCategoryRegular    ChargeRealizationDetailedLineCategory = "regular"
+	ChargeRealizationDetailedLineCategoryCommitment ChargeRealizationDetailedLineCategory = "commitment"
+)
+
+func (value ChargeRealizationDetailedLineCategory) Valid() bool {
+	switch value {
+	case ChargeRealizationDetailedLineCategoryRegular, ChargeRealizationDetailedLineCategoryCommitment:
+		return true
+	default:
+		return false
+	}
+}
+
+// A credit allocation applied to a charge realization detailed line.
+type ChargeRealizationDetailedLineCreditApplied struct {
+	// The monetary amount credited.
+	Amount Numeric `json:"amount"`
+	// Human-readable description of the credit allocation.
+	Description *string `json:"description,omitempty"`
+	// The ID of the credit realization (allocation) this credit was applied from.
+	CreditRealizationID string `json:"credit_realization_id"`
+}
+
+// A detailed line produced by a flat fee charge's realization run.
+type ChargeRealizationDetailedLineFlatFee struct {
+	ID string `json:"id"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of the charge the realization belongs to.
+	Type ChargeType `json:"type"`
+	// The service period covered by this detailed line.
+	ServicePeriod ClosedPeriod `json:"service_period"`
+	// Aggregated financial totals for the detailed line.
+	Totals Totals `json:"totals"`
+	// The cost category of this detailed line.
+	Category ChargeRealizationDetailedLineCategory `json:"category"`
+	// Credits applied to this detailed line.
+	CreditsApplied []ChargeRealizationDetailedLineCreditApplied `json:"credits_applied,omitempty"`
+	// The unit price of the detailed line.
+	UnitPrice Numeric `json:"unit_price"`
+	// The amount discounts applied to the detailed line.
+	AmountDiscounts []ChargeRealizationAmountDiscount `json:"amount_discounts"`
+}
+
+// A detailed line produced by a usage-based charge's realization run.
+type ChargeRealizationDetailedLineUsageBased struct {
+	ID string `json:"id"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of the charge the realization belongs to.
+	Type ChargeType `json:"type"`
+	// The service period covered by this detailed line.
+	ServicePeriod ClosedPeriod `json:"service_period"`
+	// Aggregated financial totals for the detailed line.
+	Totals Totals `json:"totals"`
+	// The cost category of this detailed line.
+	Category ChargeRealizationDetailedLineCategory `json:"category"`
+	// Credits applied to this detailed line.
+	CreditsApplied []ChargeRealizationDetailedLineCreditApplied `json:"credits_applied,omitempty"`
+	// The unit price of the detailed line.
+	UnitPrice Numeric `json:"unit_price"`
+	// The amount discounts applied to the detailed line.
+	AmountDiscounts []ChargeRealizationAmountDiscount `json:"amount_discounts"`
+	// The quantity of the detailed line.
+	Quantity Numeric `json:"quantity"`
+	// The ID of a prior realization run this detailed line corrects. Only set if the
+	// detailed line's totals are negative.
+	CorrectsRunID *string `json:"corrects_run_id,omitempty"`
+}
+
+// The invoice a charge realization was booked to, embedded as a header.
+//
+// Matches the standard invoice entity, except that it carries no `customer`
+// snapshot (the charge context already identifies the customer) and `lines` are
+// never populated (the realization itself is the line-level breakdown). The shared
+// invoice contract stays untouched: this model exists so the charges API can slim
+// the embedding without loosening the invoices API.
+type ChargeRealizationInvoice struct {
+	ID string `json:"id"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Human-readable invoice number generated by the invoicing app.
+	Number string `json:"number"`
+	// Three-letter ISO 4217 currency code for the invoice.
+	Currency string `json:"currency"`
+	// Snapshot of the supplier's contact information at the time the invoice was
+	// issued.
+	Supplier Supplier `json:"supplier"`
+	// Aggregated financial totals for the invoice.
+	Totals Totals `json:"totals"`
+	// The service period covered by this invoice.
+	//
+	// For flat fee the service period can be empty which means `from` will be equals
+	// to `to`. In other cases those fields will be filled with the actual service
+	// period.
+	ServicePeriod ClosedPeriod `json:"service_period"`
+	// Validation issues found during invoice processing.
+	//
+	// Present only when there are one or more validation findings. An empty list is
+	// omitted.
+	ValidationIssues []InvoiceValidationIssue `json:"validation_issues,omitempty"`
+	// External identifiers assigned to this invoice by third-party systems.
+	ExternalReferences *InvoiceExternalReferences `json:"external_references,omitempty"`
+	// Discriminator field identifying this as a standard invoice.
+	Type InvoiceType `json:"type"`
+	// Current lifecycle status of the invoice.
+	Status InvoiceStandardStatus `json:"status"`
+	// Detailed status information including available actions and workflow state.
+	StatusDetails InvoiceStatusDetails `json:"status_details"`
+	// Timestamp when the invoice was issued to the customer.
+	IssuedAt *time.Time `json:"issued_at,omitempty"`
+	// Timestamp until which the invoice remains in draft state.
+	//
+	// The invoice advances automatically once this time is reached.
+	DraftUntil *time.Time `json:"draft_until,omitempty"`
+	// Timestamp when usage quantities were last snapshotted for this invoice.
+	QuantitySnapshottedAt *time.Time `json:"quantity_snapshotted_at,omitempty"`
+	// Timestamp when collection was initiated for this invoice.
+	CollectionAt *time.Time `json:"collection_at,omitempty"`
+	// Timestamp when payment is due.
+	DueAt *time.Time `json:"due_at,omitempty"`
+	// Timestamp when the invoice was sent to the customer.
+	SentToCustomerAt *time.Time `json:"sent_to_customer_at,omitempty"`
+	// Workflow configuration snapshot captured at invoice creation time.
+	Workflow InvoiceWorkflowSettings `json:"workflow"`
+}
+
+// ChargeRealizationInvoice or reference.
+//
+// ChargeRealizationInvoiceOrReference is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the ChargeRealizationInvoiceOrReferenceFrom* constructors.
+type ChargeRealizationInvoiceOrReference struct {
+	raw json.RawMessage
+}
+
+func (u *ChargeRealizationInvoiceOrReference) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	return nil
+}
+
+func (u ChargeRealizationInvoiceOrReference) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u ChargeRealizationInvoiceOrReference) AsChargeRealizationInvoice() (*ChargeRealizationInvoice, error) {
+	var value ChargeRealizationInvoice
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeRealizationInvoiceOrReferenceFromChargeRealizationInvoice(value ChargeRealizationInvoice) (ChargeRealizationInvoiceOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeRealizationInvoiceOrReference{}, err
+	}
+	var result ChargeRealizationInvoiceOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeRealizationInvoiceOrReference{}, err
+	}
+	return result, nil
+}
+
+func (u ChargeRealizationInvoiceOrReference) AsChargeRealizationInvoiceReference() (*ChargeRealizationInvoiceReference, error) {
+	var value ChargeRealizationInvoiceReference
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeRealizationInvoiceOrReferenceFromChargeRealizationInvoiceReference(value ChargeRealizationInvoiceReference) (ChargeRealizationInvoiceOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeRealizationInvoiceOrReference{}, err
+	}
+	var result ChargeRealizationInvoiceOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeRealizationInvoiceOrReference{}, err
+	}
+	return result, nil
+}
+
+// ChargeRealizationInvoice reference.
+type ChargeRealizationInvoiceReference struct {
+	ID string `json:"id"`
+}
+
+// Payment state of a charge realization.
+type ChargeRealizationPayment struct {
+	// The settlement status of the payment.
+	Status ChargeRealizationPaymentStatus `json:"status"`
+}
+
+// Settlement status of a charge realization's payment.
+//
+// Values:
+//
+// - `authorized`: The payment has been authorized against the customer's ledger
+// but has not settled yet.
+// - `settled`: The payment has settled.
+type ChargeRealizationPaymentStatus string
+
+const (
+	ChargeRealizationPaymentStatusAuthorized ChargeRealizationPaymentStatus = "authorized"
+	ChargeRealizationPaymentStatusSettled    ChargeRealizationPaymentStatus = "settled"
+)
+
+func (value ChargeRealizationPaymentStatus) Valid() bool {
+	switch value {
+	case ChargeRealizationPaymentStatusAuthorized, ChargeRealizationPaymentStatusSettled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Type of a charge realization run.
+//
+// Values:
+//
+// - `final_realization`: The run is the final realization of the charge for its
+// service period; no further runs are expected to correct it.
+// - `partial_invoice`: The run only realizes part of the charge, because the
+// remainder is not yet due to be invoiced.
+// - `outstanding`: The type an outstanding (not-yet-realized) projection would
+// carry if it were realized now. Never returned on a booked realization run.
+// - `voided`: The run's billing effect was undone (for example the charge's
+// service period was extended while its invoice was still mutable); it is
+// retained as audit history and excluded from aggregate and live calculations.
+type ChargeRealizationType string
+
+const (
+	ChargeRealizationTypeFinalRealization ChargeRealizationType = "final_realization"
+	ChargeRealizationTypePartialInvoice   ChargeRealizationType = "partial_invoice"
+	ChargeRealizationTypeOutstanding      ChargeRealizationType = "outstanding"
+	ChargeRealizationTypeVoided           ChargeRealizationType = "voided"
+)
+
+func (value ChargeRealizationType) Valid() bool {
+	switch value {
+	case ChargeRealizationTypeFinalRealization, ChargeRealizationTypePartialInvoice, ChargeRealizationTypeOutstanding, ChargeRealizationTypeVoided:
+		return true
+	default:
+		return false
+	}
+}
+
 // Lifecycle status of a charge.
 //
 // Values:
@@ -704,13 +1131,16 @@ func (value ChargeStatus) Valid() bool {
 
 // The totals of a charge.
 //
-// RealTime is only expanded when the `real_time_usage` expand is used.
+// `realtime` is only populated when the `real_time_usage` expand is used.
 type ChargeTotals struct {
 	// The amount of the charge already booked to the internal accounting system.
 	Booked Totals `json:"booked"`
-	// The realtime amount of the charge.
+	// The realtime amount of the charge, i.e. the whole usage rated at the charge's
+	// price for its full service period, ignoring what has already been booked to a
+	// realization. This differs from the `usage` of a realization with type
+	// `outstanding`, which only covers the quantity not yet booked.
 	//
-	// Requires the `realtime_usage` expand.
+	// Requires the `real_time_usage` expand.
 	Realtime *Totals `json:"realtime,omitempty"`
 }
 
@@ -757,13 +1187,19 @@ type ChargeUsageBased struct {
 	// The type of the charge.
 	Type ChargeType `json:"type"`
 	// The customer owning the charge.
-	Customer BillingCustomerReference `json:"customer"`
-	// Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+	//
+	// By default, only the `id` of the customer is returned. For more details use the
+	// `customer` expand.
+	Customer CustomerOrReference `json:"customer"`
+	// Indicates whether the charge lifecycle is controlled by the system or manually
 	// overridden by the API user.
 	LifecycleController LifecycleController `json:"lifecycle_controller"`
 	// The subscription that originated the charge, when the charge was created from a
 	// subscription item.
-	Subscription *SubscriptionReference `json:"subscription,omitempty"`
+	//
+	// By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+	// returned. For more details use the `subscription` expand.
+	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
 	Currency string `json:"currency"`
 	// The lifecycle status of the charge.
@@ -785,15 +1221,23 @@ type ChargeUsageBased struct {
 	SettlementMode SettlementMode `json:"settlement_mode"`
 	// Tax configuration of the charge.
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
+	// The realization runs of the charge, sorted by `created_at`.
+	Realizations []ChargeRealization `json:"realizations"`
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge.
-	FeatureKey string `json:"feature_key"`
-	// The feature ID associated with the charge.
-	FeatureID string `json:"feature_id"`
+	Feature FeatureOrReference `json:"feature"`
 	// Aggregated booked and realtime totals for the charge.
 	Totals ChargeTotals `json:"totals"`
+	// The metered usage quantity of the charge for its full service period.
+	//
+	// Requires the `real_time_usage` expand, since it is computed live from the
+	// metering store rather than stored on the charge.
+	Usage *Numeric `json:"usage,omitempty"`
 	// The price of the charge.
+	//
+	// `free` prices are rejected on create: a usage-based charge always carries a
+	// concrete price.
 	Price PriceUsageBased `json:"price"`
 	// Spend commitments for the charge.
 	Commitments *SpendCommitments `json:"commitments,omitempty"`
@@ -835,6 +1279,9 @@ type ChargeUsageBasedSystemIntent struct {
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The price of the charge.
+	//
+	// `free` prices are rejected on create: a usage-based charge always carries a
+	// concrete price.
 	Price PriceUsageBased `json:"price"`
 	// Spend commitments for the charge.
 	Commitments *SpendCommitments `json:"commitments,omitempty"`
@@ -856,16 +1303,33 @@ type ChargeUsageBasedSystemIntent struct {
 //
 // Values:
 //
-// - `real_time_usage`: The charge's real-time usage.
+// - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the
+// `totals.realtime` fields, and fills the `outstanding` realization's `usage`
+// with the not-yet-booked remainder of the live read.
+// - `customer`: The complete customer entity of the charge.
+// - `feature`: The complete feature entity of the charge.
+// - `subscription`: The complete subscription of the charge, when present.
+// - `realization.invoice`: The invoice header of each realization (the invoice
+// entity without its `lines` and `customer` snapshot), in place of the ID
+// reference.
+// - `realization.totals`: The `totals` of each realization run, including credit
+// allocations.
+// - `realization.detailed_lines`: The `detailed_lines` of each realization run.
 type ChargesExpand string
 
 const (
-	ChargesExpandRealTimeUsage ChargesExpand = "real_time_usage"
+	ChargesExpandRealTimeUsage            ChargesExpand = "real_time_usage"
+	ChargesExpandCustomer                 ChargesExpand = "customer"
+	ChargesExpandFeature                  ChargesExpand = "feature"
+	ChargesExpandSubscription             ChargesExpand = "subscription"
+	ChargesExpandRealizationInvoice       ChargesExpand = "realization.invoice"
+	ChargesExpandRealizationTotals        ChargesExpand = "realization.totals"
+	ChargesExpandRealizationDetailedLines ChargesExpand = "realization.detailed_lines"
 )
 
 func (value ChargesExpand) Valid() bool {
 	switch value {
-	case ChargesExpandRealTimeUsage:
+	case ChargesExpandRealTimeUsage, ChargesExpandCustomer, ChargesExpandFeature, ChargesExpandSubscription, ChargesExpandRealizationInvoice, ChargesExpandRealizationTotals, ChargesExpandRealizationDetailedLines:
 		return true
 	default:
 		return false
@@ -901,12 +1365,12 @@ type CreateChargeFlatFeeRequest struct {
 	PaymentTerm PricePaymentTerm `json:"payment_term"`
 	// The discounts applied to the charge.
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
-	// The feature ID associated with the charge.
-	FeatureID *string `json:"feature_id,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount before proration of the charge.
 	AmountBeforeProration CurrencyAmount `json:"amount_before_proration"`
+	// A reference to the feature associated with the charge, when applicable.
+	Feature *FeatureReference `json:"feature,omitempty"`
 	// The full, unprorated service period of the charge.
 	FullServicePeriod *ClosedPeriod `json:"full_service_period,omitempty"`
 	// The billing period the charge belongs to.
@@ -1021,9 +1485,10 @@ type CreateChargeUsageBasedRequest struct {
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
-	// The feature ID associated with the charge.
-	FeatureID string `json:"feature_id"`
 	// The price of the charge.
+	//
+	// `free` prices are rejected on create: a usage-based charge always carries a
+	// concrete price.
 	Price PriceUsageBased `json:"price"`
 	// Spend commitments for the charge.
 	Commitments *SpendCommitments `json:"commitments,omitempty"`
@@ -1036,6 +1501,8 @@ type CreateChargeUsageBasedRequest struct {
 	// Accepted on create only when the UnitConfig feature is enabled on the
 	// deployment; otherwise rejected.
 	UnitConfig *UnitConfig `json:"unit_config,omitempty"`
+	// A reference to the feature associated with the charge.
+	Feature FeatureReference `json:"feature"`
 	// The full, unprorated service period of the charge.
 	FullServicePeriod *ClosedPeriod `json:"full_service_period,omitempty"`
 	// The billing period the charge belongs to.
@@ -1506,6 +1973,65 @@ type CustomerData struct {
 	AppData *AppCustomerData `json:"app_data,omitempty"`
 }
 
+// Customer or reference.
+//
+// CustomerOrReference is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the CustomerOrReferenceFrom* constructors.
+type CustomerOrReference struct {
+	raw json.RawMessage
+}
+
+func (u *CustomerOrReference) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	return nil
+}
+
+func (u CustomerOrReference) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u CustomerOrReference) AsCustomer() (*Customer, error) {
+	var value Customer
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func CustomerOrReferenceFromCustomer(value Customer) (CustomerOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return CustomerOrReference{}, err
+	}
+	var result CustomerOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return CustomerOrReference{}, err
+	}
+	return result, nil
+}
+
+func (u CustomerOrReference) AsCustomerReference() (*CustomerReference, error) {
+	var value CustomerReference
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func CustomerOrReferenceFromCustomerReference(value CustomerReference) (CustomerOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return CustomerOrReference{}, err
+	}
+	var result CustomerOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return CustomerOrReference{}, err
+	}
+	return result, nil
+}
+
 // Page paginated response.
 type CustomerPagePaginatedResponse struct {
 	Data []Customer    `json:"data"`
@@ -1534,6 +2060,65 @@ type CustomerStripeCreateCheckoutSessionRequest struct {
 type CustomerStripeCreateCustomerPortalSessionRequest struct {
 	// Options for configuring the Stripe Customer Portal Session.
 	StripeOptions AppStripeCreateCustomerPortalSessionOptions `json:"stripe_options"`
+}
+
+// Feature or reference.
+//
+// FeatureOrReference is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the FeatureOrReferenceFrom* constructors.
+type FeatureOrReference struct {
+	raw json.RawMessage
+}
+
+func (u *FeatureOrReference) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	return nil
+}
+
+func (u FeatureOrReference) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u FeatureOrReference) AsFeature() (*Feature, error) {
+	var value Feature
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func FeatureOrReferenceFromFeature(value Feature) (FeatureOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return FeatureOrReference{}, err
+	}
+	var result FeatureOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return FeatureOrReference{}, err
+	}
+	return result, nil
+}
+
+func (u FeatureOrReference) AsFeatureReference() (*FeatureReference, error) {
+	var value FeatureReference
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func FeatureOrReferenceFromFeatureReference(value FeatureReference) (FeatureOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return FeatureOrReference{}, err
+	}
+	var result FeatureOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return FeatureOrReference{}, err
+	}
+	return result, nil
 }
 
 // Usage-based price types for a rate card or charge.
@@ -1648,6 +2233,65 @@ func PriceUsageBasedFromPriceVolume(value PriceVolume) (PriceUsageBased, error) 
 type RateCardProrationConfiguration struct {
 	// The proration mode of the rate card.
 	Mode RateCardProrationMode `json:"mode"`
+}
+
+// Subscription or reference.
+//
+// SubscriptionOrReference is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the SubscriptionOrReferenceFrom* constructors.
+type SubscriptionOrReference struct {
+	raw json.RawMessage
+}
+
+func (u *SubscriptionOrReference) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	return nil
+}
+
+func (u SubscriptionOrReference) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u SubscriptionOrReference) AsBillingSubscription() (*BillingSubscription, error) {
+	var value BillingSubscription
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionOrReferenceFromBillingSubscription(value BillingSubscription) (SubscriptionOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionOrReference{}, err
+	}
+	var result SubscriptionOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionOrReference{}, err
+	}
+	return result, nil
+}
+
+func (u SubscriptionOrReference) AsSubscriptionReference() (*SubscriptionReference, error) {
+	var value SubscriptionReference
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionOrReferenceFromSubscriptionReference(value SubscriptionReference) (SubscriptionOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionOrReference{}, err
+	}
+	var result SubscriptionOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionOrReference{}, err
+	}
+	return result, nil
 }
 
 // Request body for updating the external payment settlement status of a credit

@@ -7,7 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/delta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/periodpreserving"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
@@ -43,7 +42,7 @@ func (c Config) Validate() error {
 type Service interface {
 	// GetTotalsForUsage returns charge totals for a usage snapshot without generating detailed lines.
 	// Prefer this when only totals are required because it is faster than generating detailed lines.
-	GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInput) (totals.Totals, error)
+	GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInput) (GetTotalsForUsageResult, error)
 	// GetDetailedRatingForUsage returns rated detailed lines and the metered quantity snapshot used to compute them.
 	// Prefer GetTotalsForUsage when only totals are required because it is faster.
 	GetDetailedRatingForUsage(ctx context.Context, in GetDetailedRatingForUsageInput) (GetDetailedRatingForUsageResult, error)
