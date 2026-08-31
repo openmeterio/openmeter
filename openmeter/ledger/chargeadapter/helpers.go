@@ -21,8 +21,8 @@ func settledBalanceForSubAccount(ctx context.Context, querier ledger.BalanceQuer
 }
 
 // invoicePaymentIdentity keeps ordinary invoiced charges attributed as spend,
-// while custom-currency overage follows its credit-purchase invoice line and
-// attributes the fiat payment lifecycle to the synthetic credit source.
+// while custom-currency overage follows its credit-purchase-equivalent booking
+// and attributes the fiat payment lifecycle to the synthetic credit source.
 func invoicePaymentIdentity(chargeID string, chargeCurrency currencies.Currency) ledger.EntryIdentityParts {
 	if chargeCurrency.IsCustom() {
 		return ledger.EntryIdentityParts{

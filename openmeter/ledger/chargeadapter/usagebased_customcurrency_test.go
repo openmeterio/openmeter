@@ -30,13 +30,12 @@ import (
 )
 
 // TestOnUsageBasedCustomCurrencyOverageAccrued exercises the credit_then_invoice
-// boundary as a credit-purchase-equivalent flow, per the product decision that
-// custom-currency overage "happen[s] exactly like a creditpurchase": 100 ACME
-// rated, 60 ACME covered by credits, 40 ACME uncovered overage is purchased at
-// the persisted cost basis (0.25 USD/ACME) and immediately consumed by the
-// same charge, then the resulting custom-currency receivable is converted
-// once into a 10.00 USD fiat receivable. No spendable custom-currency balance
-// or open custom receivable survives the accrual.
+// boundary as a credit-purchase-equivalent ledger flow: 100 ACME rated, 60 ACME
+// covered by credits, and 40 ACME uncovered overage is issued at the persisted
+// cost basis (0.25 USD/ACME) and immediately consumed by the same charge. The
+// resulting custom-currency receivable is converted once into a 10.00 USD fiat
+// receivable. No spendable custom-currency balance or open custom receivable
+// survives the accrual.
 func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 	env := newUsageBasedHandlerTestEnv(t)
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
@@ -367,9 +366,10 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued_UsesPersistedCostBasis(t *test
 
 // TestOnUsageBasedCustomCurrencyOverageAccrued_ProgressiveRuns proves that two
 // sequential overage runs against the same persisted cost basis (progressive
-// billing) each purchase, consume, and convert only their own newly uncovered
-// increment, accumulating without double rounding or double booking. This
-// also demonstrates route stability: a later run against the same charge and
+// billing) each issue, consume, and convert only their own newly uncovered
+// increment without double booking. Each increment is converted independently;
+// this exact-rate test makes no claim about cross-run rounding, for which
+// charges retain no remainder state. A later run against the same charge and
 // persisted cost basis lands on the exact same purchase route.
 func TestOnUsageBasedCustomCurrencyOverageAccrued_ProgressiveRuns(t *testing.T) {
 	env := newUsageBasedHandlerTestEnv(t)

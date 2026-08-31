@@ -118,12 +118,17 @@ finalization callback. Engines return fully calculated lines with unchanged
 line IDs; billing replaces those lines, sums their totals, and persists the
 invoice before sending it to the invoicing app. Line finalization has its own
 retryable failure state, so an external app retry does not repeat stable
-engine-owned effects. Flat-fee and usage-based accounting preparation complete
-at this boundary; the later external-issued callback validates and advances the
-already-prepared charge lifecycle. Line-finalization failures and subsequent
-issuing are retry-only. If invoicing app synchronization fails after durable
-preparation succeeds, charge-owned cleanup must correct that preparation before
-the invoice can be deleted.
+engine-owned effects. Custom-currency `credit_then_invoice` flat-fee and
+usage-based charges complete their reversible gross-overage and fiat-credit
+preparation at this boundary because those effects determine the final line.
+Their later external-issued callback validates and seals the prepared charge
+history. Regular-fiat invoice accrual remains in that issued callback, after
+external synchronization succeeds.
+
+A line-finalization failure is retry-only. If invoicing app synchronization
+fails after durable custom-currency preparation, the invoice may be retried or
+deleted. Deletion first runs charge-owned cleanup to correct the preparation;
+failed cleanup rolls back and remains retryable.
 
 A deleted app keeps its historical identity and can still be expanded on
 invoices. Its generic app operations return `app.ErrAppDeleted`, while its

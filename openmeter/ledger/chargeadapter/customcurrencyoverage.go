@@ -129,11 +129,11 @@ func (i correctCustomCurrencyOverageInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// book records uncovered custom-currency overage as a credit purchase
-// immediately consumed by the same charge. The purchase and consumption use
-// the same route so the custom amount never becomes spendable customer balance;
-// the resulting custom receivable is converted into the already-agreed,
-// rounded fiat receivable the invoice will collect.
+// book records uncovered custom-currency overage with credit-purchase-equivalent
+// ledger legs, immediately consumed by the same charge. Issuance and consumption
+// use the same route so the custom amount never becomes spendable customer
+// balance; the resulting custom receivable is converted into the already-agreed,
+// rounded gross fiat receivable that credit coverage and invoice payment resolve.
 func (h *customCurrencyOverageHandler) book(ctx context.Context, input bookCustomCurrencyOverageInput) (ledgertransaction.GroupReference, error) {
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err

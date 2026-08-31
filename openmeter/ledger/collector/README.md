@@ -1,6 +1,10 @@
 # Credit Collection
 
-This package turns customer credit and advance into accrued value. The hard part is not posting `FBO -> accrued`; it is preserving the exact order of what was collected so later correction and breakage flows can undo the same economic slices.
+This package turns selected customer FBO credit into accrued value and, for
+custom-currency `credit_then_invoice` overage, fiat receivable coverage.
+Credit-only accrual can also create an advance for an uncovered amount. The
+hard part is preserving the exact order of selected sources so later correction
+and breakage flows can undo the same economic slices.
 
 ## Vocab
 
@@ -87,6 +91,31 @@ BR     -5
 ```
 
 Source C is untouched because all lower-priority expiring credit was consumed first.
+
+## Custom-Currency CTI Receivable Coverage
+
+Custom-currency `credit_then_invoice` creates its gross fiat receivable before
+asking the collector to cover part of it with eligible settlement-fiat FBO
+credit. This path is not a general receivable settlement mechanism. It uses the
+same priority, expiry, feature, and breakage-release rules as accrued
+collection, but it never creates advance for an uncovered remainder.
+
+Example:
+
+```text
+gross receivable:      RECEIVABLE -5
+available fiat credit: FBO          +3
+
+coverage:
+FBO        -3
+RECEIVABLE +3
+
+remaining receivable: RECEIVABLE -2
+```
+
+Coverage preserves the original credit's source charge and records the charge
+whose receivable is covered as the spend charge. Correction restores the exact
+selected FBO sources and reopens their breakage releases.
 
 ## Source Entry Identity
 

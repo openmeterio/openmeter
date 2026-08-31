@@ -113,9 +113,10 @@ func collectFromAttributableCustomerAccrued(
 	return collectFromPostingAddressBalanceSources(sources, target), nil
 }
 
-// isCreditBackedAccruedIdentity distinguishes accrued value consumed from a
-// real credit source from invoice-backed value. Invoice accrual either has no
-// source charge or is funded by the same charge it records as the spend.
+// isCreditBackedAccruedIdentity reports whether accrued value has the distinct
+// source-credit and spend-charge provenance required for credit-backed earnings
+// recognition. Value without this provenance can be invoice-backed or an
+// unbackfilled advance.
 func isCreditBackedAccruedIdentity(identity ledger.EntryIdentityParts) bool {
 	return identity.SourceChargeID != nil &&
 		identity.SpendChargeID != nil &&

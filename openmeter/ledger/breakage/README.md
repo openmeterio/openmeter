@@ -247,7 +247,8 @@ T15 used: 0
 
 ## Usage Corrections
 
-Usage corrections are corrections of prior `FBO -> accrued` movement.
+Usage corrections unwind prior FBO consumption into accrued value or
+receivable coverage.
 
 Usage correction is an unwind up to the original collected amount. It restores FBO and reopens any breakage releases attached to the restored source entries.
 
