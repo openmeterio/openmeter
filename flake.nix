@@ -36,8 +36,8 @@
               go = {
                 enable = true;
                 # The Nixpkgs Go package can retain a build-time loader that is not represented in
-                # its store identity. Wrapping it makes the active loader an explicit derivation
-                # input and exports GO_LDSO for every invocation, including Nix checks.
+                # its store identity. Wrap cmd/link with the active loader as an explicit argument
+                # and derivation input so every internal link, including Nix checks, uses it.
                 package =
                   if pkgs.stdenv.hostPlatform.isLinux then
                     pkgs.symlinkJoin
@@ -47,6 +47,11 @@
                         inherit (pkgs.go_1_27) CGO_ENABLED GOARCH GOOS meta passthru version;
                         nativeBuildInputs = [ pkgs.makeWrapper ];
                         postBuild = ''
+                          linkTool="share/go/pkg/tool/${pkgs.go_1_27.GOOS}_${pkgs.go_1_27.GOARCH}/link"
+                          rm "$out/$linkTool"
+                          makeWrapper "${pkgs.go_1_27}/$linkTool" "$out/$linkTool" \
+                            --add-flags "-I=${pkgs.stdenv.cc.bintools.dynamicLinker}"
+
                           wrapProgram "$out/bin/go" \
                             --set-default GO_LDSO ${pkgs.stdenv.cc.bintools.dynamicLinker}
                         '';
@@ -189,9 +194,9 @@
               HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
               HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
             } // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-              # Nixpkgs patches Go's internal linker to honor GO_LDSO, but the fallback baked into
-              # the Go package can lag behind the active stdenv. Always link against this shell's
-              # declared loader instead of retaining that stale build-time path.
+              # Keep GO_LDSO visible for patched Go linkers and diagnostics. The wrapped cmd/link
+              # above also passes -I explicitly because the cached Nix binary can retain its stale
+              # build-time default even when this variable is set.
               GO_LDSO = pkgs.stdenv.cc.bintools.dynamicLinker;
             };
 
