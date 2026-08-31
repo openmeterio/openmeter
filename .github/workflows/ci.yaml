@@ -89,6 +89,9 @@ jobs:
               exit 1
             fi
 
+            # GO_LDSO is not part of Go's link-action key. Start publication from
+            # an empty namespace so the assertion exercises the wrapped linker.
+            go clean -cache
             go -C api/v3/client test -c -o "${runtime_probe}" .
 
             # A cached Go link action can retain the loader from an older Nixpkgs

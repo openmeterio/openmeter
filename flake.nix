@@ -35,7 +35,24 @@
             languages = {
               go = {
                 enable = true;
-                package = pkgs.go_1_27;
+                # The Nixpkgs Go package can retain a build-time loader that is not represented in
+                # its store identity. Wrapping it makes the active loader an explicit derivation
+                # input and exports GO_LDSO for every invocation, including Nix checks.
+                package =
+                  if pkgs.stdenv.hostPlatform.isLinux then
+                    pkgs.symlinkJoin
+                      {
+                        name = "${pkgs.go_1_27.name}-openmeter";
+                        paths = [ pkgs.go_1_27 ];
+                        inherit (pkgs.go_1_27) CGO_ENABLED GOARCH GOOS meta passthru version;
+                        nativeBuildInputs = [ pkgs.makeWrapper ];
+                        postBuild = ''
+                          wrapProgram "$out/bin/go" \
+                            --set-default GO_LDSO ${pkgs.stdenv.cc.bintools.dynamicLinker}
+                        '';
+                      }
+                  else
+                    pkgs.go_1_27;
 
                 delve.package = pkgs.delve.overrideAttrs (old: {
                   # Delve runs these generator checks only with the latest Go release. They invoke
