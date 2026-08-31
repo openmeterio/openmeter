@@ -201,6 +201,32 @@ func (s *SubscriptionsService) Change(ctx context.Context, subscriptionID string
 	return &out, nil
 }
 
+// Edits a running subscription by applying an ordered batch of customizations
+// (adding or removing items, adding, removing, or stretching phases, or
+// unscheduling a pending edit). The changes may take effect immediately or at the
+// next billing cycle. Subscriptions that have add-ons cannot be edited.
+func (s *SubscriptionsService) Edit(ctx context.Context, subscriptionID string, request SubscriptionEdit) (*BillingSubscription, error) {
+	if subscriptionID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "subscriptionID", ErrEmptyID)
+	}
+
+	path := "/openmeter/subscriptions/{subscriptionId}/edit"
+
+	path = replacePathParam(path, "subscriptionId", subscriptionID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out BillingSubscription
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // Add add-on to a subscription.
 func (s *SubscriptionsService) CreateAddon(ctx context.Context, subscriptionID string, request CreateSubscriptionAddonRequest) (*SubscriptionAddon, error) {
 	if subscriptionID == "" {

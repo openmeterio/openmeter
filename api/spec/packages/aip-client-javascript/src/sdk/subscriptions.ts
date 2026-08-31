@@ -10,6 +10,7 @@ import {
   cancelSubscription,
   unscheduleCancelation,
   changeSubscription,
+  editSubscription,
   listSubscriptionAddons,
   getSubscriptionAddon,
 } from '../funcs/subscriptions.js'
@@ -26,6 +27,8 @@ import type {
   UnscheduleCancelationResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
+  EditSubscriptionRequest,
+  EditSubscriptionResponse,
   ListSubscriptionAddonsRequest,
   ListSubscriptionAddonsResponse,
   GetSubscriptionAddonRequest,
@@ -132,6 +135,23 @@ export class Subscriptions {
     options?: RequestOptions,
   ): Promise<ChangeSubscriptionResponse> {
     return unwrap(await changeSubscription(this._client, request, options))
+  }
+
+  /**
+   * Edit subscription
+   *
+   * Edits a running subscription by applying an ordered batch of customizations
+   * (adding or removing items, adding, removing, or stretching phases, or
+   * unscheduling a pending edit). The changes may take effect immediately or at the
+   * next billing cycle. Subscriptions that have add-ons cannot be edited.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/edit
+   */
+  async edit(
+    request: EditSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<EditSubscriptionResponse> {
+    return unwrap(await editSubscription(this._client, request, options))
   }
 
   /**

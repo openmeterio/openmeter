@@ -252,6 +252,25 @@ export interface ChargeFlatFeeDiscounts {
   percentage?: number
 }
 
+/** Remove a rate card from a phase. */
+export interface SubscriptionEditRemoveItem {
+  /** Discriminator for the remove-item operation. */
+  type: 'remove_item'
+  /** The key of the phase to remove the item from. */
+  phaseKey: string
+  /** The key of the item to remove. */
+  itemKey: string
+}
+
+/**
+ * Discard any scheduled edits on the current phase, reverting it to its previously
+ * persisted state.
+ */
+export interface SubscriptionEditUnscheduleEdit {
+  /** Discriminator for the unschedule-edit operation. */
+  type: 'unschedule_edit'
+}
+
 /**
  * Labels store metadata of an entity that can be used for filtering an entity list
  * or for searching across entity types.
@@ -1926,6 +1945,36 @@ export interface RateCardMeteredEntitlement {
   usagePeriod?: string
 }
 
+/** The definition of a new subscription phase to add via an edit. */
+export interface SubscriptionPhaseCreate {
+  /** A locally unique identifier for the phase. */
+  key: string
+  /** The name of the phase. */
+  name: string
+  /** An optional description of the phase. */
+  description?: string
+  /**
+   * The ISO-8601 interval after the subscription start at which the phase begins.
+   * When null, the phase starts immediately after the subscription starts.
+   */
+  startAfter: string | null
+  /**
+   * The intended ISO-8601 duration of the phase. Required unless the phase will be
+   * the last phase of the subscription.
+   */
+  duration?: string
+}
+
+/** Extend the duration of a phase, shifting later phases by the same amount. */
+export interface SubscriptionEditStretchPhase {
+  /** Discriminator for the stretch-phase operation. */
+  type: 'stretch_phase'
+  /** The key of the phase to stretch. */
+  phaseKey: string
+  /** The ISO-8601 duration to extend the phase by. */
+  extendBy: string
+}
+
 /** Recurring period with an anchor and an interval. */
 export interface RecurringPeriod {
   /** A date-time anchor to base the recurring period on. */
@@ -2183,6 +2232,16 @@ export interface InvoiceAvailableActions {
 export interface ChargeRealizationPayment {
   /** The settlement status of the payment. */
   status: 'authorized' | 'settled'
+}
+
+/** Remove a phase from the subscription. */
+export interface SubscriptionEditRemovePhase {
+  /** Discriminator for the remove-phase operation. */
+  type: 'remove_phase'
+  /** The key of the phase to remove. */
+  phaseKey: string
+  /** The direction to shift surrounding phases to fill the removed phase's span. */
+  shift: 'next' | 'prev'
 }
 
 /** Mapping of app types to tax codes. */
@@ -3346,6 +3405,17 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
 export interface ListCustomerEntitlementAccessResponseData {
   /** The list of entitlement access results. */
   data: EntitlementAccessResult[]
+}
+
+/**
+ * Add a new phase to the subscription. The phase is created without items; use
+ * add-item operations to populate it.
+ */
+export interface SubscriptionEditAddPhase {
+  /** Discriminator for the add-phase operation. */
+  type: 'add_phase'
+  /** The phase to add. */
+  phase: SubscriptionPhaseCreate
 }
 
 /**
@@ -5067,6 +5137,19 @@ export interface SubscriptionItem {
   rateCard: RateCard
 }
 
+/**
+ * Add a new rate card to a phase. Adding an item to the current phase closes the
+ * active version of the same item key and appends a new version.
+ */
+export interface SubscriptionEditAddItem {
+  /** Discriminator for the add-item operation. */
+  type: 'add_item'
+  /** The key of the phase to add the item to. */
+  phaseKey: string
+  /** The rate card describing what the customer gets and pays for the new item. */
+  rateCard: RateCard
+}
+
 /** A rate card for a subscription add-on. */
 export interface SubscriptionAddonRateCard {
   /** The rate card. */
@@ -5809,6 +5892,18 @@ export interface Subscription {
   phases: SubscriptionPhase[]
 }
 
+/**
+ * Request for editing a running subscription. Applies an ordered batch of
+ * customizations to the subscription's phases and items. A later customization
+ * observes the state produced by earlier ones.
+ */
+export interface SubscriptionEdit {
+  /** The ordered batch of customizations to apply to the running subscription. */
+  customizations: SubscriptionEditOperation[]
+  /** When the requested changes should take effect. Defaults to immediate. */
+  timing: SubscriptionEditTiming
+}
+
 /** Page paginated response. */
 export interface SubscriptionAddonPagePaginatedResponse {
   data: SubscriptionAddon[]
@@ -6361,6 +6456,18 @@ export type ChargeRealizationInvoiceOrReference =
 /** Customer charge. */
 export type CreateChargeRequest =
   CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
+
+/**
+ * A single customization to apply to a running subscription. The `type` field
+ * discriminates which operation is performed.
+ */
+export type SubscriptionEditOperation =
+  | SubscriptionEditAddItem
+  | SubscriptionEditRemoveItem
+  | SubscriptionEditAddPhase
+  | SubscriptionEditRemovePhase
+  | SubscriptionEditStretchPhase
+  | SubscriptionEditUnscheduleEdit
 
 /**
  * A top-level line item on an invoice.
@@ -7597,6 +7704,19 @@ export interface SubscriptionItemInput {
   rateCard: RateCardInput
 }
 
+/**
+ * Add a new rate card to a phase. Adding an item to the current phase closes the
+ * active version of the same item key and appends a new version.
+ */
+export interface SubscriptionEditAddItemInput {
+  /** Discriminator for the add-item operation. */
+  type: 'add_item'
+  /** The key of the phase to add the item to. */
+  phaseKey: string
+  /** The rate card describing what the customer gets and pays for the new item. */
+  rateCard: RateCardInput
+}
+
 /** A rate card for a subscription add-on. */
 export interface SubscriptionAddonRateCardInput {
   /** The rate card. */
@@ -8296,6 +8416,18 @@ export interface SubscriptionInput {
   phases: SubscriptionPhaseInput[]
 }
 
+/**
+ * Request for editing a running subscription. Applies an ordered batch of
+ * customizations to the subscription's phases and items. A later customization
+ * observes the state produced by earlier ones.
+ */
+export interface SubscriptionEditInput {
+  /** The ordered batch of customizations to apply to the running subscription. */
+  customizations: SubscriptionEditOperationInput[]
+  /** When the requested changes should take effect. Defaults to immediate. */
+  timing?: SubscriptionEditTiming
+}
+
 /** Page paginated response. */
 export interface SubscriptionAddonPagePaginatedResponseInput {
   data: SubscriptionAddonInput[]
@@ -8693,6 +8825,18 @@ export type ChargeRealizationInvoiceOrReferenceInput =
 /** Customer charge. */
 export type CreateChargeRequestInput =
   CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequestInput
+
+/**
+ * A single customization to apply to a running subscription. The `type` field
+ * discriminates which operation is performed.
+ */
+export type SubscriptionEditOperationInput =
+  | SubscriptionEditAddItemInput
+  | SubscriptionEditRemoveItem
+  | SubscriptionEditAddPhase
+  | SubscriptionEditRemovePhase
+  | SubscriptionEditStretchPhase
+  | SubscriptionEditUnscheduleEdit
 
 /**
  * A top-level line item on an invoice.

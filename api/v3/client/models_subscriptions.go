@@ -187,6 +187,272 @@ type SubscriptionCreate struct {
 	CostBasisMode *SubscriptionCostBasisMode `json:"cost_basis_mode,omitempty"`
 }
 
+// Request for editing a running subscription. Applies an ordered batch of
+// customizations to the subscription's phases and items. A later customization
+// observes the state produced by earlier ones.
+type SubscriptionEdit struct {
+	// The ordered batch of customizations to apply to the running subscription.
+	Customizations []SubscriptionEditOperation `json:"customizations"`
+	// When the requested changes should take effect. Defaults to immediate.
+	Timing *SubscriptionEditTiming `json:"timing,omitempty"`
+}
+
+// Add a new rate card to a phase. Adding an item to the current phase closes the
+// active version of the same item key and appends a new version.
+type SubscriptionEditAddItem struct {
+	// Discriminator for the add-item operation.
+	Type SubscriptionEditOperationType `json:"type"`
+	// The key of the phase to add the item to.
+	PhaseKey string `json:"phase_key"`
+	// The rate card describing what the customer gets and pays for the new item.
+	RateCard RateCardInput `json:"rate_card"`
+}
+
+// Add a new phase to the subscription. The phase is created without items; use
+// add-item operations to populate it.
+type SubscriptionEditAddPhase struct {
+	// Discriminator for the add-phase operation.
+	Type SubscriptionEditOperationType `json:"type"`
+	// The phase to add.
+	Phase SubscriptionPhaseCreate `json:"phase"`
+}
+
+// A single customization to apply to a running subscription. The `type` field
+// discriminates which operation is performed.
+//
+// SubscriptionEditOperation is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the SubscriptionEditOperationFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type SubscriptionEditOperation struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *SubscriptionEditOperation) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u SubscriptionEditOperation) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u SubscriptionEditOperation) AsSubscriptionEditAddItem() (*SubscriptionEditAddItem, error) {
+	if u.Type != "add_item" {
+		return nil, fmt.Errorf("SubscriptionEditOperation: expected type %q, got %q", "add_item", u.Type)
+	}
+	var value SubscriptionEditAddItem
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionEditOperationFromSubscriptionEditAddItem(value SubscriptionEditAddItem) (SubscriptionEditOperation, error) {
+	value.Type = "add_item"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	var result SubscriptionEditOperation
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	return result, nil
+}
+
+func (u SubscriptionEditOperation) AsSubscriptionEditRemoveItem() (*SubscriptionEditRemoveItem, error) {
+	if u.Type != "remove_item" {
+		return nil, fmt.Errorf("SubscriptionEditOperation: expected type %q, got %q", "remove_item", u.Type)
+	}
+	var value SubscriptionEditRemoveItem
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionEditOperationFromSubscriptionEditRemoveItem(value SubscriptionEditRemoveItem) (SubscriptionEditOperation, error) {
+	value.Type = "remove_item"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	var result SubscriptionEditOperation
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	return result, nil
+}
+
+func (u SubscriptionEditOperation) AsSubscriptionEditAddPhase() (*SubscriptionEditAddPhase, error) {
+	if u.Type != "add_phase" {
+		return nil, fmt.Errorf("SubscriptionEditOperation: expected type %q, got %q", "add_phase", u.Type)
+	}
+	var value SubscriptionEditAddPhase
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionEditOperationFromSubscriptionEditAddPhase(value SubscriptionEditAddPhase) (SubscriptionEditOperation, error) {
+	value.Type = "add_phase"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	var result SubscriptionEditOperation
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	return result, nil
+}
+
+func (u SubscriptionEditOperation) AsSubscriptionEditRemovePhase() (*SubscriptionEditRemovePhase, error) {
+	if u.Type != "remove_phase" {
+		return nil, fmt.Errorf("SubscriptionEditOperation: expected type %q, got %q", "remove_phase", u.Type)
+	}
+	var value SubscriptionEditRemovePhase
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionEditOperationFromSubscriptionEditRemovePhase(value SubscriptionEditRemovePhase) (SubscriptionEditOperation, error) {
+	value.Type = "remove_phase"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	var result SubscriptionEditOperation
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	return result, nil
+}
+
+func (u SubscriptionEditOperation) AsSubscriptionEditStretchPhase() (*SubscriptionEditStretchPhase, error) {
+	if u.Type != "stretch_phase" {
+		return nil, fmt.Errorf("SubscriptionEditOperation: expected type %q, got %q", "stretch_phase", u.Type)
+	}
+	var value SubscriptionEditStretchPhase
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionEditOperationFromSubscriptionEditStretchPhase(value SubscriptionEditStretchPhase) (SubscriptionEditOperation, error) {
+	value.Type = "stretch_phase"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	var result SubscriptionEditOperation
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	return result, nil
+}
+
+func (u SubscriptionEditOperation) AsSubscriptionEditUnscheduleEdit() (*SubscriptionEditUnscheduleEdit, error) {
+	if u.Type != "unschedule_edit" {
+		return nil, fmt.Errorf("SubscriptionEditOperation: expected type %q, got %q", "unschedule_edit", u.Type)
+	}
+	var value SubscriptionEditUnscheduleEdit
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionEditOperationFromSubscriptionEditUnscheduleEdit(value SubscriptionEditUnscheduleEdit) (SubscriptionEditOperation, error) {
+	value.Type = "unschedule_edit"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	var result SubscriptionEditOperation
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionEditOperation{}, err
+	}
+	return result, nil
+}
+
+// The type of a subscription edit operation.
+//
+// - `add_item`: Add a rate card to a phase.
+// - `remove_item`: Remove a rate card from a phase.
+// - `add_phase`: Add a new phase to the subscription.
+// - `remove_phase`: Remove a phase from the subscription.
+// - `stretch_phase`: Extend the duration of a phase.
+// - `unschedule_edit`: Discard scheduled edits on the current phase.
+type SubscriptionEditOperationType string
+
+const (
+	SubscriptionEditOperationTypeAddItem        SubscriptionEditOperationType = "add_item"
+	SubscriptionEditOperationTypeRemoveItem     SubscriptionEditOperationType = "remove_item"
+	SubscriptionEditOperationTypeAddPhase       SubscriptionEditOperationType = "add_phase"
+	SubscriptionEditOperationTypeRemovePhase    SubscriptionEditOperationType = "remove_phase"
+	SubscriptionEditOperationTypeStretchPhase   SubscriptionEditOperationType = "stretch_phase"
+	SubscriptionEditOperationTypeUnscheduleEdit SubscriptionEditOperationType = "unschedule_edit"
+)
+
+func (value SubscriptionEditOperationType) Valid() bool {
+	switch value {
+	case SubscriptionEditOperationTypeAddItem, SubscriptionEditOperationTypeRemoveItem, SubscriptionEditOperationTypeAddPhase, SubscriptionEditOperationTypeRemovePhase, SubscriptionEditOperationTypeStretchPhase, SubscriptionEditOperationTypeUnscheduleEdit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Remove a rate card from a phase.
+type SubscriptionEditRemoveItem struct {
+	// Discriminator for the remove-item operation.
+	Type SubscriptionEditOperationType `json:"type"`
+	// The key of the phase to remove the item from.
+	PhaseKey string `json:"phase_key"`
+	// The key of the item to remove.
+	ItemKey string `json:"item_key"`
+}
+
+// Remove a phase from the subscription.
+type SubscriptionEditRemovePhase struct {
+	// Discriminator for the remove-phase operation.
+	Type SubscriptionEditOperationType `json:"type"`
+	// The key of the phase to remove.
+	PhaseKey string `json:"phase_key"`
+	// The direction to shift surrounding phases to fill the removed phase's span.
+	Shift SubscriptionRemovePhaseShifting `json:"shift"`
+}
+
+// Extend the duration of a phase, shifting later phases by the same amount.
+type SubscriptionEditStretchPhase struct {
+	// Discriminator for the stretch-phase operation.
+	Type SubscriptionEditOperationType `json:"type"`
+	// The key of the phase to stretch.
+	PhaseKey string `json:"phase_key"`
+	// The ISO-8601 duration to extend the phase by.
+	ExtendBy string `json:"extend_by"`
+}
+
 // Subscription edit timing defined when the changes should take effect. If the
 // provided configuration is not supported by the subscription, an error will be
 // returned.
@@ -270,8 +536,52 @@ func (value SubscriptionEditTimingEnum) Valid() bool {
 	}
 }
 
+// Discard any scheduled edits on the current phase, reverting it to its previously
+// persisted state.
+type SubscriptionEditUnscheduleEdit struct {
+	// Discriminator for the unschedule-edit operation.
+	Type SubscriptionEditOperationType `json:"type"`
+}
+
 // Page paginated response.
 type SubscriptionPagePaginatedResponse struct {
 	Data []BillingSubscription `json:"data"`
 	Meta PaginatedMeta         `json:"meta"`
+}
+
+// The definition of a new subscription phase to add via an edit.
+type SubscriptionPhaseCreate struct {
+	// A locally unique identifier for the phase.
+	Key string `json:"key"`
+	// The name of the phase.
+	Name string `json:"name"`
+	// An optional description of the phase.
+	Description *string `json:"description,omitempty"`
+	// The ISO-8601 interval after the subscription start at which the phase begins.
+	// When null, the phase starts immediately after the subscription starts.
+	StartAfter Nullable[string] `json:"start_after"`
+	// The intended ISO-8601 duration of the phase. Required unless the phase will be
+	// the last phase of the subscription.
+	Duration *string `json:"duration,omitempty"`
+}
+
+// The direction to shift surrounding phases when a phase is removed.
+//
+// - `next`: Shift all subsequent phases to start sooner by the removed phase's
+// length.
+// - `prev`: Extend the previous phase to end later by the removed phase's length.
+type SubscriptionRemovePhaseShifting string
+
+const (
+	SubscriptionRemovePhaseShiftingNext SubscriptionRemovePhaseShifting = "next"
+	SubscriptionRemovePhaseShiftingPrev SubscriptionRemovePhaseShifting = "prev"
+)
+
+func (value SubscriptionRemovePhaseShifting) Valid() bool {
+	switch value {
+	case SubscriptionRemovePhaseShiftingNext, SubscriptionRemovePhaseShiftingPrev:
+		return true
+	default:
+		return false
+	}
 }

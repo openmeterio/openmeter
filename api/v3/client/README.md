@@ -192,6 +192,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Subscriptions.Cancel` | `POST /openmeter/subscriptions/{subscriptionId}/cancel` | Cancels the subscription. Will result in a scheduling conflict if there are other subscriptions scheduled to start after the cancelation time. |
 | `om.Subscriptions.UnscheduleCancelation` | `POST /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation` | Unschedules the subscription cancelation. |
 | `om.Subscriptions.Change` | `POST /openmeter/subscriptions/{subscriptionId}/change` | Closes a running subscription and starts a new one according to the specification. Can be used for upgrades, downgrades, and plan changes. |
+| `om.Subscriptions.Edit` | `POST /openmeter/subscriptions/{subscriptionId}/edit` | Edits a running subscription by applying an ordered batch of customizations (adding or removing items, adding, removing, or stretching phases, or unscheduling a pending edit). The changes may take effect immediately or at the next billing cycle. Subscriptions that have add-ons cannot be edited. |
 | `om.Subscriptions.CreateAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons` | Add add-on to a subscription. |
 | `om.Subscriptions.ListAddons` | `GET /openmeter/subscriptions/{subscriptionId}/addons` | List the add-ons of a subscription. |
 | `om.Subscriptions.GetAddon` | `GET /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}` | Get an add-on association for a subscription. |
