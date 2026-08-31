@@ -45,34 +45,69 @@ jobs:
               - 'flake.lock'
               - '**/*.nix'
 
+      - name: Fingerprint Nix inputs
+        id: nix-inputs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          nix_input_hash() {
+            # Hash the relevant Git tree entries so a fork can select the base
+            # branch's cache without checking out or executing fork-owned code.
+            GIT_OPTIONAL_LOCKS=0 git ls-tree -r "$1" \
+              | awk -F '\t' '$2 == "flake.lock" || $2 ~ /\.nix$/' \
+              | sha256sum \
+              | cut -d ' ' -f 1
+          }
+
+          current_hash="$(nix_input_hash HEAD)"
+          main_hash="${current_hash}"
+
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            main_hash="$(nix_input_hash "${BASE_SHA}")"
+          fi
+
+          echo "current-hash=${current_hash}" >> "${GITHUB_OUTPUT}"
+          echo "main-hash=${main_hash}" >> "${GITHUB_OUTPUT}"
+
       - name: Select Nix cache key
         id: cache-key
         env:
+          BASE_REPOSITORY: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          MAIN_NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.main-hash }}
           NIX_INPUTS_CHANGED: ${{ steps.changed-files.outputs.nix_any_changed }}
-          NIX_INPUT_HASH: ${{ hashFiles('flake.lock', '**/*.nix') }}
+          NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.current-hash }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          main_key="${RUNNER_OS}-openmeter-nix-build-v3-main-${NIX_INPUT_HASH}"
+          main_key="${RUNNER_OS}-openmeter-nix-build-v4-main-${MAIN_NIX_INPUT_HASH}"
           cache_key="${main_key}"
           rebuild="false"
+          trusted="true"
 
-          if [ "${NIX_INPUTS_CHANGED}" = "true" ]; then
+          if [ "${EVENT_NAME}" = "pull_request" ] && [ "${HEAD_REPOSITORY}" != "${BASE_REPOSITORY}" ]; then
+            trusted="false"
+          fi
+
+          if [ "${NIX_INPUTS_CHANGED}" = "true" ] && [ "${trusted}" = "true" ]; then
             rebuild="true"
 
             # A PR must publish to an immutable, per-attempt key so every
             # downstream job validates the environment produced by that patch.
             # Main uses a stable input-addressed key for unchanged PRs to share.
             if [ "${EVENT_NAME}" = "pull_request" ]; then
-              cache_key="${RUNNER_OS}-openmeter-nix-build-v3-pr-${PR_NUMBER}-${RUN_ID}-${RUN_ATTEMPT}-${NIX_INPUT_HASH}"
+              cache_key="${RUNNER_OS}-openmeter-nix-build-v4-pr-${PR_NUMBER}-${RUN_ID}-${RUN_ATTEMPT}-${NIX_INPUT_HASH}"
             fi
           fi
 
           echo "cache-key=${cache_key}" >> "${GITHUB_OUTPUT}"
           echo "rebuild=${rebuild}" >> "${GITHUB_OUTPUT}"
-          echo "Selected Nix cache: ${cache_key} (rebuild: ${rebuild})"
+          echo "Selected Nix cache: ${cache_key} (rebuild: ${rebuild}, trusted: ${trusted})"
 
       - name: Set up Nix
         if: steps.cache-key.outputs.rebuild == 'true'
