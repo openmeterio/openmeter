@@ -53,8 +53,8 @@ already use.
 ## Quickstart
 
 The local evaluation stack requires [Git](https://git-scm.com/) and
-[Docker with Compose](https://docs.docker.com/compose/). Use `curl`, Node.js
-22+, or Python 3.9+ for the examples below.
+[Docker with Compose](https://docs.docker.com/compose/). To run the examples
+below, use `curl`, Node.js 22+, or Python 3.9+.
 
 ```sh
 git clone https://github.com/openmeterio/openmeter.git
