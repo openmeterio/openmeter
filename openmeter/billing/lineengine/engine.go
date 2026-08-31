@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -100,15 +98,6 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 	}
 
 	if err := e.SnapshotLineQuantities(ctx, input.Invoice, input.Lines); err != nil {
-		if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
-			return nil, billing.ValidationIssue{
-				Severity:  billing.ValidationIssueSeverityCritical,
-				Code:      billing.ErrInvoiceLineSnapshotFailed.Code,
-				Message:   err.Error(),
-				Component: billing.ValidationComponentOpenMeterMetering,
-			}
-		}
-
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 

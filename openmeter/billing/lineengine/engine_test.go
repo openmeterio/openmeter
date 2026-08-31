@@ -1,6 +1,8 @@
 package lineengine
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -24,6 +27,78 @@ func TestConfigValidateReturnsAllErrors(t *testing.T) {
 	require.ErrorContains(t, err, "feature service is required")
 	require.ErrorContains(t, err, "streaming connector is required")
 	require.ErrorContains(t, err, "max parallel quantity snapshots must be greater than 0")
+}
+
+func TestSnapshotValidationIssueClassification(t *testing.T) {
+	firstErr := &billing.ErrSnapshotFeatureHasNoMeter{
+		LineID:     "line-1",
+		FeatureKey: "first",
+	}
+	secondErr := &billing.ErrSnapshotFeatureHasNoMeter{
+		LineID:     "line-2",
+		FeatureKey: "second",
+	}
+
+	t.Run("converts a validation-only error tree", func(t *testing.T) {
+		issues, systemErr := billing.ToValidationIssues(errors.Join(
+			fmt.Errorf("snapshot first: %w", firstErr.AsValidationIssue()),
+			secondErr.AsValidationIssue(),
+		))
+
+		require.NoError(t, systemErr)
+		require.Equal(t, billing.ValidationIssues{
+			{
+				Severity:  billing.ValidationIssueSeverityCritical,
+				Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+				Message:   "feature[first] has no meter associated",
+				Component: billing.ValidationComponentOpenMeterMetering,
+				Path:      "/lines/line-1",
+			},
+			{
+				Severity:  billing.ValidationIssueSeverityCritical,
+				Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+				Message:   "feature[second] has no meter associated",
+				Component: billing.ValidationComponentOpenMeterMetering,
+				Path:      "/lines/line-2",
+			},
+		}, issues)
+	})
+
+	t.Run("keeps mixed operational failures fatal", func(t *testing.T) {
+		issues, systemErr := billing.ToValidationIssues(errors.Join(
+			firstErr.AsValidationIssue(),
+			errors.New("querying usage backend"),
+		))
+
+		require.Nil(t, issues)
+		require.ErrorContains(t, systemErr, "querying usage backend")
+	})
+}
+
+func TestFeatureMetersErrorWrapperClassifiesMissingMeterAssociation(t *testing.T) {
+	wrapped := featureMetersErrorWrapper{FeatureMeters: feature.FeatureMeterCollection{
+		ByKey: map[string]feature.FeatureMeter{
+			"meterless": {
+				Feature: feature.Feature{Key: "meterless"},
+			},
+		},
+	}}
+
+	t.Run("missing meter association is snapshot validation", func(t *testing.T) {
+		_, err := wrapped.Get("meterless", true)
+
+		var snapshotErr *billing.ErrSnapshotFeatureHasNoMeter
+		require.ErrorAs(t, err, &snapshotErr)
+		require.Equal(t, "meterless", snapshotErr.FeatureKey)
+	})
+
+	t.Run("missing feature preserves not found error", func(t *testing.T) {
+		_, err := wrapped.Get("missing", true)
+
+		var snapshotErr *billing.ErrSnapshotFeatureHasNoMeter
+		require.False(t, errors.As(err, &snapshotErr))
+		require.True(t, models.IsGenericNotFoundError(err))
+	})
 }
 
 func TestValidateLegacyLineOverrideRejectsSplitLinePeriodChange(t *testing.T) {

@@ -42,6 +42,51 @@ func TestRecalculateDetailedLinesAndTotalsSkipsEnginesWithoutCalculator(t *testi
 	require.True(t, alpacadecimal.NewFromInt(12).Equal(invoice.Totals.Total))
 }
 
+func TestRecalculateDetailedLinesAndTotalsSkipsEngineWithSnapshotValidationIssue(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		severity billing.ValidationIssueSeverity
+	}{
+		{name: "critical issue from creation", severity: billing.ValidationIssueSeverityCritical},
+		{name: "warning issue downgraded for retry", severity: billing.ValidationIssueSeverityWarning},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: a line engine has incomplete output after quantity snapshotting failed
+			engineType := billing.LineEngineTypeInvoice
+			invoice := billing.StandardInvoice{
+				ValidationIssues: billing.ValidationIssues{
+					{
+						Severity:  tc.severity,
+						Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+						Component: billing.LineEngineValidationComponent(engineType),
+					},
+				},
+				Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{
+					{
+						StandardLineBase: billing.StandardLineBase{
+							Engine: engineType,
+							Totals: totals.Totals{
+								Amount: alpacadecimal.NewFromInt(12),
+								Total:  alpacadecimal.NewFromInt(12),
+							},
+						},
+					},
+				}),
+			}
+
+			// when: invoice calculation runs before collection has repaired the line
+			err := RecalculateDetailedLinesAndTotals(&invoice, StandardInvoiceCalculatorDependencies{
+				LineEngines: staticLineEngineResolver{},
+			})
+
+			// then: the incomplete engine output is preserved without invoking its calculator
+			require.NoError(t, err)
+			require.Equal(t, float64(12), invoice.Totals.Amount.InexactFloat64())
+			require.Equal(t, float64(12), invoice.Totals.Total.InexactFloat64())
+		})
+	}
+}
+
 func TestRecalculateTotalsAggregatesExistingLinesWithoutLineEngines(t *testing.T) {
 	deletedAt := time.Now().Add(-time.Hour)
 

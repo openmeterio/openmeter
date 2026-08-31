@@ -86,16 +86,21 @@ func (e *Engine) resolveFeatureMeters(ctx context.Context, namespace string, lin
 	return featureMetersErrorWrapper{featureMeters}, nil
 }
 
-// featureMetersErrorWrapper returns ErrSnapshotInvalidDatabaseState when a feature meter is unavailable during snapshotting.
+// featureMetersErrorWrapper returns ErrSnapshotFeatureHasNoMeter when a
+// persisted feature has lost the meter association required for snapshotting.
 type featureMetersErrorWrapper struct {
 	feature.FeatureMeters
 }
 
 func (w featureMetersErrorWrapper) Get(featureKey string, requireMeter bool) (feature.FeatureMeter, error) {
-	featureMeter, err := w.FeatureMeters.Get(featureKey, requireMeter)
+	featureMeter, err := w.FeatureMeters.Get(featureKey, false)
 	if err != nil {
-		return feature.FeatureMeter{}, &billing.ErrSnapshotInvalidDatabaseState{
-			Err: err,
+		return feature.FeatureMeter{}, err
+	}
+
+	if requireMeter && featureMeter.Meter == nil {
+		return feature.FeatureMeter{}, &billing.ErrSnapshotFeatureHasNoMeter{
+			FeatureKey: featureKey,
 		}
 	}
 
@@ -178,6 +183,12 @@ func (e *Engine) snapshotLineQuantitiesInParallel(ctx context.Context, customer 
 			}()
 
 			err = e.snapshotLineQuantity(ctx, customer, line, featureMeters)
+			if snapshotErr, ok := lo.ErrorsAs[*billing.ErrSnapshotFeatureHasNoMeter](err); ok {
+				err = billing.ErrSnapshotFeatureHasNoMeter{
+					LineID:     line.ID,
+					FeatureKey: snapshotErr.FeatureKey,
+				}.AsValidationIssue()
+			}
 		})
 	}
 

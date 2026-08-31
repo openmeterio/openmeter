@@ -728,9 +728,10 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 			return nil, fmt.Errorf("validating build standard invoice lines input for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
 
-		stdLines, err := item.Engine.BuildStandardInvoiceLines(ctx, engineInput)
-		if err != nil {
-			return nil, fmt.Errorf("building standard invoice lines for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		stdLines, buildErr := item.Engine.BuildStandardInvoiceLines(ctx, engineInput)
+		validationIssues, systemErr := billing.ToValidationIssues(buildErr)
+		if systemErr != nil {
+			return nil, fmt.Errorf("building standard invoice lines for engine %s: %w", item.Engine.GetLineEngineType(), systemErr)
 		}
 
 		if err := stdLines.Validate(); err != nil {
@@ -750,6 +751,16 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 				expectedIDs,
 				actualIDs,
 			)
+		}
+
+		if len(validationIssues) > 0 {
+			component := billing.LineEngineValidationComponent(item.Engine.GetLineEngineType())
+			if err := invoice.MergeValidationIssues(
+				billing.NewLineEngineValidationError(item.Engine, validationIssues.AsError()),
+				component,
+			); err != nil {
+				return nil, fmt.Errorf("merging build standard invoice lines validation issues for engine %s: %w", item.Engine.GetLineEngineType(), err)
+			}
 		}
 
 		invoice.Lines.Append(stdLines...)
@@ -830,7 +841,16 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 			// If the invoice has critical validation issues => trigger a failed state
 			if sm.Invoice.HasCriticalValidationIssues() {
-				return sm.TriggerFailed(ctx)
+				if err := sm.TriggerFailed(ctx); err != nil {
+					return fmt.Errorf("transitioning invoice to failed state: %w", err)
+				}
+
+				sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
+				if err != nil {
+					return fmt.Errorf("updating invalid invoice[%s]: %w", sm.Invoice.ID, err)
+				}
+
+				return nil
 			}
 
 			invoiceID := sm.Invoice.ID

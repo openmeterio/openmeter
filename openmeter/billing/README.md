@@ -102,6 +102,17 @@ be retried without replaying stable lifecycle states. Issuing and payment
 booking therefore happen in retryable intermediary states; authorization is
 booked before settlement when a payment provider reports both at once.
 
+If quantity snapshotting discovers that a persisted feature no longer has its
+required meter association, collection still materializes the standard invoice
+in `draft.invalid_created` with the critical validation code
+`invoice_line_feature_has_no_meters`. The affected quantities stay
+unsnapshotted. Retry from this state re-enters `draft.created` for calculation
+and validation before returning through collection, so the repaired meter is
+queried again; repeated collection failures return to the same state.
+Post-collection validation failures use `draft.invalid` and retry validation
+instead. Operational snapshot failures abort collection instead of persisting
+an incomplete invoice.
+
 Before external invoice finalization, billing invokes each line engine's line
 finalization callback. Engines return fully calculated lines with unchanged
 line IDs; billing replaces those lines, sums their totals, and persists the

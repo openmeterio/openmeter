@@ -11,22 +11,40 @@ import (
 )
 
 func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
-	stdLines, err := e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)
+	stdLines, err := e.materializeStandardInvoiceLines(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.CalculateLines(billing.CalculateLinesInput{
+	if err := e.SnapshotLineQuantities(ctx, input.Invoice, stdLines); err != nil {
+		return stdLines, fmt.Errorf("snapshotting line quantities: %w", err)
+	}
+
+	stdLines, err = e.CalculateLines(billing.CalculateLinesInput{
 		Invoice: input.Invoice,
 		Lines:   stdLines,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return stdLines, nil
 }
 
 func (e *Engine) BuildStandardLinesForGatheringPreview(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
-	return e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)
+	stdLines, err := e.materializeStandardInvoiceLines(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := e.SnapshotLineQuantities(ctx, input.Invoice, stdLines); err != nil {
+		return nil, fmt.Errorf("snapshotting line quantities: %w", err)
+	}
+
+	return stdLines, nil
 }
 
-func (e *Engine) buildStandardInvoiceLinesWithQuantitySnapshot(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+func (e *Engine) materializeStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
 	if input.Invoice.ID == "" {
 		return nil, fmt.Errorf("invoice id is required")
 	}
@@ -42,10 +60,6 @@ func (e *Engine) buildStandardInvoiceLinesWithQuantitySnapshot(ctx context.Conte
 
 	if err := e.ResolveSplitLineGroupHeaders(ctx, input.Invoice.Namespace, stdLines); err != nil {
 		return nil, fmt.Errorf("resolving split line group headers: %w", err)
-	}
-
-	if err := e.SnapshotLineQuantities(ctx, input.Invoice, stdLines); err != nil {
-		return nil, fmt.Errorf("snapshotting line quantities: %w", err)
 	}
 
 	return stdLines, nil

@@ -248,7 +248,9 @@ type LineEngine interface {
 	// SplitGatheringLine splits a gathering line on an engine-specific boundary if required.
 	SplitGatheringLine(ctx context.Context, input SplitGatheringLineInput) (SplitGatheringLineResult, error)
 	// BuildStandardInvoiceLines materializes gathering lines into standard lines for a target invoice.
-	// Returned standard lines must reuse the exact same line IDs as the input gathering lines.
+	// Returned standard lines must reuse the exact same line IDs as the input gathering lines. When the lines can be
+	// persisted with validation issues, implementations return both the materialized lines and an error tree composed
+	// entirely of ValidationIssue values. Operational errors abort invoice creation and make returned lines unusable.
 	BuildStandardInvoiceLines(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
 	// BuildStandardLinesForGatheringPreview materializes gathering lines from BuildStandardInvoiceLinesInput
 	// into transient StandardLines for a read-only standard invoice preview. Implementations must be

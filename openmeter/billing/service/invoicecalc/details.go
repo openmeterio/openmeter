@@ -37,6 +37,10 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 	}
 
 	for lineEngineType, stdLines := range groupedLines {
+		if invoice.HasLineSnapshotValidationIssueForComponent(billing.LineEngineValidationComponent(lineEngineType)) {
+			continue
+		}
+
 		lineEngine, err := deps.LineEngines.Get(lineEngineType)
 		if err != nil {
 			return fmt.Errorf("getting line engine[%s]: %w", lineEngineType, err)
