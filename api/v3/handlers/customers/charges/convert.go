@@ -97,26 +97,6 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		return api.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
-	feature, err := convertExpandedChargeFeatureToAPI(flatFee.State.FeatureID, charge.Feature)
-	if err != nil {
-		return api.BillingChargeFlatFee{}, err
-	}
-
-	customer, err := convertChargeCustomerToAPI(flatFee.ChargeBase.Intent.GetCustomerID(), charge.Customer)
-	if err != nil {
-		return api.BillingChargeFlatFee{}, err
-	}
-
-	subscription, err := convertChargeSubscriptionToAPI(flatFee.ChargeBase.Intent.GetSubscription(), charge.Subscription)
-	if err != nil {
-		return api.BillingChargeFlatFee{}, err
-	}
-
-	realizations, err := convertFlatFeeRealizationsToAPI(charge.FlatFeeRealizations, expands)
-	if err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
-	}
-
 	return api.BillingChargeFlatFee{
 		AdvanceAfter:           flatFee.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(flatFee.ChargeBase.State.AmountAfterProration),
@@ -946,37 +926,6 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
 	}, nil
-}
-
-// fromAPIChargeBillingPrice maps a charge price union to the domain price. The
-// charge create request carries no separate commitments object, so metered
-// price types resolve without commitments. Free prices are rejected: a
-// usage-based charge intent always carries a concrete price.
-func fromAPIChargeBillingPrice(p api.BillingPrice) (*productcatalog.Price, error) {
-	disc, err := p.Discriminator()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read price type: %w", err)
-	}
-
-	switch disc {
-	case "flat", "free":
-		price, err := plans.FromAPIBillingPrice(p, lo.ToPtr(api.BillingPricePaymentTermInArrears))
-		if err != nil {
-			return nil, err
-		}
-
-		if price == nil {
-			// Only free prices map to nil today, but the branch also matches
-			// the flat discriminator, so name the actual type in the error.
-			return nil, models.NewGenericValidationError(
-				fmt.Errorf("%s price is not supported for usage-based charges", disc),
-			)
-		}
-
-		return price, nil
-	default:
-		return plans.FromAPIBillingPriceWithCommitments(p, nil)
-	}
 }
 
 func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
