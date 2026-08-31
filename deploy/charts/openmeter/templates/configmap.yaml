@@ -21,9 +21,10 @@ aggregation:
 
 {{/* Overwrite postgres config if self-hosted postgres is used */}}
 {{- if .Values.postgresql.enabled -}}
+{{- $postgresTLSEnabled := dig "tls" "enabled" false .Values.postgresql -}}
 postgres:
   autoMigrate: migration
-  url: postgres://application:application@{{ include "openmeter.fullname" . }}-postgres:5432/application
+  url: postgres://application:application@{{ include "openmeter.fullname" . }}-postgres:5432/application?sslmode={{ ternary "require" "disable" $postgresTLSEnabled }}
 {{- end }}
 
 {{/* Overwrite svix config if self-hosted svix is used */}}
