@@ -254,7 +254,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, feature.ID, featureRef.ID)
 
-		require.Equal(t, string(v3sdk.PriceTypeFlat), usageBased.Price.Type)
+		require.Equal(t, string(v3sdk.PriceTypeUnit), usageBased.Price.Type)
 		flatPrice, err := usageBased.Price.AsPriceUnit()
 		require.NoError(t, err)
 		priceAmount, err := strconv.ParseFloat(flatPrice.Amount, 64)
