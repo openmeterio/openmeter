@@ -850,6 +850,8 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 					return fmt.Errorf("updating invalid invoice[%s]: %w", sm.Invoice.ID, err)
 				}
 
+				// TODO: Emit one error log after an invoice is first persisted as draft.invalid_created.
+				// This state usually indicates a database inconsistency; retries must not log it again.
 				return nil
 			}
 
