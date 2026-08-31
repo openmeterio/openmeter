@@ -115,7 +115,9 @@ remaining receivable: RECEIVABLE -2
 
 Coverage preserves the original credit's source charge and records the charge
 whose receivable is covered as the spend charge. Correction restores the exact
-selected FBO sources and reopens their breakage releases.
+selected FBO sources and reopens their breakage releases. Its lineage records
+that correction provenance but is not eligible for earnings recognition because
+covering a receivable creates no accrued value.
 
 ## Source Entry Identity
 

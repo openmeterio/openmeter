@@ -415,11 +415,12 @@ func creditRealizationAnnotationsForCollectedInput(input ledger.TransactionInput
 
 	var originKind creditrealization.LineageOriginKind
 	switch templateCode {
-	case transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}),
-		transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}):
+	case transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}):
 		originKind = creditrealization.LineageOriginKindRealCredit
 	case transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}):
 		originKind = creditrealization.LineageOriginKindAdvance
+	case transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}):
+		originKind = creditrealization.LineageOriginKindReceivableCoverage
 	default:
 		return input.Annotations()
 	}

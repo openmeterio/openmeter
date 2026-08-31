@@ -342,8 +342,10 @@ receivable.
 Settlement-fiat credits then cover part of that gross fiat receivable using the
 [collector's custom-currency CTI coverage rules](../../ledger/collector/README.md#custom-currency-cti-receivable-coverage).
 The invoice records the gross converted amount, credit coverage, and net amount
-due. Authorization and settlement move only the remaining receivable, using
-the invoice currency and the charge's persisted cost-basis route.
+due. Receivable-coverage lineage preserves the selected credit sources for
+correction but is excluded from earnings recognition because it represents no
+accrued value. Authorization and settlement move only the remaining receivable,
+using the invoice currency and the charge's persisted cost-basis route.
 
 Conversion and fiat rounding happen independently for each realization run.
 Charges persist no cross-run FX remainder, so later runs cannot carry or absorb

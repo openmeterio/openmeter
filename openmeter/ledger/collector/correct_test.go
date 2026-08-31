@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -50,7 +51,7 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	require.Equal(t, float64(20), allocations[0].Amount.InexactFloat64())
 	originKind, err := creditrealization.LineageOriginKindFromAnnotations(allocations[0].Annotations)
 	require.NoError(t, err)
-	require.Equal(t, creditrealization.LineageOriginKindRealCredit, originKind)
+	require.Equal(t, creditrealization.LineageOriginKindReceivableCoverage, originKind)
 
 	// then: FBO -> receivable retains the purchased source and overage spend.
 	require.Equal(t, float64(10), env.SumBalance(t, fbo).InexactFloat64())
@@ -63,7 +64,8 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 		WithCode(env.Currency).
 		Build()
 	require.NoError(t, err)
-	request, err := realizationsFromAllocations(env, allocations).CreateCorrectionRequest(
+	realizations := realizationsFromAllocations(env, allocations)
+	request, err := realizations.CreateCorrectionRequest(
 		alpacadecimal.NewFromInt(-20),
 		fiatCurrency,
 	)
@@ -75,6 +77,14 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 		CustomerID:  env.CustomerID.ID,
 		AllocateAt:  env.Now(),
 		Corrections: request,
+		LineageSegmentsByRealization: lineage.ActiveSegmentsByRealizationID{
+			realizations[0].ID: {
+				{
+					Amount: alpacadecimal.NewFromInt(20),
+					State:  creditrealization.LineageSegmentStateReceivableCoverage,
+				},
+			},
+		},
 	})
 	require.NoError(t, err)
 	require.Len(t, corrections, 1)

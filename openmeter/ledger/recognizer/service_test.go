@@ -188,6 +188,51 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.EarningsSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(50)))
 }
 
+func TestRecognizeEarnings_ReceivableCoverageDoesNotRecognizeUnrelatedAccrued(t *testing.T) {
+	env := newRecognizerTestEnv(t)
+	costBasis := alpacadecimal.NewFromInt(1)
+	currency := currenciestestutils.NewFiatCurrency(t, env.Currency)
+	accruedChargeID := testID()
+	coverageChargeID := testID()
+	sourceChargeID := testID()
+	realizationID := testID()
+
+	// given:
+	// - accrued value from one charge
+	// - an unrelated receivable-coverage lineage for the same customer and currency
+	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(5), Currency: env.CurrencyReference(), CostBasis: &costBasis,
+		SourceChargeID: &sourceChargeID, SpendChargeID: &accruedChargeID,
+	})
+	env.createLineageForRealization(t, coverageChargeID, realizationID, currency, alpacadecimal.NewFromInt(3), creditrealization.LineageOriginKindReceivableCoverage)
+
+	// when:
+	// - recognition runs for the shared customer and currency
+	result, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+		CustomerID: env.CustomerID,
+		At:         clock.Now(),
+		Currency:   currency,
+	})
+	require.NoError(t, err)
+
+	// then:
+	// - receivable coverage cannot consume the unrelated accrued balance
+	require.True(t, result.RecognizedAmount.IsZero())
+	require.Empty(t, result.LedgerGroupID)
+	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(5)))
+	require.True(t, env.SumBalance(t, env.EarningsSubAccountWithCostBasis(t, &costBasis)).IsZero())
+
+	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+		Namespace:  env.Namespace,
+		CustomerID: env.CustomerID.ID,
+		Currency:   env.CurrencyReference(),
+	})
+	require.NoError(t, err)
+	require.Len(t, lineages, 1)
+	require.Len(t, lineages[0].Segments, 1)
+	require.Equal(t, creditrealization.LineageSegmentStateReceivableCoverage, lineages[0].Segments[0].State)
+}
+
 func TestRecognizeEarnings_CustomCurrencyCreditBackedAccrued(t *testing.T) {
 	env := newRecognizerTestEnv(t)
 	customCurrency := currenciestestutils.NewCustomCurrency(t, currencyx.Code("ACME"), 2)

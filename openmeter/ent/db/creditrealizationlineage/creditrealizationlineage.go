@@ -102,7 +102,7 @@ var (
 // OriginKindValidator is a validator for the "origin_kind" field enum values. It is called by the builders before save.
 func OriginKindValidator(ok creditrealization.LineageOriginKind) error {
 	switch ok {
-	case "real_credit", "advance":
+	case "real_credit", "advance", "receivable_coverage":
 		return nil
 	default:
 		return fmt.Errorf("creditrealizationlineage: invalid enum value for origin_kind field: %q", ok)

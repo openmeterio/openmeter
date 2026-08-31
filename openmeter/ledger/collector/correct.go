@@ -207,7 +207,8 @@ func (c *accrualCorrector) originalGroup(ctx context.Context, input CorrectColle
 func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
 	// Each current segment state needs a slightly different unwind.
 	switch segment.State {
-	case creditrealization.LineageSegmentStateRealCredit:
+	case creditrealization.LineageSegmentStateRealCredit,
+		creditrealization.LineageSegmentStateReceivableCoverage:
 		return plannedSourceCorrectionActions(source, amount, false), nil
 	case creditrealization.LineageSegmentStateAdvanceUncovered:
 		return plannedSourceCorrectionActions(source, amount, true), nil
@@ -802,8 +803,10 @@ func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {
 				return 2
 			case creditrealization.LineageSegmentStateRealCredit:
 				return 3
-			default:
+			case creditrealization.LineageSegmentStateReceivableCoverage:
 				return 4
+			default:
+				return 5
 			}
 		}
 

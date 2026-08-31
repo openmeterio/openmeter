@@ -748,10 +748,10 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	s.Require().Len(lineages, 1)
 	s.Equal(input.ChargeID, lineages[0].ChargeID)
 	s.Equal(input.FiatCreditRealization.ID, lineages[0].RootRealizationID)
-	s.Equal(creditrealization.LineageOriginKindRealCredit, lineages[0].OriginKind)
+	s.Equal(creditrealization.LineageOriginKindReceivableCoverage, lineages[0].OriginKind)
 	s.Require().Len(lineages[0].Segments, 1)
 	s.Equal(float64(3), lineages[0].Segments[0].Amount.InexactFloat64())
-	s.Equal(creditrealization.LineageSegmentStateRealCredit, lineages[0].Segments[0].State)
+	s.Equal(creditrealization.LineageSegmentStateReceivableCoverage, lineages[0].Segments[0].State)
 }
 
 type requireCustomCurrencyCorrectionOutcomeInput struct {
