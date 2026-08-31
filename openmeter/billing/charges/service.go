@@ -144,13 +144,7 @@ type ListChargesInput struct {
 	CustomerIDs     []string
 	SubscriptionIDs []string
 	ChargeTypes     []meta.ChargeType
-	// Status filters on the charge status column; the API layer feeds it, while
-	// internal callers keep using the enum-typed StatusIn/StatusNotIn.
-	Status *filter.FilterString
-	// Deprecated: use Status instead.
-	StatusIn []meta.ChargeStatus
-	// Deprecated: use Status instead.
-	StatusNotIn []meta.ChargeStatus
+	Status          *filter.FilterString
 	// FeatureID and FeatureKey filter on the charge's feature reference;
 	// credit purchase charges carry no feature reference and never match.
 	FeatureID  *filter.FilterULID
@@ -198,22 +192,6 @@ func (i ListChargesInput) Validate() error {
 		if err := chargeType.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("charge type: %w", err))
 		}
-	}
-
-	for _, status := range i.StatusIn {
-		if err := status.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("status: %w", err))
-		}
-	}
-
-	for _, status := range i.StatusNotIn {
-		if err := status.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("status: %w", err))
-		}
-	}
-
-	if len(i.StatusIn) > 0 && len(i.StatusNotIn) > 0 {
-		errs = append(errs, errors.New("status_in and status_not_in cannot be set at the same time"))
 	}
 
 	if i.Status != nil {
