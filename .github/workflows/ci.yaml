@@ -73,10 +73,34 @@ jobs:
           path: ~/go/pkg/mod
           key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
 
+      - name: Realize Go runtime loader
+        run: |
+          runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
+          mkdir -p "${runtime_dir}/go-tmp"
+
+          GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+            runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
+            go -C api/v3/client test -c -o "${runtime_probe}" .
+
+            interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
+            if [[ "${interpreter}" != /nix/store/* ]]; then
+              echo "Go runtime probe has an unexpected interpreter: ${interpreter:-<none>}"
+              exit 1
+            fi
+
+            store_name="${interpreter#/nix/store/}"
+            store_path="/nix/store/${store_name%%/*}"
+            nix-store --realise "${store_path}" \
+              --add-root "${RUNNER_TEMP}/openmeter-go-runtime/loader-root" \
+              --indirect
+
+            "${runtime_probe}" -test.run '^$'
+          EOF
+
       - name: Save Nix store cache
         uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           save: "true"
 
   build:
@@ -107,12 +131,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -184,12 +208,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -299,12 +323,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -363,12 +387,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Run Go SDK checks
         run: nix develop --impure .#ci -c make test-go-sdk
@@ -406,12 +430,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Upsert Nix store
         run: nix develop --impure .#ci
@@ -482,12 +506,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -528,12 +552,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Upsert Nix store
         run: nix develop --impure .#ci
@@ -735,12 +759,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -856,12 +880,12 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-v2-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-v2-main-
+            ${{ runner.os }}-openmeter-nix-build-v2-
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

@@ -9,7 +9,6 @@ permissions:
 jobs:
   publish:
     name: Publish isolated Nix cache
-    if: github.event.action == 'opened'
     runs-on: depot-ubuntu-latest-4
 
     steps:
@@ -32,14 +31,39 @@ jobs:
           nix flake check --impure
           nix develop --impure .#ci
 
+      - name: Realize Go runtime loader
+        run: |
+          runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
+          mkdir -p "${runtime_dir}/go-tmp"
+
+          GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+            runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
+            go -C api/v3/client test -c -o "${runtime_probe}" .
+
+            interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
+            if [[ "${interpreter}" != /nix/store/* ]]; then
+              echo "Go runtime probe has an unexpected interpreter: ${interpreter:-<none>}"
+              exit 1
+            fi
+
+            store_name="${interpreter#/nix/store/}"
+            store_path="/nix/store/${store_name%%/*}"
+            nix-store --realise "${store_path}" \
+              --add-root "${RUNNER_TEMP}/openmeter-go-runtime/loader-root" \
+              --indirect
+
+            "${runtime_probe}" -test.run '^$'
+          EOF
+
       - name: Save isolated Nix store cache
         uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-reproduction-${{ github.run_id }}-${{ github.run_attempt }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           save: "true"
 
   restore-and-generate:
     name: Restore isolated Nix cache and run Go generate
+    needs: publish
     runs-on: depot-ubuntu-latest-8
 
     steps:
@@ -60,7 +84,7 @@ jobs:
       - name: Restore isolated Nix store cache
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: Linux-openmeter-nix-reproduction-33407613225-1-7c539a65ada552b3e146c5696cb3f89a1908a3b92b1d192f21bbe19b587f2780
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v2-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           fail-on: primary-key.not-restored
           save: "false"
 
@@ -132,7 +156,7 @@ jobs:
 
             client_test="$(mktemp)"
             go -C api/v3/client test -c -o "${client_test}" .
-            inspect_binary "Go SDK test binary" "${client_test}" -test.run '^$' || true
+            inspect_binary "Go SDK test binary" "${client_test}" -test.run '^$'
 
             oapi_codegen="$(mktemp)"
             go build -o "${oapi_codegen}" github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
@@ -150,16 +174,5 @@ jobs:
           TMPDIR: ${{ github.workspace }}/.cache-diagnostics/tmp
         run: |
           mkdir -p "${GOCACHE}" "${GOTMPDIR}" "${TMPDIR}"
-          nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
-            runtime_probe="${TMPDIR}/go-runtime-probe"
-            go -C api/v3/client test -c -o "${runtime_probe}" .
-
-            interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
-            store_name="${interpreter#/nix/store/}"
-            store_path="/nix/store/${store_name%%/*}"
-            printf 'realizing Go interpreter store path=%s\n' "${store_path}"
-            nix-store --realise "${store_path}"
-
-            "${runtime_probe}" -test.run '^$'
-            go generate ./...
-          EOF
+          nix develop --impure .#ci -c make patch-oapi-templates
+          nix develop --impure .#ci -c go generate ./...
