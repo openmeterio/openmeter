@@ -726,7 +726,7 @@ jobs:
 
   trusted-artifacts:
     name: Artifacts
-    uses: ./.github/workflows/artifacts.yaml
+    uses: $/.github/workflows/artifacts.yaml
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     with:
       publish: ${{ github.event_name == 'push' }}
@@ -739,7 +739,7 @@ jobs:
   untrusted-artifacts:
     name: Untrusted Artifacts
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-    uses: ./.github/workflows/untrusted-artifacts.yaml
+    uses: $/.github/workflows/untrusted-artifacts.yaml
     permissions:
       contents: read
 
@@ -749,7 +749,7 @@ jobs:
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ always() }}
-    uses: ./.github/workflows/workflow-result.yaml
+    uses: $/.github/workflows/workflow-result.yaml
     with:
       result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || !contains(needs.*.result, 'success')) && 'fail' || 'pass' }}
 

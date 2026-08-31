@@ -19,7 +19,7 @@ jobs:
     name: Artifacts
     # Artifact publishing (container images, etc.) is tag-only.
     if: github.ref_type == 'tag'
-    uses: ./.github/workflows/artifacts.yaml
+    uses: $/.github/workflows/artifacts.yaml
     with:
       publish: true
     permissions:
@@ -268,7 +268,7 @@ jobs:
     # npm's trusted publisher entry is keyed on caller workflow file + environment,
     # so this single caller must serve both channels.
     needs: [ sdk-javascript-meta ]
-    uses: ./.github/workflows/npm-release.yaml
+    uses: $/.github/workflows/npm-release.yaml
     with:
       version: ${{ needs.sdk-javascript-meta.outputs.version }}
       dist-tag: ${{ needs.sdk-javascript-meta.outputs.dist-tag }}
@@ -284,7 +284,7 @@ jobs:
     # publisher entry is keyed on caller workflow file + environment, so this
     # caller must serve both channels.
     needs: [ sdk-javascript-meta ]
-    uses: ./.github/workflows/aip-npm-release.yaml
+    uses: $/.github/workflows/aip-npm-release.yaml
     with:
       version: ${{ needs.sdk-javascript-meta.outputs.version }}
       dist-tag: ${{ needs.sdk-javascript-meta.outputs.dist-tag }}
