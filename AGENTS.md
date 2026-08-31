@@ -3,11 +3,18 @@
 ## Repository tooling
 
 - Use the `Makefile` for common development tasks. The `justfile` is secondary.
-- When tools are missing from the ambient shell, use:
+- When tools are missing from the ambient shell, use the smallest shell that
+  covers the task:
 
   ```bash
-  nix develop --impure .#ci -c <command>
+  nix develop --impure .#go -c make generate
+  nix develop --impure .#api -c make generate-all
+  nix develop --impure .#ci -c <full-environment-command>
   ```
+
+  `.#go` contains the Go code-generation toolchain without Node. `.#api` adds
+  Node, pnpm, and API/JavaScript generation tools. `.#ci` remains the complete
+  compatibility shell for broad workflows.
 
 - Always invoke `nix develop` from the repository root. Entering from a
   subdirectory writes CWD-relative devenv files and can break formatting or the
@@ -19,7 +26,7 @@
   Existing worktree module caches are not migrated or removed automatically;
   clean them up separately after confirming no active shell uses them.
 - `.nvmrc` is the GitHub Actions source of truth for Node. Keep it aligned with
-  `node -v` in the Nix `.#ci` shell.
+  `node -v` in the Nix `.#api` and `.#ci` shells.
 - For slow or noisy commands, save complete output to a temporary log outside the repository, preserve and report the exit status and log path, inspect bounded slices, and never rerun solely because displayed output was truncated.
 
 ## Repository invariants

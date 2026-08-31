@@ -248,11 +248,11 @@ jobs:
       - name: Validate Node version file
         run: |
           FILE_NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
-          NIX_NODE_VERSION="$(nix develop --impure .#ci -c node -v)"
+          NIX_NODE_VERSION="$(nix develop --impure .#api -c node -v)"
 
           if [ "$NIX_NODE_VERSION" != "$FILE_NODE_VERSION" ]; then
-            echo ".nvmrc is out of sync with the Nix CI shell"
-            echo "nix develop --impure .#ci -c node -v => $NIX_NODE_VERSION"
+            echo ".nvmrc is out of sync with the Nix API shell"
+            echo "nix develop --impure .#api -c node -v => $NIX_NODE_VERSION"
             echo ".nvmrc => $FILE_NODE_VERSION"
             exit 1
           fi
@@ -323,7 +323,7 @@ jobs:
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make update-openapi
+          nix develop --impure .#api -c make update-openapi
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
@@ -343,7 +343,7 @@ jobs:
 
       - name: Run TypeSpec Go emitter checks
         run: |
-          nix develop --impure .#ci -c pnpm -C api/spec --filter @openmeter/typespec-go run check
+          nix develop --impure .#api -c pnpm -C api/spec --filter @openmeter/typespec-go run check
 
   generators-javascript-sdk:
     name: Code Generators / JavaScript SDK
@@ -440,8 +440,8 @@ jobs:
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make patch-oapi-templates
-          nix develop --impure .#ci -c go generate ./...
+          nix develop --impure .#go -c make patch-oapi-templates
+          nix develop --impure .#go -c go generate ./...
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
