@@ -48,15 +48,12 @@ func (a *adapter) GetSyncStates(ctx context.Context, input subscriptionsync.GetS
 			return nil, err
 		}
 
-		syncStates := make([]subscriptionsync.SyncState, 0, len(res))
-		for _, state := range res {
+		syncStates := lo.FilterMap(res, func(state *entdb.SubscriptionBillingSyncState, _ int) (subscriptionsync.SyncState, bool) {
 			mappedState := mapSyncStateFromDB(state)
-			if _, ok := requestedIDs[mappedState.SubscriptionID]; !ok {
-				continue
-			}
+			_, requested := requestedIDs[mappedState.SubscriptionID]
 
-			syncStates = append(syncStates, mappedState)
-		}
+			return mappedState, requested
+		})
 
 		return syncStates, nil
 	})
