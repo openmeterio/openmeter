@@ -227,6 +227,8 @@ jobs:
 
   test:
     name: Test
+    needs: test-shards
+    if: ${{ always() }}
     runs-on: ubuntu-latest
 
     steps:
@@ -236,50 +238,17 @@ jobs:
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
           api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
 
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      # Start dependencies early so their health checks progress during Go setup.
-      - name: Start docker-compose dependencies
-        run: |
-          docker compose up postgres svix redis clickhouse -d
-
-      - name: Set up Go
-        uses: ./.github/actions/setup-go
-
-      - name: Wait for dependencies to be ready
-        run: |
-          ./tools/wait-for-compose.sh postgres svix redis clickhouse
-
-      - name: Run tests
+      - name: Check test shards
         env:
-          SVIX_HOST: localhost
-          TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
-          # Dev JWT secret, non-sensitive
-          SVIX_JWT_SECRET: DUMMY_JWT_SECRET
-        # count=1 is needed to force retest
+          TEST_SHARDS_RESULT: ${{ needs.test-shards.result }}
         run: |
-          # Keep potentially large cgo files on the workspace disk. Kafka is not
-          # covered by this suite, so use confluent-kafka-go's bundled library.
-          mkdir -p \
-            "$GITHUB_WORKSPACE/.tmp/go-work" \
-            "$GITHUB_WORKSPACE/.tmp/system"
-          env \
-            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
-            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            POSTGRES_HOST=127.0.0.1 \
-            go tool gotestsum --format pkgname-and-test-fails --hide-summary=skipped -- \
-              -p 8 -parallel 16 -count=1 ./...
-
-      - name: Stop docker-compose dependencies
-        if: always()
-        run: |
-          docker compose down -v
+          if [ "$TEST_SHARDS_RESULT" != "success" ]; then
+            echo "Test shards finished with result: $TEST_SHARDS_RESULT"
+            exit 1
+          fi
 
   # Temporary benchmark for measuring package-level sharding on the
-  # GitHub-hosted fallback. Keep the regular Test job as the required check.
+  # GitHub-hosted fallback. The Test job above keeps the required check stable.
   test-packages:
     name: Plan test shards
     runs-on: ubuntu-latest
@@ -308,6 +277,7 @@ jobs:
         run: |
           matrix="$(
             go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... |
+              sort |
               jq --raw-input --slurp --compact-output '
                 split("\n") | map(select(length > 0)) as $packages |
                 ($packages | length) as $count |
