@@ -51,7 +51,7 @@ require (
 	github.com/govalues/decimal v0.1.36 // indirect
 	github.com/hashicorp/hcl/v2 v2.23.0 // indirect
 	github.com/huandu/go-clone v1.7.3 // indirect
-	github.com/huandu/go-sqlbuilder v1.42.1 // indirect
+	github.com/huandu/go-sqlbuilder v1.43.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/invopop/gobl v0.504.0 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
