@@ -33,7 +33,7 @@ type creditTransactionLoader interface {
 }
 
 type creditTransactionBalanceResolver interface {
-	resolveBalance(ctx context.Context, input creditTransactionLoaderInput, item *CreditTransaction) error
+	resolveBalances(ctx context.Context, input creditTransactionLoaderInput, item CreditTransaction) ([]CreditTransaction, error)
 }
 
 type creditTransactionLoaderFactory func(*service) creditTransactionLoader
@@ -76,16 +76,16 @@ func (s *service) creditTransactionLoaders(txType *CreditTransactionType) ([]cre
 	return []creditTransactionLoader{factory(s)}, nil
 }
 
-func (s *service) resolveCreditTransactionBalance(ctx context.Context, input creditTransactionLoaderInput, item *CreditTransaction) error {
+func (s *service) resolveCreditTransactionBalances(ctx context.Context, input creditTransactionLoaderInput, item CreditTransaction) ([]CreditTransaction, error) {
 	factory, ok := creditTransactionLoaderFactories[item.Type]
 	if !ok {
-		return item.Type.Validate()
+		return nil, item.Type.Validate()
 	}
 
 	resolver, ok := factory(s).(creditTransactionBalanceResolver)
 	if !ok {
-		return nil
+		return []CreditTransaction{item}, nil
 	}
 
-	return resolver.resolveBalance(ctx, input, item)
+	return resolver.resolveBalances(ctx, input, item)
 }

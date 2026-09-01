@@ -10,6 +10,10 @@ func compareCreditTransactionsByCursor(a, b CreditTransaction) int {
 	return creditTransactionCursor(a).Compare(creditTransactionCursor(b))
 }
 
+func compareCreditTransactionsByBalanceCursor(a, b CreditTransaction) int {
+	return creditTransactionBalanceCursor(a).Compare(creditTransactionBalanceCursor(b))
+}
+
 type mergeListState struct {
 	items []CreditTransaction
 	next  int
@@ -103,4 +107,12 @@ func creditTransactionCursor(tx CreditTransaction) ledger.TransactionCursor {
 		CreatedAt: tx.CreatedAt,
 		ID:        tx.ID,
 	}
+}
+
+func creditTransactionBalanceCursor(tx CreditTransaction) ledger.TransactionCursor {
+	if tx.balanceCursor != nil {
+		return *tx.balanceCursor
+	}
+
+	return creditTransactionCursor(tx)
 }

@@ -3,6 +3,8 @@ package customerbalance
 import (
 	"context"
 	"fmt"
+	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -60,13 +62,15 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 	}, nil
 }
 
-func (l *fundedCreditTransactionLoader) resolveBalance(
+// resolveBalances splits a funded transaction into separate balance movements
+// when its ledger impacts have different booked times.
+func (l *fundedCreditTransactionLoader) resolveBalances(
 	ctx context.Context,
 	input creditTransactionLoaderInput,
-	item *CreditTransaction,
-) error {
+	item CreditTransaction,
+) ([]CreditTransaction, error) {
 	if item.fundedTransactionGroupID == "" {
-		return nil
+		return []CreditTransaction{item}, nil
 	}
 
 	group, err := l.service.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
@@ -74,37 +78,58 @@ func (l *fundedCreditTransactionLoader) resolveBalance(
 		ID:        item.fundedTransactionGroupID,
 	})
 	if err != nil {
-		return fmt.Errorf("get funded credit transaction group %s: %w", item.fundedTransactionGroupID, err)
+		return nil, fmt.Errorf("get funded credit transaction group %s: %w", item.fundedTransactionGroupID, err)
 	}
 
-	impact, cursor := fundedCreditTransactionBalanceImpact(group, GetBalanceServiceInput{
+	impacts := fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
 		Currency:      item.Currency,
 		FeatureFilter: input.FeatureFilter,
 	})
-	if cursor == nil {
-		return fmt.Errorf("funded credit transaction group %s has no customer balance impact", item.fundedTransactionGroupID)
+	if len(impacts) == 0 {
+		return nil, fmt.Errorf("funded credit transaction group %s has no customer balance impact", item.fundedTransactionGroupID)
 	}
-	if !impact.Equal(item.Amount) {
-		return fmt.Errorf(
+
+	total := alpacadecimal.Zero
+	for _, impact := range impacts {
+		total = total.Add(impact.Amount)
+	}
+	if !total.Equal(item.Amount) {
+		return nil, fmt.Errorf(
 			"funded credit transaction group %s customer balance impact %s does not match funded amount %s",
 			item.fundedTransactionGroupID,
-			impact,
+			total,
 			item.Amount,
 		)
 	}
 
-	item.balanceCursor = cursor
-	item.balanceImpact = &impact
+	items := make([]CreditTransaction, 0, len(impacts))
+	for _, impact := range impacts {
+		if impact.Cursor.BookedAt.After(input.AsOf) {
+			continue
+		}
 
-	return nil
+		resolvedItem := item
+		resolvedItem.BookedAt = impact.Cursor.BookedAt
+		resolvedItem.Amount = impact.Amount
+		resolvedItem.balanceCursor = &impact.Cursor
+		resolvedItem.balanceImpact = &impact.Amount
+		items = append(items, resolvedItem)
+	}
+
+	return items, nil
 }
 
-// fundedCreditTransactionBalanceImpact follows the same two ledger components
-// as settled balance. Looking at the actual scoped entries keeps legacy credit
-// purchase groups readable without relying on transaction template annotations.
-func fundedCreditTransactionBalanceImpact(group ledger.TransactionGroup, input GetBalanceServiceInput) (alpacadecimal.Decimal, *ledger.TransactionCursor) {
-	total := alpacadecimal.Zero
-	var latestCursor *ledger.TransactionCursor
+type fundedCreditTransactionBalanceImpact struct {
+	Amount alpacadecimal.Decimal
+	Cursor ledger.TransactionCursor
+}
+
+// fundedCreditTransactionBalanceImpacts follows the same two ledger components
+// as settled balance and groups them by the time they affect that balance.
+// Looking at the actual scoped entries keeps legacy credit purchase groups
+// readable without relying on transaction template annotations.
+func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input GetBalanceServiceInput) []fundedCreditTransactionBalanceImpact {
+	impactsByBookedAt := make(map[time.Time]fundedCreditTransactionBalanceImpact)
 
 	for _, tx := range group.Transactions() {
 		if tx.Annotations()[ledger.AnnotationCollectionType] == ledger.CollectionTypeBreakage {
@@ -122,14 +147,30 @@ func fundedCreditTransactionBalanceImpact(group ledger.TransactionGroup, input G
 			continue
 		}
 
-		total = total.Add(impact)
 		cursor := tx.Cursor()
-		if latestCursor == nil || latestCursor.Compare(cursor) < 0 {
-			latestCursor = &cursor
+		bookedAt := cursor.BookedAt.UTC()
+		groupedImpact, ok := impactsByBookedAt[bookedAt]
+		if !ok {
+			groupedImpact.Amount = alpacadecimal.Zero
 		}
+		groupedImpact.Amount = groupedImpact.Amount.Add(impact)
+		if groupedImpact.Cursor.BookedAt.IsZero() || groupedImpact.Cursor.Compare(cursor) < 0 {
+			groupedImpact.Cursor = cursor
+		}
+		impactsByBookedAt[bookedAt] = groupedImpact
 	}
 
-	return total, latestCursor
+	impacts := make([]fundedCreditTransactionBalanceImpact, 0, len(impactsByBookedAt))
+	for _, impact := range impactsByBookedAt {
+		if !impact.Amount.IsZero() {
+			impacts = append(impacts, impact)
+		}
+	}
+	slices.SortFunc(impacts, func(a, b fundedCreditTransactionBalanceImpact) int {
+		return b.Cursor.Compare(a.Cursor)
+	})
+
+	return impacts
 }
 
 func toFundedCreditActivityCursor(cursor *ledger.TransactionCursor) *creditpurchase.FundedCreditActivityCursor {

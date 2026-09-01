@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -182,14 +183,21 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	// loadersHaveMore captures additional records in the requested cursor direction beyond each loader's in-memory window.
 	hasMoreInQueryDirection := bufferedHasMore || loadersHaveMore
 
-	items := mergedItems
-	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
-
-	for i := range items {
-		if err := s.resolveCreditTransactionBalance(ctx, loaderInput, &items[i]); err != nil {
-			return ListCreditTransactionsResult{}, fmt.Errorf("resolve balance for transaction %s: %w", items[i].ID.ID, err)
+	items := make([]CreditTransaction, 0, len(mergedItems))
+	for _, item := range mergedItems {
+		resolvedItems, err := s.resolveCreditTransactionBalances(ctx, loaderInput, item)
+		if err != nil {
+			return ListCreditTransactionsResult{}, fmt.Errorf("resolve balance for transaction %s: %w", item.ID.ID, err)
 		}
+
+		items = append(items, resolvedItems...)
 	}
+	// Resolved balances need sorting again because funded transactions can split by booked time.
+	slices.SortStableFunc(items, func(a, b CreditTransaction) int {
+		return compareCreditTransactionsByBalanceCursor(b, a)
+	})
+
+	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
 	if len(items) > 0 {
 		runningBalance, err := s.GetSettledBalance(ctx, GetBalanceServiceInput{

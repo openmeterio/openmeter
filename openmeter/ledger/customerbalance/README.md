@@ -76,7 +76,14 @@ expired  => negative FBO impact
 
 This matters when a purchase covers an existing advance. Its funded amount can
 be split between clearing the advance receivable and issuing the remainder to
-FBO, while the customer-visible balance still increases by the full purchase.
+FBO. Impacts at the same effective time are shown as one funded row. If the
+remainder is scheduled for later, the history shows separate rows when each
+part affects the balance:
+
+```text
+@T1 funded +40  (advance attribution)
+@T2 funded +60  (scheduled FBO issuance)
+```
 
 ## Listing Example: Funded, Consumed, Expired
 
