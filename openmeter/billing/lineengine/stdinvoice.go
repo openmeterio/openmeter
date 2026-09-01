@@ -25,7 +25,7 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		Lines:   stdLines,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("calculating standard invoice lines: %w", err)
 	}
 
 	return stdLines, nil
