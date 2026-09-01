@@ -1,6 +1,7 @@
 import "@typespec/openapi";
 import "../shared/index.tsp";
 import "../productcatalog/ratecard.tsp";
+import "../productcatalog/plan.tsp";
 
 using TypeSpec.OpenAPI;
 
@@ -78,8 +79,18 @@ union SubscriptionEditTiming {
 }
 
 /**
- * Subscription create request.
+ * An inline (custom) plan definition used to create or change a subscription
+ * without referencing a published plan. Mirrors the plan create shape without a
+ * key or version, since a custom plan is not persisted or versioned on its own.
  */
+@friendlyName("BillingSubscriptionCustomPlan")
+model SubscriptionCustomPlan {
+  ...Shared.CreateRequest<OmitProperties<
+    ProductCatalog.Plan,
+    "key" | "version"
+  >>;
+}
+
 @friendlyName("BillingSubscriptionCreate")
 model SubscriptionCreate {
   ...Shared.CreateRequest<OmitProperties<
@@ -113,9 +124,14 @@ model SubscriptionCreate {
   };
 
   /**
-   * The plan reference of the subscription.
+   * A reference to a published plan the subscription is created from.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+   * subscription on an existing published plan; use `custom_plan` to define the plan
+   * inline.
    */
-  plan: {
+  @visibility(Lifecycle.Create)
+  plan?: {
     /**
      * The plan ID of the subscription. Set if subscription is created from a plan.
      *
@@ -145,6 +161,17 @@ model SubscriptionCreate {
     @summary("Plan Version")
     version?: integer;
   };
+
+  /**
+   * An inline plan definition to create the subscription from, without referencing a
+   * published plan.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+   * linked to a persisted plan, so the response omits the `plan` reference.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Custom plan")
+  custom_plan?: SubscriptionCustomPlan;
 
   /**
    * A billing anchor is the fixed point in time that determines the subscription's

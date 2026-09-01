@@ -97,46 +97,6 @@ type PlanPagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
-// The plan phase or pricing ramp allows changing a plan's rate cards over time as
-// a subscription progresses.
-type PlanPhase struct {
-	// Display name of the resource.
-	//
-	// Between 1 and 256 characters.
-	Name string `json:"name"`
-	// Optional description of the resource.
-	//
-	// Maximum 1024 characters.
-	Description *string           `json:"description,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Key         string            `json:"key"`
-	// The duration of the phase. When not specified, the phase runs indefinitely. Only
-	// the last phase may omit the duration.
-	Duration *string `json:"duration,omitempty"`
-	// The rate cards of the plan.
-	RateCards []RateCard `json:"rate_cards"`
-}
-
-// The plan phase or pricing ramp allows changing a plan's rate cards over time as
-// a subscription progresses.
-type PlanPhaseInput struct {
-	// Display name of the resource.
-	//
-	// Between 1 and 256 characters.
-	Name string `json:"name"`
-	// Optional description of the resource.
-	//
-	// Maximum 1024 characters.
-	Description *string            `json:"description,omitempty"`
-	Labels      *map[string]string `json:"labels,omitempty"`
-	Key         string             `json:"key"`
-	// The duration of the phase. When not specified, the phase runs indefinitely. Only
-	// the last phase may omit the duration.
-	Duration *string `json:"duration,omitempty"`
-	// The rate cards of the plan.
-	RateCards []RateCardInput `json:"rate_cards"`
-}
-
 // The status of a plan.
 //
 // - `draft`: The plan has not yet been published and can be edited.

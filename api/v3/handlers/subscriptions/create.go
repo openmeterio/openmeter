@@ -76,45 +76,36 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 				return CreateSubscriptionRequest{}, fmt.Errorf("failed to get customer: %w", err)
 			}
 
-			// TODO: implement custom subscription creation
-			if body.Plan.Id == nil && body.Plan.Key == nil {
-				reason := "one of plan.id or plan.key is required"
-				// We use bad request error because not implemented does not provide the error context
-				return CreateSubscriptionRequest{}, apierrors.NewBadRequestError(
-					ctx,
-					errors.New(reason),
-					[]apierrors.InvalidParameter{
-						{
-							Field:  "plan.id",
-							Reason: reason,
-							Source: apierrors.InvalidParamSourceBody,
-							Rule:   "required",
-						},
-						{
-							Field:  "plan.key",
-							Reason: reason,
-							Source: apierrors.InvalidParamSourceBody,
-							Rule:   "required",
-						},
-					},
-				)
-			}
-
-			// Get the plan entity by ID or key to validate it exists
-			planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.Plan.Id, body.Plan.Key, body.Plan.Version)
-			if err != nil {
-				return CreateSubscriptionRequest{}, fmt.Errorf("failed to get plan: %w", err)
-			}
-
-			// Convert the plan entity to a plan input
+			// Build the plan input. Exactly one of plan (reference to a published
+			// plan) or custom_plan (inline definition) must be provided; that rule is
+			// enforced by PlanInput.Validate() in the service, so here we only
+			// dispatch on which was supplied.
 			planInput := plansubscription.PlanInput{}
-			planInput.FromRef(&plansubscription.PlanRefInput{
-				Key:     planEntity.Key,
-				Version: &planEntity.Version,
-			})
+			var subscriptionName string
+
+			if body.CustomPlan != nil {
+				customPlan, err := FromAPIBillingSubscriptionCustomPlan(ns, *body.CustomPlan)
+				if err != nil {
+					return CreateSubscriptionRequest{}, err
+				}
+				planInput.FromInput(&customPlan)
+				subscriptionName = customPlan.Name
+			}
+
+			if body.Plan != nil && (body.Plan.Id != nil || body.Plan.Key != nil) {
+				// Resolve the plan to a concrete version and validate it exists.
+				planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.Plan.Id, body.Plan.Key, body.Plan.Version)
+				if err != nil {
+					return CreateSubscriptionRequest{}, fmt.Errorf("failed to get plan: %w", err)
+				}
+				planInput.FromRef(&plansubscription.PlanRefInput{
+					Key:     planEntity.Key,
+					Version: &planEntity.Version,
+				})
+				subscriptionName = fmt.Sprintf("%s v%d", planEntity.Key, planEntity.Version)
+			}
 
 			// Convert the request to a create subscription workflow input
-			subscriptionName := fmt.Sprintf("%s v%d", planEntity.Key, planEntity.Version)
 			workflowInput, err := FromAPIBillingSubscriptionCreate(
 				ns,
 				customerEntity.GetID(),

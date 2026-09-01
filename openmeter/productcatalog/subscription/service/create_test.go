@@ -20,6 +20,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 func newPlanSubscriptionService(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, logger *slog.Logger) plansubscription.PlanSubscriptionService {
@@ -40,6 +41,26 @@ func newPlanSubscriptionService(t *testing.T, deps subscriptiontestutils.Subscri
 	require.NoError(t, err)
 
 	return svc
+}
+
+func replaceEntitlementFeatureKeysWithIDs(t *testing.T, phases []productcatalog.Phase, featureIDByKey map[string]string) {
+	t.Helper()
+
+	for pi := range phases {
+		for ri := range phases[pi].RateCards {
+			require.NoError(t, phases[pi].RateCards[ri].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+				if meta.EntitlementTemplate == nil || meta.Feature == nil || meta.Feature.Key == nil {
+					return meta, nil
+				}
+
+				id, ok := featureIDByKey[*meta.Feature.Key]
+				require.Truef(t, ok, "no feature created for key %s", *meta.Feature.Key)
+				meta.Feature = productcatalog.NewFeatureReference(&id, nil)
+
+				return meta, nil
+			}))
+		}
+	}
 }
 
 func TestCreateInlineCustomPlanRejectsMissingFeature(t *testing.T) {
@@ -277,6 +298,110 @@ func TestCreateInlineCustomCurrencyMaterializesManagedIdentity(t *testing.T) {
 		}
 	}
 	require.Positive(t, pricedItems)
+}
+
+func TestCreateInlineCustomCurrencyGatedByCredits(t *testing.T) {
+	// given:
+	// - an inline plan priced in a custom currency
+	// when:
+	// - the credits feature is disabled on the deployment (via context)
+	// then:
+	// - creation is rejected with a clear "custom currencies not enabled" error,
+	//   before currency resolution runs (so an unregistered code still surfaces the
+	//   feature-gate message, not "currency does not exist")
+	now := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
+	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+	planInput := subscriptiontestutils.GetExamplePlanInput(t)
+	planInput.Plan.Key = ""
+	planInput.Plan.Version = 0
+	planInput.Plan.Currency = currencies.NewCurrencyReference("CREDITS")
+
+	requestPlan := plansubscription.PlanInput{}
+	requestPlan.FromInput(&planInput)
+
+	ctx := context.WithValue(t.Context(), featuregate.CtxKeyCredits, false)
+
+	_, err := svc.Create(ctx, plansubscription.CreateSubscriptionRequest{
+		PlanInput: requestPlan,
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Name: "inline custom currency gated",
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				},
+			},
+			Namespace:  customer.Namespace,
+			CustomerID: customer.ID,
+		},
+	})
+	require.Error(t, err)
+	require.ErrorContains(t, err, "custom currencies are not enabled")
+}
+
+func TestCreateInlineEntitlementRateCardResolvesFeatureByID(t *testing.T) {
+	// given:
+	// - an inline plan whose entitlement-bearing rate cards reference their feature by ID
+	//   only, the way the v3 subscription API does (its FeatureReference carries no key)
+	// when:
+	// - the plan subscription service creates the subscription
+	// then:
+	// - the service resolves each feature ID to its key before entitlement scheduling, so
+	//   creation succeeds. Without resolution the inline path fails downstream with
+	//   "feature is required for rate card where entitlement is present". The published-plan
+	//   path resolves this in the plan service; the inline path has no persisted plan.
+	now := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
+	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+	features := deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	featureIDByKey := make(map[string]string, len(features))
+	for _, f := range features {
+		featureIDByKey[f.Key] = f.ID
+	}
+
+	planInput := subscriptiontestutils.GetExamplePlanInput(t)
+	planInput.Plan.Key = ""
+	planInput.Plan.Version = 0
+
+	// Rewrite every entitlement rate card to reference its feature by ID only, reproducing
+	// how the v3 subscription converter emits feature references.
+	replaceEntitlementFeatureKeysWithIDs(t, planInput.Plan.Phases, featureIDByKey)
+
+	requestPlan := plansubscription.PlanInput{}
+	requestPlan.FromInput(&planInput)
+
+	created, err := svc.Create(t.Context(), plansubscription.CreateSubscriptionRequest{
+		PlanInput: requestPlan,
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Name: "inline entitlement by feature id",
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				},
+			},
+			Namespace:  customer.Namespace,
+			CustomerID: customer.ID,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, created.ID)
 }
 
 func TestCreateInlineCreditOnlyPlanSkipsCurrencyCostBasis(t *testing.T) {

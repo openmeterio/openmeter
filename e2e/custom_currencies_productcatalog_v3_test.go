@@ -235,7 +235,7 @@ func TestV3CustomCurrencyProductCatalogValidation(t *testing.T) {
 
 		subscription, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
-			Plan:     v3sdk.SubscriptionChangePlan{ID: &resources.Plan.ID},
+			Plan:     &v3sdk.SubscriptionChangePlan{ID: &resources.Plan.ID},
 		})
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, subscription)

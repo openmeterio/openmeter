@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -9,8 +10,14 @@ import (
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// errCustomCurrenciesDisabled is returned when an inline plan uses a custom
+// currency but the credits feature (which gates custom currencies) is not enabled
+// on the deployment.
+var errCustomCurrenciesDisabled = errors.New("custom currencies are not enabled on this deployment of OpenMeter")
 
 func (s *service) Create(ctx context.Context, request plansubscription.CreateSubscriptionRequest) (subscription.Subscription, error) {
 	var def subscription.Subscription
@@ -19,13 +26,21 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 	var plan subscription.Plan
 
 	if err := request.PlanInput.Validate(); err != nil {
-		return def, models.NewGenericValidationError(err)
+		return def, err
 	}
 
 	if request.PlanInput.AsInput() != nil {
 		planInput := *request.PlanInput.AsInput()
 		if request.SettlementMode != nil {
 			planInput.SettlementMode = *request.SettlementMode
+		}
+		// Gate custom currencies behind the credits feature before resolving them, so
+		// a deployment without credits returns a clear "not enabled" error rather than
+		// the downstream "currency does not exist" that resolution would raise for an
+		// unregistered custom currency. UsesCustomCurrency inspects currency codes, so
+		// it works before resolution.
+		if !featuregate.ContextResolver().Credits(ctx) && planInput.Plan.UsesCustomCurrency() {
+			return def, models.NewGenericValidationError(errCustomCurrenciesDisabled)
 		}
 
 		if err := s.resolveCustomPlanFeatures(ctx, request.WorkflowInput.Namespace, &planInput); err != nil {
@@ -35,6 +50,7 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		if err := productcatalogcurrencyresolver.ResolveCurrenciesForPlan(ctx, s.CurrencyResolver.WithNamespace(request.WorkflowInput.Namespace), &planInput.Plan); err != nil {
 			return def, fmt.Errorf("invalid plan currencies: %w", err)
 		}
+
 		p, err := PlanFromPlanInput(planInput)
 		if err != nil {
 			return def, err

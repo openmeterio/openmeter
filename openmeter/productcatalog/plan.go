@@ -81,6 +81,23 @@ func (p Plan) HasCurrencyOverrides() bool {
 	})
 }
 
+// UsesCustomCurrency reports whether the plan is priced in a custom (non-fiat)
+// currency, either at the plan level or through a rate card currency override.
+// Custom-currency support is gated behind the credits feature, so callers use this
+// to reject custom-currency plans when credits are not enabled.
+func (p Plan) UsesCustomCurrency() bool {
+	if p.Currency.IsCustom() {
+		return true
+	}
+
+	return lo.SomeBy(p.Phases, func(ph Phase) bool {
+		return lo.SomeBy(ph.RateCards, func(rc RateCard) bool {
+			c := rc.AsMeta().Currency
+			return c != nil && c.IsCustom()
+		})
+	})
+}
+
 func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return p.PlanMeta.Validate()

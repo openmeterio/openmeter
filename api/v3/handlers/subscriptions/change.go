@@ -2,7 +2,6 @@ package subscriptions
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -62,40 +61,31 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				return ChangeSubscriptionRequest{}, err
 			}
 
-			// Currently only plan-based subscription change is supported, so plan ref is required.
-			if body.Plan.Id == nil && body.Plan.Key == nil {
-				reason := "one of plan.id or plan.key is required"
-				return ChangeSubscriptionRequest{}, apierrors.NewBadRequestError(
-					ctx,
-					errors.New(reason),
-					[]apierrors.InvalidParameter{
-						{
-							Field:  "plan.id",
-							Reason: reason,
-							Source: apierrors.InvalidParamSourceBody,
-							Rule:   "required",
-						},
-						{
-							Field:  "plan.key",
-							Reason: reason,
-							Source: apierrors.InvalidParamSourceBody,
-							Rule:   "required",
-						},
-					},
-				)
-			}
-
-			// Validate that plan exists and resolve to a concrete version
-			planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.Plan.Id, body.Plan.Key, body.Plan.Version)
-			if err != nil {
-				return ChangeSubscriptionRequest{}, err
-			}
-
+			// Build the plan input. Exactly one of plan (reference to a published
+			// plan) or custom_plan (inline definition) must be provided; that rule is
+			// enforced by PlanInput.Validate() in the service, so here we only
+			// dispatch on which was supplied.
 			planInput := plansubscription.PlanInput{}
-			planInput.FromRef(&plansubscription.PlanRefInput{
-				Key:     planEntity.Key,
-				Version: &planEntity.Version,
-			})
+
+			if body.CustomPlan != nil {
+				customPlan, err := FromAPIBillingSubscriptionCustomPlan(ns, *body.CustomPlan)
+				if err != nil {
+					return ChangeSubscriptionRequest{}, err
+				}
+				planInput.FromInput(&customPlan)
+			}
+
+			if body.Plan != nil && (body.Plan.Id != nil || body.Plan.Key != nil) {
+				// Validate that plan exists and resolve to a concrete version
+				planEntity, err := h.getPlanByIDOrKey(ctx, ns, body.Plan.Id, body.Plan.Key, body.Plan.Version)
+				if err != nil {
+					return ChangeSubscriptionRequest{}, err
+				}
+				planInput.FromRef(&plansubscription.PlanRefInput{
+					Key:     planEntity.Key,
+					Version: &planEntity.Version,
+				})
+			}
 
 			timing, err := FromAPIBillingSubscriptionEditTiming(body.Timing)
 			if err != nil {

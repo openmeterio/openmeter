@@ -2074,40 +2074,6 @@ export interface RateCardProrationConfiguration {
   mode: 'no_proration' | 'prorate_prices'
 }
 
-/** Subscription create request. */
-export interface SubscriptionCreate {
-  labels?: Labels
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   *
-   * If not provided, the subscription will be created with the subscription's
-   * creation time as the billing anchor.
-   */
-  billingAnchor?: Date
-  /** Controls how custom-currency cost bases are selected for the subscription. */
-  costBasisMode: 'dynamic' | 'pinned'
-}
-
 /**
  * Unit conversion configuration.
  *
@@ -3461,46 +3427,6 @@ export interface InvoiceWorkflow {
 /** Request for canceling a subscription. */
 export interface SubscriptionCancel {
   /** If not provided the subscription is canceled immediately. */
-  timing: SubscriptionEditTiming
-}
-
-/** Request for changing a subscription. */
-export interface SubscriptionChange {
-  labels?: Labels
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   *
-   * If not provided, the subscription will be created with the subscription's
-   * creation time as the billing anchor.
-   */
-  billingAnchor?: Date
-  /** Controls how custom-currency cost bases are selected for the subscription. */
-  costBasisMode: 'dynamic' | 'pinned'
-  /**
-   * Timing configuration for the change, when the change should take effect. For
-   * changing a subscription, the accepted values depend on the subscription
-   * configuration.
-   */
   timing: SubscriptionEditTiming
 }
 
@@ -5138,27 +5064,6 @@ export interface SubscriptionItem {
 }
 
 /**
- * Add a new rate card to a phase. Adding an item to the current phase closes the
- * active version of the same item key and appends a new version.
- */
-export interface SubscriptionEditAddItem {
-  /** Discriminator for the add-item operation. */
-  type: 'add_item'
-  /** The key of the phase to add the item to. */
-  phaseKey: string
-  /** The rate card describing what the customer gets and pays for the new item. */
-  rateCard: RateCard
-}
-
-/** A rate card for a subscription add-on. */
-export interface SubscriptionAddonRateCard {
-  /** The rate card. */
-  rateCard: RateCard
-  /** The IDs of the subscription items that this rate card belongs to. */
-  affectedSubscriptionItemIds: string[]
-}
-
-/**
  * The plan phase or pricing ramp allows changing a plan's rate cards over time as
  * a subscription progresses.
  */
@@ -5184,6 +5089,27 @@ export interface PlanPhase {
   duration?: string
   /** The rate cards of the plan. */
   rateCards: RateCard[]
+}
+
+/**
+ * Add a new rate card to a phase. Adding an item to the current phase closes the
+ * active version of the same item key and appends a new version.
+ */
+export interface SubscriptionEditAddItem {
+  /** Discriminator for the add-item operation. */
+  type: 'add_item'
+  /** The key of the phase to add the item to. */
+  phaseKey: string
+  /** The rate card describing what the customer gets and pays for the new item. */
+  rateCard: RateCard
+}
+
+/** A rate card for a subscription add-on. */
+export interface SubscriptionAddonRateCard {
+  /** The rate card. */
+  rateCard: RateCard
+  /** The IDs of the subscription items that this rate card belongs to. */
+  affectedSubscriptionItemIds: string[]
 }
 
 /**
@@ -5613,16 +5539,12 @@ export interface SubscriptionPhase {
   items: SubscriptionItem[]
 }
 
-/** Addon purchased with a subscription. */
-export interface SubscriptionAddon {
-  id: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
+/**
+ * An inline (custom) plan definition used to create or change a subscription
+ * without referencing a published plan. Mirrors the plan create shape without a
+ * key or version, since a custom plan is not persisted or versioned on its own.
+ */
+export interface SubscriptionCustomPlan {
   /**
    * Display name of the resource.
    *
@@ -5635,23 +5557,18 @@ export interface SubscriptionAddon {
    * Maximum 1024 characters.
    */
   description?: string
-  /** The add-on associated with the subscription. */
-  addon: AddonReference
-  /** The quantity of the add-on. Always 1 for single instance add-ons. */
-  quantity: number
+  labels?: Labels
+  /** The currency code of the plan. */
+  currency: BillingCurrencyCode
+  /** The billing cadence for subscriptions using this plan. */
+  billingCadence: string
+  /** Whether pro-rating is enabled for this plan. */
+  proRatingEnabled: boolean
   /**
-   * An ISO-8601 timestamp representation of which point in time the quantity was
-   * resolved to.
+   * The plan phases define the pricing ramp for a subscription. A phase switch
+   * occurs only at the end of a billing period. At least one phase is required.
    */
-  quantityAt: Date
-  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  activeFrom: Date
-  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  activeTo?: Date
-  /** The timeline of the add-on. The returned periods are sorted and continuous. */
-  timeline: SubscriptionAddonTimelineSegment[]
-  /** The rate cards of the add-on. */
-  rateCards: SubscriptionAddonRateCard[]
+  phases: PlanPhase[]
 }
 
 /** Plans provide a template for subscriptions. */
@@ -5793,6 +5710,47 @@ export interface UpsertPlanRequest {
   phases: PlanPhase[]
 }
 
+/** Addon purchased with a subscription. */
+export interface SubscriptionAddon {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /**
+   * An ISO-8601 timestamp representation of which point in time the quantity was
+   * resolved to.
+   */
+  quantityAt: Date
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  activeFrom: Date
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  activeTo?: Date
+  /** The timeline of the add-on. The returned periods are sorted and continuous. */
+  timeline: SubscriptionAddonTimelineSegment[]
+  /** The rate cards of the add-on. */
+  rateCards: SubscriptionAddonRateCard[]
+}
+
 /** Page paginated response. */
 export interface AddonPagePaginatedResponse {
   data: Addon[]
@@ -5892,6 +5850,113 @@ export interface Subscription {
   phases: SubscriptionPhase[]
 }
 
+export interface SubscriptionCreate {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /**
+   * A reference to a published plan the subscription is created from.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+   * subscription on an existing published plan; use `custom_plan` to define the plan
+   * inline.
+   */
+  plan?: { id?: string; key?: string; version?: number }
+  /**
+   * An inline plan definition to create the subscription from, without referencing a
+   * published plan.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+   * linked to a persisted plan, so the response omits the `plan` reference.
+   */
+  customPlan?: SubscriptionCustomPlan
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode: 'dynamic' | 'pinned'
+}
+
+/** Request for changing a subscription. */
+export interface SubscriptionChange {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /**
+   * A reference to a published plan the subscription is created from.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+   * subscription on an existing published plan; use `custom_plan` to define the plan
+   * inline.
+   */
+  plan?: { id?: string; key?: string; version?: number }
+  /**
+   * An inline plan definition to create the subscription from, without referencing a
+   * published plan.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+   * linked to a persisted plan, so the response omits the `plan` reference.
+   */
+  customPlan?: SubscriptionCustomPlan
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode: 'dynamic' | 'pinned'
+  /**
+   * Timing configuration for the change, when the change should take effect. For
+   * changing a subscription, the accepted values depend on the subscription
+   * configuration.
+   */
+  timing: SubscriptionEditTiming
+}
+
+/** Page paginated response. */
+export interface PlanPagePaginatedResponse {
+  data: Plan[]
+  meta: PaginatedMeta
+}
+
 /**
  * Request for editing a running subscription. Applies an ordered batch of
  * customizations to the subscription's phases and items. A later customization
@@ -5907,12 +5972,6 @@ export interface SubscriptionEdit {
 /** Page paginated response. */
 export interface SubscriptionAddonPagePaginatedResponse {
   data: SubscriptionAddon[]
-  meta: PaginatedMeta
-}
-
-/** Page paginated response. */
-export interface PlanPagePaginatedResponse {
-  data: Plan[]
   meta: PaginatedMeta
 }
 
@@ -6784,40 +6843,6 @@ export interface VoidCreditGrantRequestInput {
   paymentAdjustment?: 'none'
 }
 
-/** Subscription create request. */
-export interface SubscriptionCreateInput {
-  labels?: Labels
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   *
-   * If not provided, the subscription will be created with the subscription's
-   * creation time as the billing anchor.
-   */
-  billingAnchor?: Date
-  /** Controls how custom-currency cost bases are selected for the subscription. */
-  costBasisMode?: 'dynamic' | 'pinned'
-}
-
 /**
  * Unit conversion configuration.
  *
@@ -6934,46 +6959,6 @@ export interface InvoiceWorkflowInput {
 export interface SubscriptionCancelInput {
   /** If not provided the subscription is canceled immediately. */
   timing?: SubscriptionEditTiming
-}
-
-/** Request for changing a subscription. */
-export interface SubscriptionChangeInput {
-  labels?: Labels
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   *
-   * If not provided, the subscription will be created with the subscription's
-   * creation time as the billing anchor.
-   */
-  billingAnchor?: Date
-  /** Controls how custom-currency cost bases are selected for the subscription. */
-  costBasisMode?: 'dynamic' | 'pinned'
-  /**
-   * Timing configuration for the change, when the change should take effect. For
-   * changing a subscription, the accepted values depend on the subscription
-   * configuration.
-   */
-  timing: SubscriptionEditTiming
 }
 
 /**
@@ -7705,27 +7690,6 @@ export interface SubscriptionItemInput {
 }
 
 /**
- * Add a new rate card to a phase. Adding an item to the current phase closes the
- * active version of the same item key and appends a new version.
- */
-export interface SubscriptionEditAddItemInput {
-  /** Discriminator for the add-item operation. */
-  type: 'add_item'
-  /** The key of the phase to add the item to. */
-  phaseKey: string
-  /** The rate card describing what the customer gets and pays for the new item. */
-  rateCard: RateCardInput
-}
-
-/** A rate card for a subscription add-on. */
-export interface SubscriptionAddonRateCardInput {
-  /** The rate card. */
-  rateCard: RateCardInput
-  /** The IDs of the subscription items that this rate card belongs to. */
-  affectedSubscriptionItemIds: string[]
-}
-
-/**
  * The plan phase or pricing ramp allows changing a plan's rate cards over time as
  * a subscription progresses.
  */
@@ -7751,6 +7715,27 @@ export interface PlanPhaseInput {
   duration?: string
   /** The rate cards of the plan. */
   rateCards: RateCardInput[]
+}
+
+/**
+ * Add a new rate card to a phase. Adding an item to the current phase closes the
+ * active version of the same item key and appends a new version.
+ */
+export interface SubscriptionEditAddItemInput {
+  /** Discriminator for the add-item operation. */
+  type: 'add_item'
+  /** The key of the phase to add the item to. */
+  phaseKey: string
+  /** The rate card describing what the customer gets and pays for the new item. */
+  rateCard: RateCardInput
+}
+
+/** A rate card for a subscription add-on. */
+export interface SubscriptionAddonRateCardInput {
+  /** The rate card. */
+  rateCard: RateCardInput
+  /** The IDs of the subscription items that this rate card belongs to. */
+  affectedSubscriptionItemIds: string[]
 }
 
 /**
@@ -8137,16 +8122,12 @@ export interface SubscriptionPhaseInput {
   items: SubscriptionItemInput[]
 }
 
-/** Addon purchased with a subscription. */
-export interface SubscriptionAddonInput {
-  id: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
+/**
+ * An inline (custom) plan definition used to create or change a subscription
+ * without referencing a published plan. Mirrors the plan create shape without a
+ * key or version, since a custom plan is not persisted or versioned on its own.
+ */
+export interface SubscriptionCustomPlanInput {
   /**
    * Display name of the resource.
    *
@@ -8159,23 +8140,18 @@ export interface SubscriptionAddonInput {
    * Maximum 1024 characters.
    */
   description?: string
-  /** The add-on associated with the subscription. */
-  addon: AddonReference
-  /** The quantity of the add-on. Always 1 for single instance add-ons. */
-  quantity: number
+  labels?: Labels
+  /** The currency code of the plan. */
+  currency: BillingCurrencyCode
+  /** The billing cadence for subscriptions using this plan. */
+  billingCadence: string
+  /** Whether pro-rating is enabled for this plan. */
+  proRatingEnabled?: boolean
   /**
-   * An ISO-8601 timestamp representation of which point in time the quantity was
-   * resolved to.
+   * The plan phases define the pricing ramp for a subscription. A phase switch
+   * occurs only at the end of a billing period. At least one phase is required.
    */
-  quantityAt: Date
-  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  activeFrom: Date
-  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  activeTo?: Date
-  /** The timeline of the add-on. The returned periods are sorted and continuous. */
-  timeline: SubscriptionAddonTimelineSegment[]
-  /** The rate cards of the add-on. */
-  rateCards: SubscriptionAddonRateCardInput[]
+  phases: PlanPhaseInput[]
 }
 
 /** Plans provide a template for subscriptions. */
@@ -8317,6 +8293,47 @@ export interface UpsertPlanRequestInput {
   phases: PlanPhaseInput[]
 }
 
+/** Addon purchased with a subscription. */
+export interface SubscriptionAddonInput {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /**
+   * An ISO-8601 timestamp representation of which point in time the quantity was
+   * resolved to.
+   */
+  quantityAt: Date
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  activeFrom: Date
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  activeTo?: Date
+  /** The timeline of the add-on. The returned periods are sorted and continuous. */
+  timeline: SubscriptionAddonTimelineSegment[]
+  /** The rate cards of the add-on. */
+  rateCards: SubscriptionAddonRateCardInput[]
+}
+
 /** Page paginated response. */
 export interface AddonPagePaginatedResponseInput {
   data: AddonInput[]
@@ -8416,6 +8433,113 @@ export interface SubscriptionInput {
   phases: SubscriptionPhaseInput[]
 }
 
+export interface SubscriptionCreateInput {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /**
+   * A reference to a published plan the subscription is created from.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+   * subscription on an existing published plan; use `custom_plan` to define the plan
+   * inline.
+   */
+  plan?: { id?: string; key?: string; version?: number }
+  /**
+   * An inline plan definition to create the subscription from, without referencing a
+   * published plan.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+   * linked to a persisted plan, so the response omits the `plan` reference.
+   */
+  customPlan?: SubscriptionCustomPlanInput
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode?: 'dynamic' | 'pinned'
+}
+
+/** Request for changing a subscription. */
+export interface SubscriptionChangeInput {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /**
+   * A reference to a published plan the subscription is created from.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+   * subscription on an existing published plan; use `custom_plan` to define the plan
+   * inline.
+   */
+  plan?: { id?: string; key?: string; version?: number }
+  /**
+   * An inline plan definition to create the subscription from, without referencing a
+   * published plan.
+   *
+   * Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+   * linked to a persisted plan, so the response omits the `plan` reference.
+   */
+  customPlan?: SubscriptionCustomPlanInput
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode?: 'dynamic' | 'pinned'
+  /**
+   * Timing configuration for the change, when the change should take effect. For
+   * changing a subscription, the accepted values depend on the subscription
+   * configuration.
+   */
+  timing: SubscriptionEditTiming
+}
+
+/** Page paginated response. */
+export interface PlanPagePaginatedResponseInput {
+  data: PlanInput[]
+  meta: PaginatedMeta
+}
+
 /**
  * Request for editing a running subscription. Applies an ordered batch of
  * customizations to the subscription's phases and items. A later customization
@@ -8431,12 +8555,6 @@ export interface SubscriptionEditInput {
 /** Page paginated response. */
 export interface SubscriptionAddonPagePaginatedResponseInput {
   data: SubscriptionAddonInput[]
-  meta: PaginatedMeta
-}
-
-/** Page paginated response. */
-export interface PlanPagePaginatedResponseInput {
-  data: PlanInput[]
   meta: PaginatedMeta
 }
 

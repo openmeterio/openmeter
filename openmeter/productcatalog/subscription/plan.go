@@ -1,7 +1,7 @@
 package plansubscription
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/samber/lo"
 
@@ -19,11 +19,17 @@ type PlanInput struct {
 }
 
 func (p *PlanInput) Validate() error {
+	var errs []error
+
 	if p.ref == nil && p.plan == nil {
-		return fmt.Errorf("plan or plan reference must be provided")
+		errs = append(errs, errors.New("plan or plan reference must be provided"))
 	}
 
-	return nil
+	if p.ref != nil && p.plan != nil {
+		errs = append(errs, errors.New("only one of plan or plan reference may be provided"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (p *PlanInput) AsRef() *PlanRefInput {

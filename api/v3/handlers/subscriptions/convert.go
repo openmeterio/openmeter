@@ -12,12 +12,16 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -429,4 +433,52 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 	default:
 		return nil, models.NewGenericValidationError(fmt.Errorf("unknown edit operation type: %s", disc))
 	}
+}
+
+// FromAPIBillingSubscriptionCustomPlan maps an inline (custom) plan definition from a
+// create or change request into the domain plan create input. It performs pure
+// mapping only: plan validity, currency resolution, and the fiat/custom-currency
+// rules are enforced downstream by the subscription service and spec validation.
+func FromAPIBillingSubscriptionCustomPlan(namespace string, body api.BillingSubscriptionCustomPlan) (plan.CreatePlanInput, error) {
+	metadata, err := labels.ToMetadata(body.Labels)
+	if err != nil {
+		return plan.CreatePlanInput{}, fmt.Errorf("failed to convert label metadata: %w", err)
+	}
+
+	req := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:            body.Name,
+				Description:     body.Description,
+				Metadata:        metadata,
+				ProRatingConfig: plans.ToProRatingConfig(body.ProRatingEnabled),
+			},
+		},
+	}
+
+	// currencyx.Code (not FiatCode) so custom currencies are accepted; the resolver
+	// and spec validation reject unregistered or otherwise invalid currencies later.
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(body.Currency))
+
+	billingCadence, err := datetime.ISODurationString(body.BillingCadence).Parse()
+	if err != nil {
+		return req, fmt.Errorf("invalid billing cadence: %w", err)
+	}
+	req.BillingCadence = billingCadence
+
+	if len(body.Phases) > 0 {
+		req.Phases = make([]productcatalog.Phase, 0, len(body.Phases))
+		for _, phase := range body.Phases {
+			p, err := plans.FromAPIBillingPlanPhase(phase)
+			if err != nil {
+				return req, fmt.Errorf("failed to convert phase: %w", err)
+			}
+			req.Phases = append(req.Phases, p)
+		}
+	}
+
+	return req, nil
 }

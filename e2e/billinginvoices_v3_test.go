@@ -114,7 +114,7 @@ func TestV3GetBillingInvoice(t *testing.T) {
 
 		sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer:       v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
-			Plan:           v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
+			Plan:           &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
 			SettlementMode: lo.ToPtr(v3sdk.SettlementModeCreditThenInvoice),
 		})
 		c.requireStatus(http.StatusCreated, err)
@@ -329,7 +329,7 @@ func TestV3ListBillingInvoices(t *testing.T) {
 
 		_, err = c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
-			Plan:     v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
+			Plan:     &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
 		})
 		c.requireStatus(http.StatusCreated, err)
 	})
@@ -652,7 +652,7 @@ func TestV3UpdateBillingInvoice(t *testing.T) {
 
 		_, err = c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
-			Plan:     v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
+			Plan:     &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
 		})
 		c.requireStatus(http.StatusCreated, err)
 	})
@@ -1108,7 +1108,7 @@ func TestV3DeleteBillingInvoice(t *testing.T) {
 
 		_, err = c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
-			Plan:     v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
+			Plan:     &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
 		})
 		c.requireStatus(http.StatusCreated, err)
 	})
@@ -1753,7 +1753,7 @@ func TestV3SnapshotQuantitiesBillingInvoice(t *testing.T) {
 
 		sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
-			Plan:     v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
+			Plan:     &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
 		})
 		c.requireStatus(http.StatusCreated, err)
 		subscriptionID = sub.ID
