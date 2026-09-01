@@ -1109,6 +1109,21 @@ var (
 				Columns: []*schema.Column{BillingInvoiceLinesColumns[44]},
 			},
 			{
+				Name:    "billing_invoice_lines_fee_config_id_idx",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[36]},
+			},
+			{
+				Name:    "billing_invoice_lines_usage_config_id_idx",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[37]},
+			},
+			{
+				Name:    "billing_invoice_lines_parent_id_idx",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[38]},
+			},
+			{
 				Name:    "billinginvoiceline_namespace_invoice_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[35]},
@@ -1174,6 +1189,11 @@ var (
 				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1]},
 			},
 			{
+				Name:    "billing_invoice_line_discounts_line_id_idx",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[12]},
+			},
+			{
 				Name:    "billinginvoicelinediscount_namespace_line_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[12]},
@@ -1227,6 +1247,11 @@ var (
 				Name:    "billinginvoicelineusagediscount_namespace",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[1]},
+			},
+			{
+				Name:    "billing_invoice_line_usage_discounts_line_id_idx",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLineUsageDiscountsColumns[12]},
 			},
 			{
 				Name:    "billinginvoicelineusagediscount_namespace_line_id",
@@ -1604,6 +1629,11 @@ var (
 				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[13], BillingStandardInvoiceDetailedLinesColumns[0]},
 			},
 			{
+				Name:    "billing_std_invoice_detailed_lines_parent_id_idx",
+				Unique:  false,
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[29]},
+			},
+			{
 				Name:    "billingstandardinvoicedetailedline_namespace_invoice_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[13], BillingStandardInvoiceDetailedLinesColumns[28]},
@@ -1662,6 +1692,11 @@ var (
 				Name:    "billingstandardinvoicedetailedlineamountdiscount_namespace",
 				Unique:  false,
 				Columns: []*schema.Column{BillingStandardInvoiceDetailedLineAmountDiscountsColumns[1]},
+			},
+			{
+				Name:    "billing_std_invoice_detail_amount_discounts_line_id_idx",
+				Unique:  false,
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLineAmountDiscountsColumns[12]},
 			},
 			{
 				Name:    "billingstandardinvoicedetailedlineamountdiscount_namespace_line_id",

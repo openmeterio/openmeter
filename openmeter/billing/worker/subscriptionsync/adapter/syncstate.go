@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -27,24 +26,39 @@ func (a *adapter) InvalidateSyncState(ctx context.Context, input subscriptionsyn
 }
 
 func (a *adapter) GetSyncStates(ctx context.Context, input subscriptionsync.GetSyncStatesInput) ([]subscriptionsync.SyncState, error) {
+	if len(input) == 0 {
+		return []subscriptionsync.SyncState{}, nil
+	}
+
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]subscriptionsync.SyncState, error) {
+		requestedIDs := lo.SliceToMap(input, func(id models.NamespacedID) (models.NamespacedID, struct{}) {
+			return id, struct{}{}
+		})
+		subscriptionIDs := lo.Map(input, func(id models.NamespacedID, _ int) string {
+			return id.ID
+		})
+
+		// This is a query optimization: subscription_id is globally unique and indexed,
+		// so fetching by it avoids a large OR expression. The exact namespaced-ID check
+		// below preserves tenant isolation.
 		res, err := tx.db.SubscriptionBillingSyncState.Query().
-			Where(
-				subscriptionbillingsyncstate.Or(
-					lo.Map(input, func(id models.NamespacedID, _ int) predicate.SubscriptionBillingSyncState {
-						return subscriptionbillingsyncstate.And(
-							subscriptionbillingsyncstate.SubscriptionID(id.ID),
-							subscriptionbillingsyncstate.Namespace(id.Namespace),
-						)
-					})...),
-			).All(ctx)
+			Where(subscriptionbillingsyncstate.SubscriptionIDIn(subscriptionIDs...)).
+			All(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		return lo.Map(res, func(state *entdb.SubscriptionBillingSyncState, _ int) subscriptionsync.SyncState {
-			return mapSyncStateFromDB(state)
-		}), nil
+		syncStates := make([]subscriptionsync.SyncState, 0, len(res))
+		for _, state := range res {
+			mappedState := mapSyncStateFromDB(state)
+			if _, ok := requestedIDs[mappedState.SubscriptionID]; !ok {
+				continue
+			}
+
+			syncStates = append(syncStates, mappedState)
+		}
+
+		return syncStates, nil
 	})
 }
 
