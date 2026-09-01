@@ -79,7 +79,8 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           MAIN_NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.main-hash }}
-          NIX_INPUTS_CHANGED: ${{ steps.changed-files.outputs.nix_any_changed }}
+          # any_modified covers additions, changes, renames, and deletions.
+          NIX_INPUTS_CHANGED: ${{ steps.changed-files.outputs.nix_any_modified }}
           NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.current-hash }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
