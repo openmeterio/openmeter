@@ -62,4 +62,16 @@ func TestIngestEventsRecordsRequestEventCount(t *testing.T) {
 	namespace, ok := histogram.DataPoints[0].Attributes.Value(attribute.Key("namespace"))
 	require.True(t, ok)
 	require.Equal(t, "default", namespace.AsString())
+
+	require.Equal(
+		t,
+		[]float64{0, 1, 2, 3, 4, 5, 10, 25, 100, 1000, 10000},
+		histogram.DataPoints[0].Bounds,
+	)
+
+	// The one-event and three-event requests must land in separate buckets. Under
+	// the SDK default boundaries both fall into (0, 5], which is what collapses
+	// the distribution.
+	require.Equal(t, uint64(1), histogram.DataPoints[0].BucketCounts[1], "(0, 1] should hold the single-event request")
+	require.Equal(t, uint64(1), histogram.DataPoints[0].BucketCounts[3], "(2, 3] should hold the three-event request")
 }
