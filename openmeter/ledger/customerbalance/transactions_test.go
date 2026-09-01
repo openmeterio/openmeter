@@ -16,9 +16,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestCreditTransactionLoaders_InvalidType(t *testing.T) {
@@ -60,17 +63,145 @@ func TestCreditTransactionFromLedgerTransaction_AggregatesScopedFBOEntries(t *te
 
 func TestApplyCreditTransactionBalances(t *testing.T) {
 	balanceImpact := alpacadecimal.NewFromInt(-7)
+	currencyReference := currencies.NewCurrencyReference("USD")
 	items := []CreditTransaction{
 		{
-			Amount:        alpacadecimal.NewFromInt(-10),
-			balanceImpact: &balanceImpact,
+			Currency:          "USD",
+			Amount:            alpacadecimal.NewFromInt(-10),
+			balanceImpact:     &balanceImpact,
+			currencyReference: currencyReference,
 		},
 	}
 
-	applyCreditTransactionBalances(items, alpacadecimal.NewFromInt(42))
+	applyCreditTransactionBalances(items, map[string]alpacadecimal.Decimal{
+		currencyReference.IdentityKey(): alpacadecimal.NewFromInt(42),
+	})
 
 	require.True(t, items[0].Balance.After.Equal(alpacadecimal.NewFromInt(42)))
 	require.True(t, items[0].Balance.Before.Equal(alpacadecimal.NewFromInt(49)))
+}
+
+func TestApplyCreditTransactionBalancesSeparatesCustomCurrencyIdentities(t *testing.T) {
+	alpha, err := currencies.ParseCurrencyReference([]byte("custom|v1|CREDITS|currency-alpha|2"))
+	require.NoError(t, err)
+	beta, err := currencies.ParseCurrencyReference([]byte("custom|v1|CREDITS|currency-beta|2"))
+	require.NoError(t, err)
+
+	items := []CreditTransaction{
+		{Currency: "CREDITS", Amount: alpacadecimal.NewFromInt(10), currencyReference: alpha},
+		{Currency: "CREDITS", Amount: alpacadecimal.NewFromInt(20), currencyReference: beta},
+		{Currency: "CREDITS", Amount: alpacadecimal.NewFromInt(30), currencyReference: alpha},
+	}
+
+	applyCreditTransactionBalances(items, map[string]alpacadecimal.Decimal{
+		alpha.IdentityKey(): alpacadecimal.NewFromInt(100),
+		beta.IdentityKey():  alpacadecimal.NewFromInt(200),
+	})
+
+	require.Equal(t, float64(90), items[0].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(100), items[0].Balance.After.InexactFloat64())
+	require.Equal(t, float64(180), items[1].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(200), items[1].Balance.After.InexactFloat64())
+	require.Equal(t, float64(60), items[2].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(90), items[2].Balance.After.InexactFloat64())
+}
+
+func TestListCreditTransactionsBalancesByCurrency(t *testing.T) {
+	env := newTestEnv(t)
+
+	// given:
+	// - funded and consumed USD/EUR movements are interleaved by booked time
+	issuedAt := clock.Now()
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(100), "USD", nil)
+
+	eurFundedAt := issuedAt.Add(time.Hour)
+	clock.FreezeTime(eurFundedAt)
+	t.Cleanup(clock.UnFreeze)
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(200), "EUR", nil)
+
+	usdConsumedAt := issuedAt.Add(2 * time.Hour)
+	clock.FreezeTime(usdConsumedAt.Add(-time.Minute))
+	t.Cleanup(clock.UnFreeze)
+	usdCharge := env.createFlatFeeChargeInCurrency(
+		t,
+		alpacadecimal.NewFromInt(30),
+		productcatalog.CreditOnlySettlementMode,
+		timeutil.ClosedPeriod{From: usdConsumedAt, To: usdConsumedAt},
+		"USD",
+	)
+	clock.FreezeTime(usdConsumedAt.Add(time.Second))
+	t.Cleanup(clock.UnFreeze)
+	env.advanceFlatFeeCharge(t, usdCharge)
+
+	eurConsumedAt := issuedAt.Add(3 * time.Hour)
+	clock.FreezeTime(eurConsumedAt.Add(-time.Minute))
+	t.Cleanup(clock.UnFreeze)
+	eurCharge := env.createFlatFeeChargeInCurrency(
+		t,
+		alpacadecimal.NewFromInt(50),
+		productcatalog.CreditOnlySettlementMode,
+		timeutil.ClosedPeriod{From: eurConsumedAt, To: eurConsumedAt},
+		"EUR",
+	)
+	clock.FreezeTime(eurConsumedAt.Add(time.Second))
+	t.Cleanup(clock.UnFreeze)
+	env.advanceFlatFeeCharge(t, eurCharge)
+
+	// when:
+	// - an unfiltered history interleaves two currency balance chains
+	result, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         10,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	// then:
+	// - rows stay globally ordered while balances advance only within their currency
+	expected := []struct {
+		currency currencyx.Code
+		txType   CreditTransactionType
+		bookedAt time.Time
+		amount   int64
+		before   int64
+		after    int64
+	}{
+		{currency: "EUR", txType: CreditTransactionTypeConsumed, bookedAt: eurConsumedAt, amount: -50, before: 200, after: 150},
+		{currency: "USD", txType: CreditTransactionTypeConsumed, bookedAt: usdConsumedAt, amount: -30, before: 100, after: 70},
+		{currency: "EUR", txType: CreditTransactionTypeFunded, bookedAt: eurFundedAt, amount: 200, before: 0, after: 200},
+		{currency: "USD", txType: CreditTransactionTypeFunded, bookedAt: issuedAt, amount: 100, before: 0, after: 100},
+	}
+	require.Len(t, result.Items, len(expected))
+	for i, want := range expected {
+		item := result.Items[i]
+		require.Equal(t, want.currency, item.Currency)
+		require.Equal(t, want.txType, item.Type)
+		require.True(t, want.bookedAt.Equal(item.BookedAt))
+		require.Equal(t, float64(want.amount), item.Amount.InexactFloat64())
+		require.Equal(t, float64(want.before), item.Balance.Before.InexactFloat64())
+		require.Equal(t, float64(want.after), item.Balance.After.InexactFloat64())
+	}
+
+	// when:
+	// - the same history is filtered to one currency
+	usd := currencyx.Code("USD")
+	filtered, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         10,
+		Currency:      &usd,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	// then:
+	// - the filtered rows retain the same USD balance chain
+	require.Len(t, filtered.Items, 2)
+	require.Equal(t, CreditTransactionTypeConsumed, filtered.Items[0].Type)
+	require.Equal(t, float64(100), filtered.Items[0].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(70), filtered.Items[0].Balance.After.InexactFloat64())
+	require.Equal(t, CreditTransactionTypeFunded, filtered.Items[1].Type)
+	require.Equal(t, float64(0), filtered.Items[1].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(100), filtered.Items[1].Balance.After.InexactFloat64())
 }
 
 func TestApplyChargeMetadataToCreditTransactions(t *testing.T) {

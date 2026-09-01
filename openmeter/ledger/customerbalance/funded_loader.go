@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -81,10 +82,13 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 		return nil, fmt.Errorf("get funded credit transaction group %s: %w", item.fundedTransactionGroupID, err)
 	}
 
-	impacts := fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
+	impacts, err := fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
 		Currency:      item.Currency,
 		FeatureFilter: input.FeatureFilter,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("resolve funded credit transaction group %s balance impacts: %w", item.fundedTransactionGroupID, err)
+	}
 	if len(impacts) == 0 {
 		return nil, fmt.Errorf("funded credit transaction group %s has no customer balance impact", item.fundedTransactionGroupID)
 	}
@@ -113,6 +117,7 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 		resolvedItem.Amount = impact.Amount
 		resolvedItem.balanceCursor = &impact.Cursor
 		resolvedItem.balanceImpact = &impact.Amount
+		resolvedItem.currencyReference = impact.CurrencyReference
 		items = append(items, resolvedItem)
 	}
 
@@ -120,31 +125,35 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 }
 
 type fundedCreditTransactionBalanceImpact struct {
-	Amount alpacadecimal.Decimal
-	Cursor ledger.TransactionCursor
+	Amount            alpacadecimal.Decimal
+	Cursor            ledger.TransactionCursor
+	CurrencyReference currencies.CurrencyReference
 }
 
 // fundedCreditTransactionBalanceImpacts follows the same two ledger components
 // as settled balance and groups them by the time they affect that balance.
 // Looking at the actual scoped entries keeps legacy credit purchase groups
 // readable without relying on transaction template annotations.
-func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input GetBalanceServiceInput) []fundedCreditTransactionBalanceImpact {
+func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input GetBalanceServiceInput) ([]fundedCreditTransactionBalanceImpact, error) {
 	impactsByBookedAt := make(map[time.Time]fundedCreditTransactionBalanceImpact)
+	var groupCurrency currencies.CurrencyReference
 
 	for _, tx := range group.Transactions() {
 		if tx.Annotations()[ledger.AnnotationCollectionType] == ledger.CollectionTypeBreakage {
 			continue
 		}
 
-		impact := ledger.TransactionImpact(tx, ledger.ImpactFilter{
-			AccountType: ledger.AccountTypeCustomerFBO,
-			Route:       input.bookedRoute(),
-		}).Add(ledger.TransactionImpact(tx, ledger.ImpactFilter{
-			AccountType: ledger.AccountTypeCustomerReceivable,
-			Route:       input.advanceRoute(),
-		}))
+		impact, currencyReference, err := fundedCreditTransactionImpact(tx, input)
+		if err != nil {
+			return nil, err
+		}
 		if impact.IsZero() {
 			continue
+		}
+		if groupCurrency.Code == "" {
+			groupCurrency = currencyReference
+		} else if !groupCurrency.Equal(currencyReference) {
+			return nil, fmt.Errorf("transactions have multiple customer balance currencies")
 		}
 
 		cursor := tx.Cursor()
@@ -152,6 +161,7 @@ func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input 
 		groupedImpact, ok := impactsByBookedAt[bookedAt]
 		if !ok {
 			groupedImpact.Amount = alpacadecimal.Zero
+			groupedImpact.CurrencyReference = currencyReference
 		}
 		groupedImpact.Amount = groupedImpact.Amount.Add(impact)
 		if groupedImpact.Cursor.BookedAt.IsZero() || groupedImpact.Cursor.Compare(cursor) < 0 {
@@ -170,7 +180,36 @@ func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input 
 		return b.Cursor.Compare(a.Cursor)
 	})
 
-	return impacts
+	return impacts, nil
+}
+
+func fundedCreditTransactionImpact(tx ledger.Transaction, input GetBalanceServiceInput) (alpacadecimal.Decimal, currencies.CurrencyReference, error) {
+	bookedFilter := ledger.ImpactFilter{
+		AccountType: ledger.AccountTypeCustomerFBO,
+		Route:       input.bookedRoute(),
+	}
+	advanceFilter := ledger.ImpactFilter{
+		AccountType: ledger.AccountTypeCustomerReceivable,
+		Route:       input.advanceRoute(),
+	}
+
+	impact := alpacadecimal.Zero
+	var currencyReference currencies.CurrencyReference
+	for _, entry := range tx.Entries() {
+		if !ledger.EntryMatchesImpactFilter(entry, bookedFilter) && !ledger.EntryMatchesImpactFilter(entry, advanceFilter) {
+			continue
+		}
+
+		entryCurrency := entry.PostingAddress().Route().Route().Currency
+		if currencyReference.Code == "" {
+			currencyReference = entryCurrency
+		} else if !currencyReference.Equal(entryCurrency) {
+			return alpacadecimal.Zero, currencies.CurrencyReference{}, fmt.Errorf("transaction %s has multiple customer balance currencies", tx.ID().ID)
+		}
+		impact = impact.Add(entry.Amount())
+	}
+
+	return impact, currencyReference, nil
 }
 
 func toFundedCreditActivityCursor(cursor *ledger.TransactionCursor) *creditpurchase.FundedCreditActivityCursor {

@@ -101,10 +101,11 @@ type Config struct {
 }
 
 type GetBalanceServiceInput struct {
-	CustomerID    customer.CustomerID
-	Currency      currencyx.Code
-	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
-	BalanceQuery  ledger.BalanceQuery
+	CustomerID        customer.CustomerID
+	Currency          currencyx.Code
+	FeatureFilter     mo.Option[creditpurchase.FeatureFilters]
+	BalanceQuery      ledger.BalanceQuery
+	currencyReference currencies.CurrencyReference
 }
 
 type GetBalanceCurrenciesInput struct {
@@ -194,14 +195,14 @@ func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
 
 func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = currencies.NewCurrencyReference(i.Currency)
+	route.Currency = i.ledgerCurrencyReference()
 
 	return route
 }
 
 func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = currencies.NewCurrencyReference(i.Currency)
+	route.Currency = i.ledgerCurrencyReference()
 	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
 
 	return route
@@ -209,6 +210,14 @@ func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 
 func (i GetBalanceServiceInput) featureRoute() ledger.RouteFilter {
 	return featureFilterRoute(normalizeFeatureFilter(i.FeatureFilter))
+}
+
+func (i GetBalanceServiceInput) ledgerCurrencyReference() currencies.CurrencyReference {
+	if i.currencyReference.Code != "" {
+		return i.currencyReference.Clone()
+	}
+
+	return currencies.NewCurrencyReference(i.Currency)
 }
 
 func (c Config) Validate() error {

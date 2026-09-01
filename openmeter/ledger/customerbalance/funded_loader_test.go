@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestListCreditTransactionsFundedBalanceCoalescesSameEffectiveTime(t *testing.T) {
@@ -214,4 +215,69 @@ func TestListCreditTransactionsFundedBalanceUsesEffectiveTimes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestListCreditTransactionsFundedEffectiveTimesAcrossCurrencies(t *testing.T) {
+	env := newTestEnv(t)
+
+	// given:
+	// - USD has an outstanding advance and a future-effective purchase
+	servicePeriod := env.sp()
+	charge := env.createFlatFeeCharge(
+		t,
+		alpacadecimal.NewFromInt(40),
+		productcatalog.CreditOnlySettlementMode,
+		servicePeriod,
+	)
+	env.passTimeAfterServicePeriod(t, servicePeriod)
+	env.advanceFlatFeeCharge(t, charge)
+
+	fundedAt := clock.Now()
+	effectiveAt := fundedAt.Add(2 * time.Hour)
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(100), env.Currency, &effectiveAt)
+
+	// and:
+	// - EUR funding becomes effective between the two USD balance movements
+	eurFundedAt := fundedAt.Add(time.Hour)
+	clock.FreezeTime(eurFundedAt)
+	t.Cleanup(clock.UnFreeze)
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(200), "EUR", nil)
+
+	// when:
+	// - the unfiltered history is listed after the scheduled USD issuance
+	afterEffectiveAt := effectiveAt.Add(time.Second)
+	result, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         10,
+		AsOf:          &afterEffectiveAt,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	// then:
+	// - the global order follows effective time while each currency keeps its own balance chain
+	require.Len(t, result.Items, 4)
+	require.Equal(t, currencyx.Code("USD"), result.Items[0].Currency)
+	require.True(t, effectiveAt.Equal(result.Items[0].BookedAt))
+	require.Equal(t, float64(60), result.Items[0].Amount.InexactFloat64())
+	require.Equal(t, float64(0), result.Items[0].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(60), result.Items[0].Balance.After.InexactFloat64())
+
+	require.Equal(t, currencyx.Code("EUR"), result.Items[1].Currency)
+	require.True(t, eurFundedAt.Equal(result.Items[1].BookedAt))
+	require.Equal(t, float64(200), result.Items[1].Amount.InexactFloat64())
+	require.Equal(t, float64(0), result.Items[1].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(200), result.Items[1].Balance.After.InexactFloat64())
+
+	require.Equal(t, currencyx.Code("USD"), result.Items[2].Currency)
+	require.True(t, fundedAt.Equal(result.Items[2].BookedAt))
+	require.Equal(t, float64(40), result.Items[2].Amount.InexactFloat64())
+	require.Equal(t, float64(-40), result.Items[2].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(0), result.Items[2].Balance.After.InexactFloat64())
+
+	require.Equal(t, currencyx.Code("USD"), result.Items[3].Currency)
+	require.Equal(t, CreditTransactionTypeConsumed, result.Items[3].Type)
+	require.Equal(t, float64(-40), result.Items[3].Amount.InexactFloat64())
+	require.Equal(t, float64(0), result.Items[3].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(-40), result.Items[3].Balance.After.InexactFloat64())
 }

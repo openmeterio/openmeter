@@ -74,6 +74,9 @@ consumed => negative FBO impact
 expired  => negative FBO impact
 ```
 
+In a mixed-currency listing, `available_balance` is reconstructed independently
+for each currency identity even though the rows share one chronological stream.
+
 This matters when a purchase covers an existing advance. Its funded amount can
 be split between clearing the advance receivable and issuing the remainder to
 FBO. Impacts at the same effective time are shown as one funded row. If the
