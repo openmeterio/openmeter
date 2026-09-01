@@ -43,10 +43,12 @@ jobs:
 
           # Kafka integration is not exercised here. Without the dynamic tag,
           # confluent-kafka-go uses its bundled librdkafka on the runner.
+          # Each target also parallelizes Go compilation and linking internally,
+          # so cap outer parallelism to stay within GitHub runner memory limits.
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            make -j 4 build GO_BUILD_FLAGS=
+            make -j 2 build GO_BUILD_FLAGS=
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0

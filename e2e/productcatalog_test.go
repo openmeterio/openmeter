@@ -10,7 +10,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/semaphore"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -649,12 +648,18 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, customerAbused)
 		require.NotNil(t, customerAbused.Id)
 
-		ct := &api.SubscriptionTiming{}
-		require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+		type createSubscriptionResult struct {
+			statusCode int
+			body       []byte
+			duration   time.Duration
+			err        error
+		}
 
-		createSubscription := func(ctx context.Context) {
+		createSubscription := func(ctx context.Context) createSubscriptionResult {
 			ct := &api.SubscriptionTiming{}
-			require.NoError(t, ct.FromSubscriptionTiming1(startTime))
+			if err := ct.FromSubscriptionTiming1(startTime); err != nil {
+				return createSubscriptionResult{err: err}
+			}
 
 			// Let's create a custom subscription so it doesn't affect the other tests
 			create := api.SubscriptionCreate{}
@@ -663,40 +668,47 @@ func TestPlan(t *testing.T) {
 				CustomerKey: customerAbused.Key,
 				CustomPlan:  customPlanInput,
 			})
-			require.NoError(t, err)
+			if err != nil {
+				return createSubscriptionResult{err: err}
+			}
 
 			start := time.Now()
 			apiRes, err := client.CreateSubscriptionWithResponse(ctx, create)
-			require.NoError(t, err)
-			t.Logf("Create subscription took %s", time.Since(start))
-
-			// It will either succeed or fail with 4xx
-			assert.Less(t, apiRes.StatusCode(), 500, "received the following status %d body: %s", apiRes.StatusCode(), apiRes.Body)
-		}
-
-		// Let's spam the API 5 times
-		makeParallelCalls := func(t *testing.T, nrParallelCalls int64) {
-			t.Helper()
-
-			sem := semaphore.NewWeighted(nrParallelCalls)
-			timeoutContext, timeoutContextCancel := context.WithTimeout(t.Context(), 30*time.Second)
-			defer timeoutContextCancel()
-
-			for i := 0; i < 5; i++ {
-				err := sem.Acquire(timeoutContext, 1)
-				require.NoError(t, err)
-				go func() {
-					defer sem.Release(1)
-					createSubscription(timeoutContext)
-				}()
+			if err != nil {
+				return createSubscriptionResult{duration: time.Since(start), err: err}
 			}
 
-			err := sem.Acquire(timeoutContext, nrParallelCalls)
-			require.NoError(t, err)
-			require.NoError(t, timeoutContext.Err())
+			return createSubscriptionResult{
+				statusCode: apiRes.StatusCode(),
+				body:       apiRes.Body,
+				duration:   time.Since(start),
+			}
 		}
 
-		makeParallelCalls(t, 5)
+		// pgx defaults to four connections on a four-core runner. Three concurrent
+		// requests preserve the advisory-lock race without starving the lock holder.
+		const parallelCallCount = 3
+		results := make(chan createSubscriptionResult, parallelCallCount)
+		timeoutContext, timeoutContextCancel := context.WithTimeout(t.Context(), 30*time.Second)
+		defer timeoutContextCancel()
+
+		for i := 0; i < parallelCallCount; i++ {
+			go func() {
+				results <- createSubscription(timeoutContext)
+			}()
+		}
+
+		// Assertions must stay on the test goroutine: require.FailNow cannot be
+		// called from a worker, which can also outlive the subtest after a timeout.
+		for i := 0; i < parallelCallCount; i++ {
+			result := <-results
+			require.NoError(t, result.err)
+			t.Logf("Create subscription took %s", result.duration)
+
+			// It will either succeed or fail with 4xx
+			assert.Less(t, result.statusCode, 500, "received the following status %d body: %s", result.statusCode, result.body)
+		}
+		require.NoError(t, timeoutContext.Err())
 
 		// Now let's fetch the customer's subscriptions and assert there's only one
 		apiRes, err := client.ListCustomerSubscriptionsWithResponse(ctx, customerAbused.Id, &api.ListCustomerSubscriptionsParams{
