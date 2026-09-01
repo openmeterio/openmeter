@@ -56,6 +56,7 @@ const (
 	StandardInvoiceStatusDraftUpdating             StandardInvoiceStatus = "draft.updating"
 	StandardInvoiceStatusDraftManualApprovalNeeded StandardInvoiceStatus = "draft.manual_approval_needed"
 	StandardInvoiceStatusDraftValidating           StandardInvoiceStatus = "draft.validating"
+	StandardInvoiceStatusDraftInvalidCreated       StandardInvoiceStatus = "draft.invalid_created"
 	StandardInvoiceStatusDraftInvalid              StandardInvoiceStatus = "draft.invalid"
 	StandardInvoiceStatusDraftSyncing              StandardInvoiceStatus = "draft.syncing"
 	StandardInvoiceStatusDraftSyncFailed           StandardInvoiceStatus = "draft.sync_failed"
@@ -106,6 +107,7 @@ var validStatuses = []StandardInvoiceStatus{
 	StandardInvoiceStatusDraftUpdating,
 	StandardInvoiceStatusDraftManualApprovalNeeded,
 	StandardInvoiceStatusDraftValidating,
+	StandardInvoiceStatusDraftInvalidCreated,
 	StandardInvoiceStatusDraftInvalid,
 	StandardInvoiceStatusDraftSyncing,
 	StandardInvoiceStatusDraftSyncFailed,
@@ -462,6 +464,23 @@ func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent 
 func (i *StandardInvoice) HasCriticalValidationIssues() bool {
 	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
 		return issue.Severity == ValidationIssueSeverityCritical
+	})
+
+	return found
+}
+
+// HasLineSnapshotValidationIssueForComponent reports whether a line engine has
+// incomplete output because quantity snapshotting failed. Retry downgrades old
+// critical issues to warnings, but the lines remain incomplete until collection
+// clears the issue after a successful snapshot.
+func (i *StandardInvoice) HasLineSnapshotValidationIssueForComponent(component ComponentName) bool {
+	_, found := lo.Find(i.ValidationIssues, func(issue ValidationIssue) bool {
+		if issue.Component != component {
+			return false
+		}
+
+		return issue.Code == ErrInvoiceLineFeatureHasNoMeters.Code ||
+			issue.Code == ErrInvoiceLineSnapshotFailed.Code
 	})
 
 	return found

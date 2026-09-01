@@ -495,7 +495,7 @@ func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssue
 	})
 
 	s.Run("Then the engine failure becomes a validation issue", func() {
-		s.Equal(ombilling.StandardInvoiceStatusDraftInvalid, invoice.Status)
+		s.Equal(ombilling.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
 		s.Len(invoice.ValidationIssues, 1)
 		s.Equal("mock collection completed failure", invoice.ValidationIssues[0].Message)
 		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)

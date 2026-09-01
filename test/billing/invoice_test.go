@@ -4605,23 +4605,25 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 }
 
 func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
-	// Given there's:
-	// - A feature + meter
-	// - A gathering invoice with usage based line
-	// - the invoice pending lines is called and the standard invoice is in draft.waiting_for_collection state
-	// When
-	// - the meter is deleted
-	// Then
-	// - advancing the invoice works
-	// - the invoice ends up in draft.invalid state
-
+	// given:
+	// - a metered feature and gathering usage line ready for collection
+	// - metered usage exists in the line's service period
+	// when:
+	// - the meter is removed before gathering collection
+	// then:
+	// - collection persists a draft.invalid_created standard invoice with a line-scoped critical validation issue
+	// - retry remains invalid until the meter is restored, then snapshots usage and advances the invoice
 	var (
-		ctx       = context.Background()
+		ctx       = s.T().Context()
 		namespace = "ns-snapshot-quantity-invalid-database-state"
 
-		periodStart  time.Time
-		periodEnd    time.Time
-		collectionAt time.Time
+		periodStart time.Time
+		periodEnd   time.Time
+
+		customerID         customer.CustomerID
+		snapshotMeter      meter.Meter
+		gatheringInvoiceID billing.InvoiceID
+		pendingLineID      string
 
 		invoice billing.StandardInvoice
 	)
@@ -4634,30 +4636,30 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 	}()
 	defer s.MockStreamingConnector.Reset()
 
-	s.Run("Given a feature+meter and a draft invoice waiting for collection", func() {
+	s.Run("Given a feature and meter with a gathering usage line", func() {
 		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 		meterSlug := "snapshot-meter"
 		snapshotMeterID := ulid.Make().String()
-		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
-			{
-				ManagedResource: models.ManagedResource{
-					ID: snapshotMeterID,
-					NamespacedModel: models.NamespacedModel{
-						Namespace: namespace,
-					},
-					ManagedModel: models.ManagedModel{
-						CreatedAt: time.Now(),
-						UpdatedAt: time.Now(),
-					},
-					Name: "Snapshot Meter",
+		snapshotMeter = meter.Meter{
+			ManagedResource: models.ManagedResource{
+				ID: snapshotMeterID,
+				NamespacedModel: models.NamespacedModel{
+					Namespace: namespace,
 				},
-				Key:           meterSlug,
-				Aggregation:   meter.MeterAggregationSum,
-				EventType:     "test",
-				ValueProperty: lo.ToPtr("$.value"),
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: "Snapshot Meter",
 			},
-		})
+			Key:           meterSlug,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		}
+
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{snapshotMeter})
 		s.NoError(err, "failed to replace meters")
 
 		snapshotFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
@@ -4681,6 +4683,7 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		s.NoError(err)
 		s.NotNil(customerEntity)
 		s.NotEmpty(customerEntity.ID)
+		customerID = customerEntity.GetID()
 
 		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(),
 			WithCollectionInterval(datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)), // 1 day collection interval
@@ -4689,11 +4692,11 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		periodStart = lo.Must(time.Parse(time.RFC3339, "2024-09-02T11:13:14Z"))
 		periodEnd = lo.Must(time.Parse(time.RFC3339, "2024-09-02T13:13:14Z"))
 
-		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 7, periodStart.Add(time.Minute))
 
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
+				Customer: customerID,
 				Currency: currencyx.FiatCode(currency.USD),
 				Lines: []billing.GatheringLine{
 					{
@@ -4718,32 +4721,90 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		)
 		s.NoError(err)
 		s.Len(pendingLines.Lines, 1)
+		pendingLineID = pendingLines.Lines[0].ID
+		gatheringInvoiceID = pendingLines.Invoice.GetInvoiceID()
 
 		clock.SetTime(periodEnd)
+	})
+
+	s.Run("When the meter is deleted before gathering collection", func() {
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.NoError(err)
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: customerEntity.GetID(),
+			Customer:          customerID,
+			ForceAsyncAdvance: true,
 		})
 		s.NoError(err)
 		s.Len(invoices, 1)
 		invoice = invoices[0]
-		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
-		collectionAt = invoice.DefaultCollectionAtForStandardInvoice()
 	})
 
-	s.Run("When the meter is deleted", func() {
-		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	s.Run("Then a standard invoice is persisted as draft.invalid_created", func() {
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+		s.Nil(invoice.QuantitySnapshotedAt)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		s.Equal(pendingLineID, invoice.Lines.OrEmpty()[0].ID)
+		s.Nil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
+
+		s.Require().Len(invoice.ValidationIssues, 1)
+		issue := invoice.ValidationIssues[0]
+		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
+		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
+		s.Equal(fmt.Sprintf("/lines/%s", pendingLineID), issue.Path)
+		s.Contains(issue.Message, "feature[snapshot-feature] has no meter associated")
+
+		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
 		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
+		s.Require().Len(persistedInvoice.ValidationIssues, 1)
 
-		clock.SetTime(collectionAt.Add(time.Minute))
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoiceID,
+			Expand:  billing.GatheringInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.NotNil(gatheringInvoice.DeletedAt)
+		s.Empty(gatheringInvoice.Lines.OrEmpty())
 	})
 
-	s.Run("Then advancing transitions the invoice to draft.invalid", func() {
+	s.Run("And retrying re-enters draft.created", func() {
+		clock.SetTime(invoice.DefaultCollectionAtForStandardInvoice().Add(time.Minute))
+
+		queuedBillingService := s.BillingService.WithAdvancementStrategy(billing.QueuedAdvancementStrategy)
+
+		var err error
+		invoice, err = queuedBillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftCreated, invoice.Status)
+	})
+
+	s.Run("And advancing while the meter is missing returns to draft.invalid_created", func() {
 		var err error
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
-		s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
-		s.NotEmpty(invoice.ValidationIssues)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal(billing.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Nil(invoice.QuantitySnapshotedAt)
+	})
+
+	s.Run("And retrying after restoring the meter re-snapshots quantities", func() {
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{snapshotMeter})
+		s.NoError(err)
+
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+		s.NotNil(invoice.QuantitySnapshotedAt)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		s.Require().NotNil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
+		s.Equal(float64(7), invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity.InexactFloat64())
 	})
 }
 

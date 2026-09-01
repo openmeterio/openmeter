@@ -164,17 +164,30 @@ func (e AppError) Error() string {
 	return fmt.Sprintf("app %s type with id %s in namespace %s: %s", e.AppType, e.AppID.ID, e.AppID.Namespace, e.Err.Error())
 }
 
-// ErrSnapshotInvalidDatabaseState is returned when the database state is invalid for snapshotting the line quantity.
-// This can happen if the feature or meter is not found. In such cases we should transition the invoice to
-// draft.invalid state.
-type ErrSnapshotInvalidDatabaseState struct {
-	Err error
+// ErrSnapshotFeatureHasNoMeter is returned when quantity snapshotting cannot
+// continue because the line's persisted feature has no meter association.
+type ErrSnapshotFeatureHasNoMeter struct {
+	LineID     string
+	FeatureKey string
 }
 
-func (e ErrSnapshotInvalidDatabaseState) Error() string {
-	return fmt.Sprintf("snapshotting line quantity: %s", e.Err.Error())
+func (e ErrSnapshotFeatureHasNoMeter) Error() string {
+	return fmt.Sprintf("snapshotting line quantity: feature[%s] has no meter associated", e.FeatureKey)
 }
 
-func (e ErrSnapshotInvalidDatabaseState) Unwrap() error {
-	return e.Err
+// AsValidationIssue returns the critical invoice issue that represents the
+// missing meter association without exposing it as an operational failure.
+func (e ErrSnapshotFeatureHasNoMeter) AsValidationIssue() ValidationIssue {
+	issue := ValidationIssue{
+		Severity:  ValidationIssueSeverityCritical,
+		Code:      ErrInvoiceLineFeatureHasNoMeters.Code,
+		Message:   fmt.Sprintf("feature[%s] has no meter associated", e.FeatureKey),
+		Component: ValidationComponentOpenMeterMetering,
+	}
+
+	if e.LineID != "" {
+		issue.Path = fmt.Sprintf("lines/%s", e.LineID)
+	}
+
+	return issue
 }

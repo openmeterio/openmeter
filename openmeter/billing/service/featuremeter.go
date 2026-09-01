@@ -33,17 +33,21 @@ func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, li
 	return featureMetersErrorWrapper{featureMeters}, nil
 }
 
-// featureMetersErrorWrapper is a wrapper around the feature meters that returns a ErrSnapshotInvalidDatabaseState if the feature meter is not found.
-// This is useful to wrap the feature meters in a way that allows us to return a consistent error type for the billing service.
+// featureMetersErrorWrapper identifies a persisted feature whose required
+// meter association is missing while preserving unrelated resolver errors.
 type featureMetersErrorWrapper struct {
 	feature.FeatureMeters
 }
 
 func (w featureMetersErrorWrapper) Get(featureKey string, requireMeter bool) (feature.FeatureMeter, error) {
-	featureMeter, err := w.FeatureMeters.Get(featureKey, requireMeter)
+	featureMeter, err := w.FeatureMeters.Get(featureKey, false)
 	if err != nil {
-		return feature.FeatureMeter{}, &billing.ErrSnapshotInvalidDatabaseState{
-			Err: err,
+		return feature.FeatureMeter{}, err
+	}
+
+	if requireMeter && featureMeter.Meter == nil {
+		return feature.FeatureMeter{}, &billing.ErrSnapshotFeatureHasNoMeter{
+			FeatureKey: featureKey,
 		}
 	}
 

@@ -84,7 +84,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftCreated).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusDraftWaitingForCollection).
-		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalid).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalidCreated).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
 		OnActive(statelessx.AllOf(
@@ -105,7 +105,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftCollecting).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusDraftValidating).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
-		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalid).
+		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalidCreated).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
 		OnActive(
 			statelessx.AllOf(
@@ -143,6 +143,11 @@ func allocateStateMachine() *InvoiceStateMachine {
 			out.validateDraftInvoice,
 			out.requireDBSave, // Due to the calculation, new detailed lines may be added
 		))
+
+	stateMachine.Configure(billing.StandardInvoiceStatusDraftInvalidCreated).
+		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusDraftCreated).
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
+		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftInvalid).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusDraftValidating).
@@ -1039,6 +1044,10 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 			Replacement: lines,
 		}); err != nil {
 			return fmt.Errorf("replacing collection completed lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := m.Invoice.MergeValidationIssues(nil, component); err != nil {
+			return fmt.Errorf("clearing collection completed validation issues for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 	}
 
