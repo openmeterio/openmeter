@@ -4962,6 +4962,17 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateNoBillables() {
 		SyncedAt:      clock.Now().UTC(),
 		NextSyncAfter: nil,
 	}, syncStates[0])
+
+	// The optimized lookup fetches by globally unique subscription ID, but must
+	// still conceal sync states from callers requesting that ID in another namespace.
+	syncStates, err = s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
+		{
+			Namespace: "another-namespace",
+			ID:        subsView.Subscription.ID,
+		},
+	})
+	require.NoError(s.T(), err)
+	require.Empty(s.T(), syncStates)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateWithFreePhaseActiveInTheFuture() {

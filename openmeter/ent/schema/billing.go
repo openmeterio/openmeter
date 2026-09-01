@@ -519,6 +519,16 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 
 func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
+		// PostgreSQL looks up child rows by the foreign-key column alone when a line
+		// config is deleted, so these indexes prevent a scan of all invoice lines.
+		index.Edges("flat_fee_line").
+			StorageKey("billing_invoice_lines_fee_config_id_idx"),
+		index.Edges("usage_based_line").
+			StorageKey("billing_invoice_lines_usage_config_id_idx"),
+		// Self-referencing foreign-key actions filter by parent_line_id without the
+		// namespace, so the namespace-prefixed index below cannot serve them.
+		index.Fields("parent_line_id").
+			StorageKey("billing_invoice_lines_parent_id_idx"),
 		index.Fields("namespace", "invoice_id"),
 		index.Fields("namespace", "parent_line_id"),
 		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
@@ -959,6 +969,10 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 
 func (BillingInvoiceLineDiscount) Indexes() []ent.Index {
 	return []ent.Index{
+		// Invoice-line deletion cascades by line_id alone, so the namespace-prefixed
+		// indexes below cannot prevent a scan of all amount discounts.
+		index.Fields("line_id").
+			StorageKey("billing_invoice_line_discounts_line_id_idx"),
 		index.Fields("namespace", "line_id"),
 		index.Fields("namespace", "line_id", "child_unique_reference_id").
 			Annotations(
@@ -1019,6 +1033,10 @@ func (BillingInvoiceLineUsageDiscount) Fields() []ent.Field {
 
 func (BillingInvoiceLineUsageDiscount) Indexes() []ent.Index {
 	return []ent.Index{
+		// Invoice-line deletion cascades by line_id alone, so the namespace-prefixed
+		// indexes below cannot prevent a scan of all usage discounts.
+		index.Fields("line_id").
+			StorageKey("billing_invoice_line_usage_discounts_line_id_idx"),
 		index.Fields("namespace", "line_id"),
 		index.Fields("namespace", "line_id", "child_unique_reference_id").
 			Annotations(
@@ -1064,6 +1082,10 @@ func (BillingStandardInvoiceDetailedLine) Fields() []ent.Field {
 
 func (BillingStandardInvoiceDetailedLine) Indexes() []ent.Index {
 	return []ent.Index{
+		// Invoice-line deletion cascades by parent_line_id alone, so the
+		// namespace-prefixed indexes below cannot prevent a scan of detailed lines.
+		index.Fields("parent_line_id").
+			StorageKey("billing_std_invoice_detailed_lines_parent_id_idx"),
 		index.Fields("namespace", "invoice_id"),
 		index.Fields("namespace", "parent_line_id"),
 		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
@@ -1134,6 +1156,10 @@ func (BillingStandardInvoiceDetailedLineAmountDiscount) Fields() []ent.Field {
 
 func (BillingStandardInvoiceDetailedLineAmountDiscount) Indexes() []ent.Index {
 	return []ent.Index{
+		// Detailed-line deletion cascades by line_id alone, so the namespace-prefixed
+		// indexes below cannot prevent a scan of all amount discounts.
+		index.Fields("line_id").
+			StorageKey("billing_std_invoice_detail_amount_discounts_line_id_idx"),
 		index.Fields("namespace", "line_id"),
 		index.Fields("namespace", "line_id", "child_unique_reference_id").
 			Annotations(
