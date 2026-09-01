@@ -3,7 +3,6 @@ package customer
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,16 +30,16 @@ func (e UpdateAfterDeleteError) Unwrap() error {
 	return e.err
 }
 
-// NewKeyConflictError creates a new KeyConflictError
-func NewKeyConflictError(namespace, key string) *KeyConflictError {
+// NewKeyConflictError creates a new KeyConflictError.
+func NewKeyConflictError(key string) *KeyConflictError {
 	return &KeyConflictError{
-		err: models.NewGenericConflictError(fmt.Errorf("key \"%s\" is already used by an another customer in the namespace %s", key, namespace)),
+		err: models.NewGenericConflictError(fmt.Errorf("customer key %q is already in use", key)),
 	}
 }
 
 var _ models.GenericError = &KeyConflictError{}
 
-// KeyConflictError represents an error when a subject key is already associated with a customer
+// KeyConflictError represents an error when a customer key is already associated with a customer.
 type KeyConflictError struct {
 	err error
 }
@@ -63,16 +62,16 @@ func IsKeyConflictError(err error) bool {
 	return errors.As(err, &e)
 }
 
-// NewSubjectKeyConflictError creates a new SubjectKeyConflictError
-func NewSubjectKeyConflictError(namespace string, subjectKeys []string) *SubjectKeyConflictError {
+// NewSubjectKeyConflictError creates a new SubjectKeyConflictError.
+func NewSubjectKeyConflictError(subjectKeys []string) *SubjectKeyConflictError {
 	return &SubjectKeyConflictError{
-		err: models.NewGenericConflictError(fmt.Errorf("one or multiple subject keys of [%s] are already associated with an different customer in the namespace %s", strings.Join(subjectKeys, ", "), namespace)),
+		err: models.NewGenericConflictError(fmt.Errorf("one or more customer usage attribution keys are already in use: %q", subjectKeys)),
 	}
 }
 
 var _ models.GenericError = &SubjectKeyConflictError{}
 
-// SubjectKeyConflictError represents an error when a subject key is already associated with a customer
+// SubjectKeyConflictError represents an error when a usage attribution key is already associated with a customer.
 type SubjectKeyConflictError struct {
 	err error
 }

@@ -31,6 +31,10 @@ func TestCustomer(t *testing.T) {
 			testSuite.TestCreate(ctx, t)
 		})
 
+		t.Run("TestCreateSameKeyAndSubjectAcrossNamespaces", func(t *testing.T) {
+			testSuite.TestCreateSameKeyAndSubjectAcrossNamespaces(ctx, t)
+		})
+
 		t.Run("TestList", func(t *testing.T) {
 			testSuite.TestList(ctx, t)
 		})

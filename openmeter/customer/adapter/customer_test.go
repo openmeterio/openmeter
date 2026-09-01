@@ -1,6 +1,7 @@
 package adapter_test
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
@@ -40,6 +41,10 @@ type testEnv struct {
 }
 
 func newTestEnv(t *testing.T) *testEnv {
+	return newTestEnvWithLogger(t, testutils.NewDiscardLogger(t))
+}
+
+func newTestEnvWithLogger(t *testing.T, logger *slog.Logger) *testEnv {
 	t.Helper()
 
 	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
@@ -52,7 +57,7 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	adapter, err := customeradapter.New(customeradapter.Config{
 		Client: dbClient,
-		Logger: testutils.NewDiscardLogger(t),
+		Logger: logger,
 	})
 	require.NoError(t, err, "constructing customer adapter must not fail")
 

@@ -201,6 +201,41 @@ func (s *CustomerHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T)
 	})
 }
 
+func (s *CustomerHandlerTestSuite) TestCreateSameKeyAndSubjectAcrossNamespaces(ctx context.Context, t *testing.T) {
+	service := s.Env.Customer()
+	namespaceA := ulid.Make().String()
+	namespaceB := ulid.Make().String()
+	const sharedKey = "turip-test"
+
+	// Given a customer whose key and usage-attribution subject are identical in namespace A.
+	createdCustomerA, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespaceA,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(sharedKey),
+			Name: "Customer A",
+			UsageAttribution: &customer.CustomerUsageAttribution{
+				SubjectKeys: []string{sharedKey},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, namespaceA, createdCustomerA.Namespace)
+
+	// When another customer uses the same key and subject in namespace B, then namespace isolation allows it.
+	createdCustomerB, err := service.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespaceB,
+		CustomerMutate: customer.CustomerMutate{
+			Key:  lo.ToPtr(sharedKey),
+			Name: "Customer B",
+			UsageAttribution: &customer.CustomerUsageAttribution{
+				SubjectKeys: []string{sharedKey},
+			},
+		},
+	})
+	require.NoError(t, err, "customer keys and subjects must be unique within a namespace, not across namespaces")
+	require.Equal(t, namespaceB, createdCustomerB.Namespace)
+}
+
 // TestUpdate tests the updating of a customer
 func (s *CustomerHandlerTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	s.setupNamespace(t)

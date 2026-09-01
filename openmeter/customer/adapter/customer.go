@@ -243,8 +243,16 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 			}
 
 			if count > 0 {
+				repo.logger.WarnContext(
+					ctx,
+					"customer key overlaps with customer ID",
+					"namespace", input.Namespace,
+					"customer_key", *input.Key,
+					"conflicting_customer_id", *input.Key,
+				)
+
 				return nil, models.NewGenericConflictError(
-					fmt.Errorf("key %s overlaps with id of another customer", *input.Key),
+					fmt.Errorf("customer key %q overlaps with the ID of another customer", *input.Key),
 				)
 			}
 		}
@@ -262,8 +270,18 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 			}
 
 			if len(conflictingCustomerIDs) > 0 {
+				conflictingCustomerID := conflictingCustomerIDs[0].CustomerID
+				repo.logger.WarnContext(
+					ctx,
+					"customer key overlaps with customer usage attribution key",
+					"namespace", input.Namespace,
+					"customer_key", *input.Key,
+					"conflicting_usage_attribution_key", *input.Key,
+					"conflicting_customer_id", conflictingCustomerID,
+				)
+
 				return nil, models.NewGenericConflictError(
-					fmt.Errorf("key %s overlaps with subject of another customer: %s", *input.Key, conflictingCustomerIDs[0].CustomerID),
+					fmt.Errorf("customer key %q overlaps with a usage attribution key of another customer: %s", *input.Key, conflictingCustomerID),
 				)
 			}
 		}
@@ -302,10 +320,16 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 		customerEntity, err := query.Save(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
-				return nil, customer.NewKeyConflictError(
-					input.Namespace,
-					*lo.CoalesceOrEmpty(input.Key),
+				customerKey := *lo.CoalesceOrEmpty(input.Key)
+				repo.logger.WarnContext(
+					ctx,
+					"customer key conflict while creating customer",
+					"namespace", input.Namespace,
+					"customer_key", customerKey,
+					"error", err,
 				)
+
+				return nil, customer.NewKeyConflictError(customerKey)
 			}
 
 			return nil, fmt.Errorf("failed to create customer: %w", err)
@@ -335,10 +359,16 @@ func (a *adapter) CreateCustomer(ctx context.Context, input customer.CreateCusto
 				Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customer.NewSubjectKeyConflictError(
-						input.Namespace,
-						input.UsageAttribution.SubjectKeys,
+					repo.logger.WarnContext(
+						ctx,
+						"customer usage attribution key conflict while creating customer",
+						"namespace", input.Namespace,
+						"customer_id", customerEntity.ID,
+						"usage_attribution_keys", input.UsageAttribution.SubjectKeys,
+						"error", err,
 					)
+
+					return nil, customer.NewSubjectKeyConflictError(input.UsageAttribution.SubjectKeys)
 				}
 
 				return nil, fmt.Errorf("failed to create customer: failed to add subject keys: %w", err)
@@ -660,8 +690,17 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			}
 
 			if count > 0 {
+				repo.logger.WarnContext(
+					ctx,
+					"customer key overlaps with customer ID",
+					"namespace", input.CustomerID.Namespace,
+					"customer_id", input.CustomerID.ID,
+					"customer_key", *input.Key,
+					"conflicting_customer_id", *input.Key,
+				)
+
 				return nil, models.NewGenericConflictError(
-					fmt.Errorf("key %s overlaps with id of another customer", *input.Key),
+					fmt.Errorf("customer key %q overlaps with the ID of another customer", *input.Key),
 				)
 			}
 		}
@@ -680,8 +719,19 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			}
 
 			if len(conflictingCustomerIDs) > 0 {
+				conflictingCustomerID := conflictingCustomerIDs[0].CustomerID
+				repo.logger.WarnContext(
+					ctx,
+					"customer key overlaps with customer usage attribution key",
+					"namespace", input.CustomerID.Namespace,
+					"customer_id", input.CustomerID.ID,
+					"customer_key", *input.Key,
+					"conflicting_usage_attribution_key", *input.Key,
+					"conflicting_customer_id", conflictingCustomerID,
+				)
+
 				return nil, models.NewGenericConflictError(
-					fmt.Errorf("key %s overlaps with subject of another customer: %s", *input.Key, conflictingCustomerIDs[0].CustomerID),
+					fmt.Errorf("customer key %q overlaps with a usage attribution key of another customer: %s", *input.Key, conflictingCustomerID),
 				)
 			}
 		}
@@ -738,10 +788,17 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 			}
 
 			if entdb.IsConstraintError(err) {
-				return nil, customer.NewKeyConflictError(
-					input.CustomerID.Namespace,
-					*lo.CoalesceOrEmpty(input.Key),
+				customerKey := *lo.CoalesceOrEmpty(input.Key)
+				repo.logger.WarnContext(
+					ctx,
+					"customer key conflict while updating customer",
+					"namespace", input.CustomerID.Namespace,
+					"customer_id", input.CustomerID.ID,
+					"customer_key", customerKey,
+					"error", err,
 				)
+
+				return nil, customer.NewKeyConflictError(customerKey)
 			}
 
 			return nil, fmt.Errorf("failed to update customer: %w", err)
@@ -784,10 +841,16 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				Save(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customer.NewSubjectKeyConflictError(
-						input.CustomerID.Namespace,
-						subKeysToAdd,
+					repo.logger.WarnContext(
+						ctx,
+						"customer usage attribution key conflict while updating customer",
+						"namespace", input.CustomerID.Namespace,
+						"customer_id", input.CustomerID.ID,
+						"usage_attribution_keys", subKeysToAdd,
+						"error", err,
 					)
+
+					return nil, customer.NewSubjectKeyConflictError(subKeysToAdd)
 				}
 
 				return nil, fmt.Errorf("failed to add customer subjects: %w", err)
@@ -806,10 +869,16 @@ func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCusto
 				Exec(ctx)
 			if err != nil {
 				if entdb.IsConstraintError(err) {
-					return nil, customer.NewSubjectKeyConflictError(
-						input.CustomerID.Namespace,
-						subKeysToRemove,
+					repo.logger.WarnContext(
+						ctx,
+						"customer usage attribution key conflict while updating customer",
+						"namespace", input.CustomerID.Namespace,
+						"customer_id", input.CustomerID.ID,
+						"usage_attribution_keys", subKeysToRemove,
+						"error", err,
 					)
+
+					return nil, customer.NewSubjectKeyConflictError(subKeysToRemove)
 				}
 
 				return nil, fmt.Errorf("failed to remove customer subjects: %w", err)
