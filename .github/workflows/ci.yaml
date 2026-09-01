@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -60,7 +60,7 @@ jobs:
 
   generators-openapi:
     name: Code Generators / OpenAPI
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -162,7 +162,7 @@ jobs:
 
   generators-go:
     name: Code Generators / Go
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -227,7 +227,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -280,7 +280,7 @@ jobs:
 
   migrations:
     name: Migration Checks
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -315,7 +315,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -432,7 +432,7 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -510,7 +510,7 @@ jobs:
 
   e2e:
     name: E2E
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0

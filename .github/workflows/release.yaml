@@ -100,7 +100,7 @@ jobs:
     name: Binary (${{ matrix.goos }}/${{ matrix.goarch }})
     # Release binaries are tag-only.
     if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false

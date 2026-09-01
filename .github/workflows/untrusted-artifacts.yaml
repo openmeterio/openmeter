@@ -9,7 +9,7 @@ permissions:
 jobs:
   container-image:
     name: Container image
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -60,7 +60,7 @@ jobs:
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
-    runs-on: ubuntu-latest-8
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
