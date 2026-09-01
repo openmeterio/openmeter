@@ -270,10 +270,13 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 
 		// Overlap with a window strictly inside March (Mar 15–20): neither
 		// charge is contained in it, but March overlaps it.
+		// Overlap of [from, to) with [windowStart, windowEnd) holds when
+		// from < windowEnd and to > windowStart.
+		windowStart := servicePeriod.From.Add(14 * 24 * time.Hour)
+		windowEnd := servicePeriod.From.Add(19 * 24 * time.Hour)
 		insideMarch := newListInput(meta.ExpandNone)
-		// TODO(human): set insideMarch.ServicePeriodFrom and
-		// insideMarch.ServicePeriodTo so the query matches charges whose
-		// service period overlaps [Mar 15, Mar 20).
+		insideMarch.ServicePeriodFrom = &filter.FilterTime{Lt: lo.ToPtr(windowEnd)}
+		insideMarch.ServicePeriodTo = &filter.FilterTime{Gt: lo.ToPtr(windowStart)}
 
 		result, err = s.Charges.ListCustomerCharges(ctx, insideMarch)
 		require.NoError(s.T(), err)
