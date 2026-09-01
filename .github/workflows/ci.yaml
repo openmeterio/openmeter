@@ -278,6 +278,117 @@ jobs:
         run: |
           docker compose down -v
 
+  # Temporary benchmark for measuring package-level sharding on the
+  # GitHub-hosted fallback. Keep the regular Test job as the required check.
+  test-packages:
+    name: Plan test shards
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.packages.outputs.matrix }}
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
+        with:
+          cache: "false"
+
+      - name: Split test packages
+        id: packages
+        run: |
+          matrix="$(
+            go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... |
+              jq --raw-input --slurp --compact-output '
+                split("\n") | map(select(length > 0)) as $packages |
+                ($packages | length) as $count |
+                (($count + 2) / 3 | floor) as $chunk_size |
+                {
+                  include: [
+                    range(0; 3) as $index |
+                    {
+                      shard: ($index + 1),
+                      packages: $packages[
+                        ($index * $chunk_size):(($index + 1) * $chunk_size)
+                      ]
+                    }
+                  ]
+                }
+              '
+          )"
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "$matrix" |
+            jq --raw-output '.include[] | "Shard \(.shard): \(.packages | length) packages"'
+
+  test-shards:
+    name: Test shard ${{ matrix.shard }}/3
+    needs: test-packages
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.test-packages.outputs.matrix) }}
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Start dependencies early so their health checks progress during Go setup.
+      - name: Start docker-compose dependencies
+        run: |
+          docker compose up postgres svix redis clickhouse -d
+
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
+
+      - name: Wait for dependencies to be ready
+        run: |
+          ./tools/wait-for-compose.sh postgres svix redis clickhouse
+
+      - name: Run tests
+        env:
+          TEST_PACKAGES: ${{ toJSON(matrix.packages) }}
+          SVIX_HOST: localhost
+          TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
+          # Dev JWT secret, non-sensitive
+          SVIX_JWT_SECRET: DUMMY_JWT_SECRET
+        # count=1 is needed to force retest
+        run: |
+          # Keep potentially large cgo files on the workspace disk. Kafka is not
+          # covered by this suite, so use confluent-kafka-go's bundled library.
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          mapfile -t packages < <(jq --raw-output '.[]' <<< "$TEST_PACKAGES")
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            POSTGRES_HOST=127.0.0.1 \
+            go tool gotestsum --format pkgname-and-test-fails --hide-summary=skipped -- \
+              -p 8 -parallel 16 -count=1 "${packages[@]}"
+
+      - name: Stop docker-compose dependencies
+        if: always()
+        run: |
+          docker compose down -v
+
   migrations:
     name: Migration Checks
     runs-on: ubuntu-latest
