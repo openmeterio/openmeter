@@ -12,7 +12,7 @@ on:
 jobs:
   release-beta-sdk:
     name: Python SDK Beta Release
-    runs-on: depot-ubuntu-latest-8
+    runs-on: ubuntu-latest
     environment: dev
 
     steps:
@@ -32,29 +32,16 @@ jobs:
         run: |
           echo "id=${GITHUB_SHA:0:12}" >> "$GITHUB_OUTPUT"
 
-      # If you keep using Nix for your dev shell / tooling, retain these steps
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
+          python-version: "3.14"
 
-      - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+      - name: Install Poetry
+        run: python -m pip install poetry==2.4.1
 
-      - name: Publish Python package via Nix make target
-        run: |
-          nix develop --impure .#ci -c make -C api/client/python publish-python-sdk
+      - name: Publish Python package
+        run: make -C api/client/python publish-python-sdk
         env:
           PY_SDK_RELEASE_TAG: alpha
           COMMIT_SHORT_SHA: ${{ steps.get-short-sha.outputs.id }}

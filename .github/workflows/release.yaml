@@ -32,7 +32,7 @@ jobs:
     name: Helm Charts
     # Helm chart releases are tag-only.
     if: github.ref_type == 'tag'
-    runs-on: depot-ubuntu-latest-8
+    runs-on: ubuntu-latest
     environment: prod
 
     permissions:
@@ -56,45 +56,40 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
+          # Publishing jobs must not consume caches populated by untrusted runs.
+          cache: "false"
 
-      - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{
-            hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          version: v4.2.4
+
+      - name: Install helm-docs
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          GOBIN="$RUNNER_TEMP/bin" go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Package chart
         # Untrusted values (github.ref_name, matrix.chart) passed via env to
         # avoid shell injection through ${{ ... }} interpolation in run:.
-        run: nix develop --impure .#ci -c make package-helm-chart CHART="$CHART"
-          VERSION="$VERSION"
+        run: make package-helm-chart CHART="$CHART" VERSION="$VERSION"
         env:
           CHART: ${{ matrix.chart }}
           VERSION: ${{ github.ref_name }}
 
       - name: Login to GitHub Container Registry
-        run: echo "$GH_TOKEN" | nix develop --impure .#ci -c helm registry login ghcr.io
-          --username "$GH_ACTOR" --password-stdin
+        run: echo "$GH_TOKEN" | helm registry login ghcr.io --username "$GH_ACTOR" --password-stdin
         env:
           GH_TOKEN: ${{ github.token }}
           GH_ACTOR: ${{ github.actor }}
 
       - name: Push chart to GHCR
         run: |
-          nix develop --impure .#ci -c helm push \
+          helm push \
             "build/helm/${CHART}-${GITHUB_REF_NAME#v}.tgz" \
             oci://ghcr.io/openmeterio/helm-charts
         env:
@@ -105,7 +100,7 @@ jobs:
     name: Binary (${{ matrix.goos }}/${{ matrix.goarch }})
     # Release binaries are tag-only.
     if: github.ref_type == 'tag'
-    runs-on: depot-ubuntu-latest-8
+    runs-on: ubuntu-latest-8
 
     strategy:
       fail-fast: false
@@ -132,40 +127,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-
-      - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{
-            hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
-
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{
-            hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
+          # Publishing jobs must not consume caches populated by untrusted runs.
+          cache: "false"
 
       - name: Build benthos-collector binary
         # Untrusted github.ref_name passed via env; matrix values are
         # workflow-controlled but routed via env for consistency.
         run: |
-          nix develop --impure .#ci -c make build-benthos-collector-release \
+          make build-benthos-collector-release \
             GOOS="$GOOS" GOARCH="$GOARCH" VERSION="$VERSION"
         env:
           GOOS: ${{ matrix.goos }}
@@ -174,7 +146,7 @@ jobs:
 
       - name: Archive benthos-collector binary
         run: |
-          nix develop --impure .#ci -c make archive-benthos-collector-release \
+          make archive-benthos-collector-release \
             GOOS="$GOOS" GOARCH="$GOARCH"
         env:
           GOOS: ${{ matrix.goos }}
@@ -296,7 +268,7 @@ jobs:
     name: Python SDK Release
     # Python SDK releases are tag-only (dev Python releases live in sdk-python-dev-release.yaml).
     if: github.ref_type == 'tag'
-    runs-on: depot-ubuntu-latest-8
+    runs-on: ubuntu-latest
     environment: prod
 
     steps:
@@ -316,29 +288,16 @@ jobs:
         run: |
           echo "id=${GITHUB_SHA:0:12}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
+          python-version: "3.14"
 
-      - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{
-            hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+      - name: Install Poetry
+        run: python -m pip install poetry==2.4.1
 
-      - name: Publish Python package via Nix make target
-        run: |
-          nix develop --impure .#ci -c make -C api/client/python publish-python-sdk
+      - name: Publish Python package
+        run: make -C api/client/python publish-python-sdk
         env:
           PY_SDK_RELEASE_VERSION: ${{ github.ref_name }}
           COMMIT_SHORT_SHA: ${{ steps.get-short-sha.outputs.id }}

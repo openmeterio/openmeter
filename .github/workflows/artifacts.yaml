@@ -21,9 +21,6 @@ on:
       container-image-ref:
         description: Container image ref
         value: ${{ jobs.container-image.outputs.ref }}
-      container-image-url-depot:
-        description: Container image URL from Depot
-        value: ${{ jobs.container-image.outputs.depot-image-url }}
 
 permissions:
   contents: read
@@ -31,7 +28,7 @@ permissions:
 jobs:
   container-image:
     name: Container image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8
 
     permissions:
       contents: read
@@ -44,7 +41,6 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
       tag: ${{ steps.meta.outputs.version }}
       ref: ${{ steps.image-ref.outputs.value }}
-      depot-image-url: "registry.depot.dev/${{ steps.build.outputs.project-id }}@${{ steps.build.outputs.imageid }}"
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -57,9 +53,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Set up Depot CLI
-        uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461 # v1.7.1
 
       - name: Set image name
         id: image-name
@@ -80,71 +73,41 @@ jobs:
             type=ref,event=branch,suffix=-{{sha}}-{{date 'X'}},enable={{is_default_branch}}
 
       - name: Login to GitHub Container Registry
+        if: inputs.publish
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-        if: inputs.publish
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Build and push image
         id: build
-        uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           build-args: |
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-          platforms: linux/amd64,linux/arm64 # The confluent library doesn't support ARMv7
+          platforms: linux/amd64,linux/arm64 # The confluent library does not support ARMv7.
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
-          save: true
-          project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
         id: image-ref
-        run: echo "value=${STEPS_IMAGE_NAME_OUTPUTS_VALUE}@${STEPS_BUILD_OUTPUTS_DIGEST}" >> "$GITHUB_OUTPUT"
+        run: echo "value=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
         env:
-          STEPS_IMAGE_NAME_OUTPUTS_VALUE: ${{ steps.image-name.outputs.value }}
-          STEPS_BUILD_OUTPUTS_DIGEST: ${{ steps.build.outputs.digest }}
-
-      - name: Retrieve pull token
-        id: pull-token
-        run: |
-          PULL_TOKEN="$(depot pull-token --project "${VARS_DEPOT_PROJECT}")"
-          echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
-          echo "::add-mask::$PULL_TOKEN"
-        env:
-          VARS_DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
-
-      ### Trivy is comporomised
-      #
-      # - name: Run Trivy vulnerability scanner
-      #   uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
-      #   with:
-      #     image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
-      #     format: sarif
-      #     output: trivy-results.sarif
-      #   env:
-      #     TRIVY_USERNAME: x-token
-      #     TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
-      #     TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
-
-      # - name: Upload Trivy scan results as artifact
-      #   uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-      #   with:
-      #     name: "[${{ github.job }}] Trivy scan results"
-      #     path: trivy-results.sarif
-      #     retention-days: 5
-
-      # - name: Upload Trivy scan results to GitHub Security tab
-      #   uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v3.29.5
-      #   with:
-      #     sarif_file: trivy-results.sarif
+          IMAGE_NAME: ${{ steps.image-name.outputs.value }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8
 
     permissions:
       contents: read
@@ -170,9 +133,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Depot CLI
-        uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461 # v1.7.1
-
       - name: Set image name
         id: image-name
         run: echo "value=ghcr.io/openmeterio/benthos-collector" >> "$GITHUB_OUTPUT"
@@ -192,16 +152,22 @@ jobs:
             type=ref,event=branch,suffix=-{{sha}}-{{date 'X'}},enable={{is_default_branch}}
 
       - name: Login to GitHub Container Registry
+        if: inputs.publish
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-        if: inputs.publish
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Build and push image
         id: build
-        uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: benthos-collector.Dockerfile
@@ -211,44 +177,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
-          save: true
-          project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
         id: image-ref
-        run: echo "value=${STEPS_IMAGE_NAME_OUTPUTS_VALUE}@${STEPS_BUILD_OUTPUTS_DIGEST}" >> "$GITHUB_OUTPUT"
+        run: echo "value=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
         env:
-          STEPS_IMAGE_NAME_OUTPUTS_VALUE: ${{ steps.image-name.outputs.value }}
-          STEPS_BUILD_OUTPUTS_DIGEST: ${{ steps.build.outputs.digest }}
-
-      - name: Retrieve pull token
-        id: pull-token
-        run: |
-          PULL_TOKEN="$(depot pull-token --project "${VARS_DEPOT_PROJECT}")"
-          echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
-          echo "::add-mask::$PULL_TOKEN"
-        env:
-          VARS_DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
-
-      # - name: Run Trivy vulnerability scanner
-      #   uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
-      #   with:
-      #     image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
-      #     format: sarif
-      #     output: trivy-results.sarif
-      #   env:
-      #     TRIVY_USERNAME: x-token
-      #     TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
-      #     TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
-
-      # - name: Upload Trivy scan results as artifact
-      #   uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-      #   with:
-      #     name: "[${{ github.job }}] Trivy scan results"
-      #     path: trivy-results.sarif
-      #     retention-days: 5
-
-      # - name: Upload Trivy scan results to GitHub Security tab
-      #   uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v3.29.5
-      #   with:
-      #     sarif_file: trivy-results.sarif
+          IMAGE_NAME: ${{ steps.image-name.outputs.value }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}

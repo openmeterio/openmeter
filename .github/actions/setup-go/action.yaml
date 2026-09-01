@@ -1,0 +1,25 @@
+name: Set up Go for CI
+description: Install the Go toolchain used by CI and restore its native caches.
+
+inputs:
+  cache:
+    description: Whether setup-go should restore and save Go caches.
+    default: "true"
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        # Keep this explicit: go.mod expresses the minimum supported Go version,
+        # while CI intentionally follows the newer version from the Nix shell.
+        go-version: "1.27.0"
+        check-latest: false
+        cache: ${{ inputs.cache }}
+        cache-dependency-path: |
+          go.sum
+          collector/go.sum
+          api/v3/client/go.sum
+          e2e/go.sum
