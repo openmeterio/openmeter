@@ -32,6 +32,10 @@ type creditTransactionLoader interface {
 	Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error)
 }
 
+type creditTransactionBalanceResolver interface {
+	resolveBalance(ctx context.Context, input creditTransactionLoaderInput, item *CreditTransaction) error
+}
+
 type creditTransactionLoaderFactory func(*service) creditTransactionLoader
 
 var creditTransactionLoaderOrder = []CreditTransactionType{
@@ -70,4 +74,18 @@ func (s *service) creditTransactionLoaders(txType *CreditTransactionType) ([]cre
 	}
 
 	return []creditTransactionLoader{factory(s)}, nil
+}
+
+func (s *service) resolveCreditTransactionBalance(ctx context.Context, input creditTransactionLoaderInput, item *CreditTransaction) error {
+	factory, ok := creditTransactionLoaderFactories[item.Type]
+	if !ok {
+		return item.Type.Validate()
+	}
+
+	resolver, ok := factory(s).(creditTransactionBalanceResolver)
+	if !ok {
+		return nil
+	}
+
+	return resolver.resolveBalance(ctx, input, item)
 }

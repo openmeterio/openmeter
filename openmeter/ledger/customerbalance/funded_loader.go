@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -34,30 +36,21 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 
 	items := make([]CreditTransaction, 0, len(result.Items))
 	for _, activity := range result.Items {
-		// FIXME: this is an N+1 group lookup on the listing path. Keep it as a
-		// temporary bridge because the funded activity query does not expose the
-		// exact balance cursor yet; replace it with a batched lookup or query-side
-		// cursor projection when this path is hardened.
-		balanceCursor, err := l.balanceCursorForFundedActivity(ctx, input.CustomerID.Namespace, activity)
-		if err != nil {
-			return creditTransactionLoaderResult{}, err
-		}
-
 		annotations := models.Annotations{
 			ledger.AnnotationChargeID: activity.ChargeID.ID,
 		}
 
 		items = append(items, CreditTransaction{
-			ID:            models.NamespacedID(activity.ChargeID),
-			CreatedAt:     activity.ChargeCreatedAt,
-			BookedAt:      activity.FundedAt,
-			Type:          CreditTransactionTypeFunded,
-			Currency:      activity.Currency,
-			Amount:        activity.Amount,
-			Name:          activity.Name,
-			Description:   activity.Description,
-			Annotations:   annotations,
-			balanceCursor: balanceCursor,
+			ID:                       models.NamespacedID(activity.ChargeID),
+			CreatedAt:                activity.ChargeCreatedAt,
+			BookedAt:                 activity.FundedAt,
+			Type:                     CreditTransactionTypeFunded,
+			Currency:                 activity.Currency,
+			Amount:                   activity.Amount,
+			Name:                     activity.Name,
+			Description:              activity.Description,
+			Annotations:              annotations,
+			fundedTransactionGroupID: activity.TransactionGroupID,
 		})
 	}
 
@@ -67,36 +60,76 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 	}, nil
 }
 
-func (l *fundedCreditTransactionLoader) balanceCursorForFundedActivity(
+func (l *fundedCreditTransactionLoader) resolveBalance(
 	ctx context.Context,
-	namespace string,
-	activity creditpurchase.FundedCreditActivity,
-) (*ledger.TransactionCursor, error) {
-	if activity.TransactionGroupID == "" {
-		return nil, nil
+	input creditTransactionLoaderInput,
+	item *CreditTransaction,
+) error {
+	if item.fundedTransactionGroupID == "" {
+		return nil
 	}
 
 	group, err := l.service.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
-		Namespace: namespace,
-		ID:        activity.TransactionGroupID,
+		Namespace: input.CustomerID.Namespace,
+		ID:        item.fundedTransactionGroupID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get funded credit transaction group %s: %w", activity.TransactionGroupID, err)
+		return fmt.Errorf("get funded credit transaction group %s: %w", item.fundedTransactionGroupID, err)
 	}
 
+	impact, cursor := fundedCreditTransactionBalanceImpact(group, GetBalanceServiceInput{
+		Currency:      item.Currency,
+		FeatureFilter: input.FeatureFilter,
+	})
+	if cursor == nil {
+		return fmt.Errorf("funded credit transaction group %s has no customer balance impact", item.fundedTransactionGroupID)
+	}
+	if !impact.Equal(item.Amount) {
+		return fmt.Errorf(
+			"funded credit transaction group %s customer balance impact %s does not match funded amount %s",
+			item.fundedTransactionGroupID,
+			impact,
+			item.Amount,
+		)
+	}
+
+	item.balanceCursor = cursor
+	item.balanceImpact = &impact
+
+	return nil
+}
+
+// fundedCreditTransactionBalanceImpact follows the same two ledger components
+// as settled balance. Looking at the actual scoped entries keeps legacy credit
+// purchase groups readable without relying on transaction template annotations.
+func fundedCreditTransactionBalanceImpact(group ledger.TransactionGroup, input GetBalanceServiceInput) (alpacadecimal.Decimal, *ledger.TransactionCursor) {
+	total := alpacadecimal.Zero
+	var latestCursor *ledger.TransactionCursor
+
 	for _, tx := range group.Transactions() {
-		impact, currency, err := creditTransactionFBOImpact(tx)
-		if err != nil {
+		if tx.Annotations()[ledger.AnnotationCollectionType] == ledger.CollectionTypeBreakage {
 			continue
 		}
 
-		if currency == activity.Currency && impact.Equal(activity.Amount) {
-			cursor := tx.Cursor()
-			return &cursor, nil
+		impact := ledger.TransactionImpact(tx, ledger.ImpactFilter{
+			AccountType: ledger.AccountTypeCustomerFBO,
+			Route:       input.bookedRoute(),
+		}).Add(ledger.TransactionImpact(tx, ledger.ImpactFilter{
+			AccountType: ledger.AccountTypeCustomerReceivable,
+			Route:       input.advanceRoute(),
+		}))
+		if impact.IsZero() {
+			continue
+		}
+
+		total = total.Add(impact)
+		cursor := tx.Cursor()
+		if latestCursor == nil || latestCursor.Compare(cursor) < 0 {
+			latestCursor = &cursor
 		}
 	}
 
-	return nil, fmt.Errorf("funded credit transaction group %s has no matching customer FBO transaction", activity.TransactionGroupID)
+	return total, latestCursor
 }
 
 func toFundedCreditActivityCursor(cursor *ledger.TransactionCursor) *creditpurchase.FundedCreditActivityCursor {

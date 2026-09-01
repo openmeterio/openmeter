@@ -59,16 +59,18 @@ func TestCreditTransactionFromLedgerTransaction_AggregatesScopedFBOEntries(t *te
 }
 
 func TestApplyCreditTransactionBalances(t *testing.T) {
+	balanceImpact := alpacadecimal.NewFromInt(-7)
 	items := []CreditTransaction{
 		{
-			Amount: alpacadecimal.NewFromInt(-10),
+			Amount:        alpacadecimal.NewFromInt(-10),
+			balanceImpact: &balanceImpact,
 		},
 	}
 
 	applyCreditTransactionBalances(items, alpacadecimal.NewFromInt(42))
 
 	require.True(t, items[0].Balance.After.Equal(alpacadecimal.NewFromInt(42)))
-	require.True(t, items[0].Balance.Before.Equal(alpacadecimal.NewFromInt(52)))
+	require.True(t, items[0].Balance.Before.Equal(alpacadecimal.NewFromInt(49)))
 }
 
 func TestApplyChargeMetadataToCreditTransactions(t *testing.T) {

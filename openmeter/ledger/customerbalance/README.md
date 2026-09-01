@@ -66,13 +66,17 @@ Visible types:
 - `consumed`: credit was used.
 - `expired`: unused credit expired.
 
-The visible amount is the customer FBO impact:
+The visible amount is the customer balance impact:
 
 ```text
-funded   => positive
-consumed => negative
-expired  => negative
+funded   => positive FBO issuance + positive nil-cost-basis receivable attribution
+consumed => negative FBO impact
+expired  => negative FBO impact
 ```
+
+This matters when a purchase covers an existing advance. Its funded amount can
+be split between clearing the advance receivable and issuing the remainder to
+FBO, while the customer-visible balance still increases by the full purchase.
 
 ## Listing Example: Funded, Consumed, Expired
 
@@ -199,7 +203,7 @@ This package may:
 - merge funded, consumed, and expired views;
 - apply customer-facing labels and balances;
 - page and cursor the result set;
-- expose FBO impact as customer-visible amount.
+- expose customer balance impact as the customer-visible amount.
 
 This package should not:
 

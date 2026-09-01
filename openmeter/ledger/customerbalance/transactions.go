@@ -116,6 +116,9 @@ type CreditTransaction struct {
 
 	balanceCursor *ledger.TransactionCursor
 	balanceAsOf   *time.Time
+	balanceImpact *alpacadecimal.Decimal
+
+	fundedTransactionGroupID string
 }
 
 type CreditTransactionBalance struct {
@@ -181,6 +184,12 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 
 	items := mergedItems
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
+
+	for i := range items {
+		if err := s.resolveCreditTransactionBalance(ctx, loaderInput, &items[i]); err != nil {
+			return ListCreditTransactionsResult{}, fmt.Errorf("resolve balance for transaction %s: %w", items[i].ID.ID, err)
+		}
+	}
 
 	if len(items) > 0 {
 		runningBalance, err := s.GetSettledBalance(ctx, GetBalanceServiceInput{
@@ -314,8 +323,9 @@ func applyCreditTransactionBalances(items []CreditTransaction, after alpacadecim
 
 	for i := range items {
 		items[i].Balance.After = runningBalance
-		items[i].Balance.Before = runningBalance.Sub(items[i].Amount)
-		runningBalance = runningBalance.Sub(items[i].Amount)
+		impact := lo.FromPtrOr(items[i].balanceImpact, items[i].Amount)
+		items[i].Balance.Before = runningBalance.Sub(impact)
+		runningBalance = runningBalance.Sub(impact)
 	}
 }
 
