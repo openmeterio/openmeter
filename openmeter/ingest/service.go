@@ -56,6 +56,13 @@ func NewService(config Config) (Service, error) {
 		"openmeter.ingest.request.events",
 		metric.WithDescription("Number of events in an ingest request"),
 		metric.WithUnit("{event}"),
+		// The SDK default boundaries are latency-shaped: they start at 0 and jump
+		// straight to 5. In the deployments we have observed, the large majority of
+		// ingest requests carry between one and five events, so that first bucket
+		// swallows the whole distribution and the reported percentiles become
+		// interpolation rather than measurement. Resolve one through five exactly
+		// and keep a coarse tail for clients that batch.
+		metric.WithExplicitBucketBoundaries(0, 1, 2, 3, 4, 5, 10, 25, 100, 1000, 10000),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request event count histogram: %w", err)
