@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -335,6 +336,98 @@ func TestEditRunning(t *testing.T) {
 			},
 		},
 		{
+			Name: "Should resolve feature references on a newly authored item",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				// given:
+				// - an unpriced add-item patch identifying an existing feature by key
+				// when:
+				// - it is added through the running-subscription edit workflow
+				// then:
+				// - the persisted rate card carries the canonical feature ID and key
+				const phaseKey = "test_phase_1"
+				itemKey := subscriptiontestutils.ExampleFeatureKey2
+
+				rateCard := &productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:     itemKey,
+						Name:    itemKey,
+						Feature: productcatalog.NewFeatureReference(nil, &itemKey),
+					},
+				}
+
+				subView, err := deps.WorkflowService.EditRunning(t.Context(), deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchAddItem{
+						PhaseKey: phaseKey,
+						ItemKey:  itemKey,
+						CreateInput: subscription.SubscriptionItemSpec{
+							CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+								CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+									PhaseKey: phaseKey,
+									ItemKey:  itemKey,
+									RateCard: rateCard,
+								},
+							},
+						},
+					},
+				}, immediate)
+				require.NoError(t, err)
+
+				phase, ok := subView.GetPhaseByKey(phaseKey)
+				require.True(t, ok)
+				require.Len(t, phase.ItemsByKey[itemKey], 1)
+
+				featureReference := phase.ItemsByKey[itemKey][0].Spec.RateCard.AsMeta().Feature
+				require.NotNil(t, featureReference)
+				require.NotNil(t, featureReference.ID)
+				require.NotNil(t, featureReference.Key)
+				require.Equal(t, itemKey, *featureReference.Key)
+			},
+		},
+		{
+			Name: "Should reject a newly authored item with a missing feature",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				// given:
+				// - an unpriced add-item patch referencing a feature that does not exist
+				// when:
+				// - it is submitted through the running-subscription edit workflow
+				// then:
+				// - the edit fails with the product catalog's missing-feature validation error
+				const (
+					phaseKey = "test_phase_1"
+					itemKey  = "missing-edit-feature"
+				)
+
+				rateCard := &productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:     itemKey,
+						Name:    itemKey,
+						Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(itemKey)),
+					},
+				}
+
+				_, err := deps.WorkflowService.EditRunning(t.Context(), deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchAddItem{
+						PhaseKey: phaseKey,
+						ItemKey:  itemKey,
+						CreateInput: subscription.SubscriptionItemSpec{
+							CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+								CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+									PhaseKey: phaseKey,
+									ItemKey:  itemKey,
+									RateCard: rateCard,
+								},
+							},
+						},
+					},
+				}, immediate)
+				require.ErrorIs(t, err, productcatalog.ErrRateCardFeatureNotFound)
+				require.ErrorContains(t, err, itemKey)
+				issues, systemErr := models.AsValidationIssues(err)
+				require.NoError(t, systemErr)
+				require.NotEmpty(t, issues)
+			},
+		},
+		{
 			Name: "Should preserve patch field paths when a priced item is invalid",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				// given:
@@ -500,6 +593,8 @@ func TestEditRunning(t *testing.T) {
 				}
 
 				tuDeps := subscriptiontestutils.NewService(t, deps.DBDeps)
+				featureResolver, err := featureresolver.New(tuDeps.FeatureConnector)
+				require.NoError(t, err)
 
 				lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: slog.Default()})
 				require.NoError(t, err)
@@ -507,6 +602,7 @@ func TestEditRunning(t *testing.T) {
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
 					CurrencyResolver:   tuDeps.CurrencyResolver,
+					FeatureResolver:    featureResolver,
 					TransactionManager: tuDeps.CustomerAdapter,
 					AddonService:       tuDeps.SubscriptionAddonService,
 					Logger:             slog.Default(),

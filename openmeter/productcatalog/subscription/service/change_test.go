@@ -511,3 +511,70 @@ func TestChange(t *testing.T) {
 		})
 	})
 }
+
+func TestChangeInlineCustomPlanRejectsMissingFeature(t *testing.T) {
+	// given:
+	// - a running subscription and an inline replacement plan whose rate card
+	//   references a feature that does not exist
+	// when:
+	// - the subscription is changed to the inline plan
+	// then:
+	// - the change fails with the product catalog's missing-feature validation error
+	now := time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
+	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+	currentPlanInput := subscriptiontestutils.GetExamplePlanInput(t)
+	currentPlanInput.Plan.Key = ""
+	currentPlanInput.Plan.Version = 0
+	currentPlan := plansubscription.PlanInput{}
+	currentPlan.FromInput(&currentPlanInput)
+
+	sub, err := svc.Create(t.Context(), plansubscription.CreateSubscriptionRequest{
+		PlanInput: currentPlan,
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Name:   "subscription before invalid plan change",
+				Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+			},
+			Namespace:  customer.Namespace,
+			CustomerID: customer.ID,
+		},
+	})
+	require.NoError(t, err)
+
+	const missingFeatureKey = "missing-change-feature"
+	replacementPlanInput := subscriptiontestutils.GetExamplePlanInput(t)
+	replacementPlanInput.Plan.Key = ""
+	replacementPlanInput.Plan.Version = 0
+	require.NoError(t, replacementPlanInput.Plan.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Key = missingFeatureKey
+		meta.Feature = productcatalog.NewFeatureReference(nil, lo.ToPtr(missingFeatureKey))
+
+		return meta, nil
+	}))
+	replacementPlan := plansubscription.PlanInput{}
+	replacementPlan.FromInput(&replacementPlanInput)
+
+	_, err = svc.Change(t.Context(), plansubscription.ChangeSubscriptionRequest{
+		ID:        sub.NamespacedID,
+		PlanInput: replacementPlan,
+		WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Name:   sub.Name,
+			Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+		},
+	})
+	require.ErrorIs(t, err, productcatalog.ErrRateCardFeatureNotFound)
+	require.ErrorContains(t, err, missingFeatureKey)
+	issues, systemErr := models.AsValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.NotEmpty(t, issues)
+}

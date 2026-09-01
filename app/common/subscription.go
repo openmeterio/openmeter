@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/google/wire"
@@ -10,6 +11,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -60,6 +62,11 @@ func NewSubscriptionServices(
 	featureFlags ffx.Service,
 	taxCodeService taxcode.Service,
 ) (SubscriptionServiceWithWorkflow, error) {
+	featureResolver, err := featureresolver.New(featureConnector)
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, fmt.Errorf("failed to initialize feature resolver: %w", err)
+	}
+
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
 	subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(db)
 	subscriptionItemRepo := subscriptionrepo.NewSubscriptionItemRepo(db)
@@ -110,6 +117,7 @@ func NewSubscriptionServices(
 		Service:            subscriptionService,
 		CustomerService:    customerService,
 		CurrencyResolver:   currencyResolver,
+		FeatureResolver:    featureResolver,
 		TransactionManager: subscriptionRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
@@ -124,6 +132,7 @@ func NewSubscriptionServices(
 		WorkflowService:     subscriptionWorkflowService,
 		SubscriptionService: subscriptionService,
 		PlanService:         planService,
+		FeatureResolver:     featureResolver,
 		CurrencyResolver:    currencyResolver,
 		CustomerService:     customerService,
 		Logger:              logger.With("subsystem", "subscription.change.service"),
