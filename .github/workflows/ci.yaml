@@ -227,7 +227,9 @@ jobs:
 
   test:
     name: Test
-    needs: test-shards
+    needs:
+      - test-shards
+      - migration-tests
     if: ${{ always() }}
     runs-on: ubuntu-latest
 
@@ -238,12 +240,14 @@ jobs:
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
           api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
 
-      - name: Check test shards
+      - name: Check test results
         env:
+          MIGRATION_TESTS_RESULT: ${{ needs.migration-tests.result }}
           TEST_SHARDS_RESULT: ${{ needs.test-shards.result }}
         run: |
-          if [ "$TEST_SHARDS_RESULT" != "success" ]; then
+          if [ "$TEST_SHARDS_RESULT" != "success" ] || [ "$MIGRATION_TESTS_RESULT" != "success" ]; then
             echo "Test shards finished with result: $TEST_SHARDS_RESULT"
+            echo "Migration tests finished with result: $MIGRATION_TESTS_RESULT"
             exit 1
           fi
 
@@ -276,7 +280,10 @@ jobs:
         id: packages
         run: |
           matrix="$(
-            go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... |
+            # The migration suite performs enough concurrent database work to
+            # starve when it shares a runner with other packages. Run it in its
+            # own job below instead of assigning it to a general-purpose shard.
+            go list -f '{{if and (or .TestGoFiles .XTestGoFiles) (ne .ImportPath "github.com/openmeterio/openmeter/tools/migrate")}}{{.ImportPath}}{{end}}' ./... |
               sort |
               jq --raw-input --slurp --compact-output '
                 split("\n") | map(select(length > 0)) as $packages |
@@ -355,6 +362,52 @@ jobs:
               -p 8 -parallel 16 -count=1 "${packages[@]}"
 
       - name: Stop docker-compose dependencies
+        if: always()
+        run: |
+          docker compose down -v
+
+  migration-tests:
+    name: Migration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start PostgreSQL
+        run: |
+          docker compose up postgres -d
+
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          ./tools/wait-for-compose.sh postgres
+
+      - name: Run migration tests
+        run: |
+          # Keep potentially large cgo files on the workspace disk and isolate
+          # this database-heavy package from the parallel package shards.
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            POSTGRES_HOST=127.0.0.1 \
+            go tool gotestsum --format pkgname-and-test-fails --hide-summary=skipped -- \
+              -p 1 -parallel 16 -count=1 ./tools/migrate
+
+      - name: Stop PostgreSQL
         if: always()
         run: |
           docker compose down -v
