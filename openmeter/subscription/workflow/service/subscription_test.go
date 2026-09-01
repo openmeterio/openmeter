@@ -245,6 +245,7 @@ func TestEditRunning(t *testing.T) {
 		CurrentTime     time.Time
 		SubView         subscription.SubscriptionView
 		Customer        customer.Customer
+		FeatureIDsByKey map[string]string
 		WorkflowService subscriptionworkflow.Service
 		Service         subscription.Service
 		DBDeps          *subscriptiontestutils.DBDeps
@@ -381,6 +382,10 @@ func TestEditRunning(t *testing.T) {
 				require.NotNil(t, featureReference.ID)
 				require.NotNil(t, featureReference.Key)
 				require.Equal(t, itemKey, *featureReference.Key)
+
+				expectedFeatureID, ok := deps.FeatureIDsByKey[itemKey]
+				require.True(t, ok)
+				require.Equal(t, expectedFeatureID, *featureReference.ID)
 			},
 		},
 		{
@@ -634,10 +639,15 @@ func TestEditRunning(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+			features := deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
+
+			featureIDsByKey := make(map[string]string, len(features))
+			for _, feature := range features {
+				featureIDsByKey[feature.Key] = feature.ID
+			}
 
 			// Let's create an example subscription
 			sub, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
@@ -654,6 +664,7 @@ func TestEditRunning(t *testing.T) {
 
 			tcDeps.SubView = sub
 			tcDeps.Customer = *cust
+			tcDeps.FeatureIDsByKey = featureIDsByKey
 			tcDeps.DBDeps = dbDeps
 			tcDeps.Service = deps.SubscriptionService
 			tcDeps.WorkflowService = deps.WorkflowService
