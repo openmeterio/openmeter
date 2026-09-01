@@ -96,6 +96,45 @@ func TestListCreditTransactionsFundedBalanceCoalescesSameEffectiveTime(t *testin
 	}
 }
 
+func TestListCreditTransactionsFundedBalanceProjectsFeatureFilteredImpact(t *testing.T) {
+	env := newTestEnv(t)
+
+	// given:
+	// - feature-restricted usage has created a 40-credit advance
+	// - an unrestricted 100-credit purchase covers that advance and issues the remaining 60
+	servicePeriod := env.sp()
+	charge := env.createFlatFeeCharge(
+		t,
+		alpacadecimal.NewFromInt(40),
+		productcatalog.CreditOnlySettlementMode,
+		servicePeriod,
+		testFeatureKey,
+	)
+	env.passTimeAfterServicePeriod(t, servicePeriod)
+	env.advanceFlatFeeCharge(t, charge)
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(100), env.Currency, nil)
+
+	// when:
+	// - funded history is projected onto the unrestricted-only balance
+	result, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         10,
+		Type:          lo.ToPtr(CreditTransactionTypeFunded),
+		Currency:      &env.Currency,
+		FeatureFilter: NewUnrestrictedFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	// then:
+	// - only the residual unrestricted issuance is visible; the restricted advance
+	//   attribution does not affect this filtered balance
+	require.Len(t, result.Items, 1)
+	item := result.Items[0]
+	require.Equal(t, float64(60), item.Amount.InexactFloat64())
+	require.Equal(t, float64(0), item.Balance.Before.InexactFloat64())
+	require.Equal(t, float64(60), item.Balance.After.InexactFloat64())
+}
+
 func TestListCreditTransactionsFundedBalanceUsesEffectiveTimes(t *testing.T) {
 	// Each scenario issues one future-effective credit purchase, then lists its
 	// funded history both before and after the purchase becomes effective.
