@@ -35,7 +35,29 @@
             languages = {
               go = {
                 enable = true;
-                package = pkgs.go_1_27;
+                # The Nixpkgs Go package can retain a build-time loader that is not represented in
+                # its store identity. Wrap cmd/link with the active loader as an explicit argument
+                # and derivation input so every internal link, including Nix checks, uses it.
+                package =
+                  if pkgs.stdenv.hostPlatform.isLinux then
+                    pkgs.symlinkJoin
+                      {
+                        name = "${pkgs.go_1_27.name}-openmeter";
+                        paths = [ pkgs.go_1_27 ];
+                        inherit (pkgs.go_1_27) CGO_ENABLED GOARCH GOOS meta passthru version;
+                        nativeBuildInputs = [ pkgs.makeWrapper ];
+                        postBuild = ''
+                          linkTool="share/go/pkg/tool/${pkgs.go_1_27.GOOS}_${pkgs.go_1_27.GOARCH}/link"
+                          rm "$out/$linkTool"
+                          makeWrapper "${pkgs.go_1_27}/$linkTool" "$out/$linkTool" \
+                            --add-flags "-I=${pkgs.stdenv.cc.bintools.dynamicLinker}"
+
+                          wrapProgram "$out/bin/go" \
+                            --set-default GO_LDSO ${pkgs.stdenv.cc.bintools.dynamicLinker}
+                        '';
+                      }
+                  else
+                    pkgs.go_1_27;
 
                 delve.package = pkgs.delve.overrideAttrs (old: {
                   # Delve runs these generator checks only with the latest Go release. They invoke
@@ -152,13 +174,30 @@
             ];
 
             env = {
-              GOCACHE = "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache";
+              # Go's action cache does not include Nix store identities in its linker key. Include
+              # both the complete Go output and runtime-loader store basenames so neither a Go
+              # rebuild nor a stdenv/glibc update can reuse link results from another generation.
+              GOCACHE =
+                let
+                  goToolchainID = builtins.baseNameOf (toString config.devenv.shells.default.languages.go.package);
+                  runtimeLinkerID =
+                    if pkgs.stdenv.hostPlatform.isLinux then
+                      builtins.elemAt (builtins.match "/nix/store/([^/]+)/.*" pkgs.stdenv.cc.bintools.dynamicLinker) 0
+                    else
+                      "native";
+                in
+                "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache/${goToolchainID}/${runtimeLinkerID}";
               KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
               KIND_CLUSTER_NAME = "openmeter";
 
               HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
               HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
               HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
+            } // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+              # Keep GO_LDSO visible for patched Go linkers and diagnostics. The wrapped cmd/link
+              # above also passes -I explicitly because the cached Nix binary can retain its stale
+              # build-time default even when this variable is set.
+              GO_LDSO = pkgs.stdenv.cc.bintools.dynamicLinker;
             };
 
             enterShell = ''

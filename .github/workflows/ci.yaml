@@ -16,10 +16,10 @@ concurrency:
 
 jobs:
   cache-rebuild:
-    name: Rebuild GitHub Actions Caches
-    runs-on: depot-ubuntu-latest-4
-    # To test e2e feel free to comment this out for a branch, then a branch specific cache will be created
-    if: github.event_name == 'push'
+    name: Select or rebuild Nix cache
+    runs-on: depot-ubuntu-latest-16
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.cache-key }}
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -31,9 +31,87 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 2
           persist-credentials: false
 
+      - name: Detect Nix input changes
+        id: changed-files
+        uses: kong/changed-files@4edd678ac3f81e2dc578756871e4d00c19191daf
+        with:
+          files_yaml: |
+            nix:
+              # flake.lock captures remote inputs; every local Nix expression
+              # can change the realized development environment.
+              - 'flake.lock'
+              - '**/*.nix'
+
+      - name: Fingerprint Nix inputs
+        id: nix-inputs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          nix_input_hash() {
+            # Hash the relevant Git tree entries so a fork can select the base
+            # branch's cache without checking out or executing fork-owned code.
+            GIT_OPTIONAL_LOCKS=0 git ls-tree -r "$1" \
+              | awk -F '\t' '$2 == "flake.lock" || $2 ~ /\.nix$/' \
+              | sha256sum \
+              | cut -d ' ' -f 1
+          }
+
+          current_hash="$(nix_input_hash HEAD)"
+          main_hash="${current_hash}"
+
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            main_hash="$(nix_input_hash "${BASE_SHA}")"
+          fi
+
+          echo "current-hash=${current_hash}" >> "${GITHUB_OUTPUT}"
+          echo "main-hash=${main_hash}" >> "${GITHUB_OUTPUT}"
+
+      - name: Select Nix cache key
+        id: cache-key
+        env:
+          BASE_REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          MAIN_NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.main-hash }}
+          # any_modified covers additions, changes, renames, and deletions.
+          NIX_INPUTS_CHANGED: ${{ steps.changed-files.outputs.nix_any_modified }}
+          NIX_INPUT_HASH: ${{ steps.nix-inputs.outputs.current-hash }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          main_key="${RUNNER_OS}-openmeter-nix-build-v4-main-${MAIN_NIX_INPUT_HASH}"
+          cache_key="${main_key}"
+          rebuild="false"
+          trusted="true"
+
+          if [ "${EVENT_NAME}" = "pull_request" ] && [ "${HEAD_REPOSITORY}" != "${BASE_REPOSITORY}" ]; then
+            trusted="false"
+          fi
+
+          if [ "${NIX_INPUTS_CHANGED}" = "true" ] && [ "${trusted}" = "true" ]; then
+            rebuild="true"
+
+            # A PR must publish to an immutable, per-attempt key so every
+            # downstream job validates the environment produced by that patch.
+            # Main uses a stable input-addressed key for unchanged PRs to share.
+            if [ "${EVENT_NAME}" = "pull_request" ]; then
+              cache_key="${RUNNER_OS}-openmeter-nix-build-v4-pr-${PR_NUMBER}-${RUN_ID}-${RUN_ATTEMPT}-${NIX_INPUT_HASH}"
+            fi
+          fi
+
+          echo "cache-key=${cache_key}" >> "${GITHUB_OUTPUT}"
+          echo "rebuild=${rebuild}" >> "${GITHUB_OUTPUT}"
+          echo "Selected Nix cache: ${cache_key} (rebuild: ${rebuild}, trusted: ${trusted})"
+
       - name: Set up Nix
+        if: steps.cache-key.outputs.rebuild == 'true'
         uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
@@ -41,13 +119,19 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Nix defaults to one local build at a time. Balance independent
+            # builds with per-build parallelism across this 16-vCPU runner.
+            max-jobs = 8
+            cores = 2
 
       - name: Build nix environment
+        if: steps.cache-key.outputs.rebuild == 'true'
         run: |
           nix flake check --impure
           nix develop --impure .#ci
 
       - name: Restore Go module cache
+        if: steps.cache-key.outputs.rebuild == 'true'
         id: go-module-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -57,7 +141,7 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-
 
       - name: Populate Go module cache
-        if: steps.go-module-cache.outputs.cache-hit != 'true'
+        if: steps.cache-key.outputs.rebuild == 'true' && steps.go-module-cache.outputs.cache-hit != 'true'
         run: |
           nix develop --impure .#ci -c sh -eu -c '
             go mod download
@@ -67,21 +151,56 @@ jobs:
           '
 
       - name: Save Go module cache
-        if: steps.go-module-cache.outputs.cache-hit != 'true'
+        if: steps.cache-key.outputs.rebuild == 'true' && steps.go-module-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
           key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
 
+      - name: Verify Go runtime loader
+        if: steps.cache-key.outputs.rebuild == 'true'
+        run: |
+          runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
+          mkdir -p "${runtime_dir}/go-tmp"
+
+          GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+            runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
+            expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
+            go env -json GOCACHE GOROOT GOTOOLDIR
+            printf 'GO_LDSO=%s\n' "${GO_LDSO:-<unset>}"
+
+            if [[ "${GO_LDSO:-}" != "${expected_interpreter}" ]]; then
+              echo "GO_LDSO uses ${GO_LDSO:-<unset>}; expected ${expected_interpreter}"
+              exit 1
+            fi
+
+            # GO_LDSO is not part of Go's link-action key. Start publication from
+            # an empty namespace so the assertion exercises the wrapped linker.
+            go clean -cache
+            go -C api/v3/client test -c -o "${runtime_probe}" .
+
+            # A cached Go link action can retain the loader from an older Nixpkgs
+            # generation. Never publish a cache containing such an executable.
+            interpreter="$(readelf -l "${runtime_probe}" | sed -n 's/.*interpreter: \(.*\)]/\1/p')"
+            if [[ "${interpreter}" != "${expected_interpreter}" ]]; then
+              echo "Go runtime probe uses ${interpreter:-<none>}; expected ${expected_interpreter}"
+              exit 1
+            fi
+
+            "${runtime_probe}" -test.run '^$'
+          EOF
+
       - name: Save Nix store cache
+        if: steps.cache-key.outputs.rebuild == 'true'
         uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ steps.cache-key.outputs.cache-key }}
           save: "true"
 
   build:
     name: Build
     runs-on: depot-ubuntu-latest-8
+    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -103,16 +222,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -159,6 +279,7 @@ jobs:
   generators-openapi:
     name: Code Generators / OpenAPI
     runs-on: depot-ubuntu-latest-8
+    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -180,16 +301,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -274,6 +396,7 @@ jobs:
   generators-go:
     name: Code Generators / Go
     runs-on: depot-ubuntu-latest-8
+    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -295,16 +418,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -338,6 +462,7 @@ jobs:
   go-sdk:
     name: Go SDK
     runs-on: depot-ubuntu-latest-4
+    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -359,16 +484,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 2
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Run Go SDK checks
         run: nix develop --impure .#ci -c make test-go-sdk
@@ -376,6 +502,7 @@ jobs:
   test:
     name: Test
     runs-on: depot-ubuntu-latest-8
+    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -402,16 +529,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Upsert Nix store
         run: nix develop --impure .#ci
@@ -456,6 +584,7 @@ jobs:
   migrations:
     name: Migration Checks
     runs-on: depot-ubuntu-latest-8
+    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -478,16 +607,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -503,6 +633,7 @@ jobs:
   lint:
     name: Lint
     runs-on: depot-ubuntu-latest-8
+    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -524,16 +655,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Upsert Nix store
         run: nix develop --impure .#ci
@@ -547,17 +679,19 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-
 
       # PR merge commits change on every update, so use the target commit to
-      # keep unchanged package analysis reusable across the pull request.
+      # keep unchanged package analysis reusable across the pull request. Bind
+      # every fallback to the Nix cache selected above because this cache also
+      # holds Go linker results with toolchain-specific Nix store paths.
       - name: Go lint caches
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .devenv/golangci-lint-cache
             .devenv/state/go/build-cache
-          key: ${{ runner.os }}-openmeter-go-lint-${{ github.event.pull_request.base.sha || github.sha }}-${{ hashFiles('flake.*', '.golangci*.yaml', 'go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          key: ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-${{ github.event.pull_request.base.sha || github.sha }}-${{ hashFiles('.golangci*.yaml', 'go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
           restore-keys: |
-            ${{ runner.os }}-openmeter-go-lint-${{ github.event.pull_request.base.sha || github.sha }}-
-            ${{ runner.os }}-openmeter-go-lint-
+            ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-${{ github.event.pull_request.base.sha || github.sha }}-
+            ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-
 
       - name: Run linters - go
         env:
@@ -643,6 +777,7 @@ jobs:
     name: Quickstart
     runs-on: depot-ubuntu-latest-8
     needs:
+      - cache-rebuild
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
@@ -731,16 +866,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -776,6 +912,7 @@ jobs:
     runs-on: depot-ubuntu-latest-8
     # Note: This check is running against the image that is going to be pushed.
     needs:
+      - cache-rebuild
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
@@ -852,16 +989,17 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
+            # Let cache misses build concurrently without oversubscribing this runner.
+            max-jobs = 4
+            cores = 2
 
-      - name: Restore Nix store
+      - name: Restore selected Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
-          restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+          # The cache gate either selected main's exact input-addressed cache or
+          # published this PR's environment under a unique key.
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
