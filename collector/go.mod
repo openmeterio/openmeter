@@ -367,8 +367,8 @@ require (
 	github.com/redpanda-data/common-go/redpanda-otel-exporter v0.4.0 // indirect
 	github.com/redpanda-data/connect/v4 v4.106.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rickb777/period v1.0.30 // indirect
-	github.com/rickb777/plural/v2 v2.1.0 // indirect
+	github.com/rickb777/period v1.0.32 // indirect
+	github.com/rickb777/plural/v2 v2.1.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
