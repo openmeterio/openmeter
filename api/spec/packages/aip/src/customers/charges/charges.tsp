@@ -580,12 +580,21 @@ model ChargeBase<T extends ChargeType> {
 
   /**
    * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+   * when `currency` is custom and the charge settles as `credit_then_invoice`; must
+   * be omitted otherwise.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Create)
   @summary("Cost basis")
   cost_basis?: ChargeCostBasis;
+
+  /**
+   * The resolved fiat conversion rate of a custom-currency charge. Absent until the
+   * cost basis is resolved.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Resolved cost basis")
+  resolved_cost_basis?: ChargeResolvedCostBasis;
 
   /**
    * The lifecycle status of the charge.
@@ -820,6 +829,40 @@ model ChargeCostBasisManual {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   rate: Shared.Numeric;
+}
+
+/**
+ * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+ * cost basis is resolved; dynamic cost bases are exposed only after the service
+ * period has started.
+ */
+@friendlyName("BillingChargeResolvedCostBasis")
+@summary("Resolved charge cost basis")
+model ChargeResolvedCostBasis {
+  /**
+   * The fiat currency the charge amount is converted into for invoicing.
+   */
+  @visibility(Lifecycle.Read)
+  fiat_currency: Shared.CurrencyCode;
+
+  /**
+   * Fiat amount per one unit of the custom currency.
+   */
+  @visibility(Lifecycle.Read)
+  rate: Shared.Numeric;
+
+  /**
+   * ID of the custom currency's cost basis resource the rate was taken from. Absent
+   * for manual cost bases.
+   */
+  @visibility(Lifecycle.Read)
+  cost_basis_id?: Shared.ULID;
+
+  /**
+   * When the rate was resolved.
+   */
+  @visibility(Lifecycle.Read)
+  resolved_at: Shared.DateTime;
 }
 
 /**

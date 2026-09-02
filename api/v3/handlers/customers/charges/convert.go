@@ -98,6 +98,11 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		return api.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
+	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(flatFee.ChargeBase.Intent.GetCostBasisIntent(), charge.ResolvedCostBasis)
+	if err != nil {
+		return api.BillingChargeFlatFee{}, fmt.Errorf("converting resolved cost basis: %w", err)
+	}
+
 	return api.BillingChargeFlatFee{
 		AdvanceAfter:           flatFee.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(flatFee.ChargeBase.State.AmountAfterProration, flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
@@ -119,6 +124,7 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		Price:                  price,
 		ProrationConfiguration: ConvertProRatingConfigToAPI(intent.ProRating),
 		Realizations:           realizations,
+		ResolvedCostBasis:      resolvedCostBasis,
 		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
 		SettlementMode:         api.BillingSettlementMode(flatFee.ChargeBase.Intent.GetSettlementMode()),
 		Status:                 api.BillingChargeStatus(status),
@@ -181,6 +187,11 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
+	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(usageBasedFee.ChargeBase.Intent.GetCostBasisIntent(), charge.ResolvedCostBasis)
+	if err != nil {
+		return api.BillingChargeUsageBased{}, fmt.Errorf("converting resolved cost basis: %w", err)
+	}
+
 	// The contract promises the charge-level usage under the real_time_usage
 	// expand; the domain carries the live cumulative read alongside the rated
 	// realtime totals.
@@ -208,6 +219,7 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		Name:                intent.Name,
 		Price:               ratingConfiguration.Price,
 		Realizations:        realizations,
+		ResolvedCostBasis:   resolvedCostBasis,
 		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
 		SettlementMode:      api.BillingSettlementMode(usageBasedFee.ChargeBase.Intent.GetSettlementMode()),
 		Status:              lo.FromPtr(status),
@@ -220,6 +232,31 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		UniqueReferenceId:   usageBasedFee.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:           usageBasedFee.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 		Usage:               usage,
+	}, nil
+}
+
+// toAPIChargeResolvedCostBasis pairs the facade-visible resolved state with
+// the fiat currency of the write-only intent, as the intent itself is not
+// exposed on read.
+func toAPIChargeResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State) (*api.BillingChargeResolvedCostBasis, error) {
+	if state == nil {
+		return nil, nil
+	}
+
+	if intent == nil {
+		return nil, errors.New("resolved cost basis without a cost basis intent")
+	}
+
+	fiat, err := intent.GetFiatCurrency()
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.BillingChargeResolvedCostBasis{
+		FiatCurrency: api.CurrencyCode(fiat.Details().Code),
+		Rate:         state.CostBasis.String(),
+		CostBasisId:  state.CostBasisID,
+		ResolvedAt:   state.ResolvedAt,
 	}, nil
 }
 

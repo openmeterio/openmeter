@@ -151,6 +151,7 @@ export type {
   MeterQueryRow,
   AppStripeCreateCustomerPortalSessionResult,
   ClosedPeriod,
+  ChargeResolvedCostBasis,
   SubscriptionAddonTimelineSegment,
   UpdateClosedPeriod,
   CostBasis,

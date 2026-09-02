@@ -553,8 +553,8 @@ func ChargeFromChargeUsageBased(value ChargeUsageBased) (Charge, error) {
 	return result, nil
 }
 
-// Cost basis selection for a custom-currency charge. The variant chosen fixes
-// when and how the conversion rate is determined.
+// Cost basis selection for a custom-currency charge. The variant chosen fixes when
+// and how the conversion rate is determined.
 //
 // ChargeCostBasis is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the ChargeCostBasisFrom* constructors.
 // The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
@@ -741,10 +741,9 @@ type ChargeFlatFee struct {
 	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
-	// Defines how a custom-currency charge is converted into its fiat invoice
-	// currency. Required when `currency` is custom and the charge settles as
-	// `credit_then_invoice`; must be omitted otherwise.
-	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
+	// The resolved fiat conversion rate of a custom-currency charge. Absent until
+	// the cost basis is resolved.
+	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
 	// The timestamp when the charge is intended to be invoiced.
@@ -1259,6 +1258,21 @@ func (value ChargeRealizationType) Valid() bool {
 	}
 }
 
+// Fiat conversion rate a custom-currency charge is invoiced at. Present once
+// the cost basis is resolved; dynamic cost bases are exposed only after the
+// service period has started.
+type ChargeResolvedCostBasis struct {
+	// The fiat currency the charge amount is converted into for invoicing.
+	FiatCurrency string `json:"fiat_currency"`
+	// Fiat amount per one unit of the custom currency.
+	Rate Numeric `json:"rate"`
+	// ID of the custom currency's cost basis resource the rate was taken from.
+	// Absent for manual cost bases.
+	CostBasisID *string `json:"cost_basis_id,omitempty"`
+	// When the rate was resolved.
+	ResolvedAt time.Time `json:"resolved_at"`
+}
+
 // Lifecycle status of a charge.
 //
 // Values:
@@ -1358,10 +1372,9 @@ type ChargeUsageBased struct {
 	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
-	// Defines how a custom-currency charge is converted into its fiat invoice
-	// currency. Required when `currency` is custom and the charge settles as
-	// `credit_then_invoice`; must be omitted otherwise.
-	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
+	// The resolved fiat conversion rate of a custom-currency charge. Absent until
+	// the cost basis is resolved.
+	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
 	// The timestamp when the charge is intended to be invoiced.
@@ -1520,7 +1533,8 @@ type CreateChargeFlatFeeRequest struct {
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Defines how a custom-currency charge is converted into its fiat invoice
-	// currency. Required when `currency` is custom and the charge settles as
+	// currency; the resolved rate is exposed through `resolved_cost_basis`.
+	// Required when `currency` is custom and the charge settles as
 	// `credit_then_invoice`; must be omitted otherwise.
 	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.
@@ -1646,7 +1660,8 @@ type CreateChargeUsageBasedRequest struct {
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Defines how a custom-currency charge is converted into its fiat invoice
-	// currency. Required when `currency` is custom and the charge settles as
+	// currency; the resolved rate is exposed through `resolved_cost_basis`.
+	// Required when `currency` is custom and the charge settles as
 	// `credit_then_invoice`; must be omitted otherwise.
 	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.

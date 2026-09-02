@@ -16,6 +16,7 @@ import (
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -25,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -845,4 +847,38 @@ func TestConvertChargeToAPISerializesRequiredRealizations(t *testing.T) {
 	var wire map[string]any
 	require.NoError(t, json.Unmarshal(raw, &wire))
 	assert.NotNil(t, wire["realizations"], "required realizations must not serialize as null")
+}
+
+func TestToAPIChargeResolvedCostBasis(t *testing.T) {
+	fiat, err := currencyx.NewFiatCurrency(currencyx.Code("USD"))
+	require.NoError(t, err)
+
+	resolvedAt := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+	intent := lo.ToPtr(costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: fiat}))
+
+	t.Run("nil state is omitted", func(t *testing.T) {
+		out, err := toAPIChargeResolvedCostBasis(intent, nil)
+		require.NoError(t, err)
+		require.Nil(t, out)
+	})
+
+	t.Run("state without intent is an error", func(t *testing.T) {
+		_, err := toAPIChargeResolvedCostBasis(nil, &costbasis.State{CostBasis: decimal.NewFromFloat(1.5), ResolvedAt: resolvedAt})
+		require.Error(t, err)
+	})
+
+	t.Run("maps rate, optional cost basis id and fiat currency", func(t *testing.T) {
+		out, err := toAPIChargeResolvedCostBasis(intent, &costbasis.State{
+			CostBasis:   decimal.NewFromFloat(1.5),
+			CostBasisID: lo.ToPtr("cb-1"),
+			ResolvedAt:  resolvedAt,
+		})
+		require.NoError(t, err)
+		require.Equal(t, &api.BillingChargeResolvedCostBasis{
+			FiatCurrency: "USD",
+			Rate:         "1.5",
+			CostBasisId:  lo.ToPtr("cb-1"),
+			ResolvedAt:   resolvedAt,
+		}, out)
+	})
 }

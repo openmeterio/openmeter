@@ -1144,6 +1144,25 @@ export interface ClosedPeriod {
   to: Date
 }
 
+/**
+ * Fiat conversion rate a custom-currency charge is invoiced at. Present once
+ * the cost basis is resolved; dynamic cost bases are exposed only after the
+ * service period has started.
+ */
+export interface ChargeResolvedCostBasis {
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+  /**
+   * ID of the custom currency's cost basis resource the rate was taken from.
+   * Absent for manual cost bases.
+   */
+  costBasisId?: string
+  /** When the rate was resolved. */
+  resolvedAt: Date
+}
+
 /** A subscription add-on event. */
 export interface SubscriptionAddonTimelineSegment {
   /** An ISO-8601 timestamp representation of the cadence start of the resource. */
@@ -3881,7 +3900,8 @@ export interface CreateChargeFlatFeeRequest {
   currency: BillingCurrencyCode
   /**
    * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
+   * currency; the resolved rate is exposed through `resolved_cost_basis`.
+   * Required when `currency` is custom and the charge settles as
    * `credit_then_invoice`; must be omitted otherwise.
    */
   costBasis?: ChargeCostBasis
@@ -4941,7 +4961,8 @@ export interface CreateChargeUsageBasedRequest {
   currency: BillingCurrencyCode
   /**
    * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
+   * currency; the resolved rate is exposed through `resolved_cost_basis`.
+   * Required when `currency` is custom and the charge settles as
    * `credit_then_invoice`; must be omitted otherwise.
    */
   costBasis?: ChargeCostBasis
@@ -5983,11 +6004,10 @@ export interface ChargeFlatFee {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * The resolved fiat conversion rate of a custom-currency charge. Absent until
+   * the cost basis is resolved.
    */
-  costBasis?: ChargeCostBasis
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
@@ -6078,11 +6098,10 @@ export interface ChargeUsageBased {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * The resolved fiat conversion rate of a custom-currency charge. Absent until
+   * the cost basis is resolved.
    */
-  costBasis?: ChargeCostBasis
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
@@ -6240,8 +6259,8 @@ export type UpdateBillingWorkflowPaymentSettings =
   | UpdateBillingWorkflowPaymentSendInvoiceSettings
 
 /**
- * Cost basis selection for a custom-currency charge. The variant chosen fixes
- * when and how the conversion rate is determined.
+ * Cost basis selection for a custom-currency charge. The variant chosen fixes when
+ * and how the conversion rate is determined.
  */
 export type ChargeCostBasis =
   ChargeCostBasisDynamic | ChargeCostBasisPinned | ChargeCostBasisManual
@@ -7504,7 +7523,8 @@ export interface CreateChargeUsageBasedRequestInput {
   currency: BillingCurrencyCode
   /**
    * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
+   * currency; the resolved rate is exposed through `resolved_cost_basis`.
+   * Required when `currency` is custom and the charge settles as
    * `credit_then_invoice`; must be omitted otherwise.
    */
   costBasis?: ChargeCostBasis
@@ -8469,11 +8489,10 @@ export interface ChargeFlatFeeInput {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * The resolved fiat conversion rate of a custom-currency charge. Absent until
+   * the cost basis is resolved.
    */
-  costBasis?: ChargeCostBasis
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
@@ -8564,11 +8583,10 @@ export interface ChargeUsageBasedInput {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency. Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * The resolved fiat conversion rate of a custom-currency charge. Absent until
+   * the cost basis is resolved.
    */
-  costBasis?: ChargeCostBasis
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */

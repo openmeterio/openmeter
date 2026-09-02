@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -23,6 +24,11 @@ type CustomerCharge struct {
 	Customer     *customer.Customer
 	Feature      *feature.Feature
 	Subscription *subscription.Subscription
+
+	// ResolvedCostBasis is the fiat conversion rate exposed to clients. It is
+	// nil without a cost basis, before resolution, and for a dynamic cost
+	// basis whose service period has not started yet.
+	ResolvedCostBasis *costbasis.State
 
 	// Exactly the slice matching Charge.Type() is populated.
 	FlatFeeRealizations    []CustomerChargeFlatFeeRealization

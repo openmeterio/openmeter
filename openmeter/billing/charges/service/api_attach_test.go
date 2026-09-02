@@ -11,12 +11,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -115,4 +117,39 @@ func TestBuildCustomerCharge(t *testing.T) {
 	require.Nil(t, bare.Customer)
 	require.Nil(t, bare.Feature)
 	require.Nil(t, bare.Subscription)
+}
+
+func TestVisibleResolvedCostBasis(t *testing.T) {
+	fiat, err := currencyx.NewFiatCurrency(currencyx.Code("USD"))
+	require.NoError(t, err)
+
+	periodFrom := time.Date(2026, 7, 6, 0, 0, 0, 0, time.UTC)
+	state := &costbasis.State{CostBasis: alpacadecimal.NewFromFloat(1.5), ResolvedAt: periodFrom}
+	dynamic := lo.ToPtr(costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: fiat}))
+	manual := lo.ToPtr(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: fiat, Rate: alpacadecimal.NewFromFloat(1.5)}))
+
+	tests := []struct {
+		name    string
+		intent  *costbasis.Intent
+		state   *costbasis.State
+		now     time.Time
+		visible bool
+	}{
+		{name: "no intent", now: periodFrom},
+		{name: "unresolved", intent: dynamic, now: periodFrom},
+		{name: "manual is visible before the service period", intent: manual, state: state, now: periodFrom.Add(-time.Hour), visible: true},
+		{name: "dynamic is hidden before the service period", intent: dynamic, state: state, now: periodFrom.Add(-time.Hour)},
+		{name: "dynamic is visible from the service period start", intent: dynamic, state: state, now: periodFrom, visible: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := visibleResolvedCostBasis(tt.intent, tt.state, periodFrom, tt.now)
+			if tt.visible {
+				require.Equal(t, state, got)
+			} else {
+				require.Nil(t, got)
+			}
+		})
+	}
 }

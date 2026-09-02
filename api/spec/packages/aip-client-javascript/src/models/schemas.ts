@@ -2190,6 +2190,18 @@ export const closedPeriod = z
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
 
+export const chargeResolvedCostBasis = z
+  .object({
+    fiatCurrency: currencyCode,
+    rate: numeric,
+    costBasisId: ulid.optional(),
+    resolvedAt: dateTime,
+  })
+
+  .describe(
+    'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
+  )
+
 export const subscriptionAddonTimelineSegment = z
   .object({
     activeFrom: dateTime,
@@ -6424,7 +6436,7 @@ export const chargeFlatFee = z
     lifecycleController: lifecycleController,
     subscription: subscriptionOrReference.optional(),
     currency: billingCurrencyCode,
-    costBasis: chargeCostBasis.optional(),
+    resolvedCostBasis: chargeResolvedCostBasis.optional(),
     status: chargeStatus,
     invoiceAt: dateTime,
     servicePeriod: closedPeriod,
@@ -6475,7 +6487,7 @@ export const chargeUsageBased = z
     lifecycleController: lifecycleController,
     subscription: subscriptionOrReference.optional(),
     currency: billingCurrencyCode,
-    costBasis: chargeCostBasis.optional(),
+    resolvedCostBasis: chargeResolvedCostBasis.optional(),
     status: chargeStatus,
     invoiceAt: dateTime,
     servicePeriod: closedPeriod,
@@ -9658,6 +9670,18 @@ export const closedPeriodWire = z
 
   .describe(
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
+  )
+
+export const chargeResolvedCostBasisWire = z
+  .strictObject({
+    fiat_currency: currencyCodeWire,
+    rate: numericWire,
+    cost_basis_id: ulidWire.optional(),
+    resolved_at: dateTimeWire,
+  })
+
+  .describe(
+    'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
   )
 
 export const subscriptionAddonTimelineSegmentWire = z
@@ -13879,7 +13903,7 @@ export const chargeFlatFeeWire = z
     lifecycle_controller: lifecycleControllerWire,
     subscription: subscriptionOrReferenceWire.optional(),
     currency: billingCurrencyCodeWire,
-    cost_basis: chargeCostBasisWire.optional(),
+    resolved_cost_basis: chargeResolvedCostBasisWire.optional(),
     status: chargeStatusWire,
     invoice_at: dateTimeWire,
     service_period: closedPeriodWire,
@@ -13930,7 +13954,7 @@ export const chargeUsageBasedWire = z
     lifecycle_controller: lifecycleControllerWire,
     subscription: subscriptionOrReferenceWire.optional(),
     currency: billingCurrencyCodeWire,
-    cost_basis: chargeCostBasisWire.optional(),
+    resolved_cost_basis: chargeResolvedCostBasisWire.optional(),
     status: chargeStatusWire,
     invoice_at: dateTimeWire,
     service_period: closedPeriodWire,

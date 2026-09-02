@@ -4791,8 +4791,8 @@ components:
           pinned: '#/components/schemas/BillingChargeCostBasisPinned'
           manual: '#/components/schemas/BillingChargeCostBasisManual'
       description: |-
-        Cost basis selection for a custom-currency charge. The variant chosen fixes
-        when and how the conversion rate is determined.
+        Cost basis selection for a custom-currency charge. The variant chosen fixes when
+        and how the conversion rate is determined.
       title: Charge cost basis
     BillingChargeCostBasisDynamic:
       type: object
@@ -4954,14 +4954,14 @@ components:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency of the charge.
           title: Currency
-        cost_basis:
+        resolved_cost_basis:
           allOf:
-            - $ref: '#/components/schemas/BillingChargeCostBasis'
+            - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
           description: |-
-            Defines how a custom-currency charge is converted into its fiat invoice
-            currency. Required when `currency` is custom and the charge settles as
-            `credit_then_invoice`; must be omitted otherwise.
-          title: Cost basis
+            The resolved fiat conversion rate of a custom-currency charge. Absent until
+            the cost basis is resolved.
+          title: Resolved cost basis
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingChargeStatus'
@@ -5761,6 +5761,41 @@ components:
           readOnly: true
       additionalProperties: false
       description: Reference to a charge associated with an invoice line.
+    BillingChargeResolvedCostBasis:
+      type: object
+      required:
+        - fiat_currency
+        - rate
+        - resolved_at
+      properties:
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+          readOnly: true
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fiat amount per one unit of the custom currency.
+          readOnly: true
+        cost_basis_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            ID of the custom currency's cost basis resource the rate was taken from.
+            Absent for manual cost bases.
+          readOnly: true
+        resolved_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the rate was resolved.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Fiat conversion rate a custom-currency charge is invoiced at. Present once
+        the cost basis is resolved; dynamic cost bases are exposed only after the
+        service period has started.
+      title: Resolved charge cost basis
     BillingChargeStatus:
       type: string
       enum:
@@ -5904,14 +5939,14 @@ components:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency of the charge.
           title: Currency
-        cost_basis:
+        resolved_cost_basis:
           allOf:
-            - $ref: '#/components/schemas/BillingChargeCostBasis'
+            - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
           description: |-
-            Defines how a custom-currency charge is converted into its fiat invoice
-            currency. Required when `currency` is custom and the charge settles as
-            `credit_then_invoice`; must be omitted otherwise.
-          title: Cost basis
+            The resolved fiat conversion rate of a custom-currency charge. Absent until
+            the cost basis is resolved.
+          title: Resolved cost basis
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingChargeStatus'
@@ -10728,7 +10763,8 @@ components:
             - $ref: '#/components/schemas/BillingChargeCostBasis'
           description: |-
             Defines how a custom-currency charge is converted into its fiat invoice
-            currency. Required when `currency` is custom and the charge settles as
+            currency; the resolved rate is exposed through `resolved_cost_basis`.
+            Required when `currency` is custom and the charge settles as
             `credit_then_invoice`; must be omitted otherwise.
           title: Cost basis
         invoice_at:
@@ -10849,7 +10885,8 @@ components:
             - $ref: '#/components/schemas/BillingChargeCostBasis'
           description: |-
             Defines how a custom-currency charge is converted into its fiat invoice
-            currency. Required when `currency` is custom and the charge settles as
+            currency; the resolved rate is exposed through `resolved_cost_basis`.
+            Required when `currency` is custom and the charge settles as
             `credit_then_invoice`; must be omitted otherwise.
           title: Cost basis
         invoice_at:
