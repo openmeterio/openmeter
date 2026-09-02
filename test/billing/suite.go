@@ -244,6 +244,7 @@ func (s *BaseSuite) setupSuite() {
 	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
 		FeatureService: s.FeatureService,
 		MeterService:   s.MeterAdapter,
+		Logger:         slog.Default(),
 	})
 	require.NoError(t, err)
 	s.FeatureMeterResolver = featureMeterResolver

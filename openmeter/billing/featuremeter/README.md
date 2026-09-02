@@ -2,7 +2,7 @@
 
 - This package overlaps with the newer [product catalog feature resolvers](../../productcatalog/featureresolver).
 - It predates those resolvers and should eventually converge with them rather than remain a separate resolution path.
-- Convergence is only safe after every product catalog layer, including subscriptions, snapshots feature IDs and the existing database records have been backfilled. Until then, this package's historical lookup behavior is what allows billing to invoice archived features.
+- Convergence is only safe after feature IDs are snapshotted throughout every product catalog layer, including subscriptions, and existing database records have been backfilled. Until then, this package's historical lookup behavior is what allows billing to invoice archived features.
 
 ## Purpose and ownership
 

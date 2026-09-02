@@ -21,11 +21,14 @@ func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, li
 		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
 	}
 
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, lo.Map(keys, func(key string, _ int) billingfeaturemeter.FeatureMeterRef {
-		return billingfeaturemeter.FeatureMeterRef{
-			IDOrKey: ref.IDOrKey{Key: key},
-		}
-	}))
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace: namespace,
+		FeatureRefs: lo.Map(keys, func(key string, _ int) billingfeaturemeter.FeatureMeterRef {
+			return billingfeaturemeter.FeatureMeterRef{
+				IDOrKey: ref.IDOrKey{Key: key},
+			}
+		}),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}

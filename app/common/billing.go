@@ -208,6 +208,7 @@ func NewBillingRegistry(
 	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
 		FeatureService: featureConnector,
 		MeterService:   meterService,
+		Logger:         logger,
 	})
 	if err != nil {
 		return BillingRegistry{}, fmt.Errorf("creating feature meter resolver: %w", err)

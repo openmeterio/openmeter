@@ -507,7 +507,10 @@ func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace stri
 		return billingfeaturemeter.FeatureMeterRef{IDOrKey: featureRef}
 	})
 
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, meterRefs)
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace:   namespace,
+		FeatureRefs: meterRefs,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("resolving features: %w", err)
 	}

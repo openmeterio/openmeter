@@ -286,6 +286,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
 		FeatureService: featureService,
 		MeterService:   meterAdapter,
+		Logger:         slog.Default(),
 	})
 	require.NoError(t, err)
 

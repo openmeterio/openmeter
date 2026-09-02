@@ -108,7 +108,10 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 		}
 	}))
 
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, referencedFeatureMeters)
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace:   namespace,
+		FeatureRefs: referencedFeatureMeters,
+	})
 	if err != nil {
 		return nil, err
 	}

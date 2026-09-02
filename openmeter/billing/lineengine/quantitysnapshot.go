@@ -75,11 +75,14 @@ func (e *Engine) resolveFeatureMeters(ctx context.Context, namespace string, lin
 		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
 	}
 
-	featureMeters, err := e.featureMeterResolver.Resolve(ctx, namespace, lo.Map(keys, func(key string, _ int) billingfeaturemeter.FeatureMeterRef {
-		return billingfeaturemeter.FeatureMeterRef{
-			IDOrKey: ref.IDOrKey{Key: key},
-		}
-	}))
+	featureMeters, err := e.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace: namespace,
+		FeatureRefs: lo.Map(keys, func(key string, _ int) billingfeaturemeter.FeatureMeterRef {
+			return billingfeaturemeter.FeatureMeterRef{
+				IDOrKey: ref.IDOrKey{Key: key},
+			}
+		}),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}

@@ -256,10 +256,13 @@ func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, c
 	if !hasFeatureMetersHint {
 		featureRef := charge.GetFeatureKeyOrID()
 		var err error
-		featureMeters, err = s.featureMeterResolver.Resolve(ctx, charge.Namespace, []billingfeaturemeter.FeatureMeterRef{{
-			IDOrKey:      featureRef,
-			RequireMeter: true,
-		}})
+		featureMeters, err = s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+			Namespace: charge.Namespace,
+			FeatureRefs: []billingfeaturemeter.FeatureMeterRef{{
+				IDOrKey:      featureRef,
+				RequireMeter: true,
+			}},
+		})
 		if err != nil {
 			return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
 		}

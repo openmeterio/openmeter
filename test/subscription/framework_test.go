@@ -120,6 +120,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
 		FeatureService: deps.FeatureConnector,
 		MeterService:   deps.MeterService,
+		Logger:         slog.Default(),
 	})
 	require.NoError(t, err)
 

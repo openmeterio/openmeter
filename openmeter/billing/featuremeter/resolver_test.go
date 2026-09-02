@@ -2,6 +2,7 @@ package featuremeter
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -94,32 +95,53 @@ func TestResolver(t *testing.T) {
 		{ID: "feature-other", Key: "requests"},
 	}
 
-	resolver, err := New(Config{
-		FeatureService: featureServiceStub{
-			listFeatures: func(_ context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
-				require.Equal(t, namespace, params.Namespace)
-				require.True(t, params.IncludeArchived)
+	newResolver := func(t *testing.T, expectedFeatureIDsOrKeys, expectedMeterIDs []string) Resolver {
+		t.Helper()
 
-				return pagination.Result[feature.Feature]{Items: features}, nil
-			},
-		},
-		MeterService: meterServiceStub{
-			listMeters: func(_ context.Context, params meter.ListMetersParams) (pagination.Result[meter.Meter], error) {
-				require.Equal(t, namespace, params.Namespace)
-				require.True(t, params.IncludeDeleted)
+		resolver, err := New(Config{
+			FeatureService: featureServiceStub{
+				listFeatures: func(_ context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
+					require.Equal(t, namespace, params.Namespace)
+					require.ElementsMatch(t, expectedFeatureIDsOrKeys, params.IDsOrKeys)
+					require.True(t, params.IncludeArchived)
 
-				return pagination.Result[meter.Meter]{Items: []meter.Meter{{
-					ManagedResource: models.ManagedResource{ID: meterID},
-				}}}, nil
+					return pagination.Result[feature.Feature]{Items: lo.Filter(features, func(featureEntity feature.Feature, _ int) bool {
+						return lo.Contains(params.IDsOrKeys, featureEntity.ID) || lo.Contains(params.IDsOrKeys, featureEntity.Key)
+					})}, nil
+				},
 			},
-		},
-	})
-	require.NoError(t, err)
+			MeterService: meterServiceStub{
+				listMeters: func(_ context.Context, params meter.ListMetersParams) (pagination.Result[meter.Meter], error) {
+					require.Equal(t, namespace, params.Namespace)
+					require.NotNil(t, params.IDFilter)
+					require.ElementsMatch(t, expectedMeterIDs, *params.IDFilter)
+					require.True(t, params.IncludeDeleted)
+
+					meters := []meter.Meter{{
+						ManagedResource: models.ManagedResource{ID: meterID},
+					}}
+
+					return pagination.Result[meter.Meter]{Items: lo.Filter(meters, func(meterEntity meter.Meter, _ int) bool {
+						return lo.Contains(*params.IDFilter, meterEntity.ID)
+					})}, nil
+				},
+			},
+			Logger: slog.Default(),
+		})
+		require.NoError(t, err)
+
+		return resolver
+	}
 
 	t.Run("key resolves latest while explicit IDs remain addressable", func(t *testing.T) {
-		resolved, err := resolver.Resolve(t.Context(), namespace, []FeatureMeterRef{
-			{IDOrKey: ref.IDOrKey{Key: "tokens"}, RequireMeter: true},
-			{IDOrKey: ref.IDOrKey{ID: "feature-old"}, RequireMeter: true},
+		resolver := newResolver(t, []string{"tokens", "feature-old"}, []string{meterID})
+
+		resolved, err := resolver.Resolve(t.Context(), ResolveInput{
+			Namespace: namespace,
+			FeatureRefs: []FeatureMeterRef{
+				{IDOrKey: ref.IDOrKey{Key: "tokens"}, RequireMeter: true},
+				{IDOrKey: ref.IDOrKey{ID: "feature-old"}, RequireMeter: true},
+			},
 		})
 		require.NoError(t, err)
 
@@ -140,23 +162,33 @@ func TestResolver(t *testing.T) {
 			{IDOrKey: ref.IDOrKey{Key: "requests"}, RequireMeter: true},
 		}
 
-		_, strictErr := resolver.Resolve(t.Context(), namespace, refs)
+		strictResolver := newResolver(t, []string{"missing-feature", "requests"}, nil)
+		_, strictErr := strictResolver.Resolve(t.Context(), ResolveInput{
+			Namespace:   namespace,
+			FeatureRefs: refs,
+		})
 		require.True(t, models.IsGenericNotFoundError(strictErr))
 
-		missingOnly, missingOnlyErr := resolver.Resolve(
+		missingOnlyResolver := newResolver(t, []string{"missing-feature"}, nil)
+		missingOnly, missingOnlyErr := missingOnlyResolver.Resolve(
 			t.Context(),
-			namespace,
-			refs[:1],
+			ResolveInput{
+				Namespace:   namespace,
+				FeatureRefs: refs[:1],
+			},
 			WithAllowMissingFeatures(),
 		)
 		require.NoError(t, missingOnlyErr)
 		_, missingErr := missingOnly.GetByKey("missing-feature", false)
 		require.True(t, models.IsGenericNotFoundError(missingErr))
 
-		_, allowMissingErr := resolver.Resolve(
+		allowMissingResolver := newResolver(t, []string{"missing-feature", "requests"}, nil)
+		_, allowMissingErr := allowMissingResolver.Resolve(
 			t.Context(),
-			namespace,
-			refs,
+			ResolveInput{
+				Namespace:   namespace,
+				FeatureRefs: refs,
+			},
 			WithAllowMissingFeatures(),
 		)
 		require.Error(t, allowMissingErr)
@@ -164,4 +196,37 @@ func TestResolver(t *testing.T) {
 		require.True(t, models.IsGenericValidationError(allowMissingErr))
 		require.ErrorContains(t, allowMissingErr, "feature[requests] has no meter associated")
 	})
+}
+
+func TestResolverValidatesInput(t *testing.T) {
+	resolver, err := New(Config{
+		FeatureService: featureServiceStub{
+			listFeatures: func(context.Context, feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
+				t.Fatal("feature service must not be called for invalid input")
+
+				return pagination.Result[feature.Feature]{}, nil
+			},
+		},
+		MeterService: meterServiceStub{
+			listMeters: func(context.Context, meter.ListMetersParams) (pagination.Result[meter.Meter], error) {
+				t.Fatal("meter service must not be called for invalid input")
+
+				return pagination.Result[meter.Meter]{}, nil
+			},
+		},
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	// Given an input without the namespace required to scope catalog lookups.
+	input := ResolveInput{
+		FeatureRefs: []FeatureMeterRef{{IDOrKey: ref.IDOrKey{Key: "tokens"}}},
+	}
+
+	// When feature meters are resolved.
+	_, err = resolver.Resolve(t.Context(), input)
+
+	// Then validation fails before either backing service is called.
+	require.True(t, models.IsGenericValidationError(err))
+	require.ErrorContains(t, err, "namespace is required")
 }

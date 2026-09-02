@@ -134,6 +134,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
 		FeatureService: featureService,
 		MeterService:   meterQueryService,
+		Logger:         logger,
 	})
 	require.NoError(t, err)
 
@@ -157,15 +158,17 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	featureMeters, err := featureMeterResolver.Resolve(
 		t.Context(),
-		base.Namespace,
-		[]billingfeaturemeter.FeatureMeterRef{
-			{
-				IDOrKey:      ref.IDOrKey{Key: testFeatureKey},
-				RequireMeter: true,
-			},
-			{
-				IDOrKey:      ref.IDOrKey{ID: featureEntity.ID},
-				RequireMeter: true,
+		billingfeaturemeter.ResolveInput{
+			Namespace: base.Namespace,
+			FeatureRefs: []billingfeaturemeter.FeatureMeterRef{
+				{
+					IDOrKey:      ref.IDOrKey{Key: testFeatureKey},
+					RequireMeter: true,
+				},
+				{
+					IDOrKey:      ref.IDOrKey{ID: featureEntity.ID},
+					RequireMeter: true,
+				},
 			},
 		},
 	)

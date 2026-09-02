@@ -39,10 +39,13 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get customer override: %w", err)
 	}
 
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, charge.Namespace, []billingfeaturemeter.FeatureMeterRef{{
-		IDOrKey:      charge.GetFeatureKeyOrID(),
-		RequireMeter: true,
-	}})
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace: charge.Namespace,
+		FeatureRefs: []billingfeaturemeter.FeatureMeterRef{{
+			IDOrKey:      charge.GetFeatureKeyOrID(),
+			RequireMeter: true,
+		}},
+	})
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("resolve feature meters: %w", err)
 	}

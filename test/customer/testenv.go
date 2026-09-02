@@ -456,6 +456,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
 		FeatureService: entitlementRegistry.Feature,
 		MeterService:   meterService,
+		Logger:         logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create feature meter resolver: %w", err)

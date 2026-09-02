@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -90,7 +91,10 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 				return nil, fmt.Errorf("get customer override: %w", err)
 			}
 
-			featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Customer.Namespace, chargesByType.usageBased.GetFeatureKeysOrIDs())
+			featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+				Namespace:   input.Customer.Namespace,
+				FeatureRefs: chargesByType.usageBased.GetFeatureKeysOrIDs(),
+			})
 			if err != nil {
 				return nil, fmt.Errorf("resolve feature meters: %w", err)
 			}

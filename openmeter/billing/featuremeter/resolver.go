@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/samber/lo"
@@ -16,7 +17,7 @@ import (
 
 // Resolver resolves the feature and meter data needed by billing operations.
 type Resolver interface {
-	Resolve(ctx context.Context, namespace string, featureRefs []FeatureMeterRef, opts ...ResolveFeatureMetersOption) (FeatureMeters, error)
+	Resolve(ctx context.Context, input ResolveInput, opts ...ResolveFeatureMetersOption) (FeatureMeters, error)
 }
 
 type FeatureService interface {
@@ -30,6 +31,7 @@ type MeterService interface {
 type Config struct {
 	FeatureService FeatureService
 	MeterService   MeterService
+	Logger         *slog.Logger
 }
 
 func (c Config) Validate() error {
@@ -43,6 +45,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("meter service is required"))
 	}
 
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -54,12 +60,14 @@ func New(config Config) (Resolver, error) {
 	return &resolver{
 		featureService: config.FeatureService,
 		meterService:   config.MeterService,
+		logger:         config.Logger,
 	}, nil
 }
 
 type resolver struct {
 	featureService FeatureService
 	meterService   MeterService
+	logger         *slog.Logger
 }
 
 var _ Resolver = (*resolver)(nil)
@@ -86,21 +94,36 @@ func WithAllowMissingFeatures() ResolveFeatureMetersOption {
 	}
 }
 
-func (r *resolver) Resolve(ctx context.Context, namespace string, featureRefs []FeatureMeterRef, opts ...ResolveFeatureMetersOption) (FeatureMeters, error) {
-	if namespace == "" {
-		return nil, errors.New("namespace is required")
+type ResolveInput struct {
+	Namespace   string
+	FeatureRefs []FeatureMeterRef
+}
+
+func (i ResolveInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (r *resolver) Resolve(ctx context.Context, input ResolveInput, opts ...ResolveFeatureMetersOption) (FeatureMeters, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
 	}
 
 	options := NewResolveFeatureMetersOptions(opts...)
 
-	if len(featureRefs) == 0 {
+	if len(input.FeatureRefs) == 0 {
 		return FeatureMeterCollection{
 			ByKey: map[string]FeatureMeter{},
 			ByID:  map[string]FeatureMeter{},
 		}, nil
 	}
 
-	featuresToResolve := lo.Uniq(lo.FlatMap(featureRefs, func(featureRef FeatureMeterRef, _ int) []string {
+	featuresToResolve := lo.Uniq(lo.FlatMap(input.FeatureRefs, func(featureRef FeatureMeterRef, _ int) []string {
 		out := featureRef.IDOrKey.GetKeys()
 		out = append(out, featureRef.IDOrKey.GetIDs()...)
 
@@ -109,7 +132,7 @@ func (r *resolver) Resolve(ctx context.Context, namespace string, featureRefs []
 
 	features, err := r.featureService.ListFeatures(ctx, feature.ListFeaturesParams{
 		IDsOrKeys:       featuresToResolve,
-		Namespace:       namespace,
+		Namespace:       input.Namespace,
 		IncludeArchived: true,
 	})
 	if err != nil {
@@ -135,7 +158,7 @@ func (r *resolver) Resolve(ctx context.Context, namespace string, featureRefs []
 
 	meters, err := r.meterService.ListMeters(ctx, meter.ListMetersParams{
 		IDFilter:       lo.ToPtr(metersToResolve),
-		Namespace:      namespace,
+		Namespace:      input.Namespace,
 		IncludeDeleted: true,
 	})
 	if err != nil {
@@ -162,7 +185,7 @@ func (r *resolver) Resolve(ctx context.Context, namespace string, featureRefs []
 		}
 	}
 
-	if err := validateReferences(resolved, featureRefs, options); err != nil {
+	if err := validateReferences(resolved, input.FeatureRefs, options); err != nil {
 		return nil, err
 	}
 

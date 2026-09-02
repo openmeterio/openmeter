@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -54,7 +55,10 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	}
 
 	featureMeterRefs := billing.GatheringLines(input.Lines).CollectFeatureMeterRefs()
-	_, err = s.featureMeterResolver.Resolve(ctx, input.Customer.Namespace, featureMeterRefs)
+	_, err = s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace:   input.Customer.Namespace,
+		FeatureRefs: featureMeterRefs,
+	})
 	if err != nil {
 		return nil, billing.ValidationError{
 			Err: fmt.Errorf("resolving pending line feature meters: %w", err),
