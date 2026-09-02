@@ -379,7 +379,8 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 	// when:
 	// - the external payment is authorized
 	// then:
-	// - the receivable moves from open to authorized while credits stay allocated
+	// - the payment realization stores the rounded fiat amount
+	// - the nominal credit receivable moves from open to authorized while credits stay allocated
 	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
 		Namespace:    ns,
 		CustomerID:   cust.ID,
@@ -393,13 +394,13 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 	s.AssertDecimalEqual(fiatAmount, grant.Realizations.ExternalPaymentSettlement.FiatAmount, "authorized grant should persist the rounded fiat payment amount")
 	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "authorized grant should keep credits allocated")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "authorized grant should clear open receivable")
-	s.AssertDecimalEqual(fiatAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorized grant should book the rounded fiat receivable")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorized grant should book the nominal credit receivable")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "authorized grant should not book wash")
 
 	// when:
 	// - the external payment is settled
 	// then:
-	// - the charge finalizes and the receivable is funded from wash
+	// - the charge finalizes and the nominal receivable clears through its cost-basis-qualified wash route
 	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
 		Namespace:    ns,
 		CustomerID:   cust.ID,
@@ -415,7 +416,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "settled grant should keep credits allocated")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "settled grant should keep open receivable cleared")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "settled grant should clear authorized receivable")
-	s.AssertDecimalEqual(fiatAmount.Neg(), s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "settled grant should book the rounded fiat payment in wash")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "settled grant should book the nominal credit amount in wash")
 }
 
 func (s *CreditGrantTestSuite) TestListCreditGrants() {

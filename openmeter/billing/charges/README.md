@@ -211,6 +211,11 @@ the standard invoice, the state machine resolves the cost basis before booking
 the credit grant. The line engine then requires that resolution and replaces
 the provisional amount with the resolved fiat value.
 
+Fiat credit remains denominated in nominal credit units throughout ledger
+authorization and settlement; its cost basis carries the amount paid per unit.
+Custom-currency credit instead materializes a fiat-to-custom receivable exchange
+before the fiat payment is authorized.
+
 Persisted credit purchases read settlement and cost basis only from their
 dedicated fields. Fiat purchases persist their scalar rate on the charge row;
 custom-currency purchases reference durable shared cost-basis state. Resolution
