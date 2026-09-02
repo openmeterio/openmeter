@@ -807,8 +807,8 @@ func ConvertUsageBasedStatusToAPI(status usagebased.Status) (*api.BillingChargeS
 var ConvertClosedPeriodToAPI = billingcommon.ConvertClosedPeriodToAPI
 
 // ConvertDecimalToCurrencyAmount wraps a decimal amount and currency in a CurrencyAmount.
-func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal, currency currencyx.Code) api.ChargesCurrencyAmount {
-	return api.ChargesCurrencyAmount{Amount: d.String(), Currency: api.BillingCurrencyCode(currency)}
+func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal, currency currencyx.Code) api.BillingCurrencyAmount {
+	return api.BillingCurrencyAmount{Amount: d.String(), Currency: api.BillingCurrencyCode(currency)}
 }
 
 func convertCustomerIDToReference(id string) (api.CustomerOrReference, error) {

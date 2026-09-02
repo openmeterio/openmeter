@@ -822,7 +822,7 @@ export interface LlmCostModelPricing {
 }
 
 /** Monetary amount in a specific fiat currency. */
-export interface CurrencyAmount {
+export interface FiatCurrencyAmount {
   amount: string
   currency: string
 }
@@ -1145,9 +1145,9 @@ export interface ClosedPeriod {
 }
 
 /**
- * Fiat conversion rate a custom-currency charge is invoiced at. Present once
- * the cost basis is resolved; dynamic cost bases are exposed only after the
- * service period has started.
+ * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+ * cost basis is resolved; dynamic cost bases are exposed only after the service
+ * period has started.
  */
 export interface ChargeResolvedCostBasis {
   /** The fiat currency the charge amount is converted into for invoicing. */
@@ -1155,8 +1155,8 @@ export interface ChargeResolvedCostBasis {
   /** Fiat amount per one unit of the custom currency. */
   rate: string
   /**
-   * ID of the custom currency's cost basis resource the rate was taken from.
-   * Absent for manual cost bases.
+   * ID of the custom currency's cost basis resource the rate was taken from. Absent
+   * for manual cost bases.
    */
   costBasisId?: string
   /** When the rate was resolved. */
@@ -2524,7 +2524,7 @@ export interface CreditTransaction {
 }
 
 /** Monetary amount in a fiat or custom currency. */
-export interface ChargesCurrencyAmount {
+export interface CurrencyAmount {
   /** The amount as an arbitrary-precision decimal string. */
   amount: string
   /** The fiat or custom currency code of the amount. */
@@ -3644,7 +3644,7 @@ export interface ChargeFlatFeeSystemIntent {
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount before proration of the system lifecycle controller flat fee intent. */
-  amountBeforeProration: ChargesCurrencyAmount
+  amountBeforeProration: CurrencyAmount
   /**
    * The timestamp when the system lifecycle controller intent was deleted. The
    * effective charge can remain visible while a manual override is active.
@@ -3900,9 +3900,9 @@ export interface CreateChargeFlatFeeRequest {
   currency: BillingCurrencyCode
   /**
    * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency; the resolved rate is exposed through `resolved_cost_basis`.
-   * Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+   * when `currency` is custom and the charge settles as `credit_then_invoice`; must
+   * be omitted otherwise.
    */
   costBasis?: ChargeCostBasis
   /** The timestamp when the charge is intended to be invoiced. */
@@ -3922,7 +3922,7 @@ export interface CreateChargeFlatFeeRequest {
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount before proration of the charge. */
-  amountBeforeProration: ChargesCurrencyAmount
+  amountBeforeProration: CurrencyAmount
   /** A reference to the feature associated with the charge, when applicable. */
   feature?: FeatureReference
   /** The full, unprorated service period of the charge. */
@@ -4961,9 +4961,9 @@ export interface CreateChargeUsageBasedRequest {
   currency: BillingCurrencyCode
   /**
    * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency; the resolved rate is exposed through `resolved_cost_basis`.
-   * Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+   * when `currency` is custom and the charge settles as `credit_then_invoice`; must
+   * be omitted otherwise.
    */
   costBasis?: ChargeCostBasis
   /** The timestamp when the charge is intended to be invoiced. */
@@ -6004,8 +6004,9 @@ export interface ChargeFlatFee {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * The resolved fiat conversion rate of a custom-currency charge. Absent until
-   * the cost basis is resolved.
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
    */
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
@@ -6040,7 +6041,7 @@ export interface ChargeFlatFee {
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount after proration of the charge. */
-  amountAfterProration: ChargesCurrencyAmount
+  amountAfterProration: CurrencyAmount
   /** The price of the charge. */
   price: PriceFlat
   /**
@@ -6098,8 +6099,9 @@ export interface ChargeUsageBased {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * The resolved fiat conversion rate of a custom-currency charge. Absent until
-   * the cost basis is resolved.
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
    */
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
@@ -7523,9 +7525,9 @@ export interface CreateChargeUsageBasedRequestInput {
   currency: BillingCurrencyCode
   /**
    * Defines how a custom-currency charge is converted into its fiat invoice
-   * currency; the resolved rate is exposed through `resolved_cost_basis`.
-   * Required when `currency` is custom and the charge settles as
-   * `credit_then_invoice`; must be omitted otherwise.
+   * currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+   * when `currency` is custom and the charge settles as `credit_then_invoice`; must
+   * be omitted otherwise.
    */
   costBasis?: ChargeCostBasis
   /** The timestamp when the charge is intended to be invoiced. */
@@ -8489,8 +8491,9 @@ export interface ChargeFlatFeeInput {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * The resolved fiat conversion rate of a custom-currency charge. Absent until
-   * the cost basis is resolved.
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
    */
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
@@ -8525,7 +8528,7 @@ export interface ChargeFlatFeeInput {
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount after proration of the charge. */
-  amountAfterProration: ChargesCurrencyAmount
+  amountAfterProration: CurrencyAmount
   /** The price of the charge. */
   price: PriceFlat
   /**
@@ -8583,8 +8586,9 @@ export interface ChargeUsageBasedInput {
   /** The currency of the charge. */
   currency: BillingCurrencyCode
   /**
-   * The resolved fiat conversion rate of a custom-currency charge. Absent until
-   * the cost basis is resolved.
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
    */
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */

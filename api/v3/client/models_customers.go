@@ -741,8 +741,9 @@ type ChargeFlatFee struct {
 	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
-	// The resolved fiat conversion rate of a custom-currency charge. Absent until
-	// the cost basis is resolved.
+	// The resolved fiat conversion rate of a custom-currency charge. Resolution
+	// depends on costbasis type: dynamic is resolved when charge becomes active, all
+	// other types resolved on creation.
 	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
@@ -774,7 +775,7 @@ type ChargeFlatFee struct {
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount after proration of the charge.
-	AmountAfterProration ChargesCurrencyAmount `json:"amount_after_proration"`
+	AmountAfterProration CurrencyAmount `json:"amount_after_proration"`
 	// The price of the charge.
 	Price PriceFlat `json:"price"`
 	// Current intent from the system lifecycle controller for a charge that has an
@@ -819,7 +820,7 @@ type ChargeFlatFeeSystemIntent struct {
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount before proration of the system lifecycle controller flat fee intent.
-	AmountBeforeProration ChargesCurrencyAmount `json:"amount_before_proration"`
+	AmountBeforeProration CurrencyAmount `json:"amount_before_proration"`
 	// The timestamp when the system lifecycle controller intent was deleted. The
 	// effective charge can remain visible while a manual override is active.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
@@ -1258,16 +1259,16 @@ func (value ChargeRealizationType) Valid() bool {
 	}
 }
 
-// Fiat conversion rate a custom-currency charge is invoiced at. Present once
-// the cost basis is resolved; dynamic cost bases are exposed only after the
-// service period has started.
+// Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+// cost basis is resolved; dynamic cost bases are exposed only after the service
+// period has started.
 type ChargeResolvedCostBasis struct {
 	// The fiat currency the charge amount is converted into for invoicing.
 	FiatCurrency string `json:"fiat_currency"`
 	// Fiat amount per one unit of the custom currency.
 	Rate Numeric `json:"rate"`
-	// ID of the custom currency's cost basis resource the rate was taken from.
-	// Absent for manual cost bases.
+	// ID of the custom currency's cost basis resource the rate was taken from. Absent
+	// for manual cost bases.
 	CostBasisID *string `json:"cost_basis_id,omitempty"`
 	// When the rate was resolved.
 	ResolvedAt time.Time `json:"resolved_at"`
@@ -1372,8 +1373,9 @@ type ChargeUsageBased struct {
 	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
-	// The resolved fiat conversion rate of a custom-currency charge. Absent until
-	// the cost basis is resolved.
+	// The resolved fiat conversion rate of a custom-currency charge. Resolution
+	// depends on costbasis type: dynamic is resolved when charge becomes active, all
+	// other types resolved on creation.
 	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
@@ -1472,14 +1474,6 @@ type ChargeUsageBasedSystemIntent struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
-// Monetary amount in a fiat or custom currency.
-type ChargesCurrencyAmount struct {
-	// The amount as an arbitrary-precision decimal string.
-	Amount Numeric `json:"amount"`
-	// The fiat or custom currency code of the amount.
-	Currency BillingCurrencyCode `json:"currency"`
-}
-
 // Expands for customer charges.
 //
 // Values:
@@ -1533,9 +1527,9 @@ type CreateChargeFlatFeeRequest struct {
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Defines how a custom-currency charge is converted into its fiat invoice
-	// currency; the resolved rate is exposed through `resolved_cost_basis`.
-	// Required when `currency` is custom and the charge settles as
-	// `credit_then_invoice`; must be omitted otherwise.
+	// currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+	// when `currency` is custom and the charge settles as `credit_then_invoice`; must
+	// be omitted otherwise.
 	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.
 	InvoiceAt time.Time `json:"invoice_at"`
@@ -1554,7 +1548,7 @@ type CreateChargeFlatFeeRequest struct {
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount before proration of the charge.
-	AmountBeforeProration ChargesCurrencyAmount `json:"amount_before_proration"`
+	AmountBeforeProration CurrencyAmount `json:"amount_before_proration"`
 	// A reference to the feature associated with the charge, when applicable.
 	Feature *FeatureReference `json:"feature,omitempty"`
 	// The full, unprorated service period of the charge.
@@ -1660,9 +1654,9 @@ type CreateChargeUsageBasedRequest struct {
 	// The currency of the charge.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Defines how a custom-currency charge is converted into its fiat invoice
-	// currency; the resolved rate is exposed through `resolved_cost_basis`.
-	// Required when `currency` is custom and the charge settles as
-	// `credit_then_invoice`; must be omitted otherwise.
+	// currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+	// when `currency` is custom and the charge settles as `credit_then_invoice`; must
+	// be omitted otherwise.
 	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.
 	InvoiceAt time.Time `json:"invoice_at"`
@@ -2146,6 +2140,14 @@ func (value CreditTransactionType) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Monetary amount in a fiat or custom currency.
+type CurrencyAmount struct {
+	// The amount as an arbitrary-precision decimal string.
+	Amount Numeric `json:"amount"`
+	// The fiat or custom currency code of the amount.
+	Currency BillingCurrencyCode `json:"currency"`
 }
 
 // Billing customer data.

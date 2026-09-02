@@ -4958,8 +4958,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
           description: |-
-            The resolved fiat conversion rate of a custom-currency charge. Absent until
-            the cost basis is resolved.
+            The resolved fiat conversion rate of a custom-currency charge. Resolution
+            depends on costbasis type: dynamic is resolved when charge becomes active, all
+            other types resolved on creation.
           title: Resolved cost basis
           readOnly: true
         status:
@@ -5042,7 +5043,7 @@ components:
           title: Proration configuration
         amount_after_proration:
           allOf:
-            - $ref: '#/components/schemas/ChargesCurrencyAmount'
+            - $ref: '#/components/schemas/BillingCurrencyAmount'
           description: The amount after proration of the charge.
           title: Amount after proration
           readOnly: true
@@ -5147,7 +5148,7 @@ components:
           title: Proration configuration
         amount_before_proration:
           allOf:
-            - $ref: '#/components/schemas/ChargesCurrencyAmount'
+            - $ref: '#/components/schemas/BillingCurrencyAmount'
           description: The amount before proration of the system lifecycle controller flat fee intent.
           title: Amount before proration
           readOnly: true
@@ -5782,8 +5783,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/ULID'
           description: |-
-            ID of the custom currency's cost basis resource the rate was taken from.
-            Absent for manual cost bases.
+            ID of the custom currency's cost basis resource the rate was taken from. Absent
+            for manual cost bases.
           readOnly: true
         resolved_at:
           allOf:
@@ -5792,9 +5793,9 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        Fiat conversion rate a custom-currency charge is invoiced at. Present once
-        the cost basis is resolved; dynamic cost bases are exposed only after the
-        service period has started.
+        Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+        cost basis is resolved; dynamic cost bases are exposed only after the service
+        period has started.
       title: Resolved charge cost basis
     BillingChargeStatus:
       type: string
@@ -5943,8 +5944,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
           description: |-
-            The resolved fiat conversion rate of a custom-currency charge. Absent until
-            the cost basis is resolved.
+            The resolved fiat conversion rate of a custom-currency charge. Resolution
+            depends on costbasis type: dynamic is resolved when charge becomes active, all
+            other types resolved on creation.
           title: Resolved cost basis
           readOnly: true
         status:
@@ -6681,6 +6683,22 @@ components:
           fiat: '#/components/schemas/BillingCurrencyFiat'
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
+    BillingCurrencyAmount:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount as an arbitrary-precision decimal string.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The fiat or custom currency code of the amount.
+      additionalProperties: false
+      description: Monetary amount in a fiat or custom currency.
     BillingCurrencyCode:
       oneOf:
         - $ref: '#/components/schemas/CurrencyCode'
@@ -10552,22 +10570,6 @@ components:
           $ref: '#/components/schemas/ULID'
       additionalProperties: false
       description: ChargeRealizationInvoice reference.
-    ChargesCurrencyAmount:
-      type: object
-      required:
-        - amount
-        - currency
-      properties:
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: The amount as an arbitrary-precision decimal string.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
-          description: The fiat or custom currency code of the amount.
-      additionalProperties: false
-      description: Monetary amount in a fiat or custom currency.
     ClosedPeriod:
       type: object
       required:
@@ -10763,9 +10765,9 @@ components:
             - $ref: '#/components/schemas/BillingChargeCostBasis'
           description: |-
             Defines how a custom-currency charge is converted into its fiat invoice
-            currency; the resolved rate is exposed through `resolved_cost_basis`.
-            Required when `currency` is custom and the charge settles as
-            `credit_then_invoice`; must be omitted otherwise.
+            currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+            when `currency` is custom and the charge settles as `credit_then_invoice`; must
+            be omitted otherwise.
           title: Cost basis
         invoice_at:
           allOf:
@@ -10808,7 +10810,7 @@ components:
           title: Proration configuration
         amount_before_proration:
           allOf:
-            - $ref: '#/components/schemas/ChargesCurrencyAmount'
+            - $ref: '#/components/schemas/BillingCurrencyAmount'
           description: The amount before proration of the charge.
           title: Amount before proration
         feature:
@@ -10885,9 +10887,9 @@ components:
             - $ref: '#/components/schemas/BillingChargeCostBasis'
           description: |-
             Defines how a custom-currency charge is converted into its fiat invoice
-            currency; the resolved rate is exposed through `resolved_cost_basis`.
-            Required when `currency` is custom and the charge settles as
-            `credit_then_invoice`; must be omitted otherwise.
+            currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+            when `currency` is custom and the charge settles as `credit_then_invoice`; must
+            be omitted otherwise.
           title: Cost basis
         invoice_at:
           allOf:

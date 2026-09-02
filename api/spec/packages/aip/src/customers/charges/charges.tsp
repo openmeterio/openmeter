@@ -589,8 +589,9 @@ model ChargeBase<T extends ChargeType> {
   cost_basis?: ChargeCostBasis;
 
   /**
-   * The resolved fiat conversion rate of a custom-currency charge. Absent until the
-   * cost basis is resolved.
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
    */
   @visibility(Lifecycle.Read)
   @summary("Resolved cost basis")

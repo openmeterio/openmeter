@@ -55,7 +55,7 @@ union CurrencyCode {
 /**
  * Monetary amount in a fiat or custom currency.
  */
-@friendlyName("ChargesCurrencyAmount")
+@friendlyName("BillingCurrencyAmount")
 model CurrencyAmount {
   /**
    * The amount as an arbitrary-precision decimal string.

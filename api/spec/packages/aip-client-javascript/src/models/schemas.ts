@@ -1804,7 +1804,7 @@ export const llmCostModelPricing = z
   })
   .describe('Token pricing for an LLM model, denominated per token.')
 
-export const currencyAmount = z
+export const fiatCurrencyAmount = z
   .object({
     amount: numeric,
     currency: currencyCode,
@@ -3504,7 +3504,7 @@ export const creditTransaction = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
-export const chargesCurrencyAmount = z
+export const currencyAmount = z
   .object({
     amount: numeric,
     currency: billingCurrencyCode,
@@ -4526,7 +4526,7 @@ export const chargeFlatFeeSystemIntent = z
     paymentTerm: pricePaymentTerm,
     discounts: chargeFlatFeeDiscounts.optional(),
     prorationConfiguration: rateCardProrationConfiguration,
-    amountBeforeProration: chargesCurrencyAmount,
+    amountBeforeProration: currencyAmount,
     deletedAt: dateTime.optional(),
   })
 
@@ -4752,7 +4752,7 @@ export const createChargeFlatFeeRequest = z
     paymentTerm: pricePaymentTerm,
     discounts: chargeFlatFeeDiscounts.optional(),
     prorationConfiguration: rateCardProrationConfiguration,
-    amountBeforeProration: chargesCurrencyAmount,
+    amountBeforeProration: currencyAmount,
     feature: featureReference.optional(),
     fullServicePeriod: closedPeriod.optional(),
     billingPeriod: closedPeriod.optional(),
@@ -6456,7 +6456,7 @@ export const chargeFlatFee = z
     discounts: chargeFlatFeeDiscounts.optional(),
     feature: featureOrReference.optional(),
     prorationConfiguration: rateCardProrationConfiguration,
-    amountAfterProration: chargesCurrencyAmount,
+    amountAfterProration: currencyAmount,
     price: priceFlat,
     systemIntent: chargeFlatFeeSystemIntent.optional(),
   })
@@ -9287,7 +9287,7 @@ export const llmCostModelPricingWire = z
   })
   .describe('Token pricing for an LLM model, denominated per token.')
 
-export const currencyAmountWire = z
+export const fiatCurrencyAmountWire = z
   .strictObject({
     amount: numericWire,
     currency: currencyCodeWire,
@@ -10969,7 +10969,7 @@ export const creditTransactionWire = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
-export const chargesCurrencyAmountWire = z
+export const currencyAmountWire = z
   .strictObject({
     amount: numericWire,
     currency: billingCurrencyCodeWire,
@@ -11995,7 +11995,7 @@ export const chargeFlatFeeSystemIntentWire = z
     payment_term: pricePaymentTermWire,
     discounts: chargeFlatFeeDiscountsWire.optional(),
     proration_configuration: rateCardProrationConfigurationWire,
-    amount_before_proration: chargesCurrencyAmountWire,
+    amount_before_proration: currencyAmountWire,
     deleted_at: dateTimeWire.optional(),
   })
 
@@ -12220,7 +12220,7 @@ export const createChargeFlatFeeRequestWire = z
     payment_term: pricePaymentTermWire,
     discounts: chargeFlatFeeDiscountsWire.optional(),
     proration_configuration: rateCardProrationConfigurationWire,
-    amount_before_proration: chargesCurrencyAmountWire,
+    amount_before_proration: currencyAmountWire,
     feature: featureReferenceWire.optional(),
     full_service_period: closedPeriodWire.optional(),
     billing_period: closedPeriodWire.optional(),
@@ -13923,7 +13923,7 @@ export const chargeFlatFeeWire = z
     discounts: chargeFlatFeeDiscountsWire.optional(),
     feature: featureOrReferenceWire.optional(),
     proration_configuration: rateCardProrationConfigurationWire,
-    amount_after_proration: chargesCurrencyAmountWire,
+    amount_after_proration: currencyAmountWire,
     price: priceFlatWire,
     system_intent: chargeFlatFeeSystemIntentWire.optional(),
   })
