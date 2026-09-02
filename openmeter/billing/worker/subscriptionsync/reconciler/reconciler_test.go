@@ -11,13 +11,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestReconcileSubscriptionSkipsUnsupportedCustomCurrencies(t *testing.T) {
+func TestReconcileSubscriptionUsesDefaultSyncOptions(t *testing.T) {
 	// given:
 	// - periodic reconciliation delegates to subscription sync
 	// when:
 	// - a subscription is reconciled
 	// then:
-	// - it opts into the temporary custom-currency skip behavior
+	// - it does not suppress any supported billing behavior
 	spy := &subscriptionSyncSpy{}
 	reconciler := Reconciler{subscriptionSync: spy}
 
@@ -27,7 +27,7 @@ func TestReconcileSubscriptionSkipsUnsupportedCustomCurrencies(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	require.True(t, spy.options.SkipCustomCurrencySubscriptions)
+	require.Equal(t, subscriptionsync.SynchronizeSubscriptionOptions{}, spy.options)
 }
 
 type subscriptionSyncSpy struct {

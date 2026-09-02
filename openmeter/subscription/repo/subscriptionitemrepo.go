@@ -78,6 +78,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input s
 			Where(getItemForSubscriptionAtFilter(input)).
 			WithPhase().
 			WithTaxCode().
+			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -109,6 +110,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 			)).
 			WithPhase().
 			WithTaxCode().
+			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -139,6 +141,7 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 			)).
 			WithPhase().
 			WithTaxCode().
+			WithCustomCurrency().
 			Only(ctx)
 
 		if db.IsNotFound(err) {

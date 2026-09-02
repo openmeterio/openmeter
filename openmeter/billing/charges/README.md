@@ -41,8 +41,9 @@ projection. The type-specific detailed status is the lifecycle state.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles
-  subscription-derived source intent. It does not treat API overrides as new
-  subscription source state.
+  subscription-derived source intent, including item currency and subscription
+  cost-basis selection. It does not treat API overrides as new subscription
+  source state.
 
 `AdvanceCharges` coordinates concrete services; it is not a second
 implementation of their state machines.

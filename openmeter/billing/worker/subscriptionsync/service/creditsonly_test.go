@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"slices"
 	"strings"
@@ -20,6 +21,8 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -116,6 +119,96 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() {
 		CreditPurchaseHandler: handlers.CreditPurchase,
 		UsageBasedHandler:     handlers.UsageBased,
 	})
+}
+
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCustomCurrencyFlatFeeProvisioning() {
+	// given:
+	// - a credit-only subscription whose flat fee is denominated in a managed custom currency
+	// - an event-carried view whose runtime-only currency definition was removed by serialization
+	// when:
+	// - subscription sync reconciles that view
+	// then:
+	// - it reloads the authoritative currency snapshot and creates custom-currency charges
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{Client: s.DBClient})
+	s.NoError(err)
+	currencyService, err := currencyservice.New(currencyAdapter)
+	s.NoError(err)
+	customCurrency, err := currencyService.CreateCurrency(ctx, currencies.CreateCurrencyInput{
+		Namespace: s.Namespace,
+		CurrencyDetails: currencyx.CurrencyDetails{
+			Code:               "CREDITS",
+			Name:               "Credits",
+			Symbol:             "CR",
+			Precision:          0,
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	})
+	s.NoError(err)
+
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Custom Currency Credits Only",
+				Key:            "custom-currency-credits-only",
+				Version:        1,
+				Currency:       customCurrency.Reference(),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: s.phaseMeta("first-phase", ""),
+				RateCards: productcatalog.RateCards{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Name: "flat-fee",
+							Key:  "flat-fee",
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromInt(25),
+								PaymentTerm: productcatalog.InAdvancePaymentTerm,
+							}),
+						},
+						BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+					},
+				},
+			}},
+		},
+	}, startAt)
+
+	serialized, err := json.Marshal(subscriptionView)
+	s.NoError(err)
+	var eventView subscription.SubscriptionView
+	s.NoError(json.Unmarshal(serialized, &eventView))
+	eventCurrency := eventView.Phases[0].ItemsByKey["flat-fee"][0].Spec.RateCard.AsMeta().Currency
+	s.NotNil(eventCurrency)
+	s.False(eventCurrency.IsResolved())
+
+	s.NoError(s.Service.SyncByView(ctx, eventView, syncUntil))
+
+	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.NoError(err)
+	s.Len(result.Items, 2)
+	for _, item := range result.Items {
+		charge, err := item.AsFlatFeeCharge()
+		s.NoError(err)
+		s.True(charge.Intent.GetCurrency().IsCustom())
+		s.Equal(customCurrency.ID, charge.Intent.GetCurrency().ID)
+		s.Equal(customCurrency.GetCode(), charge.Intent.GetCurrency().GetCode())
+		s.Nil(charge.Intent.GetCostBasisIntent())
+	}
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisioningAndReconciliation() {

@@ -104,8 +104,12 @@ write artifacts or sync state.
 
 ## Intentional limitations
 
-- subscription sync currently materializes subscription currency as fiat; it
-  does not perform custom-currency-to-fiat conversion
+- invoice-backed subscription artifacts remain fiat-only; custom-currency items
+  require the charges backend
+- charge intents preserve each subscription item's fiat or managed custom
+  currency. For `credit_then_invoice`, subscription cost-basis mode maps to a
+  dynamic charge cost basis or the subscription's pinned cost-basis resource;
+  the charge lifecycle performs overage conversion into invoice currency
 - subscription-owned credit-purchase charges are unsupported
 - immutable invoice drift is reported, not automatically corrected
 - an `asOf` at the current instant is not a request to provision the entire

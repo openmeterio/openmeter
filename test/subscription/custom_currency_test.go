@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -31,7 +30,7 @@ func TestCustomCurrencySubscriptionLifecycle(t *testing.T) {
 	// - subscriptions are started in each supported settlement and cost-basis mode
 	// then:
 	// - the persisted subscription keeps USD for invoicing and the managed currency on its item
-	// - conversion eligibility and billing's temporary safety boundary are enforced end to end
+	// - conversion eligibility and cost-basis persistence are enforced end to end
 	const namespace = "test-namespace"
 
 	now := time.Now().UTC().Truncate(time.Second)
@@ -127,20 +126,7 @@ func TestCustomCurrencySubscriptionLifecycle(t *testing.T) {
 		require.NotNil(t, itemCurrency)
 		require.NotNil(t, itemCurrency.CustomCurrencyID, "persisted custom item currency must reload with its managed ID")
 		require.Equal(t, customCurrency.ID, *itemCurrency.CustomCurrencyID)
-
-		// Billing conversion is deliberately outside this PR. Explicit callers see the
-		// unsupported boundary; automatic reconciliation skips the whole subscription.
-		err = deps.subscriptionSyncService.SyncByView(t.Context(), view, startsAt)
-		require.ErrorIs(t, err, subscriptionsync.ErrCustomCurrencyBillingNotSupported)
-		require.True(t, models.IsGenericConflictError(err))
-
-		err = deps.subscriptionSyncService.SyncByView(
-			t.Context(),
-			view,
-			startsAt,
-			subscriptionsync.SkipCustomCurrencySubscriptions(),
-		)
-		require.NoError(t, err)
+		require.True(t, itemCurrency.IsResolved(), "billing consumers need the immutable custom currency snapshot")
 	})
 
 	t.Run("credit then invoice resolves dynamic and pinned cost bases", func(t *testing.T) {

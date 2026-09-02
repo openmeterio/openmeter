@@ -16,6 +16,7 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
@@ -54,6 +55,7 @@ type Config struct {
 	FlatFeeHandler        flatfee.Handler
 	CreditPurchaseHandler creditpurchase.Handler
 	UsageBasedHandler     usagebased.Handler
+	LineageService        lineage.Service
 }
 
 func (c Config) Validate() error {
@@ -154,18 +156,21 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating locker: %w", err)
 	}
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
-		Client: config.Client,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating lineage adapter: %w", err)
-	}
+	lineageService := config.LineageService
+	if lineageService == nil {
+		lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+			Client: config.Client,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("creating lineage adapter: %w", err)
+		}
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
-		Adapter: lineageAdapter,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating lineage service: %w", err)
+		lineageService, err = lineageservice.New(lineageservice.Config{
+			Adapter: lineageAdapter,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("creating lineage service: %w", err)
+		}
 	}
 
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
