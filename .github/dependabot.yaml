@@ -16,6 +16,8 @@ updates:
       - area/dependencies
       - dependency/go
       - release-note/dependency-update
+    ignore:
+      - dependency-name: "ariga.io/atlas"
     groups:
       k8s:
         patterns:
