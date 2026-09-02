@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	pcfeature "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -142,6 +143,516 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 		// - every ledger balance is still identical to the pre-delete snapshot
 		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusDeleted)
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPersistsMissingMeterValidationIssue() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-missing-meter-collection")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var invoice billing.StandardInvoice
+
+	s.Run("Given a charge-backed usage line whose feature initially has a meter", func() {
+		// given:
+		// - a metered feature can be resolved when a credit-then-invoice usage charge is created
+		// when:
+		// - charge creation persists the charge and its gathering line
+		// then:
+		// - the gathering line is owned by the usage-based charge line engine and is ready for later collection
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+					Name:              "usage-based-missing-meter-collection",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "usage-based-missing-meter-collection",
+					FeatureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Require().Len(created, 1)
+
+		usageBasedCharge, err := created[0].AsUsageBasedCharge()
+		s.NoError(err)
+		s.RequireChargeStatus(usageBasedCharge.GetChargeID(), usagebased.StatusCreated)
+
+		lines := s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedCharge.ID, false)
+		s.Require().Len(lines, 1)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, lines[0].Engine)
+	})
+
+	s.Run("When the meter disappears collection should persist an invalid invoice", func() {
+		// given:
+		// - the persisted charge and gathering line still reference the feature
+		// when:
+		// - the meter backing that feature is removed and the line becomes collectible
+		// then:
+		// - collection returns and persists a draft.invalid_created invoice with a critical validation issue
+		err := s.MeterAdapter.ReplaceMeters(ctx, nil)
+		s.NoError(err)
+
+		clock.FreezeTime(servicePeriod.To.Add(time.Second))
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		invoice = invoices[0]
+
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		s.Require().NotNil(invoice.Lines.OrEmpty()[0].UsageBased)
+		s.Nil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
+		s.Require().Len(invoice.ValidationIssues, 1)
+
+		issue := invoice.ValidationIssues[0]
+		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
+		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
+		s.Contains(issue.Message, fmt.Sprintf("feature[%s] has no meter associated", apiRequestsTotal.Feature.Key))
+
+		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
+		s.Require().Len(persistedInvoice.ValidationIssues, 1)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, persistedInvoice.ValidationIssues[0].Code)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPersistsMultipleMissingMeterValidationIssues() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-multiple-missing-meter-collection")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+
+	aiTokens, err := s.FeatureService.CreateFeature(ctx, pcfeature.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "AI tokens",
+		Key:       "ai-tokens",
+		MeterID:   apiRequestsTotal.Feature.MeterID,
+	})
+	s.NoError(err)
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	// given:
+	// - two credit-then-invoice usage charges have gathering lines backed by different features
+	// - both features resolve to a meter when the charges are created
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "API requests",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "missing-meter-api-requests",
+				FeatureKey:        apiRequestsTotal.Feature.Key,
+			}),
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "AI tokens",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "missing-meter-ai-tokens",
+				FeatureKey:        aiTokens.Key,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(created, 2)
+
+	// when:
+	// - the shared meter disappears and both gathering lines become collectible
+	err = s.MeterAdapter.ReplaceMeters(ctx, nil)
+	s.NoError(err)
+	clock.FreezeTime(servicePeriod.To.Add(time.Second))
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(servicePeriod.To),
+	})
+
+	// then:
+	// - collection persists one invalid invoice and keeps a distinct critical issue for each feature
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
+	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+	s.Require().Len(invoice.Lines.OrEmpty(), 2)
+	s.Require().Len(invoice.ValidationIssues, 2)
+
+	issueMessages := make([]string, 0, len(invoice.ValidationIssues))
+	for _, issue := range invoice.ValidationIssues {
+		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
+		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
+		issueMessages = append(issueMessages, issue.Message)
+	}
+	s.ElementsMatch([]string{
+		fmt.Sprintf("feature[%s] has no meter associated", apiRequestsTotal.Feature.Key),
+		fmt.Sprintf("feature[%s] has no meter associated", aiTokens.Key),
+	}, issueMessages)
+
+	for _, line := range invoice.Lines.OrEmpty() {
+		s.Require().NotNil(line.UsageBased)
+		s.Nil(line.UsageBased.MeteredQuantity)
+	}
+
+	persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
+	s.Require().Len(persistedInvoice.ValidationIssues, 2)
+}
+
+func (s *CreditThenInvoiceTestSuite) TestAdvanceChargesIgnoresMissingMetersForUsageChargesThatAreNotDue() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-advance-ignores-not-due-missing-meters")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+
+	aiTokens, err := s.FeatureService.CreateFeature(ctx, pcfeature.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "AI tokens",
+		Key:       "ai-tokens",
+		MeterID:   apiRequestsTotal.Feature.MeterID,
+	})
+	s.NoError(err)
+
+	usageServicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	flatFeeServicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-15T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(usageServicePeriod.From)
+	defer clock.UnFreeze()
+
+	// given:
+	// - two usage charges are active and are not due until the end of their service period
+	usageCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  usageServicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "API requests",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "not-due-api-requests",
+				FeatureKey:        apiRequestsTotal.Feature.Key,
+			}),
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  usageServicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "AI tokens",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "not-due-ai-tokens",
+				FeatureKey:        aiTokens.Key,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(usageCharges, 2)
+
+	usageChargeIDs := make([]meta.ChargeID, 0, len(usageCharges))
+	for _, charge := range usageCharges {
+		usageCharge, err := charge.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusActive, usageCharge.Status)
+		s.Require().NotNil(usageCharge.State.AdvanceAfter)
+		s.True(usageServicePeriod.To.Equal(*usageCharge.State.AdvanceAfter))
+		usageChargeIDs = append(usageChargeIDs, usageCharge.GetChargeID())
+	}
+
+	// - an unrelated credit-then-invoice flat fee for the customer becomes due first
+	flatFeeCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  flatFeeServicePeriod,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(10),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				Name:              "monthly platform fee",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "due-platform-fee",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Require().Len(flatFeeCharges, 1)
+	flatFeeCharge, err := flatFeeCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
+
+	// when:
+	// - the usage meters disappear before the unrelated flat fee is advanced
+	err = s.MeterAdapter.ReplaceMeters(ctx, nil)
+	s.NoError(err)
+	clock.FreezeTime(flatFeeServicePeriod.From)
+
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+
+	// then:
+	// - the due flat fee advances without resolving meters for the not-due usage charges
+	s.Require().NoError(err)
+	s.Require().Len(advancedCharges, 1)
+	advancedFlatFee, err := advancedCharges[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(flatfee.StatusActive, advancedFlatFee.Status)
+	s.RequireChargeStatus(flatFeeCharge.GetChargeID(), flatfee.StatusActive)
+
+	for _, usageChargeID := range usageChargeIDs {
+		charge := s.RequireChargeStatus(usageChargeID, usagebased.StatusActive)
+		usageCharge, err := charge.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Require().NotNil(usageCharge.State.AdvanceAfter)
+		s.True(usageServicePeriod.To.Equal(*usageCharge.State.AdvanceAfter))
+	}
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPersistsActiveRealizationRunValidationIssue() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-active-run-collection")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	sandboxApp := s.InstallSandboxApp(t, ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	midPeriodInvoiceAt := datetime.MustParseTimeInLocation(t, "2026-01-16T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		usageBasedChargeID meta.ChargeID
+		partialInvoice     billing.StandardInvoice
+	)
+
+	s.Run("Given a credit-then-invoice usage charge", func() {
+		// given:
+		// - a metered usage charge is configured for progressive billing
+		// when:
+		// - the charge and its gathering line are created
+		// then:
+		// - the charge is ready for a partial realization during its service period
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+					Name:              "usage-based-active-run-collection",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "usage-based-active-run-collection",
+					FeatureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Require().Len(created, 1)
+
+		usageBasedCharge, err := created[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusCreated)
+	})
+
+	s.Run("When a partial invoice becomes invalid during app validation", func() {
+		// given:
+		// - usage exists for the first part of the service period
+		// - the invoicing app rejects the customer configuration during invoice validation
+		// when:
+		// - the partial invoice reaches its collection time
+		// then:
+		// - the invoice is persisted as draft.invalid and retains the charge's active realization run
+		s.MockStreamingConnector.AddSimpleEvent(
+			apiRequestsTotal.Feature.Key,
+			10,
+			datetime.MustParseTimeInLocation(t, "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+		clock.FreezeTime(midPeriodInvoiceAt)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(midPeriodInvoiceAt),
+		})
+		s.NoError(err)
+		s.Require().Len(invoices, 1)
+		partialInvoice = invoices[0]
+
+		mockApp := s.SandboxApp.EnableMock(t)
+		defer s.SandboxApp.DisableMock()
+		mockApp.OnValidateStandardInvoice(billing.NewValidationError(
+			"missing_app_customer_data",
+			"customer has no data for the invoicing app",
+		))
+
+		clock.FreezeTime(partialInvoice.DefaultCollectionAtForStandardInvoice())
+		partialInvoice, err = s.BillingService.AdvanceInvoice(ctx, partialInvoice.GetInvoiceID())
+		s.NoError(err)
+		mockApp.AssertExpectations(t)
+
+		s.Equal(billing.StandardInvoiceStatusDraftInvalid, partialInvoice.Status)
+		s.Require().Len(partialInvoice.ValidationIssues, 1)
+		s.Equal("missing_app_customer_data", partialInvoice.ValidationIssues[0].Code)
+		s.Equal(billing.ComponentName("app.sandbox.invoiceCustomers.validate"), partialInvoice.ValidationIssues[0].Component)
+
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
+		currentRun, err := charge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(usagebased.RealizationRunTypePartialInvoice, currentRun.Type)
+		s.Equal(partialInvoice.ID, lo.FromPtr(currentRun.InvoiceID))
+	})
+
+	s.Run("Then final collection persists the active-run failure as an invalid invoice", func() {
+		// given:
+		// - the earlier draft.invalid partial invoice still owns the charge's active realization run
+		// when:
+		// - billing collects the remaining line at the end of the service period
+		// then:
+		// - collection persists the new invoice and records the line-engine failure as a critical validation issue
+		clock.FreezeTime(servicePeriod.To)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+
+		invoice := invoices[0]
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		s.Require().Len(invoice.ValidationIssues, 1)
+
+		issue := invoice.ValidationIssues[0]
+		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
+		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
+		s.Contains(issue.Message, usagebased.ErrActiveRealizationRunAlreadyExists.Error())
+
+		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
+		s.Require().Len(persistedInvoice.ValidationIssues, 1)
+		s.Contains(persistedInvoice.ValidationIssues[0].Message, usagebased.ErrActiveRealizationRunAlreadyExists.Error())
 	})
 }
 
