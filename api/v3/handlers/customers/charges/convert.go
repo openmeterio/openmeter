@@ -909,7 +909,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		}
 
 		var currencyCode api.CurrencyCode
-		var intentBuilder costbasis.NewIntentFromFieldsInput
+		var newIntentInput costbasis.NewIntentFromFieldsInput
 
 		switch costBasisType {
 		// TODO fix poor naming
@@ -918,7 +918,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 			if err != nil {
 				return zero, fmt.Errorf("invalid fiat currency: %w", err)
 			}
-			intentBuilder.Mode = costbasis.ModeDynamic
+			newIntentInput.Mode = costbasis.ModeDynamic
 			currencyCode = dynamic.FiatCurrency
 		case string(api.BillingChargeCostBasisManualTypeManual):
 			manual, err := flatFee.CostBasis.AsBillingChargeCostBasisManual()
@@ -926,30 +926,30 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 				return zero, fmt.Errorf("invalid fiat currency: %w", err)
 			}
 
-			intentBuilder.Mode = costbasis.ModeManual
+			newIntentInput.Mode = costbasis.ModeManual
 			currencyCode = manual.FiatCurrency
 
 			rate, err := alpacadecimal.NewFromString(manual.Rate)
 			if err != nil {
 				return zero, fmt.Errorf("invalid rate: %w", err)
 			}
-			intentBuilder.Rate = &rate
+			newIntentInput.Rate = &rate
 		case string(api.BillingChargeCostBasisPinnedTypePinned):
 			pinned, err := flatFee.CostBasis.AsBillingChargeCostBasisPinned()
 			if err != nil {
 				return zero, fmt.Errorf("invalid fiat currency: %w", err)
 			}
-			intentBuilder.Mode = costbasis.ModePinned
-			intentBuilder.CurrencyCostBasisID = &pinned.CostBasisId
+			newIntentInput.Mode = costbasis.ModePinned
+			newIntentInput.CurrencyCostBasisID = &pinned.CostBasisId
 			currencyCode = pinned.FiatCurrency
 		}
 
-		intentBuilder.FiatCurrency, err = currencyx.NewFiatCurrency(currencyCode)
+		newIntentInput.FiatCurrency, err = currencyx.NewFiatCurrency(currencyCode)
 		if err != nil {
 			return zero, fmt.Errorf("invalid fiat currency: %w", err)
 		}
 
-		intent, err := costbasis.NewIntentFromFields(intentBuilder)
+		intent, err := costbasis.NewIntentFromFields(newIntentInput)
 		if err != nil {
 			return zero, fmt.Errorf("invalid cost basis: %w", err)
 		}

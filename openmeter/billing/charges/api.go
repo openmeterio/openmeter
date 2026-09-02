@@ -135,7 +135,7 @@ func (i CreateCustomerChargeInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CreateCustomerChargeInput) SettlementMode() productcatalog.SettlementMode {
+func (i CreateCustomerChargeInput) GetSettlementMode() productcatalog.SettlementMode {
 	if i.FlatFee != nil {
 		return i.FlatFee.SettlementMode
 	}

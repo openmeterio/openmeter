@@ -37,7 +37,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		return charges.CustomerCharge{}, fmt.Errorf("resolving currency: %w", err)
 	}
 
-	if currency.IsCustom() && input.SettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+	if currency.IsCustom() && input.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return charges.CustomerCharge{}, models.NewGenericValidationError(fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
