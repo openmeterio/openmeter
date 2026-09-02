@@ -1078,6 +1078,43 @@ export const currencyExpand = z
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
 
+export const upsertCurrencyCustomRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    decimalMark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousandSeparator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
+      ),
+  })
+  .describe('CurrencyCustom upsert request.')
+
 export const llmCostProvider = z
   .object({
     id: z
@@ -7099,6 +7136,14 @@ export const getCustomCurrencyPathParams = z.object({
 
 export const getCustomCurrencyResponse = currencyCustom
 
+export const updateCustomCurrencyPathParams = z.object({
+  currencyId: ulid,
+})
+
+export const updateCustomCurrencyBody = upsertCurrencyCustomRequest
+
+export const updateCustomCurrencyResponse = currencyCustom
+
 export const listCostBasesPathParams = z.object({
   currencyId: ulid,
 })
@@ -8487,6 +8532,43 @@ export const currencyExpandWire = z
   .describe(
     "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
+
+export const upsertCurrencyCustomRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    decimal_mark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousand_separator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
+      ),
+  })
+  .describe('CurrencyCustom upsert request.')
 
 export const llmCostProviderWire = z
   .strictObject({
@@ -14546,6 +14628,14 @@ export const getCustomCurrencyPathParamsWire = z.object({
 })
 
 export const getCustomCurrencyResponseWire = currencyCustomWire
+
+export const updateCustomCurrencyPathParamsWire = z.object({
+  currencyId: ulidWire,
+})
+
+export const updateCustomCurrencyBodyWire = upsertCurrencyCustomRequestWire
+
+export const updateCustomCurrencyResponseWire = currencyCustomWire
 
 export const listCostBasesPathParamsWire = z.object({
   currencyId: ulidWire,

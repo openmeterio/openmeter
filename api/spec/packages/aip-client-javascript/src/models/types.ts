@@ -360,6 +360,31 @@ export interface UpdatePriceFree {
   type: 'free'
 }
 
+/** CurrencyCustom upsert request. */
+export interface UpsertCurrencyCustomRequest {
+  /**
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
+   */
+  name: string
+  /**
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
+   */
+  symbol?: string
+  /**
+   * The decimal mark for the currency. It should be a string that represents the
+   * decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+   */
+  decimalMark: string
+  /**
+   * The thousand separator for the currency. It should be a string that represents
+   * the thousand separator of the currency, such as "," for US Dollar or "." for
+   * Euro.
+   */
+  thousandSeparator: string
+}
+
 /** LLM Provider */
 export interface LlmCostProvider {
   /** Identifier of the provider, e.g., "openai", "anthropic". */

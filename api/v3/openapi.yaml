@@ -921,6 +921,44 @@ paths:
         - OpenMeter Currencies
       x-internal: true
       x-unstable: true
+    put:
+      operationId: update-custom-currency
+      summary: Update custom currency
+      description: |-
+        Replace the presentational attributes of a custom currency. The currency's code
+        and precision are immutable and cannot be updated.
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CurrencyCustom updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCurrencyCustom'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Currencies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCurrencyCustomRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/currencies/custom/{currencyId}/cost-bases:
     get:
       operationId: list-cost-bases
@@ -14486,6 +14524,43 @@ components:
           description: Whether this is the default profile.
       additionalProperties: false
       description: BillingProfile upsert request.
+    UpsertCurrencyCustomRequest:
+      type: object
+      required:
+        - name
+        - decimal_mark
+        - thousand_separator
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            The name of the currency. It should be a human-readable string that represents
+            the name of the currency, such as "US Dollar" or "Euro".
+        symbol:
+          type: string
+          minLength: 1
+          description: |-
+            The symbol of the currency. It should be a string that represents the symbol of
+            the currency, such as "$" for US Dollar or "€" for Euro.
+        decimal_mark:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The decimal mark for the currency. It should be a string that represents the
+            decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+        thousand_separator:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The thousand separator for the currency. It should be a string that represents
+            the thousand separator of the currency, such as "," for US Dollar or "." for
+            Euro.
+      additionalProperties: false
+      description: CurrencyCustom upsert request.
     UpsertCustomerBillingDataRequest:
       type: object
       properties:
