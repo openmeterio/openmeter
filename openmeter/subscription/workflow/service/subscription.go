@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
@@ -132,9 +133,9 @@ func resolveSubscriptionInvoiceCurrency(cus customer.Customer, plan subscription
 	return *cus.Currency, nil
 }
 
-// resolveEditPatchCurrency resolves the currency of a newly authored priced
-// item before patch validation requires a persisted custom-currency identity.
-func (s *service) resolveEditPatchCurrency(ctx context.Context, namespace string, invoiceCurrency currencyx.Code, customization subscription.Patch) (subscription.Patch, error) {
+// resolveEditPatchRateCardReferences canonicalizes the feature and currency of
+// a newly authored item before the patch is applied to the subscription spec.
+func (s *service) resolveEditPatchRateCardReferences(ctx context.Context, namespace string, invoiceCurrency currencyx.Code, customization subscription.Patch) (subscription.Patch, error) {
 	var addItem *patch.PatchAddItem
 	returnsPointer := false
 
@@ -152,25 +153,35 @@ func (s *service) resolveEditPatchCurrency(ctx context.Context, namespace string
 	}
 
 	rateCard := addItem.CreateInput.RateCard
-	if rateCard == nil || rateCard.AsMeta().Price == nil {
+	if rateCard == nil {
 		return customization, nil
 	}
 
 	rateCard = rateCard.Clone()
-	if rateCard.AsMeta().Currency == nil {
-		if err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-			meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(invoiceCurrency))
-			return meta, nil
-		}); err != nil {
-			return nil, fmt.Errorf("defaulting add-item currency: %w", err)
+	rateCards := productcatalog.RateCards{rateCard}
+	if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.FeatureResolver, namespace, &rateCards); err != nil {
+		return nil, fmt.Errorf("resolving add-item feature: %w", err)
+	}
+	rateCard = rateCards[0]
+
+	if rateCard.AsMeta().Price != nil {
+		if rateCard.AsMeta().Currency == nil {
+			if err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+				meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(invoiceCurrency))
+				return meta, nil
+			}); err != nil {
+				return nil, fmt.Errorf("defaulting add-item currency: %w", err)
+			}
 		}
+
+		rateCards[0] = rateCard
+		if err := productcatalogcurrencyresolver.ResolveCurrenciesForRateCards(ctx, s.CurrencyResolver.WithNamespace(namespace), &rateCards); err != nil {
+			return nil, fmt.Errorf("resolving add-item currency: %w", err)
+		}
+		rateCard = rateCards[0]
 	}
 
-	rateCards := productcatalog.RateCards{rateCard}
-	if err := productcatalogcurrencyresolver.ResolveCurrenciesForRateCards(ctx, s.CurrencyResolver.WithNamespace(namespace), &rateCards); err != nil {
-		return nil, fmt.Errorf("resolving add-item currency: %w", err)
-	}
-	addItem.CreateInput.RateCard = rateCards[0]
+	addItem.CreateInput.RateCard = rateCard
 
 	if returnsPointer {
 		return addItem, nil
@@ -234,7 +245,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		}
 
 		for i, customization := range customizations {
-			resolved, err := s.resolveEditPatchCurrency(ctx, subscriptionID.Namespace, curr.Spec.InvoiceCurrency, customization)
+			resolved, err := s.resolveEditPatchRateCardReferences(ctx, subscriptionID.Namespace, curr.Spec.InvoiceCurrency, customization)
 			if err != nil {
 				return subscription.SubscriptionView{}, models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch[%d]", i)), err)
 			}

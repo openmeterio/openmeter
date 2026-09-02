@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -24,17 +25,67 @@ import (
 func newPlanSubscriptionService(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, logger *slog.Logger) plansubscription.PlanSubscriptionService {
 	t.Helper()
 
+	featureResolver, err := featureresolver.New(deps.FeatureConnector)
+	require.NoError(t, err)
+
 	svc, err := service.New(service.Config{
 		SubscriptionService: deps.SubscriptionService,
 		WorkflowService:     deps.WorkflowService,
 		Logger:              logger,
 		PlanService:         deps.PlanService,
+		FeatureResolver:     featureResolver,
 		CurrencyResolver:    deps.CurrencyResolver,
 		CustomerService:     deps.CustomerService,
 	})
 	require.NoError(t, err)
 
 	return svc
+}
+
+func TestCreateInlineCustomPlanRejectsMissingFeature(t *testing.T) {
+	// given:
+	// - an inline custom plan whose rate card references a feature that does not exist
+	// when:
+	// - the plan subscription service creates the subscription
+	// then:
+	// - creation fails with the product catalog's missing-feature validation error
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
+	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+	const missingFeatureKey = "missing-feature"
+	planInput := subscriptiontestutils.GetExamplePlanInput(t)
+	planInput.Plan.Key = ""
+	planInput.Plan.Version = 0
+	require.NoError(t, planInput.Plan.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Key = missingFeatureKey
+		meta.Feature = productcatalog.NewFeatureReference(nil, lo.ToPtr(missingFeatureKey))
+
+		return meta, nil
+	}))
+
+	requestPlan := plansubscription.PlanInput{}
+	requestPlan.FromInput(&planInput)
+
+	_, err := svc.Create(t.Context(), plansubscription.CreateSubscriptionRequest{
+		PlanInput: requestPlan,
+		WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Name: "inline plan with missing feature",
+				Timing: subscription.Timing{
+					Enum: lo.ToPtr(subscription.TimingImmediate),
+				},
+			},
+			Namespace:  customer.Namespace,
+			CustomerID: customer.ID,
+		},
+	})
+	require.ErrorIs(t, err, productcatalog.ErrRateCardFeatureNotFound)
+	require.ErrorContains(t, err, missingFeatureKey)
 }
 
 func TestCreateSettlementModeOverride(t *testing.T) {

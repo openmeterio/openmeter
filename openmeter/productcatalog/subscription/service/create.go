@@ -27,6 +27,11 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		if request.SettlementMode != nil {
 			planInput.SettlementMode = *request.SettlementMode
 		}
+
+		if err := s.resolveCustomPlanFeatures(ctx, request.WorkflowInput.Namespace, &planInput); err != nil {
+			return def, err
+		}
+
 		if err := productcatalogcurrencyresolver.ResolveCurrenciesForPlan(ctx, s.CurrencyResolver.WithNamespace(request.WorkflowInput.Namespace), &planInput.Plan); err != nil {
 			return def, fmt.Errorf("invalid plan currencies: %w", err)
 		}

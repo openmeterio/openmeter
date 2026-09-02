@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -23,6 +24,7 @@ type Config struct {
 	WorkflowService     subscriptionworkflow.Service
 	SubscriptionService subscription.Service
 	PlanService         plan.Service
+	FeatureResolver     productcatalog.FeatureResolver
 	CurrencyResolver    currencies.CurrencyResolver
 	Logger              *slog.Logger
 	CustomerService     customer.Service
@@ -41,6 +43,10 @@ func (c Config) Validate() error {
 
 	if c.PlanService == nil {
 		errs = append(errs, errors.New("plan service is required"))
+	}
+
+	if c.FeatureResolver == nil {
+		errs = append(errs, errors.New("feature resolver is required"))
 	}
 
 	if c.CurrencyResolver == nil {

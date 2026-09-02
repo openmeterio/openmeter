@@ -123,6 +123,10 @@ and phase; do not persist a derived absolute end as independent source truth.
   this snapshot
 - customer and subscription invoice currencies must match whenever the spec has
   priced items; unpriced items have no materialized currency
+- customer-authored rate cards in inline custom plans and add-item edits must
+  resolve every feature in the subscription namespace before building the
+  target spec; they enforce the same feature existence and archival rules as
+  persisted plans
 - item and entitlement cadences cannot escape their phase or subscription
 - downstream work must be derived from the committed view and tolerate event
   retries

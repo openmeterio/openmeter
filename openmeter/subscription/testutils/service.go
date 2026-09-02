@@ -289,6 +289,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Service:            svc,
 		CustomerService:    customerService,
 		CurrencyResolver:   currencyResolver,
+		FeatureResolver:    featureResolver,
 		TransactionManager: subItemRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),

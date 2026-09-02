@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcsubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	subscription "github.com/openmeterio/openmeter/openmeter/subscription"
@@ -64,10 +65,14 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	deps := subscriptiontestutils.NewService(t, dbDeps)
 
+	featureResolver, err := featureresolver.New(deps.FeatureConnector)
+	require.NoError(t, err)
+
 	pcSubsService, err := pcsubscriptionservice.New(pcsubscriptionservice.Config{
 		WorkflowService:     deps.WorkflowService,
 		SubscriptionService: deps.SubscriptionService,
 		PlanService:         deps.PlanService,
+		FeatureResolver:     featureResolver,
 		CurrencyResolver:    deps.CurrencyResolver,
 		Logger:              testutils.NewLogger(t),
 		CustomerService:     deps.CustomerService,

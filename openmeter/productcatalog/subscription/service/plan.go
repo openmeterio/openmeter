@@ -7,12 +7,35 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// resolveCustomPlanFeatures canonicalizes feature references before an inline
+// plan is converted into a subscription-owned spec.
+func (s *service) resolveCustomPlanFeatures(ctx context.Context, namespace string, input *plan.CreatePlanInput) error {
+	for idx := range input.Phases {
+		phaseFieldSelector := models.NewFieldSelectorGroup(
+			models.NewFieldSelector("plan"),
+			models.NewFieldSelector("phases").WithExpression(
+				models.NewFieldAttrValue("key", input.Phases[idx].Key),
+			),
+		)
+
+		if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.FeatureResolver, namespace, &input.Phases[idx].RateCards); err != nil {
+			return models.ErrorWithFieldPrefix(
+				phaseFieldSelector,
+				fmt.Errorf("failed to resolve features for ratecards in custom plan phase [plan.phase.key=%s]: %w", input.Phases[idx].Key, err),
+			)
+		}
+	}
+
+	return nil
+}
 
 // TODO: this method is mostly redundant if the APIs are matched
 func (s *service) getPlanByVersion(ctx context.Context, namespace string, ref plansubscription.PlanRefInput) (*plan.Plan, error) {

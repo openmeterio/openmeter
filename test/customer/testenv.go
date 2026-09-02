@@ -410,6 +410,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Service:            svc,
 		CustomerService:    customerService,
 		CurrencyResolver:   currencyResolver,
+		FeatureResolver:    featureResolver,
 		TransactionManager: subItemRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
