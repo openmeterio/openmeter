@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -139,11 +138,11 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		return ListCreditTransactionsResult{}, err
 	}
 
-	accountID, err := s.customerFBOAccountID(ctx, input.CustomerID)
+	accountIDs, err := s.customerBalanceAccountIDs(ctx, input.CustomerID)
 	if err != nil {
-		return ListCreditTransactionsResult{}, fmt.Errorf("resolve customer FBO account: %w", err)
+		return ListCreditTransactionsResult{}, fmt.Errorf("resolve customer balance accounts: %w", err)
 	}
-	if accountID == "" {
+	if accountIDs.FBO == "" {
 		return emptyCreditTransactions(), nil
 	}
 
@@ -153,14 +152,15 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	}
 
 	loaderInput := creditTransactionLoaderInput{
-		Limit:         input.Limit,
-		After:         input.After,
-		Before:        input.Before,
-		CustomerID:    input.CustomerID,
-		AccountID:     accountID,
-		Currency:      input.Currency,
-		AsOf:          creditTransactionsAsOf(input.AsOf),
-		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+		Limit:               input.Limit,
+		After:               input.After,
+		Before:              input.Before,
+		CustomerID:          input.CustomerID,
+		AccountID:           accountIDs.FBO,
+		ReceivableAccountID: accountIDs.Receivable,
+		Currency:            input.Currency,
+		AsOf:                creditTransactionsAsOf(input.AsOf),
+		FeatureFilter:       normalizeFeatureFilter(input.FeatureFilter),
 	}
 
 	loadedLists := make([][]CreditTransaction, 0, len(loaders))
@@ -184,19 +184,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	// loadersHaveMore captures additional records in the requested cursor direction beyond each loader's in-memory window.
 	hasMoreInQueryDirection := bufferedHasMore || loadersHaveMore
 
-	items := make([]CreditTransaction, 0, len(mergedItems))
-	for _, item := range mergedItems {
-		resolvedItems, err := s.resolveCreditTransactionBalances(ctx, loaderInput, item)
-		if err != nil {
-			return ListCreditTransactionsResult{}, fmt.Errorf("resolve balance for transaction %s: %w", item.ID.ID, err)
-		}
-
-		items = append(items, resolvedItems...)
-	}
-	// Resolved balances need sorting again because funded transactions can split by booked time.
-	slices.SortStableFunc(items, func(a, b CreditTransaction) int {
-		return compareCreditTransactionsByBalanceCursor(b, a)
-	})
+	items := mergedItems
 
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
@@ -229,9 +217,9 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		nextCursor     *ledger.TransactionCursor
 		previousCursor *ledger.TransactionCursor
 	)
-	if len(mergedItems) > 0 {
-		lastCursor := creditTransactionCursor(mergedItems[len(mergedItems)-1])
-		firstCursor := creditTransactionCursor(mergedItems[0])
+	if len(items) > 0 {
+		lastCursor := creditTransactionCursor(items[len(items)-1])
+		firstCursor := creditTransactionCursor(items[0])
 
 		if input.Before != nil || hasMoreInQueryDirection {
 			nextCursor = lo.ToPtr(lastCursor)
@@ -263,17 +251,27 @@ func creditTransactionsAsOf(asOf *time.Time) time.Time {
 	return clock.Now()
 }
 
-func (s *service) customerFBOAccountID(ctx context.Context, customerID customer.CustomerID) (string, error) {
+type customerBalanceAccounts struct {
+	FBO        string
+	Receivable string
+}
+
+func (s *service) customerBalanceAccountIDs(ctx context.Context, customerID customer.CustomerID) (customerBalanceAccounts, error) {
 	accounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
-		return "", err
+		return customerBalanceAccounts{}, err
 	}
 
 	if accounts.FBOAccount == nil {
-		return "", nil
+		return customerBalanceAccounts{}, nil
 	}
 
-	return accounts.FBOAccount.ID().ID, nil
+	accountIDs := customerBalanceAccounts{FBO: accounts.FBOAccount.ID().ID}
+	if accounts.ReceivableAccount != nil {
+		accountIDs.Receivable = accounts.ReceivableAccount.ID().ID
+	}
+
+	return accountIDs, nil
 }
 
 func creditTransactionsFromLedgerTransactions(txs []ledger.Transaction) ([]CreditTransaction, error) {

@@ -186,7 +186,6 @@ func (s *BaseSuite) SetupSuite() {
 		AccountResolver:   deps.ResolversService,
 		SubAccountService: deps.AccountService,
 		ChargesService:    stack.ChargesService,
-		CreditPurchaseSvc: stack.CreditPurchaseService,
 		UsageBasedService: stack.UsageBasedService,
 		Ledger:            deps.HistoricalLedger,
 		BalanceQuerier:    deps.HistoricalLedger,

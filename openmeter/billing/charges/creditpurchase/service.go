@@ -29,9 +29,6 @@ type CreditPurchaseService interface {
 	// List returns credit-purchase charges for customer/API views, independent
 	// from invoice-backed flat-fee and usage-based line-engine ownership.
 	List(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
-	// ListFundedCreditActivities reports grant-side activity funded by credit
-	// purchases, not invoice-line override state.
-	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
 	// MarkVoided records the void time on the charge row. Callers run it in the
 	// same transaction as the ledger void booking.
 	MarkVoided(ctx context.Context, input MarkVoidedInput) (ChargeBase, error)

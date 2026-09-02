@@ -13,14 +13,15 @@ import (
 )
 
 type creditTransactionLoaderInput struct {
-	Limit         int
-	After         *ledger.TransactionCursor
-	Before        *ledger.TransactionCursor
-	CustomerID    customer.CustomerID
-	AccountID     string
-	Currency      *currencyx.Code
-	AsOf          time.Time
-	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	Limit               int
+	After               *ledger.TransactionCursor
+	Before              *ledger.TransactionCursor
+	CustomerID          customer.CustomerID
+	AccountID           string
+	ReceivableAccountID string
+	Currency            *currencyx.Code
+	AsOf                time.Time
+	FeatureFilter       mo.Option[creditpurchase.FeatureFilters]
 }
 
 type creditTransactionLoaderResult struct {
@@ -30,10 +31,6 @@ type creditTransactionLoaderResult struct {
 
 type creditTransactionLoader interface {
 	Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error)
-}
-
-type creditTransactionBalanceResolver interface {
-	resolveBalances(ctx context.Context, input creditTransactionLoaderInput, item CreditTransaction) ([]CreditTransaction, error)
 }
 
 type creditTransactionLoaderFactory func(*service) creditTransactionLoader
@@ -74,18 +71,4 @@ func (s *service) creditTransactionLoaders(txType *CreditTransactionType) ([]cre
 	}
 
 	return []creditTransactionLoader{factory(s)}, nil
-}
-
-func (s *service) resolveCreditTransactionBalances(ctx context.Context, input creditTransactionLoaderInput, item CreditTransaction) ([]CreditTransaction, error) {
-	factory, ok := creditTransactionLoaderFactories[item.Type]
-	if !ok {
-		return nil, item.Type.Validate()
-	}
-
-	resolver, ok := factory(s).(creditTransactionBalanceResolver)
-	if !ok {
-		return []CreditTransaction{item}, nil
-	}
-
-	return resolver.resolveBalances(ctx, input, item)
 }

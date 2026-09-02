@@ -51,10 +51,6 @@ type chargesService interface {
 	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
 }
 
-type creditPurchaseActivityService interface {
-	ListFundedCreditActivities(ctx context.Context, input creditpurchase.ListFundedCreditActivitiesInput) (creditpurchase.ListFundedCreditActivitiesResult, error)
-}
-
 type subAccountLister interface {
 	ListSubAccounts(ctx context.Context, input ledger.ListSubAccountsInput) ([]ledger.SubAccount, error)
 }
@@ -76,7 +72,6 @@ type service struct {
 	AccountResolver   ledger.AccountResolver
 	SubAccountService subAccountLister
 	ChargesService    chargesService
-	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
@@ -92,7 +87,6 @@ type Config struct {
 	AccountResolver   ledger.AccountResolver
 	SubAccountService subAccountLister
 	ChargesService    chargesService
-	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
@@ -235,10 +229,6 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("charges service is required"))
 	}
 
-	if c.CreditPurchaseSvc == nil {
-		errs = append(errs, errors.New("credit purchase service is required"))
-	}
-
 	if c.UsageBasedService == nil {
 		errs = append(errs, errors.New("usage based service is required"))
 	}
@@ -272,7 +262,6 @@ func New(config Config) (*service, error) {
 		AccountResolver:   config.AccountResolver,
 		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
-		CreditPurchaseSvc: config.CreditPurchaseSvc,
 		UsageBasedService: config.UsageBasedService,
 		Ledger:            config.Ledger,
 		BalanceQuerier:    config.BalanceQuerier,

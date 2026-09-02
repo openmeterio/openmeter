@@ -339,7 +339,6 @@ func newTestEnv(t *testing.T) *testEnv {
 			flatFeeService:        flatFeeService,
 			usageBasedService:     usageService,
 		},
-		CreditPurchaseSvc: creditPurchaseService,
 		UsageBasedService: usageService,
 		Ledger:            base.Deps.HistoricalLedger,
 		BalanceQuerier:    base.Deps.HistoricalLedger,
