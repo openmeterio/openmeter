@@ -98,7 +98,12 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		return api.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
-	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(flatFee.ChargeBase.Intent.GetCostBasisIntent(), charge.ResolvedCostBasis)
+	resolvedCostBasisState, err := charge.GetResolvedCostBasis()
+	if err != nil {
+		return api.BillingChargeFlatFee{}, fmt.Errorf("resolving cost basis: %w", err)
+	}
+
+	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(flatFee.ChargeBase.Intent.GetCostBasisIntent(), resolvedCostBasisState)
 	if err != nil {
 		return api.BillingChargeFlatFee{}, fmt.Errorf("converting resolved cost basis: %w", err)
 	}
@@ -187,7 +192,12 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
-	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(usageBasedFee.ChargeBase.Intent.GetCostBasisIntent(), charge.ResolvedCostBasis)
+	resolvedCostBasisState, err := charge.GetResolvedCostBasis()
+	if err != nil {
+		return api.BillingChargeUsageBased{}, fmt.Errorf("resolving cost basis: %w", err)
+	}
+
+	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(usageBasedFee.ChargeBase.Intent.GetCostBasisIntent(), resolvedCostBasisState)
 	if err != nil {
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting resolved cost basis: %w", err)
 	}
@@ -235,9 +245,9 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 	}, nil
 }
 
-// toAPIChargeResolvedCostBasis pairs the facade-visible resolved state with
-// the fiat currency of the write-only intent, as the intent itself is not
-// exposed on read.
+// toAPIChargeResolvedCostBasis pairs the resolved state with the fiat
+// currency of the write-only intent, as the intent itself is not exposed on
+// read.
 func toAPIChargeResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State) (*api.BillingChargeResolvedCostBasis, error) {
 	if state == nil {
 		return nil, nil

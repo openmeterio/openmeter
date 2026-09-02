@@ -1,15 +1,22 @@
 package charges
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -25,14 +32,88 @@ type CustomerCharge struct {
 	Feature      *feature.Feature
 	Subscription *subscription.Subscription
 
-	// ResolvedCostBasis is the fiat conversion rate exposed to clients. It is
-	// nil without a cost basis, before resolution, and for a dynamic cost
-	// basis whose service period has not started yet.
-	ResolvedCostBasis *costbasis.State
-
 	// Exactly the slice matching Charge.Type() is populated.
 	FlatFeeRealizations    []CustomerChargeFlatFeeRealization
 	UsageBasedRealizations []CustomerChargeUsageBasedRealization
+}
+
+// ForSpecificChargeInput holds one handler per charge type. A nil handler
+// marks the operation as unsupported for that type.
+type ForSpecificChargeInput[T any] struct {
+	FlatFee        func(flatfee.Charge) (T, error)
+	UsageBased     func(usagebased.Charge) (T, error)
+	CreditPurchase func(creditpurchase.Charge) (T, error)
+}
+
+// ForSpecificCharge dispatches to the handler matching the charge type.
+func ForSpecificCharge[T any](c CustomerCharge, in ForSpecificChargeInput[T]) (T, error) {
+	switch c.t {
+	case meta.ChargeTypeFlatFee:
+		if in.FlatFee == nil {
+			return lo.Empty[T](), fmt.Errorf("unsupported for flat fee charge")
+		}
+
+		ff, err := c.AsFlatFeeCharge()
+		if err != nil {
+			return lo.Empty[T](), err
+		}
+
+		return in.FlatFee(ff)
+	case meta.ChargeTypeUsageBased:
+		if in.UsageBased == nil {
+			return lo.Empty[T](), fmt.Errorf("unsupported for usage based charge")
+		}
+
+		ub, err := c.AsUsageBasedCharge()
+		if err != nil {
+			return lo.Empty[T](), err
+		}
+
+		return in.UsageBased(ub)
+	case meta.ChargeTypeCreditPurchase:
+		if in.CreditPurchase == nil {
+			return lo.Empty[T](), fmt.Errorf("unsupported for credit purchase charge")
+		}
+
+		cp, err := c.AsCreditPurchaseCharge()
+		if err != nil {
+			return lo.Empty[T](), err
+		}
+
+		return in.CreditPurchase(cp)
+	}
+
+	return lo.Empty[T](), fmt.Errorf("invalid charge type: %s", c.t)
+}
+
+// GetResolvedCostBasis returns the fiat conversion rate exposed to clients. It
+// is nil without a cost basis or before resolution. A dynamic cost basis is
+// hidden until the service period starts: activation can resolve it earlier
+// for in-advance charges, but the rate is only meaningful from the period it
+// was resolved for.
+func (c CustomerCharge) GetResolvedCostBasis() (*costbasis.State, error) {
+	now := clock.Now()
+
+	return ForSpecificCharge(c, ForSpecificChargeInput[*costbasis.State]{
+		FlatFee: func(ff flatfee.Charge) (*costbasis.State, error) {
+			return visibleResolvedCostBasis(ff.Intent.GetCostBasisIntent(), ff.State.ResolvedCostBasis, ff.Intent.GetEffectiveServicePeriod().From, now), nil
+		},
+		UsageBased: func(ub usagebased.Charge) (*costbasis.State, error) {
+			return visibleResolvedCostBasis(ub.Intent.GetCostBasisIntent(), ub.State.ResolvedCostBasis, ub.Intent.GetEffectiveServicePeriod().From, now), nil
+		},
+	})
+}
+
+func visibleResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State, servicePeriodFrom, now time.Time) *costbasis.State {
+	if intent == nil || state == nil {
+		return nil
+	}
+
+	if intent.Kind() == costbasis.ModeDynamic && now.Before(servicePeriodFrom) {
+		return nil
+	}
+
+	return state
 }
 
 // CustomerChargeFlatFeeRealization is one entry of a flat-fee charge's

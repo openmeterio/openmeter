@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -21,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -328,7 +325,6 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 		}
 
 		out.UsageBasedRealizations = resolved
-		out.ResolvedCostBasis = visibleResolvedCostBasis(ub.Intent.GetCostBasisIntent(), ub.State.ResolvedCostBasis, ub.Intent.GetEffectiveServicePeriod().From, clock.Now())
 
 		if feat, ok := entities.featuresByRef[ub.GetFeatureKeyOrID()]; ok {
 			out.Feature = &feat
@@ -351,7 +347,6 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 		}
 
 		out.FlatFeeRealizations = resolved
-		out.ResolvedCostBasis = visibleResolvedCostBasis(ff.Intent.GetCostBasisIntent(), ff.State.ResolvedCostBasis, ff.Intent.GetEffectiveServicePeriod().From, clock.Now())
 
 		if featureRef := ff.GetFeatureRef(); featureRef != nil {
 			if feat, ok := entities.featuresByRef[*featureRef]; ok {
@@ -367,21 +362,6 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 	}
 
 	return out, nil
-}
-
-// visibleResolvedCostBasis hides a dynamic cost basis until the service period
-// starts: activation can resolve it earlier for in-advance charges, but the
-// rate is only meaningful from the period it was resolved for.
-func visibleResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State, servicePeriodFrom, now time.Time) *costbasis.State {
-	if intent == nil || state == nil {
-		return nil
-	}
-
-	if intent.Kind() == costbasis.ModeDynamic && now.Before(servicePeriodFrom) {
-		return nil
-	}
-
-	return state
 }
 
 // customerChargeReferences collects the entity references a page of charges

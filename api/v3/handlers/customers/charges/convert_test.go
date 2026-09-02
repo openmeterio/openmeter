@@ -964,7 +964,7 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 				ChargeBase: usagebased.ChargeBase{
 					ManagedResource: meta.ManagedResource{ID: "charge-id"},
 					Status:          usagebased.StatusCreated,
-					State:           usagebased.State{FeatureID: "feature-id"},
+					State:           usagebased.State{FeatureID: "feature-id", ResolvedCostBasis: resolvedCostBasis},
 					Intent: usagebased.NewOverridableIntent(usagebased.Intent{
 						Intent: meta.Intent{
 							ManagedBy:  billing.ManuallyManagedLine,
@@ -989,7 +989,6 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 					}, nil),
 				},
 			}),
-			ResolvedCostBasis: resolvedCostBasis,
 			UsageBasedRealizations: []billingcharges.CustomerChargeUsageBasedRealization{
 				{
 					Run:           &run,
@@ -1068,6 +1067,7 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 					State: flatfee.State{
 						FeatureID:            lo.ToPtr("flat-fee-feature-id"),
 						AmountAfterProration: decimal.NewFromInt(20),
+						ResolvedCostBasis:    resolvedCostBasis,
 					},
 					Intent: flatfee.NewOverridableIntent(flatfee.Intent{
 						Intent: meta.Intent{
@@ -1092,7 +1092,6 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 					}, nil),
 				},
 			}),
-			ResolvedCostBasis: resolvedCostBasis,
 			FlatFeeRealizations: []billingcharges.CustomerChargeFlatFeeRealization{
 				{
 					Run:           &run,

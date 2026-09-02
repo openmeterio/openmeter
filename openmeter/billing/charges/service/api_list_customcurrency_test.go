@@ -255,8 +255,10 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestFlatFeeCustomCurrencyCha
 	s.Equal(customCurrency.ID, ff.Intent.GetCurrency().ID)
 	s.Equal(currencyx.Code("TOKENS"), ff.Intent.GetCurrency().GetCode())
 
-	s.Require().NotNil(item.ResolvedCostBasis)
-	s.Equal(float64(0.5), item.ResolvedCostBasis.CostBasis.InexactFloat64())
+	resolvedCostBasis, err := item.GetResolvedCostBasis()
+	s.Require().NoError(err)
+	s.Require().NotNil(resolvedCostBasis)
+	s.Equal(float64(0.5), resolvedCostBasis.CostBasis.InexactFloat64())
 
 	costBasisFiatCurrency, err := ff.Intent.GetCostBasisIntent().GetFiatCurrency()
 	s.Require().NoError(err)
@@ -436,8 +438,10 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestUsageBasedCustomCurrency
 	s.Equal(customCurrency.ID, ub.Intent.GetCurrency().ID)
 	s.Equal(currencyx.Code("TOKENS"), ub.Intent.GetCurrency().GetCode())
 
-	s.Require().NotNil(item.ResolvedCostBasis)
-	s.Equal(float64(0.5), item.ResolvedCostBasis.CostBasis.InexactFloat64())
+	resolvedCostBasis, err := item.GetResolvedCostBasis()
+	s.Require().NoError(err)
+	s.Require().NotNil(resolvedCostBasis)
+	s.Equal(float64(0.5), resolvedCostBasis.CostBasis.InexactFloat64())
 
 	costBasisFiatCurrency, err := ub.Intent.GetCostBasisIntent().GetFiatCurrency()
 	s.Require().NoError(err)
