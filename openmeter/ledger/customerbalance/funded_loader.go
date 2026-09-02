@@ -74,6 +74,7 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 		return []CreditTransaction{item}, nil
 	}
 
+	// Get the complete ledger group backing the funded activity.
 	group, err := l.service.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
 		Namespace: input.CustomerID.Namespace,
 		ID:        item.fundedTransactionGroupID,
@@ -82,19 +83,19 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 		return nil, fmt.Errorf("get funded credit transaction group %s: %w", item.fundedTransactionGroupID, err)
 	}
 
-	impacts, err := fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
-		Currency:      item.Currency,
-		FeatureFilter: input.FeatureFilter,
+	// Validate the unfiltered group against the nominal funded amount.
+	unfilteredImpacts, err := fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
+		Currency: item.Currency,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("resolve funded credit transaction group %s balance impacts: %w", item.fundedTransactionGroupID, err)
 	}
-	if len(impacts) == 0 {
+	if len(unfilteredImpacts) == 0 {
 		return nil, fmt.Errorf("funded credit transaction group %s has no customer balance impact", item.fundedTransactionGroupID)
 	}
 
 	total := alpacadecimal.Zero
-	for _, impact := range impacts {
+	for _, impact := range unfilteredImpacts {
 		total = total.Add(impact.Amount)
 	}
 	if !total.Equal(item.Amount) {
@@ -104,6 +105,18 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 			total,
 			item.Amount,
 		)
+	}
+
+	// Calculate the impacts visible in the requested balance projection.
+	impacts := unfilteredImpacts
+	if input.FeatureFilter.IsPresent() {
+		impacts, err = fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
+			Currency:      item.Currency,
+			FeatureFilter: input.FeatureFilter,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("resolve funded credit transaction group %s filtered balance impacts: %w", item.fundedTransactionGroupID, err)
+		}
 	}
 
 	items := make([]CreditTransaction, 0, len(impacts))

@@ -8,9 +8,11 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestListCreditTransactionsFundedBalanceCoalescesSameEffectiveTime(t *testing.T) {
@@ -94,6 +96,214 @@ func TestListCreditTransactionsFundedBalanceCoalescesSameEffectiveTime(t *testin
 			}
 		})
 	}
+}
+
+func TestListCreditTransactionsFundedBalanceProjectsFeatureFilteredImpact(t *testing.T) {
+	t.Run("partial projected impact", func(t *testing.T) {
+		env := newTestEnv(t)
+
+		// given:
+		// - feature-restricted usage has created a 40-credit advance
+		// - an unrestricted 100-credit purchase covers that advance and issues the remaining 60
+		servicePeriod := env.sp()
+		charge := env.createFlatFeeCharge(
+			t,
+			alpacadecimal.NewFromInt(40),
+			productcatalog.CreditOnlySettlementMode,
+			servicePeriod,
+			testFeatureKey,
+		)
+		env.passTimeAfterServicePeriod(t, servicePeriod)
+		env.advanceFlatFeeCharge(t, charge)
+		env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(100), env.Currency, nil)
+
+		// when:
+		// - funded history is projected onto the unrestricted-only balance
+		unrestricted, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+			CustomerID:    env.CustomerID,
+			Limit:         10,
+			Type:          lo.ToPtr(CreditTransactionTypeFunded),
+			Currency:      &env.Currency,
+			FeatureFilter: NewUnrestrictedFeatureFilter(),
+		})
+		require.NoError(t, err)
+
+		// then:
+		// - only the residual unrestricted issuance is visible; the restricted advance
+		//   attribution does not affect this filtered balance
+		require.Len(t, unrestricted.Items, 1)
+		item := unrestricted.Items[0]
+		require.Equal(t, float64(60), item.Amount.InexactFloat64())
+		require.Equal(t, float64(0), item.Balance.Before.InexactFloat64())
+		require.Equal(t, float64(60), item.Balance.After.InexactFloat64())
+
+		// when:
+		// - the same funded history is projected onto the advance's feature balance
+		matchingFeature, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+			CustomerID:    env.CustomerID,
+			Limit:         10,
+			Type:          lo.ToPtr(CreditTransactionTypeFunded),
+			Currency:      &env.Currency,
+			FeatureFilter: NewFeatureFilter([]string{testFeatureKey}),
+		})
+		require.NoError(t, err)
+
+		// then:
+		// - both the restricted advance attribution and unrestricted issuance affect it
+		require.Len(t, matchingFeature.Items, 1)
+		item = matchingFeature.Items[0]
+		require.Equal(t, float64(100), item.Amount.InexactFloat64())
+		require.Equal(t, float64(-40), item.Balance.Before.InexactFloat64())
+		require.Equal(t, float64(60), item.Balance.After.InexactFloat64())
+	})
+
+	t.Run("zero projected impact", func(t *testing.T) {
+		env := newTestEnv(t)
+
+		// given:
+		// - an unrestricted purchase is fully attributed to a feature-restricted advance
+		servicePeriod := env.sp()
+		charge := env.createFlatFeeCharge(
+			t,
+			alpacadecimal.NewFromInt(40),
+			productcatalog.CreditOnlySettlementMode,
+			servicePeriod,
+			testFeatureKey,
+		)
+		env.passTimeAfterServicePeriod(t, servicePeriod)
+		env.advanceFlatFeeCharge(t, charge)
+		env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(40), env.Currency, nil)
+
+		// when:
+		// - funded history is projected onto the unrestricted-only balance
+		result, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+			CustomerID:    env.CustomerID,
+			Limit:         10,
+			Type:          lo.ToPtr(CreditTransactionTypeFunded),
+			Currency:      &env.Currency,
+			FeatureFilter: NewUnrestrictedFeatureFilter(),
+		})
+		require.NoError(t, err)
+
+		// then:
+		// - the purchase has no impact on that balance and is omitted
+		require.Empty(t, result.Items)
+	})
+}
+
+func TestFundedCreditTransactionBalanceImpacts(t *testing.T) {
+	env := newTestEnv(t)
+
+	// given:
+	// - a real funded group attributes 40 credits to a restricted advance now
+	//   and issues the remaining 60 unrestricted credits later
+	servicePeriod := env.sp()
+	charge := env.createFlatFeeCharge(
+		t,
+		alpacadecimal.NewFromInt(40),
+		productcatalog.CreditOnlySettlementMode,
+		servicePeriod,
+		testFeatureKey,
+	)
+	env.passTimeAfterServicePeriod(t, servicePeriod)
+	env.advanceFlatFeeCharge(t, charge)
+	fundedAt := clock.Now()
+	effectiveAt := fundedAt.Add(time.Hour)
+	purchase := env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(100), env.Currency, &effectiveAt)
+	require.NotNil(t, purchase.Realizations.CreditGrantRealization)
+
+	group, err := env.Service.Ledger.GetTransactionGroup(t.Context(), models.NamespacedID{
+		Namespace: env.Namespace,
+		ID:        purchase.Realizations.CreditGrantRealization.TransactionGroupID,
+	})
+	require.NoError(t, err)
+
+	type expectedImpact struct {
+		bookedAt time.Time
+		amount   int64
+	}
+
+	tests := []struct {
+		name          string
+		featureFilter creditpurchase.FeatureFilters
+		unrestricted  bool
+		want          []expectedImpact
+	}{
+		{
+			name: "all balance routes",
+			want: []expectedImpact{
+				{bookedAt: effectiveAt, amount: 60},
+				{bookedAt: fundedAt, amount: 40},
+			},
+		},
+		{
+			name:         "unrestricted balance routes",
+			unrestricted: true,
+			want: []expectedImpact{
+				{bookedAt: effectiveAt, amount: 60},
+			},
+		},
+		{
+			name:          "matching feature balance routes",
+			featureFilter: creditpurchase.FeatureFilters{testFeatureKey},
+			want: []expectedImpact{
+				{bookedAt: effectiveAt, amount: 60},
+				{bookedAt: fundedAt, amount: 40},
+			},
+		},
+		{
+			name:          "non-matching feature still includes unrestricted routes",
+			featureFilter: creditpurchase.FeatureFilters{"other-feature"},
+			want: []expectedImpact{
+				{bookedAt: effectiveAt, amount: 60},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := GetBalanceServiceInput{Currency: currencyx.Code("USD")}
+			switch {
+			case tt.unrestricted:
+				input.FeatureFilter = NewUnrestrictedFeatureFilter()
+			case len(tt.featureFilter) > 0:
+				input.FeatureFilter = NewFeatureFilter(tt.featureFilter)
+			}
+
+			impacts, err := fundedCreditTransactionBalanceImpacts(group, input)
+			require.NoError(t, err)
+			require.Len(t, impacts, len(tt.want))
+			for i, want := range tt.want {
+				require.True(t, want.bookedAt.Equal(impacts[i].Cursor.BookedAt))
+				require.Equal(t, float64(want.amount), impacts[i].Amount.InexactFloat64())
+				require.True(t, env.CurrencyReference().Equal(impacts[i].CurrencyReference))
+			}
+		})
+	}
+
+	t.Run("restricted purchase has zero unrestricted impact", func(t *testing.T) {
+		restrictedPurchase := env.createPromotionalCreditGrant(
+			t,
+			alpacadecimal.NewFromInt(25),
+			env.Currency,
+			nil,
+			testFeatureKey,
+		)
+		require.NotNil(t, restrictedPurchase.Realizations.CreditGrantRealization)
+
+		restrictedGroup, err := env.Service.Ledger.GetTransactionGroup(t.Context(), models.NamespacedID{
+			Namespace: env.Namespace,
+			ID:        restrictedPurchase.Realizations.CreditGrantRealization.TransactionGroupID,
+		})
+		require.NoError(t, err)
+
+		impacts, err := fundedCreditTransactionBalanceImpacts(restrictedGroup, GetBalanceServiceInput{
+			Currency:      env.Currency,
+			FeatureFilter: NewUnrestrictedFeatureFilter(),
+		})
+		require.NoError(t, err)
+		require.Empty(t, impacts)
+	})
 }
 
 func TestListCreditTransactionsFundedBalanceUsesEffectiveTimes(t *testing.T) {
