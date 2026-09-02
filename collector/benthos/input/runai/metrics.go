@@ -165,7 +165,7 @@ func (s *Service) GetAllWorkloadWithMetrics(ctx context.Context, params Measurem
 			})
 			if err != nil {
 				// We don't want to fail the whole operation if one workload fails to get metrics
-				s.logger.With("startTime", params.StartTime.UTC(), "endTime", params.EndTime.UTC(), "workloadID", workload.ID, "metricTypes", metricTypes).Errorf("failed to get workload metrics: %w", err)
+				s.logger.With("startTime", params.StartTime.UTC(), "endTime", params.EndTime.UTC(), "workloadID", workload.ID, "metricTypes", metricTypes).Errorf("failed to get workload metrics: %v", err)
 				continue
 			}
 
@@ -305,7 +305,7 @@ func (s *Service) GetAllPodWithMetrics(ctx context.Context, params MeasurementPa
 			})
 			if err != nil {
 				// We don't want to fail the whole operation if one pod fails to get metrics
-				s.logger.With("startTime", params.StartTime.UTC(), "endTime", params.EndTime.UTC(), "workloadID", pod.WorkloadID, "podID", pod.ID, "metricTypes", metricTypes).Errorf("failed to get pod metrics: %w", err)
+				s.logger.With("startTime", params.StartTime.UTC(), "endTime", params.EndTime.UTC(), "workloadID", pod.WorkloadID, "podID", pod.ID, "metricTypes", metricTypes).Errorf("failed to get pod metrics: %v", err)
 				continue
 			}
 
