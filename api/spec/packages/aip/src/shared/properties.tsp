@@ -120,7 +120,7 @@ scalar CountryCode extends string;
 scalar Numeric extends string;
 
 /**
- * Monetary amount in a specific currency.
+ * Monetary amount in a specific fiat currency.
  */
 @friendlyName("CurrencyAmount")
 model CurrencyAmount {

@@ -1385,6 +1385,10 @@ export const chargeType = z
     'Type of a charge. Values: - `flat_fee`: A fixed-amount charge. - `usage_based`: A usage-priced charge.',
   )
 
+export const chargeCostBasisType = z
+  .enum(['dynamic', 'pinned', 'manual'])
+  .describe('Cost basis resolution mode of a charge.')
+
 export const invoiceType = z
   .enum(['standard'])
   .describe('The type of a billing invoice.')
@@ -1491,6 +1495,15 @@ export const appCustomerDataExternalInvoicing = z
     labels: labels.optional(),
   })
   .describe('External invoicing customer data.')
+
+export const chargeCostBasisDynamic = z
+  .object({
+    type: z
+      .literal('dynamic')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode,
+  })
+  .describe("Cost basis resolved at the charge's full service period start.")
 
 export const currencyFiat = z
   .object({
@@ -1640,6 +1653,19 @@ export const rateCardDiscounts = z
   })
   .describe('Discount configuration for a rate card.')
 
+export const chargeCostBasisManual = z
+  .object({
+    type: z
+      .literal('manual')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode,
+    rate: numeric,
+  })
+
+  .describe(
+    'Cost basis with an explicit conversion rate supplied with the charge.',
+  )
+
 export const totals = z
   .object({
     amount: numeric,
@@ -1711,13 +1737,6 @@ export const featureLlmUnitCostPricing = z
   })
   .describe('Resolved per-token pricing from the LLM cost database.')
 
-export const currencyAmount = z
-  .object({
-    amount: numeric,
-    currency: currencyCode,
-  })
-  .describe('Monetary amount in a specific currency.')
-
 export const invoiceLineCreditsApplied = z
   .object({
     amount: numeric,
@@ -1784,6 +1803,13 @@ export const llmCostModelPricing = z
     reasoningPerToken: numeric.optional(),
   })
   .describe('Token pricing for an LLM model, denominated per token.')
+
+export const currencyAmount = z
+  .object({
+    amount: numeric,
+    currency: currencyCode,
+  })
+  .describe('Monetary amount in a specific fiat currency.')
 
 export const queryFilterNumeric = z
   .object({
@@ -1940,6 +1966,19 @@ export const subscriptionReference = z
 
   .describe(
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
+  )
+
+export const chargeCostBasisPinned = z
+  .object({
+    type: z
+      .literal('pinned')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode,
+    costBasisId: ulid,
+  })
+
+  .describe(
+    'Cost basis pinned to a specific cost basis resource of the custom currency.',
   )
 
 export const appReference = z
@@ -3453,6 +3492,13 @@ export const creditTransaction = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
+export const chargesCurrencyAmount = z
+  .object({
+    amount: numeric,
+    currency: billingCurrencyCode,
+  })
+  .describe('Monetary amount in a fiat or custom currency.')
+
 export const priceTier = z
   .object({
     upToAmount: numeric.optional(),
@@ -3671,6 +3717,17 @@ export const updateOrganizationDefaultTaxCodesRequest = z
     creditGrantTaxCode: taxCodeReference.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
+
+export const chargeCostBasis = z
+  .discriminatedUnion('type', [
+    chargeCostBasisDynamic,
+    chargeCostBasisPinned,
+    chargeCostBasisManual,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
+  )
 
 export const invoiceWorkflowAppsReferences = z
   .object({
@@ -4192,37 +4249,6 @@ export const workflowCollectionAlignmentAnchored = z
     'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
-export const chargeFlatFeeSystemIntent = z
-  .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    invoiceAt: dateTime,
-    servicePeriod: closedPeriod,
-    fullServicePeriod: closedPeriod,
-    billingPeriod: closedPeriod,
-    paymentTerm: pricePaymentTerm,
-    discounts: chargeFlatFeeDiscounts.optional(),
-    prorationConfiguration: rateCardProrationConfiguration,
-    amountBeforeProration: currencyAmount,
-    deletedAt: dateTime.optional(),
-  })
-
-  .describe(
-    'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
-  )
-
 export const invoiceStatusDetails = z
   .object({
     immutable: z
@@ -4465,6 +4491,37 @@ export const creditTransactionPaginatedResponse = z
   })
   .describe('Cursor paginated response.')
 
+export const chargeFlatFeeSystemIntent = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    invoiceAt: dateTime,
+    servicePeriod: closedPeriod,
+    fullServicePeriod: closedPeriod,
+    billingPeriod: closedPeriod,
+    paymentTerm: pricePaymentTerm,
+    discounts: chargeFlatFeeDiscounts.optional(),
+    prorationConfiguration: rateCardProrationConfiguration,
+    amountBeforeProration: chargesCurrencyAmount,
+    deletedAt: dateTime.optional(),
+  })
+
+  .describe(
+    'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
+  )
+
 export const priceGraduated = z
   .object({
     type: z.literal('graduated').describe('The type of the price.'),
@@ -4631,42 +4688,6 @@ export const creditGrant = z
     'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
   )
 
-export const createChargeFlatFeeRequest = z
-  .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    currency: currencyCode,
-    invoiceAt: dateTime,
-    servicePeriod: closedPeriod,
-    uniqueReferenceId: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlementMode: settlementMode,
-    taxConfig: taxConfig.optional(),
-    paymentTerm: pricePaymentTerm,
-    discounts: chargeFlatFeeDiscounts.optional(),
-    prorationConfiguration: rateCardProrationConfiguration,
-    amountBeforeProration: currencyAmount,
-    feature: featureReference.optional(),
-    fullServicePeriod: closedPeriod.optional(),
-    billingPeriod: closedPeriod.optional(),
-  })
-  .describe('Flat fee charge create request.')
-
 export const workflowTaxSettings = z
   .object({
     enabled: z
@@ -4688,6 +4709,43 @@ export const workflowTaxSettings = z
     defaultTaxConfig: taxConfig.optional(),
   })
   .describe('Tax settings for a billing workflow.')
+
+export const createChargeFlatFeeRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    currency: billingCurrencyCode,
+    costBasis: chargeCostBasis.optional(),
+    invoiceAt: dateTime,
+    servicePeriod: closedPeriod,
+    uniqueReferenceId: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlementMode: settlementMode,
+    taxConfig: taxConfig.optional(),
+    paymentTerm: pricePaymentTerm,
+    discounts: chargeFlatFeeDiscounts.optional(),
+    prorationConfiguration: rateCardProrationConfiguration,
+    amountBeforeProration: chargesCurrencyAmount,
+    feature: featureReference.optional(),
+    fullServicePeriod: closedPeriod.optional(),
+    billingPeriod: closedPeriod.optional(),
+  })
+  .describe('Flat fee charge create request.')
 
 export const planAddonPagePaginatedResponse = z
   .object({
@@ -5542,7 +5600,8 @@ export const createChargeUsageBasedRequest = z
       ),
     labels: labels.optional(),
     type: z.literal('usage_based').describe('The type of the charge.'),
-    currency: currencyCode,
+    currency: billingCurrencyCode,
+    costBasis: chargeCostBasis.optional(),
     invoiceAt: dateTime,
     servicePeriod: closedPeriod,
     uniqueReferenceId: z
@@ -6364,7 +6423,8 @@ export const chargeFlatFee = z
     customer: customerOrReference,
     lifecycleController: lifecycleController,
     subscription: subscriptionOrReference.optional(),
-    currency: currencyCode,
+    currency: billingCurrencyCode,
+    costBasis: chargeCostBasis.optional(),
     status: chargeStatus,
     invoiceAt: dateTime,
     servicePeriod: closedPeriod,
@@ -6384,7 +6444,7 @@ export const chargeFlatFee = z
     discounts: chargeFlatFeeDiscounts.optional(),
     feature: featureOrReference.optional(),
     prorationConfiguration: rateCardProrationConfiguration,
-    amountAfterProration: currencyAmount,
+    amountAfterProration: chargesCurrencyAmount,
     price: priceFlat,
     systemIntent: chargeFlatFeeSystemIntent.optional(),
   })
@@ -6414,7 +6474,8 @@ export const chargeUsageBased = z
     customer: customerOrReference,
     lifecycleController: lifecycleController,
     subscription: subscriptionOrReference.optional(),
-    currency: currencyCode,
+    currency: billingCurrencyCode,
+    costBasis: chargeCostBasis.optional(),
     status: chargeStatus,
     invoiceAt: dateTime,
     servicePeriod: closedPeriod,
@@ -8795,6 +8856,10 @@ export const chargeTypeWire = z
     'Type of a charge. Values: - `flat_fee`: A fixed-amount charge. - `usage_based`: A usage-priced charge.',
   )
 
+export const chargeCostBasisTypeWire = z
+  .enum(['dynamic', 'pinned', 'manual'])
+  .describe('Cost basis resolution mode of a charge.')
+
 export const invoiceTypeWire = z
   .enum(['standard'])
   .describe('The type of a billing invoice.')
@@ -8901,6 +8966,15 @@ export const appCustomerDataExternalInvoicingWire = z
     labels: labelsWire.optional(),
   })
   .describe('External invoicing customer data.')
+
+export const chargeCostBasisDynamicWire = z
+  .strictObject({
+    type: z
+      .literal('dynamic')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire,
+  })
+  .describe("Cost basis resolved at the charge's full service period start.")
 
 export const currencyFiatWire = z
   .strictObject({
@@ -9050,6 +9124,19 @@ export const rateCardDiscountsWire = z
   })
   .describe('Discount configuration for a rate card.')
 
+export const chargeCostBasisManualWire = z
+  .strictObject({
+    type: z
+      .literal('manual')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire,
+    rate: numericWire,
+  })
+
+  .describe(
+    'Cost basis with an explicit conversion rate supplied with the charge.',
+  )
+
 export const totalsWire = z
   .strictObject({
     amount: numericWire,
@@ -9121,13 +9208,6 @@ export const featureLlmUnitCostPricingWire = z
   })
   .describe('Resolved per-token pricing from the LLM cost database.')
 
-export const currencyAmountWire = z
-  .strictObject({
-    amount: numericWire,
-    currency: currencyCodeWire,
-  })
-  .describe('Monetary amount in a specific currency.')
-
 export const invoiceLineCreditsAppliedWire = z
   .strictObject({
     amount: numericWire,
@@ -9194,6 +9274,13 @@ export const llmCostModelPricingWire = z
     reasoning_per_token: numericWire.optional(),
   })
   .describe('Token pricing for an LLM model, denominated per token.')
+
+export const currencyAmountWire = z
+  .strictObject({
+    amount: numericWire,
+    currency: currencyCodeWire,
+  })
+  .describe('Monetary amount in a specific fiat currency.')
 
 export const queryFilterNumericWire = z
   .strictObject({
@@ -9350,6 +9437,19 @@ export const subscriptionReferenceWire = z
 
   .describe(
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
+  )
+
+export const chargeCostBasisPinnedWire = z
+  .strictObject({
+    type: z
+      .literal('pinned')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire,
+    cost_basis_id: ulidWire,
+  })
+
+  .describe(
+    'Cost basis pinned to a specific cost basis resource of the custom currency.',
   )
 
 export const appReferenceWire = z
@@ -10845,6 +10945,13 @@ export const creditTransactionWire = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
+export const chargesCurrencyAmountWire = z
+  .strictObject({
+    amount: numericWire,
+    currency: billingCurrencyCodeWire,
+  })
+  .describe('Monetary amount in a fiat or custom currency.')
+
 export const priceTierWire = z
   .strictObject({
     up_to_amount: numericWire.optional(),
@@ -11063,6 +11170,17 @@ export const updateOrganizationDefaultTaxCodesRequestWire = z
     credit_grant_tax_code: taxCodeReferenceWire.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
+
+export const chargeCostBasisWire = z
+  .discriminatedUnion('type', [
+    chargeCostBasisDynamicWire,
+    chargeCostBasisPinnedWire,
+    chargeCostBasisManualWire,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
+  )
 
 export const invoiceWorkflowAppsReferencesWire = z
   .strictObject({
@@ -11584,37 +11702,6 @@ export const workflowCollectionAlignmentAnchoredWire = z
     'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
-export const chargeFlatFeeSystemIntentWire = z
-  .strictObject({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    invoice_at: dateTimeWire,
-    service_period: closedPeriodWire,
-    full_service_period: closedPeriodWire,
-    billing_period: closedPeriodWire,
-    payment_term: pricePaymentTermWire,
-    discounts: chargeFlatFeeDiscountsWire.optional(),
-    proration_configuration: rateCardProrationConfigurationWire,
-    amount_before_proration: currencyAmountWire,
-    deleted_at: dateTimeWire.optional(),
-  })
-
-  .describe(
-    'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
-  )
-
 export const invoiceStatusDetailsWire = z
   .strictObject({
     immutable: z
@@ -11861,6 +11948,37 @@ export const creditTransactionPaginatedResponseWire = z
   })
   .describe('Cursor paginated response.')
 
+export const chargeFlatFeeSystemIntentWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    invoice_at: dateTimeWire,
+    service_period: closedPeriodWire,
+    full_service_period: closedPeriodWire,
+    billing_period: closedPeriodWire,
+    payment_term: pricePaymentTermWire,
+    discounts: chargeFlatFeeDiscountsWire.optional(),
+    proration_configuration: rateCardProrationConfigurationWire,
+    amount_before_proration: chargesCurrencyAmountWire,
+    deleted_at: dateTimeWire.optional(),
+  })
+
+  .describe(
+    'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
+  )
+
 export const priceGraduatedWire = z
   .strictObject({
     type: z.literal('graduated').describe('The type of the price.'),
@@ -12028,42 +12146,6 @@ export const creditGrantWire = z
     'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
   )
 
-export const createChargeFlatFeeRequestWire = z
-  .strictObject({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    currency: currencyCodeWire,
-    invoice_at: dateTimeWire,
-    service_period: closedPeriodWire,
-    unique_reference_id: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlement_mode: settlementModeWire,
-    tax_config: taxConfigWire.optional(),
-    payment_term: pricePaymentTermWire,
-    discounts: chargeFlatFeeDiscountsWire.optional(),
-    proration_configuration: rateCardProrationConfigurationWire,
-    amount_before_proration: currencyAmountWire,
-    feature: featureReferenceWire.optional(),
-    full_service_period: closedPeriodWire.optional(),
-    billing_period: closedPeriodWire.optional(),
-  })
-  .describe('Flat fee charge create request.')
-
 export const workflowTaxSettingsWire = z
   .strictObject({
     enabled: z
@@ -12083,6 +12165,43 @@ export const workflowTaxSettingsWire = z
     default_tax_config: taxConfigWire.optional(),
   })
   .describe('Tax settings for a billing workflow.')
+
+export const createChargeFlatFeeRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    currency: billingCurrencyCodeWire,
+    cost_basis: chargeCostBasisWire.optional(),
+    invoice_at: dateTimeWire,
+    service_period: closedPeriodWire,
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementModeWire,
+    tax_config: taxConfigWire.optional(),
+    payment_term: pricePaymentTermWire,
+    discounts: chargeFlatFeeDiscountsWire.optional(),
+    proration_configuration: rateCardProrationConfigurationWire,
+    amount_before_proration: chargesCurrencyAmountWire,
+    feature: featureReferenceWire.optional(),
+    full_service_period: closedPeriodWire.optional(),
+    billing_period: closedPeriodWire.optional(),
+  })
+  .describe('Flat fee charge create request.')
 
 export const planAddonPagePaginatedResponseWire = z
   .strictObject({
@@ -12941,7 +13060,8 @@ export const createChargeUsageBasedRequestWire = z
       ),
     labels: labelsWire.optional(),
     type: z.literal('usage_based').describe('The type of the charge.'),
-    currency: currencyCodeWire,
+    currency: billingCurrencyCodeWire,
+    cost_basis: chargeCostBasisWire.optional(),
     invoice_at: dateTimeWire,
     service_period: closedPeriodWire,
     unique_reference_id: z
@@ -13758,7 +13878,8 @@ export const chargeFlatFeeWire = z
     customer: customerOrReferenceWire,
     lifecycle_controller: lifecycleControllerWire,
     subscription: subscriptionOrReferenceWire.optional(),
-    currency: currencyCodeWire,
+    currency: billingCurrencyCodeWire,
+    cost_basis: chargeCostBasisWire.optional(),
     status: chargeStatusWire,
     invoice_at: dateTimeWire,
     service_period: closedPeriodWire,
@@ -13778,7 +13899,7 @@ export const chargeFlatFeeWire = z
     discounts: chargeFlatFeeDiscountsWire.optional(),
     feature: featureOrReferenceWire.optional(),
     proration_configuration: rateCardProrationConfigurationWire,
-    amount_after_proration: currencyAmountWire,
+    amount_after_proration: chargesCurrencyAmountWire,
     price: priceFlatWire,
     system_intent: chargeFlatFeeSystemIntentWire.optional(),
   })
@@ -13808,7 +13929,8 @@ export const chargeUsageBasedWire = z
     customer: customerOrReferenceWire,
     lifecycle_controller: lifecycleControllerWire,
     subscription: subscriptionOrReferenceWire.optional(),
-    currency: currencyCodeWire,
+    currency: billingCurrencyCodeWire,
+    cost_basis: chargeCostBasisWire.optional(),
     status: chargeStatusWire,
     invoice_at: dateTimeWire,
     service_period: closedPeriodWire,

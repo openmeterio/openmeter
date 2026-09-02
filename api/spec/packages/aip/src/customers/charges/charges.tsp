@@ -3,6 +3,7 @@ import "../../productcatalog/index.tsp";
 import "../../subscriptions/index.tsp";
 import "../../features/index.tsp";
 import "../customer.tsp";
+import "../../currencies/currency.tsp";
 
 namespace Customers;
 
@@ -114,7 +115,7 @@ model ChargeFlatFeeSystemIntent {
    */
   @visibility(Lifecycle.Read)
   @summary("Amount before proration")
-  amount_before_proration: Shared.CurrencyAmount;
+  amount_before_proration: Currencies.CurrencyAmount;
 
   /**
    * The timestamp when the system lifecycle controller intent was deleted. The
@@ -575,7 +576,16 @@ model ChargeBase<T extends ChargeType> {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
-  currency: Shared.CurrencyCode;
+  currency: Currencies.CurrencyCode;
+
+  /**
+   * Defines how a custom-currency charge is converted into its fiat invoice
+   * currency. Required when `currency` is custom and the charge settles as
+   * `credit_then_invoice`; must be omitted otherwise.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Cost basis")
+  cost_basis?: ChargeCostBasis;
 
   /**
    * The lifecycle status of the charge.
@@ -691,7 +701,7 @@ model ChargeFlatFee {
    */
   @visibility(Lifecycle.Create)
   @summary("Amount before proration")
-  amount_before_proration: Shared.CurrencyAmount;
+  amount_before_proration: Currencies.CurrencyAmount;
 
   // Calculated fields
   /**
@@ -699,7 +709,7 @@ model ChargeFlatFee {
    */
   @visibility(Lifecycle.Read)
   @summary("Amount after proration")
-  amount_after_proration: Shared.CurrencyAmount;
+  amount_after_proration: Currencies.CurrencyAmount;
 
   /**
    * The price of the charge.
@@ -716,6 +726,100 @@ model ChargeFlatFee {
   @visibility(Lifecycle.Read)
   @summary("System intent")
   system_intent?: ChargeFlatFeeSystemIntent;
+}
+
+/**
+ * Cost basis selection for a custom-currency charge. The variant chosen fixes when
+ * and how the conversion rate is determined.
+ */
+@friendlyName("BillingChargeCostBasis")
+@summary("Charge cost basis")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union ChargeCostBasis {
+  dynamic: ChargeCostBasisDynamic,
+  pinned: ChargeCostBasisPinned,
+  manual: ChargeCostBasisManual,
+}
+
+/**
+ * Cost basis resolution mode of a charge.
+ */
+@friendlyName("BillingChargeCostBasisType")
+enum ChargeCostBasisType {
+  /** Resolve the cost basis effective at the charge's full service period start. */
+  Dynamic: "dynamic",
+
+  /** Use a specific cost basis resource of the custom currency. */
+  Pinned: "pinned",
+
+  /** Use an explicit conversion rate supplied with the charge. */
+  Manual: "manual",
+}
+
+/**
+ * Cost basis resolved at the charge's full service period start.
+ */
+@friendlyName("BillingChargeCostBasisDynamic")
+model ChargeCostBasisDynamic {
+  /**
+   * Discriminator selecting the cost basis mode.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  type: ChargeCostBasisType.Dynamic;
+
+  /**
+   * The fiat currency the charge amount is converted into for invoicing.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  fiat_currency: Shared.CurrencyCode;
+}
+
+/**
+ * Cost basis pinned to a specific cost basis resource of the custom currency.
+ */
+@friendlyName("BillingChargeCostBasisPinned")
+model ChargeCostBasisPinned {
+  /**
+   * Discriminator selecting the cost basis mode.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  type: ChargeCostBasisType.Pinned;
+
+  /**
+   * The fiat currency the charge amount is converted into for invoicing.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  fiat_currency: Shared.CurrencyCode;
+
+  /**
+   * ID of the custom currency's cost basis resource to pin.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  cost_basis_id: Shared.ULID;
+}
+
+/**
+ * Cost basis with an explicit conversion rate supplied with the charge.
+ */
+@friendlyName("BillingChargeCostBasisManual")
+model ChargeCostBasisManual {
+  /**
+   * Discriminator selecting the cost basis mode.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  type: ChargeCostBasisType.Manual;
+
+  /**
+   * The fiat currency the charge amount is converted into for invoicing.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  fiat_currency: Shared.CurrencyCode;
+
+  /**
+   * Fiat amount per one unit of the custom currency.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  rate: Shared.Numeric;
 }
 
 /**

@@ -16,6 +16,7 @@ import (
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -36,7 +37,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		return charges.CustomerCharge{}, fmt.Errorf("resolving currency: %w", err)
 	}
 
-	if currency.IsCustom() {
+	if currency.IsCustom() && input.SettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return charges.CustomerCharge{}, models.NewGenericValidationError(fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
@@ -56,6 +57,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 			IntentMutableFields: input.FlatFee.IntentMutableFields,
 			FeatureID:           input.FlatFee.FeatureID,
 			SettlementMode:      input.FlatFee.SettlementMode,
+			CostBasis:           input.CostBasis,
 		})
 	case input.UsageBased != nil:
 		chargeIntent = charges.NewChargeIntent(usagebased.Intent{
