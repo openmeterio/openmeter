@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,22 +37,22 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 		// - The state-machine configuration resolves the charge feature.
 		// then:
 		// - It uses the supplied snapshot without consulting the feature service.
-		featureMeter := feature.FeatureMeter{
+		featureMeter := billingfeaturemeter.FeatureMeter{
 			Feature: feature.Feature{
 				ID:  "feature-id",
 				Key: "feature-key",
 			},
 			Meter: &meter.Meter{},
 		}
-		featureMeters := feature.FeatureMeterCollection{
-			ByKey: map[string]feature.FeatureMeter{
+		featureMeters := billingfeaturemeter.FeatureMeterCollection{
+			ByKey: map[string]billingfeaturemeter.FeatureMeter{
 				featureMeter.Feature.Key: featureMeter,
 			},
 		}
 
 		config, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
 			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
-			FeatureMeters:    mo.Some[feature.FeatureMeters](featureMeters),
+			FeatureMeters:    mo.Some[billingfeaturemeter.FeatureMeters](featureMeters),
 		})
 		require.NoError(t, err)
 		require.Equal(t, featureMeter, config.FeatureMeter)
@@ -66,8 +67,8 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 		// - It returns the snapshot lookup error instead of falling back to the feature service.
 		_, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
 			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
-			FeatureMeters: mo.Some[feature.FeatureMeters](feature.FeatureMeterCollection{
-				ByKey: map[string]feature.FeatureMeter{},
+			FeatureMeters: mo.Some[billingfeaturemeter.FeatureMeters](billingfeaturemeter.FeatureMeterCollection{
+				ByKey: map[string]billingfeaturemeter.FeatureMeter{},
 			}),
 		})
 		require.ErrorContains(t, err, "feature[feature-key] not found")

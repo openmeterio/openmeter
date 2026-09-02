@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
@@ -31,7 +32,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -41,12 +41,12 @@ type Config struct {
 	Client *entdb.Client
 	Logger *slog.Logger
 
-	BillingService     billing.Service
-	FeatureService     feature.FeatureConnector
-	StreamingConnector streaming.Connector
-	RecognizerService  recognizer.Service
-	TaxCodeService     taxcode.Service
-	CustomerService    customer.Service
+	BillingService       billing.Service
+	FeatureMeterResolver billingfeaturemeter.Resolver
+	StreamingConnector   streaming.Connector
+	RecognizerService    recognizer.Service
+	TaxCodeService       taxcode.Service
+	CustomerService      customer.Service
 	// SubscriptionService defaults to an empty FakeSubscriptionService, so
 	// suites without a real subscription stack keep working.
 	SubscriptionService charges.SubscriptionService
@@ -67,8 +67,8 @@ func (c Config) Validate() error {
 		errs = append(errs, fmt.Errorf("billing service is required"))
 	}
 
-	if c.FeatureService == nil {
-		errs = append(errs, fmt.Errorf("feature service is required"))
+	if c.FeatureMeterResolver == nil {
+		errs = append(errs, fmt.Errorf("feature meter resolver is required"))
 	}
 
 	if c.StreamingConnector == nil {
@@ -219,7 +219,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		MetaAdapter:             metaAdapter,
 		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: config.BillingService,
-		FeatureService:          config.FeatureService,
+		FeatureMeterResolver:    config.FeatureMeterResolver,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		Currencies:              currencyService,
 		StreamingConnector:      config.StreamingConnector,
@@ -275,7 +275,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	chargesService, err := chargesservice.New(chargesservice.Config{
 		Logger:                logger,
 		Adapter:               rootAdapter,
-		FeatureService:        config.FeatureService,
+		FeatureMeterResolver:  config.FeatureMeterResolver,
 		MetaAdapter:           metaAdapter,
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,

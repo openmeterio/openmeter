@@ -11,9 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
@@ -26,7 +26,7 @@ type Config struct {
 	MetaAdapter             meta.Adapter
 	InvoiceUpdater          invoiceupdater.Updater
 	CustomerOverrideService billing.CustomerOverrideService
-	FeatureService          feature.FeatureConnector
+	FeatureMeterResolver    billingfeaturemeter.Resolver
 	RatingService           rating.Service
 	Currencies              currencies.Service
 
@@ -64,8 +64,8 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("customer override service cannot be null"))
 	}
 
-	if c.FeatureService == nil {
-		errs = append(errs, errors.New("feature service cannot be null"))
+	if c.FeatureMeterResolver == nil {
+		errs = append(errs, errors.New("feature meter resolver cannot be null"))
 	}
 
 	if c.RatingService == nil {
@@ -120,7 +120,7 @@ func New(config Config) (usagebased.Service, error) {
 		metaAdapter:             config.MetaAdapter,
 		invoiceUpdater:          config.InvoiceUpdater,
 		customerOverrideService: config.CustomerOverrideService,
-		featureService:          config.FeatureService,
+		featureMeterResolver:    config.FeatureMeterResolver,
 		ratingService:           config.RatingService,
 		rater:                   rater,
 		runs:                    runs,
@@ -134,7 +134,7 @@ type service struct {
 	metaAdapter             meta.Adapter
 	invoiceUpdater          invoiceupdater.Updater
 	customerOverrideService billing.CustomerOverrideService
-	featureService          feature.FeatureConnector
+	featureMeterResolver    billingfeaturemeter.Resolver
 	ratingService           rating.Service
 
 	rater usagebasedrating.Service

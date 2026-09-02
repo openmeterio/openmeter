@@ -8,9 +8,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -256,9 +256,12 @@ func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, c
 	if !hasFeatureMetersHint {
 		featureRef := charge.GetFeatureKeyOrID()
 		var err error
-		featureMeters, err = s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, feature.FeatureMeterRef{
-			IDOrKey:      featureRef,
-			RequireMeter: true,
+		featureMeters, err = s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+			Namespace: charge.Namespace,
+			FeatureRefs: []billingfeaturemeter.FeatureMeterRef{{
+				IDOrKey:      featureRef,
+				RequireMeter: true,
+			}},
 		})
 		if err != nil {
 			return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)

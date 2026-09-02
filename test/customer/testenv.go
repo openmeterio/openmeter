@@ -18,6 +18,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
@@ -452,10 +453,19 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	}
 
 	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
+	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+		FeatureService: entitlementRegistry.Feature,
+		MeterService:   meterService,
+		Logger:         logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create feature meter resolver: %w", err)
+	}
+
 	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
 		SplitLineGroupAdapter:        billingAdapter,
 		RatingService:                billingRatingService,
-		FeatureService:               entitlementRegistry.Feature,
+		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           streamingConnector,
 		MaxParallelQuantitySnapshots: 2,
 	})
@@ -471,8 +481,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		CustomerService:         customerService,
 		AppService:              appService,
 		Logger:                  logger.WithGroup("billing"),
-		FeatureService:          entitlementRegistry.Feature,
-		MeterService:            meterService,
+		FeatureMeterResolver:    featureMeterResolver,
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
 		TaxCodeService:          taxCodeService,

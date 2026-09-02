@@ -63,11 +63,6 @@ type FeatureConnector interface {
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
 	GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error)
-
-	// ResolveFeatureMeters resolves the feature meters for a given namespace and feature refs.
-	// Keys always resolve to the latest available feature for that key.
-	// Explicit IDs are returned in the ID index, and also in the key index when they are the latest feature for that key.
-	ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...FeatureMeterRef) (FeatureMeters, error)
 }
 
 type IncludeArchivedFeature bool

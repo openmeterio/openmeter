@@ -12,8 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -62,7 +62,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 			var featureID *string
 			if featureRef != nil {
-				featureMeter, err := input.FeatureMeters.Resolve(feature.FeatureMeterRef{
+				featureMeter, err := input.FeatureMeters.Resolve(billingfeaturemeter.FeatureMeterRef{
 					IDOrKey:      *featureRef,
 					RequireMeter: false,
 				})

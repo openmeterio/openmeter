@@ -7,8 +7,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -66,7 +66,7 @@ type ResolveBillablePeriodInput struct {
 	AsOf               time.Time
 	ProgressiveBilling bool
 	Line               GatheringLineAccessor
-	FeatureMeters      feature.FeatureMeters
+	FeatureMeters      billingfeaturemeter.FeatureMeters
 }
 
 func (i ResolveBillablePeriodInput) Validate() error {

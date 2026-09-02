@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
@@ -15,17 +15,20 @@ type linesFeatureGetter interface {
 	GetReferencedFeatureKeys() ([]string, error)
 }
 
-func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, lines linesFeatureGetter) (feature.FeatureMeters, error) {
+func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, lines linesFeatureGetter) (billingfeaturemeter.FeatureMeters, error) {
 	keys, err := lines.GetReferencedFeatureKeys()
 	if err != nil {
 		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
 	}
 
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, lo.Map(keys, func(key string, _ int) feature.FeatureMeterRef {
-		return feature.FeatureMeterRef{
-			IDOrKey: ref.IDOrKey{Key: key},
-		}
-	})...)
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace: namespace,
+		FeatureRefs: lo.Map(keys, func(key string, _ int) billingfeaturemeter.FeatureMeterRef {
+			return billingfeaturemeter.FeatureMeterRef{
+				IDOrKey: ref.IDOrKey{Key: key},
+			}
+		}),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}
@@ -36,17 +39,17 @@ func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, li
 // featureMetersErrorWrapper identifies a persisted feature whose required
 // meter association is missing while preserving unrelated resolver errors.
 type featureMetersErrorWrapper struct {
-	feature.FeatureMeters
+	billingfeaturemeter.FeatureMeters
 }
 
-func (w featureMetersErrorWrapper) Get(featureKey string, requireMeter bool) (feature.FeatureMeter, error) {
-	featureMeter, err := w.FeatureMeters.Get(featureKey, false)
+func (w featureMetersErrorWrapper) GetByKey(featureKey string, requireMeter bool) (billingfeaturemeter.FeatureMeter, error) {
+	featureMeter, err := w.FeatureMeters.GetByKey(featureKey, false)
 	if err != nil {
-		return feature.FeatureMeter{}, err
+		return billingfeaturemeter.FeatureMeter{}, err
 	}
 
 	if requireMeter && featureMeter.Meter == nil {
-		return feature.FeatureMeter{}, &billing.ErrSnapshotFeatureHasNoMeter{
+		return billingfeaturemeter.FeatureMeter{}, &billing.ErrSnapshotFeatureHasNoMeter{
 			FeatureKey: featureKey,
 		}
 	}

@@ -14,8 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/delta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/periodpreserving"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -35,7 +35,7 @@ type GetDetailedRatingForUsageInput struct {
 	// Metering values
 
 	Customer     billing.CustomerOverrideWithDetails
-	FeatureMeter feature.FeatureMeter
+	FeatureMeter billingfeaturemeter.FeatureMeter
 }
 
 func (i GetDetailedRatingForUsageInput) Validate() error {

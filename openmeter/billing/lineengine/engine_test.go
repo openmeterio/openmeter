@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -24,7 +25,7 @@ func TestConfigValidateReturnsAllErrors(t *testing.T) {
 	require.True(t, models.IsGenericValidationError(err))
 	require.ErrorContains(t, err, "split line group adapter is required")
 	require.ErrorContains(t, err, "rating service is required")
-	require.ErrorContains(t, err, "feature service is required")
+	require.ErrorContains(t, err, "feature meter resolver is required")
 	require.ErrorContains(t, err, "streaming connector is required")
 	require.ErrorContains(t, err, "max parallel quantity snapshots must be greater than 0")
 }
@@ -76,8 +77,8 @@ func TestSnapshotValidationIssueClassification(t *testing.T) {
 }
 
 func TestFeatureMetersErrorWrapperClassifiesMissingMeterAssociation(t *testing.T) {
-	wrapped := featureMetersErrorWrapper{FeatureMeters: feature.FeatureMeterCollection{
-		ByKey: map[string]feature.FeatureMeter{
+	wrapped := featureMetersErrorWrapper{FeatureMeters: billingfeaturemeter.FeatureMeterCollection{
+		ByKey: map[string]billingfeaturemeter.FeatureMeter{
 			"meterless": {
 				Feature: feature.Feature{Key: "meterless"},
 			},
@@ -85,7 +86,7 @@ func TestFeatureMetersErrorWrapperClassifiesMissingMeterAssociation(t *testing.T
 	}}
 
 	t.Run("missing meter association is snapshot validation", func(t *testing.T) {
-		_, err := wrapped.Get("meterless", true)
+		_, err := wrapped.GetByKey("meterless", true)
 
 		var snapshotErr *billing.ErrSnapshotFeatureHasNoMeter
 		require.ErrorAs(t, err, &snapshotErr)
@@ -93,7 +94,7 @@ func TestFeatureMetersErrorWrapperClassifiesMissingMeterAssociation(t *testing.T
 	})
 
 	t.Run("missing feature preserves not found error", func(t *testing.T) {
-		_, err := wrapped.Get("missing", true)
+		_, err := wrapped.GetByKey("missing", true)
 
 		var snapshotErr *billing.ErrSnapshotFeatureHasNoMeter
 		require.False(t, errors.As(err, &snapshotErr))

@@ -12,11 +12,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
@@ -281,13 +281,13 @@ func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
 	}
 }
 
-func (c Charge) ResolveFeatureMeter(featureMeters feature.FeatureMeters) (feature.FeatureMeter, error) {
-	featureMeter, err := featureMeters.Resolve(feature.FeatureMeterRef{
+func (c Charge) ResolveFeatureMeter(featureMeters billingfeaturemeter.FeatureMeters) (billingfeaturemeter.FeatureMeter, error) {
+	featureMeter, err := featureMeters.Resolve(billingfeaturemeter.FeatureMeterRef{
 		IDOrKey:      c.GetFeatureKeyOrID(),
 		RequireMeter: true,
 	})
 	if err != nil {
-		return feature.FeatureMeter{}, fmt.Errorf("resolve feature meter: %w", err)
+		return billingfeaturemeter.FeatureMeter{}, fmt.Errorf("resolve feature meter: %w", err)
 	}
 
 	return featureMeter, nil
@@ -296,9 +296,9 @@ func (c Charge) ResolveFeatureMeter(featureMeters feature.FeatureMeters) (featur
 // GetFeatureKeysOrIDs returns the unique state-aware feature references for the charges.
 // Each charge contributes the ref returned by GetFeatureKeyOrID, so created charges use keys,
 // deleted charges prefer IDs and fall back to keys, and all other states use IDs.
-func (c Charges) GetFeatureKeysOrIDs() []feature.FeatureMeterRef {
-	return lo.Uniq(lo.Map(c, func(charge Charge, _ int) feature.FeatureMeterRef {
-		return feature.FeatureMeterRef{
+func (c Charges) GetFeatureKeysOrIDs() []billingfeaturemeter.FeatureMeterRef {
+	return lo.Uniq(lo.Map(c, func(charge Charge, _ int) billingfeaturemeter.FeatureMeterRef {
+		return billingfeaturemeter.FeatureMeterRef{
 			IDOrKey:      charge.GetFeatureKeyOrID(),
 			RequireMeter: true,
 		}

@@ -11,8 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -48,7 +48,7 @@ type UsageBasedService interface {
 type CreateInput struct {
 	Namespace     string
 	Intents       []Intent
-	FeatureMeters feature.FeatureMeters
+	FeatureMeters billingfeaturemeter.FeatureMeters
 }
 
 func (i CreateInput) Validate() error {
@@ -152,7 +152,7 @@ type AdvanceChargeInput struct {
 	// FeatureMeters is an authoritative optional resolution hint. None lets the
 	// service resolve the required feature meter; Some resolves exclusively from
 	// the supplied collection and returns an error when the feature is absent.
-	FeatureMeters mo.Option[feature.FeatureMeters]
+	FeatureMeters mo.Option[billingfeaturemeter.FeatureMeters]
 }
 
 func (i AdvanceChargeInput) Validate() error {

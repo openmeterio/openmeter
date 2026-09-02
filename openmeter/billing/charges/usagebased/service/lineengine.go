@@ -12,8 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -433,12 +433,15 @@ func (e *LineEngine) createManualInvoiceLines(ctx context.Context, input billing
 
 	namespace := input.Invoice.GetInvoiceID().Namespace
 	intents := lo.Map(created, func(line manualCreatedInvoiceLine, _ int) usagebased.Intent { return line.intent })
-	featureMeters, err := e.service.featureService.ResolveFeatureMeters(ctx, namespace, lo.Map(intents, func(intent usagebased.Intent, _ int) feature.FeatureMeterRef {
-		return feature.FeatureMeterRef{
-			IDOrKey:      ref.IDOrKey{Key: intent.FeatureKey},
-			RequireMeter: true,
-		}
-	})...)
+	featureMeters, err := e.service.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
+		Namespace: namespace,
+		FeatureRefs: lo.Map(intents, func(intent usagebased.Intent, _ int) billingfeaturemeter.FeatureMeterRef {
+			return billingfeaturemeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{Key: intent.FeatureKey},
+				RequireMeter: true,
+			}
+		}),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("resolving manually created usage-based charge feature meters: %w", err)
 	}

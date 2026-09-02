@@ -10,10 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -463,8 +463,8 @@ func (i ChargeIntents) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i ChargeIntents) CollectFeatureMeterRefs() ([]feature.FeatureMeterRef, error) {
-	refs := make([]feature.FeatureMeterRef, 0, len(i))
+func (i ChargeIntents) CollectFeatureMeterRefs() ([]billingfeaturemeter.FeatureMeterRef, error) {
+	refs := make([]billingfeaturemeter.FeatureMeterRef, 0, len(i))
 
 	for idx, ch := range i {
 		switch ch.Type() {
@@ -478,7 +478,7 @@ func (i ChargeIntents) CollectFeatureMeterRefs() ([]feature.FeatureMeterRef, err
 				return nil, fmt.Errorf("getting feature ref for flat fee intent[%d]: %w", idx, err)
 			}
 			if featureRef != nil {
-				refs = append(refs, feature.FeatureMeterRef{
+				refs = append(refs, billingfeaturemeter.FeatureMeterRef{
 					IDOrKey:      *featureRef,
 					RequireMeter: false,
 				})
@@ -488,7 +488,7 @@ func (i ChargeIntents) CollectFeatureMeterRefs() ([]feature.FeatureMeterRef, err
 			if err != nil {
 				return nil, fmt.Errorf("converting usage based intent[%d]: %w", idx, err)
 			}
-			refs = append(refs, feature.FeatureMeterRef{
+			refs = append(refs, billingfeaturemeter.FeatureMeterRef{
 				IDOrKey:      usageBased.GetFeatureRef(),
 				RequireMeter: true,
 			})

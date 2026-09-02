@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,7 +32,7 @@ type stateMachine struct {
 	Runs    *usagebasedrun.Service
 
 	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       feature.FeatureMeter
+	FeatureMeter       billingfeaturemeter.FeatureMeter
 	CurrencyCalculator currencyx.Currency
 	CostBasisResolver  costbasis.Resolver
 }
@@ -46,7 +46,7 @@ type StateMachineConfig struct {
 	Runs               *usagebasedrun.Service
 	Logger             *slog.Logger
 	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       feature.FeatureMeter
+	FeatureMeter       billingfeaturemeter.FeatureMeter
 	CurrencyCalculator currencyx.Currency
 	CostBasisResolver  costbasis.Resolver
 }

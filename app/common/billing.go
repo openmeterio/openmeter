@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	chargesworkeradvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -117,14 +118,14 @@ func NewBillingSequenceService(
 func NewLegacyBillingLineEngine(
 	billingAdapter billing.Adapter,
 	billingRatingService rating.Service,
-	featureConnector feature.FeatureConnector,
+	featureMeterResolver billingfeaturemeter.Resolver,
 	streamingConnector streaming.Connector,
 	billingConfig config.BillingConfiguration,
 ) (*billinglineengine.Engine, error) {
 	return billinglineengine.New(billinglineengine.Config{
 		SplitLineGroupAdapter:        billingAdapter,
 		RatingService:                billingRatingService,
-		FeatureService:               featureConnector,
+		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           streamingConnector,
 		MaxParallelQuantitySnapshots: billingConfig.MaxParallelQuantitySnapshots,
 	})
@@ -140,8 +141,7 @@ func newBillingService(
 	legacyBillingLineEngine *billinglineengine.Engine,
 	sequenceService billingsequence.Service,
 	customerService customer.Service,
-	featureConnector feature.FeatureConnector,
-	meterService meter.Service,
+	featureMeterResolver billingfeaturemeter.Resolver,
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
 	subscriptionServices SubscriptionServiceWithWorkflow,
@@ -158,9 +158,8 @@ func newBillingService(
 		AppService:              appService,
 		CustomerService:         customerService,
 		TaxCodeService:          taxCodeService,
-		FeatureService:          featureConnector,
+		FeatureMeterResolver:    featureMeterResolver,
 		Logger:                  logger,
-		MeterService:            meterService,
 		Publisher:               eventPublisher,
 		AdvancementStrategy:     billingConfig.AdvancementStrategy,
 		FSNamespaceLockdown:     fsConfig.NamespaceLockdown,
@@ -206,10 +205,19 @@ func NewBillingRegistry(
 		return BillingRegistry{}, err
 	}
 
+	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+		FeatureService: featureConnector,
+		MeterService:   meterService,
+		Logger:         logger,
+	})
+	if err != nil {
+		return BillingRegistry{}, fmt.Errorf("creating feature meter resolver: %w", err)
+	}
+
 	legacyBillingLineEngine, err := NewLegacyBillingLineEngine(
 		billingAdapter,
 		billingRatingService,
-		featureConnector,
+		featureMeterResolver,
 		streamingConnector,
 		billingConfig,
 	)
@@ -225,8 +233,7 @@ func NewBillingRegistry(
 		legacyBillingLineEngine,
 		sequenceService,
 		customerService,
-		featureConnector,
-		meterService,
+		featureMeterResolver,
 		eventPublisher,
 		billingConfig,
 		subscriptionServices,
@@ -248,7 +255,7 @@ func NewBillingRegistry(
 			locker,
 			billingService,
 			billingRatingService,
-			featureConnector,
+			featureMeterResolver,
 			streamingConnector,
 			ledgerService,
 			balanceQuerier,

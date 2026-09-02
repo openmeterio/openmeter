@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
@@ -76,7 +77,7 @@ type testEnv struct {
 	creditPurchase    creditpurchase.Service
 	flatFeeService    flatfee.Service
 	usageBasedService usagebased.Service
-	featureMeters     feature.FeatureMeters
+	featureMeters     billingfeaturemeter.FeatureMeters
 	streaming         *streamingtestutils.MockStreamingConnector
 	taxCodeID         string
 }
@@ -130,6 +131,12 @@ func newTestEnv(t *testing.T) *testEnv {
 		meterQueryService,
 		publisher,
 	)
+	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+		FeatureService: featureService,
+		MeterService:   meterQueryService,
+		Logger:         logger,
+	})
+	require.NoError(t, err)
 
 	meterEntity, err := meterManageService.CreateMeter(t.Context(), meter.CreateMeterInput{
 		Namespace:     base.Namespace,
@@ -149,16 +156,20 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
-	featureMeters, err := featureService.ResolveFeatureMeters(
+	featureMeters, err := featureMeterResolver.Resolve(
 		t.Context(),
-		base.Namespace,
-		feature.FeatureMeterRef{
-			IDOrKey:      ref.IDOrKey{Key: testFeatureKey},
-			RequireMeter: true,
-		},
-		feature.FeatureMeterRef{
-			IDOrKey:      ref.IDOrKey{ID: featureEntity.ID},
-			RequireMeter: true,
+		billingfeaturemeter.ResolveInput{
+			Namespace: base.Namespace,
+			FeatureRefs: []billingfeaturemeter.FeatureMeterRef{
+				{
+					IDOrKey:      ref.IDOrKey{Key: testFeatureKey},
+					RequireMeter: true,
+				},
+				{
+					IDOrKey:      ref.IDOrKey{ID: featureEntity.ID},
+					RequireMeter: true,
+				},
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -291,7 +302,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		MetaAdapter:             metaAdapter,
 		InvoiceUpdater:          invoiceupdater.NewUnimplementedUpdater(t),
 		CustomerOverrideService: billingService,
-		FeatureService:          featureService,
+		FeatureMeterResolver:    featureMeterResolver,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		Currencies:              currencyService,
 		StreamingConnector:      streaming,

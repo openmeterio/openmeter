@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -38,7 +39,6 @@ import (
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -255,7 +255,7 @@ func NewChargesUsageBasedService(
 	metaAdapter meta.Adapter,
 	invoiceUpdater invoiceupdater.Updater,
 	billingService billing.Service,
-	featureService feature.FeatureConnector,
+	featureMeterResolver billingfeaturemeter.Resolver,
 	ratingService rating.Service,
 	currenciesService currencies.Service,
 	streamingConnector streaming.Connector,
@@ -268,7 +268,7 @@ func NewChargesUsageBasedService(
 		MetaAdapter:             metaAdapter,
 		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: billingService,
-		FeatureService:          featureService,
+		FeatureMeterResolver:    featureMeterResolver,
 		RatingService:           ratingService,
 		Currencies:              currenciesService,
 		StreamingConnector:      streamingConnector,
@@ -352,7 +352,7 @@ func NewChargesService(
 	logger *slog.Logger,
 	rootAdapter charges.Adapter,
 	metaAdapter meta.Adapter,
-	featureService feature.FeatureConnector,
+	featureMeterResolver billingfeaturemeter.Resolver,
 	flatFeeSvc flatfee.Service,
 	creditPurchaseSvc creditpurchase.Service,
 	usageBasedSvc usagebased.Service,
@@ -368,7 +368,7 @@ func NewChargesService(
 		Logger:                logger,
 		Adapter:               rootAdapter,
 		MetaAdapter:           metaAdapter,
-		FeatureService:        featureService,
+		FeatureMeterResolver:  featureMeterResolver,
 		FlatFeeService:        flatFeeSvc,
 		CreditPurchaseService: creditPurchaseSvc,
 		UsageBasedService:     usageBasedSvc,
@@ -415,7 +415,7 @@ func newChargesRegistry(
 	locker *lockr.Locker,
 	billingService billing.Service,
 	ratingService rating.Service,
-	featureService feature.FeatureConnector,
+	featureMeterResolver billingfeaturemeter.Resolver,
 	streamingConnector streaming.Connector,
 	ledgerService ledger.Ledger,
 	balanceQuerier ledger.BalanceQuerier,
@@ -513,7 +513,7 @@ func newChargesRegistry(
 		metaAdapter,
 		invoiceUpdater,
 		billingService,
-		featureService,
+		featureMeterResolver,
 		ratingService,
 		currenciesService,
 		streamingConnector,
@@ -561,7 +561,7 @@ func newChargesRegistry(
 		logger,
 		rootAdapter,
 		metaAdapter,
-		featureService,
+		featureMeterResolver,
 		flatFeeSvc,
 		creditPurchaseSvc,
 		usageBasedSvc,

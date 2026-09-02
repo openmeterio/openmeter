@@ -12,10 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	dbchargeflatfeecostbasis "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -78,7 +78,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCo
 			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "pinned", productcatalog.CreditThenInvoiceSettlementMode, &pinnedIntent),
 			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
 		},
-		FeatureMeters: feature.FeatureMeterCollection{},
+		FeatureMeters: billingfeaturemeter.FeatureMeterCollection{},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 3)
@@ -159,7 +159,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetrySafe
 		Intents: []flatfee.Intent{
 			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-retry", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
 		},
-		FeatureMeters: feature.FeatureMeterCollection{},
+		FeatureMeters: billingfeaturemeter.FeatureMeterCollection{},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -289,7 +289,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeBeco
 		Intents: []flatfee.Intent{
 			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-active", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
 		},
-		FeatureMeters: feature.FeatureMeterCollection{},
+		FeatureMeters: billingfeaturemeter.FeatureMeterCollection{},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -376,7 +376,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAndFia
 				Intents: []flatfee.Intent{
 					s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "mismatch-"+test.name, productcatalog.CreditThenInvoiceSettlementMode, &intent),
 				},
-				FeatureMeters: feature.FeatureMeterCollection{},
+				FeatureMeters: billingfeaturemeter.FeatureMeterCollection{},
 			})
 			s.Require().ErrorContains(err, test.errorText)
 		})
@@ -407,7 +407,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeCrea
 			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "duplicate", productcatalog.CreditThenInvoiceSettlementMode, &intent),
 			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "duplicate", productcatalog.CreditThenInvoiceSettlementMode, &intent),
 		},
-		FeatureMeters: feature.FeatureMeterCollection{},
+		FeatureMeters: billingfeaturemeter.FeatureMeterCollection{},
 	})
 	s.Require().Error(err)
 	s.Require().Equal(0, s.countCostBases(namespace))
@@ -424,7 +424,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeRefe
 		Intents: []flatfee.Intent{
 			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "credit-only", productcatalog.CreditOnlySettlementMode, nil),
 		},
-		FeatureMeters: feature.FeatureMeterCollection{},
+		FeatureMeters: billingfeaturemeter.FeatureMeterCollection{},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)

@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 )
 
 type chargesByTypeResult struct {
@@ -152,7 +152,7 @@ type usageBasedInvocableCharge struct {
 	chargeID          meta.ChargeID
 	usageBasedService usagebased.Service
 	customerOverride  mo.Option[billing.CustomerOverrideWithDetails]
-	featureMeters     mo.Option[feature.FeatureMeters]
+	featureMeters     mo.Option[billingfeaturemeter.FeatureMeters]
 }
 
 func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (TriggerPatchResult, error) {
