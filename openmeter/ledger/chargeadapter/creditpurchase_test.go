@@ -593,29 +593,32 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	}
 }
 
-func TestOnCreditPurchasePaymentLifecycleRevaluesFiatAmount(t *testing.T) {
+func TestOnCreditPurchasePaymentLifecyclePreservesFiatCreditUnits(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
-	costBasis := mustDecimal(t, "0.5")
+	costBasis := mustDecimal(t, "0.25")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
-	fiatAmount := alpacadecimal.NewFromInt(99)
+	fiatAmount := alpacadecimal.NewFromInt(25)
 
 	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
 	require.NoError(t, err)
 
-	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+	authorizedRef, err := env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
 		Charge:     charge,
 		EventAt:    charge.CreatedAt.Add(15 * time.Minute),
 		FiatAmount: fiatAmount,
 	})
 	require.NoError(t, err)
+	require.Equal(t, []string{
+		transactions.TemplateCode(transactions.AuthorizeCustomerReceivablePaymentTemplate{}),
+	}, env.transactionTemplateCodes(t, authorizedRef.TransactionGroupID))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(fiatAmount.Neg()))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(charge.Intent.CreditAmount.Neg()))
 	brokerage, err := env.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
 		Currency:  env.CurrencyReference(),
 		CostBasis: &costBasis,
 	})
 	require.NoError(t, err)
-	require.True(t, env.sumBalance(t, brokerage).Equal(alpacadecimal.NewFromInt(-1)))
+	require.True(t, env.sumBalance(t, brokerage).IsZero())
 
 	_, err = env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
 		Charge:     charge,
@@ -624,7 +627,7 @@ func TestOnCreditPurchasePaymentLifecycleRevaluesFiatAmount(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(fiatAmount.Neg()))
+	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(charge.Intent.CreditAmount.Neg()))
 }
 
 func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
