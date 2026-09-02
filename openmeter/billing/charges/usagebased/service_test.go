@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 )
 
 func TestAdvanceChargeInputValidateFeatureMeterHint(t *testing.T) {
@@ -32,7 +32,7 @@ func TestAdvanceChargeInputValidateFeatureMeterHint(t *testing.T) {
 		// - Validation rejects the unusable authoritative snapshot.
 		err := (AdvanceChargeInput{
 			ChargeID:      chargeID,
-			FeatureMeters: mo.Some[feature.FeatureMeters](nil),
+			FeatureMeters: mo.Some[billingfeaturemeter.FeatureMeters](nil),
 		}).Validate()
 		require.ErrorContains(t, err, "feature meters cannot be nil when provided")
 	})

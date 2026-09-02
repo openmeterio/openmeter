@@ -10,8 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -48,7 +48,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				}
 			}
 
-			featureMeter, err := input.FeatureMeters.Resolve(feature.FeatureMeterRef{
+			featureMeter, err := input.FeatureMeters.Resolve(billingfeaturemeter.FeatureMeterRef{
 				IDOrKey:      chargeIntent.GetFeatureRef(),
 				RequireMeter: true,
 			})

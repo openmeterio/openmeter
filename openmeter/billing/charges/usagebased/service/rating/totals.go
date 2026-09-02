@@ -9,15 +9,15 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 type GetTotalsForUsageInput struct {
 	Charge                  usagebased.Charge
 	Customer                billing.CustomerOverrideWithDetails
-	FeatureMeter            feature.FeatureMeter
+	FeatureMeter            billingfeaturemeter.FeatureMeter
 	StoredAtLT              time.Time
 	IgnoreMinimumCommitment bool
 }

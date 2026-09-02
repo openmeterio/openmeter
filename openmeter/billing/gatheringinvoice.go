@@ -10,9 +10,9 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/api"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -280,15 +280,15 @@ func (l GatheringLines) Validate() error {
 // CollectFeatureMeterRefs returns the feature dependencies that must resolve before
 // the lines can be persisted. Metered prices require a meter; flat prices may attach
 // a feature without one.
-func (l GatheringLines) CollectFeatureMeterRefs() []feature.FeatureMeterRef {
-	refs := make([]feature.FeatureMeterRef, 0, len(l))
+func (l GatheringLines) CollectFeatureMeterRefs() []billingfeaturemeter.FeatureMeterRef {
+	refs := make([]billingfeaturemeter.FeatureMeterRef, 0, len(l))
 
 	for _, line := range l {
 		if line.FeatureKey == "" {
 			continue
 		}
 
-		refs = append(refs, feature.FeatureMeterRef{
+		refs = append(refs, billingfeaturemeter.FeatureMeterRef{
 			IDOrKey:      ref.IDOrKey{Key: line.FeatureKey},
 			RequireMeter: line.Price.Type() != productcatalog.FlatPriceType,
 		})

@@ -7,7 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -43,7 +43,7 @@ type FlatFeeService interface {
 type CreateInput struct {
 	Namespace     string
 	Intents       []Intent
-	FeatureMeters feature.FeatureMeters
+	FeatureMeters billingfeaturemeter.FeatureMeters
 }
 
 func (i CreateInput) Validate() error {

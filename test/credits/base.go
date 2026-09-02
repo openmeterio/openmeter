@@ -168,7 +168,7 @@ func (s *BaseSuite) SetupSuite() {
 		Client:                s.DBClient,
 		Logger:                logger,
 		BillingService:        s.BillingService,
-		FeatureService:        s.FeatureService,
+		FeatureMeterResolver:  s.FeatureMeterResolver,
 		StreamingConnector:    s.MockStreamingConnector,
 		TaxCodeService:        s.TaxCodeService,
 		CustomerService:       s.CustomerService,

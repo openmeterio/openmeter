@@ -5776,7 +5776,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 			MetaAdapter:             s.MetaAdapter,
 			InvoiceUpdater:          s.InvoiceUpdater,
 			CustomerOverrideService: s.BillingService,
-			FeatureService:          s.FeatureService,
+			FeatureMeterResolver:    s.FeatureMeterResolver,
 			RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 			Currencies:              s.CurrencyService,
 			StreamingConnector:      s.MockStreamingConnector,

@@ -161,7 +161,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			return nil, fmt.Errorf("collecting feature meter refs: %w", err)
 		}
 
-		createFeatureMeters, err := s.featureService.ResolveFeatureMeters(ctx, input.Namespace, featureMeterRefs...)
+		createFeatureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Namespace, featureMeterRefs)
 		if err != nil {
 			return nil, fmt.Errorf("resolve create feature meters: %w", err)
 		}

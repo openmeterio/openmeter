@@ -13,20 +13,20 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 type service struct {
 	adapter charges.Adapter
 	// Note: if meta has a service layer, we should use it here instead of the adapter
-	metaAdapter    meta.Adapter
-	billingService billing.Service
-	invoiceUpdater invoiceupdater.Updater
-	featureService feature.FeatureConnector
+	metaAdapter          meta.Adapter
+	billingService       billing.Service
+	invoiceUpdater       invoiceupdater.Updater
+	featureMeterResolver billingfeaturemeter.Resolver
 
 	flatFeeService        flatfee.Service
 	creditPurchaseService creditpurchase.Service
@@ -49,7 +49,7 @@ type Config struct {
 	Adapter     charges.Adapter
 	MetaAdapter meta.Adapter
 
-	FeatureService        feature.FeatureConnector
+	FeatureMeterResolver  billingfeaturemeter.Resolver
 	FlatFeeService        flatfee.Service
 	CreditPurchaseService creditpurchase.Service
 	UsageBasedService     usagebased.Service
@@ -81,8 +81,8 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("billing service cannot be null"))
 	}
 
-	if c.FeatureService == nil {
-		errs = append(errs, errors.New("feature service cannot be null"))
+	if c.FeatureMeterResolver == nil {
+		errs = append(errs, errors.New("feature meter resolver cannot be null"))
 	}
 
 	if c.FlatFeeService == nil {
@@ -141,7 +141,7 @@ func New(config Config) (*service, error) {
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
 		invoiceUpdater:        invoiceUpdater,
-		featureService:        config.FeatureService,
+		featureMeterResolver:  config.FeatureMeterResolver,
 		metaAdapter:           config.MetaAdapter,
 		flatFeeService:        config.FlatFeeService,
 		creditPurchaseService: config.CreditPurchaseService,

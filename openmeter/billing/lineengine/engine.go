@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/equal"
@@ -24,7 +24,7 @@ var (
 type Config struct {
 	SplitLineGroupAdapter        SplitLineGroupAdapter
 	RatingService                rating.Service
-	FeatureService               feature.FeatureConnector
+	FeatureMeterResolver         billingfeaturemeter.Resolver
 	StreamingConnector           streaming.Connector
 	MaxParallelQuantitySnapshots int
 }
@@ -40,8 +40,8 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("rating service is required"))
 	}
 
-	if c.FeatureService == nil {
-		errs = append(errs, errors.New("feature service is required"))
+	if c.FeatureMeterResolver == nil {
+		errs = append(errs, errors.New("feature meter resolver is required"))
 	}
 
 	if c.StreamingConnector == nil {
@@ -58,7 +58,7 @@ func (c Config) Validate() error {
 type Engine struct {
 	adapter                      SplitLineGroupAdapter
 	ratingService                rating.Service
-	featureService               feature.FeatureConnector
+	featureMeterResolver         billingfeaturemeter.Resolver
 	streamingConnector           streaming.Connector
 	maxParallelQuantitySnapshots int
 }
@@ -71,7 +71,7 @@ func New(config Config) (*Engine, error) {
 	return &Engine{
 		adapter:                      config.SplitLineGroupAdapter,
 		ratingService:                config.RatingService,
-		featureService:               config.FeatureService,
+		featureMeterResolver:         config.FeatureMeterResolver,
 		streamingConnector:           config.StreamingConnector,
 		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
 	}, nil

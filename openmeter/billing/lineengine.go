@@ -7,7 +7,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -177,7 +177,7 @@ type IsLineBillableAsOfInput struct {
 	Line                   GatheringLine
 	AsOf                   time.Time
 	ProgressiveBilling     bool
-	FeatureMeters          feature.FeatureMeters
+	FeatureMeters          billingfeaturemeter.FeatureMeters
 	ResolvedBillablePeriod timeutil.ClosedPeriod
 }
 
@@ -195,7 +195,7 @@ func (i IsLineBillableAsOfInput) Validate() error {
 
 type SplitGatheringLineInput struct {
 	Line          GatheringLine
-	FeatureMeters feature.FeatureMeters
+	FeatureMeters billingfeaturemeter.FeatureMeters
 	SplitAt       time.Time
 }
 

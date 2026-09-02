@@ -10,8 +10,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -114,6 +114,6 @@ func TestValidateCustomCurrencyInvoiceLineDeleteAllowsDraftInvoice(t *testing.T)
 	require.NoError(t, validateCustomCurrencyInvoiceLineDelete(invoice, line.AsGenericLine(), run))
 }
 
-func billingtestFeatureMeters() feature.FeatureMeters {
-	return feature.FeatureMeterCollection{}
+func billingtestFeatureMeters() billingfeaturemeter.FeatureMeters {
+	return billingfeaturemeter.FeatureMeterCollection{}
 }

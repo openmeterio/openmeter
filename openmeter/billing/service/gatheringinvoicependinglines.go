@@ -12,10 +12,10 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
@@ -307,7 +307,7 @@ type gatheringLineWithBillablePeriod struct {
 
 type gatheringInvoiceWithFeatureMeters struct {
 	Invoice       billing.GatheringInvoice
-	FeatureMeters feature.FeatureMeters
+	FeatureMeters billingfeaturemeter.FeatureMeters
 }
 
 type gatherInScopeLineInput struct {
@@ -468,7 +468,7 @@ func limitGatheringLinesForInvoice(lines []gatheringLineWithBillablePeriod, maxL
 type hasInvoicableLinesInput struct {
 	Invoice            billing.GatheringInvoice
 	AsOf               time.Time
-	FeatureMeters      feature.FeatureMeters
+	FeatureMeters      billingfeaturemeter.FeatureMeters
 	ProgressiveBilling bool
 }
 
@@ -519,7 +519,7 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 
 type prepareLinesToBillInput struct {
 	GatheringInvoice billing.GatheringInvoice
-	FeatureMeters    feature.FeatureMeters
+	FeatureMeters    billingfeaturemeter.FeatureMeters
 	InScopeLines     []gatheringLineWithBillablePeriod
 }
 

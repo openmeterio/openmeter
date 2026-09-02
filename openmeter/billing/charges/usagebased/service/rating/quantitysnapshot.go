@@ -8,8 +8,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -17,7 +17,7 @@ import (
 
 type snapshotQuantityInput struct {
 	Customer      streaming.Customer
-	FeatureMeter  feature.FeatureMeter
+	FeatureMeter  billingfeaturemeter.FeatureMeter
 	ServicePeriod timeutil.ClosedPeriod
 	StoredAtLT    time.Time
 }

@@ -107,7 +107,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() {
 		Client:                s.DBClient,
 		Logger:                slog.Default(),
 		BillingService:        s.BillingService,
-		FeatureService:        s.FeatureService,
+		FeatureMeterResolver:  s.FeatureMeterResolver,
 		StreamingConnector:    s.MockStreamingConnector,
 		TaxCodeService:        s.TaxCodeService,
 		CustomerService:       s.CustomerService,

@@ -156,7 +156,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter:             metaAdapter,
 		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: s.BillingService,
-		FeatureService:          s.FeatureService,
+		FeatureMeterResolver:    s.FeatureMeterResolver,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 		Currencies:              currencyService,
 		StreamingConnector:      s.MockStreamingConnector,
@@ -210,7 +210,7 @@ func (s *BaseSuite) SetupSuite() {
 		Logger:  slog.Default(),
 		Adapter: chargesAdapter,
 
-		FeatureService:        s.FeatureService,
+		FeatureMeterResolver:  s.FeatureMeterResolver,
 		MetaAdapter:           metaAdapter,
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,

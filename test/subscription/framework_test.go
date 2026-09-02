@@ -16,6 +16,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
@@ -116,10 +117,16 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	require.NoError(t, err)
 
 	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
+	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+		FeatureService: deps.FeatureConnector,
+		MeterService:   deps.MeterService,
+	})
+	require.NoError(t, err)
+
 	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
 		SplitLineGroupAdapter:        billingAdapter,
 		RatingService:                billingRatingService,
-		FeatureService:               deps.FeatureConnector,
+		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           deps.MockStreamingConnector,
 		MaxParallelQuantitySnapshots: 2,
 	})
@@ -133,8 +140,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		CustomerService:         deps.CustomerService,
 		AppService:              appService,
 		Logger:                  slog.Default(),
-		FeatureService:          deps.FeatureConnector,
-		MeterService:            deps.MeterService,
+		FeatureMeterResolver:    featureMeterResolver,
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
 		TaxCodeService:          taxCodeService,

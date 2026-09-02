@@ -30,6 +30,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -74,6 +75,7 @@ type BaseSuite struct {
 
 	BillingAdapter          billing.Adapter
 	BillingService          billing.Service
+	FeatureMeterResolver    billingfeaturemeter.Resolver
 	LegacyBillingLineEngine *billinglineengine.Engine
 	SequenceService         billingsequence.Service
 	InvoiceCalculator       *invoicecalc.MockableInvoiceCalculator
@@ -239,10 +241,17 @@ func (s *BaseSuite) setupSuite() {
 	s.SequenceService = billingSequenceService
 
 	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
+	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+		FeatureService: s.FeatureService,
+		MeterService:   s.MeterAdapter,
+	})
+	require.NoError(t, err)
+	s.FeatureMeterResolver = featureMeterResolver
+
 	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
 		SplitLineGroupAdapter:        billingAdapter,
 		RatingService:                billingRatingService,
-		FeatureService:               s.FeatureService,
+		FeatureMeterResolver:         featureMeterResolver,
 		StreamingConnector:           s.MockStreamingConnector,
 		MaxParallelQuantitySnapshots: 2,
 	})
@@ -257,8 +266,7 @@ func (s *BaseSuite) setupSuite() {
 		CustomerService:         s.CustomerService,
 		AppService:              s.AppService,
 		Logger:                  slog.Default(),
-		FeatureService:          s.FeatureService,
-		MeterService:            s.MeterAdapter,
+		FeatureMeterResolver:    featureMeterResolver,
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
 		TaxCodeService:          taxCodeService,

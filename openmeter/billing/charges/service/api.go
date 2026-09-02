@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -495,24 +496,24 @@ func (s *service) getCustomerChargeCustomer(ctx context.Context, namespace strin
 
 // listCustomerChargeFeatures bulk-loads the referenced features for the
 // feature expand. Refs mix resolved IDs (active charges) and keys (created
-// charges), which ResolveFeatureMeters handles natively.
+// charges), which feature meter resolution handles natively.
 func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace string, refs []ref.IDOrKey) (map[ref.IDOrKey]feature.Feature, error) {
 	out := make(map[ref.IDOrKey]feature.Feature, len(refs))
 	if len(refs) == 0 {
 		return out, nil
 	}
 
-	meterRefs := lo.Map(refs, func(featureRef ref.IDOrKey, _ int) feature.FeatureMeterRef {
-		return feature.FeatureMeterRef{IDOrKey: featureRef}
+	meterRefs := lo.Map(refs, func(featureRef ref.IDOrKey, _ int) billingfeaturemeter.FeatureMeterRef {
+		return billingfeaturemeter.FeatureMeterRef{IDOrKey: featureRef}
 	})
 
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, meterRefs...)
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, meterRefs)
 	if err != nil {
 		return nil, fmt.Errorf("resolving features: %w", err)
 	}
 
 	for _, featureRef := range refs {
-		featureMeter, err := featureMeters.Resolve(feature.FeatureMeterRef{IDOrKey: featureRef})
+		featureMeter, err := featureMeters.Resolve(billingfeaturemeter.FeatureMeterRef{IDOrKey: featureRef})
 		if err != nil {
 			// A stale reference must not fail the listing; the converter
 			// falls back to the id reference, as for deleted customers and

@@ -61,7 +61,7 @@ func isDependingOnIncreaseOnlyMeters(in rating.ResolveBillablePeriodInput) (bool
 	}
 
 	// Let's check if the underlying meter can be billed in a progressive manner
-	featureMeter, err := in.FeatureMeters.Get(featureKey, true)
+	featureMeter, err := in.FeatureMeters.GetByKey(featureKey, true)
 	if err != nil {
 		return false, err
 	}

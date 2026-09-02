@@ -100,14 +100,14 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
-		Client:              s.DBClient,
-		Logger:              logger,
-		BillingService:      s.BillingService,
-		FeatureService:      s.FeatureService,
-		StreamingConnector:  s.MockStreamingConnector,
-		TaxCodeService:      s.TaxCodeService,
-		CustomerService:     s.CustomerService,
-		SubscriptionService: s.SubscriptionService,
+		Client:               s.DBClient,
+		Logger:               logger,
+		BillingService:       s.BillingService,
+		FeatureMeterResolver: s.FeatureMeterResolver,
+		StreamingConnector:   s.MockStreamingConnector,
+		TaxCodeService:       s.TaxCodeService,
+		CustomerService:      s.CustomerService,
+		SubscriptionService:  s.SubscriptionService,
 		FlatFeeHandler: ledgerchargeadapter.NewFlatFeeHandler(
 			ledgerDeps.HistoricalLedger,
 			transactions.ResolverDependencies{

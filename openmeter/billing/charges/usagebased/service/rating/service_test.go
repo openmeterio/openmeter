@@ -16,6 +16,7 @@ import (
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	ratingtestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/testutils"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -566,8 +567,8 @@ func newDetailedRatingTestCustomer() billing.CustomerOverrideWithDetails {
 	}
 }
 
-func newDetailedRatingTestFeatureMeter() feature.FeatureMeter {
-	return feature.FeatureMeter{
+func newDetailedRatingTestFeatureMeter() billingfeaturemeter.FeatureMeter {
+	return billingfeaturemeter.FeatureMeter{
 		Feature: feature.Feature{
 			Namespace: "ns",
 			ID:        "feature-1",
