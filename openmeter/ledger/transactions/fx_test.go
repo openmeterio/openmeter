@@ -83,8 +83,9 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 		}
 
 		tests := []struct {
-			name   string
-			mutate func(*ConvertCurrencyTemplate)
+			name          string
+			mutate        func(*ConvertCurrencyTemplate)
+			errorContains string
 		}{
 			{
 				name: "fiat to custom",
@@ -94,6 +95,13 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 				mutate: func(input *ConvertCurrencyTemplate) {
 					input.TargetCurrency = currencies.NewCurrencyReference(currencyx.Code("USD"))
 				},
+			},
+			{
+				name: "rejects unresolved custom target",
+				mutate: func(input *ConvertCurrencyTemplate) {
+					input.TargetCurrency = currencies.NewCurrencyReference(currencyx.Code("ACME"))
+				},
+				errorContains: "target custom currency must be resolved",
 			},
 			{
 				name: "custom to custom",
@@ -166,6 +174,9 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 				}
 
 				require.Error(t, err)
+				if tt.errorContains != "" {
+					require.ErrorContains(t, err, tt.errorContains)
+				}
 			})
 		}
 	})
