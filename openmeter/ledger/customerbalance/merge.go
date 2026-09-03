@@ -98,6 +98,10 @@ func mergeSortedLists(lists [][]CreditTransaction, limit int, cmp func(a, b Cred
 }
 
 func creditTransactionCursor(tx CreditTransaction) ledger.TransactionCursor {
+	if tx.balanceCursor != nil {
+		return *tx.balanceCursor
+	}
+
 	return ledger.TransactionCursor{
 		BookedAt:  tx.BookedAt,
 		CreatedAt: tx.CreatedAt,

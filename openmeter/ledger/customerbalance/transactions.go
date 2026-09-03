@@ -114,8 +114,12 @@ type CreditTransaction struct {
 	Description *string
 	Annotations models.Annotations
 
-	balanceCursor *ledger.TransactionCursor
-	balanceAsOf   *time.Time
+	balanceCursor     *ledger.TransactionCursor
+	balanceAsOf       *time.Time
+	balanceImpact     *alpacadecimal.Decimal
+	currencyReference currencies.CurrencyReference
+
+	fundedTransactionGroupID string
 }
 
 type CreditTransactionBalance struct {
@@ -134,11 +138,11 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		return ListCreditTransactionsResult{}, err
 	}
 
-	accountID, err := s.customerFBOAccountID(ctx, input.CustomerID)
+	accountIDs, err := s.customerBalanceAccountIDs(ctx, input.CustomerID)
 	if err != nil {
-		return ListCreditTransactionsResult{}, fmt.Errorf("resolve customer FBO account: %w", err)
+		return ListCreditTransactionsResult{}, fmt.Errorf("resolve customer balance accounts: %w", err)
 	}
-	if accountID == "" {
+	if accountIDs.FBO == "" {
 		return emptyCreditTransactions(), nil
 	}
 
@@ -148,14 +152,15 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	}
 
 	loaderInput := creditTransactionLoaderInput{
-		Limit:         input.Limit,
-		After:         input.After,
-		Before:        input.Before,
-		CustomerID:    input.CustomerID,
-		AccountID:     accountID,
-		Currency:      input.Currency,
-		AsOf:          creditTransactionsAsOf(input.AsOf),
-		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+		Limit:               input.Limit,
+		After:               input.After,
+		Before:              input.Before,
+		CustomerID:          input.CustomerID,
+		AccountID:           accountIDs.FBO,
+		ReceivableAccountID: accountIDs.Receivable,
+		Currency:            input.Currency,
+		AsOf:                creditTransactionsAsOf(input.AsOf),
+		FeatureFilter:       normalizeFeatureFilter(input.FeatureFilter),
 	}
 
 	loadedLists := make([][]CreditTransaction, 0, len(loaders))
@@ -180,29 +185,41 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	hasMoreInQueryDirection := bufferedHasMore || loadersHaveMore
 
 	items := mergedItems
+
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
-	if len(items) > 0 {
-		runningBalance, err := s.GetSettledBalance(ctx, GetBalanceServiceInput{
-			CustomerID:    input.CustomerID,
-			Currency:      items[0].Currency,
-			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
-			BalanceQuery:  items[0].balanceQuery(),
-		})
-		if err != nil {
-			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", items[0].ID.ID, err)
+	// CurrencyReference.IdentityKey keeps custom currency IDs distinct without
+	// using pointer-bearing references as map keys.
+	runningBalancesByCurrency := make(map[string]alpacadecimal.Decimal)
+	for _, item := range items {
+		currencyReference := item.balanceCurrencyReference()
+		currencyKey := currencyReference.IdentityKey()
+		if _, ok := runningBalancesByCurrency[currencyKey]; ok {
+			continue
 		}
 
-		applyCreditTransactionBalances(items, runningBalance)
+		runningBalance, err := s.GetSettledBalance(ctx, GetBalanceServiceInput{
+			CustomerID:        input.CustomerID,
+			Currency:          currencyReference.GetCode(),
+			FeatureFilter:     normalizeFeatureFilter(input.FeatureFilter),
+			BalanceQuery:      item.balanceQuery(),
+			currencyReference: currencyReference,
+		})
+		if err != nil {
+			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", item.ID.ID, err)
+		}
+
+		runningBalancesByCurrency[currencyKey] = runningBalance
 	}
+	applyCreditTransactionBalances(items, runningBalancesByCurrency)
 
 	var (
 		nextCursor     *ledger.TransactionCursor
 		previousCursor *ledger.TransactionCursor
 	)
-	if len(mergedItems) > 0 {
-		lastCursor := creditTransactionCursor(mergedItems[len(mergedItems)-1])
-		firstCursor := creditTransactionCursor(mergedItems[0])
+	if len(items) > 0 {
+		lastCursor := creditTransactionCursor(items[len(items)-1])
+		firstCursor := creditTransactionCursor(items[0])
 
 		if input.Before != nil || hasMoreInQueryDirection {
 			nextCursor = lo.ToPtr(lastCursor)
@@ -234,17 +251,27 @@ func creditTransactionsAsOf(asOf *time.Time) time.Time {
 	return clock.Now()
 }
 
-func (s *service) customerFBOAccountID(ctx context.Context, customerID customer.CustomerID) (string, error) {
+type customerBalanceAccounts struct {
+	FBO        string
+	Receivable string
+}
+
+func (s *service) customerBalanceAccountIDs(ctx context.Context, customerID customer.CustomerID) (customerBalanceAccounts, error) {
 	accounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
-		return "", err
+		return customerBalanceAccounts{}, err
 	}
 
 	if accounts.FBOAccount == nil {
-		return "", nil
+		return customerBalanceAccounts{}, nil
 	}
 
-	return accounts.FBOAccount.ID().ID, nil
+	accountIDs := customerBalanceAccounts{FBO: accounts.FBOAccount.ID().ID}
+	if accounts.ReceivableAccount != nil {
+		accountIDs.Receivable = accounts.ReceivableAccount.ID().ID
+	}
+
+	return accountIDs, nil
 }
 
 func creditTransactionsFromLedgerTransactions(txs []ledger.Transaction) ([]CreditTransaction, error) {
@@ -263,26 +290,27 @@ func creditTransactionsFromLedgerTransactions(txs []ledger.Transaction) ([]Credi
 }
 
 func creditTransactionFromLedgerTransaction(tx ledger.Transaction) (CreditTransaction, error) {
-	fboImpact, currency, err := creditTransactionFBOImpact(tx)
+	fboImpact, currencyReference, err := creditTransactionFBOImpact(tx)
 	if err != nil {
 		return CreditTransaction{}, err
 	}
 	cursor := tx.Cursor()
 
 	return CreditTransaction{
-		ID:            tx.ID(),
-		CreatedAt:     tx.Cursor().CreatedAt,
-		BookedAt:      tx.BookedAt(),
-		Type:          creditTransactionType(fboImpact),
-		Currency:      currency,
-		Amount:        fboImpact,
-		Name:          "",
-		Annotations:   tx.Annotations(),
-		balanceCursor: &cursor,
+		ID:                tx.ID(),
+		CreatedAt:         tx.Cursor().CreatedAt,
+		BookedAt:          tx.BookedAt(),
+		Type:              creditTransactionType(fboImpact),
+		Currency:          currencyReference.GetCode(),
+		Amount:            fboImpact,
+		Name:              "",
+		Annotations:       tx.Annotations(),
+		balanceCursor:     &cursor,
+		currencyReference: currencyReference,
 	}, nil
 }
 
-func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, currencyx.Code, error) {
+func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, currencies.CurrencyReference, error) {
 	amount := ledger.TransactionImpact(tx, ledger.ImpactFilter{
 		AccountType: ledger.AccountTypeCustomerFBO,
 	})
@@ -298,25 +326,34 @@ func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, c
 			currency = entryCurrency
 		}
 		if !currency.Equal(entryCurrency) {
-			return alpacadecimal.Decimal{}, "", fmt.Errorf("transaction %s has multiple customer FBO currencies", tx.ID().ID)
+			return alpacadecimal.Decimal{}, currencies.CurrencyReference{}, fmt.Errorf("transaction %s has multiple customer FBO currencies", tx.ID().ID)
 		}
 	}
 
 	if currency.Code == "" {
-		return alpacadecimal.Decimal{}, "", fmt.Errorf("no customer FBO entry found in transaction %s", tx.ID().ID)
+		return alpacadecimal.Decimal{}, currencies.CurrencyReference{}, fmt.Errorf("no customer FBO entry found in transaction %s", tx.ID().ID)
 	}
 
-	return amount, currency.Code, nil
+	return amount, currency, nil
 }
 
-func applyCreditTransactionBalances(items []CreditTransaction, after alpacadecimal.Decimal) {
-	runningBalance := after
-
+func applyCreditTransactionBalances(items []CreditTransaction, runningBalancesByCurrency map[string]alpacadecimal.Decimal) {
 	for i := range items {
+		currencyKey := items[i].balanceCurrencyReference().IdentityKey()
+		runningBalance := runningBalancesByCurrency[currencyKey]
 		items[i].Balance.After = runningBalance
-		items[i].Balance.Before = runningBalance.Sub(items[i].Amount)
-		runningBalance = runningBalance.Sub(items[i].Amount)
+		impact := lo.FromPtrOr(items[i].balanceImpact, items[i].Amount)
+		items[i].Balance.Before = runningBalance.Sub(impact)
+		runningBalancesByCurrency[currencyKey] = runningBalance.Sub(impact)
 	}
+}
+
+func (tx CreditTransaction) balanceCurrencyReference() currencies.CurrencyReference {
+	if tx.currencyReference.Code != "" {
+		return tx.currencyReference.Clone()
+	}
+
+	return currencies.NewCurrencyReference(tx.Currency)
 }
 
 func (tx CreditTransaction) balanceQuery() ledger.BalanceQuery {

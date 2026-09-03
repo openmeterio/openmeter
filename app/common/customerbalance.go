@@ -34,7 +34,6 @@ func NewCustomerBalanceService(
 		AccountResolver:   accountResolver,
 		SubAccountService: accountService,
 		ChargesService:    billingRegistry.Charges.Service,
-		CreditPurchaseSvc: billingRegistry.Charges.CreditPurchaseService,
 		UsageBasedService: billingRegistry.Charges.UsageBasedService,
 		Ledger:            historicalLedger,
 		BalanceQuerier:    balanceQuerier,

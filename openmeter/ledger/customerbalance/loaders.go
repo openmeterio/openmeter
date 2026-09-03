@@ -13,14 +13,15 @@ import (
 )
 
 type creditTransactionLoaderInput struct {
-	Limit         int
-	After         *ledger.TransactionCursor
-	Before        *ledger.TransactionCursor
-	CustomerID    customer.CustomerID
-	AccountID     string
-	Currency      *currencyx.Code
-	AsOf          time.Time
-	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	Limit               int
+	After               *ledger.TransactionCursor
+	Before              *ledger.TransactionCursor
+	CustomerID          customer.CustomerID
+	AccountID           string
+	ReceivableAccountID string
+	Currency            *currencyx.Code
+	AsOf                time.Time
+	FeatureFilter       mo.Option[creditpurchase.FeatureFilters]
 }
 
 type creditTransactionLoaderResult struct {

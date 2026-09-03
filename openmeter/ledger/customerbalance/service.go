@@ -51,10 +51,6 @@ type chargesService interface {
 	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
 }
 
-type creditPurchaseActivityService interface {
-	ListFundedCreditActivities(ctx context.Context, input creditpurchase.ListFundedCreditActivitiesInput) (creditpurchase.ListFundedCreditActivitiesResult, error)
-}
-
 type subAccountLister interface {
 	ListSubAccounts(ctx context.Context, input ledger.ListSubAccountsInput) ([]ledger.SubAccount, error)
 }
@@ -76,7 +72,6 @@ type service struct {
 	AccountResolver   ledger.AccountResolver
 	SubAccountService subAccountLister
 	ChargesService    chargesService
-	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
@@ -92,7 +87,6 @@ type Config struct {
 	AccountResolver   ledger.AccountResolver
 	SubAccountService subAccountLister
 	ChargesService    chargesService
-	CreditPurchaseSvc creditPurchaseActivityService
 	UsageBasedService usageBasedTotalsService
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
@@ -101,10 +95,11 @@ type Config struct {
 }
 
 type GetBalanceServiceInput struct {
-	CustomerID    customer.CustomerID
-	Currency      currencyx.Code
-	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
-	BalanceQuery  ledger.BalanceQuery
+	CustomerID        customer.CustomerID
+	Currency          currencyx.Code
+	FeatureFilter     mo.Option[creditpurchase.FeatureFilters]
+	BalanceQuery      ledger.BalanceQuery
+	currencyReference currencies.CurrencyReference
 }
 
 type GetBalanceCurrenciesInput struct {
@@ -194,14 +189,14 @@ func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
 
 func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = currencies.NewCurrencyReference(i.Currency)
+	route.Currency = i.ledgerCurrencyReference()
 
 	return route
 }
 
 func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = currencies.NewCurrencyReference(i.Currency)
+	route.Currency = i.ledgerCurrencyReference()
 	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
 
 	return route
@@ -209,6 +204,14 @@ func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 
 func (i GetBalanceServiceInput) featureRoute() ledger.RouteFilter {
 	return featureFilterRoute(normalizeFeatureFilter(i.FeatureFilter))
+}
+
+func (i GetBalanceServiceInput) ledgerCurrencyReference() currencies.CurrencyReference {
+	if i.currencyReference.Code != "" {
+		return i.currencyReference.Clone()
+	}
+
+	return currencies.NewCurrencyReference(i.Currency)
 }
 
 func (c Config) Validate() error {
@@ -224,10 +227,6 @@ func (c Config) Validate() error {
 
 	if c.ChargesService == nil {
 		errs = append(errs, errors.New("charges service is required"))
-	}
-
-	if c.CreditPurchaseSvc == nil {
-		errs = append(errs, errors.New("credit purchase service is required"))
 	}
 
 	if c.UsageBasedService == nil {
@@ -263,7 +262,6 @@ func New(config Config) (*service, error) {
 		AccountResolver:   config.AccountResolver,
 		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
-		CreditPurchaseSvc: config.CreditPurchaseSvc,
 		UsageBasedService: config.UsageBasedService,
 		Ledger:            config.Ledger,
 		BalanceQuerier:    config.BalanceQuerier,
