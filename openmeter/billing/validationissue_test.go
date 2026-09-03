@@ -68,6 +68,32 @@ func TestValidationIssueParsing(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestValidationWithComponentPrecedence(t *testing.T) {
+	baseIssue := ValidationIssue{
+		Severity:  ValidationIssueSeverityWarning,
+		Message:   "canonical message",
+		Code:      "canonical_code",
+		Component: "issue-component",
+		Path:      "original/path",
+	}
+	err := ValidationWithComponent(
+		"outer-component",
+		ValidationWithComponent("inner-component", baseIssue),
+	)
+
+	issues, systemErr := ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Equal(t, ValidationIssues{
+		{
+			Severity:  baseIssue.Severity,
+			Message:   baseIssue.Message,
+			Code:      baseIssue.Code,
+			Component: "outer-component",
+			Path:      "/original/path",
+		},
+	}, issues)
+}
+
 func TestAsError(t *testing.T) {
 	issues := ValidationIssues{
 		{

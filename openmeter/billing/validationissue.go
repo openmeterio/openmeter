@@ -102,8 +102,9 @@ func (c componentWrapper) Unwrap() error {
 	return c.err
 }
 
-// ValidationWithComponent wraps an error with a component name, if error is nil, it returns nil
-// This can be used to add context to an error when we are crossing service boundaries.
+// ValidationWithComponent wraps an error with a component name, if error is nil, it returns nil.
+// This can be used to add context to an error when we are crossing service boundaries. When
+// wrappers are nested, the outermost service boundary defines the extracted issue's component.
 func ValidationWithComponent(component ComponentName, err error) error {
 	if err == nil {
 		return nil
@@ -268,7 +269,12 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 	// ordering is non-deterministic, we first have a typeswitch for the special cases)
 	switch errT := err.(type) {
 	case componentWrapper:
-		return toValidationIssue(errT.err, fieldPrefix, errT.component, messagePrefix, true)
+		issueComponent := component
+		if issueComponent == "" {
+			issueComponent = errT.component
+		}
+
+		return toValidationIssue(errT.err, fieldPrefix, issueComponent, messagePrefix, true)
 	case fieldPrefixWrapper:
 		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, messagePrefix, true)
 	case messageWrapper:
