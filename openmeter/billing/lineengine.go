@@ -162,8 +162,28 @@ func (i StandardLineEventInput) Validate() error {
 	return errors.Join(errs...)
 }
 
+type OnStandardInvoiceCreatedInput struct {
+	StandardLineEventInput
+	// FeatureMeters contains the currently resolvable features referenced by the invoice lines.
+	// Missing features are intentionally absent so engines can report them as validation issues.
+	FeatureMeters billingfeaturemeter.FeatureMeters
+}
+
+func (i OnStandardInvoiceCreatedInput) Validate() error {
+	var errs []error
+
+	if err := i.StandardLineEventInput.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.FeatureMeters == nil {
+		errs = append(errs, errors.New("feature meters are required"))
+	}
+
+	return errors.Join(errs...)
+}
+
 type (
-	OnStandardInvoiceCreatedInput      = StandardLineEventInput
 	OnCollectionCompletedInput         = StandardLineEventInput
 	OnInvoiceFinalizingInput           = StandardLineEventInput
 	OnMutableStandardLinesDeletedInput = StandardLineEventInput
@@ -259,6 +279,10 @@ type LineEngine interface {
 	// reuse the exact same line IDs as the input gathering lines.
 	BuildStandardLinesForGatheringPreview(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
 	// OnStandardInvoiceCreated is invoked after the standard invoice and its standard lines have been persisted.
+	// Implementations may return usable standard lines together with validation issues in the error result.
+	// Callers split the error with ToValidationIssues: when no system error remains, billing accepts the returned
+	// lines and records the validation issues on the invoice. A remaining system error makes the lines unusable
+	// and aborts invoice creation.
 	OnStandardInvoiceCreated(ctx context.Context, input OnStandardInvoiceCreatedInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)

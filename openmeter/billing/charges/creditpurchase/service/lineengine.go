@@ -195,7 +195,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	updatedCharges, err := e.fireInvoiceLifecycleTriggerForLines(ctx, meta.TriggerInvoiceCreated, input)
+	updatedCharges, err := e.fireInvoiceLifecycleTriggerForLines(ctx, meta.TriggerInvoiceCreated, input.StandardLineEventInput)
 	if err != nil {
 		return nil, err
 	}

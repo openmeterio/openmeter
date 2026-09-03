@@ -8,6 +8,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -227,6 +228,10 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	if err := charges.ValidateStandardInvoiceCreatedFeatures(input); err != nil {
+		return input.Lines, err
 	}
 
 	stdLines, err := slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {

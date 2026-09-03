@@ -225,6 +225,84 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	s.Equal(flatFeeIntent.PercentageDiscounts.CorrelationID, invoicedFlatFeeLine.RateCardDiscounts.Percentage.CorrelationID)
 }
 
+func (s *InvoicableChargesTestSuite) TestMissingFeatureCreatesInvalidStandardInvoiceForChargeBackedLine() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("charges-service-missing-feature-standard-invoice")
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+
+	customInvoicing := s.SetupCustomInvoicing(namespace)
+	customerEntity := s.CreateTestCustomer(namespace, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(servicePeriod.To)
+	defer clock.UnFreeze()
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	featureKey := apiRequestsTotal.Feature.Key
+
+	// given: a charge-backed gathering line references a feature that existed when the charge was created
+	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(USD),
+		Lines: []billing.GatheringLine{{
+			GatheringLineBase: billing.GatheringLineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: namespace,
+					Name:      "charge-backed usage with missing feature",
+				}),
+				ManagedBy:     billing.ManuallyManagedLine,
+				Engine:        billing.LineEngineTypeInvoice,
+				Currency:      currencyx.FiatCode(USD),
+				ServicePeriod: servicePeriod,
+				InvoiceAt:     servicePeriod.To,
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				})),
+				FeatureKey: featureKey,
+			},
+		}},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Lines, 1)
+	s.Equal(billing.LineEngineTypeChargeUsageBased, result.Lines[0].Engine)
+
+	missingFeatureKey := "missing-feature"
+	updateResult, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_invoice_usage_based_line_configs SET feature_key = $1 WHERE id = $2`,
+		missingFeatureKey,
+		result.Lines[0].UBPConfigID,
+	)
+	s.Require().NoError(err)
+	updatedRows, err := updateResult.RowsAffected()
+	s.Require().NoError(err)
+	s.Equal(int64(1), updatedRows)
+
+	// when: billing collects the gathering line after its persisted feature reference becomes dangling
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+		AsOf:     lo.ToPtr(servicePeriod.To),
+	})
+
+	// then: the charge engine returns its usable line with a validation issue instead of aborting collection
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
+	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.Equal(result.Lines[0].ID, invoice.Lines.OrEmpty()[0].ID)
+	s.Require().Len(invoice.ValidationIssues, 1)
+	s.Equal(billing.ErrInvoiceLineFeatureNotFound.Code, invoice.ValidationIssues[0].Code)
+	s.Equal(billing.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+	s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), invoice.ValidationIssues[0].Component)
+	s.Equal("/lines/"+result.Lines[0].ID, invoice.ValidationIssues[0].Path)
+}
+
 func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolvesRequiredFeatureMeters() {
 	// given:
 	// - usage pending lines whose feature dependencies are missing or meterless
