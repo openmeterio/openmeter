@@ -8,7 +8,9 @@ SVIX_JWT_SECRET = DUMMY_JWT_SECRET
 # dynamic forces confluent-kafka-go to build against local librdkafka
 GO_BUILD_FLAGS = -tags=dynamic
 GO_TEST_PACKAGE_PARALLELISM ?= 128
+GO_TEST_PACKAGES ?= ./...
 GO_TEST_FLAGS = -p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}
+MIGRATION_TEST_PARALLELISM ?= 8
 GOTESTSUM_FLAGS ?= --format pkgname-and-test-fails --hide-summary=skipped
 GO_LINT_PATH ?= ./...
 
@@ -233,13 +235,24 @@ etoe-slow: ## Run e2e tests with slow tests enabled
 test: ## Run tests
 	$(call print-target)
 	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
-	POSTGRES_HOST=127.0.0.1 gotestsum $(GOTESTSUM_FLAGS) -- $(GO_TEST_FLAGS) ./...
+	POSTGRES_HOST=127.0.0.1 gotestsum $(GOTESTSUM_FLAGS) -- $(GO_TEST_FLAGS) $(GO_TEST_PACKAGES)
 
 .PHONY: test-nocache
 test-nocache: ## Run tests without cache
 	$(call print-target)
 	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
-	POSTGRES_HOST=127.0.0.1 gotestsum $(GOTESTSUM_FLAGS) -- $(GO_TEST_FLAGS) -count=1 ./...
+	POSTGRES_HOST=127.0.0.1 gotestsum $(GOTESTSUM_FLAGS) -- $(GO_TEST_FLAGS) -count=1 $(GO_TEST_PACKAGES)
+
+.PHONY: test-nocache-core
+test-nocache-core: ## Run tests without cache, excluding migration tests
+	$(call print-target)
+	$(MAKE) test-nocache GO_TEST_PACKAGES="$$(go list ./... | grep -v '/tools/migrate$$' | tr '\n' ' ')"
+
+.PHONY: test-migrations
+test-migrations: ## Run migration tests without cache
+	$(call print-target)
+	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
+	POSTGRES_HOST=127.0.0.1 gotestsum $(GOTESTSUM_FLAGS) -- -p 1 -parallel $(MIGRATION_TEST_PARALLELISM) $(GO_BUILD_FLAGS) -count=1 ./tools/migrate
 
 .PHONY: test-all
 test-all: ## Run tests with svix dependencies, bypassing the test cache

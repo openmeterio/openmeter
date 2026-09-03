@@ -37,6 +37,8 @@ type usageBasedRunImmutableBackfillState struct {
 }
 
 func TestBackfillUsageBasedRunImmutableMigration(t *testing.T) {
+	t.Parallel()
+
 	const (
 		namespace       = "default"
 		previousVersion = uint(20260825091451)

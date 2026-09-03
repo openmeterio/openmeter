@@ -10,6 +10,8 @@ import (
 )
 
 func TestRepairFlatPriceUsageDiscountsMigration(t *testing.T) {
+	t.Parallel()
+
 	const (
 		flatPriceJSON      = `{"type":"flat","amount":"100","paymentTerm":"in_advance"}`
 		unitPriceJSON      = `{"type":"unit","amount":"1"}`

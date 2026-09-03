@@ -9,6 +9,8 @@ import (
 )
 
 func TestLLMCostNormalizeProvidersMigration(t *testing.T) {
+	t.Parallel()
+
 	// Rows that should be renamed
 	nanogptRow := ulid.Make()      // nano-gpt → nanogpt
 	nanoGptRow2 := ulid.Make()     // nano_gpt → nanogpt

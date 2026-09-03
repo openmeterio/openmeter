@@ -13,6 +13,8 @@ import (
 )
 
 func TestStartAfterChange(t *testing.T) {
+	t.Parallel()
+
 	// This is an example test adding a plan phase before start_after is changed to duration
 	// and asserting in the next step that it is in fact deleted as per the migration
 	runner{
@@ -61,6 +63,8 @@ func TestStartAfterChange(t *testing.T) {
 }
 
 func TestPlanBillingCadenceProRatingMigration(t *testing.T) {
+	t.Parallel()
+
 	// Plan with multiple rate cards in last phase - should pick shortest billing cadence
 	plan1Id := ulid.Make()
 	plan1Phase1Id := ulid.Make()
@@ -616,6 +620,8 @@ func TestPlanBillingCadenceProRatingMigration(t *testing.T) {
 }
 
 func TestSubscriptionBillingCadenceProRatingMigration(t *testing.T) {
+	t.Parallel()
+
 	// Subscription with multiple phases and items with different billing cadences
 	sub1Id := ulid.Make()
 	sub1Phase1Id := ulid.Make()

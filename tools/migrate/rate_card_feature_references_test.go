@@ -128,6 +128,8 @@ func assertRateCardFeatureReference(
 }
 
 func TestBackfillRateCardFeatureReferencesMigration(t *testing.T) {
+	t.Parallel()
+
 	const (
 		namespace       = "rate_card_feature_backfill"
 		otherNamespace  = "rate_card_feature_backfill_other"

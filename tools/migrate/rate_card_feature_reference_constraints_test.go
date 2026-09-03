@@ -55,6 +55,8 @@ func insertRateCardFeatureReferenceConstraintRow(
 }
 
 func TestRateCardFeatureReferenceConstraintsMigration(t *testing.T) {
+	t.Parallel()
+
 	const (
 		namespace       = "rate_card_feature_reference_constraints"
 		previousVersion = uint(20260814114215)

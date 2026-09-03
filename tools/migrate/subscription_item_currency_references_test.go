@@ -9,6 +9,8 @@ import (
 )
 
 func TestSubscriptionItemCurrencyReferencesMigration(t *testing.T) {
+	t.Parallel()
+
 	const namespace = "default"
 
 	customerID := ulid.Make()

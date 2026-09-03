@@ -20,6 +20,7 @@ jobs:
     runs-on: depot-ubuntu-latest-16
     outputs:
       cache-key: ${{ steps.cache-key.outputs.cache-key }}
+      migration-tests-changed: ${{ steps.changed-files.outputs.migration_tests_any_modified }}
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -34,7 +35,7 @@ jobs:
           fetch-depth: 2
           persist-credentials: false
 
-      - name: Detect Nix input changes
+      - name: Detect CI input changes
         id: changed-files
         uses: kong/changed-files@4edd678ac3f81e2dc578756871e4d00c19191daf
         with:
@@ -44,6 +45,20 @@ jobs:
               # can change the realized development environment.
               - 'flake.lock'
               - '**/*.nix'
+            migration_tests:
+              - '.github/workflows/ci.yaml'
+              - 'Makefile'
+              - 'flake.lock'
+              - '**/*.nix'
+              - 'go.mod'
+              - 'go.sum'
+              - 'docker-compose.yaml'
+              - 'openmeter/ent/**'
+              - 'openmeter/testutils/pg_driver.go'
+              - 'pkg/framework/entutils/**'
+              - 'pkg/framework/pgdriver/**'
+              - 'tools/wait-for-compose.sh'
+              - 'tools/migrate/**'
 
       - name: Fingerprint Nix inputs
         id: nix-inputs
@@ -574,12 +589,95 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make test-nocache
+            nix develop --impure .#ci -c make test-nocache-core
 
       - name: Stop docker-compose dependencies
         if: always()
         run: |
           docker compose down -v
+
+  migration-tests:
+    name: Migration Tests
+    runs-on: depot-ubuntu-latest-8
+    needs: cache-rebuild
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Report skipped migration tests
+        if: needs.cache-rebuild.outputs.migration-tests-changed != 'true'
+        run: |
+          echo "::notice title=Migration tests skipped::No migration-relevant files changed."
+          {
+            echo "### Migration tests skipped"
+            echo
+            echo "No migration SQL, Ent, migration test, or migration test infrastructure files changed."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout repository
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start PostgreSQL
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        run: docker compose up postgres -d
+
+      - name: Set up Nix
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+            max-jobs = 4
+            cores = 2
+
+      - name: Restore selected Nix store
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
+
+      - name: Upsert Nix store
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        run: nix develop --impure .#ci
+
+      - name: Restore Go module cache
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-
+
+      - name: Wait for PostgreSQL
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        run: ./tools/wait-for-compose.sh postgres
+
+      - name: Run migration tests
+        if: needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        run: |
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c make test-migrations
+
+      - name: Stop PostgreSQL
+        if: always() && needs.cache-rebuild.outputs.migration-tests-changed == 'true'
+        run: docker compose down -v
 
   migrations:
     name: Migration Checks

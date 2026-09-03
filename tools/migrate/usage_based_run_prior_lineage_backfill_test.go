@@ -45,6 +45,8 @@ func queryUsageBasedRunPriorLineageStates(t testing.TB, db *sql.DB) map[string]u
 }
 
 func TestBackfillUsageBasedRunPriorLineageMigration(t *testing.T) {
+	t.Parallel()
+
 	const (
 		namespace       = "default"
 		previousVersion = uint(20260826113408)

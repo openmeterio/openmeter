@@ -11,6 +11,8 @@ import (
 )
 
 func TestDedupeTaxCodesByAppMappingMigration(t *testing.T) {
+	t.Parallel()
+
 	namespace := "dedupe_tax_codes_test"
 
 	// Times used to control winner/loser ordering.

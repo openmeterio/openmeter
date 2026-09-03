@@ -9,6 +9,8 @@ import (
 )
 
 func TestLedgerCustomCurrencyMigrationBackwardCompatibility(t *testing.T) {
+	t.Parallel()
+
 	const (
 		versionBefore = 20260724082957
 		versionAfter  = 20260728160000

@@ -54,6 +54,8 @@ func querySubscriptionItemCurrencyMigrationStates(t testing.TB, db *sql.DB, phas
 }
 
 func TestBackfillSubscriptionItemCurrenciesMigration(t *testing.T) {
+	t.Parallel()
+
 	const (
 		namespace       = "default"
 		previousVersion = uint(20260809172658)

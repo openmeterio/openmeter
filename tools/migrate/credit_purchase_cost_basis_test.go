@@ -9,6 +9,8 @@ import (
 )
 
 func TestCreditPurchaseCostBasisMigrationRejectsNaN(t *testing.T) {
+	t.Parallel()
+
 	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer testDB.PGDriver.Close()
 

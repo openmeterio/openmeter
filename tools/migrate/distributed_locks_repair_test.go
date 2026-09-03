@@ -8,6 +8,8 @@ import (
 )
 
 func TestRepairDistributedLocksMigration(t *testing.T) {
+	t.Parallel()
+
 	t.Run("repairs missing objects", func(t *testing.T) {
 		// given:
 		// - a database at the previous migration head without the raw-SQL lock objects

@@ -12,6 +12,8 @@ import (
 )
 
 func TestSubscriptionCustomCurrencySemanticsMigrationRequiresBackfill(t *testing.T) {
+	t.Parallel()
+
 	const (
 		namespace       = "default"
 		previousVersion = uint(20260810064730)

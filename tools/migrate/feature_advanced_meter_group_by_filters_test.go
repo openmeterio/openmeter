@@ -9,6 +9,8 @@ import (
 )
 
 func TestFeatureAdvancedMeterGroupByFiltersMigration(t *testing.T) {
+	t.Parallel()
+
 	// Feature with null filters
 	nullFeatureId := ulid.Make()
 

@@ -16,6 +16,8 @@ import (
 
 // The main test runner
 func TestUpDownUp(t *testing.T) {
+	t.Parallel()
+
 	runner{}.Test(t)
 }
 
@@ -42,6 +44,8 @@ func (s *stops) add(stops stops) {
 }
 
 func TestAdd(t *testing.T) {
+	t.Parallel()
+
 	b := stops{}
 
 	b.add(stops{{

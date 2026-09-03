@@ -10,6 +10,8 @@ import (
 )
 
 func TestRepairUsageBasedDeletedInvoiceRunsMigration(t *testing.T) {
+	t.Parallel()
+
 	up := readMigration(t, "20260709132435_repair_usagebased_deleted_invoice_runs.up.sql")
 	require.Contains(t, up, "CREATE TEMPORARY TABLE repair_usagebased_deleted_invoice_runs")
 	require.Contains(t, up, "BEGIN;")

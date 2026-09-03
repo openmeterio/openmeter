@@ -16,6 +16,8 @@ import (
 )
 
 func TestLegacyEntAdoptionSchemaParity(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	// - one database migrated from scratch through the Atlas migration history
 	// - one database migrated through the frozen Ent schema, reconciliation, and the remaining Atlas history

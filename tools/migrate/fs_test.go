@@ -16,6 +16,8 @@ var noIgnoreFS embed.FS
 var ignoreFS embed.FS
 
 func TestSourceWrapper(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Name string
 		FS   fs.FS

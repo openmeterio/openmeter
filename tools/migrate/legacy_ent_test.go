@@ -11,6 +11,8 @@ import (
 )
 
 func TestLegacyEntReconciliationIsRerunnable(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	// - an unversioned database created from the frozen Ent schema
 	// when:
@@ -41,6 +43,8 @@ func TestLegacyEntReconciliationIsRerunnable(t *testing.T) {
 }
 
 func TestAdoptLegacyEnt(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	// - an unversioned database created from the frozen Ent schema
 	// when:
@@ -64,6 +68,8 @@ func TestAdoptLegacyEnt(t *testing.T) {
 }
 
 func TestMigrateFromLegacyEntBaselineToLatest(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	// - a database at the frozen Ent schema with reconciliation applied and the baseline recorded
 	// when:
@@ -92,6 +98,8 @@ func TestMigrateFromLegacyEntBaselineToLatest(t *testing.T) {
 }
 
 func TestAdoptLegacyEntRejectsVersionedDatabase(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	// - a database whose schema_om version predates the frozen Ent baseline
 	// when:
@@ -111,6 +119,8 @@ func TestAdoptLegacyEntRejectsVersionedDatabase(t *testing.T) {
 }
 
 func TestAdoptLegacyEntRejectsEmptyDatabase(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	// - an empty database
 	// when:
@@ -125,6 +135,8 @@ func TestAdoptLegacyEntRejectsEmptyDatabase(t *testing.T) {
 }
 
 func TestAdoptLegacyEntRejectsUnknownUnversionedDatabase(t *testing.T) {
+	t.Parallel()
+
 	// given:
 	// - a non-empty unversioned database that is not recognizable as OpenMeter
 	// when:

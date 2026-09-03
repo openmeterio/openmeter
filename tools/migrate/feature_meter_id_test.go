@@ -10,6 +10,8 @@ import (
 )
 
 func TestFeatureMeterIDMigration(t *testing.T) {
+	t.Parallel()
+
 	activeMeterID := ulid.Make()
 	deletedMeterOldID := ulid.Make()
 	deletedMeterNewID := ulid.Make()

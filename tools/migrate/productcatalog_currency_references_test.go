@@ -9,6 +9,8 @@ import (
 )
 
 func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
+	t.Parallel()
+
 	const (
 		namespace              = "default"
 		legacyPlanCurrency     = "USD"

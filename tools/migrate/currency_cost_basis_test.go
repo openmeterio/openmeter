@@ -12,6 +12,8 @@ import (
 )
 
 func TestCurrencyCostBasisEffectiveToMigrationPreservesRows(t *testing.T) {
+	t.Parallel()
+
 	currencyID := ulid.Make().String()
 	costBasisID := ulid.Make().String()
 	effectiveFrom := time.Date(2026, 6, 26, 12, 0, 0, 0, time.UTC)

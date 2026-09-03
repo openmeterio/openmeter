@@ -14,6 +14,8 @@ import (
 const creditPurchaseCostBasisSchemaLevel2Migration = "20260807061955_migrate_credit_purchase_cost_basis_schema_level_2.up.sql"
 
 func TestMigrateCreditPurchaseCostBasisSchemaLevel2(t *testing.T) {
+	t.Parallel()
+
 	withCreditPurchaseCostBasisBackfillTables(t, func(db *sql.DB) {
 		createdAt := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
 
@@ -121,6 +123,8 @@ func TestMigrateCreditPurchaseCostBasisSchemaLevel2(t *testing.T) {
 }
 
 func TestMigrateCreditPurchaseCostBasisSchemaLevel2WaitsForLockedRows(t *testing.T) {
+	t.Parallel()
+
 	withCreditPurchaseCostBasisBackfillTables(t, func(db *sql.DB) {
 		_, err := db.ExecContext(t.Context(), `
 			INSERT INTO charge_credit_purchases (
@@ -165,6 +169,8 @@ func TestMigrateCreditPurchaseCostBasisSchemaLevel2WaitsForLockedRows(t *testing
 }
 
 func TestMigrateCreditPurchaseCostBasisSchemaLevel2RejectsInvalidRows(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		name    string
 		insert  string

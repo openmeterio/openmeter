@@ -215,6 +215,8 @@ func applyGeneratedViews(t *testing.T, db *sql.DB) {
 }
 
 func TestViewDefinitionsMatchGeneratedSchemaSQL(t *testing.T) {
+	t.Parallel()
+
 	sql, err := viewgen.GenerateSQL("../../openmeter/ent/schema")
 	require.NoError(t, err)
 

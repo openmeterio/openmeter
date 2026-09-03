@@ -16,6 +16,8 @@ const (
 )
 
 func TestBackfillChargeDiscountCorrelationIDs(t *testing.T) {
+	t.Parallel()
+
 	up := readMigration(t, chargeDiscountCorrelationIDMigration)
 
 	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
@@ -47,6 +49,8 @@ func TestBackfillChargeDiscountCorrelationIDs(t *testing.T) {
 }
 
 func TestBackfillPersistedChargeDiscountCorrelationIDs(t *testing.T) {
+	t.Parallel()
+
 	up := readMigration(t, persistedChargeDiscountCorrelationIDMigration)
 
 	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)

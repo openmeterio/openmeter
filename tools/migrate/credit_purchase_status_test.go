@@ -15,6 +15,8 @@ const (
 )
 
 func TestMigrateInvoiceCreditPurchaseStatuses(t *testing.T) {
+	t.Parallel()
+
 	up := readMigration(t, invoiceCreditPurchaseStatusMigration)
 
 	t.Run("maps durable realization states", func(t *testing.T) {
@@ -99,6 +101,8 @@ func TestMigrateInvoiceCreditPurchaseStatuses(t *testing.T) {
 }
 
 func TestMigrateExternalCreditPurchaseStatuses(t *testing.T) {
+	t.Parallel()
+
 	up := readMigration(t, externalCreditPurchaseStatusMigration)
 
 	t.Run("maps durable realization states", func(t *testing.T) {
