@@ -458,12 +458,13 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 	s.Equal("preview callback line", previewInvoice.Lines.OrEmpty()[0].Name)
 }
 
-func (s *LineEngineTestSuite) TestStandardInvoiceCreatedValidationIssuesPreserveLines() {
+func (s *LineEngineTestSuite) TestStandardInvoiceCreatedValidationIssuesPreserveLinesAndRetryHook() {
 	var (
 		ctx        = s.T().Context()
 		namespace  = s.GetUniqueNamespace("ns-line-engine-standard-invoice-created-validation")
 		mockEngine = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
 		invoice    ombilling.StandardInvoice
+		repaired   bool
 		hookCalls  int
 	)
 
@@ -481,16 +482,22 @@ func (s *LineEngineTestSuite) TestStandardInvoiceCreatedValidationIssuesPreserve
 		s.Require().NotNil(input.FeatureMeters)
 		s.Require().True(input.FeatureMeters.Has(input.Lines[0]))
 
-		input.Lines[0].Name = "usable line with creation issue"
+		if !repaired {
+			input.Lines[0].Name = "usable line with creation issue"
 
-		return input.Lines, ombilling.ValidationWithFieldPrefix(
-			fmt.Sprintf("lines/%s", input.Lines[0].ID),
-			ombilling.ValidationWithMessagef(
-				ombilling.ErrInvoiceLineFeatureNotFound,
-				"feature[%s]",
-				input.Lines[0].GetFeatureKey(),
-			),
-		)
+			return input.Lines, ombilling.ValidationWithFieldPrefix(
+				fmt.Sprintf("lines/%s", input.Lines[0].ID),
+				ombilling.ValidationWithMessagef(
+					ombilling.ErrInvoiceLineFeatureNotFound,
+					"feature[%s]",
+					input.Lines[0].GetFeatureKey(),
+				),
+			)
+		}
+
+		input.Lines[0].Name = "repaired line"
+
+		return input.Lines, nil
 	}
 
 	s.Run("Given an invoice-created hook returns usable lines with a validation issue", func() {
@@ -513,6 +520,35 @@ func (s *LineEngineTestSuite) TestStandardInvoiceCreatedValidationIssuesPreserve
 		s.Equal(ombilling.ErrInvoiceLineFeatureNotFound.Code, invoice.ValidationIssues[0].Code)
 		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
 		s.Equal(ombilling.LineEngineValidationComponent(mockEngine.GetLineEngineType()), invoice.ValidationIssues[0].Component)
+	})
+
+	s.Run("When retry runs while the inconsistency remains", func() {
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+	})
+
+	s.Run("Then draft.created replays the hook and returns to draft.invalid_created", func() {
+		s.Equal(2, hookCalls)
+		s.Equal(ombilling.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+	})
+
+	s.Run("When retry runs after the inconsistency is repaired", func() {
+		repaired = true
+
+		var err error
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().NoError(err)
+	})
+
+	s.Run("Then the hook succeeds and the invoice leaves the failure state", func() {
+		s.Equal(3, hookCalls)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		s.Equal("repaired line", invoice.Lines.OrEmpty()[0].Name)
 	})
 }
 

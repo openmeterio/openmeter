@@ -45,7 +45,7 @@ projection. The type-specific detailed status is the lifecycle state.
 - Invoice-created hooks preflight every line's feature reference before charge
   lifecycle effects. A missing feature returns the unchanged usable lines with
   line-scoped validation issues, allowing billing to persist the invoice as
-  `draft.invalid_created`.
+  `draft.invalid_created`; retry replays only the affected charge hook.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles
