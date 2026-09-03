@@ -8,8 +8,9 @@ SVIX_JWT_SECRET = DUMMY_JWT_SECRET
 # dynamic forces confluent-kafka-go to build against local librdkafka
 GO_BUILD_FLAGS = -tags=dynamic
 GO_TEST_PACKAGE_PARALLELISM ?= 128
+GO_TEST_PARALLELISM ?= 16
 GO_TEST_PACKAGES ?= ./...
-GO_TEST_FLAGS = -p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}
+GO_TEST_FLAGS = -p ${GO_TEST_PACKAGE_PARALLELISM} -parallel ${GO_TEST_PARALLELISM} ${GO_BUILD_FLAGS}
 MIGRATION_TEST_PARALLELISM ?= 8
 GOTESTSUM_FLAGS ?= --format pkgname-and-test-fails --hide-summary=skipped
 GO_LINT_PATH ?= ./...
