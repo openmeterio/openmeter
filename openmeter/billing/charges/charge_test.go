@@ -7,27 +7,59 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 )
 
-func TestChargeIntentsCollectFeatureMeterRefs(t *testing.T) {
+func TestChargeIntentGetFeatureMeterRef(t *testing.T) {
 	// given:
 	// - flat-fee and usage-based intents reference the same feature
 	// when:
-	// - their feature meter references are collected
+	// - their feature meter references are read
 	// then:
-	// - both refs are retained with the meter requirement derived from the charge type
+	// - each ref carries the meter requirement derived from the charge type
 	const featureKey = "api-requests"
 
-	refs, err := (ChargeIntents{
+	intents := ChargeIntents{
 		NewChargeIntent(flatfee.Intent{FeatureKey: lo.ToPtr(featureKey)}),
 		NewChargeIntent(usagebased.Intent{FeatureKey: featureKey}),
-	}).CollectFeatureMeterRefs()
+	}
 
-	require.NoError(t, err)
-	require.Len(t, refs, 2)
-	require.Equal(t, featureKey, refs[0].IDOrKey.Key)
-	require.False(t, refs[0].RequireMeter)
-	require.Equal(t, featureKey, refs[1].IDOrKey.Key)
-	require.True(t, refs[1].RequireMeter)
+	flatRef := intents[0].GetFeatureMeterRef()
+	usageRef := intents[1].GetFeatureMeterRef()
+
+	require.Equal(t, featureKey, flatRef.IDOrKey.Key)
+	require.False(t, flatRef.RequireMeter)
+	require.Equal(t, featureKey, usageRef.IDOrKey.Key)
+	require.True(t, usageRef.RequireMeter)
+	_, flatFeeHasOwner := any(intents[0]).(featuremeter.FeatureReferenceOwner)
+	_, usageBasedHasOwner := any(intents[1]).(featuremeter.FeatureReferenceOwner)
+	require.False(t, flatFeeHasOwner)
+	require.False(t, usageBasedHasOwner)
+}
+
+func TestChargeFeatureMeterReferenceForExpansion(t *testing.T) {
+	// given:
+	// - a persisted usage-based charge whose operational workflows require a meter
+	concreteCharge := usagebased.Charge{ChargeBase: usagebased.ChargeBase{
+		ManagedResource: meta.ManagedResource{ID: "charge-id"},
+		Intent:          usagebased.Intent{FeatureKey: "feature-key"}.AsOverridableIntent(),
+		Status:          usagebased.StatusActive,
+		State:           usagebased.State{FeatureID: "feature-id"},
+	}}
+	charge := NewCharge(concreteCharge)
+
+	// when:
+	// - the concrete charge and the API-expansion union expose their feature dependency
+	concreteRef := concreteCharge.GetFeatureMeterRef()
+	expansionRef := charge.GetFeatureMeterRef()
+
+	// then:
+	// - the root charge delegates the exact feature reference to the concrete charge
+	require.Equal(t, concreteRef, expansionRef)
+	require.Equal(t, featuremeter.FeatureReferenceIdentity{
+		Kind: featuremeter.FeatureReferenceKindCharges,
+		ID:   "charge-id",
+	}, charge.GetFeatureMeterOwner())
 }

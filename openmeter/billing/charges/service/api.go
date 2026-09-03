@@ -326,8 +326,10 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 
 		out.UsageBasedRealizations = resolved
 
-		if feat, ok := entities.featuresByRef[ub.GetFeatureKeyOrID()]; ok {
-			out.Feature = &feat
+		if featureRef := ub.GetFeatureMeterRef(); featureRef != nil {
+			if feat, ok := entities.featuresByRef[featureRef.IDOrKey]; ok {
+				out.Feature = &feat
+			}
 		}
 
 		if sub := ub.Intent.GetSubscription(); sub != nil {
@@ -367,24 +369,24 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 // customerChargeReferences collects the entity references a page of charges
 // points at, so the facade bulk-loads each kind once.
 type customerChargeReferences struct {
-	featureRefs     []ref.IDOrKey
-	subscriptionIDs []string
-	invoiceIDs      []string
+	featureReferences []billingfeaturemeter.FeatureReferenceGetter
+	subscriptionIDs   []string
+	invoiceIDs        []string
 }
 
 func collectCustomerChargeReferences(items charges.Charges) (customerChargeReferences, error) {
 	out := customerChargeReferences{}
 
 	for _, item := range items {
+		if item.GetFeatureMeterRef() != nil {
+			out.featureReferences = append(out.featureReferences, item)
+		}
+
 		switch item.Type() {
 		case meta.ChargeTypeUsageBased:
 			ub, err := item.AsUsageBasedCharge()
 			if err != nil {
 				return customerChargeReferences{}, err
-			}
-
-			if featureRef := ub.GetFeatureKeyOrID(); featureRef != (ref.IDOrKey{}) {
-				out.featureRefs = append(out.featureRefs, featureRef)
 			}
 
 			if sub := ub.Intent.GetSubscription(); sub != nil {
@@ -400,10 +402,6 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 			ff, err := item.AsFlatFeeCharge()
 			if err != nil {
 				return customerChargeReferences{}, err
-			}
-
-			if featureRef := ff.GetFeatureRef(); featureRef != nil {
-				out.featureRefs = append(out.featureRefs, *featureRef)
 			}
 
 			if sub := ff.Intent.GetSubscription(); sub != nil {
@@ -422,7 +420,6 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 		}
 	}
 
-	out.featureRefs = lo.Uniq(out.featureRefs)
 	out.subscriptionIDs = lo.Uniq(out.subscriptionIDs)
 	out.invoiceIDs = lo.Uniq(out.invoiceIDs)
 
@@ -451,7 +448,7 @@ func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace stri
 	}
 
 	if expands.Has(meta.ExpandFeature) {
-		entities.featuresByRef, err = s.listCustomerChargeFeatures(ctx, namespace, refs.featureRefs)
+		entities.featuresByRef, err = s.listCustomerChargeFeatures(ctx, namespace, refs.featureReferences)
 		if err != nil {
 			return customerChargeEntities{}, fmt.Errorf("loading features: %w", err)
 		}
@@ -499,38 +496,42 @@ func (s *service) getCustomerChargeCustomer(ctx context.Context, namespace strin
 // listCustomerChargeFeatures bulk-loads the referenced features for the
 // feature expand. Refs mix resolved IDs (active charges) and keys (created
 // charges), which feature meter resolution handles natively.
-func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace string, refs []ref.IDOrKey) (map[ref.IDOrKey]feature.Feature, error) {
-	out := make(map[ref.IDOrKey]feature.Feature, len(refs))
-	if len(refs) == 0 {
+func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace string, featureReferences []billingfeaturemeter.FeatureReferenceGetter) (map[ref.IDOrKey]feature.Feature, error) {
+	out := make(map[ref.IDOrKey]feature.Feature, len(featureReferences))
+	if len(featureReferences) == 0 {
 		return out, nil
 	}
 
-	meterRefs := lo.Map(refs, func(featureRef ref.IDOrKey, _ int) billingfeaturemeter.FeatureMeterRef {
-		return billingfeaturemeter.FeatureMeterRef{IDOrKey: featureRef}
-	})
-
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
-		Namespace:   namespace,
-		FeatureRefs: meterRefs,
-	})
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, featureReferences...)
 	if err != nil {
-		return nil, fmt.Errorf("resolving features: %w", err)
+		_, systemErr := billing.ToValidationIssues(err)
+		if systemErr != nil {
+			return nil, fmt.Errorf("resolving features: %w", systemErr)
+		}
 	}
 
-	for _, featureRef := range refs {
-		featureMeter, err := featureMeters.Resolve(billingfeaturemeter.FeatureMeterRef{IDOrKey: featureRef})
-		if err != nil {
-			// A stale reference must not fail the listing; the converter
-			// falls back to the id reference, as for deleted customers and
-			// missing subscriptions.
-			if models.IsGenericNotFoundError(err) {
-				continue
-			}
-
-			return nil, fmt.Errorf("resolving feature %v: %w", featureRef, err)
+	for _, featureReference := range featureReferences {
+		featureRef := featureReference.GetFeatureMeterRef()
+		if featureRef == nil {
+			continue
 		}
 
-		out[featureRef] = featureMeter.Feature
+		featureMeter, err := featureMeters.Get(featureReference)
+		if err != nil {
+			_, systemErr := billing.ToValidationIssues(err)
+			if systemErr != nil {
+				return nil, fmt.Errorf("resolving feature %v: %w", featureRef.IDOrKey, systemErr)
+			}
+
+			// Feature expansion is best-effort. A missing feature is omitted so
+			// the API retains its ID/key fallback, while other validation issues
+			// can still return a usable feature below.
+			if featureMeter.Feature.ID == "" {
+				continue
+			}
+		}
+
+		out[featureRef.IDOrKey] = featureMeter.Feature
 	}
 
 	return out, nil

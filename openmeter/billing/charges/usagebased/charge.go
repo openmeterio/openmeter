@@ -23,7 +23,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-var _ meta.ChargeAccessor = (*ChargeBase)(nil)
+var (
+	_ meta.ChargeAccessor                        = (*ChargeBase)(nil)
+	_ billingfeaturemeter.FeatureReferenceGetter = Charge{}
+	_ billingfeaturemeter.FeatureReferenceOwner  = Charge{}
+	_ billingfeaturemeter.FeatureReferenceGetter = Intent{}
+)
 
 type ChargeBase struct {
 	meta.ManagedResource
@@ -263,53 +268,48 @@ func (c Charge) GetCustomerID() customer.CustomerID {
 	}
 }
 
-func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
+func (c Charge) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
+	// TODO: consolidate intent and persisted-charge feature reference handling once
+	// their creation-time and lifecycle-specific resolution semantics share one model.
 	// State.FeatureID is the persisted resolved feature snapshot used by active
 	// charges; created/deleted fallbacks resolve by key.
+	var featureRef ref.IDOrKey
 	switch c.Status {
 	case StatusCreated:
-		return ref.IDOrKey{
+		featureRef = ref.IDOrKey{
 			Key: c.Intent.GetBaseIntent().FeatureKey,
 		}
 	case StatusDeleted:
 		if c.State.FeatureID != "" {
-			return ref.IDOrKey{
+			featureRef = ref.IDOrKey{
 				ID: c.State.FeatureID,
 			}
-		}
-
-		return ref.IDOrKey{
-			Key: c.Intent.GetBaseIntent().FeatureKey,
+		} else {
+			featureRef = ref.IDOrKey{
+				Key: c.Intent.GetBaseIntent().FeatureKey,
+			}
 		}
 	default:
-		return ref.IDOrKey{
+		featureRef = ref.IDOrKey{
 			ID: c.State.FeatureID,
 		}
 	}
-}
 
-func (c Charge) ResolveFeatureMeter(featureMeters billingfeaturemeter.FeatureMeters) (billingfeaturemeter.FeatureMeter, error) {
-	featureMeter, err := featureMeters.Resolve(billingfeaturemeter.FeatureMeterRef{
-		IDOrKey:      c.GetFeatureKeyOrID(),
-		RequireMeter: true,
-	})
-	if err != nil {
-		return billingfeaturemeter.FeatureMeter{}, fmt.Errorf("resolve feature meter: %w", err)
+	if lo.IsEmpty(featureRef) {
+		return nil
 	}
 
-	return featureMeter, nil
+	return &billingfeaturemeter.FeatureMeterRef{
+		IDOrKey:      featureRef,
+		RequireMeter: true,
+	}
 }
 
-// GetFeatureKeysOrIDs returns the unique state-aware feature references for the charges.
-// Each charge contributes the ref returned by GetFeatureKeyOrID, so created charges use keys,
-// deleted charges prefer IDs and fall back to keys, and all other states use IDs.
-func (c Charges) GetFeatureKeysOrIDs() []billingfeaturemeter.FeatureMeterRef {
-	return lo.Uniq(lo.Map(c, func(charge Charge, _ int) billingfeaturemeter.FeatureMeterRef {
-		return billingfeaturemeter.FeatureMeterRef{
-			IDOrKey:      charge.GetFeatureKeyOrID(),
-			RequireMeter: true,
-		}
-	}))
+func (c Charge) GetFeatureMeterOwner() billingfeaturemeter.FeatureReferenceIdentity {
+	return billingfeaturemeter.FeatureReferenceIdentity{
+		Kind: billingfeaturemeter.FeatureReferenceKindCharges,
+		ID:   c.ID,
+	}
 }
 
 type Intent struct {
@@ -369,6 +369,13 @@ func (i Intent) GetFeatureRef() ref.IDOrKey {
 		return ref.IDOrKey{ID: i.FeatureID}
 	}
 	return ref.IDOrKey{Key: i.FeatureKey}
+}
+
+func (i Intent) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
+	return &billingfeaturemeter.FeatureMeterRef{
+		IDOrKey:      i.GetFeatureRef(),
+		RequireMeter: true,
+	}
 }
 
 func validateCostBasis(currency currencies.Currency, settlementMode productcatalog.SettlementMode, intent *costbasis.Intent) error {

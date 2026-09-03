@@ -8,7 +8,9 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestGatheringInvoiceLineInvoiceAtAccessor(t *testing.T) {
@@ -91,18 +93,19 @@ func TestGatheringLineUnitConfigSnapshotPropagation(t *testing.T) {
 	})
 }
 
-func TestGatheringLinesCollectFeatureMeterRefs(t *testing.T) {
+func TestGatheringLineGetFeatureMeterRef(t *testing.T) {
 	// given:
 	// - flat, usage-based, and featureless gathering lines
 	// when:
-	// - their feature meter references are collected
+	// - their feature meter references are read
 	// then:
-	// - only feature-backed lines are returned with price-specific meter requirements
+	// - feature-backed lines use price-specific meter requirements and the featureless line returns nil
 	featureKey := "api-requests"
 	lines := GatheringLines{
 		{
 			GatheringLineBase: GatheringLineBase{
-				FeatureKey: featureKey,
+				ManagedResource: models.ManagedResource{ID: "flat-line"},
+				FeatureKey:      featureKey,
 				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      decimal.NewFromInt(1),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -111,7 +114,8 @@ func TestGatheringLinesCollectFeatureMeterRefs(t *testing.T) {
 		},
 		{
 			GatheringLineBase: GatheringLineBase{
-				FeatureKey: featureKey,
+				ManagedResource: models.ManagedResource{ID: "usage-line"},
+				FeatureKey:      featureKey,
 				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: decimal.NewFromInt(1),
 				})),
@@ -127,11 +131,21 @@ func TestGatheringLinesCollectFeatureMeterRefs(t *testing.T) {
 		},
 	}
 
-	refs := lines.CollectFeatureMeterRefs()
+	flatRef := lines[0].GetFeatureMeterRef()
+	usageRef := lines[1].GetFeatureMeterRef()
+	featurelessRef := lines[2].GetFeatureMeterRef()
 
-	require.Len(t, refs, 2)
-	require.Equal(t, featureKey, refs[0].IDOrKey.Key)
-	require.False(t, refs[0].RequireMeter)
-	require.Equal(t, featureKey, refs[1].IDOrKey.Key)
-	require.True(t, refs[1].RequireMeter)
+	require.Equal(t, featureKey, flatRef.IDOrKey.Key)
+	require.False(t, flatRef.RequireMeter)
+	require.Equal(t, featureKey, usageRef.IDOrKey.Key)
+	require.True(t, usageRef.RequireMeter)
+	require.Nil(t, featurelessRef)
+	require.Equal(t, featuremeter.FeatureReferenceIdentity{
+		Kind: featuremeter.FeatureReferenceKindLines,
+		ID:   "flat-line",
+	}, lines[0].GetFeatureMeterOwner())
+	require.Equal(t, featuremeter.FeatureReferenceIdentity{
+		Kind: featuremeter.FeatureReferenceKindLines,
+		ID:   "usage-line",
+	}, lines[1].GetFeatureMeterOwner())
 }

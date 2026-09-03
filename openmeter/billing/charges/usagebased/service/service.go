@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -26,7 +26,7 @@ type Config struct {
 	MetaAdapter             meta.Adapter
 	InvoiceUpdater          invoiceupdater.Updater
 	CustomerOverrideService billing.CustomerOverrideService
-	FeatureMeterResolver    billingfeaturemeter.Resolver
+	FeatureMeterResolver    *billingfeaturemeterservice.Resolver
 	RatingService           rating.Service
 	Currencies              currencies.Service
 
@@ -134,7 +134,7 @@ type service struct {
 	metaAdapter             meta.Adapter
 	invoiceUpdater          invoiceupdater.Updater
 	customerOverrideService billing.CustomerOverrideService
-	featureMeterResolver    billingfeaturemeter.Resolver
+	featureMeterResolver    *billingfeaturemeterservice.Resolver
 	ratingService           rating.Service
 
 	rater usagebasedrating.Service

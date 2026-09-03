@@ -4781,6 +4781,10 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		invoice, err = queuedBillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusDraftCreated, invoice.Status)
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal(billing.ValidationIssueSeverityWarning, invoice.ValidationIssues[0].Severity)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, invoice.ValidationIssues[0].Code)
+		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), invoice.ValidationIssues[0].Component)
 	})
 
 	s.Run("And advancing while the meter is missing returns to draft.invalid_created", func() {

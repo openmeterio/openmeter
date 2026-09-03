@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -19,6 +20,7 @@ type PriceAccessor interface {
 
 type GatheringLineAccessor interface {
 	PriceAccessor
+	billingfeaturemeter.FeatureReferenceGetter
 	GetSplitLineGroupID() *string
 	GetInvoiceAt() time.Time
 	GetID() string

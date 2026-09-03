@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
@@ -32,7 +32,7 @@ type Service struct {
 	invoiceCalculator    invoicecalc.Calculator
 	lineEngines          *engineRegistry
 	ratingService        rating.Service
-	featureMeterResolver billingfeaturemeter.Resolver
+	featureMeterResolver *billingfeaturemeterservice.Resolver
 
 	publisher eventbus.Publisher
 
@@ -51,7 +51,7 @@ type Config struct {
 	RatingService           rating.Service
 	LegacyBillingLineEngine *billinglineengine.Engine
 	Logger                  *slog.Logger
-	FeatureMeterResolver    billingfeaturemeter.Resolver
+	FeatureMeterResolver    *billingfeaturemeterservice.Resolver
 	Publisher               eventbus.Publisher
 	AdvancementStrategy     billing.AdvancementStrategy
 	FSNamespaceLockdown     []string

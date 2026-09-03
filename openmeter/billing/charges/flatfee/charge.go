@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -20,6 +21,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+)
+
+var (
+	_ billingfeaturemeter.FeatureReferenceGetter = Charge{}
+	_ billingfeaturemeter.FeatureReferenceOwner  = Charge{}
+	_ billingfeaturemeter.FeatureReferenceGetter = Intent{}
 )
 
 type ChargeBase struct {
@@ -142,6 +149,22 @@ func (c Charge) GetFeatureRef() *ref.IDOrKey {
 	return nil
 }
 
+func (c Charge) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
+	featureRef := c.GetFeatureRef()
+	if featureRef == nil {
+		return nil
+	}
+
+	return &billingfeaturemeter.FeatureMeterRef{IDOrKey: *featureRef}
+}
+
+func (c Charge) GetFeatureMeterOwner() billingfeaturemeter.FeatureReferenceIdentity {
+	return billingfeaturemeter.FeatureReferenceIdentity{
+		Kind: billingfeaturemeter.FeatureReferenceKindCharges,
+		ID:   c.ID,
+	}
+}
+
 func (c Charge) GetStatus() Status {
 	return c.Status
 }
@@ -242,6 +265,21 @@ func (i Intent) GetFeatureRef() (*ref.IDOrKey, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func (i Intent) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
+	featureRef := ref.IDOrKey{}
+	if i.FeatureID != nil {
+		featureRef.ID = *i.FeatureID
+	}
+	if i.FeatureKey != nil {
+		featureRef.Key = *i.FeatureKey
+	}
+	if lo.IsEmpty(featureRef) {
+		return nil
+	}
+
+	return &billingfeaturemeter.FeatureMeterRef{IDOrKey: featureRef}
 }
 
 func validateCostBasis(currency currencies.Currency, settlementMode productcatalog.SettlementMode, intent *costbasis.Intent) error {

@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -27,7 +27,7 @@ type service struct {
 	metaAdapter          meta.Adapter
 	billingService       billing.Service
 	invoiceUpdater       invoiceupdater.Updater
-	featureMeterResolver billingfeaturemeter.Resolver
+	featureMeterResolver *billingfeaturemeterservice.Resolver
 
 	flatFeeService        flatfee.Service
 	creditPurchaseService creditpurchase.Service
@@ -51,7 +51,7 @@ type Config struct {
 	Adapter     charges.Adapter
 	MetaAdapter meta.Adapter
 
-	FeatureMeterResolver  billingfeaturemeter.Resolver
+	FeatureMeterResolver  *billingfeaturemeterservice.Resolver
 	FlatFeeService        flatfee.Service
 	CreditPurchaseService creditpurchase.Service
 	UsageBasedService     usagebased.Service

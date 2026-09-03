@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -24,7 +24,7 @@ var (
 type Config struct {
 	SplitLineGroupAdapter        SplitLineGroupAdapter
 	RatingService                rating.Service
-	FeatureMeterResolver         billingfeaturemeter.Resolver
+	FeatureMeterResolver         *billingfeaturemeterservice.Resolver
 	StreamingConnector           streaming.Connector
 	MaxParallelQuantitySnapshots int
 }
@@ -58,7 +58,7 @@ func (c Config) Validate() error {
 type Engine struct {
 	adapter                      SplitLineGroupAdapter
 	ratingService                rating.Service
-	featureMeterResolver         billingfeaturemeter.Resolver
+	featureMeterResolver         *billingfeaturemeterservice.Resolver
 	streamingConnector           streaming.Connector
 	maxParallelQuantitySnapshots int
 }

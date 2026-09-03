@@ -25,6 +25,13 @@ import (
 	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+var (
+	_ billingfeaturemeter.FeatureReferenceGetter = GatheringLineBase{}
+	_ billingfeaturemeter.FeatureReferenceOwner  = GatheringLineBase{}
+	_ billingfeaturemeter.FeatureReferenceGetter = GatheringLine{}
+	_ billingfeaturemeter.FeatureReferenceOwner  = GatheringLine{}
+)
+
 type GatheringInvoiceBase struct {
 	models.ManagedResource
 
@@ -277,26 +284,6 @@ func (l GatheringLines) Validate() error {
 	)
 }
 
-// CollectFeatureMeterRefs returns the feature dependencies that must resolve before
-// the lines can be persisted. Metered prices require a meter; flat prices may attach
-// a feature without one.
-func (l GatheringLines) CollectFeatureMeterRefs() []billingfeaturemeter.FeatureMeterRef {
-	refs := make([]billingfeaturemeter.FeatureMeterRef, 0, len(l))
-
-	for _, line := range l {
-		if line.FeatureKey == "" {
-			continue
-		}
-
-		refs = append(refs, billingfeaturemeter.FeatureMeterRef{
-			IDOrKey:      ref.IDOrKey{Key: line.FeatureKey},
-			RequireMeter: line.Price.Type() != productcatalog.FlatPriceType,
-		})
-	}
-
-	return lo.Uniq(refs)
-}
-
 func (l GatheringLines) AsGenericLines() []GenericInvoiceLine {
 	return lo.Map(l, func(l GatheringLine, _ int) GenericInvoiceLine {
 		return &gatheringInvoiceLineGenericWrapper{GatheringLine: l}
@@ -371,23 +358,6 @@ func (l GatheringInvoiceLines) WithNormalizedValues() (GatheringInvoiceLines, er
 
 func (l *GatheringInvoiceLines) Append(lines ...GatheringLine) {
 	l.Option = mo.Some(append(l.OrEmpty(), lines...))
-}
-
-func (l GatheringInvoiceLines) GetReferencedFeatureKeys() ([]string, error) {
-	if l.IsAbsent() {
-		return nil, nil
-	}
-
-	keys := make([]string, 0, len(l.OrEmpty()))
-	for _, line := range l.OrEmpty() {
-		if line.FeatureKey == "" {
-			continue
-		}
-
-		keys = append(keys, line.FeatureKey)
-	}
-
-	return lo.Uniq(keys), nil
 }
 
 func (l GatheringInvoiceLines) GetByID(id string) (GatheringLine, bool) {
@@ -584,6 +554,26 @@ func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 
 func (i GatheringLineBase) GetFeatureKey() string {
 	return i.FeatureKey
+}
+
+// GetFeatureMeterRef returns the line's feature dependency. Metered prices require
+// the associated meter, while flat prices may use a meterless feature or no feature.
+func (i GatheringLineBase) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
+	if i.FeatureKey == "" {
+		return nil
+	}
+
+	return &billingfeaturemeter.FeatureMeterRef{
+		IDOrKey:      ref.IDOrKey{Key: i.FeatureKey},
+		RequireMeter: i.Price.Type() != productcatalog.FlatPriceType,
+	}
+}
+
+func (i GatheringLineBase) GetFeatureMeterOwner() billingfeaturemeter.FeatureReferenceIdentity {
+	return billingfeaturemeter.FeatureReferenceIdentity{
+		Kind: billingfeaturemeter.FeatureReferenceKindLines,
+		ID:   i.ID,
+	}
 }
 
 func (i GatheringLineBase) GetServicePeriod() timeutil.ClosedPeriod {
