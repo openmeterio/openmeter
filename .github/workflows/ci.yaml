@@ -884,7 +884,7 @@ jobs:
 
   e2e:
     name: E2E
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-24.04-8
     # Note: This check is running against the image that is going to be pushed.
     needs:
       - trusted-artifacts
