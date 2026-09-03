@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/collector
 
-go 1.26.6
+go 1.27
 
 replace github.com/openmeterio/openmeter => ../
 
