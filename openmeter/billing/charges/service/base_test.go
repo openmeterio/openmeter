@@ -31,6 +31,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
@@ -569,7 +570,7 @@ func (s *BaseSuite) newUsageBasedIntent(
 	}
 }
 
-func (s *BaseSuite) createFeatureMeters(ctx context.Context, namespace, key string) featurepkg.FeatureMeterCollection {
+func (s *BaseSuite) createFeatureMeters(ctx context.Context, namespace, key string) billingfeaturemeter.FeatureMeterCollection {
 	s.T().Helper()
 
 	testMeter := newTestMeter(namespace, key+"-meter")
@@ -583,14 +584,14 @@ func (s *BaseSuite) createFeatureMeters(ctx context.Context, namespace, key stri
 	})
 	s.Require().NoError(err)
 
-	featureMeter := featurepkg.FeatureMeter{
+	featureMeter := billingfeaturemeter.FeatureMeter{
 		Feature: feature,
 		Meter:   &testMeter,
 	}
 
-	return featurepkg.FeatureMeterCollection{
-		ByKey: map[string]featurepkg.FeatureMeter{feature.Key: featureMeter},
-		ByID:  map[string]featurepkg.FeatureMeter{feature.ID: featureMeter},
+	return billingfeaturemeter.FeatureMeterCollection{
+		ByKey: map[string]billingfeaturemeter.FeatureMeter{feature.Key: featureMeter},
+		ByID:  map[string]billingfeaturemeter.FeatureMeter{feature.ID: featureMeter},
 	}
 }
 
