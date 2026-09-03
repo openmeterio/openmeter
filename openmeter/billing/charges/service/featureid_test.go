@@ -584,7 +584,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 	s.Require().Error(err)
 	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureHasNoMeters.Code)
 	s.Empty(issue.Path)
-	s.ErrorContains(err, "has no meter associated")
+	s.ErrorContains(err, "usage based invoice line: feature has no meters")
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,
@@ -594,13 +594,9 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 	s.Empty(listed.Items)
 }
 
-func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedMissingFeatureTakesPrecedenceOverMeterValidation() {
+func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidationIssues() {
 	// given:
 	// - one usage-based intent references a missing feature and another a meterless feature
-	// when:
-	// - both charges are created in one request
-	// then:
-	// - the missing feature issue takes precedence before anything is persisted
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-mixed-feature-errors")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -620,6 +616,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedMissingFeatureTakesPreced
 	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
 	defer clock.UnFreeze()
 
+	// when:
+	// - both charges are created in one request
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
@@ -650,9 +648,21 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedMissingFeatureTakesPreced
 		},
 	})
 
+	// then:
+	// - both validation issues are returned and neither charge is persisted
 	s.Require().Error(err)
-	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureNotFound.Code)
-	s.Empty(issue.Path)
+	issues, systemErr := billing.ToValidationIssues(err)
+	s.NoError(systemErr)
+	s.ElementsMatch([]string{
+		billing.ErrInvoiceLineFeatureNotFound.Code,
+		billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+	}, lo.Map(issues, func(issue billing.ValidationIssue, _ int) string {
+		return issue.Code
+	}))
+	for _, issue := range issues {
+		s.Empty(issue.Path)
+		s.Empty(issue.Component)
+	}
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,

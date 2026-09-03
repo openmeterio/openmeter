@@ -247,7 +247,7 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolve
 			name:          "feature without meter",
 			createFeature: true,
 			expectedCode:  billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-			expectedError: "has no meter associated",
+			expectedError: "usage based invoice line: feature has no meters",
 		},
 	}
 
@@ -366,7 +366,7 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 	s.Require().Error(err)
 	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureHasNoMeters.Code)
 	s.Empty(issue.Path)
-	s.ErrorContains(err, "has no meter associated")
+	s.ErrorContains(err, "usage based invoice line: feature has no meters")
 
 	listedCharges, listChargesErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,

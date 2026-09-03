@@ -72,7 +72,7 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 				ByKey: map[string]billingfeaturemeter.FeatureMeter{},
 			}),
 		})
-		require.ErrorContains(t, err, "feature[feature-key] not found")
+		require.ErrorContains(t, err, "feature[feature-key]: invoice line: feature not found")
 	})
 }
 
