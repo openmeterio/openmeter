@@ -182,7 +182,7 @@ jobs:
     name: Benthos Collector Container image
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.benthos == 'true'
+    if: inputs.publish || needs.changes.outputs.benthos == 'true'
 
     permissions:
       contents: read
