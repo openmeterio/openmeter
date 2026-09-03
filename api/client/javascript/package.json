@@ -85,7 +85,7 @@
     "@types/react": "19.2.17",
     "fetch-mock": "12.6.0",
     "openapi-typescript": "7.13.0",
-    "orval": "8.15.0",
+    "orval": "8.26.0",
     "prettier": "3.8.3",
     "react": "19.2.7",
     "rollup": "4.61.1",
