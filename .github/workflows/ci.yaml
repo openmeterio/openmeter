@@ -644,7 +644,7 @@ jobs:
 
           echo "Using ${cache_program}"
 
-      - name: Prepare Go lint workspace
+      - name: Run Go linters
         run: |
           # On Depot runners, golangci-lint still uses Go/system temp space for
           # transient analysis artifacts. Keep those temp files on the workspace
@@ -652,16 +652,6 @@ jobs:
           mkdir -p \
             "$GITHUB_WORKSPACE/.tmp/go-work" \
             "$GITHUB_WORKSPACE/.tmp/system"
-
-      - name: Run fast Go linters
-        run: |
-          env \
-            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
-            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            make lint-go-fast
-
-      - name: Run all Go linters
-        run: |
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
