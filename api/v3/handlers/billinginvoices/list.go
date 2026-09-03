@@ -11,6 +11,7 @@ import (
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billingerrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -154,7 +155,7 @@ func (h *handler) ListBillingInvoices() ListBillingInvoicesHandler {
 			h.options,
 			httptransport.WithOperationName("list-invoices"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(billingerrors.ErrorEncoder()),
 		)...,
 	)
 }

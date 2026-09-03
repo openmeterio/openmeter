@@ -7,15 +7,10 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api/v3/handlers/billingerrors"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 )
-
-func errorEncoder() encoder.ErrorEncoder {
-	return billingerrors.ErrorEncoder()
-}
 
 func encodeValidationIssue() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {

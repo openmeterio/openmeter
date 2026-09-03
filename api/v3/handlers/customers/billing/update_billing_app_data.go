@@ -144,7 +144,6 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 			h.options,
 			httptransport.WithOperationName("update-customer-billing-app-data"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

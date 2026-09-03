@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billingerrors"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -88,7 +89,7 @@ func (h *handler) DeleteBillingInvoice() DeleteBillingInvoiceHandler {
 			httptransport.WithOperationName("delete-invoice"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(encodeValidationIssue()),
-			httptransport.WithErrorEncoder(errorEncoder()),
+			httptransport.WithErrorEncoder(billingerrors.ErrorEncoder()),
 		)...,
 	)
 }
