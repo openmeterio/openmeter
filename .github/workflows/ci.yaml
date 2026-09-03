@@ -234,14 +234,6 @@ jobs:
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
           save: "false"
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
-
       - name: Validate Nix flake
         run: nix flake check --impure
 
@@ -257,6 +249,23 @@ jobs:
             exit 1
           fi
 
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          cache: false
+
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+
       - name: Build components
         run: |
           # On Depot runners, cgo external linking can spill large temporary linker
@@ -269,7 +278,7 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make -j 4 build
+            make -j 4 build GO_BUILD_FLAGS=
 
       - name: Validate commit messages
         run: |
@@ -670,32 +679,35 @@ jobs:
       - name: Upsert Nix store
         run: nix develop --impure .#ci
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
+          go-version-file: .go-version
+          cache: false
 
-      # PR merge commits change on every update, so use the target commit to
-      # keep unchanged package analysis reusable across the pull request. Bind
-      # every fallback to the Nix cache selected above because this cache also
-      # holds Go linker results with toolchain-specific Nix store paths.
-      - name: Go lint caches
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Read GolangCI-Lint version
+        id: golangci-lint-version
+        run: echo "version=$(cat .golangci.version)" >> "$GITHUB_OUTPUT"
+
+      - name: Install GolangCI-Lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          path: |
-            .devenv/golangci-lint-cache
-            .devenv/state/go/build-cache
-          key: ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-${{ github.event.pull_request.base.sha || github.sha }}-${{ hashFiles('.golangci*.yaml', 'go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-${{ github.event.pull_request.base.sha || github.sha }}-
-            ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-
+          version: ${{ steps.golangci-lint-version.outputs.version }}
+          install-only: true
+          skip-cache: true
+
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
 
       - name: Run linters - go
-        env:
-          GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/golangci-lint-cache
         run: |
           # On Depot runners, golangci-lint still uses Go/system temp space for
           # transient analysis artifacts. Keep those temp files on the workspace
@@ -706,7 +718,7 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make lint-go
+            make lint-go
 
       - name: Run linters - api spec
         run: |
