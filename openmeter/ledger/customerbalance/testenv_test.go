@@ -29,6 +29,7 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
@@ -67,6 +68,16 @@ const (
 	testFeatureKey = "api_requests"
 	testMeterKey   = "api_requests"
 )
+
+type staticFeatureReference struct {
+	featureMeterRef billingfeaturemeter.FeatureMeterRef
+}
+
+var _ billingfeaturemeter.FeatureReferenceGetter = staticFeatureReference{}
+
+func (r staticFeatureReference) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
+	return &r.featureMeterRef
+}
 
 type testEnv struct {
 	*ledgertestutils.IntegrationEnv
@@ -131,7 +142,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		meterQueryService,
 		publisher,
 	)
-	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+	featureMeterResolver, err := featuremeterservice.New(featuremeterservice.Config{
 		FeatureService: featureService,
 		MeterService:   meterQueryService,
 		Logger:         logger,
@@ -158,17 +169,17 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	featureMeters, err := featureMeterResolver.Resolve(
 		t.Context(),
-		billingfeaturemeter.ResolveInput{
-			Namespace: base.Namespace,
-			FeatureRefs: []billingfeaturemeter.FeatureMeterRef{
-				{
-					IDOrKey:      ref.IDOrKey{Key: testFeatureKey},
-					RequireMeter: true,
-				},
-				{
-					IDOrKey:      ref.IDOrKey{ID: featureEntity.ID},
-					RequireMeter: true,
-				},
+		base.Namespace,
+		staticFeatureReference{
+			featureMeterRef: billingfeaturemeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{Key: testFeatureKey},
+				RequireMeter: true,
+			},
+		},
+		staticFeatureReference{
+			featureMeterRef: billingfeaturemeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{ID: featureEntity.ID},
+				RequireMeter: true,
 			},
 		},
 	)

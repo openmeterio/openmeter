@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -254,23 +253,16 @@ func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, c
 
 	featureMeters, hasFeatureMetersHint := hints.FeatureMeters.Get()
 	if !hasFeatureMetersHint {
-		featureRef := charge.GetFeatureKeyOrID()
 		var err error
-		featureMeters, err = s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
-			Namespace: charge.Namespace,
-			FeatureRefs: []billingfeaturemeter.FeatureMeterRef{{
-				IDOrKey:      featureRef,
-				RequireMeter: true,
-			}},
-		})
+		featureMeters, err = s.featureMeterResolver.Resolve(ctx, charge.Namespace, charge)
 		if err != nil {
 			return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
 		}
 	}
 
-	featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
+	featureMeter, err := featureMeters.Get(charge)
 	if err != nil {
-		return StateMachineConfig{}, err
+		return StateMachineConfig{}, fmt.Errorf("resolve feature meter: %w", err)
 	}
 
 	currency := charge.Intent.GetCurrency()

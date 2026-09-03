@@ -175,9 +175,14 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 
 			// Let's resolve the feature meters for each gathering invoice line for downstream calculations.
 			for currency, gatheringInvoiceWithCurrency := range invoicesByCurrency {
-				featureMeters, err := s.resolveFeatureMeters(ctx, input.Customer.Namespace, invoicesByCurrency[currency].Invoice.Lines)
+				featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Customer.Namespace, invoicesByCurrency[currency].Invoice.Lines.OrEmpty()...)
 				if err != nil {
-					return nil, fmt.Errorf("resolving feature meters: %w", err)
+					// Quantity snapshotting surfaces validation issues with line identity,
+					// so only system errors abort line preparation here.
+					_, systemErr := billing.ToValidationIssues(err)
+					if systemErr != nil {
+						return nil, fmt.Errorf("resolving feature meters: %w", systemErr)
+					}
 				}
 
 				gatheringInvoiceWithCurrency.FeatureMeters = featureMeters
@@ -927,11 +932,6 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 }
 
 func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
-	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
-	if err != nil {
-		return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
-	}
-
 	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: invoice.Namespace,
 		Invoice:   &invoice,
@@ -943,7 +943,6 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 	}
 
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
 		LineEngines:   s.lineEngines,

@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -157,15 +156,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			return nil, err
 		}
 
-		featureMeterRefs, err := input.Intents.CollectFeatureMeterRefs()
-		if err != nil {
-			return nil, fmt.Errorf("collecting feature meter refs: %w", err)
-		}
-
-		createFeatureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
-			Namespace:   input.Namespace,
-			FeatureRefs: featureMeterRefs,
-		})
+		createFeatureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Namespace, input.Intents...)
 		if err != nil {
 			return nil, fmt.Errorf("resolve create feature meters: %w", err)
 		}

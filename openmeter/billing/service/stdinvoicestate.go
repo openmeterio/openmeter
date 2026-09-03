@@ -775,11 +775,6 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
-	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Namespace, m.Invoice.Lines)
-	if err != nil {
-		return fmt.Errorf("resolving feature meters: %w", err)
-	}
-
 	taxCodes, err := m.Service.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: m.Invoice.Namespace,
 		Invoice:   &m.Invoice,
@@ -790,7 +785,6 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 	}
 
 	return m.Calculator.Calculate(&m.Invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		FeatureMeters: featureMeters,
 		RatingService: m.Service.ratingService,
 		TaxCodes:      taxCodes,
 		LineEngines:   m.Service.lineEngines,

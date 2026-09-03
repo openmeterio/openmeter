@@ -44,6 +44,7 @@ var (
 	ErrInvoiceWorkflowAppDeleted             = NewValidationError("invoice_workflow_app_deleted", "invoicing workflow app has been deleted")
 	WarnInvoiceWorkflowAppDeleteSkipped      = NewValidationWarning("invoice_workflow_app_delete_skipped", "external invoice deletion was skipped because the invoicing workflow app has been deleted")
 
+	ErrInvoiceLineFeatureNotFound                                = NewValidationError("invoice_line_feature_not_found", "invoice line: feature not found")
 	ErrInvoiceLineFeatureHasNoMeters                             = NewValidationError("invoice_line_feature_has_no_meters", "usage based invoice line: feature has no meters")
 	ErrInvoiceLineVolumeSplitNotSupported                        = NewValidationError("invoice_line_graduated_split_not_supported", "graduated tiered pricing is not supported for split periods")
 	ErrInvoiceLineNoTiers                                        = NewValidationError("invoice_line_no_tiers", "usage based invoice line: no tiers found")
@@ -162,35 +163,4 @@ type AppError struct {
 
 func (e AppError) Error() string {
 	return fmt.Sprintf("app %s type with id %s in namespace %s: %s", e.AppType, e.AppID.ID, e.AppID.Namespace, e.Err.Error())
-}
-
-// ErrSnapshotFeatureHasNoMeter is returned when quantity snapshotting cannot
-// continue because the line's persisted feature has no meter association.
-type ErrSnapshotFeatureHasNoMeter struct {
-	LineID     string
-	FeatureKey string
-}
-
-func (e ErrSnapshotFeatureHasNoMeter) Error() string {
-	return fmt.Sprintf("snapshotting line quantity: feature[%s] has no meter associated", e.FeatureKey)
-}
-
-// AsValidationIssue returns the critical invoice issue that represents the missing meter
-// association without exposing it as an operational failure. The wrappers preserve the canonical
-// issue for errors.Is while adding the feature and line context used by invoice validation.
-func (e ErrSnapshotFeatureHasNoMeter) AsValidationIssue() error {
-	err := ValidationWithComponent(
-		ValidationComponentOpenMeterMetering,
-		ValidationWithMessagef(
-			ErrInvoiceLineFeatureHasNoMeters,
-			"feature[%s]",
-			e.FeatureKey,
-		),
-	)
-
-	if e.LineID != "" {
-		err = ValidationWithFieldPrefix(fmt.Sprintf("lines/%s", e.LineID), err)
-	}
-
-	return err
 }

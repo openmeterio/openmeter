@@ -1,19 +1,28 @@
 package service
 
 import (
+	"context"
+	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -32,6 +41,97 @@ func TestCustomerChargeAPIList(t *testing.T) {
 
 type CustomerChargeAPIListTestSuite struct {
 	BaseSuite
+}
+
+type customerChargeFeatureServiceMock struct {
+	mock.Mock
+}
+
+func (m *customerChargeFeatureServiceMock) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
+	args := m.Called(ctx, params)
+
+	return args.Get(0).(pagination.Result[feature.Feature]), args.Error(1)
+}
+
+type customerChargeMeterServiceStub struct{}
+
+func (customerChargeMeterServiceStub) ListMeters(context.Context, meter.ListMetersParams) (pagination.Result[meter.Meter], error) {
+	return pagination.Result[meter.Meter]{}, nil
+}
+
+func (s *CustomerChargeAPIListTestSuite) TestFeatureExpansionValidationPolicy() {
+	const namespace = "namespace"
+
+	s.Run("meterless feature remains expandable", func() {
+		// given:
+		// - a usage-based charge references an existing feature without a meter
+		featureEntity := feature.Feature{ID: "feature-id", Key: "meterless-feature"}
+		service := newCustomerChargeFeatureTestService(s.T(), []feature.Feature{featureEntity}, nil)
+		reference := charges.NewCharge(usagebased.Charge{ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{ID: "charge-id"},
+			Intent:          usagebased.Intent{FeatureKey: featureEntity.Key}.AsOverridableIntent(),
+			Status:          usagebased.StatusCreated,
+		}})
+
+		// when:
+		// - the customer charge facade expands the feature
+		featuresByRef, err := service.listCustomerChargeFeatures(
+			s.T().Context(),
+			namespace,
+			[]billingfeaturemeter.FeatureReferenceGetter{reference},
+		)
+
+		// then:
+		// - the resolver's validation issue does not discard its usable feature
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), featureEntity, featuresByRef[reference.GetFeatureMeterRef().IDOrKey])
+	})
+
+	s.Run("catalog system error aborts expansion", func() {
+		// given:
+		// - the feature catalog fails while resolving a charge reference
+		resolverErr := errors.New("feature service unavailable")
+		service := newCustomerChargeFeatureTestService(s.T(), nil, resolverErr)
+		reference := charges.NewCharge(usagebased.Charge{ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{ID: "charge-id"},
+			Intent:          usagebased.Intent{FeatureKey: "feature-key"}.AsOverridableIntent(),
+			Status:          usagebased.StatusCreated,
+		}})
+
+		// when:
+		// - the customer charge facade expands the feature
+		_, err := service.listCustomerChargeFeatures(
+			s.T().Context(),
+			namespace,
+			[]billingfeaturemeter.FeatureReferenceGetter{reference},
+		)
+
+		// then:
+		// - the operational failure remains an error instead of being treated as best-effort validation
+		require.ErrorIs(s.T(), err, resolverErr)
+	})
+}
+
+func newCustomerChargeFeatureTestService(t *testing.T, features []feature.Feature, featureServiceErr error) *service {
+	t.Helper()
+
+	featureService := &customerChargeFeatureServiceMock{}
+	featureService.Test(t)
+	featureService.On("ListFeatures", mock.Anything, mock.Anything).
+		Return(pagination.Result[feature.Feature]{Items: features}, featureServiceErr).
+		Once()
+	t.Cleanup(func() {
+		featureService.AssertExpectations(t)
+	})
+
+	resolver, err := billingfeaturemeterservice.New(billingfeaturemeterservice.Config{
+		FeatureService: featureService,
+		MeterService:   customerChargeMeterServiceStub{},
+		Logger:         slog.Default(),
+	})
+	require.NoError(t, err)
+
+	return &service{featureMeterResolver: resolver}
 }
 
 func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
@@ -184,6 +284,27 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		s.Equal(feat.Feature.Name, item.Feature.Name)
 
 		s.Nil(item.Subscription, "the charge references no subscription")
+	})
+
+	s.Run("a stale charge feature does not fail expansion", func() {
+		// given:
+		// - a persisted charge whose snapshotted feature ID no longer resolves
+		usageCharge, err := created[0].AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		usageCharge.Status = usagebased.StatusActive
+		usageCharge.State.FeatureID = "missing-feature-id"
+		staleCharge := charges.NewCharge(usageCharge)
+
+		// when:
+		// - feature expansion resolves that charge
+		references, err := collectCustomerChargeReferences(charges.Charges{staleCharge})
+		require.NoError(s.T(), err)
+		featuresByRef, err := s.Charges.listCustomerChargeFeatures(ctx, namespace, references.featureReferences)
+
+		// then:
+		// - the missing feature is omitted so the facade can retain its ID-only fallback
+		require.NoError(s.T(), err)
+		require.Empty(s.T(), featuresByRef)
 	})
 
 	s.Run("the subscription side-loader serves the facade's bulk lookup", func() {

@@ -313,25 +313,10 @@ func NewLineEngineValidationError(engine LineEngine, err error) error {
 	}
 
 	if engine == nil {
-		return fmt.Errorf("line engine is required")
+		return errors.New("line engine is required")
 	}
 
-	component := LineEngineValidationComponent(engine.GetLineEngineType())
-	validationErr := ValidationWithComponent(component, err)
-
-	if _, convertErr := ToValidationIssues(validationErr); convertErr == nil {
-		return validationErr
-	}
-
-	return ValidationWithComponent(
-		component,
-		ValidationIssue{
-			Severity:  ValidationIssueSeverityCritical,
-			Code:      ValidationIssueCodeLineEngineCollectionCompletedFailed,
-			Message:   err.Error(),
-			Component: component,
-		},
-	)
+	return ValidationWithComponent(LineEngineValidationComponent(engine.GetLineEngineType()), err)
 }
 
 type CreateLineRouter interface {

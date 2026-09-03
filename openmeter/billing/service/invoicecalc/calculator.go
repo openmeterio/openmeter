@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
@@ -70,7 +69,6 @@ func (t TaxCodes) Get(stripeCode string) (*taxcode.TaxCode, bool) {
 }
 
 type StandardInvoiceCalculatorDependencies struct {
-	FeatureMeters billingfeaturemeter.FeatureMeters
 	RatingService rating.Service
 	TaxCodes      TaxCodes
 	LineEngines   LineEngineResolver

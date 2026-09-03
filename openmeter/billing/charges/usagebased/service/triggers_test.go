@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -44,7 +45,7 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 			},
 			Meter: &meter.Meter{},
 		}
-		featureMeters := billingfeaturemeter.FeatureMeterCollection{
+		featureMeters := featuremeterservice.FeatureMeterCollection{
 			ByKey: map[string]billingfeaturemeter.FeatureMeter{
 				featureMeter.Feature.Key: featureMeter,
 			},
@@ -67,7 +68,7 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 		// - It returns the snapshot lookup error instead of falling back to the feature service.
 		_, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
 			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
-			FeatureMeters: mo.Some[billingfeaturemeter.FeatureMeters](billingfeaturemeter.FeatureMeterCollection{
+			FeatureMeters: mo.Some[billingfeaturemeter.FeatureMeters](featuremeterservice.FeatureMeterCollection{
 				ByKey: map[string]billingfeaturemeter.FeatureMeter{},
 			}),
 		})
