@@ -68,6 +68,32 @@ func TestValidationIssueParsing(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestValidationWithComponentPrecedence(t *testing.T) {
+	baseIssue := ValidationIssue{
+		Severity:  ValidationIssueSeverityWarning,
+		Message:   "canonical message",
+		Code:      "canonical_code",
+		Component: "issue-component",
+		Path:      "original/path",
+	}
+	err := ValidationWithComponent(
+		"outer-component",
+		ValidationWithComponent("inner-component", baseIssue),
+	)
+
+	issues, systemErr := ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Equal(t, ValidationIssues{
+		{
+			Severity:  baseIssue.Severity,
+			Message:   baseIssue.Message,
+			Code:      baseIssue.Code,
+			Component: "outer-component",
+			Path:      "/original/path",
+		},
+	}, issues)
+}
+
 func TestAsError(t *testing.T) {
 	issues := ValidationIssues{
 		{
@@ -83,4 +109,96 @@ func TestAsError(t *testing.T) {
 	validationIssues, err := ToValidationIssues(err)
 	require.NoError(t, err)
 	require.Equal(t, issues, validationIssues)
+}
+
+func TestValidationWithMessagef(t *testing.T) {
+	baseIssue := ValidationIssue{
+		Severity:  ValidationIssueSeverityWarning,
+		Message:   "canonical message",
+		Code:      "canonical_code",
+		Component: "original-component",
+		Path:      "original/path",
+	}
+
+	t.Run("adds formatted context and preserves error identity", func(t *testing.T) {
+		err := ValidationWithMessagef(baseIssue, "feature[%s]", "requests")
+
+		require.EqualError(t, err, "feature[requests]: canonical message")
+		require.ErrorIs(t, err, baseIssue)
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, ValidationIssues{
+			{
+				Severity:  baseIssue.Severity,
+				Message:   "feature[requests]: canonical message",
+				Code:      baseIssue.Code,
+				Component: baseIssue.Component,
+				Path:      "/original/path",
+			},
+		}, issues)
+	})
+
+	t.Run("composes nested message component and field context", func(t *testing.T) {
+		err := ValidationWithMessagef(
+			ValidationWithComponent(
+				"outer-component",
+				ValidationWithFieldPrefix(
+					"lines/line-1",
+					ValidationWithMessagef(baseIssue, "inner[%d]", 42),
+				),
+			),
+			"outer",
+		)
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, ValidationIssues{
+			{
+				Severity:  baseIssue.Severity,
+				Message:   "outer: inner[42]: canonical message",
+				Code:      baseIssue.Code,
+				Component: "outer-component",
+				Path:      "/lines/line-1/original/path",
+			},
+		}, issues)
+	})
+
+	t.Run("prefixes every validation issue in a joined error", func(t *testing.T) {
+		secondIssue := NewValidationError("second_code", "second message")
+		err := ValidationWithMessagef(errors.Join(baseIssue, secondIssue), "shared context")
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, ValidationIssues{
+			{
+				Severity:  baseIssue.Severity,
+				Message:   "shared context: canonical message",
+				Code:      baseIssue.Code,
+				Component: baseIssue.Component,
+				Path:      "/original/path",
+			},
+			{
+				Severity: secondIssue.Severity,
+				Message:  "shared context: second message",
+				Code:     secondIssue.Code,
+			},
+		}, issues)
+	})
+
+	t.Run("does not promote a system error", func(t *testing.T) {
+		systemErr := errors.New("database unavailable")
+		err := ValidationWithMessagef(systemErr, "loading invoice[%s]", "invoice-1")
+
+		require.EqualError(t, err, "loading invoice[invoice-1]: database unavailable")
+		require.ErrorIs(t, err, systemErr)
+
+		issues, extractionErr := ToValidationIssues(err)
+		require.Nil(t, issues)
+		require.Equal(t, err, extractionErr)
+	})
+
+	t.Run("returns nil for a nil error", func(t *testing.T) {
+		require.NoError(t, ValidationWithMessagef(nil, "unused %s", "context"))
+	})
 }
