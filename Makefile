@@ -11,8 +11,6 @@ GO_TEST_PACKAGE_PARALLELISM ?= 128
 GO_TEST_FLAGS = -p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}
 GOTESTSUM_FLAGS ?= --format pkgname-and-test-fails --hide-summary=skipped
 GO_LINT_PATH ?= ./...
-POSTGRES_TEST_PORT ?= 55432
-POSTGRES_TEST_PROFILE ?= tuned
 
 .PHONY: up
 up: ## Start the dependencies via docker compose. `export COMPOSE_PROFILES=dev,redis,...`
@@ -242,29 +240,6 @@ test-nocache: ## Run tests without cache
 	$(call print-target)
 	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
 	POSTGRES_HOST=127.0.0.1 gotestsum $(GOTESTSUM_FLAGS) -- $(GO_TEST_FLAGS) -count=1 ./...
-
-# app/config treats POSTGRES_PORT as application configuration, so the isolated
-# database environment must not be present while that package is tested.
-.PHONY: test-nocache-postgres
-test-nocache-postgres: GO_TEST_PACKAGE_PARALLELISM = 16
-test-nocache-postgres: ## Run tests without cache against an isolated, disposable PostgreSQL
-	$(call print-target)
-	@set -eu; \
-		case "$(POSTGRES_TEST_PROFILE)" in \
-			tuned) compose_files="docker-compose.base.yaml:docker-compose.postgres-test.yaml:docker-compose.postgres-test-local.yaml" ;; \
-			default) compose_files="docker-compose.base.yaml:docker-compose.postgres-test-local.yaml" ;; \
-			*) echo "POSTGRES_TEST_PROFILE must be 'tuned' or 'default'"; exit 1 ;; \
-		esac; \
-		export COMPOSE_FILE="$$compose_files"; \
-		export COMPOSE_PROJECT_NAME="openmeter-postgres-test"; \
-		export POSTGRES_TEST_PORT="$(POSTGRES_TEST_PORT)"; \
-		cleanup() { docker compose down --remove-orphans --volumes; }; \
-		trap cleanup EXIT; \
-		docker compose up --detach --wait --wait-timeout 60 postgres; \
-		PGPASSWORD=postgres psql -h 127.0.0.1 -p "$(POSTGRES_TEST_PORT)" -U postgres postgres -c "SELECT version();"; \
-		packages="$$(go list -f '{{if ne .ImportPath "github.com/openmeterio/openmeter/app/config"}}{{.ImportPath}}{{end}}' ./...)"; \
-		POSTGRES_HOST=127.0.0.1 POSTGRES_PORT="$(POSTGRES_TEST_PORT)" gotestsum $(GOTESTSUM_FLAGS) -- $(GO_TEST_FLAGS) -count=1 $$packages; \
-		env -u POSTGRES_HOST -u POSTGRES_PORT gotestsum $(GOTESTSUM_FLAGS) -- $(GO_TEST_FLAGS) -count=1 ./app/config
 
 .PHONY: test-all
 test-all: ## Run tests with svix dependencies, bypassing the test cache
