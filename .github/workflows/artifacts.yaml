@@ -29,42 +29,6 @@ permissions:
   contents: read
 
 jobs:
-  changes:
-    name: Detect artifact changes
-    runs-on: ubuntu-latest
-
-    outputs:
-      benthos: ${{ steps.changed-files.outputs.benthos_any_modified }}
-
-    steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-
-      - name: Detect Benthos Collector changes
-        id: changed-files
-        uses: kong/changed-files@4edd678ac3f81e2dc578756871e4d00c19191daf
-        with:
-          files_yaml: |
-            benthos:
-              - '.dockerignore'
-              - '.github/**'
-              - 'api/client/go/**'
-              - 'benthos-collector.Dockerfile'
-              - 'cloudevents.spec.json'
-              - 'collector/**'
-              - 'entrypoint.sh'
-              - 'go.mod'
-              - 'go.sum'
-
   container-image:
     name: Container image
     runs-on: ubuntu-latest
@@ -181,8 +145,6 @@ jobs:
   benthos-collector-container-image:
     name: Benthos Collector Container image
     runs-on: ubuntu-latest
-    needs: changes
-    if: inputs.publish || needs.changes.outputs.benthos == 'true'
 
     permissions:
       contents: read
