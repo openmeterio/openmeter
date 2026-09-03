@@ -4753,7 +4753,7 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
 		s.Equal(fmt.Sprintf("/lines/%s", pendingLineID), issue.Path)
-		s.Contains(issue.Message, "feature[snapshot-feature] has no meter associated")
+		s.Equal("feature[snapshot-feature]: usage based invoice line: feature has no meters", issue.Message)
 
 		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),

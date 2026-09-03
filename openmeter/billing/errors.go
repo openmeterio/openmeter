@@ -175,19 +175,22 @@ func (e ErrSnapshotFeatureHasNoMeter) Error() string {
 	return fmt.Sprintf("snapshotting line quantity: feature[%s] has no meter associated", e.FeatureKey)
 }
 
-// AsValidationIssue returns the critical invoice issue that represents the
-// missing meter association without exposing it as an operational failure.
-func (e ErrSnapshotFeatureHasNoMeter) AsValidationIssue() ValidationIssue {
-	issue := ValidationIssue{
-		Severity:  ValidationIssueSeverityCritical,
-		Code:      ErrInvoiceLineFeatureHasNoMeters.Code,
-		Message:   fmt.Sprintf("feature[%s] has no meter associated", e.FeatureKey),
-		Component: ValidationComponentOpenMeterMetering,
-	}
+// AsValidationIssue returns the critical invoice issue that represents the missing meter
+// association without exposing it as an operational failure. The wrappers preserve the canonical
+// issue for errors.Is while adding the feature and line context used by invoice validation.
+func (e ErrSnapshotFeatureHasNoMeter) AsValidationIssue() error {
+	err := ValidationWithComponent(
+		ValidationComponentOpenMeterMetering,
+		ValidationWithMessagef(
+			ErrInvoiceLineFeatureHasNoMeters,
+			"feature[%s]",
+			e.FeatureKey,
+		),
+	)
 
 	if e.LineID != "" {
-		issue.Path = fmt.Sprintf("lines/%s", e.LineID)
+		err = ValidationWithFieldPrefix(fmt.Sprintf("lines/%s", e.LineID), err)
 	}
 
-	return issue
+	return err
 }

@@ -41,8 +41,11 @@ func TestSnapshotValidationIssueClassification(t *testing.T) {
 	}
 
 	t.Run("converts a validation-only error tree", func(t *testing.T) {
+		firstValidationErr := firstErr.AsValidationIssue()
+		require.ErrorIs(t, firstValidationErr, billing.ErrInvoiceLineFeatureHasNoMeters)
+
 		issues, systemErr := billing.ToValidationIssues(errors.Join(
-			fmt.Errorf("snapshot first: %w", firstErr.AsValidationIssue()),
+			fmt.Errorf("snapshot first: %w", firstValidationErr),
 			secondErr.AsValidationIssue(),
 		))
 
@@ -51,14 +54,14 @@ func TestSnapshotValidationIssueClassification(t *testing.T) {
 			{
 				Severity:  billing.ValidationIssueSeverityCritical,
 				Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-				Message:   "feature[first] has no meter associated",
+				Message:   "feature[first]: usage based invoice line: feature has no meters",
 				Component: billing.ValidationComponentOpenMeterMetering,
 				Path:      "/lines/line-1",
 			},
 			{
 				Severity:  billing.ValidationIssueSeverityCritical,
 				Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-				Message:   "feature[second] has no meter associated",
+				Message:   "feature[second]: usage based invoice line: feature has no meters",
 				Component: billing.ValidationComponentOpenMeterMetering,
 				Path:      "/lines/line-2",
 			},

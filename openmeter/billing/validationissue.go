@@ -115,6 +115,34 @@ func ValidationWithComponent(component ComponentName, err error) error {
 	}
 }
 
+type messageWrapper struct {
+	prefix string
+	err    error
+}
+
+func (m messageWrapper) Error() string {
+	return m.prefix + ": " + m.err.Error()
+}
+
+func (m messageWrapper) Unwrap() error {
+	return m.err
+}
+
+// ValidationWithMessagef wraps an error with formatted context, if error is nil, it returns nil.
+// Unlike component and field wrappers, message context does not classify an ordinary error as a
+// validation issue. When the wrapped error contains validation issues, the context is added to each
+// extracted issue's message.
+func ValidationWithMessagef(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+
+	return messageWrapper{
+		prefix: fmt.Sprintf(format, args...),
+		err:    err,
+	}
+}
+
 type fieldPrefixWrapper struct {
 	prefix string
 	err    error
@@ -154,7 +182,7 @@ func ToValidationIssues(errIn error) (ValidationIssues, error) {
 		return nil, nil
 	}
 
-	issues, err := toValidationIssue(errIn, "", "", false)
+	issues, err := toValidationIssue(errIn, "", "", "", false)
 	if err != nil {
 		return nil, errIn
 	}
@@ -223,7 +251,15 @@ func appendToPrefix(prefix string, field string) string {
 	return addStartingSlashIfNeeded(prefix + "/" + field)
 }
 
-func toValidationIssue(err error, fieldPrefix string, component ComponentName, unknownAsValidationIssue bool) ([]ValidationIssue, error) {
+func appendMessagePrefix(prefix string, message string) string {
+	if prefix == "" {
+		return message
+	}
+
+	return prefix + ": " + message
+}
+
+func toValidationIssue(err error, fieldPrefix string, component ComponentName, messagePrefix string, unknownAsValidationIssue bool) ([]ValidationIssue, error) {
 	if err == nil {
 		return nil, nil
 	}
@@ -232,9 +268,11 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, u
 	// ordering is non-deterministic, we first have a typeswitch for the special cases)
 	switch errT := err.(type) {
 	case componentWrapper:
-		return toValidationIssue(errT.err, fieldPrefix, errT.component, true)
+		return toValidationIssue(errT.err, fieldPrefix, errT.component, messagePrefix, true)
 	case fieldPrefixWrapper:
-		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, true)
+		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, messagePrefix, true)
+	case messageWrapper:
+		return toValidationIssue(errT.err, fieldPrefix, component, appendMessagePrefix(messagePrefix, errT.prefix), unknownAsValidationIssue)
 	case ValidationIssue:
 		issueComponent := component
 		if issueComponent == "" {
@@ -244,7 +282,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, u
 		return []ValidationIssue{
 			{
 				Severity:  errT.Severity,
-				Message:   errT.Message,
+				Message:   appendMessagePrefix(messagePrefix, errT.Message),
 				Code:      errT.Code,
 				Path:      appendToPrefix(fieldPrefix, errT.Path),
 				Component: issueComponent,
@@ -256,7 +294,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, u
 	case errorsUnwrap:
 		var issues []ValidationIssue
 		for _, e := range errT.Unwrap() {
-			out, err := toValidationIssue(e, fieldPrefix, component, unknownAsValidationIssue)
+			out, err := toValidationIssue(e, fieldPrefix, component, messagePrefix, unknownAsValidationIssue)
 			if err != nil {
 				return nil, err
 			}
@@ -267,14 +305,14 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, u
 
 		return issues, nil
 	case errorUnwrap:
-		return toValidationIssue(errT.Unwrap(), fieldPrefix, component, unknownAsValidationIssue)
+		return toValidationIssue(errT.Unwrap(), fieldPrefix, component, messagePrefix, unknownAsValidationIssue)
 	default:
 		// Non-validation errors get coded as critical
 		if unknownAsValidationIssue {
 			return []ValidationIssue{
 				{
 					Severity:  ValidationIssueSeverityCritical,
-					Message:   err.Error(),
+					Message:   appendMessagePrefix(messagePrefix, err.Error()),
 					Path:      fieldPrefix,
 					Component: component,
 				},
