@@ -120,10 +120,10 @@ scalar CountryCode extends string;
 scalar Numeric extends string;
 
 /**
- * Monetary amount in a specific currency.
+ * Monetary amount in a specific fiat currency.
  */
-@friendlyName("CurrencyAmount")
-model CurrencyAmount {
+@friendlyName("FiatCurrencyAmount")
+model FiatCurrencyAmount {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   amount: Shared.Numeric;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"

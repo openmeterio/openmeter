@@ -553,6 +553,158 @@ func ChargeFromChargeUsageBased(value ChargeUsageBased) (Charge, error) {
 	return result, nil
 }
 
+// Cost basis selection for a custom-currency charge. The variant chosen fixes when
+// and how the conversion rate is determined.
+//
+// ChargeCostBasis is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the ChargeCostBasisFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type ChargeCostBasis struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *ChargeCostBasis) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u ChargeCostBasis) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u ChargeCostBasis) AsChargeCostBasisDynamic() (*ChargeCostBasisDynamic, error) {
+	if u.Type != "dynamic" {
+		return nil, fmt.Errorf("ChargeCostBasis: expected type %q, got %q", "dynamic", u.Type)
+	}
+	var value ChargeCostBasisDynamic
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeCostBasisFromChargeCostBasisDynamic(value ChargeCostBasisDynamic) (ChargeCostBasis, error) {
+	value.Type = "dynamic"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeCostBasis{}, err
+	}
+	var result ChargeCostBasis
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeCostBasis{}, err
+	}
+	return result, nil
+}
+
+func (u ChargeCostBasis) AsChargeCostBasisPinned() (*ChargeCostBasisPinned, error) {
+	if u.Type != "pinned" {
+		return nil, fmt.Errorf("ChargeCostBasis: expected type %q, got %q", "pinned", u.Type)
+	}
+	var value ChargeCostBasisPinned
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeCostBasisFromChargeCostBasisPinned(value ChargeCostBasisPinned) (ChargeCostBasis, error) {
+	value.Type = "pinned"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeCostBasis{}, err
+	}
+	var result ChargeCostBasis
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeCostBasis{}, err
+	}
+	return result, nil
+}
+
+func (u ChargeCostBasis) AsChargeCostBasisManual() (*ChargeCostBasisManual, error) {
+	if u.Type != "manual" {
+		return nil, fmt.Errorf("ChargeCostBasis: expected type %q, got %q", "manual", u.Type)
+	}
+	var value ChargeCostBasisManual
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeCostBasisFromChargeCostBasisManual(value ChargeCostBasisManual) (ChargeCostBasis, error) {
+	value.Type = "manual"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeCostBasis{}, err
+	}
+	var result ChargeCostBasis
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeCostBasis{}, err
+	}
+	return result, nil
+}
+
+// Cost basis resolved at the charge's full service period start.
+type ChargeCostBasisDynamic struct {
+	// Discriminator selecting the cost basis mode.
+	Type ChargeCostBasisType `json:"type"`
+	// The fiat currency the charge amount is converted into for invoicing.
+	FiatCurrency string `json:"fiat_currency"`
+}
+
+// Cost basis with an explicit conversion rate supplied with the charge.
+type ChargeCostBasisManual struct {
+	// Discriminator selecting the cost basis mode.
+	Type ChargeCostBasisType `json:"type"`
+	// The fiat currency the charge amount is converted into for invoicing.
+	FiatCurrency string `json:"fiat_currency"`
+	// Fiat amount per one unit of the custom currency.
+	Rate Numeric `json:"rate"`
+}
+
+// Cost basis pinned to a specific cost basis resource of the custom currency.
+type ChargeCostBasisPinned struct {
+	// Discriminator selecting the cost basis mode.
+	Type ChargeCostBasisType `json:"type"`
+	// The fiat currency the charge amount is converted into for invoicing.
+	FiatCurrency string `json:"fiat_currency"`
+	// ID of the custom currency's cost basis resource to pin.
+	CostBasisID string `json:"cost_basis_id"`
+}
+
+// Cost basis resolution mode of a charge.
+type ChargeCostBasisType string
+
+const (
+	ChargeCostBasisTypeDynamic ChargeCostBasisType = "dynamic"
+	ChargeCostBasisTypePinned  ChargeCostBasisType = "pinned"
+	ChargeCostBasisTypeManual  ChargeCostBasisType = "manual"
+)
+
+func (value ChargeCostBasisType) Valid() bool {
+	switch value {
+	case ChargeCostBasisTypeDynamic, ChargeCostBasisTypePinned, ChargeCostBasisTypeManual:
+		return true
+	default:
+		return false
+	}
+}
+
 // A flat fee charge for a customer.
 type ChargeFlatFee struct {
 	ID string `json:"id"`
@@ -588,7 +740,11 @@ type ChargeFlatFee struct {
 	// returned. For more details use the `subscription` expand.
 	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
-	Currency string `json:"currency"`
+	Currency BillingCurrencyCode `json:"currency"`
+	// The resolved fiat conversion rate of a custom-currency charge. Resolution
+	// depends on costbasis type: dynamic is resolved when charge becomes active, all
+	// other types resolved on creation.
+	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
 	// The timestamp when the charge is intended to be invoiced.
@@ -1103,6 +1259,21 @@ func (value ChargeRealizationType) Valid() bool {
 	}
 }
 
+// Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+// cost basis is resolved; dynamic cost bases are exposed only after the service
+// period has started.
+type ChargeResolvedCostBasis struct {
+	// The fiat currency the charge amount is converted into for invoicing.
+	FiatCurrency string `json:"fiat_currency"`
+	// Fiat amount per one unit of the custom currency.
+	Rate Numeric `json:"rate"`
+	// ID of the custom currency's cost basis resource the rate was taken from. Absent
+	// for manual cost bases.
+	CostBasisID *string `json:"cost_basis_id,omitempty"`
+	// When the rate was resolved.
+	ResolvedAt time.Time `json:"resolved_at"`
+}
+
 // Lifecycle status of a charge.
 //
 // Values:
@@ -1201,7 +1372,11 @@ type ChargeUsageBased struct {
 	// returned. For more details use the `subscription` expand.
 	Subscription *SubscriptionOrReference `json:"subscription,omitempty"`
 	// The currency of the charge.
-	Currency string `json:"currency"`
+	Currency BillingCurrencyCode `json:"currency"`
+	// The resolved fiat conversion rate of a custom-currency charge. Resolution
+	// depends on costbasis type: dynamic is resolved when charge becomes active, all
+	// other types resolved on creation.
+	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
 	// The timestamp when the charge is intended to be invoiced.
@@ -1350,7 +1525,12 @@ type CreateChargeFlatFeeRequest struct {
 	// The type of the charge.
 	Type ChargeType `json:"type"`
 	// The currency of the charge.
-	Currency string `json:"currency"`
+	Currency BillingCurrencyCode `json:"currency"`
+	// Defines how a custom-currency charge is converted into its fiat invoice
+	// currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+	// when `currency` is custom and the charge settles as `credit_then_invoice`; must
+	// be omitted otherwise.
+	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.
 	InvoiceAt time.Time `json:"invoice_at"`
 	// The effective service period covered by the charge.
@@ -1472,7 +1652,12 @@ type CreateChargeUsageBasedRequest struct {
 	// The type of the charge.
 	Type ChargeType `json:"type"`
 	// The currency of the charge.
-	Currency string `json:"currency"`
+	Currency BillingCurrencyCode `json:"currency"`
+	// Defines how a custom-currency charge is converted into its fiat invoice
+	// currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+	// when `currency` is custom and the charge settles as `credit_then_invoice`; must
+	// be omitted otherwise.
+	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.
 	InvoiceAt time.Time `json:"invoice_at"`
 	// The effective service period covered by the charge.
@@ -1957,10 +2142,12 @@ func (value CreditTransactionType) Valid() bool {
 	}
 }
 
-// Monetary amount in a specific currency.
+// Monetary amount in a fiat or custom currency.
 type CurrencyAmount struct {
-	Amount   Numeric `json:"amount"`
-	Currency string  `json:"currency"`
+	// The amount as an arbitrary-precision decimal string.
+	Amount Numeric `json:"amount"`
+	// The fiat or custom currency code of the amount.
+	Currency BillingCurrencyCode `json:"currency"`
 }
 
 // Billing customer data.

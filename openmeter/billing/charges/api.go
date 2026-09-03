@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -82,6 +83,7 @@ type CreateCustomerChargeInput struct {
 	Namespace         string
 	CustomerID        string
 	CurrencyCode      currencyx.Code
+	CostBasis         *costbasis.Intent
 	TaxConfig         productcatalog.TaxCodeConfig
 	UniqueReferenceID *string
 
@@ -116,11 +118,29 @@ func (i CreateCustomerChargeInput) Validate() error {
 		errs = append(errs, fmt.Errorf("currency code: %w", err))
 	}
 
+	if i.CostBasis != nil {
+		if err := i.CostBasis.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cost basis: %w", err))
+		}
+	}
+
 	if (i.FlatFee == nil) == (i.UsageBased == nil) {
 		errs = append(errs, errors.New("exactly one charge type is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i CreateCustomerChargeInput) GetSettlementMode() productcatalog.SettlementMode {
+	if i.FlatFee != nil {
+		return i.FlatFee.SettlementMode
+	}
+
+	if i.UsageBased != nil {
+		return i.UsageBased.SettlementMode
+	}
+
+	return ""
 }
 
 type DeleteCustomerChargeInput struct {

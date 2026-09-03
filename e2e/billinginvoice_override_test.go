@@ -686,7 +686,7 @@ func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invo
 
 	assert.Equal(t, line.Name, charge.Name)
 	assert.Equal(t, line.Description, charge.Description)
-	assert.Equal(t, "USD", charge.Currency)
+	assert.Equal(t, v3sdk.BillingCurrencyCode("USD"), charge.Currency)
 	assert.Equal(t, flatInvoiceLineAmount(t, line), charge.AmountAfterProration.Amount)
 	if line.FeatureKey != nil {
 		require.NotNil(t, charge.Feature)

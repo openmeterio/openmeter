@@ -4778,6 +4778,83 @@ components:
           usage_based: '#/components/schemas/BillingChargeUsageBased'
       description: Customer charge.
       title: Customer charge
+    BillingChargeCostBasis:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingChargeCostBasisDynamic'
+        - $ref: '#/components/schemas/BillingChargeCostBasisPinned'
+        - $ref: '#/components/schemas/BillingChargeCostBasisManual'
+      discriminator:
+        propertyName: type
+        mapping:
+          dynamic: '#/components/schemas/BillingChargeCostBasisDynamic'
+          pinned: '#/components/schemas/BillingChargeCostBasisPinned'
+          manual: '#/components/schemas/BillingChargeCostBasisManual'
+      description: |-
+        Cost basis selection for a custom-currency charge. The variant chosen fixes when
+        and how the conversion rate is determined.
+      title: Charge cost basis
+    BillingChargeCostBasisDynamic:
+      type: object
+      required:
+        - type
+        - fiat_currency
+      properties:
+        type:
+          type: string
+          enum:
+            - dynamic
+          description: Discriminator selecting the cost basis mode.
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+      additionalProperties: false
+      description: Cost basis resolved at the charge's full service period start.
+    BillingChargeCostBasisManual:
+      type: object
+      required:
+        - type
+        - fiat_currency
+        - rate
+      properties:
+        type:
+          type: string
+          enum:
+            - manual
+          description: Discriminator selecting the cost basis mode.
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fiat amount per one unit of the custom currency.
+      additionalProperties: false
+      description: Cost basis with an explicit conversion rate supplied with the charge.
+    BillingChargeCostBasisPinned:
+      type: object
+      required:
+        - type
+        - fiat_currency
+        - cost_basis_id
+      properties:
+        type:
+          type: string
+          enum:
+            - pinned
+          description: Discriminator selecting the cost basis mode.
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+        cost_basis_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: ID of the custom currency's cost basis resource to pin.
+      additionalProperties: false
+      description: Cost basis pinned to a specific cost basis resource of the custom currency.
     BillingChargeFlatFee:
       type: object
       required:
@@ -4874,9 +4951,18 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency of the charge.
           title: Currency
+        resolved_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
+          description: |-
+            The resolved fiat conversion rate of a custom-currency charge. Resolution
+            depends on costbasis type: dynamic is resolved when charge becomes active, all
+            other types resolved on creation.
+          title: Resolved cost basis
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingChargeStatus'
@@ -4957,7 +5043,7 @@ components:
           title: Proration configuration
         amount_after_proration:
           allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
+            - $ref: '#/components/schemas/BillingCurrencyAmount'
           description: The amount after proration of the charge.
           title: Amount after proration
           readOnly: true
@@ -5062,7 +5148,7 @@ components:
           title: Proration configuration
         amount_before_proration:
           allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
+            - $ref: '#/components/schemas/BillingCurrencyAmount'
           description: The amount before proration of the system lifecycle controller flat fee intent.
           title: Amount before proration
           readOnly: true
@@ -5676,6 +5762,41 @@ components:
           readOnly: true
       additionalProperties: false
       description: Reference to a charge associated with an invoice line.
+    BillingChargeResolvedCostBasis:
+      type: object
+      required:
+        - fiat_currency
+        - rate
+        - resolved_at
+      properties:
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+          readOnly: true
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fiat amount per one unit of the custom currency.
+          readOnly: true
+        cost_basis_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            ID of the custom currency's cost basis resource the rate was taken from. Absent
+            for manual cost bases.
+          readOnly: true
+        resolved_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When the rate was resolved.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+        cost basis is resolved; dynamic cost bases are exposed only after the service
+        period has started.
+      title: Resolved charge cost basis
     BillingChargeStatus:
       type: string
       enum:
@@ -5816,9 +5937,18 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency of the charge.
           title: Currency
+        resolved_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
+          description: |-
+            The resolved fiat conversion rate of a custom-currency charge. Resolution
+            depends on costbasis type: dynamic is resolved when charge becomes active, all
+            other types resolved on creation.
+          title: Resolved cost basis
+          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingChargeStatus'
@@ -6553,6 +6683,22 @@ components:
           fiat: '#/components/schemas/BillingCurrencyFiat'
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
+    BillingCurrencyAmount:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount as an arbitrary-precision decimal string.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The fiat or custom currency code of the amount.
+      additionalProperties: false
+      description: Monetary amount in a fiat or custom currency.
     BillingCurrencyCode:
       oneOf:
         - $ref: '#/components/schemas/CurrencyCode'
@@ -10611,9 +10757,18 @@ components:
           title: Type
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency of the charge.
           title: Currency
+        cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeCostBasis'
+          description: |-
+            Defines how a custom-currency charge is converted into its fiat invoice
+            currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+            when `currency` is custom and the charge settles as `credit_then_invoice`; must
+            be omitted otherwise.
+          title: Cost basis
         invoice_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -10655,7 +10810,7 @@ components:
           title: Proration configuration
         amount_before_proration:
           allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
+            - $ref: '#/components/schemas/BillingCurrencyAmount'
           description: The amount before proration of the charge.
           title: Amount before proration
         feature:
@@ -10724,9 +10879,18 @@ components:
           title: Type
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency of the charge.
           title: Currency
+        cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeCostBasis'
+          description: |-
+            Defines how a custom-currency charge is converted into its fiat invoice
+            currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+            when `currency` is custom and the charge settles as `credit_then_invoice`; must
+            be omitted otherwise.
+          title: Cost basis
         invoice_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -11464,18 +11628,6 @@ components:
           $ref: '#/components/schemas/CursorMeta'
       additionalProperties: false
       description: Cursor paginated response.
-    CurrencyAmount:
-      type: object
-      required:
-        - amount
-        - currency
-      properties:
-        amount:
-          $ref: '#/components/schemas/Numeric'
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-      additionalProperties: false
-      description: Monetary amount in a specific currency.
     CurrencyCode:
       type: string
       minLength: 3

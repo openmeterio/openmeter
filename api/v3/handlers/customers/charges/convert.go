@@ -23,6 +23,7 @@ import (
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -97,9 +98,19 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		return api.BillingChargeFlatFee{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
+	resolvedCostBasisState, err := charge.GetResolvedCostBasis()
+	if err != nil {
+		return api.BillingChargeFlatFee{}, fmt.Errorf("resolving cost basis: %w", err)
+	}
+
+	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(flatFee.ChargeBase.Intent.GetCostBasisIntent(), resolvedCostBasisState)
+	if err != nil {
+		return api.BillingChargeFlatFee{}, fmt.Errorf("converting resolved cost basis: %w", err)
+	}
+
 	return api.BillingChargeFlatFee{
 		AdvanceAfter:           flatFee.State.AdvanceAfter,
-		AmountAfterProration:   ConvertDecimalToCurrencyAmount(flatFee.ChargeBase.State.AmountAfterProration),
+		AmountAfterProration:   ConvertDecimalToCurrencyAmount(flatFee.ChargeBase.State.AmountAfterProration, flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
 		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              flatFee.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:               api.CurrencyCode(flatFee.ChargeBase.Intent.GetCurrency().GetCode()),
@@ -118,6 +129,7 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		Price:                  price,
 		ProrationConfiguration: ConvertProRatingConfigToAPI(intent.ProRating),
 		Realizations:           realizations,
+		ResolvedCostBasis:      resolvedCostBasis,
 		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
 		SettlementMode:         api.BillingSettlementMode(flatFee.ChargeBase.Intent.GetSettlementMode()),
 		Status:                 api.BillingChargeStatus(status),
@@ -180,6 +192,16 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting realizations: %w", err)
 	}
 
+	resolvedCostBasisState, err := charge.GetResolvedCostBasis()
+	if err != nil {
+		return api.BillingChargeUsageBased{}, fmt.Errorf("resolving cost basis: %w", err)
+	}
+
+	resolvedCostBasis, err := toAPIChargeResolvedCostBasis(usageBasedFee.ChargeBase.Intent.GetCostBasisIntent(), resolvedCostBasisState)
+	if err != nil {
+		return api.BillingChargeUsageBased{}, fmt.Errorf("converting resolved cost basis: %w", err)
+	}
+
 	// The contract promises the charge-level usage under the real_time_usage
 	// expand; the domain carries the live cumulative read alongside the rated
 	// realtime totals.
@@ -207,6 +229,7 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		Name:                intent.Name,
 		Price:               ratingConfiguration.Price,
 		Realizations:        realizations,
+		ResolvedCostBasis:   resolvedCostBasis,
 		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
 		SettlementMode:      api.BillingSettlementMode(usageBasedFee.ChargeBase.Intent.GetSettlementMode()),
 		Status:              lo.FromPtr(status),
@@ -222,6 +245,31 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 	}, nil
 }
 
+// toAPIChargeResolvedCostBasis pairs the resolved state with the fiat
+// currency of the write-only intent, as the intent itself is not exposed on
+// read.
+func toAPIChargeResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State) (*api.BillingChargeResolvedCostBasis, error) {
+	if state == nil {
+		return nil, nil
+	}
+
+	if intent == nil {
+		return nil, errors.New("resolved cost basis without a cost basis intent")
+	}
+
+	fiat, err := intent.GetFiatCurrency()
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.BillingChargeResolvedCostBasis{
+		FiatCurrency: api.CurrencyCode(fiat.Details().Code),
+		Rate:         state.CostBasis.String(),
+		CostBasisId:  state.CostBasisID,
+		ResolvedAt:   state.ResolvedAt,
+	}, nil
+}
+
 func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *api.BillingChargeFlatFeeSystemIntent {
 	if !intent.HasOverrideLayer() || intent.GetBaseManagedBy() == billing.ManuallyManagedLine {
 		return nil
@@ -230,7 +278,7 @@ func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *ap
 	baseIntent := intent.GetBaseIntent()
 
 	return &api.BillingChargeFlatFeeSystemIntent{
-		AmountBeforeProration:  ConvertDecimalToCurrencyAmount(baseIntent.AmountBeforeProration),
+		AmountBeforeProration:  ConvertDecimalToCurrencyAmount(baseIntent.AmountBeforeProration, baseIntent.Currency.GetCode()),
 		BillingPeriod:          ConvertClosedPeriodToAPI(baseIntent.BillingPeriod),
 		DeletedAt:              baseIntent.IntentDeletedAt,
 		Description:            baseIntent.Description,
@@ -768,9 +816,9 @@ func ConvertUsageBasedStatusToAPI(status usagebased.Status) (*api.BillingChargeS
 // ConvertClosedPeriodToAPI maps a domain ClosedPeriod to the API type.
 var ConvertClosedPeriodToAPI = billingcommon.ConvertClosedPeriodToAPI
 
-// ConvertDecimalToCurrencyAmount wraps a decimal amount in a CurrencyAmount.
-func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal) api.CurrencyAmount {
-	return api.CurrencyAmount{Amount: d.String()}
+// ConvertDecimalToCurrencyAmount wraps a decimal amount and currency in a CurrencyAmount.
+func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal, currency currencyx.Code) api.BillingCurrencyAmount {
+	return api.BillingCurrencyAmount{Amount: d.String(), Currency: api.BillingCurrencyCode(currency)}
 }
 
 func convertCustomerIDToReference(id string) (api.CustomerOrReference, error) {
@@ -900,10 +948,16 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		featureID = lo.ToPtr(flatFee.Feature.Id)
 	}
 
+	costBasis, err := fromAPIChargeCostBasis(flatFee.CostBasis)
+	if err != nil {
+		return zero, err
+	}
+
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(flatFee.Currency),
+		CostBasis:         costBasis,
 		TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
 		UniqueReferenceID: flatFee.UniqueReferenceId,
 		FlatFee: &billingcharges.CreateCustomerChargeFlatFeeInput{
@@ -926,6 +980,68 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
 	}, nil
+}
+
+func fromAPIChargeCostBasis(in *api.BillingChargeCostBasis) (*costbasis.Intent, error) {
+	if in == nil {
+		return nil, nil
+	}
+
+	costBasisType, err := in.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("invalid cost basis: %w", err)
+	}
+
+	var fiatCurrencyCode api.CurrencyCode
+	var input costbasis.NewIntentFromFieldsInput
+
+	switch costBasisType {
+	case string(api.BillingChargeCostBasisDynamicTypeDynamic):
+		dynamic, err := in.AsBillingChargeCostBasisDynamic()
+		if err != nil {
+			return nil, fmt.Errorf("invalid dynamic cost basis: %w", err)
+		}
+
+		input.Mode = costbasis.ModeDynamic
+		fiatCurrencyCode = dynamic.FiatCurrency
+	case string(api.BillingChargeCostBasisManualTypeManual):
+		manual, err := in.AsBillingChargeCostBasisManual()
+		if err != nil {
+			return nil, fmt.Errorf("invalid manual cost basis: %w", err)
+		}
+
+		rate, err := alpacadecimal.NewFromString(manual.Rate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cost basis rate: %w", err)
+		}
+
+		input.Mode = costbasis.ModeManual
+		input.Rate = &rate
+		fiatCurrencyCode = manual.FiatCurrency
+	case string(api.BillingChargeCostBasisPinnedTypePinned):
+		pinned, err := in.AsBillingChargeCostBasisPinned()
+		if err != nil {
+			return nil, fmt.Errorf("invalid pinned cost basis: %w", err)
+		}
+
+		input.Mode = costbasis.ModePinned
+		input.CurrencyCostBasisID = &pinned.CostBasisId
+		fiatCurrencyCode = pinned.FiatCurrency
+	default:
+		return nil, fmt.Errorf("invalid cost basis type: %s", costBasisType)
+	}
+
+	input.FiatCurrency, err = currencyx.NewFiatCurrency(fiatCurrencyCode)
+	if err != nil {
+		return nil, fmt.Errorf("invalid cost basis fiat currency: %w", err)
+	}
+
+	intent, err := costbasis.NewIntentFromFields(input)
+	if err != nil {
+		return nil, fmt.Errorf("invalid cost basis: %w", err)
+	}
+
+	return &intent, nil
 }
 
 func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
@@ -977,10 +1093,16 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		}
 	}
 
+	costBasis, err := fromAPIChargeCostBasis(usageBasedFee.CostBasis)
+	if err != nil {
+		return zero, err
+	}
+
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(usageBasedFee.Currency),
+		CostBasis:         costBasis,
 		TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
 		UniqueReferenceID: usageBasedFee.UniqueReferenceId,
 		UsageBased: &billingcharges.CreateCustomerChargeUsageBasedInput{

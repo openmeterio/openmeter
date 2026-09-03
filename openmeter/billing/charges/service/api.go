@@ -36,8 +36,8 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		return charges.CustomerCharge{}, fmt.Errorf("resolving currency: %w", err)
 	}
 
-	if currency.IsCustom() {
-		return charges.CustomerCharge{}, models.NewGenericValidationError(fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
+	if currency.IsCustom() && !s.creditsConfig.EnableCustomCurrencyCharge {
+		return charges.CustomerCharge{}, models.NewGenericValidationError(meta.ErrCustomCurrencyNotSupported)
 	}
 
 	intent := meta.Intent{
@@ -56,6 +56,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 			IntentMutableFields: input.FlatFee.IntentMutableFields,
 			FeatureID:           input.FlatFee.FeatureID,
 			SettlementMode:      input.FlatFee.SettlementMode,
+			CostBasis:           input.CostBasis,
 		})
 	case input.UsageBased != nil:
 		chargeIntent = charges.NewChargeIntent(usagebased.Intent{
@@ -63,6 +64,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 			IntentMutableFields: input.UsageBased.IntentMutableFields,
 			FeatureID:           input.UsageBased.FeatureID,
 			SettlementMode:      input.UsageBased.SettlementMode,
+			CostBasis:           input.CostBasis,
 		})
 	}
 

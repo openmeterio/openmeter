@@ -16,15 +16,18 @@ import (
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -845,4 +848,394 @@ func TestConvertChargeToAPISerializesRequiredRealizations(t *testing.T) {
 	var wire map[string]any
 	require.NoError(t, json.Unmarshal(raw, &wire))
 	assert.NotNil(t, wire["realizations"], "required realizations must not serialize as null")
+}
+
+func TestToAPIChargeResolvedCostBasis(t *testing.T) {
+	fiat, err := currencyx.NewFiatCurrency(currencyx.Code("USD"))
+	require.NoError(t, err)
+
+	resolvedAt := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+	intent := lo.ToPtr(costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: fiat}))
+
+	t.Run("nil state is omitted", func(t *testing.T) {
+		out, err := toAPIChargeResolvedCostBasis(intent, nil)
+		require.NoError(t, err)
+		require.Nil(t, out)
+	})
+
+	t.Run("state without intent is an error", func(t *testing.T) {
+		_, err := toAPIChargeResolvedCostBasis(nil, &costbasis.State{CostBasis: decimal.NewFromFloat(1.5), ResolvedAt: resolvedAt})
+		require.Error(t, err)
+	})
+
+	t.Run("maps rate, optional cost basis id and fiat currency", func(t *testing.T) {
+		out, err := toAPIChargeResolvedCostBasis(intent, &costbasis.State{
+			CostBasis:   decimal.NewFromFloat(1.5),
+			CostBasisID: lo.ToPtr("cb-1"),
+			ResolvedAt:  resolvedAt,
+		})
+		require.NoError(t, err)
+		require.Equal(t, &api.BillingChargeResolvedCostBasis{
+			FiatCurrency: "USD",
+			Rate:         "1.5",
+			CostBasisId:  lo.ToPtr("cb-1"),
+			ResolvedAt:   resolvedAt,
+		}, out)
+	})
+}
+
+// A custom-currency charge carries its own currency on the charge and its
+// realization amounts, while the resolved cost basis and an expanded
+// realization invoice stay denominated in their own fiat currency, with
+// neither bleeding into the other.
+func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
+	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+	period := timeutil.ClosedPeriod{
+		From: now,
+		To:   now.Add(time.Hour),
+	}
+
+	customCurrency := currenciestestutils.NewCustomCurrency(t, "TOKENS", 3)
+
+	fiatUSD, err := currencyx.NewFiatCurrency(currencyx.Code("USD"))
+	require.NoError(t, err)
+
+	costBasisIntent := lo.ToPtr(costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: fiatUSD,
+		Rate:         decimal.NewFromFloat(0.5),
+	}))
+
+	resolvedCostBasis := &costbasis.State{
+		CostBasis:  decimal.NewFromFloat(0.5),
+		ResolvedAt: now,
+	}
+
+	invoice := &billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			ID:        "invoice-1",
+			Number:    "INV-1",
+			Currency:  "USD",
+			CreatedAt: now,
+			UpdatedAt: now,
+			Customer: billing.InvoiceCustomer{
+				CustomerID: "customer-id",
+				Name:       "Test Customer",
+			},
+		},
+	}
+
+	expands := meta.Expands{meta.ExpandRealizationInvoice, meta.ExpandDetailedLines}
+
+	t.Run("usage based", func(t *testing.T) {
+		// given a usage-based charge priced in TOKENS with a manual USD cost
+		// basis, and a booked realization run whose detailed lines carry TOKENS
+		// amounts but whose invoice is denominated in USD
+		run := usagebased.RealizationRun{
+			RealizationRunBase: usagebased.RealizationRunBase{
+				ID:              usagebased.RealizationRunID(models.NamespacedID{Namespace: "ns", ID: "run-1"}),
+				ManagedModel:    models.ManagedModel{CreatedAt: now},
+				FeatureID:       "feature-id",
+				Type:            usagebased.RealizationRunTypeFinalRealization,
+				InitialType:     usagebased.RealizationRunTypeFinalRealization,
+				StoredAtLT:      period.To,
+				ServicePeriodTo: period.To,
+				MeteredQuantity: decimal.NewFromInt(10),
+				InvoiceID:       lo.ToPtr("invoice-1"),
+				LineID:          lo.ToPtr("line-1"),
+			},
+			DetailedLines: mo.Some(usagebased.DetailedLines{
+				{
+					Base: chargedetailedline.Base{
+						Base: stddetailedline.Base{
+							ManagedResource: models.ManagedResource{ID: "dl-1", Name: "usage detailed line"},
+							Category:        stddetailedline.CategoryRegular,
+							ServicePeriod:   period,
+							PerUnitAmount:   decimal.NewFromInt(2),
+							Quantity:        decimal.NewFromInt(10),
+							Totals:          totals.Totals{Total: decimal.NewFromInt(20)},
+						},
+					},
+				},
+			}),
+		}
+
+		charge := billingcharges.CustomerCharge{
+			Charge: billingcharges.NewCharge(usagebased.Charge{
+				ChargeBase: usagebased.ChargeBase{
+					ManagedResource: meta.ManagedResource{ID: "charge-id"},
+					Status:          usagebased.StatusCreated,
+					State:           usagebased.State{FeatureID: "feature-id", ResolvedCostBasis: resolvedCostBasis},
+					Intent: usagebased.NewOverridableIntent(usagebased.Intent{
+						Intent: meta.Intent{
+							ManagedBy:  billing.ManuallyManagedLine,
+							CustomerID: "customer-id",
+							Currency:   customCurrency,
+						},
+						IntentMutableFields: usagebased.IntentMutableFields{
+							IntentMutableFields: meta.IntentMutableFields{
+								Name:              "usage based charge",
+								ServicePeriod:     period,
+								FullServicePeriod: period,
+								BillingPeriod:     period,
+							},
+							InvoiceAt: now,
+							Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: decimal.NewFromInt(2),
+							}),
+						},
+						SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+						FeatureKey:     "feature-key",
+						CostBasis:      costBasisIntent,
+					}, nil),
+				},
+			}),
+			UsageBasedRealizations: []billingcharges.CustomerChargeUsageBasedRealization{
+				{
+					Run:           &run,
+					ServicePeriod: period,
+					Quantity:      decimal.NewFromInt(10),
+					Invoice:       invoice,
+				},
+			},
+		}
+
+		// when converting with the realization invoice and detailed lines expands
+		out, err := convertUsageBasedChargeToAPI(charge, expands)
+		require.NoError(t, err)
+
+		// then the charge currency is the custom currency
+		assert.Equal(t, api.CurrencyCode("TOKENS"), out.Currency)
+
+		// and the resolved cost basis carries the fiat currency, unaffected by
+		// the charge's own custom currency
+		require.NotNil(t, out.ResolvedCostBasis)
+		assert.Equal(t, api.CurrencyCode("USD"), out.ResolvedCostBasis.FiatCurrency)
+		assert.Equal(t, "0.5", out.ResolvedCostBasis.Rate)
+
+		// and the expanded realization invoice is denominated in its own fiat
+		// currency, not the charge's custom currency
+		require.Len(t, out.Realizations, 1)
+		require.NotNil(t, out.Realizations[0].Invoice)
+		expandedInvoice, err := out.Realizations[0].Invoice.AsBillingChargeRealizationInvoice()
+		require.NoError(t, err)
+		assert.Equal(t, api.CurrencyCode("USD"), expandedInvoice.Currency)
+
+		// and the detailed line amounts stay in TOKENS, untouched by the cost
+		// basis rate
+		require.NotNil(t, out.Realizations[0].DetailedLines)
+		lines := *out.Realizations[0].DetailedLines
+		require.Len(t, lines, 1)
+		line, err := lines[0].AsBillingChargeRealizationDetailedLineUsageBased()
+		require.NoError(t, err)
+		assert.Equal(t, "2", line.UnitPrice)
+		assert.Equal(t, "20", line.Totals.Total)
+	})
+
+	t.Run("flat fee", func(t *testing.T) {
+		// given a flat fee charge priced in TOKENS with a manual USD cost
+		// basis, and a booked realization run whose detailed lines carry TOKENS
+		// amounts but whose invoice is denominated in USD
+		run := flatfee.RealizationRun{
+			RealizationRunBase: flatfee.RealizationRunBase{
+				ID:                   flatfee.RealizationRunID(models.NamespacedID{Namespace: "ns", ID: "run-1"}),
+				ManagedModel:         models.ManagedModel{CreatedAt: now},
+				Type:                 flatfee.RealizationRunTypeFinalRealization,
+				InitialType:          flatfee.RealizationRunTypeFinalRealization,
+				ServicePeriod:        period,
+				AmountAfterProration: decimal.NewFromInt(20),
+				InvoiceID:            lo.ToPtr("invoice-1"),
+				LineID:               lo.ToPtr("line-1"),
+			},
+			DetailedLines: mo.Some(flatfee.DetailedLines{
+				{
+					Base: stddetailedline.Base{
+						ManagedResource: models.ManagedResource{ID: "dl-2", Name: "flat fee detailed line"},
+						Category:        stddetailedline.CategoryRegular,
+						ServicePeriod:   period,
+						PerUnitAmount:   decimal.NewFromInt(20),
+						Totals:          totals.Totals{Total: decimal.NewFromInt(20)},
+					},
+				},
+			}),
+		}
+
+		charge := billingcharges.CustomerCharge{
+			Charge: billingcharges.NewCharge(flatfee.Charge{
+				ChargeBase: flatfee.ChargeBase{
+					ManagedResource: meta.ManagedResource{ID: "charge-id"},
+					Status:          flatfee.StatusCreated,
+					State: flatfee.State{
+						FeatureID:            lo.ToPtr("flat-fee-feature-id"),
+						AmountAfterProration: decimal.NewFromInt(20),
+						ResolvedCostBasis:    resolvedCostBasis,
+					},
+					Intent: flatfee.NewOverridableIntent(flatfee.Intent{
+						Intent: meta.Intent{
+							ManagedBy:  billing.ManuallyManagedLine,
+							CustomerID: "customer-id",
+							Currency:   customCurrency,
+						},
+						IntentMutableFields: flatfee.IntentMutableFields{
+							IntentMutableFields: meta.IntentMutableFields{
+								Name:              "flat fee charge",
+								ServicePeriod:     period,
+								FullServicePeriod: period,
+								BillingPeriod:     period,
+							},
+							InvoiceAt:             now,
+							PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+							AmountBeforeProration: decimal.NewFromInt(20),
+						},
+						SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+						FeatureKey:     lo.ToPtr("flat-fee-feature-key"),
+						CostBasis:      costBasisIntent,
+					}, nil),
+				},
+			}),
+			FlatFeeRealizations: []billingcharges.CustomerChargeFlatFeeRealization{
+				{
+					Run:           &run,
+					ServicePeriod: period,
+					Invoice:       invoice,
+				},
+			},
+		}
+
+		// when converting with the realization invoice and detailed lines expands
+		out, err := convertFlatFeeChargeToAPI(charge, expands)
+		require.NoError(t, err)
+
+		// then the charge currency and the after-proration amount stay in the
+		// custom currency
+		assert.Equal(t, api.CurrencyCode("TOKENS"), out.Currency)
+		assert.Equal(t, api.BillingCurrencyCode("TOKENS"), out.AmountAfterProration.Currency)
+
+		// and the resolved cost basis carries the fiat currency, unaffected by
+		// the charge's own custom currency
+		require.NotNil(t, out.ResolvedCostBasis)
+		assert.Equal(t, api.CurrencyCode("USD"), out.ResolvedCostBasis.FiatCurrency)
+		assert.Equal(t, "0.5", out.ResolvedCostBasis.Rate)
+
+		// and the expanded realization invoice is denominated in its own fiat
+		// currency, not the charge's custom currency
+		require.Len(t, out.Realizations, 1)
+		require.NotNil(t, out.Realizations[0].Invoice)
+		expandedInvoice, err := out.Realizations[0].Invoice.AsBillingChargeRealizationInvoice()
+		require.NoError(t, err)
+		assert.Equal(t, api.CurrencyCode("USD"), expandedInvoice.Currency)
+
+		// and the detailed line amounts stay in TOKENS, untouched by the cost
+		// basis rate
+		require.NotNil(t, out.Realizations[0].DetailedLines)
+		lines := *out.Realizations[0].DetailedLines
+		require.Len(t, lines, 1)
+		line, err := lines[0].AsBillingChargeRealizationDetailedLineFlatFee()
+		require.NoError(t, err)
+		assert.Equal(t, "20", line.UnitPrice)
+		assert.Equal(t, "20", line.Totals.Total)
+	})
+}
+
+func TestFromAPIChargeCostBasis(t *testing.T) {
+	t.Run("nil is omitted", func(t *testing.T) {
+		out, err := fromAPIChargeCostBasis(nil)
+		require.NoError(t, err)
+		require.Nil(t, out)
+	})
+
+	t.Run("dynamic", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisDynamic(api.BillingChargeCostBasisDynamic{
+			Type:         api.BillingChargeCostBasisDynamicTypeDynamic,
+			FiatCurrency: "USD",
+		}))
+
+		out, err := fromAPIChargeCostBasis(&in)
+		require.NoError(t, err)
+		require.NotNil(t, out)
+		assert.Equal(t, costbasis.ModeDynamic, out.Kind())
+
+		fiat, err := out.GetFiatCurrency()
+		require.NoError(t, err)
+		assert.Equal(t, currencyx.Code("USD"), fiat.Details().Code)
+	})
+
+	t.Run("manual", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
+			Type:         api.BillingChargeCostBasisManualTypeManual,
+			FiatCurrency: "USD",
+			Rate:         "0.5",
+		}))
+
+		out, err := fromAPIChargeCostBasis(&in)
+		require.NoError(t, err)
+		require.NotNil(t, out)
+
+		manual, err := out.AsManual()
+		require.NoError(t, err)
+		assert.Equal(t, 0.5, manual.Rate.InexactFloat64())
+	})
+
+	t.Run("pinned", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisPinned(api.BillingChargeCostBasisPinned{
+			Type:         api.BillingChargeCostBasisPinnedTypePinned,
+			FiatCurrency: "USD",
+			CostBasisId:  "cb-1",
+		}))
+
+		out, err := fromAPIChargeCostBasis(&in)
+		require.NoError(t, err)
+		require.NotNil(t, out)
+
+		pinned, err := out.AsPinned()
+		require.NoError(t, err)
+		assert.Equal(t, "cb-1", pinned.CurrencyCostBasisID)
+	})
+
+	t.Run("invalid rate", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
+			Type:         api.BillingChargeCostBasisManualTypeManual,
+			FiatCurrency: "USD",
+			Rate:         "not-a-number",
+		}))
+
+		_, err := fromAPIChargeCostBasis(&in)
+		require.Error(t, err)
+	})
+}
+
+func TestFromAPICreateChargeUsageBasedRequestMapsCostBasis(t *testing.T) {
+	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+
+	var price api.BillingPriceUsageBased
+	require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{
+		Amount: "2",
+		Type:   api.BillingPriceUnitTypeUnit,
+	}))
+
+	var costBasis api.BillingChargeCostBasis
+	require.NoError(t, costBasis.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
+		Type:         api.BillingChargeCostBasisManualTypeManual,
+		FiatCurrency: "USD",
+		Rate:         "0.5",
+	}))
+
+	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", api.CreateChargeUsageBasedRequest{
+		CostBasis:      &costBasis,
+		Currency:       api.CurrencyCode("TOKENS"),
+		Feature:        api.FeatureReference{Id: "feature-id"},
+		InvoiceAt:      now,
+		Name:           "usage charge",
+		Price:          price,
+		ServicePeriod:  api.ClosedPeriod{From: now, To: now.Add(time.Hour)},
+		SettlementMode: api.BillingSettlementModeCreditThenInvoice,
+		Type:           api.CreateChargeUsageBasedRequestTypeUsageBased,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, input.CostBasis)
+	assert.Equal(t, costbasis.ModeManual, input.CostBasis.Kind())
+	assert.Equal(t, currencyx.Code("TOKENS"), input.CurrencyCode)
 }

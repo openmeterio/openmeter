@@ -53,6 +53,22 @@ union CurrencyCode {
 }
 
 /**
+ * Monetary amount in a fiat or custom currency.
+ */
+@friendlyName("BillingCurrencyAmount")
+model CurrencyAmount {
+  /**
+   * The amount as an arbitrary-precision decimal string.
+   */
+  amount: Shared.Numeric;
+
+  /**
+   * The fiat or custom currency code of the amount.
+   */
+  currency: Currencies.CurrencyCode;
+}
+
+/**
  * Describes the common properties of a currency. It is used as a base model for both standard currencies and custom currencies.
  * It includes properties such as id, name, and symbol that are shared by both types of currencies.
  */

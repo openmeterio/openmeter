@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -41,6 +42,7 @@ type service struct {
 	subscriptionService charges.SubscriptionService
 
 	fsNamespaceLockdown []string
+	creditsConfig       config.CreditsConfiguration
 }
 
 type Config struct {
@@ -64,6 +66,7 @@ type Config struct {
 	SubscriptionService charges.SubscriptionService
 
 	FSNamespaceLockdown []string
+	CreditsConfig       config.CreditsConfiguration
 }
 
 func (c Config) Validate() error {
@@ -152,6 +155,7 @@ func New(config Config) (*service, error) {
 		customerService:       config.CustomerService,
 		subscriptionService:   config.SubscriptionService,
 		fsNamespaceLockdown:   config.FSNamespaceLockdown,
+		creditsConfig:         config.CreditsConfig,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

@@ -114,7 +114,7 @@ func TestV3CustomerChargeFlatFeeRealizations(t *testing.T) {
 		customerRef, err := flatFee.Customer.AsCustomerReference()
 		require.NoError(t, err)
 		assert.Equal(t, customer.ID, customerRef.ID)
-		assert.Equal(t, "USD", flatFee.Currency)
+		assert.Equal(t, v3sdk.BillingCurrencyCode("USD"), flatFee.Currency)
 		assert.Equal(t, v3sdk.SettlementModeCreditThenInvoice, flatFee.SettlementMode)
 
 		// ConvertDecimalToCurrencyAmount (api/v3/handlers/customers/charges/convert.go)
@@ -247,7 +247,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 		customerRef, err := usageBased.Customer.AsCustomerReference()
 		require.NoError(t, err)
 		assert.Equal(t, customer.ID, customerRef.ID)
-		assert.Equal(t, "USD", usageBased.Currency)
+		assert.Equal(t, v3sdk.BillingCurrencyCode("USD"), usageBased.Currency)
 		assert.Equal(t, v3sdk.SettlementModeCreditThenInvoice, usageBased.SettlementMode)
 
 		featureRef, err := usageBased.Feature.AsFeatureReference()

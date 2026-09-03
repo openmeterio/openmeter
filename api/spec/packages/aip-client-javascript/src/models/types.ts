@@ -547,6 +547,14 @@ export interface AppCustomerDataExternalInvoicing {
   labels?: Labels
 }
 
+/** Cost basis resolved at the charge's full service period start. */
+export interface ChargeCostBasisDynamic {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'dynamic'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+}
+
 /** Currency describes a currency supported by the billing system. */
 export interface CurrencyFiat {
   /** The type of the currency. */
@@ -661,6 +669,16 @@ export interface RateCardDiscounts {
   usage?: string
 }
 
+/** Cost basis with an explicit conversion rate supplied with the charge. */
+export interface ChargeCostBasisManual {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'manual'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+}
+
 /** Totals contains the summaries of all calculations for a billing resource. */
 export interface Totals {
   /** The total value of the resource before taxes, discounts and commitments. */
@@ -729,12 +747,6 @@ export interface FeatureLlmUnitCostPricing {
   reasoningPerToken?: string
   /** Cost per cache write token in USD. */
   cacheWritePerToken?: string
-}
-
-/** Monetary amount in a specific currency. */
-export interface CurrencyAmount {
-  amount: string
-  currency: string
 }
 
 /** A credit allocation applied to an invoice line item. */
@@ -807,6 +819,12 @@ export interface LlmCostModelPricing {
   cacheWritePerToken?: string
   /** Reasoning output price per token (USD). */
   reasoningPerToken?: string
+}
+
+/** Monetary amount in a specific fiat currency. */
+export interface FiatCurrencyAmount {
+  amount: string
+  currency: string
 }
 
 /**
@@ -925,6 +943,16 @@ export interface SubscriptionReference {
   name?: string
   /** The phase of the subscription. */
   phase: { id: string; item: { id: string } }
+}
+
+/** Cost basis pinned to a specific cost basis resource of the custom currency. */
+export interface ChargeCostBasisPinned {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'pinned'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** ID of the custom currency's cost basis resource to pin. */
+  costBasisId: string
 }
 
 /** App reference. */
@@ -1114,6 +1142,25 @@ export interface ClosedPeriod {
    * The period is exclusive at the end.
    */
   to: Date
+}
+
+/**
+ * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+ * cost basis is resolved; dynamic cost bases are exposed only after the service
+ * period has started.
+ */
+export interface ChargeResolvedCostBasis {
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+  /**
+   * ID of the custom currency's cost basis resource the rate was taken from. Absent
+   * for manual cost bases.
+   */
+  costBasisId?: string
+  /** When the rate was resolved. */
+  resolvedAt: Date
 }
 
 /** A subscription add-on event. */
@@ -2476,6 +2523,14 @@ export interface CreditTransaction {
   availableBalance: { before: string; after: string }
 }
 
+/** Monetary amount in a fiat or custom currency. */
+export interface CurrencyAmount {
+  /** The amount as an arbitrary-precision decimal string. */
+  amount: string
+  /** The fiat or custom currency code of the amount. */
+  currency: BillingCurrencyCode
+}
+
 /**
  * A price tier used in graduated and volume pricing.
  *
@@ -3304,47 +3359,6 @@ export interface WorkflowCollectionAlignmentAnchored {
   recurringPeriod: RecurringPeriod
 }
 
-/**
- * Flat fee intent fields from the system lifecycle controller shadowed by a manual
- * override.
- */
-export interface ChargeFlatFeeSystemIntent {
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod: ClosedPeriod
-  /** Payment term of the flat fee charge. */
-  paymentTerm: PricePaymentTerm
-  /** The discounts applied to the charge. */
-  discounts?: ChargeFlatFeeDiscounts
-  /** The proration configuration of the charge. */
-  prorationConfiguration: RateCardProrationConfiguration
-  /** The amount before proration of the system lifecycle controller flat fee intent. */
-  amountBeforeProration: CurrencyAmount
-  /**
-   * The timestamp when the system lifecycle controller intent was deleted. The
-   * effective charge can remain visible while a manual override is active.
-   */
-  deletedAt?: Date
-}
-
 /** Detailed status information for a standard invoice. */
 export interface InvoiceStatusDetails {
   /** Whether the invoice is immutable (i.e. cannot be modified or deleted). */
@@ -3598,6 +3612,47 @@ export interface CreditTransactionPaginatedResponse {
 }
 
 /**
+ * Flat fee intent fields from the system lifecycle controller shadowed by a manual
+ * override.
+ */
+export interface ChargeFlatFeeSystemIntent {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /** Payment term of the flat fee charge. */
+  paymentTerm: PricePaymentTerm
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /** The proration configuration of the charge. */
+  prorationConfiguration: RateCardProrationConfiguration
+  /** The amount before proration of the system lifecycle controller flat fee intent. */
+  amountBeforeProration: CurrencyAmount
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  deletedAt?: Date
+}
+
+/**
  * Graduated tiered price.
  *
  * Each tier's rate applies only to the usage within that tier. Pricing can change
@@ -3799,6 +3854,31 @@ export interface CreditGrant {
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
+/** Tax settings for a billing workflow. */
+export interface WorkflowTaxSettings {
+  /**
+   * Enable automatic tax calculation when tax is supported by the app. For example,
+   * with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+   */
+  enabled: boolean
+  /**
+   * Enforce tax calculation when tax is supported by the app. When enabled, the
+   * billing system will not allow to create an invoice without tax calculation.
+   * Enforcement is different per apps, for example, Stripe app requires customer to
+   * have a tax location when starting a paid subscription.
+   */
+  enforced: boolean
+  /**
+   * Default tax configuration to apply to the invoices for line items.
+   *
+   * Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
+   * config is deprecated and can no longer be added or changed: the organization
+   * default tax code is used instead. Existing tax-code values may still be removed,
+   * and `behavior` remains fully supported.
+   */
+  defaultTaxConfig?: TaxConfig
+}
+
 /** Flat fee charge create request. */
 export interface CreateChargeFlatFeeRequest {
   /**
@@ -3817,7 +3897,14 @@ export interface CreateChargeFlatFeeRequest {
   /** The type of the charge. */
   type: 'flat_fee'
   /** The currency of the charge. */
-  currency: string
+  currency: BillingCurrencyCode
+  /**
+   * Defines how a custom-currency charge is converted into its fiat invoice
+   * currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+   * when `currency` is custom and the charge settles as `credit_then_invoice`; must
+   * be omitted otherwise.
+   */
+  costBasis?: ChargeCostBasis
   /** The timestamp when the charge is intended to be invoiced. */
   invoiceAt: Date
   /** The effective service period covered by the charge. */
@@ -3842,31 +3929,6 @@ export interface CreateChargeFlatFeeRequest {
   fullServicePeriod?: ClosedPeriod
   /** The billing period the charge belongs to. */
   billingPeriod?: ClosedPeriod
-}
-
-/** Tax settings for a billing workflow. */
-export interface WorkflowTaxSettings {
-  /**
-   * Enable automatic tax calculation when tax is supported by the app. For example,
-   * with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
-   */
-  enabled: boolean
-  /**
-   * Enforce tax calculation when tax is supported by the app. When enabled, the
-   * billing system will not allow to create an invoice without tax calculation.
-   * Enforcement is different per apps, for example, Stripe app requires customer to
-   * have a tax location when starting a paid subscription.
-   */
-  enforced: boolean
-  /**
-   * Default tax configuration to apply to the invoices for line items.
-   *
-   * Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
-   * config is deprecated and can no longer be added or changed: the organization
-   * default tax code is used instead. Existing tax-code values may still be removed,
-   * and `behavior` remains fully supported.
-   */
-  defaultTaxConfig?: TaxConfig
 }
 
 /** Page paginated response. */
@@ -4896,7 +4958,14 @@ export interface CreateChargeUsageBasedRequest {
   /** The type of the charge. */
   type: 'usage_based'
   /** The currency of the charge. */
-  currency: string
+  currency: BillingCurrencyCode
+  /**
+   * Defines how a custom-currency charge is converted into its fiat invoice
+   * currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+   * when `currency` is custom and the charge settles as `credit_then_invoice`; must
+   * be omitted otherwise.
+   */
+  costBasis?: ChargeCostBasis
   /** The timestamp when the charge is intended to be invoiced. */
   invoiceAt: Date
   /** The effective service period covered by the charge. */
@@ -5933,7 +6002,13 @@ export interface ChargeFlatFee {
    */
   subscription?: SubscriptionOrReference
   /** The currency of the charge. */
-  currency: string
+  currency: BillingCurrencyCode
+  /**
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
+   */
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
@@ -6022,7 +6097,13 @@ export interface ChargeUsageBased {
    */
   subscription?: SubscriptionOrReference
   /** The currency of the charge. */
-  currency: string
+  currency: BillingCurrencyCode
+  /**
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
+   */
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
@@ -6178,6 +6259,13 @@ export type InstallAppRequest =
 export type UpdateBillingWorkflowPaymentSettings =
   | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
   | UpdateBillingWorkflowPaymentSendInvoiceSettings
+
+/**
+ * Cost basis selection for a custom-currency charge. The variant chosen fixes when
+ * and how the conversion rate is determined.
+ */
+export type ChargeCostBasis =
+  ChargeCostBasisDynamic | ChargeCostBasisPinned | ChargeCostBasisManual
 
 /** A parameter that failed validation. */
 export type InvalidParameter =
@@ -7434,7 +7522,14 @@ export interface CreateChargeUsageBasedRequestInput {
   /** The type of the charge. */
   type: 'usage_based'
   /** The currency of the charge. */
-  currency: string
+  currency: BillingCurrencyCode
+  /**
+   * Defines how a custom-currency charge is converted into its fiat invoice
+   * currency; the resolved rate is exposed through `resolved_cost_basis`. Required
+   * when `currency` is custom and the charge settles as `credit_then_invoice`; must
+   * be omitted otherwise.
+   */
+  costBasis?: ChargeCostBasis
   /** The timestamp when the charge is intended to be invoiced. */
   invoiceAt: Date
   /** The effective service period covered by the charge. */
@@ -8394,7 +8489,13 @@ export interface ChargeFlatFeeInput {
    */
   subscription?: SubscriptionOrReferenceInput
   /** The currency of the charge. */
-  currency: string
+  currency: BillingCurrencyCode
+  /**
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
+   */
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
@@ -8483,7 +8584,13 @@ export interface ChargeUsageBasedInput {
    */
   subscription?: SubscriptionOrReferenceInput
   /** The currency of the charge. */
-  currency: string
+  currency: BillingCurrencyCode
+  /**
+   * The resolved fiat conversion rate of a custom-currency charge. Resolution
+   * depends on costbasis type: dynamic is resolved when charge becomes active, all
+   * other types resolved on creation.
+   */
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */

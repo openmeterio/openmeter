@@ -363,6 +363,7 @@ func NewChargesService(
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
 	fsNamespaceLockdown []string,
+	creditsConfig config.CreditsConfiguration,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
 		Logger:                logger,
@@ -379,6 +380,7 @@ func NewChargesService(
 		CustomerService:       customerService,
 		SubscriptionService:   subscriptionService,
 		FSNamespaceLockdown:   fsNamespaceLockdown,
+		CreditsConfig:         creditsConfig,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges service: %w", err)
@@ -572,6 +574,7 @@ func newChargesRegistry(
 		customerService,
 		subscriptionService,
 		fsNamespaceLockdown,
+		creditsConfig,
 	)
 	if err != nil {
 		return nil, err

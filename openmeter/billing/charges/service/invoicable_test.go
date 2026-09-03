@@ -5509,7 +5509,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		customCurrency = s.createTestCustomCurrency(ctx, ns)
 	})
 
-	s.Run("#2 reject custom currency through the customer charge API", func() {
+	s.Run("#2 reject cost basis on a credit-only custom currency charge through the customer charge API", func() {
 		// given:
 		// - the same customer and custom currency used by the supported root charge flow below
 		servicePeriod := timeutil.ClosedPeriod{
@@ -5517,12 +5517,20 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 		}
 
+		fiatCurrency, err := currencyx.NewFiatCurrency(USD)
+		s.Require().NoError(err)
+		costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+			FiatCurrency: fiatCurrency,
+			Rate:         alpacadecimal.NewFromFloat(0.5),
+		})
+
 		// when:
-		// - a manual customer charge tries to use that custom currency
-		_, err := s.Charges.CreateCustomerCharge(ctx, charges.CreateCustomerChargeInput{
+		// - a manual customer charge sets a cost basis while using credit-only settlement in that custom currency
+		_, err = s.Charges.CreateCustomerCharge(ctx, charges.CreateCustomerChargeInput{
 			Namespace:    ns,
 			CustomerID:   customerID,
 			CurrencyCode: customCurrency.GetCode(),
+			CostBasis:    &costBasisIntent,
 			FlatFee: &charges.CreateCustomerChargeFlatFeeInput{
 				IntentMutableFields: flatfee.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -5540,9 +5548,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		})
 
 		// then:
-		// - the API boundary rejects it before the supported root creation path is reached
+		// - intent validation rejects the cost basis, since only credit-then-invoice settlement carries one
 		s.Require().Error(err)
-		s.ErrorIs(err, meta.ErrCustomCurrencyNotSupported)
+		s.ErrorContains(err, "cost basis must not be set unless currency is custom and settlement mode is credit then invoice")
 		s.True(models.IsGenericValidationError(err))
 
 		persisted, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
