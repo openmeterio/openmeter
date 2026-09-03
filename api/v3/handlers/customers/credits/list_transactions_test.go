@@ -42,11 +42,12 @@ func TestToAPIBillingCreditTransaction(t *testing.T) {
 			Namespace: "ns",
 			ID:        "tx-1",
 		},
-		CreatedAt: createdAt,
-		BookedAt:  bookedAt,
-		Type:      customerbalance.CreditTransactionTypeConsumed,
-		Currency:  currencyx.Code("USD"),
-		Amount:    alpacadecimal.NewFromInt(-10),
+		CreatedAt:   createdAt,
+		BookedAt:    bookedAt,
+		Type:        customerbalance.CreditTransactionTypeConsumed,
+		GrantVoided: true,
+		Currency:    currencyx.Code("USD"),
+		Amount:      alpacadecimal.NewFromInt(-10),
 		Balance: customerbalance.CreditTransactionBalance{
 			Before: alpacadecimal.NewFromInt(52),
 			After:  alpacadecimal.NewFromInt(42),
@@ -68,6 +69,25 @@ func TestToAPIBillingCreditTransaction(t *testing.T) {
 	require.Equal(t, description, *tx.Description)
 	require.NotNil(t, tx.Labels)
 	require.Equal(t, "charge-1", (*tx.Labels)["charge_id"])
+	require.NotContains(t, *tx.Labels, "voided")
+}
+
+func TestToAPIBillingCreditTransaction_VoidedFundedLabel(t *testing.T) {
+	tx := toAPIBillingCreditTransaction(customerbalance.CreditTransaction{
+		ID: models.NamespacedID{
+			Namespace: "ns",
+			ID:        "tx-1",
+		},
+		CreatedAt:   time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC),
+		BookedAt:    time.Date(2026, 4, 10, 9, 0, 1, 0, time.UTC),
+		Type:        customerbalance.CreditTransactionTypeFunded,
+		GrantVoided: true,
+		Currency:    currencyx.Code("USD"),
+		Amount:      alpacadecimal.NewFromInt(10),
+	})
+
+	require.NotNil(t, tx.Labels)
+	require.Equal(t, "true", (*tx.Labels)["voided"])
 }
 
 func TestToAPIBillingCreditTransaction_Expired(t *testing.T) {

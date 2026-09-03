@@ -107,6 +107,7 @@ type CreditTransaction struct {
 	CreatedAt   time.Time
 	BookedAt    time.Time
 	Type        CreditTransactionType
+	GrantVoided bool
 	Currency    currencyx.Code
 	Amount      alpacadecimal.Decimal
 	Balance     CreditTransactionBalance
