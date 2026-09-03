@@ -404,6 +404,15 @@ jobs:
           go-version-file: .go-version
           cache: false
 
+      - name: Restore Go module cache
+        id: go-module-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-
+
       - name: Verify Depot Go cache
         run: |
           cache_program="$(go env GOCACHEPROG)"
@@ -435,6 +444,13 @@ jobs:
             echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
             exit 1
           fi
+
+      - name: Save Go module cache
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
 
   go-sdk:
     name: Go SDK
