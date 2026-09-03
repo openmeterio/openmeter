@@ -214,8 +214,10 @@
                 # End of workaround
               ''}
 
-              # Keep GitHub-hosted Node jobs aligned with the Nix shell.
+              # Keep GitHub-hosted jobs aligned with the Nix shell.
               node -v > .nvmrc
+              go env GOVERSION | sed 's/^go//' > .go-version
+              printf 'v%s\n' "$(golangci-lint version --short)" > .golangci.version
             '';
 
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767

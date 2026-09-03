@@ -200,7 +200,6 @@ jobs:
   build:
     name: Build
     runs-on: depot-ubuntu-latest-8
-    needs: cache-rebuild
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -214,48 +213,22 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
+          go-version-file: .go-version
+          cache: false
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
-
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
-
-      - name: Validate Nix flake
-        run: nix flake check --impure
-
-      - name: Validate Node version file
+      - name: Verify Depot Go cache
         run: |
-          FILE_NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
-          NIX_NODE_VERSION="$(nix develop --impure .#ci -c node -v)"
+          cache_program="$(go env GOCACHEPROG)"
 
-          if [ "$NIX_NODE_VERSION" != "$FILE_NODE_VERSION" ]; then
-            echo ".nvmrc is out of sync with the Nix CI shell"
-            echo "nix develop --impure .#ci -c node -v => $NIX_NODE_VERSION"
-            echo ".nvmrc => $FILE_NODE_VERSION"
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
             exit 1
           fi
+
+          echo "Using ${cache_program}"
 
       - name: Build components
         run: |
@@ -269,12 +242,7 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make -j 4 build
-
-      - name: Validate commit messages
-        run: |
-          nix develop --impure .#ci -c prek run -a
-          nix develop --impure .#ci -c prek run --stage manual
+            make -j 4 build GO_BUILD_FLAGS=
 
   generators-openapi:
     name: Code Generators / OpenAPI
@@ -632,8 +600,65 @@ jobs:
       - name: Run migration checks
         run: nix develop --impure .#ci -c make migrate-check
 
-  lint:
-    name: Lint
+  lint-go:
+    name: Lint / Go
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          cache: false
+
+      - name: Read GolangCI-Lint version
+        id: golangci-lint-version
+        run: echo "version=$(cat .golangci.version)" >> "$GITHUB_OUTPUT"
+
+      - name: Install GolangCI-Lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: ${{ steps.golangci-lint-version.outputs.version }}
+          install-only: true
+          skip-cache: true
+
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+
+      - name: Run Go linters
+        run: |
+          # On Depot runners, golangci-lint still uses Go/system temp space for
+          # transient analysis artifacts. Keep those temp files on the workspace
+          # disk so lint does not spill into /run and fail with ENOSPC.
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            make lint-go
+
+  lint-other:
+    name: Lint / Other
     runs-on: depot-ubuntu-latest-8
     needs: cache-rebuild
 
@@ -669,46 +694,14 @@ jobs:
           primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
           save: "false"
 
+      - name: Validate Nix flake
+        run: nix flake check --impure
+
       - name: Upsert Nix store
         run: nix develop --impure .#ci
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
-
-      # PR merge commits change on every update, so use the target commit to
-      # keep unchanged package analysis reusable across the pull request. Bind
-      # every fallback to the Nix cache selected above because this cache also
-      # holds Go linker results with toolchain-specific Nix store paths.
-      - name: Go lint caches
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .devenv/golangci-lint-cache
-            .devenv/state/go/build-cache
-          key: ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-${{ github.event.pull_request.base.sha || github.sha }}-${{ hashFiles('.golangci*.yaml', 'go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-${{ github.event.pull_request.base.sha || github.sha }}-
-            ${{ runner.os }}-openmeter-go-lint-${{ needs.cache-rebuild.outputs.cache-key }}-
-
-      - name: Run linters - go
-        env:
-          GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.devenv/golangci-lint-cache
-        run: |
-          # On Depot runners, golangci-lint still uses Go/system temp space for
-          # transient analysis artifacts. Keep those temp files on the workspace
-          # disk so lint does not spill into /run and fail with ENOSPC.
-          mkdir -p \
-            "$GITHUB_WORKSPACE/.tmp/go-work" \
-            "$GITHUB_WORKSPACE/.tmp/system"
-          env \
-            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
-            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make lint-go
+      - name: Validate generated tool version files
+        run: git diff --exit-code -- .nvmrc .go-version .golangci.version
 
       - name: Run linters - api spec
         run: |
@@ -725,6 +718,11 @@ jobs:
       - name: Run linters - helm
         run: |
           nix develop --impure .#ci -c make lint-helm
+
+      - name: Validate commit messages
+        run: |
+          nix develop --impure .#ci -c prek run -a
+          nix develop --impure .#ci -c prek run --stage manual
 
   trusted-artifacts:
     name: Artifacts
