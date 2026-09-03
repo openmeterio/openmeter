@@ -64,6 +64,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 			IntentMutableFields: input.UsageBased.IntentMutableFields,
 			FeatureID:           input.UsageBased.FeatureID,
 			SettlementMode:      input.UsageBased.SettlementMode,
+			CostBasis:           input.CostBasis,
 		})
 	}
 

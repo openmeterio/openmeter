@@ -1135,3 +1135,107 @@ func TestConvertCustomCurrencyChargeWithInvoiceExpand(t *testing.T) {
 		assert.Equal(t, "20", line.Totals.Total)
 	})
 }
+
+func TestFromAPIChargeCostBasis(t *testing.T) {
+	t.Run("nil is omitted", func(t *testing.T) {
+		out, err := fromAPIChargeCostBasis(nil)
+		require.NoError(t, err)
+		require.Nil(t, out)
+	})
+
+	t.Run("dynamic", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisDynamic(api.BillingChargeCostBasisDynamic{
+			Type:         api.BillingChargeCostBasisDynamicTypeDynamic,
+			FiatCurrency: "USD",
+		}))
+
+		out, err := fromAPIChargeCostBasis(&in)
+		require.NoError(t, err)
+		require.NotNil(t, out)
+		assert.Equal(t, costbasis.ModeDynamic, out.Kind())
+
+		fiat, err := out.GetFiatCurrency()
+		require.NoError(t, err)
+		assert.Equal(t, currencyx.Code("USD"), fiat.Details().Code)
+	})
+
+	t.Run("manual", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
+			Type:         api.BillingChargeCostBasisManualTypeManual,
+			FiatCurrency: "USD",
+			Rate:         "0.5",
+		}))
+
+		out, err := fromAPIChargeCostBasis(&in)
+		require.NoError(t, err)
+		require.NotNil(t, out)
+
+		manual, err := out.AsManual()
+		require.NoError(t, err)
+		assert.Equal(t, 0.5, manual.Rate.InexactFloat64())
+	})
+
+	t.Run("pinned", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisPinned(api.BillingChargeCostBasisPinned{
+			Type:         api.BillingChargeCostBasisPinnedTypePinned,
+			FiatCurrency: "USD",
+			CostBasisId:  "cb-1",
+		}))
+
+		out, err := fromAPIChargeCostBasis(&in)
+		require.NoError(t, err)
+		require.NotNil(t, out)
+
+		pinned, err := out.AsPinned()
+		require.NoError(t, err)
+		assert.Equal(t, "cb-1", pinned.CurrencyCostBasisID)
+	})
+
+	t.Run("invalid rate", func(t *testing.T) {
+		var in api.BillingChargeCostBasis
+		require.NoError(t, in.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
+			Type:         api.BillingChargeCostBasisManualTypeManual,
+			FiatCurrency: "USD",
+			Rate:         "not-a-number",
+		}))
+
+		_, err := fromAPIChargeCostBasis(&in)
+		require.Error(t, err)
+	})
+}
+
+func TestFromAPICreateChargeUsageBasedRequestMapsCostBasis(t *testing.T) {
+	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+
+	var price api.BillingPriceUsageBased
+	require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{
+		Amount: "2",
+		Type:   api.BillingPriceUnitTypeUnit,
+	}))
+
+	var costBasis api.BillingChargeCostBasis
+	require.NoError(t, costBasis.FromBillingChargeCostBasisManual(api.BillingChargeCostBasisManual{
+		Type:         api.BillingChargeCostBasisManualTypeManual,
+		FiatCurrency: "USD",
+		Rate:         "0.5",
+	}))
+
+	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", api.CreateChargeUsageBasedRequest{
+		CostBasis:      &costBasis,
+		Currency:       api.CurrencyCode("TOKENS"),
+		Feature:        api.FeatureReference{Id: "feature-id"},
+		InvoiceAt:      now,
+		Name:           "usage charge",
+		Price:          price,
+		ServicePeriod:  api.ClosedPeriod{From: now, To: now.Add(time.Hour)},
+		SettlementMode: api.BillingSettlementModeCreditThenInvoice,
+		Type:           api.CreateChargeUsageBasedRequestTypeUsageBased,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, input.CostBasis)
+	assert.Equal(t, costbasis.ModeManual, input.CostBasis.Kind())
+	assert.Equal(t, currencyx.Code("TOKENS"), input.CurrencyCode)
+}
