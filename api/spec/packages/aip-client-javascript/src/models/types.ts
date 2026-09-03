@@ -2897,23 +2897,9 @@ export interface ListChargesParamsFilter {
   featureId?: UlidFieldFilter
   /** Filter charges by the key of their associated feature. */
   featureKey?: StringFieldFilterExact
-  /**
-   * Filter charges by the start of their service period.
-   *
-   * Combine with `service_period_to` to match charges whose service period falls
-   * within a given window: `filter[service_period_from][gte]=<from>` together with
-   * `filter[service_period_to][lt]=<to>` returns charges whose service period lies
-   * within `[from, to)`.
-   */
+  /** Filter charges by the start of their service period. */
   servicePeriodFrom?: DateTimeFieldFilter
-  /**
-   * Filter charges by the end of their service period.
-   *
-   * Combine with `service_period_from` to match charges whose service period falls
-   * within a given window: `filter[service_period_from][gte]=<from>` together with
-   * `filter[service_period_to][lt]=<to>` returns charges whose service period lies
-   * within `[from, to)`.
-   */
+  /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
 }
 

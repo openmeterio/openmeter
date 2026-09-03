@@ -125,8 +125,8 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 			}
 
 			// Parse the filters. Each one is optional and validated
-			// independently; the service-period pair combined expresses a
-			// half-open [from, to) window query.
+			// independently; the service-period filters are plain per-column
+			// time filters the caller composes as needed.
 			if args.Params.Filter != nil {
 				status, err := filters.FromAPIFilterStringExact(args.Params.Filter.Status)
 				if err != nil {

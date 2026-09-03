@@ -209,15 +209,14 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		s.ErrorContains(err, "unsupported charge type")
 	})
 
-	s.Run("service period filters window the listing half-open", func() {
+	s.Run("service period filters apply per column with any operator", func() {
 		// given:
 		// - a second charge one month after the first (March vs May)
 		// when:
-		// - listing with the wire contract's operators: gte on the period
-		//   start, lt on the period end
+		// - listing with service-period filters composed by the caller
 		// then:
-		// - only charges inside the half-open [from, to) window match, and a
-		//   period ending exactly on the lt bound is excluded
+		// - each filter applies independently to its own bound, so the
+		//   caller can express containment, one-sided, or overlap queries
 		mayPeriod := timeutil.ClosedPeriod{
 			From: datetime.MustParseTimeInLocation(s.T(), "2027-05-01T00:00:00Z", time.UTC).AsTime(),
 			To:   datetime.MustParseTimeInLocation(s.T(), "2027-06-01T00:00:00Z", time.UTC).AsTime(),
@@ -241,15 +240,17 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), mayCharges, 1)
 
-		marchOnly := newListInput(meta.ExpandNone)
-		marchOnly.ServicePeriodFrom = &filter.FilterTime{Gte: lo.ToPtr(servicePeriod.From)}
-		marchOnly.ServicePeriodTo = &filter.FilterTime{Lt: lo.ToPtr(mayPeriod.From)}
+		// Containment: from >= Mar 1 and to < May 1 returns only March.
+		contained := newListInput(meta.ExpandNone)
+		contained.ServicePeriodFrom = &filter.FilterTime{Gte: lo.ToPtr(servicePeriod.From)}
+		contained.ServicePeriodTo = &filter.FilterTime{Lt: lo.ToPtr(mayPeriod.From)}
 
-		result, err := s.Charges.ListCustomerCharges(ctx, marchOnly)
+		result, err := s.Charges.ListCustomerCharges(ctx, contained)
 		require.NoError(s.T(), err)
 		require.Len(s.T(), result.Charges.Items, 1)
 		s.Equal(created[0].GetID(), result.Charges.Items[0].GetID())
 
+		// One-sided: charges starting on or after mid-April return only May.
 		laterOnly := newListInput(meta.ExpandNone)
 		laterOnly.ServicePeriodFrom = &filter.FilterTime{Gte: lo.ToPtr(servicePeriod.To.Add(14 * 24 * time.Hour))}
 
@@ -258,12 +259,29 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		require.Len(s.T(), result.Charges.Items, 1)
 		s.Equal(mayCharges[0].GetID(), result.Charges.Items[0].GetID())
 
-		emptyWindow := newListInput(meta.ExpandNone)
-		emptyWindow.ServicePeriodTo = &filter.FilterTime{Lt: lo.ToPtr(servicePeriod.To)}
+		// Operators are honored literally: lt on the end bound excludes a
+		// period ending exactly on it.
+		endExclusive := newListInput(meta.ExpandNone)
+		endExclusive.ServicePeriodTo = &filter.FilterTime{Lt: lo.ToPtr(servicePeriod.To)}
 
-		result, err = s.Charges.ListCustomerCharges(ctx, emptyWindow)
+		result, err = s.Charges.ListCustomerCharges(ctx, endExclusive)
 		require.NoError(s.T(), err)
-		s.Empty(result.Charges.Items, "the window end is exclusive: a period ending exactly on the lt bound does not match")
+		s.Empty(result.Charges.Items)
+
+		// Overlap with a window strictly inside March (Mar 15–20): neither
+		// charge is contained in it, but March overlaps it.
+		// Overlap of [from, to) with [windowStart, windowEnd) holds when
+		// from < windowEnd and to > windowStart.
+		windowStart := servicePeriod.From.Add(14 * 24 * time.Hour)
+		windowEnd := servicePeriod.From.Add(19 * 24 * time.Hour)
+		insideMarch := newListInput(meta.ExpandNone)
+		insideMarch.ServicePeriodFrom = &filter.FilterTime{Lt: lo.ToPtr(windowEnd)}
+		insideMarch.ServicePeriodTo = &filter.FilterTime{Gt: lo.ToPtr(windowStart)}
+
+		result, err = s.Charges.ListCustomerCharges(ctx, insideMarch)
+		require.NoError(s.T(), err)
+		require.Len(s.T(), result.Charges.Items, 1)
+		s.Equal(created[0].GetID(), result.Charges.Items[0].GetID(), "the March charge overlaps the window without being contained in it")
 	})
 
 	s.Run("feature filters scope the listing", func() {
