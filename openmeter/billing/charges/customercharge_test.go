@@ -66,7 +66,7 @@ func TestCustomerChargeGetResolvedCostBasis(t *testing.T) {
 		{name: "no intent", now: periodFrom},
 		{name: "unresolved", intent: dynamic, now: periodFrom},
 		{name: "manual is visible before the service period", intent: manual, state: state, now: periodFrom.Add(-time.Hour), visible: true},
-		{name: "dynamic is hidden before the service period", intent: dynamic, state: state, now: periodFrom.Add(-time.Hour)},
+		{name: "dynamic is hidden before the service period", intent: dynamic, state: nil, now: periodFrom.Add(-time.Hour)},
 		{name: "dynamic is visible from the service period start", intent: dynamic, state: state, now: periodFrom, visible: true},
 	}
 

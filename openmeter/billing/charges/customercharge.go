@@ -2,7 +2,6 @@ package charges
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -16,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -92,28 +90,14 @@ func ForSpecificCharge[T any](c CustomerCharge, in ForSpecificChargeInput[T]) (T
 // for in-advance charges, but the rate is only meaningful from the period it
 // was resolved for.
 func (c CustomerCharge) GetResolvedCostBasis() (*costbasis.State, error) {
-	now := clock.Now()
-
 	return ForSpecificCharge(c, ForSpecificChargeInput[*costbasis.State]{
 		FlatFee: func(ff flatfee.Charge) (*costbasis.State, error) {
-			return visibleResolvedCostBasis(ff.Intent.GetCostBasisIntent(), ff.State.ResolvedCostBasis, ff.Intent.GetEffectiveServicePeriod().From, now), nil
+			return ff.State.ResolvedCostBasis, nil
 		},
 		UsageBased: func(ub usagebased.Charge) (*costbasis.State, error) {
-			return visibleResolvedCostBasis(ub.Intent.GetCostBasisIntent(), ub.State.ResolvedCostBasis, ub.Intent.GetEffectiveServicePeriod().From, now), nil
+			return ub.State.ResolvedCostBasis, nil
 		},
 	})
-}
-
-func visibleResolvedCostBasis(intent *costbasis.Intent, state *costbasis.State, servicePeriodFrom, now time.Time) *costbasis.State {
-	if intent == nil || state == nil {
-		return nil
-	}
-
-	if intent.Kind() == costbasis.ModeDynamic && now.Before(servicePeriodFrom) {
-		return nil
-	}
-
-	return state
 }
 
 // CustomerChargeFlatFeeRealization is one entry of a flat-fee charge's

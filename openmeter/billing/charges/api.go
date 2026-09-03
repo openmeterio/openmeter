@@ -118,10 +118,6 @@ func (i CreateCustomerChargeInput) Validate() error {
 		errs = append(errs, fmt.Errorf("currency code: %w", err))
 	}
 
-	if i.CurrencyCode.IsCustom() && i.CostBasis == nil {
-		errs = append(errs, errors.New("cost basis is required for custom currencies"))
-	}
-
 	if i.CostBasis != nil {
 		if err := i.CostBasis.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("cost basis: %w", err))
