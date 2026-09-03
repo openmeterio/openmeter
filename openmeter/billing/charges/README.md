@@ -251,10 +251,12 @@ one.
 - Corrections reconcile against persisted allocations in the same realization
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.
-- Settlement-fiat overage allocation for a custom-currency usage-based or
-  flat-fee run is a one-shot invoice-finalization effect. A persisted
-  completion marker distinguishes pending allocation from a successful
-  zero-allocation result, so retries do not re-enter completed allocation.
+- Settlement-fiat overage allocation is a one-shot invoice-finalization effect
+  for custom-currency `credit_then_invoice` usage-based and flat-fee runs.
+  Native-fiat `credit_then_invoice` performs only its normal charge-currency
+  credit pass; it does not consume credits again against invoice overage. A
+  persisted completion marker distinguishes pending allocation from a
+  successful zero-allocation result, so retries do not repeat allocation.
 - Invoice line finalization makes flat-fee and usage-based lines authoritative
   before billing synchronizes the external invoice. Custom-currency runs also
   prepare their reversible gross overage and allocate settlement-fiat credits
@@ -296,11 +298,9 @@ Within the charges domain, custom-currency `credit_then_invoice`:
 - allocates and realizes in the custom currency first
 - resolves and persists the applicable cost basis
 - converts only the post-allocation overage to fiat
-- allocates eligible settlement-fiat credits against the converted overage
-- represents the converted overage as the invoice-line amount, applies
-  settlement-fiat credits to that line, and leaves only the uncovered total
-  collectible
-- rounds the converted amount with the fiat currency
+- records the converted overage as the gross invoice-line amount, applies
+  eligible settlement-fiat credits, and leaves only the net total collectible
+- rounds each realization's conversion independently with the fiat currency
 - retains the managed currency as charge identity rather than replacing it
   with the settlement fiat currency or display code
 
@@ -316,6 +316,7 @@ preparation and resets its allocation-completion marker, leaving the realization
 run clean for rerating or preparation retry. The immutable ledger retains the
 original transaction and its correction; an immutable issued run remains durable
 billing history.
+
 A line-finalization failure remains retry-only. If synchronization with the
 invoicing app fails after preparation, invoice deletion enters the same charge
 deletion path. Cleanup and its ledger effects share the billing transaction.
@@ -328,9 +329,38 @@ separate settlement facts. A zero converted overage controls line omission and
 invoice bypass. A zero required transaction controls payment handling and does
 not by itself remove an otherwise billable line from the invoice.
 
-This is a charge-domain contract, not end-to-end support: current ledger-backed
-charge adapters reject custom currencies. The usage-based and flat-fee
-settlement-fiat allocation and correction handlers remain explicit unsupported
-stubs. Enabling them spans ledger route identity and persistence, charge
-realization, settlement rounding, corrections, balance queries, and historical
-migration.
+Credit allocation and correction stay in the custom currency end to end;
+[`credit_only`](#settlement-semantics) never leaves it. For an uncovered
+`credit_then_invoice` overage, the ledger uses credit-purchase-equivalent legs:
+it issues the uncovered custom amount, immediately consumes it through the same
+charge, and converts the resulting custom receivable into the authoritative
+rounded fiat receivable in one atomic transaction group. The booking reuses the
+persisted cost basis and keeps the native amount and fiat provenance on the
+accrued route. It leaves neither spendable custom balance nor an open custom
+receivable.
+
+Settlement-fiat credits then cover part of that gross fiat receivable using the
+[collector's custom-currency CTI coverage rules](../../ledger/collector/README.md#custom-currency-cti-receivable-coverage).
+The invoice records the gross converted amount, credit coverage, and net amount
+due. Receivable-coverage lineage preserves the selected credit sources for
+correction but is excluded from earnings recognition because it represents no
+accrued value. Authorization and settlement move only the remaining receivable,
+using the invoice currency and the charge's persisted cost-basis route.
+
+Conversion and fiat rounding happen independently for each realization run.
+Charges persist no cross-run FX remainder, so later runs cannot carry or absorb
+an earlier run's rounding difference. Correction reverses the complete original
+conversion rather than partially recomputing it.
+
+Credit realization lineage identifies a managed currency by code and
+namespace-scoped currency ID, not display code alone. Advance, backfill, and
+earnings-recognized transitions therefore remain isolated when managed
+currencies reuse a code. `AdvanceCharges` recognizes credit-backed lineage in
+the charge's native currency only when accrued entries have distinct source-
+credit and spend-charge provenance. Accrued value without that provenance -
+including the same-charge custom overage and an unbackfilled advance - remains
+deferred.
+
+If converting an uncovered custom-currency overage rounds to zero fiat, the
+charge layer omits the empty line during preview and collection. The ledger and
+payment lifecycle are bypassed because there is no fiat receivable to settle.

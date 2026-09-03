@@ -3624,8 +3624,9 @@ var (
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "root_realization_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "origin_kind", Type: field.TypeEnum, Enums: []string{"real_credit", "advance"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
+		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "origin_kind", Type: field.TypeEnum, Enums: []string{"real_credit", "advance", "receivable_coverage"}},
 		{Name: "advance_features", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3638,7 +3639,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "credit_realization_lineages_charges_credit_realization_lineages",
-				Columns:    []*schema.Column{CreditRealizationLineagesColumns[8]},
+				Columns:    []*schema.Column{CreditRealizationLineagesColumns[9]},
 				RefColumns: []*schema.Column{ChargesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -3662,7 +3663,7 @@ var (
 			{
 				Name:    "creditrealizationlineage_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{CreditRealizationLineagesColumns[1], CreditRealizationLineagesColumns[8]},
+				Columns: []*schema.Column{CreditRealizationLineagesColumns[1], CreditRealizationLineagesColumns[9]},
 			},
 			{
 				Name:    "creditrealizationlineage_namespace_customer_id",
@@ -3675,9 +3676,9 @@ var (
 	CreditRealizationLineageSegmentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "state", Type: field.TypeEnum, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized"}},
+		{Name: "state", Type: field.TypeEnum, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled", "receivable_coverage", "earnings_recognized"}},
 		{Name: "backing_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "source_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized"}},
+		{Name: "source_state", Type: field.TypeEnum, Nullable: true, Enums: []string{"real_credit", "advance_uncovered", "advance_backfilled", "receivable_coverage", "earnings_recognized"}},
 		{Name: "source_backing_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "closed_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},

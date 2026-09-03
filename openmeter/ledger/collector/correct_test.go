@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -23,6 +24,73 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-receivable")
+	collector := newTestAccrualCollector(env)
+	corrector := newTestAccrualCorrector(env, nil)
+
+	// given: settlement-fiat credit purchased by one charge
+	sourceChargeID := testChargeID(1)
+	spendChargeID := testChargeID(2)
+	fbo := fundSourceCharge(t, env, sourceChargeID, 1, 30)
+
+	// when: part of it covers the custom overage charge's receivable
+	allocations, err := collector.collectToReceivable(t.Context(), CollectToReceivableInput{
+		Namespace:         env.Namespace,
+		ChargeID:          spendChargeID,
+		CustomerID:        env.CustomerID.ID,
+		BookedAt:          env.Now(),
+		SourceBalanceAsOf: env.Now(),
+		Currency:          env.CurrencyReference(),
+		ServicePeriod:     testServicePeriod(env),
+		Amount:            alpacadecimal.NewFromInt(20),
+	})
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(20), allocations[0].Amount.InexactFloat64())
+	originKind, err := creditrealization.LineageOriginKindFromAnnotations(allocations[0].Annotations)
+	require.NoError(t, err)
+	require.Equal(t, creditrealization.LineageOriginKindReceivableCoverage, originKind)
+
+	// then: FBO -> receivable retains the purchased source and overage spend.
+	require.Equal(t, float64(10), env.SumBalance(t, fbo).InexactFloat64())
+	requireReceivableBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): 20,
+	})
+
+	// and: correction reverses the recorded collection rather than reselecting.
+	fiatCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(env.Currency).
+		Build()
+	require.NoError(t, err)
+	realizations := realizationsFromAllocations(env, allocations)
+	request, err := realizations.CreateCorrectionRequest(
+		alpacadecimal.NewFromInt(-20),
+		fiatCurrency,
+	)
+	require.NoError(t, err)
+
+	corrections, err := corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+		Namespace:   env.Namespace,
+		ChargeID:    spendChargeID,
+		CustomerID:  env.CustomerID.ID,
+		AllocateAt:  env.Now(),
+		Corrections: request,
+		LineageSegmentsByRealization: lineage.ActiveSegmentsByRealizationID{
+			realizations[0].ID: {
+				{
+					Amount: alpacadecimal.NewFromInt(20),
+					State:  creditrealization.LineageSegmentStateReceivableCoverage,
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, corrections, 1)
+	require.Equal(t, float64(30), env.SumBalance(t, fbo).InexactFloat64())
+	requireReceivableBalanceBuckets(t, env, map[string]float64{})
+}
 
 func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct")

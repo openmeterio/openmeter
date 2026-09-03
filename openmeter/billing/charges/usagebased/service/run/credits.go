@@ -295,6 +295,9 @@ func (h *fiatOverageCreditReconciliationHandler) Create(
 type AllocateFiatOverageCreditsInput struct {
 	Charge usagebased.Charge
 	Run    usagebased.RealizationRun
+	// AllowFiatCredits controls whether charge orchestration may invoke the
+	// settlement-fiat allocation handler for this run.
+	AllowFiatCredits bool
 }
 
 func (i AllocateFiatOverageCreditsInput) Validate() error {
@@ -369,7 +372,7 @@ func (s *Service) AllocateFiatOverageCredits(
 	grossFiatAmount := in.Run.InvoiceUsage.Totals.Total
 
 	run := in.Run
-	if len(run.FiatOverageCreditRealizations) == 0 {
+	if in.AllowFiatCredits && len(run.FiatOverageCreditRealizations) == 0 {
 		allocationResult, err := creditreconciliation.Allocate(ctx, creditreconciliation.AllocateInput{
 			Amount: grossFiatAmount,
 			Handler: s.NewFiatOverageCreditReconciliationHandler(CreditReconciliationHandlerInput{

@@ -9,13 +9,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
-// routePairingKey pairs source and counterpart sub-accounts during accrual and
-// earnings correction.
+// routePairingKey pairs source and counterpart sub-accounts during collection,
+// receivable coverage, and earnings correction.
 type routePairingKey struct {
 	currency          string
 	costBasisCurrency string
 	taxCode           string
 	taxBehavior       string
+	features          string
 	costBasis         string
 	sourceChargeID    string
 	spendChargeID     string
@@ -23,11 +24,12 @@ type routePairingKey struct {
 
 func (k routePairingKey) String() string {
 	return fmt.Sprintf(
-		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
+		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,features=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
 		k.currency,
 		k.costBasisCurrency,
 		k.taxCode,
 		k.taxBehavior,
+		k.features,
 		k.costBasis,
 		k.sourceChargeID,
 		k.spendChargeID,

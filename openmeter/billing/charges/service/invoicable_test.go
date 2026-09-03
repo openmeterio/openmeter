@@ -194,8 +194,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 		creditsAllocated float64
 		// fiatOverageCreditsAvailable is the USD balance available for the converted overage.
 		fiatOverageCreditsAvailable float64
-		// disableFiatOverageCredits models the settlement handler rejecting FIAT credit use.
-		disableFiatOverageCredits bool
 
 		// expectRunTotals contains the realization run totals in TOKENS.
 		expectRunTotals billingtest.ExpectedTotals
@@ -227,21 +225,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			expectDraftInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			expectInvoiceTotals:      billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			expectPaymentSettled:     true,
-		},
-		// given:
-		// - a 5 USD overage and enough settlement-fiat credits to cover it
-		// - the settlement handler does not allow those credits to be used
-		// then:
-		// - gross preparation still runs and the full 5 USD remains payable
-		{
-			name:                        "fiat overage credits disabled by handler",
-			chargeAmount:                10,
-			fiatOverageCreditsAvailable: 5,
-			disableFiatOverageCredits:   true,
-			expectRunTotals:             billingtest.ExpectedTotals{Amount: 10, Total: 10},
-			expectDraftInvoiceTotals:    billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			expectPaymentSettled:        true,
 		},
 		// given:
 		// - a 10 TOKENS flat fee with 2 TOKENS allocated from credits
@@ -320,8 +303,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 		},
 	}
 
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	for _, test := range tests {
 		s.Run(test.name, func() {
 			ctx := s.T().Context()
@@ -379,9 +360,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				input flatfee.AllocateFiatOverageCreditsInput,
 			) (creditrealization.CreateAllocationInputs, error) {
 				fiatOverageAllocationInvocations++
-				if test.disableFiatOverageCredits {
-					return nil, nil
-				}
 
 				return fiatOverageCreditsHandler.Allocate(ctx, input)
 			}
@@ -646,9 +624,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Equal(!test.expectPaymentSettled, run.NoFiatTransactionRequired)
 				s.Equal(test.creditsAllocated, run.CreditRealizations.Sum().InexactFloat64())
 				expectedFiatCreditsAllocated := test.fiatOverageCreditsAvailable
-				if test.disableFiatOverageCredits {
-					expectedFiatCreditsAllocated = 0
-				}
 				s.Equal(expectedFiatCreditsAllocated, run.FiatOverageCreditRealizations.Sum().InexactFloat64())
 				s.True(run.DetailedLines.IsPresent())
 				s.Require().Len(run.DetailedLines.OrEmpty(), 1)
@@ -807,7 +782,6 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 
 	s.FlatFeeTestHandler.Reset()
 	s.T().Cleanup(s.FlatFeeTestHandler.Reset)
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
 
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
 	invoiceAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime()
@@ -1234,8 +1208,6 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceReratingDefersFiatOverageAllocationUntilFinalization() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-rerating")
 
@@ -1482,8 +1454,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceR
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceMutableRunDeletionCorrectsChargeCurrencyRealizations() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-deletion")
 
@@ -1712,8 +1682,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceM
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAndAPILineMutation() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-managed-lines")
 
@@ -2031,8 +1999,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResultPersistsNoUsageOrPayment() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	tests := []struct {
 		name               string
 		accrualResult      flatfee.OnCustomCurrencyOverageAccruedResult
@@ -2249,8 +2215,6 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceShrinkExtendMutableLine() {
-	s.enableFlatFeeCustomCurrenciesWithMockLineage()
-
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-shrink-extend")
 
@@ -6034,43 +5998,6 @@ func (s *InvoicableChargesTestSuite) mustGetFlatFeeChargeByIDWithDetailedLines(c
 	s.NoError(err)
 
 	return flatFeeCharge
-}
-
-func (s *InvoicableChargesTestSuite) enableFlatFeeCustomCurrenciesWithMockLineage() {
-	s.T().Helper()
-
-	// TODO: use the real lineage service once it supports custom currencies.
-	lineageMock := &mockLineageService{Service: s.LineageService}
-	lineageMock.On("CreateInitialLineages", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("PersistCorrectionLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-
-	customCurrencyFlatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:       s.FlatFeeAdapter,
-		Handler:       s.FlatFeeTestHandler,
-		Lineage:       lineageMock,
-		MetaAdapter:   s.MetaAdapter,
-		Locker:        s.Locker,
-		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:    s.CurrencyService,
-	})
-	s.Require().NoError(err)
-
-	originalFlatFeeService := s.Charges.flatFeeService
-	s.Charges.flatFeeService = customCurrencyFlatFeeService
-	s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeFlatFee))
-	s.Require().NoError(s.BillingService.RegisterLineEngine(customCurrencyFlatFeeService.GetLineEngine()))
-	s.T().Cleanup(func() {
-		s.Charges.flatFeeService = originalFlatFeeService
-		s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeFlatFee))
-		s.Require().NoError(s.BillingService.RegisterLineEngine(originalFlatFeeService.GetLineEngine()))
-	})
 }
 
 func mustGetFlatFeeChargeWithExpands(s *BaseSuite, chargeID meta.ChargeID, expands meta.Expands) flatfee.Charge {

@@ -1000,7 +1000,8 @@ func (m *InvoiceStateMachine) shouldAutoAdvance() bool {
 
 func (m *InvoiceStateMachine) isReadyForCollection() bool {
 	if m.Invoice.CollectionAt == nil {
-		m.Logger.Warn("invoice has no collection at set, assuming collection is not required", "invoice", m.Invoice.ID)
+		// A nil collection time is normal for invoices without metered lines or an explicit collection deadline.
+		m.Logger.Debug("invoice has no collection at set, assuming collection is not required", "invoice", m.Invoice.ID)
 		return true
 	}
 

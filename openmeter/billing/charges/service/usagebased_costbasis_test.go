@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -9,21 +8,15 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	dbchargeusagebasedcostbasis "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestUsageBasedCostBasisCreate(t *testing.T) {
@@ -411,80 +404,4 @@ func (s *UsageBasedCostBasisCreateSuite) countCostBases(namespace string) int {
 	s.Require().NoError(err)
 
 	return count
-}
-
-func (s *UsageBasedCostBasisCreateSuite) createFeatureMeters(ctx context.Context, namespace, key string) billingfeaturemeter.FeatureMeterCollection {
-	s.T().Helper()
-
-	testMeter := newTestMeter(namespace, key+"-meter")
-	s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{testMeter}))
-
-	feature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
-		Namespace: namespace,
-		Name:      key,
-		Key:       key,
-		MeterID:   lo.ToPtr(testMeter.ID),
-	})
-	s.Require().NoError(err)
-
-	featureMeter := billingfeaturemeter.FeatureMeter{
-		Feature: feature,
-		Meter:   &testMeter,
-	}
-
-	return billingfeaturemeter.FeatureMeterCollection{
-		ByKey: map[string]billingfeaturemeter.FeatureMeter{feature.Key: featureMeter},
-		ByID:  map[string]billingfeaturemeter.FeatureMeter{feature.ID: featureMeter},
-	}
-}
-
-func (s *UsageBasedCostBasisCreateSuite) newFiatCurrency(code currencyx.Code) *currencyx.FiatCurrency {
-	s.T().Helper()
-
-	fiatCurrency, err := currencyx.NewFiatCurrency(code)
-	s.Require().NoError(err)
-
-	return fiatCurrency
-}
-
-func (s *UsageBasedCostBasisCreateSuite) newUsageBasedIntent(
-	customerID string,
-	currency currencies.Currency,
-	taxCodeID string,
-	uniqueReferenceID string,
-	featureKey string,
-	settlementMode productcatalog.SettlementMode,
-	costBasis *costbasis.Intent,
-) usagebased.Intent {
-	s.T().Helper()
-
-	period := timeutil.ClosedPeriod{
-		From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
-		To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
-	}
-
-	return usagebased.Intent{
-		Intent: meta.Intent{
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        customerID,
-			Currency:          currency,
-			TaxConfig:         productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID},
-			UniqueReferenceID: lo.ToPtr(uniqueReferenceID),
-		},
-		IntentMutableFields: usagebased.IntentMutableFields{
-			IntentMutableFields: meta.IntentMutableFields{
-				Name:              uniqueReferenceID,
-				ServicePeriod:     period,
-				FullServicePeriod: period,
-				BillingPeriod:     period,
-			},
-			InvoiceAt: period.To,
-			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(1),
-			}),
-		},
-		SettlementMode: settlementMode,
-		FeatureKey:     featureKey,
-		CostBasis:      costBasis,
-	}
 }

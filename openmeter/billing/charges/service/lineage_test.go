@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -53,6 +54,83 @@ func (s *CreditRealizationLineageTestSuite) SetupSuite() {
 
 func (s *CreditRealizationLineageTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
+}
+
+func (s *CreditRealizationLineageTestSuite) TestCustomCurrencyLineagesUseManagedCurrencyIdentity() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-custom-currency-lineage-identity")
+	customerID := ulid.Make().String()
+	code := currencyx.Code("TOKENS")
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	// given: two managed custom currencies reuse the same display code
+	currencyA := currenciestestutils.NewManagedCurrency(s.T(), ns, ulid.Make().String(), code)
+	currencyB := currenciestestutils.NewManagedCurrency(s.T(), ns, ulid.Make().String(), code)
+	realizationIDA := ulid.Make().String()
+	realizationIDB := ulid.Make().String()
+	fixtures := []struct {
+		currency      currencies.Currency
+		realizationID string
+	}{
+		{currency: currencyA, realizationID: realizationIDA},
+		{currency: currencyB, realizationID: realizationIDB},
+	}
+
+	for _, fixture := range fixtures {
+		chargeID := ulid.Make().String()
+		_, err := s.DBClient.Charge.Create().
+			SetID(chargeID).
+			SetNamespace(ns).
+			SetType(chargesmeta.ChargeTypeFlatFee).
+			Save(ctx)
+		s.Require().NoError(err)
+
+		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
+			Namespace:  ns,
+			ChargeID:   chargeID,
+			CustomerID: customerID,
+			Currency:   fixture.currency,
+			Realizations: creditrealization.Realizations{
+				{
+					CreateInput: creditrealization.CreateInput{
+						ID:            fixture.realizationID,
+						Annotations:   creditrealization.LineageAnnotations(creditrealization.LineageOriginKindRealCredit),
+						ServicePeriod: servicePeriod,
+						LedgerTransaction: ledgertransaction.GroupReference{
+							TransactionGroupID: ulid.Make().String(),
+						},
+						Amount: alpacadecimal.NewFromInt(1),
+						Type:   creditrealization.TypeAllocation,
+					},
+				},
+			},
+		}))
+	}
+
+	// when: each currency's customer lineages are loaded by persisted identity
+	lineagesA, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+		Namespace:  ns,
+		CustomerID: customerID,
+		Currency:   currencyA.Reference(),
+	})
+	s.Require().NoError(err)
+	lineagesB, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+		Namespace:  ns,
+		CustomerID: customerID,
+		Currency:   currencyB.Reference(),
+	})
+	s.Require().NoError(err)
+
+	// then: matching display codes do not merge the two managed currencies
+	s.Require().Len(lineagesA, 1)
+	s.Equal(realizationIDA, lineagesA[0].RootRealizationID)
+	s.True(currencyA.Reference().Equal(lineagesA[0].Currency))
+	s.Require().Len(lineagesB, 1)
+	s.Equal(realizationIDB, lineagesB[0].RootRealizationID)
+	s.True(currencyB.Reference().Equal(lineagesB[0].Currency))
 }
 
 func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreatesInitialLineages() {
@@ -274,7 +352,7 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillRe
 	})
 	s.Require().NoError(err)
 
-	_, err = adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencyx.Code(currency.USD))
+	_, err = adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencies.NewCurrencyReference(currencyx.Code(currency.USD)))
 	s.Error(err)
 	s.ErrorContains(err, "must be called in a transaction")
 }
@@ -296,7 +374,7 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 	})
 	s.Require().NoError(err)
 
-	lineages, err := adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencyx.Code(currency.USD))
+	lineages, err := adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencies.NewCurrencyReference(currencyx.Code(currency.USD)))
 	s.NoError(err)
 	s.Empty(lineages)
 }

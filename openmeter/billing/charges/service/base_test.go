@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
@@ -26,9 +27,11 @@ import (
 	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
@@ -36,8 +39,15 @@ import (
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -57,6 +67,18 @@ type BaseSuite struct {
 	// SetupSuite (before calling BaseSuite.SetupSuite) to exercise unit_config rating.
 	UnitConfigEnabled bool
 
+	// UseRealRecognizer wires a real, ledger-backed recognizer.Service instead of
+	// recognizer.NoopService{}. Defaults to false because most suites in this
+	// package drive charges through mock ledger handlers that never persist real
+	// customer/business ledger accounts; a derived suite that needs to observe
+	// actual recognition behavior sets it in its own SetupSuite (before calling
+	// BaseSuite.SetupSuite).
+	UseRealRecognizer bool
+	// UseRealLedgerHandlers wires the production flat-fee and usage-based ledger
+	// handlers while keeping credit-purchase setup independent. Derived suites
+	// enable it before calling BaseSuite.SetupSuite.
+	UseRealLedgerHandlers bool
+
 	Charges                   *service
 	UsageBasedService         usagebased.Service
 	CurrencyService           currencies.Service
@@ -70,6 +92,7 @@ type BaseSuite struct {
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
+	LedgerDeps                ledgertestutils.Deps
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -112,6 +135,32 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 	s.LineageService = lineageService
 
+	var (
+		ledgerDeps         ledgertestutils.Deps
+		ledgerResolverDeps transactions.ResolverDependencies
+	)
+	if s.UseRealRecognizer || s.UseRealLedgerHandlers {
+		ledgerDeps, err = ledgertestutils.InitDeps(s.DBClient, slog.Default())
+		s.NoError(err)
+		s.LedgerDeps = ledgerDeps
+		ledgerResolverDeps = transactions.ResolverDependencies{
+			AccountService: ledgerDeps.ResolversService,
+			AccountCatalog: ledgerDeps.AccountService,
+			BalanceQuerier: ledgerDeps.HistoricalLedger,
+		}
+	}
+
+	var recognizerService recognizer.Service = recognizer.NoopService{}
+	if s.UseRealRecognizer {
+		recognizerService, err = recognizer.NewService(recognizer.Config{
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       ledgerResolverDeps,
+			Lineage:            lineageService,
+			TransactionManager: enttx.NewCreator(s.DBClient),
+		})
+		s.NoError(err)
+	}
+
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
@@ -119,10 +168,32 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.FlatFeeAdapter = flatFeeAdapter
+	var flatFeeHandler flatfee.Handler = s.FlatFeeTestHandler
+	var usageBasedHandler usagebased.Handler = s.UsageBasedTestHandler
+	if s.UseRealLedgerHandlers {
+		collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       ledgerResolverDeps,
+			AccountLocker:      ledgerDeps.AccountService,
+			TransactionManager: enttx.NewCreator(s.DBClient),
+		})
+		s.NoError(err)
+
+		flatFeeHandler = ledgerchargeadapter.NewFlatFeeHandler(
+			ledgerDeps.HistoricalLedger,
+			ledgerResolverDeps,
+			collectorService,
+		)
+		usageBasedHandler = ledgerchargeadapter.NewUsageBasedHandler(
+			ledgerDeps.HistoricalLedger,
+			ledgerResolverDeps,
+			collectorService,
+		)
+	}
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:       flatFeeAdapter,
-		Handler:       s.FlatFeeTestHandler,
+		Handler:       flatFeeHandler,
 		Lineage:       lineageService,
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
@@ -151,7 +222,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
-		Handler:                 s.UsageBasedTestHandler,
+		Handler:                 usageBasedHandler,
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
@@ -216,7 +287,7 @@ func (s *BaseSuite) SetupSuite() {
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
 		UsageBasedService:     usageBasedService,
-		RecognizerService:     recognizer.NoopService{},
+		RecognizerService:     recognizerService,
 
 		BillingService:      s.BillingService,
 		TaxCodeService:      s.TaxCodeService,
@@ -446,6 +517,82 @@ func (s *BaseSuite) grantPromotionalCredits(ctx context.Context, customerID cust
 	s.Len(res, 1)
 
 	return res
+}
+
+func (s *BaseSuite) newFiatCurrency(code currencyx.Code) *currencyx.FiatCurrency {
+	s.T().Helper()
+
+	fiatCurrency, err := currencyx.NewFiatCurrency(code)
+	s.Require().NoError(err)
+
+	return fiatCurrency
+}
+
+func (s *BaseSuite) newUsageBasedIntent(
+	customerID string,
+	currency currencies.Currency,
+	taxCodeID string,
+	uniqueReferenceID string,
+	featureKey string,
+	settlementMode productcatalog.SettlementMode,
+	costBasis *costbasis.Intent,
+) usagebased.Intent {
+	s.T().Helper()
+
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	return usagebased.Intent{
+		Intent: meta.Intent{
+			ManagedBy:         billing.ManuallyManagedLine,
+			CustomerID:        customerID,
+			Currency:          currency,
+			TaxConfig:         productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID},
+			UniqueReferenceID: lo.ToPtr(uniqueReferenceID),
+		},
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              uniqueReferenceID,
+				ServicePeriod:     period,
+				FullServicePeriod: period,
+				BillingPeriod:     period,
+			},
+			InvoiceAt: period.To,
+			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(1),
+			}),
+		},
+		SettlementMode: settlementMode,
+		FeatureKey:     featureKey,
+		CostBasis:      costBasis,
+	}
+}
+
+func (s *BaseSuite) createFeatureMeters(ctx context.Context, namespace, key string) billingfeaturemeter.FeatureMeterCollection {
+	s.T().Helper()
+
+	testMeter := newTestMeter(namespace, key+"-meter")
+	s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{testMeter}))
+
+	feature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      key,
+		Key:       key,
+		MeterID:   lo.ToPtr(testMeter.ID),
+	})
+	s.Require().NoError(err)
+
+	featureMeter := billingfeaturemeter.FeatureMeter{
+		Feature: feature,
+		Meter:   &testMeter,
+	}
+
+	return billingfeaturemeter.FeatureMeterCollection{
+		ByKey: map[string]billingfeaturemeter.FeatureMeter{feature.Key: featureMeter},
+		ByID:  map[string]billingfeaturemeter.FeatureMeter{feature.ID: featureMeter},
+	}
 }
 
 func (s *BaseSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {

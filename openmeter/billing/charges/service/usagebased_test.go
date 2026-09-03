@@ -9,7 +9,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -22,8 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
-	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -263,47 +260,6 @@ func (s *UsageBasedChargesTestSuite) requireIndependentCreditRealizationHistorie
 	}
 }
 
-func (s *UsageBasedChargesTestSuite) useCustomCurrencyUsageBasedServiceWithMockedLineage() {
-	s.T().Helper()
-
-	// TODO: use the real lineage service once it supports custom currencies.
-	lineageMock := &mockLineageService{Service: s.LineageService}
-	lineageMock.On("CreateInitialLineages", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("PersistCorrectionLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-	lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
-		Return(nil).
-		Maybe()
-
-	customCurrencyUsageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 s.UsageBasedAdapter,
-		Handler:                 s.UsageBasedTestHandler,
-		Lineage:                 lineageMock,
-		Locker:                  s.Locker,
-		MetaAdapter:             s.MetaAdapter,
-		InvoiceUpdater:          s.InvoiceUpdater,
-		CustomerOverrideService: s.BillingService,
-		FeatureMeterResolver:    s.FeatureMeterResolver,
-		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:              s.CurrencyService,
-		StreamingConnector:      s.MockStreamingConnector,
-	})
-	s.Require().NoError(err)
-
-	originalUsageBasedService := s.Charges.usageBasedService
-	s.Charges.usageBasedService = customCurrencyUsageBasedService
-	s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeUsageBased))
-	s.Require().NoError(s.BillingService.RegisterLineEngine(customCurrencyUsageBasedService.GetLineEngine()))
-	s.T().Cleanup(func() {
-		s.Charges.usageBasedService = originalUsageBasedService
-		s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeUsageBased))
-		s.Require().NoError(s.BillingService.RegisterLineEngine(originalUsageBasedService.GetLineEngine()))
-	})
-}
-
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoiceLifecycle() {
 	s.runUsageBasedCustomCurrencyCreditThenInvoiceLifecycle(customCurrencyCreditThenInvoiceRealizationVariant{
 		invoiceAt:                        datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -362,7 +318,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 	s.T().Cleanup(s.UsageBasedTestHandler.Reset)
 	s.MockStreamingConnector.Reset()
 	s.T().Cleanup(s.MockStreamingConnector.Reset)
-	s.useCustomCurrencyUsageBasedServiceWithMockedLineage()
 
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
 	invoiceAt := datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime()
@@ -828,7 +783,6 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 	s.T().Cleanup(s.MockStreamingConnector.Reset)
 	clock.UnFreeze()
 	s.T().Cleanup(clock.UnFreeze)
-	s.useCustomCurrencyUsageBasedServiceWithMockedLineage()
 
 	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -1095,8 +1049,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 	type invoiceFinalizationPhase struct {
 		// fiatOverageCreditsAvailable is the USD balance available when the invoice is finalized.
 		fiatOverageCreditsAvailable float64
-		// disableFiatOverageCredits models the settlement handler rejecting FIAT credit use.
-		disableFiatOverageCredits bool
 		// expectInvoiceTotals contains the finalized invoice line totals in USD.
 		expectInvoiceTotals billingtest.ExpectedTotals
 		// expectFiatRealizations contains the immutable USD allocation and correction facts persisted so far.
@@ -1143,29 +1095,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 			},
 			onInvoiceFinalization: invoiceFinalizationPhase{
 				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			},
-			expectPaymentSettled: true,
-		},
-		// given:
-		// - a 5 USD overage and enough settlement-fiat credits to cover it
-		// - the settlement handler does not allow those credits to be used
-		// then:
-		// - gross preparation still runs and the full 5 USD remains payable
-		{
-			name: "fiat overage credits disabled by handler",
-			onRunCreated: runPhase{
-				usageAdded:          5,
-				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			},
-			onCollectionComplete: runPhase{
-				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, Total: 10},
-				expectInvoiceTotals: billingtest.ExpectedTotals{Amount: 5, Total: 5},
-			},
-			onInvoiceFinalization: invoiceFinalizationPhase{
-				fiatOverageCreditsAvailable: 5,
-				disableFiatOverageCredits:   true,
-				expectInvoiceTotals:         billingtest.ExpectedTotals{Amount: 5, Total: 5},
 			},
 			expectPaymentSettled: true,
 		},
@@ -1417,8 +1346,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		},
 	}
 
-	s.useCustomCurrencyUsageBasedServiceWithMockedLineage()
-
 	for _, test := range tests {
 		s.Run(test.name, func() {
 			ctx := s.T().Context()
@@ -1481,10 +1408,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				ctx context.Context,
 				input usagebased.AllocateFiatOverageCreditsInput,
 			) (creditrealization.CreateAllocationInputs, error) {
-				if test.onInvoiceFinalization.disableFiatOverageCredits {
-					return nil, nil
-				}
-
 				return fiatOverageCreditsHandler.Allocate(ctx, input)
 			}
 			s.UsageBasedTestHandler.onCorrectFiatOverageCreditAllocations = fiatOverageCreditsHandler.Correct

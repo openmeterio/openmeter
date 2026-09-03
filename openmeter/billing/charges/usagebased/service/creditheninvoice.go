@@ -1278,8 +1278,9 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 
 		if !currentRun.FiatOverageCreditAllocationCompleted {
 			allocated, err := s.Runs.AllocateFiatOverageCredits(ctx, usagebasedrun.AllocateFiatOverageCreditsInput{
-				Charge: s.Charge,
-				Run:    currentRun,
+				Charge:           s.Charge,
+				Run:              currentRun,
+				AllowFiatCredits: true,
 			})
 			if err != nil {
 				return fmt.Errorf("allocating fiat overage credits for finalizing line[%s]: %w", line.ID, err)
@@ -1295,7 +1296,6 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoice(ctx context.Context, inp
 		}); err != nil {
 			return fmt.Errorf("populating finalizing line[%s] from run[%s]: %w", line.ID, currentRun.ID.ID, err)
 		}
-
 		s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(line.AsGenericLine()))
 	}
 

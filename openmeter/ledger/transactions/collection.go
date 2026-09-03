@@ -80,13 +80,18 @@ func collectFromAttributableCustomerAccrued(
 			continue
 		}
 
+		identity := ledger.EntryIdentityParts{
+			SourceChargeID: bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			SpendChargeID:  bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+		}
+		if !isCreditBackedAccruedIdentity(identity) {
+			continue
+		}
+
 		sources = append(sources, postingAddressBalance{
-			address: bucket.Address,
-			balance: bucket.SettledAmount,
-			identity: ledger.EntryIdentityParts{
-				SourceChargeID: bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
-				SpendChargeID:  bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
-			},
+			address:  bucket.Address,
+			balance:  bucket.SettledAmount,
+			identity: identity,
 		})
 	}
 
@@ -106,6 +111,16 @@ func collectFromAttributableCustomerAccrued(
 	})
 
 	return collectFromPostingAddressBalanceSources(sources, target), nil
+}
+
+// isCreditBackedAccruedIdentity reports whether accrued value has the distinct
+// source-credit and spend-charge provenance required for credit-backed earnings
+// recognition. Value without this provenance can be invoice-backed or an
+// unbackfilled advance.
+func isCreditBackedAccruedIdentity(identity ledger.EntryIdentityParts) bool {
+	return identity.SourceChargeID != nil &&
+		identity.SpendChargeID != nil &&
+		*identity.SourceChargeID != *identity.SpendChargeID
 }
 
 func collectFromPostingAddressBalanceSources(sources []postingAddressBalance, target alpacadecimal.Decimal) []postingAddressAmount {

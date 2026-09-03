@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent"
@@ -57,8 +58,19 @@ func (CreditRealizationLineage) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
+				dialect.Postgres: fmt.Sprintf("varchar(%d)", currencyx.CustomCurrencyCodeMaxLength),
 			}),
+		// custom_currency_id disambiguates managed custom currencies that reuse a
+		// display code (e.g. after one is soft-deleted). Nil for fiat currencies,
+		// whose code is globally unambiguous identity on its own.
+		field.String("custom_currency_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable().
+			Immutable(),
 		field.Enum("origin_kind").
 			GoType(creditrealization.LineageOriginKind("")).
 			Immutable(),

@@ -25,8 +25,10 @@ func SortCorrectionPersistSegments(segments []Segment) []Segment {
 				return 2
 			case creditrealization.LineageSegmentStateRealCredit:
 				return 3
-			default:
+			case creditrealization.LineageSegmentStateReceivableCoverage:
 				return 4
+			default:
+				return 5
 			}
 		}
 

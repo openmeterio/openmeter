@@ -145,7 +145,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			advancedCharges = append(advancedCharges, advancedChargesByID[chargeID])
 		}
 
-		currencies, err := collectCurrencies(advancedCharges)
+		currencies, err := collectEarningsRecognitionCurrencies(advancedCharges)
 		if err != nil {
 			return nil, err
 		}
@@ -163,12 +163,19 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 	return advancedCharges, nil
 }
 
-func collectCurrencies(chargeList charges.Charges) ([]currencies.Currency, error) {
-	out, err := lo.MapErr(chargeList, func(c charges.Charge, _ int) (currencies.Currency, error) {
-		return c.GetCurrency()
-	})
-	if err != nil {
-		return nil, fmt.Errorf("get currencies: %w", err)
+// collectEarningsRecognitionCurrencies resolves the native currency of every
+// advanced charge. Credit-backed lineage and its accrued balance use that same
+// currency for both fiat and custom-currency charges.
+func collectEarningsRecognitionCurrencies(chargeList charges.Charges) ([]currencies.Currency, error) {
+	out := make([]currencies.Currency, 0, len(chargeList))
+
+	for _, c := range chargeList {
+		chargeCurrency, err := c.GetCurrency()
+		if err != nil {
+			return nil, fmt.Errorf("get currency: %w", err)
+		}
+
+		out = append(out, chargeCurrency)
 	}
 
 	return lo.UniqByErr(out, func(c currencies.Currency) (string, error) {

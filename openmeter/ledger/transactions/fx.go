@@ -25,6 +25,8 @@ type ConvertCurrencyTemplate struct {
 	SourceCurrency currencies.CurrencyReference
 	TargetCurrency currencies.CurrencyReference
 	Features       []string
+	SourceChargeID *string
+	SpendChargeID  *string
 }
 
 func (t ConvertCurrencyTemplate) Validate() error {
@@ -71,8 +73,89 @@ func (t ConvertCurrencyTemplate) Validate() error {
 
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
 
-func (t ConvertCurrencyTemplate) correct(CorrectionInput) ([]ledger.TransactionInput, error) {
-	return nil, templateCorrectionNotImplemented(TemplateCode(t))
+// correct reverses the complete original conversion, reusing its exact rounded
+// source amount. Partial correction requires persisted cross-realization FX
+// remainder state and is therefore intentionally unsupported here.
+func (t ConvertCurrencyTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
+	if scope.CostBasis == nil {
+		return nil, errors.New("cost basis is required to correct a currency conversion")
+	}
+
+	var sourceReceivable, brokerageSource, targetReceivable, brokerageTarget ledger.Entry
+	var originalSourceAmount, originalTargetAmount alpacadecimal.Decimal
+	var originalCostBasis *alpacadecimal.Decimal
+
+	for _, entry := range scope.OriginalTransaction.Entries() {
+		route := entry.PostingAddress().Route().Route()
+
+		switch {
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsNegative():
+			sourceReceivable = entry
+			originalSourceAmount = originalSourceAmount.Add(entry.Amount().Abs())
+			originalCostBasis = route.CostBasis
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsPositive():
+			targetReceivable = entry
+			originalTargetAmount = originalTargetAmount.Add(entry.Amount())
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeBrokerage && entry.Amount().IsPositive() && route.CostBasisCurrency == nil:
+			brokerageSource = entry
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeBrokerage && entry.Amount().IsNegative() && route.CostBasisCurrency != nil:
+			brokerageTarget = entry
+		}
+	}
+
+	if sourceReceivable == nil || brokerageSource == nil || targetReceivable == nil || brokerageTarget == nil {
+		return nil, errors.New("currency conversion correction requires the original source and target receivable and brokerage entries")
+	}
+
+	if originalCostBasis == nil || !originalCostBasis.Equal(*scope.CostBasis) {
+		return nil, fmt.Errorf("correction cost basis %s does not match the original booking", scope.CostBasis.String())
+	}
+
+	if !scope.Amount.Equal(originalTargetAmount) {
+		return nil, fmt.Errorf("currency conversion correction requires full original target amount %s, got %s", originalTargetAmount.String(), scope.Amount.String())
+	}
+
+	entryInputs := []*EntryInput{
+		{
+			address: sourceReceivable.PostingAddress(),
+			amount:  originalSourceAmount,
+			identity: ledger.EntryIdentityParts{
+				SourceChargeID: sourceReceivable.SourceChargeID(),
+				SpendChargeID:  sourceReceivable.SpendChargeID(),
+			},
+		},
+		{
+			address: brokerageSource.PostingAddress(),
+			amount:  originalSourceAmount.Neg(),
+			identity: ledger.EntryIdentityParts{
+				SourceChargeID: brokerageSource.SourceChargeID(),
+				SpendChargeID:  brokerageSource.SpendChargeID(),
+			},
+		},
+		{
+			address: targetReceivable.PostingAddress(),
+			amount:  scope.Amount.Neg(),
+			identity: ledger.EntryIdentityParts{
+				SourceChargeID: targetReceivable.SourceChargeID(),
+				SpendChargeID:  targetReceivable.SpendChargeID(),
+			},
+		},
+		{
+			address: brokerageTarget.PostingAddress(),
+			amount:  scope.Amount,
+			identity: ledger.EntryIdentityParts{
+				SourceChargeID: brokerageTarget.SourceChargeID(),
+				SpendChargeID:  brokerageTarget.SpendChargeID(),
+			},
+		},
+	}
+
+	return []ledger.TransactionInput{
+		&TransactionInput{
+			bookedAt:    scope.At,
+			entryInputs: entryInputs,
+		},
+	}, nil
 }
 
 func (t ConvertCurrencyTemplate) typeGuard() guard {
@@ -84,6 +167,10 @@ func (t ConvertCurrencyTemplate) code() TransactionTemplateCode {
 }
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+	identity := ledger.EntryIdentityParts{
+		SourceChargeID: t.SourceChargeID,
+		SpendChargeID:  t.SpendChargeID,
+	}
 	costBasis := t.CostBasis
 	targetCostBasisCurrency := t.SourceCurrency.Code
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
@@ -139,21 +226,25 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 		entryInputs: []*EntryInput{
 			// Source currency
 			{
-				address: sourceAccount.Address(),
-				amount:  t.SourceAmount.Neg(),
+				address:  sourceAccount.Address(),
+				amount:   t.SourceAmount.Neg(),
+				identity: identity,
 			},
 			{
-				address: brokerageSource.Address(),
-				amount:  t.SourceAmount,
+				address:  brokerageSource.Address(),
+				amount:   t.SourceAmount,
+				identity: identity,
 			},
 			// Target currency
 			{
-				address: targetAccount.Address(),
-				amount:  t.TargetAmount,
+				address:  targetAccount.Address(),
+				amount:   t.TargetAmount,
+				identity: identity,
 			},
 			{
-				address: brokerageTarget.Address(),
-				amount:  t.TargetAmount.Neg(),
+				address:  brokerageTarget.Address(),
+				amount:   t.TargetAmount.Neg(),
+				identity: identity,
 			},
 		},
 	}, nil

@@ -104,8 +104,8 @@ write artifacts or sync state.
 
 ## Intentional limitations
 
-- subscription sync currently materializes subscription currency as fiat; it
-  does not perform custom-currency-to-fiat conversion
+- subscription sync materializes fiat billables only; custom-currency billables
+  are outside this worker's billing contract
 - subscription-owned credit-purchase charges are unsupported
 - immutable invoice drift is reported, not automatically corrected
 - an `asOf` at the current instant is not a request to provision the entire

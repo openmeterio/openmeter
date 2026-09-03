@@ -84,7 +84,7 @@ var (
 // StateValidator is a validator for the "state" field enum values. It is called by the builders before save.
 func StateValidator(s creditrealization.LineageSegmentState) error {
 	switch s {
-	case "real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized":
+	case "real_credit", "advance_uncovered", "advance_backfilled", "receivable_coverage", "earnings_recognized":
 		return nil
 	default:
 		return fmt.Errorf("creditrealizationlineagesegment: invalid enum value for state field: %q", s)
@@ -94,7 +94,7 @@ func StateValidator(s creditrealization.LineageSegmentState) error {
 // SourceStateValidator is a validator for the "source_state" field enum values. It is called by the builders before save.
 func SourceStateValidator(ss creditrealization.LineageSegmentState) error {
 	switch ss {
-	case "real_credit", "advance_uncovered", "advance_backfilled", "earnings_recognized":
+	case "real_credit", "advance_uncovered", "advance_backfilled", "receivable_coverage", "earnings_recognized":
 		return nil
 	default:
 		return fmt.Errorf("creditrealizationlineagesegment: invalid enum value for source_state field: %q", ss)

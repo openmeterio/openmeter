@@ -267,6 +267,60 @@ func TestCoverCustomerReceivableTemplate(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
 }
 
+func TestCoverCustomerReceivableTemplatePreselectedSourcesPreservesRoutesAndProvenance(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+
+	// given: two fiat credit sources with different cost-basis routes
+	firstCostBasis := alpacadecimal.NewFromFloat(0.25)
+	secondCostBasis := alpacadecimal.NewFromInt(1)
+	firstSourceChargeID := testChargeID(1)
+	secondSourceChargeID := testChargeID(2)
+	spendChargeID := testChargeID(3)
+	firstFBO := env.fundPriorityWithCostBasis(t, 1, 30, &firstCostBasis, &firstSourceChargeID)
+	secondFBO := env.fundPriorityWithCostBasis(t, 2, 30, &secondCostBasis, &secondSourceChargeID)
+
+	// when: both sources cover one receivable without being re-priced
+	inputs := env.resolveAndCommit(t, CoverCustomerReceivableTemplate{
+		At:       env.Now(),
+		Currency: env.CurrencyReference(),
+		Sources: []PostingAmount{
+			{
+				Address: firstFBO.Address(),
+				Amount:  alpacadecimal.NewFromInt(20),
+				Identity: ledger.EntryIdentityParts{
+					SourceChargeID: &firstSourceChargeID,
+					SpendChargeID:  &spendChargeID,
+				},
+			},
+			{
+				Address: secondFBO.Address(),
+				Amount:  alpacadecimal.NewFromInt(10),
+				Identity: ledger.EntryIdentityParts{
+					SourceChargeID: &secondSourceChargeID,
+					SpendChargeID:  &spendChargeID,
+				},
+			},
+		},
+	})
+	require.Len(t, inputs, 1)
+
+	// then: each source offsets receivable on its own economic route
+	firstReceivable := env.ReceivableSubAccountWithCostBasis(t, &firstCostBasis)
+	secondReceivable := env.ReceivableSubAccountWithCostBasis(t, &secondCostBasis)
+	require.Equal(t, float64(10), env.SumBalance(t, firstFBO).InexactFloat64())
+	require.Equal(t, float64(20), env.SumBalance(t, secondFBO).InexactFloat64())
+	require.Equal(t, float64(20), env.SumBalance(t, firstReceivable).InexactFloat64())
+	require.Equal(t, float64(10), env.SumBalance(t, secondReceivable).InexactFloat64())
+
+	entries := inputs[0].EntryInputs()
+	require.Len(t, entries, 4)
+	for _, entry := range entries {
+		require.NotNil(t, entry.SourceChargeID())
+		require.NotNil(t, entry.SpendChargeID())
+		require.Equal(t, spendChargeID, *entry.SpendChargeID())
+	}
+}
+
 func TestSettleCustomerReceivableFromPaymentTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 
