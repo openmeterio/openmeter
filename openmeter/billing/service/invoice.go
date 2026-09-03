@@ -917,6 +917,16 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
+	_, err = s.featureMeterResolver.Resolve(ctx, input.Namespace, invoice.Lines.OrEmpty()...)
+	if err != nil {
+		if err := invoice.MergeValidationIssues(
+			billing.ValidationWithComponent(billing.ValidationComponentOpenMeterMetering, err),
+			billing.ValidationComponentOpenMeterMetering,
+		); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+		}
+	}
+
 	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: input.Namespace,
 		Invoice:   &invoice,

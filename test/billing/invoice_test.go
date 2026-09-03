@@ -47,6 +47,101 @@ func TestInvoicing(t *testing.T) {
 	suite.Run(t, new(InvoicingTestSuite))
 }
 
+func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-simulate-invoice-feature-meter-validation")
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+
+	now := time.Now().Truncate(time.Microsecond).UTC()
+	newLine := func(featureKey string) *billing.StandardLine {
+		return billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			Namespace:     namespace,
+			Period:        timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now},
+			InvoiceAt:     now,
+			Name:          "simulate line",
+			PerUnitAmount: alpacadecimal.NewFromInt(10),
+			PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			ManagedBy:     billing.ManuallyManagedLine,
+		}, billing.WithFeatureKey(featureKey))
+	}
+
+	s.Run("missing feature", func() {
+		// given:
+		// - a valid flat-price line referencing a feature absent from the catalog
+		line := newLine("missing-feature")
+
+		// when:
+		// - the invoice is simulated
+		invoice, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
+			Namespace:  namespace,
+			CustomerID: &customerEntity.ID,
+			Currency:   currencyx.FiatCode(currency.USD),
+			Lines:      billing.NewStandardInvoiceLines([]*billing.StandardLine{line}),
+		})
+
+		// then:
+		// - calculation succeeds while the missing feature is retained as a critical issue
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.Equal(10.0, invoice.Totals.Amount.InexactFloat64())
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal(billing.ValidationIssues{{
+			Severity:  billing.ValidationIssueSeverityCritical,
+			Code:      billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:   "feature[missing-feature]: invoice line: feature not found",
+			Component: billing.ValidationComponentOpenMeterMetering,
+			Path:      fmt.Sprintf("/lines/%s", invoice.Lines.OrEmpty()[0].ID),
+		}}, billing.ValidationIssues{invoice.ValidationIssues[0]}.RemoveMetaForCompare())
+	})
+
+	s.Run("feature without required meter", func() {
+		// given:
+		// - a catalog feature without a meter and a valid unit-price line requiring one
+		_, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "meterless feature",
+			Key:       "meterless-feature",
+		})
+		s.Require().NoError(err)
+
+		line := newLine("meterless-feature")
+		line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(10)})
+		quantity := alpacadecimal.NewFromInt(1)
+		preLinePeriodQuantity := alpacadecimal.NewFromInt(0)
+		line.UsageBased.Quantity = &quantity
+		line.UsageBased.MeteredQuantity = &quantity
+		line.UsageBased.PreLinePeriodQuantity = &preLinePeriodQuantity
+		line.UsageBased.MeteredPreLinePeriodQuantity = &preLinePeriodQuantity
+
+		// when:
+		// - the invoice is simulated
+		invoice, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
+			Namespace:  namespace,
+			CustomerID: &customerEntity.ID,
+			Currency:   currencyx.FiatCode(currency.USD),
+			Lines:      billing.NewStandardInvoiceLines([]*billing.StandardLine{line}),
+		})
+
+		// then:
+		// - calculation succeeds while the missing required meter is retained as a critical issue
+		s.Require().NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.Equal(10.0, invoice.Totals.Amount.InexactFloat64())
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal(billing.ValidationIssues{{
+			Severity:  billing.ValidationIssueSeverityCritical,
+			Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+			Message:   "feature[meterless-feature]: usage based invoice line: feature has no meters",
+			Component: billing.ValidationComponentOpenMeterMetering,
+			Path:      fmt.Sprintf("/lines/%s", invoice.Lines.OrEmpty()[0].ID),
+		}}, billing.ValidationIssues{invoice.ValidationIssues[0]}.RemoveMetaForCompare())
+	})
+}
+
 func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	namespace := "ns-create-invoice-workflow"
 	now := time.Now().Truncate(time.Second).In(time.UTC)
