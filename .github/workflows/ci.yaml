@@ -501,8 +501,10 @@ jobs:
 
   test:
     name: Test
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-latest-16
     needs: cache-rebuild
+    env:
+      COMPOSE_FILE: docker-compose.yaml:docker-compose.postgres-test.yaml
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -558,7 +560,7 @@ jobs:
 
       - name: Run tests
         env:
-          GO_TEST_PACKAGE_PARALLELISM: 32
+          GO_TEST_PACKAGE_PARALLELISM: 16
           SVIX_HOST: localhost
           TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
           # Dev JWT secret, non-sensitive
