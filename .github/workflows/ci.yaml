@@ -596,6 +596,118 @@ jobs:
         run: |
           docker compose down -v
 
+  test-benchmark:
+    name: Test benchmark / ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    needs: cache-rebuild
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: 8c-p8-t8
+            runner: depot-ubuntu-latest-8
+            package_parallelism: 8
+            test_parallelism: 8
+            postgres_tuning: default
+          - name: 8c-p16-t8
+            runner: depot-ubuntu-latest-8
+            package_parallelism: 16
+            test_parallelism: 8
+            postgres_tuning: default
+          - name: 8c-p16-t16
+            runner: depot-ubuntu-latest-8
+            package_parallelism: 16
+            test_parallelism: 16
+            postgres_tuning: default
+          - name: 16c-p16-t16
+            runner: depot-ubuntu-latest-16
+            package_parallelism: 16
+            test_parallelism: 16
+            postgres_tuning: default
+          - name: 16c-p32-t16
+            runner: depot-ubuntu-latest-16
+            package_parallelism: 32
+            test_parallelism: 16
+            postgres_tuning: default
+          - name: 8c-p16-t16-pg-tuned
+            runner: depot-ubuntu-latest-8
+            package_parallelism: 16
+            test_parallelism: 16
+            postgres_tuning: tuned
+          - name: 16c-p16-t16-pg-tuned
+            runner: depot-ubuntu-latest-16
+            package_parallelism: 16
+            test_parallelism: 16
+            postgres_tuning: tuned
+    env:
+      COMPOSE_FILE: ${{ matrix.postgres_tuning == 'tuned' && 'docker-compose.yaml:.github/docker-compose.postgres-benchmark.yaml' || 'docker-compose.yaml' }}
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start docker-compose dependencies
+        run: docker compose up postgres svix redis clickhouse -d
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+            max-jobs = 4
+            cores = 2
+
+      - name: Restore selected Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
+          save: "false"
+
+      - name: Upsert Nix store
+        run: nix develop --impure .#ci
+
+      - name: Restore Go module cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
+          restore-keys: |
+            ${{ runner.os }}-openmeter-go-modules-
+
+      - name: Wait for dependencies to be ready
+        run: ./tools/wait-for-compose.sh postgres svix redis clickhouse
+
+      - name: Run tests
+        env:
+          GO_TEST_PACKAGE_PARALLELISM: ${{ matrix.package_parallelism }}
+          GO_TEST_PARALLELISM: ${{ matrix.test_parallelism }}
+          SVIX_HOST: localhost
+          TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
+          SVIX_JWT_SECRET: DUMMY_JWT_SECRET
+        run: |
+          mkdir -p \
+            "$GITHUB_WORKSPACE/.tmp/go-work" \
+            "$GITHUB_WORKSPACE/.tmp/system"
+          env \
+            GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
+            TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
+            nix develop --impure .#ci -c make test-nocache-core
+
+      - name: Stop docker-compose dependencies
+        if: always()
+        run: docker compose down -v
+
   migration-tests:
     name: Migration Tests
     runs-on: depot-ubuntu-latest-8
