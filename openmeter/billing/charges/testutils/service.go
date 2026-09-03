@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
@@ -54,6 +55,7 @@ type Config struct {
 	FlatFeeHandler        flatfee.Handler
 	CreditPurchaseHandler creditpurchase.Handler
 	UsageBasedHandler     usagebased.Handler
+	CreditsConfig         config.CreditsConfiguration
 }
 
 func (c Config) Validate() error {
@@ -286,6 +288,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		CurrencyResolver:      currencyResolver,
 		CustomerService:       config.CustomerService,
 		SubscriptionService:   config.SubscriptionService,
+		CreditsConfig:         config.CreditsConfig,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating charges service: %w", err)

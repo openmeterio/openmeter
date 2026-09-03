@@ -9,6 +9,8 @@ import (
 type CreditsConfiguration struct {
 	Enabled                 bool `yaml:"enabled"`
 	EnableCreditThenInvoice bool `yaml:"enableCreditThenInvoice"`
+	// TODO remove this if ledger fully supports custom currencies
+	EnableCustomCurrencyCharge bool `yaml:"enableCustomCurrencyCharge"`
 }
 
 func (c CreditsConfiguration) Validate() error {
@@ -24,4 +26,5 @@ func ConfigureCredits(v *viper.Viper, prefixes ...string) {
 
 	v.SetDefault(prefixer("enabled"), false)
 	v.SetDefault(prefixer("enableCreditThenInvoice"), false)
+	v.SetDefault(prefixer("enableCustomCurrencyCharge"), false)
 }

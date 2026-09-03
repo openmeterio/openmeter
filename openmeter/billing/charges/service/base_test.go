@@ -9,6 +9,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
@@ -222,6 +223,7 @@ func (s *BaseSuite) SetupSuite() {
 		CurrencyResolver:    currencyResolver,
 		CustomerService:     s.CustomerService,
 		SubscriptionService: s.SubscriptionService,
+		CreditsConfig:       config.CreditsConfiguration{EnableCustomCurrencyCharge: true},
 	})
 	s.NoError(err)
 	s.Charges = chargesService

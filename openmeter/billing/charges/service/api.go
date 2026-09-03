@@ -36,6 +36,10 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		return charges.CustomerCharge{}, fmt.Errorf("resolving currency: %w", err)
 	}
 
+	if currency.IsCustom() && !s.creditsConfig.EnableCustomCurrencyCharge {
+		return charges.CustomerCharge{}, models.NewGenericValidationError(fmt.Errorf("custom currency %s is not allowed for charges", currency.GetCode()))
+	}
+
 	intent := meta.Intent{
 		ManagedBy:         billing.ManuallyManagedLine,
 		CustomerID:        input.CustomerID,
