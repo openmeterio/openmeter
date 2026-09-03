@@ -1004,20 +1004,116 @@ jobs:
             docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/base/${service}.log" 2>&1 || true
           done
 
-      - name: Restart Docker Compose infra for credits-disabled tests
-        id: restart_credits_disabled_e2e
+      - name: Cleanup Docker Compose
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
+        working-directory: e2e
+        if: always()
+
+      - name: Upload Openmeter logs as artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: "[${{ github.job }}] Openmeter logs"
+          path: |
+            e2e/logs/**
+            e2e/artifacts/logs/**
+          retention-days: 14
+
+  e2e-credits-disabled:
+    name: E2E / Credits disabled
+    runs-on: depot-ubuntu-24.04-8
+    # Note: This check is running against the image that is going to be pushed.
+    needs:
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create override files for e2e
+        env:
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              image: $DEPOT_IMAGE_URL
+            sink-worker:
+              image: $DEPOT_IMAGE_URL
+            billing-worker:
+              image: $DEPOT_IMAGE_URL
+          EOF
+
+          cat e2e/docker-compose.override.yaml
+
+      - name: Debug E2E runner state
+        run: |
+          echo "### DEBUG"
+          ss -ltnp | grep ':39000 ' || true
+          docker ps -a
+          docker network ls
+          echo "### DEBUG"
+
+      - name: Build as part of e2e
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              build: ..
+            sink-worker:
+              build: ..
+            billing-worker:
+              build: ..
+          EOF
+
+          cat e2e/docker-compose.override.yaml
+
+      - name: Launch Docker Compose infra with credits disabled
+        id: launch_credits_disabled_e2e
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
         working-directory: e2e
 
       - name: Start Docker Compose log stream for credits-disabled tests
-        if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
+        if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/credits-disabled
           docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
           echo "$!" > artifacts/logs/docker-compose/credits-disabled/compose-follow.pid
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          cache: false
+
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+
+      - name: Check container health
+        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
+        if: always()
+        continue-on-error: true
 
       - name: Wait for worker to become ready with credits disabled
         run: |
@@ -1033,7 +1129,7 @@ jobs:
         run: make -C e2e test-credits-disabled
 
       - name: Capture Docker Compose logs after credits-disabled tests
-        if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
+        if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/credits-disabled
@@ -1047,7 +1143,7 @@ jobs:
           done
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml down -v
         working-directory: e2e
         if: always()
 
