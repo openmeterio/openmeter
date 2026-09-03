@@ -1,0 +1,16 @@
+services:
+  kafka:
+    image: 6drdc68833.registry.depot.dev/confluentinc/cp-kafka:8.0.3@sha256:db5eac24a1d15a1689fa89642ef97a7e3bc4f55ad5159a07b213c4dc7d0114e3
+
+  clickhouse:
+    image: 6drdc68833.registry.depot.dev/clickhouse/clickhouse-server:25.12.3-alpine@sha256:74da41cd61db84f652c6364fd30d59e19b7276d34f7c82515f5f0e70d6f325da
+
+  redis:
+    image: 6drdc68833.registry.depot.dev/redis:7.4.7@sha256:c6e4a82ce60b829a72a21cc4ad4c1c274fa6962eb0d6ac698e8157cbc3fe16a4
+
+  postgres:
+    image: 6drdc68833.registry.depot.dev/postgres:14.20-alpine3.23@sha256:14f02666642586a64d6fae8ef42d479fd76456a77c73ae8a626b8fe323b76d22
+
+  svix:
+    profiles: [depot-registry-svix]
+    image: 6drdc68833.registry.depot.dev/svix/svix-server:v1.84.1@sha256:35dc9d4884073272e55f8e2f60a7a37983e535b7e7994db56a99c87cdf9b1a59

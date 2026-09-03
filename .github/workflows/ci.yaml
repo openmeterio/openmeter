@@ -15,11 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  cache-rebuild:
-    name: Select or rebuild Nix cache
-    runs-on: depot-ubuntu-latest-16
+  nix-changes:
+    name: Detect Nix environment changes
+    runs-on: depot-ubuntu-24.04
     outputs:
       cache-key: ${{ steps.cache-key.outputs.cache-key }}
+      rebuild: ${{ steps.cache-key.outputs.rebuild }}
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -98,9 +99,8 @@ jobs:
           if [ "${NIX_INPUTS_CHANGED}" = "true" ] && [ "${trusted}" = "true" ]; then
             rebuild="true"
 
-            # A PR must publish to an immutable, per-attempt key so every
-            # downstream job validates the environment produced by that patch.
-            # Main uses a stable input-addressed key for unchanged PRs to share.
+            # A PR publishes to an immutable, per-attempt key so a validated
+            # patch cannot overwrite main's stable input-addressed cache.
             if [ "${EVENT_NAME}" = "pull_request" ]; then
               cache_key="${RUNNER_OS}-openmeter-nix-build-v4-pr-${PR_NUMBER}-${RUN_ID}-${RUN_ATTEMPT}-${NIX_INPUT_HASH}"
             fi
@@ -110,8 +110,29 @@ jobs:
           echo "rebuild=${rebuild}" >> "${GITHUB_OUTPUT}"
           echo "Selected Nix cache: ${cache_key} (rebuild: ${rebuild}, trusted: ${trusted})"
 
+  cache-rebuild:
+    name: Select or rebuild Nix cache
+    needs: nix-changes
+    if: needs.nix-changes.outputs.rebuild == 'true'
+    runs-on: depot-ubuntu-24.04-16
+    env:
+      # Nix namespaces GOCACHE by its Go toolchain and dynamic loader. Depot's
+      # shared Go cache does not include those Nix store identities.
+      GOCACHEPROG: ""
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Set up Nix
-        if: steps.cache-key.outputs.rebuild == 'true'
         uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
@@ -125,13 +146,12 @@ jobs:
             cores = 2
 
       - name: Build nix environment
-        if: steps.cache-key.outputs.rebuild == 'true'
         run: |
           nix flake check --impure
           nix develop --impure .#ci
+          git diff --exit-code -- .nvmrc .go-version .golangci.version .pre-commit-config.yaml
 
       - name: Restore Go module cache
-        if: steps.cache-key.outputs.rebuild == 'true'
         id: go-module-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -141,7 +161,7 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-
 
       - name: Populate Go module cache
-        if: steps.cache-key.outputs.rebuild == 'true' && steps.go-module-cache.outputs.cache-hit != 'true'
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
         run: |
           nix develop --impure .#ci -c sh -eu -c '
             go mod download
@@ -151,14 +171,13 @@ jobs:
           '
 
       - name: Save Go module cache
-        if: steps.cache-key.outputs.rebuild == 'true' && steps.go-module-cache.outputs.cache-hit != 'true'
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
           key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
 
       - name: Verify Go runtime loader
-        if: steps.cache-key.outputs.rebuild == 'true'
         run: |
           runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
           mkdir -p "${runtime_dir}/go-tmp"
@@ -166,8 +185,13 @@ jobs:
           GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
             runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
             expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
-            go env -json GOCACHE GOROOT GOTOOLDIR
+            go env -json GOCACHE GOCACHEPROG GOROOT GOTOOLDIR
             printf 'GO_LDSO=%s\n' "${GO_LDSO:-<unset>}"
+
+            if [[ -n "$(go env GOCACHEPROG)" ]]; then
+              echo "Nix builds must not use Depot's loader-agnostic remote Go cache"
+              exit 1
+            fi
 
             if [[ "${GO_LDSO:-}" != "${expected_interpreter}" ]]; then
               echo "GO_LDSO uses ${GO_LDSO:-<unset>}; expected ${expected_interpreter}"
@@ -191,15 +215,14 @@ jobs:
           EOF
 
       - name: Save Nix store cache
-        if: steps.cache-key.outputs.rebuild == 'true'
         uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ steps.cache-key.outputs.cache-key }}
+          primary-key: ${{ needs.nix-changes.outputs.cache-key }}
           save: "true"
 
   build:
     name: Build
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-24.04-8
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -246,8 +269,7 @@ jobs:
 
   generators-openapi:
     name: Code Generators / OpenAPI
-    runs-on: depot-ubuntu-latest-8
-    needs: cache-rebuild
+    runs-on: depot-ubuntu-24.04-8
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -261,37 +283,40 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
+          go-version-file: .go-version
+          cache: false
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+          package_json_file: api/spec/package.json
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: api/spec/pnpm-lock.yaml
+
+      - name: Verify Depot Go cache and runner tools
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+          yq --version
 
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make update-openapi
+          make update-openapi
+          pnpm -C api/spec --filter @openmeter/typespec-go run check
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
@@ -309,13 +334,9 @@ jobs:
             exit 1
           fi
 
-      - name: Run TypeSpec Go emitter checks
-        run: |
-          nix develop --impure .#ci -c pnpm -C api/spec --filter @openmeter/typespec-go run check
-
   generators-javascript-sdk:
     name: Code Generators / JavaScript SDK
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -363,8 +384,7 @@ jobs:
 
   generators-go:
     name: Code Generators / Go
-    runs-on: depot-ubuntu-latest-8
-    needs: cache-rebuild
+    runs-on: depot-ubuntu-24.04-4
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -378,27 +398,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
-
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+          go-version-file: .go-version
+          cache: false
 
       - name: Restore Go module cache
+        id: go-module-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
@@ -406,10 +413,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-openmeter-go-modules-
 
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+
       - name: Ensure code generators are run
         run: |
-          nix develop --impure .#ci -c make patch-oapi-templates
-          nix develop --impure .#ci -c go generate ./...
+          make patch-oapi-templates
+          go generate ./...
 
           # does not detect new files
           if [ -n "$(git diff --exit-code)" ]; then
@@ -427,10 +445,16 @@ jobs:
             exit 1
           fi
 
+      - name: Save Go module cache
+        if: steps.go-module-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ steps.go-module-cache.outputs.cache-primary-key }}
+
   go-sdk:
     name: Go SDK
-    runs-on: depot-ubuntu-latest-4
-    needs: cache-rebuild
+    runs-on: depot-ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -444,35 +468,32 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 2
-            cores = 2
+          go-version-file: .go-version
+          cache: false
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
 
       - name: Run Go SDK checks
-        run: nix develop --impure .#ci -c make test-go-sdk
+        run: make test-go-sdk
 
   test:
     name: Test
-    runs-on: depot-ubuntu-latest-16
-    needs: cache-rebuild
+    runs-on: depot-ubuntu-24.04-16
     env:
-      COMPOSE_FILE: docker-compose.yaml:docker-compose.postgres-test.yaml
+      COMPOSE_FILE: docker-compose.yaml:docker-compose.postgres-test.yaml:.github/docker-compose.depot-registry.yaml
+      COMPOSE_PROFILES: redis,depot-registry-svix
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -486,41 +507,27 @@ jobs:
         with:
           persist-credentials: false
 
-      # Let's start docker-compose early so that by the time we have the nix env set up it's already running
+      # Start dependencies before toolchain setup so their readiness overlaps CI setup.
       - name: Start docker-compose dependencies
         run: |
           docker compose up postgres svix redis clickhouse -d
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
+          go-version-file: .go-version
+          cache: false
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
 
-      - name: Upsert Nix store
-        run: nix develop --impure .#ci
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
+          echo "Using ${cache_program}"
 
       - name: Wait for dependencies to be ready
         run: |
@@ -544,7 +551,7 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make test-nocache
+            make test-nocache GO_BUILD_FLAGS=
 
       - name: Stop docker-compose dependencies
         if: always()
@@ -553,8 +560,11 @@ jobs:
 
   migrations:
     name: Migration Checks
-    runs-on: depot-ubuntu-latest-8
-    needs: cache-rebuild
+    runs-on: depot-ubuntu-24.04-4
+    env:
+      ATLAS_SHA256_AMD64: d88aae186a55e5893c318f3b11c838a3372adf4dac1e2fd3bc7d2b55944c5797
+      ATLAS_SHA256_ARM64: bb8a22a08ccd9a6cb93f0a16205b7bbeb067dd7fec1f60227c687d8de93d6088
+      ATLAS_VERSION: 0.36.0
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -569,40 +579,55 @@ jobs:
           fetch-depth: 0 # Needed to compare against base branch
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
+          go-version-file: .go-version
+          cache: false
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+
+      - name: Install Atlas
+        run: |
+          case "$(uname -m)" in
+            x86_64)
+              atlas_arch="amd64"
+              atlas_sha256="${ATLAS_SHA256_AMD64}"
+              ;;
+            aarch64|arm64)
+              atlas_arch="arm64"
+              atlas_sha256="${ATLAS_SHA256_ARM64}"
+              ;;
+            *)
+              echo "Unsupported architecture: $(uname -m)"
+              exit 1
+              ;;
+          esac
+
+          atlas_path="${RUNNER_TEMP}/bin/atlas"
+          mkdir -p "$(dirname "${atlas_path}")"
+          curl -fsSL \
+            "https://release.ariga.io/atlas/atlas-linux-${atlas_arch}-v${ATLAS_VERSION}" \
+            -o "${atlas_path}"
+          echo "${atlas_sha256}  ${atlas_path}" | sha256sum --check
+          chmod +x "${atlas_path}"
+          dirname "${atlas_path}" >> "${GITHUB_PATH}"
 
       - name: Run migration checks
-        run: nix develop --impure .#ci -c make migrate-check
+        run: make migrate-check
 
   lint-go:
     name: Lint / Go
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-24.04-8
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -659,8 +684,7 @@ jobs:
 
   lint-other:
     name: Lint / Other
-    runs-on: depot-ubuntu-latest-8
-    needs: cache-rebuild
+    runs-on: depot-ubuntu-24.04-4
 
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
@@ -672,57 +696,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
+          package_json_file: api/spec/package.json
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: api/spec/pnpm-lock.yaml
 
-      - name: Validate Nix flake
-        run: nix flake check --impure
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.18.1
 
-      - name: Upsert Nix store
-        run: nix develop --impure .#ci
-
-      - name: Validate generated tool version files
-        run: git diff --exit-code -- .nvmrc .go-version .golangci.version
-
-      - name: Run linters - api spec
+      - name: Run non-Go checks
         run: |
-          nix develop --impure .#ci -c make lint-api-spec
-
-      - name: Run tests - api spec SDK
-        run: |
-          nix develop --impure .#ci -c make test-api-spec
-
-      - name: Run linters - openapi
-        run: |
-          nix develop --impure .#ci -c make lint-openapi
-
-      - name: Run linters - helm
-        run: |
-          nix develop --impure .#ci -c make lint-helm
+          make lint-api-spec
+          make test-api-spec
+          pnpm dlx @stoplight/spectral-cli@6.16.0 lint api/openapi.yaml api/openapi.cloud.yaml api/v3/openapi.yaml
+          make lint-helm
 
       - name: Validate commit messages
-        run: |
-          nix develop --impure .#ci -c prek run -a
-          nix develop --impure .#ci -c prek run --stage manual
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: pipx run --spec commitizen==4.16.5 cz check --allow-abort --rev-range "${BASE_SHA}..HEAD"
 
   trusted-artifacts:
     name: Artifacts
@@ -775,9 +780,10 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-24.04-4
+    env:
+      COMPOSE_PROFILES: depot-registry-svix
     needs:
-      - cache-rebuild
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
@@ -855,36 +861,25 @@ jobs:
               build: ..
           EOF
       - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
         working-directory: quickstart
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
+          go-version-file: .go-version
+          cache: false
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -899,20 +894,18 @@ jobs:
       - name: Run tests
         env:
           OPENMETER_ADDRESS: http://localhost:48888
-        run: |
-          nix develop --impure .#ci -c go test -v -count=1 ./quickstart/
+        run: go test -v -count=1 ./quickstart/
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml down -v
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
         working-directory: quickstart
         if: always()
 
   e2e:
     name: E2E
-    runs-on: depot-ubuntu-latest-8
+    runs-on: depot-ubuntu-24.04-8
     # Note: This check is running against the image that is going to be pushed.
     needs:
-      - cache-rebuild
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
@@ -970,7 +963,7 @@ jobs:
 
       - name: Launch Docker Compose infra
         id: launch_e2e
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
         working-directory: e2e
 
       - name: Start Docker Compose log stream for base tests
@@ -978,36 +971,25 @@ jobs:
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/base
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/base/compose-follow.log 2>&1 &
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/base/compose-follow.log 2>&1 &
           echo "$!" > artifacts/logs/docker-compose/base/compose-follow.pid
 
-      - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            keep-env-derivations = true
-            keep-outputs = true
-            # Let cache misses build concurrently without oversubscribing this runner.
-            max-jobs = 4
-            cores = 2
+          go-version-file: .go-version
+          cache: false
 
-      - name: Restore selected Nix store
-        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          # The cache gate either selected main's exact input-addressed cache or
-          # published this PR's environment under a unique key.
-          primary-key: ${{ needs.cache-rebuild.outputs.cache-key }}
-          save: "false"
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
 
-      - name: Restore Go module cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-openmeter-go-modules-${{ hashFiles('go.*', 'collector/go.*', 'api/v3/client/go.*', 'e2e/go.*') }}
-          restore-keys: |
-            ${{ runner.os }}-openmeter-go-modules-
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -1025,8 +1007,7 @@ jobs:
         env:
           OPENMETER_ADDRESS: http://localhost:38888
           TZ: UTC
-        run: |
-          nix develop --impure .#ci -c make -C e2e test-base
+        run: make -C e2e test-base
 
       - name: Capture Docker Compose logs after base tests
         if: always() && steps.launch_e2e.outcome != 'skipped'
@@ -1037,25 +1018,121 @@ jobs:
             kill "$(cat artifacts/logs/docker-compose/base/compose-follow.pid)" 2>/dev/null || true
             sleep 1
           fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml ps --all > artifacts/logs/docker-compose/base/compose-ps.txt 2>&1 || true
-          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/base/${service}.log" 2>&1 || true
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml ps --all > artifacts/logs/docker-compose/base/compose-ps.txt 2>&1 || true
+          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml config --services); do
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/base/${service}.log" 2>&1 || true
           done
 
-      - name: Restart Docker Compose infra for credits-disabled tests
-        id: restart_credits_disabled_e2e
+      - name: Cleanup Docker Compose
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
+        working-directory: e2e
+        if: always()
+
+      - name: Upload Openmeter logs as artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: "[${{ github.job }}] Openmeter logs"
+          path: |
+            e2e/logs/**
+            e2e/artifacts/logs/**
+          retention-days: 14
+
+  e2e-credits-disabled:
+    name: E2E / Credits disabled
+    runs-on: depot-ubuntu-24.04-8
+    # Note: This check is running against the image that is going to be pushed.
+    needs:
+      - trusted-artifacts
+      - untrusted-artifacts
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create override files for e2e
+        env:
+          DEPOT_IMAGE_URL: ${{ needs.trusted-artifacts.outputs.container-image-url-depot }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              image: $DEPOT_IMAGE_URL
+            sink-worker:
+              image: $DEPOT_IMAGE_URL
+            billing-worker:
+              image: $DEPOT_IMAGE_URL
+          EOF
+
+          cat e2e/docker-compose.override.yaml
+
+      - name: Debug E2E runner state
+        run: |
+          echo "### DEBUG"
+          ss -ltnp | grep ':39000 ' || true
+          docker ps -a
+          docker network ls
+          echo "### DEBUG"
+
+      - name: Build as part of e2e
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          cat > e2e/docker-compose.override.yaml <<EOF
+          services:
+            openmeter:
+              build: ..
+            sink-worker:
+              build: ..
+            billing-worker:
+              build: ..
+          EOF
+
+          cat e2e/docker-compose.override.yaml
+
+      - name: Launch Docker Compose infra with credits disabled
+        id: launch_credits_disabled_e2e
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
         working-directory: e2e
 
       - name: Start Docker Compose log stream for credits-disabled tests
-        if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
+        if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/credits-disabled
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
           echo "$!" > artifacts/logs/docker-compose/credits-disabled/compose-follow.pid
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          cache: false
+
+      - name: Verify Depot Go cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+
+      - name: Check container health
+        run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
+        if: always()
+        continue-on-error: true
 
       - name: Wait for worker to become ready with credits disabled
         run: |
@@ -1068,11 +1145,10 @@ jobs:
         env:
           OPENMETER_ADDRESS: http://localhost:38888
           TZ: UTC
-        run: |
-          nix develop --impure .#ci -c make -C e2e test-credits-disabled
+        run: make -C e2e test-credits-disabled
 
       - name: Capture Docker Compose logs after credits-disabled tests
-        if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
+        if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/credits-disabled
@@ -1080,13 +1156,13 @@ jobs:
             kill "$(cat artifacts/logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
             sleep 1
           fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
-          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
+          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml config --services); do
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
           done
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
         working-directory: e2e
         if: always()
 
