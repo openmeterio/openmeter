@@ -42,6 +42,10 @@ projection. The type-specific detailed status is the lifecycle state.
   retain their ID or key fallback, and a feature remains expandable when only
   its required meter is unavailable; catalog service failures still abort the
   request.
+- Invoice-created hooks preflight every line's feature reference before charge
+  lifecycle effects. A missing feature returns the unchanged usable lines with
+  line-scoped validation issues, allowing billing to persist the invoice as
+  `draft.invalid_created`.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles

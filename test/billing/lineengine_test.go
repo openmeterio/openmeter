@@ -210,6 +210,19 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 	engineType ombilling.LineEngineType,
 	lineName string,
 ) (ombilling.StandardInvoice, time.Time) {
+	invoice, collectionAt := s.createMeteredStandardInvoiceForApp(ctx, namespace, appID, engineType, lineName)
+	s.Require().Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+
+	return invoice, collectionAt
+}
+
+func (s *LineEngineTestSuite) createMeteredStandardInvoiceForApp(
+	ctx context.Context,
+	namespace string,
+	appID app.AppID,
+	engineType ombilling.LineEngineType,
+	lineName string,
+) (ombilling.StandardInvoice, time.Time) {
 	meterSlug := fmt.Sprintf("%s-meter", namespace)
 	meterID := ulid.Make().String()
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{{
@@ -279,7 +292,6 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 	})
 	s.Require().NoError(err)
 	s.Require().Len(invoices, 1)
-	s.Require().Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
 
 	return invoices[0], invoices[0].DefaultCollectionAtForStandardInvoice()
 }
@@ -444,6 +456,64 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 	s.Require().Len(previewInvoice.Lines.OrEmpty(), 1)
 	s.True(previewCallbackCalled)
 	s.Equal("preview callback line", previewInvoice.Lines.OrEmpty()[0].Name)
+}
+
+func (s *LineEngineTestSuite) TestStandardInvoiceCreatedValidationIssuesPreserveLines() {
+	var (
+		ctx        = s.T().Context()
+		namespace  = s.GetUniqueNamespace("ns-line-engine-standard-invoice-created-validation")
+		mockEngine = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeCreditPurchase}
+		invoice    ombilling.StandardInvoice
+		hookCalls  int
+	)
+
+	defer clock.ResetTime()
+	defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+	defer s.MockStreamingConnector.Reset()
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return mustAsNewStandardLines(input), nil
+	}
+	mockEngine.onStandardInvoiceCreated = func(_ context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error) {
+		hookCalls++
+		s.Require().NotNil(input.FeatureMeters)
+		s.Require().True(input.FeatureMeters.Has(input.Lines[0]))
+
+		input.Lines[0].Name = "usable line with creation issue"
+
+		return input.Lines, ombilling.ValidationWithFieldPrefix(
+			fmt.Sprintf("lines/%s", input.Lines[0].ID),
+			ombilling.ValidationWithMessagef(
+				ombilling.ErrInvoiceLineFeatureNotFound,
+				"feature[%s]",
+				input.Lines[0].GetFeatureKey(),
+			),
+		)
+	}
+
+	s.Run("Given an invoice-created hook returns usable lines with a validation issue", func() {
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		invoice, _ = s.createMeteredStandardInvoiceForApp(
+			ctx,
+			namespace,
+			sandboxApp.GetID(),
+			mockEngine.GetLineEngineType(),
+			"standard invoice created validation source",
+		)
+	})
+
+	s.Run("Then billing persists the returned lines in draft.invalid_created", func() {
+		s.Equal(1, hookCalls)
+		s.Equal(ombilling.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		s.Equal("usable line with creation issue", invoice.Lines.OrEmpty()[0].Name)
+		s.Require().Len(invoice.ValidationIssues, 1)
+		s.Equal(ombilling.ErrInvoiceLineFeatureNotFound.Code, invoice.ValidationIssues[0].Code)
+		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+		s.Equal(ombilling.LineEngineValidationComponent(mockEngine.GetLineEngineType()), invoice.ValidationIssues[0].Component)
+	})
 }
 
 func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssues() {

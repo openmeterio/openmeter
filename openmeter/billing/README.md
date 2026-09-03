@@ -102,6 +102,13 @@ be retried without replaying stable lifecycle states. Issuing and payment
 booking therefore happen in retryable intermediary states; authorization is
 booked before settlement when a payment provider reports both at once.
 
+After a standard invoice and its lines are persisted, billing always invokes
+each line engine's invoice-created hook. An engine may return usable lines
+together with validation issues; billing accepts those lines, records the
+issues, and continues creation into `draft.invalid_created`. Operational errors
+still abort creation and make returned lines unusable. Missing-feature lines
+are not collected progressively before their normal due time.
+
 If quantity snapshotting discovers that a persisted feature no longer has its
 required meter association, collection still materializes the standard invoice
 in `draft.invalid_created` with the critical validation code

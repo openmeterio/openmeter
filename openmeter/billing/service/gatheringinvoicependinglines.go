@@ -335,14 +335,23 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
 		linesWithResolvedPeriods, err := slicesx.MapWithErr(invoice.Invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (gatheringLineWithBillablePeriod, error) {
+			featureMissing := line.GetFeatureMeterRef() != nil && !invoice.FeatureMeters.Has(line)
+			progressiveBilling := in.ProgressiveBilling && !featureMissing
+
 			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
 				FeatureMeters:      invoice.FeatureMeters,
-				ProgressiveBilling: in.ProgressiveBilling,
+				ProgressiveBilling: progressiveBilling,
 				AsOf:               in.AsOf,
 			})
 			if err != nil {
 				return gatheringLineWithBillablePeriod{}, fmt.Errorf("resolving billable period[%s]: %w", line.ID, err)
+			}
+
+			if in.ProgressiveBilling && featureMissing && line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration).After(asOfTruncated) {
+				return gatheringLineWithBillablePeriod{
+					Line: line,
+				}, nil
 			}
 
 			eng, err := s.lineEngines.Get(line.Engine)
@@ -353,7 +362,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 			engineInput := billing.IsLineBillableAsOfInput{
 				Line:                   line,
 				AsOf:                   in.AsOf,
-				ProgressiveBilling:     in.ProgressiveBilling,
+				ProgressiveBilling:     progressiveBilling,
 				FeatureMeters:          invoice.FeatureMeters,
 				ResolvedBillablePeriod: lo.FromPtr(period),
 			}
@@ -906,25 +915,60 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 		return billing.StandardInvoice{}, fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
 
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, invoice.Namespace, invoice.Lines.OrEmpty()...)
+	if err != nil {
+		_, systemErr := billing.ToValidationIssues(err)
+		if systemErr != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", systemErr)
+		}
+	}
+
 	for _, grouped := range groupedStandardLines {
 		input := billing.OnStandardInvoiceCreatedInput{
-			Invoice: invoice,
-			Lines:   grouped.Lines,
+			StandardLineEventInput: billing.StandardLineEventInput{
+				Invoice: invoice,
+				Lines:   grouped.Lines,
+			},
+			FeatureMeters: featureMeters,
 		}
 		if err := input.Validate(); err != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		lines, err := grouped.Engine.OnStandardInvoiceCreated(ctx, input)
-		if err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		lines, hookErr := grouped.Engine.OnStandardInvoiceCreated(ctx, input)
+		validationIssues, systemErr := billing.ToValidationIssues(hookErr)
+		if systemErr != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s: %w", grouped.Engine.GetLineEngineType(), systemErr)
 		}
 
 		if err := invoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
 			Existing:    grouped.Lines,
 			Replacement: lines,
 		}); err != nil {
+			if hookErr != nil {
+				return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s returned unusable lines: %w", grouped.Engine.GetLineEngineType(), hookErr)
+			}
+
 			return billing.StandardInvoice{}, fmt.Errorf("replacing standard invoice created lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if len(validationIssues) == 0 {
+			continue
+		}
+
+		component := billing.LineEngineValidationComponent(grouped.Engine.GetLineEngineType())
+		validationIssues = append(
+			lo.Filter(invoice.ValidationIssues, func(issue billing.ValidationIssue, _ int) bool {
+				return issue.Component == component
+			}),
+			validationIssues...,
+		)
+
+		if err := invoice.MergeValidationIssues(
+			billing.NewLineEngineValidationError(grouped.Engine, validationIssues.AsError()),
+			component,
+		); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("merging standard invoice created validation issues for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 	}
 
