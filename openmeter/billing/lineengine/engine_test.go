@@ -108,7 +108,7 @@ func TestSnapshotLineQuantitiesContinuesWithPartialFeatureMeters(t *testing.T) {
 		{
 			Severity: billing.ValidationIssueSeverityCritical,
 			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-			Message:  "feature[meterless-feature] has no meter associated",
+			Message:  "feature[meterless-feature]: usage based invoice line: feature has no meters",
 			Path:     "/lines/line-meterless",
 		},
 	}, issues)
