@@ -262,6 +262,7 @@ func fundedCreditTransactionFromCharge(charge creditpurchase.Charge) (CreditTran
 		CreatedAt:   charge.CreatedAt,
 		BookedAt:    grant.Time,
 		Type:        CreditTransactionTypeFunded,
+		GrantVoided: charge.State.VoidedAt != nil,
 		Currency:    charge.Intent.Currency.GetCode(),
 		Amount:      charge.Intent.CreditAmount,
 		Name:        charge.Intent.Name,

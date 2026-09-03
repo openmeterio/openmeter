@@ -528,6 +528,9 @@ func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.Bil
 	}
 
 	labels := creditTransactionLabels(tx.Annotations)
+	if tx.Type == customerbalance.CreditTransactionTypeFunded && tx.GrantVoided {
+		labels["voided"] = "true"
+	}
 	if len(labels) > 0 {
 		apiLabels := api.Labels(labels)
 		apiTx.Labels = &apiLabels

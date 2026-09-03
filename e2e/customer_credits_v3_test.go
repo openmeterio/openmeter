@@ -409,11 +409,25 @@ func TestV3VoidCreditGrant(t *testing.T) {
 		require.NotNil(t, all)
 
 		typeCounts := map[v3sdk.CreditTransactionType]int{}
+		fundedByID := map[string]v3sdk.CreditTransaction{}
 		for _, tx := range all.Data {
 			typeCounts[tx.Type]++
+			if tx.Type == v3sdk.CreditTransactionTypeFunded {
+				fundedByID[tx.ID] = tx
+			}
 		}
 		assert.Equal(t, 2, typeCounts[v3sdk.CreditTransactionTypeFunded])
 		assert.Equal(t, 1, typeCounts[txType])
+
+		voidedFunding, ok := fundedByID[grant.ID]
+		require.True(t, ok)
+		require.NotNil(t, voidedFunding.Labels)
+		assert.Equal(t, "true", voidedFunding.Labels["voided"])
+
+		activeFunding, ok := fundedByID[keptGrant.ID]
+		require.True(t, ok)
+		require.NotNil(t, activeFunding.Labels)
+		assert.NotContains(t, activeFunding.Labels, "voided")
 	})
 
 	t.Run("voiding an unknown grant is a 404", func(t *testing.T) {

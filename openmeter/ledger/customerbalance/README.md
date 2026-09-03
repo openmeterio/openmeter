@@ -65,6 +65,11 @@ Visible types:
 - `funded`: credit became available.
 - `consumed`: credit was used.
 - `expired`: unused credit expired.
+- `voided`: unused credit was forfeited by voiding its grant.
+
+Funded rows include the response label `voided: "true"` when the backing grant
+has since been voided. The label is absent from active funded rows and from
+other transaction types.
 
 The visible amount is the customer balance impact:
 

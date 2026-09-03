@@ -100,6 +100,43 @@ func TestListCreditTransactionsFundedBalanceCoalescesSameEffectiveTime(t *testin
 	}
 }
 
+func TestListCreditTransactionsFundedMarksVoidedGrant(t *testing.T) {
+	env := newTestEnv(t)
+
+	// given:
+	// - one funded grant has been voided and another remains active
+	voidedCharge := env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(25), env.Currency, nil)
+	activeCharge := env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(40), env.Currency, nil)
+	_, err := env.creditPurchase.MarkVoided(t.Context(), creditpurchase.MarkVoidedInput{
+		ChargeID: voidedCharge.GetChargeID(),
+		VoidedAt: clock.Now(),
+	})
+	require.NoError(t, err)
+
+	// when:
+	// - funded transaction history is listed after the void
+	result, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         10,
+		Type:          lo.ToPtr(CreditTransactionTypeFunded),
+		Currency:      &env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	// then:
+	// - only the funding backed by the voided grant carries the marker
+	itemsByID := make(map[string]CreditTransaction, len(result.Items))
+	for _, item := range result.Items {
+		itemsByID[item.ID.ID] = item
+	}
+
+	require.Contains(t, itemsByID, voidedCharge.ID)
+	require.True(t, itemsByID[voidedCharge.ID].GrantVoided)
+	require.Contains(t, itemsByID, activeCharge.ID)
+	require.False(t, itemsByID[activeCharge.ID].GrantVoided)
+}
+
 func TestListCreditTransactionsFundedBalanceProjectsFeatureFilteredImpact(t *testing.T) {
 	t.Run("partial projected impact", func(t *testing.T) {
 		env := newTestEnv(t)
