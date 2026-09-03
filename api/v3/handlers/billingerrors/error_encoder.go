@@ -1,4 +1,4 @@
-package billingprofiles
+package billingerrors
 
 import (
 	"context"
@@ -9,7 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 )
 
-func errorEncoder() encoder.ErrorEncoder {
+// ErrorEncoder maps billing domain errors to their established HTTP responses.
+func ErrorEncoder() encoder.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		return commonhttp.HandleErrorIfTypeMatches[billing.NotFoundError](ctx, http.StatusNotFound, err, w, billing.EncodeValidationIssues) ||
 			commonhttp.HandleErrorIfTypeMatches[billing.ValidationError](ctx, http.StatusBadRequest, err, w, billing.EncodeValidationIssues) ||

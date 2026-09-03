@@ -3,6 +3,7 @@ package customersbilling
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/api/v3/handlers/billingerrors"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -34,11 +35,15 @@ func New(
 	stripeService appstripe.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
+	sharedOptions := make([]httptransport.HandlerOption, 0, len(options)+1)
+	sharedOptions = append(sharedOptions, httptransport.WithErrorEncoder(billingerrors.ErrorEncoder()))
+	sharedOptions = append(sharedOptions, options...)
+
 	return &handler{
 		resolveNamespace: resolveNamespace,
 		billingService:   billingService,
 		customerService:  customerService,
 		stripeService:    stripeService,
-		options:          options,
+		options:          sharedOptions,
 	}
 }

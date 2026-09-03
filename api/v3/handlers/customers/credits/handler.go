@@ -5,6 +5,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/api/v3/handlers/billingerrors"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -47,6 +48,10 @@ func New(
 	accountResolver ledger.AccountResolver,
 	options ...httptransport.HandlerOption,
 ) Handler {
+	sharedOptions := make([]httptransport.HandlerOption, 0, len(options)+1)
+	sharedOptions = append(sharedOptions, httptransport.WithErrorEncoder(billingerrors.ErrorEncoder()))
+	sharedOptions = append(sharedOptions, options...)
+
 	return &handler{
 		resolveNamespace:   resolveNamespace,
 		customerService:    customerService,
@@ -54,6 +59,6 @@ func New(
 		creditGrantService: creditGrantService,
 		ledger:             ledger,
 		accountResolver:    accountResolver,
-		options:            options,
+		options:            sharedOptions,
 	}
 }

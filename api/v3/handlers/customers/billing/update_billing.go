@@ -197,7 +197,6 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 			h.options,
 			httptransport.WithOperationName("update-customer-billing"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
-			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
