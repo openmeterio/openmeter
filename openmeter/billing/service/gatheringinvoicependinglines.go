@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -923,13 +924,99 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 		}
 	}
 
-	for _, grouped := range groupedStandardLines {
+	return s.invokeOnStandardInvoiceCreatedForGroups(ctx, invokeOnStandardInvoiceCreatedForGroupsInput{
+		Invoice:              invoice,
+		FeatureMeters:        featureMeters,
+		GroupedStandardLines: groupedStandardLines,
+	})
+}
+
+// retryOnStandardInvoiceCreatedForMissingFeatures replays only charge hooks
+// whose missing-feature issue was downgraded by RetryInvoice. Initial creation
+// issues are critical, so entering draft.created for the first time never
+// invokes a charge hook twice.
+func (s *Service) retryOnStandardInvoiceCreatedForMissingFeatures(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
+	groupedStandardLines, err := s.lineEngines.groupStandardLinesByEngine(invoice.Lines.OrEmpty())
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("grouping standard lines by engine: %w", err)
+	}
+
+	groupedStandardLines = lo.Filter(groupedStandardLines, func(grouped StandardLinesWithEngine, _ int) bool {
+		return hasRetryableStandardInvoiceCreatedFeatureIssue(invoice, grouped.Engine.GetLineEngineType())
+	})
+	if len(groupedStandardLines) == 0 {
+		return invoice, nil
+	}
+
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, invoice.Namespace, invoice.Lines.OrEmpty()...)
+	if err != nil {
+		_, systemErr := billing.ToValidationIssues(err)
+		if systemErr != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", systemErr)
+		}
+	}
+
+	return s.invokeOnStandardInvoiceCreatedForGroups(ctx, invokeOnStandardInvoiceCreatedForGroupsInput{
+		Invoice:                 invoice,
+		FeatureMeters:           featureMeters,
+		GroupedStandardLines:    groupedStandardLines,
+		ReplaceValidationIssues: true,
+	})
+}
+
+func hasRetryableStandardInvoiceCreatedFeatureIssue(invoice billing.StandardInvoice, engineType billing.LineEngineType) bool {
+	if !engineType.IsCharge() {
+		return false
+	}
+
+	component := billing.LineEngineValidationComponent(engineType)
+	return lo.ContainsBy(invoice.ValidationIssues, func(issue billing.ValidationIssue) bool {
+		return issue.Severity == billing.ValidationIssueSeverityWarning &&
+			issue.Code == billing.ErrInvoiceLineFeatureNotFound.Code &&
+			issue.Component == component
+	})
+}
+
+type invokeOnStandardInvoiceCreatedForGroupsInput struct {
+	Invoice                 billing.StandardInvoice
+	FeatureMeters           billingfeaturemeter.FeatureMeters
+	GroupedStandardLines    []StandardLinesWithEngine
+	ReplaceValidationIssues bool
+}
+
+var _ models.Validator = invokeOnStandardInvoiceCreatedForGroupsInput{}
+
+func (i invokeOnStandardInvoiceCreatedForGroupsInput) Validate() error {
+	var errs []error
+
+	if i.Invoice.ID == "" {
+		errs = append(errs, errors.New("invoice ID is required"))
+	}
+
+	if i.FeatureMeters == nil {
+		errs = append(errs, errors.New("feature meters are required"))
+	}
+
+	if len(i.GroupedStandardLines) == 0 {
+		errs = append(errs, errors.New("grouped standard lines are required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (s *Service) invokeOnStandardInvoiceCreatedForGroups(ctx context.Context, in invokeOnStandardInvoiceCreatedForGroupsInput) (billing.StandardInvoice, error) {
+	if err := in.Validate(); err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created groups input: %w", err)
+	}
+
+	invoice := in.Invoice
+	for _, grouped := range in.GroupedStandardLines {
 		input := billing.OnStandardInvoiceCreatedInput{
 			StandardLineEventInput: billing.StandardLineEventInput{
 				Invoice: invoice,
 				Lines:   grouped.Lines,
 			},
-			FeatureMeters: featureMeters,
+			FeatureMeters: in.FeatureMeters,
 		}
 		if err := input.Validate(); err != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
@@ -952,17 +1039,19 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 			return billing.StandardInvoice{}, fmt.Errorf("replacing standard invoice created lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		if len(validationIssues) == 0 {
+		if len(validationIssues) == 0 && !in.ReplaceValidationIssues {
 			continue
 		}
 
 		component := billing.LineEngineValidationComponent(grouped.Engine.GetLineEngineType())
-		validationIssues = append(
-			lo.Filter(invoice.ValidationIssues, func(issue billing.ValidationIssue, _ int) bool {
-				return issue.Component == component
-			}),
-			validationIssues...,
-		)
+		if !in.ReplaceValidationIssues {
+			validationIssues = append(
+				lo.Filter(invoice.ValidationIssues, func(issue billing.ValidationIssue, _ int) bool {
+					return issue.Component == component
+				}),
+				validationIssues...,
+			)
+		}
 
 		if err := invoice.MergeValidationIssues(
 			billing.NewLineEngineValidationError(grouped.Engine, validationIssues.AsError()),

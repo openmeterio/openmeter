@@ -106,8 +106,11 @@ After a standard invoice and its lines are persisted, billing always invokes
 each line engine's invoice-created hook. An engine may return usable lines
 together with validation issues; billing accepts those lines, records the
 issues, and continues creation into `draft.invalid_created`. Operational errors
-still abort creation and make returned lines unusable. Missing-feature lines
-are not collected progressively before their normal due time.
+still abort creation and make returned lines unusable. Retry re-enters
+`draft.created` and replays charge hooks that previously reported a missing
+feature, allowing repaired data to complete the charge lifecycle without
+replaying hooks that already succeeded. Missing-feature lines are not collected
+progressively before their normal due time.
 
 If quantity snapshotting discovers that a persisted feature no longer has its
 required meter association, collection still materializes the standard invoice

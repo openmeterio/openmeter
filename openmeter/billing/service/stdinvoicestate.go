@@ -88,6 +88,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
 		OnActive(statelessx.AllOf(
+			out.retryOnStandardInvoiceCreatedForMissingFeatures,
 			out.calculateInvoice,
 			out.requireDBSave, // so that any new detailed lines have IDs
 		))
@@ -772,6 +773,17 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 
 		return nil, app.ValidateStandardInvoice(ctx, clonedInvoice)
 	})
+}
+
+func (m *InvoiceStateMachine) retryOnStandardInvoiceCreatedForMissingFeatures(ctx context.Context) error {
+	invoice, err := m.Service.retryOnStandardInvoiceCreatedForMissingFeatures(ctx, m.Invoice)
+	if err != nil {
+		return err
+	}
+
+	m.Invoice = invoice
+
+	return nil
 }
 
 func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
