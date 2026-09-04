@@ -6418,7 +6418,7 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
-          description: The currency of the granted credits.
+          description: The fiat or custom currency of the granted credits.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -6536,17 +6536,16 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: Currency of the purchase amount.
+          description: Fiat currency of the purchase amount.
         per_unit_cost_basis:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
             Cost basis per credit unit used to calculate the purchase amount.
 
-            If `per_unit_cost_basis` is 0.50 and credit amount is
-            $100.00, the total
-            charge is $50.00. The value must be greater than 0. If the
-            cost basis is 0, use `funding_method=none` instead.
+            If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+            total purchase amount is 50 USD. The value must be greater than 0. If the cost
+            basis is 0, use `funding_method=none` instead.
 
             Defaults to 1.0.
           default: '1.0'
@@ -11415,17 +11414,16 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: Currency of the purchase amount.
+          description: Fiat currency of the purchase amount.
         per_unit_cost_basis:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
             Cost basis per credit unit used to calculate the purchase amount.
 
-            If `per_unit_cost_basis` is 0.50 and credit amount is
-            $100.00, the total
-            charge is $50.00. The value must be greater than 0. If the
-            cost basis is 0, use `funding_method=none` instead.
+            If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+            total purchase amount is 50 USD. The value must be greater than 0. If the cost
+            basis is 0, use `funding_method=none` instead.
 
             Defaults to 1.0.
           default: '1.0'
@@ -11471,7 +11469,7 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CreateCurrencyCode'
-          description: The currency of the granted credits.
+          description: The fiat or custom currency of the granted credits.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -12829,7 +12827,7 @@ components:
           description: Filter credit grants by status.
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit grants by currency.
         key:
           allOf:

@@ -3069,14 +3069,6 @@ export const updateCreditGrantExternalSettlementRequest = z
     'Request body for updating the external payment settlement status of a credit grant.',
   )
 
-export const listCreditGrantsParamsFilter = z
-  .object({
-    status: creditGrantStatus.optional(),
-    currency: currencyCode.optional(),
-    key: stringFieldFilter.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
 export const getCreditBalanceParamsFilter = z
   .object({
     currency: stringFieldFilterExact.optional(),
@@ -3511,6 +3503,14 @@ export const creditAdjustment = z
   .describe(
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
+
+export const listCreditGrantsParamsFilter = z
+  .object({
+    status: creditGrantStatus.optional(),
+    currency: billingCurrencyCode.optional(),
+    key: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
 
 export const creditBalance = z
   .object({
@@ -10760,14 +10760,6 @@ export const updateCreditGrantExternalSettlementRequestWire = z
     'Request body for updating the external payment settlement status of a credit grant.',
   )
 
-export const listCreditGrantsParamsFilterWire = z
-  .strictObject({
-    status: creditGrantStatusWire.optional(),
-    currency: currencyCodeWire.optional(),
-    key: stringFieldFilterWire.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
 export const getCreditBalanceParamsFilterWire = z
   .strictObject({
     currency: stringFieldFilterExactWire.optional(),
@@ -11194,6 +11186,14 @@ export const creditAdjustmentWire = z
   .describe(
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
+
+export const listCreditGrantsParamsFilterWire = z
+  .strictObject({
+    status: creditGrantStatusWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
+    key: stringFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
 
 export const creditBalanceWire = z
   .strictObject({

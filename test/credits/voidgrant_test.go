@@ -51,6 +51,7 @@ func (s *VoidGrantTestSuite) SetupSuite() {
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
 		CreditVoidService:     s.CreditVoidService,
+		CurrencyResolver:      s.CurrencyResolver,
 		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err)
@@ -115,6 +116,51 @@ func (s *VoidGrantTestSuite) TestVoidFullyUnusedGrant() {
 	s.Require().Len(voidedImpacts.Items, 1)
 	s.Equal(string(transactions.TemplateCodeIssueCustomerReceivable), voidedImpacts.Items[0].Annotations[ledger.AnnotationTransactionTemplateCode])
 	s.Equal(string(ledger.TransactionDirectionCorrection), voidedImpacts.Items[0].Annotations[ledger.AnnotationTransactionDirection])
+}
+
+func (s *VoidGrantTestSuite) TestVoidFullyUnusedCustomCurrencyGrant() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("voidgrant-custom-currency-unused")
+	cust := s.setupVoidTestCustomer(ctx, ns)
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
+
+	fundedAt := datetime.MustParseTimeInLocation(s.T(), "2026-03-01T00:00:00Z", time.UTC).AsTime()
+	clock.FreezeTime(fundedAt)
+	defer clock.UnFreeze()
+
+	// given: an unused promotional grant in a resolved custom currency
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "TOKENS promotional grant",
+		Currency:      tokens.GetCode(),
+		Amount:        alpacadecimal.NewFromInt(100),
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	s.Equal(tokens.ID, grant.Intent.Currency.ID)
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(100), s.MustCustomerFBOBalanceByRoute(cust.GetID(), ledger.RouteFilter{
+		Currency:       tokens.Reference(),
+		CostBasis:      mo.Some[*alpacadecimal.Decimal](nil),
+		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
+	}), "custom credits should be available before void")
+
+	// when: the public grant service voids the grant
+	// then: it removes the remaining custom-currency FBO value and persists the
+	// ordinary void state
+	clock.FreezeTime(fundedAt.Add(24 * time.Hour))
+	voided, err := s.CreditGrantService.Void(ctx, creditgrant.VoidInput{
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		ChargeID:   grant.ID,
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(voided.State.VoidedAt)
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceByRoute(cust.GetID(), ledger.RouteFilter{
+		Currency:       tokens.Reference(),
+		CostBasis:      mo.Some[*alpacadecimal.Decimal](nil),
+		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
+	}), "custom credits should be removed after void")
 }
 
 func (s *VoidGrantTestSuite) TestVoidTwiceIsIdempotent() {

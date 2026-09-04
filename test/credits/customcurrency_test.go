@@ -62,8 +62,8 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 	usageFeature := feature.Feature.Key
 	otherFeature := "storage-gigabytes"
 
-	tokens := s.createCustomCurrency(ns, "TOKENS")
-	points := s.createCustomCurrency(ns, "POINTS")
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
+	points := s.CreateCustomCurrency(ns, "POINTS")
 	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -304,7 +304,7 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceUsesFiatCredits
 	customer := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(), billingtest.WithManualApproval())
 
-	tokens := s.createCustomCurrency(ns, "TOKENS")
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
 	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -461,7 +461,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 	t.Cleanup(feature.Cleanup)
 	usageFeature := feature.Feature.Key
 	otherFeature := "storage-gigabytes"
-	tokens := s.createCustomCurrency(ns, "TOKENS")
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
 		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -663,7 +663,7 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNative
 	t.Cleanup(feature.Cleanup)
 	chargeFeature := feature.Feature.Key
 	otherFeature := "storage-gigabytes"
-	tokens := s.createCustomCurrency(ns, "TOKENS")
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
 	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -1222,25 +1222,6 @@ func (s *CustomCurrencyCreditsSuite) settleExternalCreditPurchase(ctx context.Co
 	s.Equal(payment.StatusSettled, charge.Realizations.ExternalPaymentSettlement.Status)
 
 	return charge
-}
-
-func (s *CustomCurrencyCreditsSuite) createCustomCurrency(namespace string, code currencyx.Code) currencies.Currency {
-	s.T().Helper()
-
-	currency, err := s.CurrencyService.CreateCurrency(s.T().Context(), currencies.CreateCurrencyInput{
-		Namespace: namespace,
-		CurrencyDetails: currencyx.CurrencyDetails{
-			Code:               code,
-			Name:               code.String(),
-			Symbol:             code.String(),
-			Precision:          2,
-			DecimalMark:        ".",
-			ThousandsSeparator: ",",
-		},
-	})
-	s.Require().NoError(err)
-
-	return currency
 }
 
 func (s *CustomCurrencyCreditsSuite) newManualCostBasis(rate alpacadecimal.Decimal) costbasis.Intent {

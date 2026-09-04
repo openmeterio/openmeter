@@ -220,6 +220,11 @@ authorization and settlement; its cost basis carries the amount paid per unit.
 Custom-currency credit instead materializes a fiat-to-custom receivable exchange
 before the fiat payment is authorized.
 
+At the credit-grant boundary, the grant currency is resolved from the currency
+catalog. A funded custom-currency grant uses the purchase's fiat currency and
+per-unit rate as a manual cost basis. For fiat grants, purchase and grant
+currency must match.
+
 Persisted credit purchases read settlement and cost basis only from their
 dedicated fields. Fiat purchases persist their scalar rate on the charge row;
 custom-currency purchases reference durable shared cost-basis state. Resolution

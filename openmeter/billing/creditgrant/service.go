@@ -91,12 +91,11 @@ type PurchaseTerms struct {
 }
 
 type CreateInput struct {
-	Namespace   string
-	CustomerID  string
-	Name        string
-	Description *string
-	Labels      map[string]string
-	// TODO: support custom currency codes later
+	Namespace     string
+	CustomerID    string
+	Name          string
+	Description   *string
+	Labels        map[string]string
 	Currency      currencyx.Code
 	Amount        alpacadecimal.Decimal
 	EffectiveAt   *time.Time
@@ -149,9 +148,13 @@ func (i CreateInput) Validate() error {
 		if err := i.Purchase.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("purchase currency: %w", err))
 		}
-		// TODO: support custom-currency grants with a distinct fiat purchase currency.
-		if i.FundingMethod != FundingMethodNone && i.Purchase.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("purchase currency %q must match credit currency %q", i.Purchase.Currency, i.Currency))
+		if i.FundingMethod != FundingMethodNone {
+			if !i.Purchase.Currency.IsFiat() {
+				errs = append(errs, fmt.Errorf("purchase currency %q must be fiat", i.Purchase.Currency))
+			}
+			if i.Currency.IsFiat() && i.Purchase.Currency != i.Currency {
+				errs = append(errs, fmt.Errorf("purchase currency %q must match fiat credit currency %q", i.Purchase.Currency, i.Currency))
+			}
 		}
 
 		if i.Purchase.PerUnitCostBasis != nil && !i.Purchase.PerUnitCostBasis.IsPositive() {

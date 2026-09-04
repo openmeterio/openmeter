@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	customerbilling "github.com/openmeterio/openmeter/openmeter/billing/validators/customerbilling"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -38,6 +39,7 @@ type Config struct {
 	BillingService        billing.Service
 	CustomerService       customer.Service
 	CreditVoidService     creditvoid.Service
+	CurrencyResolver      currencies.CurrencyResolver
 	TransactionManager    transaction.Creator
 }
 
@@ -64,6 +66,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("credit void service is required"))
 	}
 
+	if c.CurrencyResolver == nil {
+		errs = append(errs, errors.New("currency resolver is required"))
+	}
+
 	if c.TransactionManager == nil {
 		errs = append(errs, errors.New("transaction manager is required"))
 	}
@@ -82,6 +88,7 @@ func New(config Config) (creditgrant.Service, error) {
 		billingService:        config.BillingService,
 		customerService:       config.CustomerService,
 		creditVoidService:     config.CreditVoidService,
+		currencyResolver:      config.CurrencyResolver,
 		transactionManager:    config.TransactionManager,
 	}, nil
 }
@@ -92,6 +99,7 @@ type service struct {
 	billingService        billing.Service
 	customerService       customer.Service
 	creditVoidService     creditvoid.Service
+	currencyResolver      currencies.CurrencyResolver
 	transactionManager    transaction.Creator
 }
 
@@ -130,7 +138,7 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 	}
 
 	// Build the credit purchase intent
-	intent, err := toIntent(input)
+	intent, err := s.toIntent(ctx, input)
 	if err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("build credit grant intent: %w", err)
 	}
@@ -289,10 +297,6 @@ func (s *service) Void(ctx context.Context, input creditgrant.VoidInput) (credit
 		return creditpurchase.Charge{}, err
 	}
 
-	if charge.Intent.Currency.IsCustom() {
-		return creditpurchase.Charge{}, fmt.Errorf("credit grant with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
-	}
-
 	if charge.State.VoidedAt != nil {
 		return charge, nil
 	}
@@ -359,28 +363,38 @@ func validateChargeVoidable(charge creditpurchase.Charge) error {
 	return nil
 }
 
-func toIntent(input creditgrant.CreateInput) (creditpurchase.Intent, error) {
+func (s *service) toIntent(ctx context.Context, input creditgrant.CreateInput) (creditpurchase.Intent, error) {
 	effectiveAt := lo.FromPtrOr(input.EffectiveAt, clock.Now()).UTC()
 	period := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(input.Currency).
-		Build()
+	currency, err := s.currencyResolver.ResolveCurrency(ctx, input.Namespace, currencies.CurrencyRef{
+		Code: input.Currency,
+	})
 	if err != nil {
-		return creditpurchase.Intent{}, fmt.Errorf("build fiat currency: %w", err)
+		return creditpurchase.Intent{}, fmt.Errorf("resolve credit currency: %w", err)
 	}
 
 	var costBasis creditpurchase.CostBasis
 	if input.FundingMethod != creditgrant.FundingMethodNone {
-		// TODO: map custom-currency grants to the shared custom-currency cost-basis intent.
-		costBasis = creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
-			Rate: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
-		})
+		rate := lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1))
+		if currency.IsCustom() {
+			fiatCurrency, err := currencyx.NewFiatCurrency(input.Purchase.Currency)
+			if err != nil {
+				return creditpurchase.Intent{}, fmt.Errorf("build purchase fiat currency: %w", err)
+			}
+
+			costBasis = creditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
+				FiatCurrency: fiatCurrency,
+				Rate:         rate,
+			}))
+		} else {
+			costBasis = creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: rate})
+		}
 	}
 
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
 			CustomerID: input.CustomerID,
-			Currency:   currencies.Currency{Currency: currency},
+			Currency:   *currency,
 			ManagedBy:  billing.ManuallyManagedLine,
 			TaxConfig:  productcatalog.TaxCodeConfigFrom(input.TaxConfig),
 		},

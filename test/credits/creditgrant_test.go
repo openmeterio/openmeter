@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -92,6 +93,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
 		CreditVoidService:     creditvoid.NewNoopService(),
+		CurrencyResolver:      s.CurrencyResolver,
 		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err)
@@ -324,6 +326,182 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
 	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
 	s.Equal(payment.StatusSettled, grant.Realizations.ExternalPaymentSettlement.Status)
+}
+
+func (s *CreditGrantTestSuite) TestCreateCustomCurrencyExternalGrantAndSettle() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-service-custom-currency-external")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
+	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()
+	clock.SetTime(now)
+
+	creditAmount := alpacadecimal.NewFromInt(100)
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+	fiatAmount := alpacadecimal.NewFromInt(50)
+	priority := int16(20)
+
+	// given: a catalog-backed custom currency purchased for USD through the
+	// public credit-grant service
+	// when: the externally funded grant is created
+	// then: the facade resolves the custom identity and grants the credits using
+	// a manual USD cost basis
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "TOKENS external grant",
+		Currency:      tokens.GetCode(),
+		Amount:        creditAmount,
+		Priority:      &priority,
+		FundingMethod: creditgrant.FundingMethodExternal,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:           USD,
+			PerUnitCostBasis:   &costBasis,
+			AvailabilityPolicy: lo.ToPtr(creditpurchase.CreatedInitialPaymentSettlementStatus),
+		},
+	})
+	s.Require().NoError(err)
+	s.Equal(tokens.ID, grant.Intent.Currency.ID)
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
+	s.Require().NotNil(grant.State.ResolvedCostBasis)
+	s.Equal(costBasis.InexactFloat64(), grant.State.ResolvedCostBasis.CostBasis.InexactFloat64())
+
+	customCostBasis, err := grant.Intent.CostBasis.AsCustomCurrency()
+	s.Require().NoError(err)
+	manualCostBasis, err := customCostBasis.AsManual()
+	s.Require().NoError(err)
+	s.Equal(currencyx.FiatCode(USD), manualCostBasis.FiatCurrency.GetFiatCode())
+	s.Equal(costBasis.InexactFloat64(), manualCostBasis.Rate.InexactFloat64())
+	settlementCurrency := USD
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceByRoute(cust.GetID(), ledger.RouteFilter{
+		Currency:          tokens.Reference(),
+		CostBasisCurrency: mo.Some(&settlementCurrency),
+		CostBasis:         mo.Some(&costBasis),
+		CreditPriority:    lo.ToPtr(int(priority)),
+	}), "custom credits should be available")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustCustomerReceivableBalanceByRoute(cust.GetID(), ledger.RouteFilter{
+		Currency:                       tokens.Reference(),
+		CostBasisCurrency:              mo.Some(&settlementCurrency),
+		CostBasis:                      mo.Some(&costBasis),
+		TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+	}), "custom purchase should remain receivable until payment authorization")
+
+	// when: the external payment is authorized
+	// then: the custom receivable is exchanged into the exact USD receivable
+	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
+		Namespace:    ns,
+		CustomerID:   cust.ID,
+		ChargeID:     grant.ID,
+		TargetStatus: payment.StatusAuthorized,
+	})
+	s.Require().NoError(err)
+	s.Equal(creditpurchase.StatusActivePaymentAuthorized, grant.Status)
+	s.Require().NotNil(grant.Realizations.ExternalPaymentSettlement)
+	s.Equal(fiatAmount.InexactFloat64(), grant.Realizations.ExternalPaymentSettlement.FiatAmount.InexactFloat64())
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalanceByRoute(cust.GetID(), ledger.RouteFilter{
+		Currency:                       tokens.Reference(),
+		CostBasisCurrency:              mo.Some(&settlementCurrency),
+		CostBasis:                      mo.Some(&costBasis),
+		TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+	}), "authorization should clear the custom receivable")
+	s.AssertDecimalEqual(fiatAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorization should create the USD receivable")
+
+	// when: the external payment settles
+	// then: the USD receivable clears while the purchased TOKENS stay available
+	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
+		Namespace:    ns,
+		CustomerID:   cust.ID,
+		ChargeID:     grant.ID,
+		TargetStatus: payment.StatusSettled,
+	})
+	s.Require().NoError(err)
+	s.Equal(creditpurchase.StatusFinal, grant.Status)
+	s.Equal(payment.StatusSettled, grant.Realizations.ExternalPaymentSettlement.Status)
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "settlement should clear the authorized USD receivable")
+	s.AssertDecimalEqual(fiatAmount.Neg(), s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "settlement should record the USD payment")
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceByRoute(cust.GetID(), ledger.RouteFilter{
+		Currency:          tokens.Reference(),
+		CostBasisCurrency: mo.Some(&settlementCurrency),
+		CostBasis:         mo.Some(&costBasis),
+		CreditPriority:    lo.ToPtr(int(priority)),
+	}), "settlement should preserve purchased custom credits")
+}
+
+func (s *CreditGrantTestSuite) TestCreateCustomCurrencyInvoiceFundedGrant() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-service-custom-currency-invoice")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
+	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()
+	clock.SetTime(now)
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+
+	// given: a 100 TOKENS grant purchased for 0.50 USD per token
+	// when: the invoice-funded grant is created through the public service
+	// then: billing creates a 50 USD invoice line while the granted currency
+	// remains the resolved TOKENS identity
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "TOKENS invoice grant",
+		Currency:      tokens.GetCode(),
+		Amount:        alpacadecimal.NewFromInt(100),
+		Priority:      lo.ToPtr(int16(10)),
+		FundingMethod: creditgrant.FundingMethodInvoice,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:         USD,
+			PerUnitCostBasis: &costBasis,
+		},
+	})
+	s.Require().NoError(err)
+	s.Equal(tokens.ID, grant.Intent.Currency.ID)
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
+	s.Require().NotNil(grant.Realizations.CreditGrantRealization)
+
+	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+		Namespace: ns,
+		Expand:    billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(standardInvoices.Items, 1)
+	invoice := standardInvoices.Items[0]
+	s.Equal(currencyx.FiatCode(USD), invoice.Currency)
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 50, Total: 50}, invoice.Totals)
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.Equal(grant.ID, lo.FromPtr(invoice.Lines.OrEmpty()[0].ChargeID))
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 50, Total: 50}, invoice.Lines.OrEmpty()[0].Totals)
+}
+
+func (s *CreditGrantTestSuite) TestCreateCustomCurrencyGrantRequiresCatalogEntry() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-service-custom-currency-missing")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	// given: a custom-looking currency code that has no namespace catalog entry
+	// when: a grant is created through the public service
+	_, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "unknown custom currency",
+		Currency:      "TOKENS",
+		Amount:        alpacadecimal.NewFromInt(100),
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+
+	// then: the facade rejects it before constructing a charge intent
+	s.Require().ErrorContains(err, "resolve credit currency")
 }
 
 func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSettle() {
