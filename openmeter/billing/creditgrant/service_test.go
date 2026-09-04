@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -41,13 +42,13 @@ func TestCreateInputValidateCostBasis(t *testing.T) {
 	eur, err := currencyx.NewFiatCurrency("EUR")
 	require.NoError(t, err)
 
-	fiatRate := new(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: alpacadecimal.NewFromFloat(0.5)}))
+	fiatRate := lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: alpacadecimal.NewFromFloat(0.5)}))
 
 	manual := func(fiat *currencyx.FiatCurrency) *creditpurchase.CostBasis {
-		return new(creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: fiat, Rate: alpacadecimal.NewFromFloat(0.5)})))
+		return lo.ToPtr(creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: fiat, Rate: alpacadecimal.NewFromFloat(0.5)})))
 	}
 
-	dynamic := new(creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: usd})))
+	dynamic := lo.ToPtr(creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: usd})))
 
 	tests := []struct {
 		name           string
@@ -64,13 +65,13 @@ func TestCreateInputValidateCostBasis(t *testing.T) {
 			name:           "fiat grant with custom currency manual cost basis",
 			creditCurrency: "USD",
 			purchase:       PurchaseTerms{Currency: "USD", CostBasis: manual(usd)},
-			wantErr:        "purchase.cost_basis must be a fiat rate for fiat credit grants",
+			wantErr:        "validation error: purchase.cost_basis is not supported for fiat credit grants",
 		},
 		{
 			name:           "fiat grant with dynamic cost basis",
 			creditCurrency: "USD",
 			purchase:       PurchaseTerms{Currency: "USD", CostBasis: dynamic},
-			wantErr:        "purchase.cost_basis must be a fiat rate for fiat credit grants",
+			wantErr:        "validation error: purchase.cost_basis is not supported for fiat credit grants",
 		},
 		{
 			name:           "custom grant without cost basis",
