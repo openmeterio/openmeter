@@ -567,6 +567,14 @@ export interface AppCustomerDataExternalInvoicing {
 }
 
 /** Cost basis resolved at the charge's full service period start. */
+export interface CreateChargeCostBasisDynamic {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'dynamic'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+}
+
+/** Cost basis resolved at the charge's full service period start. */
 export interface ChargeCostBasisDynamic {
   /** Discriminator selecting the cost basis mode. */
   type: 'dynamic'
@@ -644,6 +652,26 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
+/** Cost basis with an explicit conversion rate supplied with the charge. */
+export interface CreateChargeCostBasisManual {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'manual'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency?: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+}
+
+/** Cost basis with an explicit conversion rate supplied with the charge. */
+export interface ChargeCostBasisManual {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'manual'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency?: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+}
+
 /** Flat price. */
 export interface PriceFlat {
   /** The type of the price. */
@@ -686,16 +714,6 @@ export interface RateCardDiscounts {
    * exhausted.
    */
   usage?: string
-}
-
-/** Cost basis with an explicit conversion rate supplied with the charge. */
-export interface ChargeCostBasisManual {
-  /** Discriminator selecting the cost basis mode. */
-  type: 'manual'
-  /** The fiat currency the charge amount is converted into for invoicing. */
-  fiatCurrency: string
-  /** Fiat amount per one unit of the custom currency. */
-  rate: string
 }
 
 /** Totals contains the summaries of all calculations for a billing resource. */
@@ -913,9 +931,29 @@ export interface ProfileReference {
   id: string
 }
 
+/** Cost basis pinned to a specific cost basis resource of the custom currency. */
+export interface CreateChargeCostBasisPinned {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'pinned'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** ID of the custom currency's cost basis resource to pin. */
+  costBasisId: string
+}
+
 /** TaxCode reference. */
 export interface CreateResourceReference {
   id: string
+}
+
+/** Cost basis pinned to a specific cost basis resource of the custom currency. */
+export interface ChargeCostBasisPinned {
+  /** Discriminator selecting the cost basis mode. */
+  type: 'pinned'
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** ID of the custom currency's cost basis resource to pin. */
+  costBasisId: string
 }
 
 /** TaxCode reference. */
@@ -962,16 +1000,6 @@ export interface SubscriptionReference {
   name?: string
   /** The phase of the subscription. */
   phase: { id: string; item: { id: string } }
-}
-
-/** Cost basis pinned to a specific cost basis resource of the custom currency. */
-export interface ChargeCostBasisPinned {
-  /** Discriminator selecting the cost basis mode. */
-  type: 'pinned'
-  /** The fiat currency the charge amount is converted into for invoicing. */
-  fiatCurrency: string
-  /** ID of the custom currency's cost basis resource to pin. */
-  costBasisId: string
 }
 
 /** App reference. */
@@ -1144,6 +1172,25 @@ export interface AppStripeCreateCustomerPortalSessionResult {
 }
 
 /**
+ * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+ * cost basis is resolved; dynamic cost bases are exposed only after the service
+ * period has started.
+ */
+export interface ChargeResolvedCostBasis {
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+  /**
+   * ID of the custom currency's cost basis resource the rate was taken from. Absent
+   * for manual cost bases.
+   */
+  costBasisId?: string
+  /** When the rate was resolved. */
+  resolvedAt: Date
+}
+
+/**
  * A period with defined start and end dates.
  *
  * The period is always inclusive at the start and exclusive at the end.
@@ -1161,25 +1208,6 @@ export interface ClosedPeriod {
    * The period is exclusive at the end.
    */
   to: Date
-}
-
-/**
- * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
- * cost basis is resolved; dynamic cost bases are exposed only after the service
- * period has started.
- */
-export interface ChargeResolvedCostBasis {
-  /** The fiat currency the charge amount is converted into for invoicing. */
-  fiatCurrency: string
-  /** Fiat amount per one unit of the custom currency. */
-  rate: string
-  /**
-   * ID of the custom currency's cost basis resource the rate was taken from. Absent
-   * for manual cost bases.
-   */
-  costBasisId?: string
-  /** When the rate was resolved. */
-  resolvedAt: Date
 }
 
 /** A subscription add-on event. */
@@ -1899,29 +1927,6 @@ export interface EntitlementAccessResult {
   config?: string
 }
 
-/** Purchase and payment terms of the grant. */
-export interface CreateCreditGrantPurchase {
-  /** Currency of the purchase amount. */
-  currency: string
-  /**
-   * Cost basis per credit unit used to calculate the purchase amount.
-   *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
-   *
-   * Defaults to 1.0.
-   */
-  perUnitCostBasis: string
-  /**
-   * Controls when credits become available for consumption.
-   *
-   * Defaults to `on_creation`.
-   */
-  availabilityPolicy: 'on_creation'
-}
-
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlement {
   /** The type of the entitlement template. */
@@ -1981,33 +1986,6 @@ export interface RecurringPeriod {
   anchor: Date
   /** The interval duration in ISO 8601 format. */
   interval: string
-}
-
-/** Purchase and payment terms of the grant. */
-export interface CreditGrantPurchase {
-  /** Currency of the purchase amount. */
-  currency: string
-  /**
-   * Cost basis per credit unit used to calculate the purchase amount.
-   *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
-   *
-   * Defaults to 1.0.
-   */
-  perUnitCostBasis: string
-  /** The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`. */
-  amount: string
-  /**
-   * Controls when credits become available for consumption.
-   *
-   * Defaults to `on_creation`.
-   */
-  availabilityPolicy: 'on_creation'
-  /** Current payment settlement status. */
-  settlementStatus?: 'pending' | 'authorized' | 'settled'
 }
 
 /**
@@ -3738,161 +3716,84 @@ export interface PricePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
-/** CreditGrant create request. */
-export interface CreateCreditGrantRequest {
+/** Purchase and payment terms of the grant. */
+export interface CreateCreditGrantPurchase {
   /**
-   * Display name of the resource.
+   * Fiat currency the purchase is settled in.
    *
-   * Between 1 and 256 characters.
+   * Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+   * for custom-currency grants.
    */
-  name: string
+  currency: string
   /**
-   * Optional description of the resource.
+   * Fiat cost basis per credit unit of a fiat-currency grant.
    *
-   * Maximum 1024 characters.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total
+   * charge is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
+   *
+   * Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+   * to 1.0.
    */
-  description?: string
-  labels?: CreateLabels
-  /** Funding method of the grant. */
-  fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
-  currency: CreateCurrencyCode
-  /** Granted credit amount. */
-  amount: string
-  /** Present when a funding workflow applies (funding_method is not `none`). */
-  purchase?: CreateCreditGrantPurchase
+  perUnitCostBasis: string
   /**
-   * Tax configuration for the grant.
+   * Defines how custom-currency credits are priced in the purchase `currency`; the
+   * resolved rate is exposed through `resolved_cost_basis`.
    *
-   * For `invoice` and `external` funding methods, tax configuration should be
-   * provided to ensure correct revenue recognition. When not provided, the default
-   * credit grant tax code is applied, if that's not set the global default taxcode
-   * is used.
+   * Required for custom-currency grants and rejected for fiat grants, which use
+   * `per_unit_cost_basis`. `fiat_currency` must equal the purchase `currency`. A
+   * `dynamic` cost basis is resolved at the grant's effective time, so the currency
+   * cost basis must be effective by then.
    */
-  taxConfig?: CreateCreditGrantTaxConfig
-  filters?: CreateCreditGrantFilters
-  /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority: number
+  costBasis?: CreateChargeCostBasis
   /**
-   * The timestamp when the credit grant becomes effective.
+   * Controls when credits become available for consumption.
    *
-   * Defaults to the current date and time.
+   * Defaults to `on_creation`.
    */
-  effectiveAt?: Date
-  /**
-   * The duration after which the credit grant expires.
-   *
-   * Defaults to never expiring.
-   */
-  expiresAfter?: string
-  /**
-   * Idempotency key for the credit grant creation request.
-   *
-   * Unique per customer: reusing the same key for the same customer returns an HTTP
-   * 409 Conflict instead of creating a duplicate grant, which makes create requests
-   * safe to retry. The same key may be reused across different customers.
-   */
-  key?: string
+  availabilityPolicy: 'on_creation'
 }
 
-/**
- * A credit grant allocates credits to a customer.
- *
- * Credits are drawn down against charges according to the settlement mode
- * configured on the rate card.
- */
-export interface CreditGrant {
-  id: string
+/** Purchase and payment terms of the grant. */
+export interface CreditGrantPurchase {
   /**
-   * Display name of the resource.
+   * Fiat currency the purchase is settled in.
    *
-   * Between 1 and 256 characters.
+   * Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+   * for custom-currency grants.
    */
-  name: string
+  currency: string
   /**
-   * Optional description of the resource.
+   * Fiat cost basis per credit unit of a fiat-currency grant.
    *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** Funding method of the grant. */
-  fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
-  currency: BillingCurrencyCode
-  /** Granted credit amount. */
-  amount: string
-  /** Present when a funding workflow applies (funding_method is not `none`). */
-  purchase?: CreditGrantPurchase
-  /**
-   * Tax configuration for the grant.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total
+   * charge is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
    *
-   * For `invoice` and `external` funding methods, tax configuration should be
-   * provided to ensure correct revenue recognition. When not provided, the default
-   * credit grant tax code is applied, if that's not set the global default taxcode
-   * is used.
+   * Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+   * to 1.0.
    */
-  taxConfig?: CreditGrantTaxConfig
-  /** Available when `funding_method` is `invoice`. */
-  invoice?: CreditGrantInvoiceReference
-  filters?: CreditGrantFilters
-  /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority: number
+  perUnitCostBasis: string
   /**
-   * The timestamp when the credit grant becomes effective.
+   * The rate the purchase is settled at in the purchase `currency`. Present once the
+   * cost basis is resolved.
+   */
+  resolvedCostBasis?: ChargeResolvedCostBasis
+  /**
+   * The purchase amount, calculated from the resolved cost basis and credit
+   * `amount`. Present once the cost basis is resolved.
+   */
+  amount?: string
+  /**
+   * Controls when credits become available for consumption.
    *
-   * Defaults to the current date and time.
+   * Defaults to `on_creation`.
    */
-  effectiveAt?: Date
-  /**
-   * Idempotency key for the credit grant creation request.
-   *
-   * Unique per customer: reusing the same key for the same customer returns an HTTP
-   * 409 Conflict instead of creating a duplicate grant, which makes create requests
-   * safe to retry. The same key may be reused across different customers.
-   */
-  key?: string
-  /**
-   * The timestamp when the credit grant expires.
-   *
-   * Calculated from the grant effective time and `expires_after` if provided.
-   */
-  expiresAt?: Date
-  /** Timestamp when the grant was voided. */
-  voidedAt?: Date
-  /** Current lifecycle status of the grant. */
-  status: 'pending' | 'active' | 'expired' | 'voided'
-}
-
-/** Tax settings for a billing workflow. */
-export interface WorkflowTaxSettings {
-  /**
-   * Enable automatic tax calculation when tax is supported by the app. For example,
-   * with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
-   */
-  enabled: boolean
-  /**
-   * Enforce tax calculation when tax is supported by the app. When enabled, the
-   * billing system will not allow to create an invoice without tax calculation.
-   * Enforcement is different per apps, for example, Stripe app requires customer to
-   * have a tax location when starting a paid subscription.
-   */
-  enforced: boolean
-  /**
-   * Default tax configuration to apply to the invoices for line items.
-   *
-   * Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
-   * config is deprecated and can no longer be added or changed: the organization
-   * default tax code is used instead. Existing tax-code values may still be removed,
-   * and `behavior` remains fully supported.
-   */
-  defaultTaxConfig?: TaxConfig
+  availabilityPolicy: 'on_creation'
+  /** Current payment settlement status. */
+  settlementStatus?: 'pending' | 'authorized' | 'settled'
 }
 
 /** Flat fee charge create request. */
@@ -3945,6 +3846,31 @@ export interface CreateChargeFlatFeeRequest {
   fullServicePeriod?: ClosedPeriod
   /** The billing period the charge belongs to. */
   billingPeriod?: ClosedPeriod
+}
+
+/** Tax settings for a billing workflow. */
+export interface WorkflowTaxSettings {
+  /**
+   * Enable automatic tax calculation when tax is supported by the app. For example,
+   * with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+   */
+  enabled: boolean
+  /**
+   * Enforce tax calculation when tax is supported by the app. When enabled, the
+   * billing system will not allow to create an invoice without tax calculation.
+   * Enforcement is different per apps, for example, Stripe app requires customer to
+   * have a tax location when starting a paid subscription.
+   */
+  enforced: boolean
+  /**
+   * Default tax configuration to apply to the invoices for line items.
+   *
+   * Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
+   * config is deprecated and can no longer be added or changed: the organization
+   * default tax code is used instead. Existing tax-code values may still be removed,
+   * and `behavior` remains fully supported.
+   */
+  defaultTaxConfig?: TaxConfig
 }
 
 /** Page paginated response. */
@@ -4619,10 +4545,146 @@ export interface UpdateFeatureRequest {
   unitCost?: FeatureUnitCost | null
 }
 
-/** Page paginated response. */
-export interface CreditGrantPagePaginatedResponse {
-  data: CreditGrant[]
-  meta: PaginatedMeta
+/** CreditGrant create request. */
+export interface CreateCreditGrantRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: CreateLabels
+  /** Funding method of the grant. */
+  fundingMethod: 'none' | 'invoice' | 'external'
+  /**
+   * The fiat or custom currency of the granted credits.
+   *
+   * Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+   * fiat currency.
+   */
+  currency: CreateCurrencyCode
+  /** Granted credit amount. */
+  amount: string
+  /** Present when a funding workflow applies (funding_method is not `none`). */
+  purchase?: CreateCreditGrantPurchase
+  /**
+   * Tax configuration for the grant.
+   *
+   * For `invoice` and `external` funding methods, tax configuration should be
+   * provided to ensure correct revenue recognition. When not provided, the default
+   * credit grant tax code is applied, if that's not set the global default taxcode
+   * is used.
+   */
+  taxConfig?: CreateCreditGrantTaxConfig
+  filters?: CreateCreditGrantFilters
+  /** Draw-down priority of the grant. Lower values have higher priority. */
+  priority: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effectiveAt?: Date
+  /**
+   * The duration after which the credit grant expires.
+   *
+   * Defaults to never expiring.
+   */
+  expiresAfter?: string
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * Unique per customer: reusing the same key for the same customer returns an HTTP
+   * 409 Conflict instead of creating a duplicate grant, which makes create requests
+   * safe to retry. The same key may be reused across different customers.
+   */
+  key?: string
+}
+
+/**
+ * A credit grant allocates credits to a customer.
+ *
+ * Credits are drawn down against charges according to the settlement mode
+ * configured on the rate card.
+ */
+export interface CreditGrant {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** Funding method of the grant. */
+  fundingMethod: 'none' | 'invoice' | 'external'
+  /**
+   * The fiat or custom currency of the granted credits.
+   *
+   * Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+   * fiat currency.
+   */
+  currency: BillingCurrencyCode
+  /** Granted credit amount. */
+  amount: string
+  /** Present when a funding workflow applies (funding_method is not `none`). */
+  purchase?: CreditGrantPurchase
+  /**
+   * Tax configuration for the grant.
+   *
+   * For `invoice` and `external` funding methods, tax configuration should be
+   * provided to ensure correct revenue recognition. When not provided, the default
+   * credit grant tax code is applied, if that's not set the global default taxcode
+   * is used.
+   */
+  taxConfig?: CreditGrantTaxConfig
+  /** Available when `funding_method` is `invoice`. */
+  invoice?: CreditGrantInvoiceReference
+  filters?: CreditGrantFilters
+  /** Draw-down priority of the grant. Lower values have higher priority. */
+  priority: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effectiveAt?: Date
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * Unique per customer: reusing the same key for the same customer returns an HTTP
+   * 409 Conflict instead of creating a duplicate grant, which makes create requests
+   * safe to retry. The same key may be reused across different customers.
+   */
+  key?: string
+  /**
+   * The timestamp when the credit grant expires.
+   *
+   * Calculated from the grant effective time and `expires_after` if provided.
+   */
+  expiresAt?: Date
+  /** Timestamp when the grant was voided. */
+  voidedAt?: Date
+  /** Current lifecycle status of the grant. */
+  status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
 /** Page paginated response. */
@@ -5038,6 +5100,12 @@ export interface UpdateInvoiceLineRateCard {
   featureKey?: string
   /** Discount configuration from the rate card. */
   discounts?: UpdateDiscounts
+}
+
+/** Page paginated response. */
+export interface CreditGrantPagePaginatedResponse {
+  data: CreditGrant[]
+  meta: PaginatedMeta
 }
 
 /** Billing workflow settings. */
@@ -6438,6 +6506,15 @@ export type UpdateBillingWorkflowPaymentSettings =
  * Cost basis selection for a custom-currency charge. The variant chosen fixes when
  * and how the conversion rate is determined.
  */
+export type CreateChargeCostBasis =
+  | CreateChargeCostBasisDynamic
+  | CreateChargeCostBasisPinned
+  | CreateChargeCostBasisManual
+
+/**
+ * Cost basis selection for a custom-currency charge. The variant chosen fixes when
+ * and how the conversion rate is determined.
+ */
 export type ChargeCostBasis =
   ChargeCostBasisDynamic | ChargeCostBasisPinned | ChargeCostBasisManual
 
@@ -6778,29 +6855,6 @@ export interface AppStripeCreateCheckoutSessionTaxIdCollectionInput {
   required?: 'if_supported' | 'never'
 }
 
-/** Purchase and payment terms of the grant. */
-export interface CreateCreditGrantPurchaseInput {
-  /** Currency of the purchase amount. */
-  currency: string
-  /**
-   * Cost basis per credit unit used to calculate the purchase amount.
-   *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
-   *
-   * Defaults to 1.0.
-   */
-  perUnitCostBasis?: string
-  /**
-   * Controls when credits become available for consumption.
-   *
-   * Defaults to `on_creation`.
-   */
-  availabilityPolicy?: 'on_creation'
-}
-
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlementInput {
   /** The type of the entitlement template. */
@@ -6822,33 +6876,6 @@ export interface RateCardMeteredEntitlementInput {
    * billing cadence of the rate card.
    */
   usagePeriod?: string
-}
-
-/** Purchase and payment terms of the grant. */
-export interface CreditGrantPurchaseInput {
-  /** Currency of the purchase amount. */
-  currency: string
-  /**
-   * Cost basis per credit unit used to calculate the purchase amount.
-   *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
-   *
-   * Defaults to 1.0.
-   */
-  perUnitCostBasis?: string
-  /** The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`. */
-  amount: string
-  /**
-   * Controls when credits become available for consumption.
-   *
-   * Defaults to `on_creation`.
-   */
-  availabilityPolicy?: 'on_creation'
-  /** Current payment settlement status. */
-  settlementStatus?: 'pending' | 'authorized' | 'settled'
 }
 
 /** Request body for voiding a credit grant. */
@@ -6995,136 +7022,84 @@ export interface UpdateBillingInvoiceWorkflowInput {
   payment?: UpdateBillingWorkflowPaymentSettingsInput
 }
 
-/** CreditGrant create request. */
-export interface CreateCreditGrantRequestInput {
+/** Purchase and payment terms of the grant. */
+export interface CreateCreditGrantPurchaseInput {
   /**
-   * Display name of the resource.
+   * Fiat currency the purchase is settled in.
    *
-   * Between 1 and 256 characters.
+   * Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+   * for custom-currency grants.
    */
-  name: string
+  currency: string
   /**
-   * Optional description of the resource.
+   * Fiat cost basis per credit unit of a fiat-currency grant.
    *
-   * Maximum 1024 characters.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total
+   * charge is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
+   *
+   * Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+   * to 1.0.
    */
-  description?: string
-  labels?: CreateLabels
-  /** Funding method of the grant. */
-  fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
-  currency: CreateCurrencyCode
-  /** Granted credit amount. */
-  amount: string
-  /** Present when a funding workflow applies (funding_method is not `none`). */
-  purchase?: CreateCreditGrantPurchaseInput
+  perUnitCostBasis?: string
   /**
-   * Tax configuration for the grant.
+   * Defines how custom-currency credits are priced in the purchase `currency`; the
+   * resolved rate is exposed through `resolved_cost_basis`.
    *
-   * For `invoice` and `external` funding methods, tax configuration should be
-   * provided to ensure correct revenue recognition. When not provided, the default
-   * credit grant tax code is applied, if that's not set the global default taxcode
-   * is used.
+   * Required for custom-currency grants and rejected for fiat grants, which use
+   * `per_unit_cost_basis`. `fiat_currency` must equal the purchase `currency`. A
+   * `dynamic` cost basis is resolved at the grant's effective time, so the currency
+   * cost basis must be effective by then.
    */
-  taxConfig?: CreateCreditGrantTaxConfig
-  filters?: CreateCreditGrantFilters
-  /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority?: number
+  costBasis?: CreateChargeCostBasis
   /**
-   * The timestamp when the credit grant becomes effective.
+   * Controls when credits become available for consumption.
    *
-   * Defaults to the current date and time.
+   * Defaults to `on_creation`.
    */
-  effectiveAt?: Date
-  /**
-   * The duration after which the credit grant expires.
-   *
-   * Defaults to never expiring.
-   */
-  expiresAfter?: string
-  /**
-   * Idempotency key for the credit grant creation request.
-   *
-   * Unique per customer: reusing the same key for the same customer returns an HTTP
-   * 409 Conflict instead of creating a duplicate grant, which makes create requests
-   * safe to retry. The same key may be reused across different customers.
-   */
-  key?: string
+  availabilityPolicy?: 'on_creation'
 }
 
-/**
- * A credit grant allocates credits to a customer.
- *
- * Credits are drawn down against charges according to the settlement mode
- * configured on the rate card.
- */
-export interface CreditGrantInput {
-  id: string
+/** Purchase and payment terms of the grant. */
+export interface CreditGrantPurchaseInput {
   /**
-   * Display name of the resource.
+   * Fiat currency the purchase is settled in.
    *
-   * Between 1 and 256 characters.
+   * Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+   * for custom-currency grants.
    */
-  name: string
+  currency: string
   /**
-   * Optional description of the resource.
+   * Fiat cost basis per credit unit of a fiat-currency grant.
    *
-   * Maximum 1024 characters.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total
+   * charge is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
+   *
+   * Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+   * to 1.0.
    */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** Funding method of the grant. */
-  fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
-  currency: BillingCurrencyCode
-  /** Granted credit amount. */
-  amount: string
-  /** Present when a funding workflow applies (funding_method is not `none`). */
-  purchase?: CreditGrantPurchaseInput
+  perUnitCostBasis?: string
   /**
-   * Tax configuration for the grant.
-   *
-   * For `invoice` and `external` funding methods, tax configuration should be
-   * provided to ensure correct revenue recognition. When not provided, the default
-   * credit grant tax code is applied, if that's not set the global default taxcode
-   * is used.
+   * The rate the purchase is settled at in the purchase `currency`. Present once the
+   * cost basis is resolved.
    */
-  taxConfig?: CreditGrantTaxConfig
-  /** Available when `funding_method` is `invoice`. */
-  invoice?: CreditGrantInvoiceReference
-  filters?: CreditGrantFilters
-  /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority?: number
+  resolvedCostBasis?: ChargeResolvedCostBasis
   /**
-   * The timestamp when the credit grant becomes effective.
-   *
-   * Defaults to the current date and time.
+   * The purchase amount, calculated from the resolved cost basis and credit
+   * `amount`. Present once the cost basis is resolved.
    */
-  effectiveAt?: Date
+  amount?: string
   /**
-   * Idempotency key for the credit grant creation request.
+   * Controls when credits become available for consumption.
    *
-   * Unique per customer: reusing the same key for the same customer returns an HTTP
-   * 409 Conflict instead of creating a duplicate grant, which makes create requests
-   * safe to retry. The same key may be reused across different customers.
+   * Defaults to `on_creation`.
    */
-  key?: string
-  /**
-   * The timestamp when the credit grant expires.
-   *
-   * Calculated from the grant effective time and `expires_after` if provided.
-   */
-  expiresAt?: Date
-  /** Timestamp when the grant was voided. */
-  voidedAt?: Date
-  /** Current lifecycle status of the grant. */
-  status: 'pending' | 'active' | 'expired' | 'voided'
+  availabilityPolicy?: 'on_creation'
+  /** Current payment settlement status. */
+  settlementStatus?: 'pending' | 'authorized' | 'settled'
 }
 
 /** Tax settings for a billing workflow. */
@@ -7350,10 +7325,146 @@ export interface UpdateInvoiceWorkflowSettingsInput {
   workflow: UpdateBillingInvoiceWorkflowInput
 }
 
-/** Page paginated response. */
-export interface CreditGrantPagePaginatedResponseInput {
-  data: CreditGrantInput[]
-  meta: PaginatedMeta
+/** CreditGrant create request. */
+export interface CreateCreditGrantRequestInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: CreateLabels
+  /** Funding method of the grant. */
+  fundingMethod: 'none' | 'invoice' | 'external'
+  /**
+   * The fiat or custom currency of the granted credits.
+   *
+   * Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+   * fiat currency.
+   */
+  currency: CreateCurrencyCode
+  /** Granted credit amount. */
+  amount: string
+  /** Present when a funding workflow applies (funding_method is not `none`). */
+  purchase?: CreateCreditGrantPurchaseInput
+  /**
+   * Tax configuration for the grant.
+   *
+   * For `invoice` and `external` funding methods, tax configuration should be
+   * provided to ensure correct revenue recognition. When not provided, the default
+   * credit grant tax code is applied, if that's not set the global default taxcode
+   * is used.
+   */
+  taxConfig?: CreateCreditGrantTaxConfig
+  filters?: CreateCreditGrantFilters
+  /** Draw-down priority of the grant. Lower values have higher priority. */
+  priority?: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effectiveAt?: Date
+  /**
+   * The duration after which the credit grant expires.
+   *
+   * Defaults to never expiring.
+   */
+  expiresAfter?: string
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * Unique per customer: reusing the same key for the same customer returns an HTTP
+   * 409 Conflict instead of creating a duplicate grant, which makes create requests
+   * safe to retry. The same key may be reused across different customers.
+   */
+  key?: string
+}
+
+/**
+ * A credit grant allocates credits to a customer.
+ *
+ * Credits are drawn down against charges according to the settlement mode
+ * configured on the rate card.
+ */
+export interface CreditGrantInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** Funding method of the grant. */
+  fundingMethod: 'none' | 'invoice' | 'external'
+  /**
+   * The fiat or custom currency of the granted credits.
+   *
+   * Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+   * fiat currency.
+   */
+  currency: BillingCurrencyCode
+  /** Granted credit amount. */
+  amount: string
+  /** Present when a funding workflow applies (funding_method is not `none`). */
+  purchase?: CreditGrantPurchaseInput
+  /**
+   * Tax configuration for the grant.
+   *
+   * For `invoice` and `external` funding methods, tax configuration should be
+   * provided to ensure correct revenue recognition. When not provided, the default
+   * credit grant tax code is applied, if that's not set the global default taxcode
+   * is used.
+   */
+  taxConfig?: CreditGrantTaxConfig
+  /** Available when `funding_method` is `invoice`. */
+  invoice?: CreditGrantInvoiceReference
+  filters?: CreditGrantFilters
+  /** Draw-down priority of the grant. Lower values have higher priority. */
+  priority?: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effectiveAt?: Date
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * Unique per customer: reusing the same key for the same customer returns an HTTP
+   * 409 Conflict instead of creating a duplicate grant, which makes create requests
+   * safe to retry. The same key may be reused across different customers.
+   */
+  key?: string
+  /**
+   * The timestamp when the credit grant expires.
+   *
+   * Calculated from the grant effective time and `expires_after` if provided.
+   */
+  expiresAt?: Date
+  /** Timestamp when the grant was voided. */
+  voidedAt?: Date
+  /** Current lifecycle status of the grant. */
+  status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
 /** Bad Request. */
@@ -7680,6 +7791,12 @@ export interface CreateChargeUsageBasedRequestInput {
   fullServicePeriod?: ClosedPeriod
   /** The billing period the charge belongs to. */
   billingPeriod?: ClosedPeriod
+}
+
+/** Page paginated response. */
+export interface CreditGrantPagePaginatedResponseInput {
+  data: CreditGrantInput[]
+  meta: PaginatedMeta
 }
 
 /** Billing workflow settings. */

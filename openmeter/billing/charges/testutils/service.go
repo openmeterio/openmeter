@@ -106,6 +106,7 @@ type Services struct {
 	FlatFeeService        flatfee.Service
 	CreditPurchaseService creditpurchase.Service
 	CurrencyService       currencies.Service
+	CurrencyResolver      currencies.CurrencyResolver
 }
 
 // NewServices constructs the charges stack from external dependencies and handlers.
@@ -300,5 +301,6 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
 		CurrencyService:       currencyService,
+		CurrencyResolver:      currencyResolver,
 	}, nil
 }

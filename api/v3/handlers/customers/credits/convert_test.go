@@ -11,8 +11,10 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -177,5 +179,73 @@ func TestToAPIBillingCreditGrantKey(t *testing.T) {
 		grant, err := toAPIBillingCreditGrant(newCharge(nil))
 		require.NoError(t, err)
 		require.Nil(t, grant.Key)
+	})
+}
+
+func TestFromAPICreateChargeCostBasis(t *testing.T) {
+	usd := api.CurrencyCode("USD")
+
+	manual := func(fiatCurrency *api.CurrencyCode) *api.CreateChargeCostBasis {
+		var out api.CreateChargeCostBasis
+		require.NoError(t, out.FromCreateChargeCostBasisManual(api.CreateChargeCostBasisManual{
+			Type:         api.CreateChargeCostBasisManualTypeManual,
+			FiatCurrency: fiatCurrency,
+			Rate:         "0.5",
+		}))
+
+		return &out
+	}
+
+	t.Run("nil", func(t *testing.T) {
+		out, err := fromAPICreateChargeCostBasis(nil)
+		require.NoError(t, err)
+		require.Nil(t, out)
+	})
+
+	t.Run("manual without fiat currency folds into the fiat rate", func(t *testing.T) {
+		out, err := fromAPICreateChargeCostBasis(manual(nil))
+		require.NoError(t, err)
+		require.Equal(t, creditpurchase.CostBasisTypeFiat, out.Type())
+
+		fiat, err := out.AsFiat()
+		require.NoError(t, err)
+		require.Equal(t, 0.5, fiat.Rate.InexactFloat64())
+	})
+
+	t.Run("manual with fiat currency keeps the intent", func(t *testing.T) {
+		out, err := fromAPICreateChargeCostBasis(manual(&usd))
+		require.NoError(t, err)
+		require.Equal(t, creditpurchase.CostBasisTypeCustomCurrency, out.Type())
+		require.Equal(t, costbasis.ModeManual, out.GetCustomCurrencyModeOrEmpty())
+
+		intent, err := out.AsCustomCurrency()
+		require.NoError(t, err)
+
+		fiat, err := intent.GetFiatCurrency()
+		require.NoError(t, err)
+		require.Equal(t, currencyx.Code("USD"), fiat.Details().Code)
+	})
+
+	t.Run("dynamic keeps the intent", func(t *testing.T) {
+		var in api.CreateChargeCostBasis
+		require.NoError(t, in.FromCreateChargeCostBasisDynamic(api.CreateChargeCostBasisDynamic{
+			Type:         api.CreateChargeCostBasisDynamicTypeDynamic,
+			FiatCurrency: usd,
+		}))
+
+		out, err := fromAPICreateChargeCostBasis(&in)
+		require.NoError(t, err)
+		require.Equal(t, costbasis.ModeDynamic, out.GetCustomCurrencyModeOrEmpty())
+	})
+
+	t.Run("invalid rate", func(t *testing.T) {
+		var in api.CreateChargeCostBasis
+		require.NoError(t, in.FromCreateChargeCostBasisManual(api.CreateChargeCostBasisManual{
+			Type: api.CreateChargeCostBasisManualTypeManual,
+			Rate: "not-a-number",
+		}))
+
+		_, err := fromAPICreateChargeCostBasis(&in)
+		require.ErrorContains(t, err, "invalid cost basis rate")
 	})
 }

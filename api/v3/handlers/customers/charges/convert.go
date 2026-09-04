@@ -262,12 +262,7 @@ func toAPIChargeResolvedCostBasis(intent *costbasis.Intent, state *costbasis.Sta
 		return nil, err
 	}
 
-	return &api.BillingChargeResolvedCostBasis{
-		FiatCurrency: api.CurrencyCode(fiat.Details().Code),
-		Rate:         state.CostBasis.String(),
-		CostBasisId:  state.CostBasisID,
-		ResolvedAt:   state.ResolvedAt,
-	}, nil
+	return billingcommon.ToAPIChargeResolvedCostBasis(fiat, state)
 }
 
 func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *api.BillingChargeFlatFeeSystemIntent {
@@ -948,7 +943,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		featureID = lo.ToPtr(flatFee.Feature.Id)
 	}
 
-	costBasis, err := fromAPIChargeCostBasis(flatFee.CostBasis)
+	costBasis, err := billingcommon.FromAPIChargeCostBasis(flatFee.CostBasis)
 	if err != nil {
 		return zero, err
 	}
@@ -980,68 +975,6 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
 	}, nil
-}
-
-func fromAPIChargeCostBasis(in *api.BillingChargeCostBasis) (*costbasis.Intent, error) {
-	if in == nil {
-		return nil, nil
-	}
-
-	costBasisType, err := in.Discriminator()
-	if err != nil {
-		return nil, fmt.Errorf("invalid cost basis: %w", err)
-	}
-
-	var fiatCurrencyCode api.CurrencyCode
-	var input costbasis.NewIntentFromFieldsInput
-
-	switch costBasisType {
-	case string(api.BillingChargeCostBasisDynamicTypeDynamic):
-		dynamic, err := in.AsBillingChargeCostBasisDynamic()
-		if err != nil {
-			return nil, fmt.Errorf("invalid dynamic cost basis: %w", err)
-		}
-
-		input.Mode = costbasis.ModeDynamic
-		fiatCurrencyCode = dynamic.FiatCurrency
-	case string(api.BillingChargeCostBasisManualTypeManual):
-		manual, err := in.AsBillingChargeCostBasisManual()
-		if err != nil {
-			return nil, fmt.Errorf("invalid manual cost basis: %w", err)
-		}
-
-		rate, err := alpacadecimal.NewFromString(manual.Rate)
-		if err != nil {
-			return nil, fmt.Errorf("invalid cost basis rate: %w", err)
-		}
-
-		input.Mode = costbasis.ModeManual
-		input.Rate = &rate
-		fiatCurrencyCode = manual.FiatCurrency
-	case string(api.BillingChargeCostBasisPinnedTypePinned):
-		pinned, err := in.AsBillingChargeCostBasisPinned()
-		if err != nil {
-			return nil, fmt.Errorf("invalid pinned cost basis: %w", err)
-		}
-
-		input.Mode = costbasis.ModePinned
-		input.CurrencyCostBasisID = &pinned.CostBasisId
-		fiatCurrencyCode = pinned.FiatCurrency
-	default:
-		return nil, fmt.Errorf("invalid cost basis type: %s", costBasisType)
-	}
-
-	input.FiatCurrency, err = currencyx.NewFiatCurrency(fiatCurrencyCode)
-	if err != nil {
-		return nil, fmt.Errorf("invalid cost basis fiat currency: %w", err)
-	}
-
-	intent, err := costbasis.NewIntentFromFields(input)
-	if err != nil {
-		return nil, fmt.Errorf("invalid cost basis: %w", err)
-	}
-
-	return &intent, nil
 }
 
 func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
@@ -1093,7 +1026,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		}
 	}
 
-	costBasis, err := fromAPIChargeCostBasis(usageBasedFee.CostBasis)
+	costBasis, err := billingcommon.FromAPIChargeCostBasis(usageBasedFee.CostBasis)
 	if err != nil {
 		return zero, err
 	}

@@ -1408,16 +1408,16 @@ export const numericFieldFilter = z
     'Filter by a numeric value. All properties are optional; provide exactly one to specify the comparison.',
   )
 
+export const chargeCostBasisType = z
+  .enum(['dynamic', 'pinned', 'manual'])
+  .describe('Cost basis resolution mode of a charge.')
+
 export const chargeType = z
   .enum(['flat_fee', 'usage_based'])
 
   .describe(
     'Type of a charge. Values: - `flat_fee`: A fixed-amount charge. - `usage_based`: A usage-priced charge.',
   )
-
-export const chargeCostBasisType = z
-  .enum(['dynamic', 'pinned', 'manual'])
-  .describe('Cost basis resolution mode of a charge.')
 
 export const invoiceType = z
   .enum(['standard'])
@@ -1540,6 +1540,15 @@ export const appCustomerDataExternalInvoicing = z
   })
   .describe('External invoicing customer data.')
 
+export const createChargeCostBasisDynamic = z
+  .object({
+    type: z
+      .literal('dynamic')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode,
+  })
+  .describe("Cost basis resolved at the charge's full service period start.")
+
 export const chargeCostBasisDynamic = z
   .object({
     type: z
@@ -1658,6 +1667,32 @@ export const createCurrencyCustomRequest = z
   })
   .describe('CurrencyCustom create request.')
 
+export const createChargeCostBasisManual = z
+  .object({
+    type: z
+      .literal('manual')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode.optional(),
+    rate: numeric,
+  })
+
+  .describe(
+    'Cost basis with an explicit conversion rate supplied with the charge.',
+  )
+
+export const chargeCostBasisManual = z
+  .object({
+    type: z
+      .literal('manual')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode.optional(),
+    rate: numeric,
+  })
+
+  .describe(
+    'Cost basis with an explicit conversion rate supplied with the charge.',
+  )
+
 export const priceFlat = z
   .object({
     type: z.literal('flat').describe('The type of the price.'),
@@ -1696,19 +1731,6 @@ export const rateCardDiscounts = z
     usage: numeric.optional(),
   })
   .describe('Discount configuration for a rate card.')
-
-export const chargeCostBasisManual = z
-  .object({
-    type: z
-      .literal('manual')
-      .describe('Discriminator selecting the cost basis mode.'),
-    fiatCurrency: currencyCode,
-    rate: numeric,
-  })
-
-  .describe(
-    'Cost basis with an explicit conversion rate supplied with the charge.',
-  )
 
 export const totals = z
   .object({
@@ -1945,11 +1967,37 @@ export const profileReference = z
   })
   .describe('Billing profile reference.')
 
+export const createChargeCostBasisPinned = z
+  .object({
+    type: z
+      .literal('pinned')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode,
+    costBasisId: ulid,
+  })
+
+  .describe(
+    'Cost basis pinned to a specific cost basis resource of the custom currency.',
+  )
+
 export const createResourceReference = z
   .object({
     id: ulid,
   })
   .describe('TaxCode reference.')
+
+export const chargeCostBasisPinned = z
+  .object({
+    type: z
+      .literal('pinned')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiatCurrency: currencyCode,
+    costBasisId: ulid,
+  })
+
+  .describe(
+    'Cost basis pinned to a specific cost basis resource of the custom currency.',
+  )
 
 export const taxCodeReference = z
   .object({
@@ -2010,19 +2058,6 @@ export const subscriptionReference = z
 
   .describe(
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
-  )
-
-export const chargeCostBasisPinned = z
-  .object({
-    type: z
-      .literal('pinned')
-      .describe('Discriminator selecting the cost basis mode.'),
-    fiatCurrency: currencyCode,
-    costBasisId: ulid,
-  })
-
-  .describe(
-    'Cost basis pinned to a specific cost basis resource of the custom currency.',
   )
 
 export const appReference = z
@@ -2224,16 +2259,6 @@ export const appStripeCreateCustomerPortalSessionResult = z
     'Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object). Contains all the information needed to redirect the customer to the Stripe Customer Portal.',
   )
 
-export const closedPeriod = z
-  .object({
-    from: dateTime,
-    to: dateTime,
-  })
-
-  .describe(
-    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
-  )
-
 export const chargeResolvedCostBasis = z
   .object({
     fiatCurrency: currencyCode,
@@ -2244,6 +2269,16 @@ export const chargeResolvedCostBasis = z
 
   .describe(
     'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
+  )
+
+export const closedPeriod = z
+  .object({
+    from: dateTime,
+    to: dateTime,
+  })
+
+  .describe(
+    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
 
 export const subscriptionAddonTimelineSegment = z
@@ -2975,16 +3010,6 @@ export const entitlementAccessResult = z
   })
   .describe('Entitlement access result.')
 
-export const createCreditGrantPurchase = z
-  .object({
-    currency: currencyCode,
-    perUnitCostBasis: numeric.optional().default('1.0'),
-    availabilityPolicy: creditAvailabilityPolicy
-      .optional()
-      .default('on_creation'),
-  })
-  .describe('Purchase and payment terms of the grant.')
-
 export const rateCardMeteredEntitlement = z
   .object({
     type: z
@@ -3047,18 +3072,6 @@ export const recurringPeriod = z
     interval: iso8601Duration,
   })
   .describe('Recurring period with an anchor and an interval.')
-
-export const creditGrantPurchase = z
-  .object({
-    currency: currencyCode,
-    perUnitCostBasis: numeric.optional().default('1.0'),
-    amount: numeric,
-    availabilityPolicy: creditAvailabilityPolicy
-      .optional()
-      .default('on_creation'),
-    settlementStatus: creditPurchasePaymentSettlementStatus.optional(),
-  })
-  .describe('Purchase and payment terms of the grant.')
 
 export const updateCreditGrantExternalSettlementRequest = z
   .object({
@@ -3754,6 +3767,17 @@ export const listPlanAddonsParamsFilter = z
   })
   .describe('Filter options for listing plan add-ons.')
 
+export const createChargeCostBasis = z
+  .discriminatedUnion('type', [
+    createChargeCostBasisDynamic,
+    createChargeCostBasisPinned,
+    createChargeCostBasisManual,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
+  )
+
 export const createCreditGrantTaxConfig = z
   .object({
     behavior: taxBehavior.optional(),
@@ -3762,6 +3786,17 @@ export const createCreditGrantTaxConfig = z
 
   .describe(
     'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
+  )
+
+export const chargeCostBasis = z
+  .discriminatedUnion('type', [
+    chargeCostBasisDynamic,
+    chargeCostBasisPinned,
+    chargeCostBasisManual,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
   )
 
 export const creditGrantTaxConfig = z
@@ -3809,17 +3844,6 @@ export const updateOrganizationDefaultTaxCodesRequest = z
     creditGrantTaxCode: taxCodeReference.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
-
-export const chargeCostBasis = z
-  .discriminatedUnion('type', [
-    chargeCostBasisDynamic,
-    chargeCostBasisPinned,
-    chargeCostBasisManual,
-  ])
-
-  .describe(
-    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
-  )
 
 export const invoiceWorkflowAppsReferences = z
   .object({
@@ -4674,115 +4698,29 @@ export const pricePagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
-export const createCreditGrantRequest = z
+export const createCreditGrantPurchase = z
   .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
+    currency: currencyCode,
+    perUnitCostBasis: numeric.optional().default('1.0'),
+    costBasis: createChargeCostBasis.optional(),
+    availabilityPolicy: creditAvailabilityPolicy
       .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: createLabels.optional(),
-    fundingMethod: creditFundingMethod,
-    currency: createCurrencyCode,
-    amount: numeric,
-    purchase: createCreditGrantPurchase.optional(),
-    taxConfig: createCreditGrantTaxConfig.optional(),
-    filters: createCreditGrantFilters.optional(),
-    priority: z
-      .number()
-      .int()
-      .gte(1)
-      .lte(1000)
-      .optional()
-      .default(10)
-
-      .describe(
-        'Draw-down priority of the grant. Lower values have higher priority.',
-      ),
-    effectiveAt: dateTime.optional(),
-    expiresAfter: iso8601Duration.optional(),
-    key: externalResourceKey.optional(),
+      .default('on_creation'),
   })
-  .describe('CreditGrant create request.')
+  .describe('Purchase and payment terms of the grant.')
 
-export const creditGrant = z
+export const creditGrantPurchase = z
   .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
+    currency: currencyCode,
+    perUnitCostBasis: numeric.optional().default('1.0'),
+    resolvedCostBasis: chargeResolvedCostBasis.optional(),
+    amount: numeric.optional(),
+    availabilityPolicy: creditAvailabilityPolicy
       .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    fundingMethod: creditFundingMethod,
-    currency: billingCurrencyCode,
-    amount: numeric,
-    purchase: creditGrantPurchase.optional(),
-    taxConfig: creditGrantTaxConfig.optional(),
-    invoice: creditGrantInvoiceReference.optional(),
-    filters: creditGrantFilters.optional(),
-    priority: z
-      .number()
-      .int()
-      .gte(1)
-      .lte(1000)
-      .optional()
-      .default(10)
-
-      .describe(
-        'Draw-down priority of the grant. Lower values have higher priority.',
-      ),
-    effectiveAt: dateTime.optional(),
-    key: externalResourceKey.optional(),
-    expiresAt: dateTime.optional(),
-    voidedAt: dateTime.optional(),
-    status: creditGrantStatus,
+      .default('on_creation'),
+    settlementStatus: creditPurchasePaymentSettlementStatus.optional(),
   })
-
-  .describe(
-    'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
-  )
-
-export const workflowTaxSettings = z
-  .object({
-    enabled: z
-      .boolean()
-      .optional()
-      .default(true)
-
-      .describe(
-        'Enable automatic tax calculation when tax is supported by the app. For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.',
-      ),
-    enforced: z
-      .boolean()
-      .optional()
-      .default(false)
-
-      .describe(
-        'Enforce tax calculation when tax is supported by the app. When enabled, the billing system will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription.',
-      ),
-    defaultTaxConfig: taxConfig.optional(),
-  })
-  .describe('Tax settings for a billing workflow.')
+  .describe('Purchase and payment terms of the grant.')
 
 export const createChargeFlatFeeRequest = z
   .object({
@@ -4820,6 +4758,28 @@ export const createChargeFlatFeeRequest = z
     billingPeriod: closedPeriod.optional(),
   })
   .describe('Flat fee charge create request.')
+
+export const workflowTaxSettings = z
+  .object({
+    enabled: z
+      .boolean()
+      .optional()
+      .default(true)
+
+      .describe(
+        'Enable automatic tax calculation when tax is supported by the app. For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.',
+      ),
+    enforced: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Enforce tax calculation when tax is supported by the app. When enabled, the billing system will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription.',
+      ),
+    defaultTaxConfig: taxConfig.optional(),
+  })
+  .describe('Tax settings for a billing workflow.')
 
 export const planAddonPagePaginatedResponse = z
   .object({
@@ -5427,12 +5387,93 @@ export const updatePrice = z
   ])
   .describe('Price.')
 
-export const creditGrantPagePaginatedResponse = z
+export const createCreditGrantRequest = z
   .object({
-    data: z.array(creditGrant),
-    meta: paginatedMeta,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: createLabels.optional(),
+    fundingMethod: creditFundingMethod,
+    currency: createCurrencyCode,
+    amount: numeric,
+    purchase: createCreditGrantPurchase.optional(),
+    taxConfig: createCreditGrantTaxConfig.optional(),
+    filters: createCreditGrantFilters.optional(),
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+      .default(10)
+
+      .describe(
+        'Draw-down priority of the grant. Lower values have higher priority.',
+      ),
+    effectiveAt: dateTime.optional(),
+    expiresAfter: iso8601Duration.optional(),
+    key: externalResourceKey.optional(),
   })
-  .describe('Page paginated response.')
+  .describe('CreditGrant create request.')
+
+export const creditGrant = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    fundingMethod: creditFundingMethod,
+    currency: billingCurrencyCode,
+    amount: numeric,
+    purchase: creditGrantPurchase.optional(),
+    taxConfig: creditGrantTaxConfig.optional(),
+    invoice: creditGrantInvoiceReference.optional(),
+    filters: creditGrantFilters.optional(),
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+      .default(10)
+
+      .describe(
+        'Draw-down priority of the grant. Lower values have higher priority.',
+      ),
+    effectiveAt: dateTime.optional(),
+    key: externalResourceKey.optional(),
+    expiresAt: dateTime.optional(),
+    voidedAt: dateTime.optional(),
+    status: creditGrantStatus,
+  })
+
+  .describe(
+    'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
+  )
 
 export const currencyPagePaginatedResponse = z
   .object({
@@ -5713,6 +5754,13 @@ export const updateInvoiceLineRateCard = z
     discounts: updateDiscounts.optional(),
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
+
+export const creditGrantPagePaginatedResponse = z
+  .object({
+    data: z.array(creditGrant),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
 
 export const workflow = z
   .object({
@@ -9107,16 +9155,16 @@ export const numericFieldFilterWire = z
     'Filter by a numeric value. All properties are optional; provide exactly one to specify the comparison.',
   )
 
+export const chargeCostBasisTypeWire = z
+  .enum(['dynamic', 'pinned', 'manual'])
+  .describe('Cost basis resolution mode of a charge.')
+
 export const chargeTypeWire = z
   .enum(['flat_fee', 'usage_based'])
 
   .describe(
     'Type of a charge. Values: - `flat_fee`: A fixed-amount charge. - `usage_based`: A usage-priced charge.',
   )
-
-export const chargeCostBasisTypeWire = z
-  .enum(['dynamic', 'pinned', 'manual'])
-  .describe('Cost basis resolution mode of a charge.')
 
 export const invoiceTypeWire = z
   .enum(['standard'])
@@ -9239,6 +9287,15 @@ export const appCustomerDataExternalInvoicingWire = z
   })
   .describe('External invoicing customer data.')
 
+export const createChargeCostBasisDynamicWire = z
+  .strictObject({
+    type: z
+      .literal('dynamic')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire,
+  })
+  .describe("Cost basis resolved at the charge's full service period start.")
+
 export const chargeCostBasisDynamicWire = z
   .strictObject({
     type: z
@@ -9357,6 +9414,32 @@ export const createCurrencyCustomRequestWire = z
   })
   .describe('CurrencyCustom create request.')
 
+export const createChargeCostBasisManualWire = z
+  .strictObject({
+    type: z
+      .literal('manual')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire.optional(),
+    rate: numericWire,
+  })
+
+  .describe(
+    'Cost basis with an explicit conversion rate supplied with the charge.',
+  )
+
+export const chargeCostBasisManualWire = z
+  .strictObject({
+    type: z
+      .literal('manual')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire.optional(),
+    rate: numericWire,
+  })
+
+  .describe(
+    'Cost basis with an explicit conversion rate supplied with the charge.',
+  )
+
 export const priceFlatWire = z
   .strictObject({
     type: z.literal('flat').describe('The type of the price.'),
@@ -9395,19 +9478,6 @@ export const rateCardDiscountsWire = z
     usage: numericWire.optional(),
   })
   .describe('Discount configuration for a rate card.')
-
-export const chargeCostBasisManualWire = z
-  .strictObject({
-    type: z
-      .literal('manual')
-      .describe('Discriminator selecting the cost basis mode.'),
-    fiat_currency: currencyCodeWire,
-    rate: numericWire,
-  })
-
-  .describe(
-    'Cost basis with an explicit conversion rate supplied with the charge.',
-  )
 
 export const totalsWire = z
   .strictObject({
@@ -9644,11 +9714,37 @@ export const profileReferenceWire = z
   })
   .describe('Billing profile reference.')
 
+export const createChargeCostBasisPinnedWire = z
+  .strictObject({
+    type: z
+      .literal('pinned')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire,
+    cost_basis_id: ulidWire,
+  })
+
+  .describe(
+    'Cost basis pinned to a specific cost basis resource of the custom currency.',
+  )
+
 export const createResourceReferenceWire = z
   .strictObject({
     id: ulidWire,
   })
   .describe('TaxCode reference.')
+
+export const chargeCostBasisPinnedWire = z
+  .strictObject({
+    type: z
+      .literal('pinned')
+      .describe('Discriminator selecting the cost basis mode.'),
+    fiat_currency: currencyCodeWire,
+    cost_basis_id: ulidWire,
+  })
+
+  .describe(
+    'Cost basis pinned to a specific cost basis resource of the custom currency.',
+  )
 
 export const taxCodeReferenceWire = z
   .strictObject({
@@ -9709,19 +9805,6 @@ export const subscriptionReferenceWire = z
 
   .describe(
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
-  )
-
-export const chargeCostBasisPinnedWire = z
-  .strictObject({
-    type: z
-      .literal('pinned')
-      .describe('Discriminator selecting the cost basis mode.'),
-    fiat_currency: currencyCodeWire,
-    cost_basis_id: ulidWire,
-  })
-
-  .describe(
-    'Cost basis pinned to a specific cost basis resource of the custom currency.',
   )
 
 export const appReferenceWire = z
@@ -9922,16 +10005,6 @@ export const appStripeCreateCustomerPortalSessionResultWire = z
     'Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object). Contains all the information needed to redirect the customer to the Stripe Customer Portal.',
   )
 
-export const closedPeriodWire = z
-  .strictObject({
-    from: dateTimeWire,
-    to: dateTimeWire,
-  })
-
-  .describe(
-    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
-  )
-
 export const chargeResolvedCostBasisWire = z
   .strictObject({
     fiat_currency: currencyCodeWire,
@@ -9942,6 +10015,16 @@ export const chargeResolvedCostBasisWire = z
 
   .describe(
     'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
+  )
+
+export const closedPeriodWire = z
+  .strictObject({
+    from: dateTimeWire,
+    to: dateTimeWire,
+  })
+
+  .describe(
+    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
 
 export const subscriptionAddonTimelineSegmentWire = z
@@ -10669,14 +10752,6 @@ export const entitlementAccessResultWire = z
   })
   .describe('Entitlement access result.')
 
-export const createCreditGrantPurchaseWire = z
-  .strictObject({
-    currency: currencyCodeWire,
-    per_unit_cost_basis: numericWire.optional(),
-    availability_policy: creditAvailabilityPolicyWire.optional(),
-  })
-  .describe('Purchase and payment terms of the grant.')
-
 export const rateCardMeteredEntitlementWire = z
   .strictObject({
     type: z
@@ -10738,16 +10813,6 @@ export const recurringPeriodWire = z
     interval: iso8601DurationWire,
   })
   .describe('Recurring period with an anchor and an interval.')
-
-export const creditGrantPurchaseWire = z
-  .strictObject({
-    currency: currencyCodeWire,
-    per_unit_cost_basis: numericWire.optional(),
-    amount: numericWire,
-    availability_policy: creditAvailabilityPolicyWire.optional(),
-    settlement_status: creditPurchasePaymentSettlementStatusWire.optional(),
-  })
-  .describe('Purchase and payment terms of the grant.')
 
 export const updateCreditGrantExternalSettlementRequestWire = z
   .strictObject({
@@ -11435,6 +11500,17 @@ export const listPlanAddonsParamsFilterWire = z
   })
   .describe('Filter options for listing plan add-ons.')
 
+export const createChargeCostBasisWire = z
+  .discriminatedUnion('type', [
+    createChargeCostBasisDynamicWire,
+    createChargeCostBasisPinnedWire,
+    createChargeCostBasisManualWire,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
+  )
+
 export const createCreditGrantTaxConfigWire = z
   .strictObject({
     behavior: taxBehaviorWire.optional(),
@@ -11443,6 +11519,17 @@ export const createCreditGrantTaxConfigWire = z
 
   .describe(
     'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
+  )
+
+export const chargeCostBasisWire = z
+  .discriminatedUnion('type', [
+    chargeCostBasisDynamicWire,
+    chargeCostBasisPinnedWire,
+    chargeCostBasisManualWire,
+  ])
+
+  .describe(
+    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
   )
 
 export const creditGrantTaxConfigWire = z
@@ -11490,17 +11577,6 @@ export const updateOrganizationDefaultTaxCodesRequestWire = z
     credit_grant_tax_code: taxCodeReferenceWire.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
-
-export const chargeCostBasisWire = z
-  .discriminatedUnion('type', [
-    chargeCostBasisDynamicWire,
-    chargeCostBasisPinnedWire,
-    chargeCostBasisManualWire,
-  ])
-
-  .describe(
-    'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
-  )
 
 export const invoiceWorkflowAppsReferencesWire = z
   .strictObject({
@@ -12362,111 +12438,25 @@ export const pricePagePaginatedResponseWire = z
   })
   .describe('Page paginated response.')
 
-export const createCreditGrantRequestWire = z
+export const createCreditGrantPurchaseWire = z
   .strictObject({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: createLabelsWire.optional(),
-    funding_method: creditFundingMethodWire,
-    currency: createCurrencyCodeWire,
-    amount: numericWire,
-    purchase: createCreditGrantPurchaseWire.optional(),
-    tax_config: createCreditGrantTaxConfigWire.optional(),
-    filters: createCreditGrantFiltersWire.optional(),
-    priority: z
-      .number()
-      .int()
-      .gte(1)
-      .lte(1000)
-      .optional()
-
-      .describe(
-        'Draw-down priority of the grant. Lower values have higher priority.',
-      ),
-    effective_at: dateTimeWire.optional(),
-    expires_after: iso8601DurationWire.optional(),
-    key: externalResourceKeyWire.optional(),
+    currency: currencyCodeWire,
+    per_unit_cost_basis: numericWire.optional(),
+    cost_basis: createChargeCostBasisWire.optional(),
+    availability_policy: creditAvailabilityPolicyWire.optional(),
   })
-  .describe('CreditGrant create request.')
+  .describe('Purchase and payment terms of the grant.')
 
-export const creditGrantWire = z
+export const creditGrantPurchaseWire = z
   .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    funding_method: creditFundingMethodWire,
-    currency: billingCurrencyCodeWire,
-    amount: numericWire,
-    purchase: creditGrantPurchaseWire.optional(),
-    tax_config: creditGrantTaxConfigWire.optional(),
-    invoice: creditGrantInvoiceReferenceWire.optional(),
-    filters: creditGrantFiltersWire.optional(),
-    priority: z
-      .number()
-      .int()
-      .gte(1)
-      .lte(1000)
-      .optional()
-
-      .describe(
-        'Draw-down priority of the grant. Lower values have higher priority.',
-      ),
-    effective_at: dateTimeWire.optional(),
-    key: externalResourceKeyWire.optional(),
-    expires_at: dateTimeWire.optional(),
-    voided_at: dateTimeWire.optional(),
-    status: creditGrantStatusWire,
+    currency: currencyCodeWire,
+    per_unit_cost_basis: numericWire.optional(),
+    resolved_cost_basis: chargeResolvedCostBasisWire.optional(),
+    amount: numericWire.optional(),
+    availability_policy: creditAvailabilityPolicyWire.optional(),
+    settlement_status: creditPurchasePaymentSettlementStatusWire.optional(),
   })
-
-  .describe(
-    'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
-  )
-
-export const workflowTaxSettingsWire = z
-  .strictObject({
-    enabled: z
-      .boolean()
-      .optional()
-
-      .describe(
-        'Enable automatic tax calculation when tax is supported by the app. For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.',
-      ),
-    enforced: z
-      .boolean()
-      .optional()
-
-      .describe(
-        'Enforce tax calculation when tax is supported by the app. When enabled, the billing system will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription.',
-      ),
-    default_tax_config: taxConfigWire.optional(),
-  })
-  .describe('Tax settings for a billing workflow.')
+  .describe('Purchase and payment terms of the grant.')
 
 export const createChargeFlatFeeRequestWire = z
   .strictObject({
@@ -12504,6 +12494,26 @@ export const createChargeFlatFeeRequestWire = z
     billing_period: closedPeriodWire.optional(),
   })
   .describe('Flat fee charge create request.')
+
+export const workflowTaxSettingsWire = z
+  .strictObject({
+    enabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Enable automatic tax calculation when tax is supported by the app. For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.',
+      ),
+    enforced: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Enforce tax calculation when tax is supported by the app. When enabled, the billing system will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription.',
+      ),
+    default_tax_config: taxConfigWire.optional(),
+  })
+  .describe('Tax settings for a billing workflow.')
 
 export const planAddonPagePaginatedResponseWire = z
   .strictObject({
@@ -13114,12 +13124,91 @@ export const updatePriceWire = z
   ])
   .describe('Price.')
 
-export const creditGrantPagePaginatedResponseWire = z
+export const createCreditGrantRequestWire = z
   .strictObject({
-    data: z.array(creditGrantWire),
-    meta: paginatedMetaWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: createLabelsWire.optional(),
+    funding_method: creditFundingMethodWire,
+    currency: createCurrencyCodeWire,
+    amount: numericWire,
+    purchase: createCreditGrantPurchaseWire.optional(),
+    tax_config: createCreditGrantTaxConfigWire.optional(),
+    filters: createCreditGrantFiltersWire.optional(),
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+
+      .describe(
+        'Draw-down priority of the grant. Lower values have higher priority.',
+      ),
+    effective_at: dateTimeWire.optional(),
+    expires_after: iso8601DurationWire.optional(),
+    key: externalResourceKeyWire.optional(),
   })
-  .describe('Page paginated response.')
+  .describe('CreditGrant create request.')
+
+export const creditGrantWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    funding_method: creditFundingMethodWire,
+    currency: billingCurrencyCodeWire,
+    amount: numericWire,
+    purchase: creditGrantPurchaseWire.optional(),
+    tax_config: creditGrantTaxConfigWire.optional(),
+    invoice: creditGrantInvoiceReferenceWire.optional(),
+    filters: creditGrantFiltersWire.optional(),
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+
+      .describe(
+        'Draw-down priority of the grant. Lower values have higher priority.',
+      ),
+    effective_at: dateTimeWire.optional(),
+    key: externalResourceKeyWire.optional(),
+    expires_at: dateTimeWire.optional(),
+    voided_at: dateTimeWire.optional(),
+    status: creditGrantStatusWire,
+  })
+
+  .describe(
+    'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
+  )
 
 export const currencyPagePaginatedResponseWire = z
   .strictObject({
@@ -13401,6 +13490,13 @@ export const updateInvoiceLineRateCardWire = z
     discounts: updateDiscountsWire.optional(),
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
+
+export const creditGrantPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(creditGrantWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
 
 export const workflowWire = z
   .strictObject({

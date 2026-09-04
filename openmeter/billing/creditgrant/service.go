@@ -85,18 +85,21 @@ func (f FundingMethod) Validate() error {
 
 // PurchaseTerms defines the purchase/payment terms for a credit grant.
 type PurchaseTerms struct {
-	Currency           currencyx.Code
+	// Currency is the fiat currency the purchase is settled in.
+	Currency currencyx.Code
+	// CostBasis prices custom-currency credits in Currency; fiat grants must omit it.
+	CostBasis *creditpurchase.CostBasis
+	// PerUnitCostBasis is the fiat-only rate, defaulting to 1.
 	PerUnitCostBasis   *alpacadecimal.Decimal
 	AvailabilityPolicy *creditpurchase.InitialPaymentSettlementStatus
 }
 
 type CreateInput struct {
-	Namespace   string
-	CustomerID  string
-	Name        string
-	Description *string
-	Labels      map[string]string
-	// TODO: support custom currency codes later
+	Namespace     string
+	CustomerID    string
+	Name          string
+	Description   *string
+	Labels        map[string]string
 	Currency      currencyx.Code
 	Amount        alpacadecimal.Decimal
 	EffectiveAt   *time.Time
@@ -146,16 +149,8 @@ func (i CreateInput) Validate() error {
 	}
 
 	if i.Purchase != nil {
-		if err := i.Purchase.Currency.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("purchase currency: %w", err))
-		}
-		// TODO: support custom-currency grants with a distinct fiat purchase currency.
-		if i.FundingMethod != FundingMethodNone && i.Purchase.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("purchase currency %q must match credit currency %q", i.Purchase.Currency, i.Currency))
-		}
-
-		if i.Purchase.PerUnitCostBasis != nil && !i.Purchase.PerUnitCostBasis.IsPositive() {
-			errs = append(errs, errors.New("per_unit_cost_basis must be positive"))
+		if err := i.Purchase.validate(i.Currency, i.FundingMethod); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
@@ -179,6 +174,77 @@ func (i CreateInput) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (p PurchaseTerms) validate(creditCurrency currencyx.Code, fundingMethod FundingMethod) error {
+	var errs []error
+
+	if err := p.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("purchase currency: %w", err))
+	} else if !p.Currency.IsFiat() {
+		errs = append(errs, fmt.Errorf("purchase currency %q must be a fiat currency", p.Currency))
+	}
+
+	if p.CostBasis != nil {
+		if err := p.validateCostBasis(creditCurrency); err != nil {
+			errs = append(errs, err)
+		}
+	} else if creditCurrency.IsCustom() {
+		errs = append(errs, errors.New("purchase.cost_basis is required for custom currency credit grants"))
+	}
+
+	if creditCurrency.IsFiat() {
+		if p.CostBasis != nil && p.CostBasis.Type() != creditpurchase.CostBasisTypeFiat {
+			errs = append(errs, errors.New("purchase.cost_basis is not supported for fiat credit grants"))
+		}
+
+		if fundingMethod != FundingMethodNone && p.Currency != creditCurrency {
+			errs = append(errs, fmt.Errorf("purchase currency %q must match credit currency %q", p.Currency, creditCurrency))
+		}
+
+		if p.PerUnitCostBasis != nil && !p.PerUnitCostBasis.IsPositive() {
+			errs = append(errs, errors.New("per_unit_cost_basis must be positive"))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// validateCostBasis lets a fiat grant omit the cost basis fiat currency, since it
+// settles in its own currency, while a custom-currency grant needs it to know
+// what it settles in.
+func (p PurchaseTerms) validateCostBasis(creditCurrency currencyx.Code) error {
+	if err := p.CostBasis.Validate(); err != nil {
+		return fmt.Errorf("purchase.cost_basis: %w", err)
+	}
+
+	if p.CostBasis.Type() != creditpurchase.CostBasisTypeCustomCurrency {
+		return nil
+	}
+
+	customCurrency, err := p.CostBasis.AsCustomCurrency()
+	if err != nil {
+		return fmt.Errorf("purchase.cost_basis custom currency parse error: %w", err)
+	}
+
+	fiat, err := customCurrency.GetFiatCurrency()
+	if err != nil {
+		return fmt.Errorf("purchase.cost_basis error getting fiat currency: %w", err)
+	}
+
+	if fiat == nil {
+		if creditCurrency.IsCustom() {
+			return errors.New("purchase.cost_basis fiat currency is required for custom currency credit grants")
+		}
+
+		return nil
+	}
+
+	if fiat.Details().Code != p.Currency {
+		return fmt.Errorf("purchase currency %q must match purchase.cost_basis fiat currency %q", p.Currency, fiat.Details().Code)
+	}
+
+	return nil
 }
 
 type GetInput struct {
