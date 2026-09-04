@@ -3454,15 +3454,39 @@ export const entitlementAccessQueryError = z
 
 export const appCustomerData = z
   .object({
-    stripe: appCustomerDataStripe.optional(),
-    externalInvoicing: appCustomerDataExternalInvoicing.optional(),
+    stripe: appCustomerDataStripe
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked Stripe app. Set to `null` to remove the Stripe data of the customer; omit to leave it unchanged.',
+      ),
+    externalInvoicing: appCustomerDataExternalInvoicing
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked external invoicing app. Set to `null` to remove the external invoicing data of the customer; omit to leave it unchanged.',
+      ),
   })
   .describe('App customer data.')
 
 export const upsertAppCustomerDataRequest = z
   .object({
-    stripe: appCustomerDataStripe.optional(),
-    externalInvoicing: appCustomerDataExternalInvoicing.optional(),
+    stripe: appCustomerDataStripe
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked Stripe app. Set to `null` to remove the Stripe data of the customer; omit to leave it unchanged.',
+      ),
+    externalInvoicing: appCustomerDataExternalInvoicing
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked external invoicing app. Set to `null` to remove the external invoicing data of the customer; omit to leave it unchanged.',
+      ),
   })
   .describe('AppCustomerData upsert request.')
 
@@ -11111,15 +11135,39 @@ export const entitlementAccessQueryErrorWire = z
 
 export const appCustomerDataWire = z
   .strictObject({
-    stripe: appCustomerDataStripeWire.optional(),
-    external_invoicing: appCustomerDataExternalInvoicingWire.optional(),
+    stripe: appCustomerDataStripeWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked Stripe app. Set to `null` to remove the Stripe data of the customer; omit to leave it unchanged.',
+      ),
+    external_invoicing: appCustomerDataExternalInvoicingWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked external invoicing app. Set to `null` to remove the external invoicing data of the customer; omit to leave it unchanged.',
+      ),
   })
   .describe('App customer data.')
 
 export const upsertAppCustomerDataRequestWire = z
   .strictObject({
-    stripe: appCustomerDataStripeWire.optional(),
-    external_invoicing: appCustomerDataExternalInvoicingWire.optional(),
+    stripe: appCustomerDataStripeWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked Stripe app. Set to `null` to remove the Stripe data of the customer; omit to leave it unchanged.',
+      ),
+    external_invoicing: appCustomerDataExternalInvoicingWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'Used if the customer has a linked external invoicing app. Set to `null` to remove the external invoicing data of the customer; omit to leave it unchanged.',
+      ),
   })
   .describe('AppCustomerData upsert request.')
 

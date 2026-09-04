@@ -2418,18 +2418,38 @@ export interface EntitlementAccessQueryError {
 
 /** App customer data. */
 export interface AppCustomerData {
-  /** Used if the customer has a linked Stripe app. */
-  stripe?: AppCustomerDataStripe
-  /** Used if the customer has a linked external invoicing app. */
-  externalInvoicing?: AppCustomerDataExternalInvoicing
+  /**
+   * Used if the customer has a linked Stripe app.
+   *
+   * Set to `null` to remove the Stripe data of the customer; omit to leave it
+   * unchanged.
+   */
+  stripe?: AppCustomerDataStripe | null
+  /**
+   * Used if the customer has a linked external invoicing app.
+   *
+   * Set to `null` to remove the external invoicing data of the customer; omit to
+   * leave it unchanged.
+   */
+  externalInvoicing?: AppCustomerDataExternalInvoicing | null
 }
 
 /** AppCustomerData upsert request. */
 export interface UpsertAppCustomerDataRequest {
-  /** Used if the customer has a linked Stripe app. */
-  stripe?: AppCustomerDataStripe
-  /** Used if the customer has a linked external invoicing app. */
-  externalInvoicing?: AppCustomerDataExternalInvoicing
+  /**
+   * Used if the customer has a linked Stripe app.
+   *
+   * Set to `null` to remove the Stripe data of the customer; omit to leave it
+   * unchanged.
+   */
+  stripe?: AppCustomerDataStripe | null
+  /**
+   * Used if the customer has a linked external invoicing app.
+   *
+   * Set to `null` to remove the external invoicing data of the customer; omit to
+   * leave it unchanged.
+   */
+  externalInvoicing?: AppCustomerDataExternalInvoicing | null
 }
 
 /**

@@ -9,17 +9,23 @@ namespace Apps;
 model AppCustomerData {
   /**
    * Used if the customer has a linked Stripe app.
+   *
+   * Set to `null` to remove the Stripe data of the customer; omit to leave it
+   * unchanged.
    */
   @summary("Stripe")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  stripe?: Apps.AppCustomerDataStripe;
+  stripe?: Apps.AppCustomerDataStripe | null;
 
   /**
    * Used if the customer has a linked external invoicing app.
+   *
+   * Set to `null` to remove the external invoicing data of the customer; omit to
+   * leave it unchanged.
    */
   @summary("External invoicing")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  external_invoicing?: Apps.AppCustomerDataExternalInvoicing;
+  external_invoicing?: Apps.AppCustomerDataExternalInvoicing | null;
 }
 
 /**
