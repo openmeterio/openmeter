@@ -25,6 +25,10 @@ type BalanceBucketQuery struct {
 	Namespace string
 	Filters   Filters
 	GroupBy   []string
+
+	// ExcludeAnnotationFilters excludes entries whose transaction annotations
+	// contain any given key-value pair.
+	ExcludeAnnotationFilters map[string]string
 }
 
 func (q BalanceBucketQuery) Validate() error {
