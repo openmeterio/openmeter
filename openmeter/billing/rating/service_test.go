@@ -60,14 +60,13 @@ func TestResolveBillablePeriodInputValidate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("metered lines require a feature and meter", func(t *testing.T) {
+	t.Run("metered lines allow unresolved rating dependencies", func(t *testing.T) {
 		err := (rating.ResolveBillablePeriodInput{
 			AsOf: asOf,
 			Line: meteredLine,
 		}).Validate()
 
-		require.ErrorContains(t, err, "feature is required for metered lines")
-		require.ErrorContains(t, err, "meter is required for metered lines")
+		require.NoError(t, err)
 	})
 
 	t.Run("rating does not validate the feature meter association", func(t *testing.T) {

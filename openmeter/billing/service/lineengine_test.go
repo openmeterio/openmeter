@@ -3,6 +3,7 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"slices"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -56,6 +58,80 @@ func TestAreGatheringLinesBillableAsOfPreservesInputOrderAcrossEngines(t *testin
 		invoiceEngine.inputs[0].Lines[1].ID,
 	})
 	require.Equal(t, "charge-1", chargeEngine.inputs[0].Lines[0].ID)
+}
+
+func TestAreGatheringLinesBillableAsOfPreservesResultsWithValidationIssues(t *testing.T) {
+	engine := &billabilityLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeChargeUsageBased},
+		err:            billing.ValidationWithFieldPrefix("charges/charge-1", billing.ErrInvoiceLineFeatureNotFound),
+	}
+	svc := &Service{lineEngines: newEngineRegistry()}
+	require.NoError(t, svc.RegisterLineEngine(engine))
+	line := newGatheringLineForLineEngineTest("line-1", billing.LineEngineTypeChargeUsageBased, false)
+	invoice := billing.GatheringInvoice{GatheringInvoiceBase: billing.GatheringInvoiceBase{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{Namespace: line.Namespace},
+			ID:              line.InvoiceID,
+		},
+	}}
+
+	// Given an engine that can resolve billability while reporting a validation issue.
+	// When billing dispatches the ordered line batch.
+	results, err := svc.areGatheringLinesBillableAsOf(t.Context(), billing.AreLinesBillableAsOfInput{
+		Invoice: invoice,
+		AsOf:    line.InvoiceAt,
+		Lines:   billing.GatheringLines{line},
+	})
+
+	// Then the result and the engine's original validation issue are preserved.
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Len(t, results, 1)
+	require.True(t, results[0].Billable)
+	require.Equal(t, billing.ValidationIssues{{
+		Severity: billing.ValidationIssueSeverityCritical,
+		Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
+		Message:  billing.ErrInvoiceLineFeatureNotFound.Message,
+		Path:     "/charges/charge-1",
+	}}, issues)
+}
+
+func TestGatherInScopeLinesContinuesWithBillabilityValidationIssues(t *testing.T) {
+	engine := &billabilityLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeChargeUsageBased},
+		err:            billing.ValidationWithFieldPrefix("charges/charge-1", billing.ErrInvoiceLineFeatureNotFound),
+	}
+	svc := &Service{
+		lineEngines: newEngineRegistry(),
+		logger:      slog.New(slog.DiscardHandler),
+	}
+	require.NoError(t, svc.RegisterLineEngine(engine))
+	line := newGatheringLineForLineEngineTest("line-1", billing.LineEngineTypeChargeUsageBased, false)
+	invoice := billing.GatheringInvoice{
+		GatheringInvoiceBase: billing.GatheringInvoiceBase{
+			ManagedResource: models.ManagedResource{
+				NamespacedModel: models.NamespacedModel{Namespace: line.Namespace},
+				ID:              line.InvoiceID,
+			},
+			Currency: line.Currency,
+		},
+		Lines: billing.NewGatheringInvoiceLines(billing.GatheringLines{line}),
+	}
+
+	// Given a gathering line with a usable billability result and a validation issue.
+	// When pending-line collection selects its in-scope lines.
+	results, err := svc.gatherInScopeLines(t.Context(), gatherInScopeLineInput{
+		GatheringInvoicesByCurrency: map[currencyx.FiatCode]billing.GatheringInvoice{
+			line.Currency: invoice,
+		},
+		AsOf:               line.InvoiceAt,
+		ProgressiveBilling: true,
+	})
+
+	// Then the validation issue does not abort selection.
+	require.NoError(t, err)
+	require.Len(t, results[line.Currency], 1)
+	require.Equal(t, line.ID, results[line.Currency][0].Line.ID)
 }
 
 func TestCheckIfGatheringLinesAreInvoicableUsesEachLineInvoiceAt(t *testing.T) {
@@ -142,6 +218,7 @@ func TestAreGatheringLinesBillableAsOfRequiresLinesFromInvoice(t *testing.T) {
 type billabilityLineEngine struct {
 	billingtestutils.NoopLineEngine
 	inputs []billing.AreLinesBillableAsOfInput
+	err    error
 }
 
 func (e *billabilityLineEngine) AreLinesBillableAsOf(_ context.Context, input billing.AreLinesBillableAsOfInput) ([]billing.IsLineBillableAsOfResult, error) {
@@ -155,7 +232,7 @@ func (e *billabilityLineEngine) AreLinesBillableAsOf(_ context.Context, input bi
 				To:   time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
 			},
 		}
-	}), nil
+	}), e.err
 }
 
 func TestDispatchSystemStandardLineDeletionsGroupsLinesByEngine(t *testing.T) {

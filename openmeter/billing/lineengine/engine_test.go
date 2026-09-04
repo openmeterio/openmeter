@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -134,6 +135,100 @@ func TestSnapshotLineQuantitiesRejectsResolverSystemErrors(t *testing.T) {
 	require.Nil(t, issues)
 	require.ErrorIs(t, systemErr, resolverErr)
 	require.Nil(t, line.UsageBased.Quantity)
+}
+
+func TestAreLinesBillableAsOfLocalizesFeatureMeterValidationIssues(t *testing.T) {
+	period := lineEngineOverrideTestPeriod()
+	engine, _ := newQuantitySnapshotTestEngine(t, nil, nil, nil)
+	ratingService := &lineEngineBillabilityRatingService{}
+	engine.ratingService = ratingService
+
+	lines := billing.GatheringLines{
+		billabilityGatheringLine("line-1", "missing-feature-1", period),
+		billabilityGatheringLine("line-2", "missing-feature-2", period),
+	}
+
+	// Given multiple legacy lines whose feature references cannot be resolved.
+	// When their billability is evaluated from the resolver's partial result.
+	results, err := engine.AreLinesBillableAsOf(t.Context(), billing.AreLinesBillableAsOfInput{
+		Invoice: billing.GatheringInvoice{GatheringInvoiceBase: billing.GatheringInvoiceBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace: "namespace",
+				ID:        "invoice-id",
+				Name:      "invoice",
+				CreatedAt: period.From,
+				UpdatedAt: period.From,
+			}),
+		}},
+		AsOf:               period.From,
+		ProgressiveBilling: true,
+		Lines:              lines,
+	})
+
+	// Then every line receives a fallback result and its own localized validation issue.
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.ElementsMatch(t, billing.ValidationIssues{
+		{
+			Severity: billing.ValidationIssueSeverityCritical,
+			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:  "feature[missing-feature-1]: invoice line: feature not found",
+			Path:     "/lines/line-1",
+		},
+		{
+			Severity: billing.ValidationIssueSeverityCritical,
+			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:  "feature[missing-feature-2]: invoice line: feature not found",
+			Path:     "/lines/line-2",
+		},
+	}, issues)
+	require.Len(t, results, len(lines))
+	require.Len(t, ratingService.inputs, len(lines))
+	for index := range lines {
+		require.True(t, results[index].Billable)
+		require.Equal(t, period, results[index].BillablePeriod)
+		require.Nil(t, ratingService.inputs[index].Feature)
+		require.Nil(t, ratingService.inputs[index].Meter)
+	}
+}
+
+type lineEngineBillabilityRatingService struct {
+	inputs []rating.ResolveBillablePeriodInput
+}
+
+func (s *lineEngineBillabilityRatingService) ResolveBillablePeriod(input rating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
+	s.inputs = append(s.inputs, input)
+
+	return billing.IsLineBillableAsOfResult{
+		Billable:       true,
+		BillablePeriod: input.Line.GetServicePeriod(),
+	}, nil
+}
+
+func (*lineEngineBillabilityRatingService) GenerateDetailedLines(rating.StandardLineAccessor, ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+	return rating.GenerateDetailedLinesResult{}, nil
+}
+
+func billabilityGatheringLine(id, featureKey string, period timeutil.ClosedPeriod) billing.GatheringLine {
+	return billing.GatheringLine{GatheringLineBase: billing.GatheringLineBase{
+		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+			Namespace: "namespace",
+			ID:        id,
+			Name:      id,
+			CreatedAt: period.From,
+			UpdatedAt: period.From,
+		}),
+		ManagedBy:     billing.SystemManagedLine,
+		Engine:        billing.LineEngineTypeInvoice,
+		InvoiceID:     "invoice-id",
+		Currency:      "USD",
+		ServicePeriod: period,
+		InvoiceAt:     period.From,
+		Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(1),
+		}),
+		FeatureKey: featureKey,
+	}}
 }
 
 func TestLineEngineValidationErrorOwnsValidationIssues(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -80,14 +79,6 @@ func (i ResolveBillablePeriodInput) Validate() error {
 		price := i.Line.GetPrice()
 		if price == nil {
 			errs = append(errs, errors.New("line price is required"))
-		} else if price.Type() != productcatalog.FlatPriceType {
-			if i.Feature == nil {
-				errs = append(errs, errors.New("feature is required for metered lines"))
-			}
-
-			if i.Meter == nil {
-				errs = append(errs, errors.New("meter is required for metered lines"))
-			}
 		}
 	}
 

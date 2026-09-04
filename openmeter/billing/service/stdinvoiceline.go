@@ -53,7 +53,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 	}
 
-	_, err = s.featureMeterResolver.Resolve(ctx, input.Customer.Namespace, input.Lines...)
+	err = s.featureMeterResolver.RequireFeatureMeters(ctx, input.Customer.Namespace, input.Lines...)
 	if err != nil {
 		return nil, billing.ValidationError{
 			Err: fmt.Errorf("resolving pending line feature meters: %w", err),

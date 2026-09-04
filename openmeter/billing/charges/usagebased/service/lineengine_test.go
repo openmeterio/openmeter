@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -128,6 +129,54 @@ func TestAreLinesBillableAsOfRequiresChargeID(t *testing.T) {
 
 	// Then the engine rejects the line before resolving charge dependencies.
 	require.ErrorContains(t, err, "charge id is required")
+}
+
+func TestAreLinesBillableAsOfFallsBackWhenChargeFeatureIsMissing(t *testing.T) {
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	line := newUsageBasedBillabilityLine("namespace", "line", "charge", period)
+	charge := newUsageBasedBillabilityCharge("namespace", "charge", "missing-feature")
+	featureMeterResolver, err := featuremeterservice.New(featuremeterservice.Config{
+		FeatureService: usageBasedBillabilityFeatureService{},
+		MeterService:   usageBasedBillabilityMeterService{},
+		Logger:         slog.Default(),
+	})
+	require.NoError(t, err)
+	engine := &LineEngine{service: &service{
+		adapter:              &usageBasedBillabilityAdapter{charges: []usagebased.Charge{charge}},
+		featureMeterResolver: featureMeterResolver,
+		ratingService:        billingratingservice.New(billingratingservice.Config{}),
+	}}
+	ctx, err := transaction.SetDriverOnContext(t.Context(), usageBasedBillabilityTransaction{})
+	require.NoError(t, err)
+	invoice := billing.GatheringInvoice{GatheringInvoiceBase: billing.GatheringInvoiceBase{
+		ManagedResource: models.ManagedResource{
+			NamespacedModel: models.NamespacedModel{Namespace: line.Namespace},
+			ID:              line.InvoiceID,
+		},
+	}}
+
+	// Given a usage-based charge whose persisted feature no longer exists.
+	// When billability is checked with progressive billing enabled.
+	results, err := engine.AreLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
+		Invoice:            invoice,
+		AsOf:               period.From.Add(24 * time.Hour),
+		ProgressiveBilling: true,
+		Lines:              billing.GatheringLines{line},
+	})
+
+	// Then the engine returns a usable non-progressive result and the missing-feature validation issue.
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Equal(t, billing.ValidationIssues{{
+		Severity: billing.ValidationIssueSeverityCritical,
+		Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
+		Message:  "feature[missing-feature]: invoice line: feature not found",
+		Path:     "/charges/charge",
+	}}, issues)
+	require.Equal(t, []billing.IsLineBillableAsOfResult{{}}, results)
 }
 
 type usageBasedBillabilityAdapter struct {
