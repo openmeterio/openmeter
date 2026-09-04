@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -70,16 +71,16 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 			case app.AppTypeStripe:
 				if data, ok := data.(appstripe.CustomerData); ok {
 					// TODO: we don't have metadata on the stripe customer data yet
-					appData.Stripe = &api.BillingAppCustomerDataStripe{
+					appData.Stripe = nullable.NewNullableWithValue(api.BillingAppCustomerDataStripe{
 						CustomerId:             &data.StripeCustomerID,
 						DefaultPaymentMethodId: data.StripeDefaultPaymentMethodID,
-					}
+					})
 				}
 			case app.AppTypeCustomInvoicing:
 				if data, ok := data.(appcustominvoicing.CustomerData); ok {
-					appData.ExternalInvoicing = &api.BillingAppCustomerDataExternalInvoicing{
+					appData.ExternalInvoicing = nullable.NewNullableWithValue(api.BillingAppCustomerDataExternalInvoicing{
 						Labels: (*api.Labels)(lo.ToPtr(data.Metadata.ToMap())),
-					}
+					})
 				}
 			case app.AppTypeSandbox:
 				// No app data

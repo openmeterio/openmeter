@@ -11,17 +11,29 @@ import (
 // App customer data.
 type AppCustomerData struct {
 	// Used if the customer has a linked Stripe app.
-	Stripe *AppCustomerDataStripe `json:"stripe,omitempty"`
+	//
+	// Set to `null` to remove the Stripe data of the customer; omit to leave it
+	// unchanged.
+	Stripe Nullable[AppCustomerDataStripe] `json:"stripe,omitempty"`
 	// Used if the customer has a linked external invoicing app.
-	ExternalInvoicing *AppCustomerDataExternalInvoicing `json:"external_invoicing,omitempty"`
+	//
+	// Set to `null` to remove the external invoicing data of the customer; omit to
+	// leave it unchanged.
+	ExternalInvoicing Nullable[AppCustomerDataExternalInvoicing] `json:"external_invoicing,omitempty"`
 }
 
 // App customer data.
 type AppCustomerDataInput struct {
 	// Used if the customer has a linked Stripe app.
-	Stripe *AppCustomerDataStripeInput `json:"stripe,omitempty"`
+	//
+	// Set to `null` to remove the Stripe data of the customer; omit to leave it
+	// unchanged.
+	Stripe Nullable[AppCustomerDataStripeInput] `json:"stripe,omitempty"`
 	// Used if the customer has a linked external invoicing app.
-	ExternalInvoicing *AppCustomerDataExternalInvoicingInput `json:"external_invoicing,omitempty"`
+	//
+	// Set to `null` to remove the external invoicing data of the customer; omit to
+	// leave it unchanged.
+	ExternalInvoicing Nullable[AppCustomerDataExternalInvoicingInput] `json:"external_invoicing,omitempty"`
 }
 
 // External invoicing customer data.
@@ -2491,9 +2503,15 @@ type UpdateCreditGrantExternalSettlementRequest struct {
 // AppCustomerData upsert request.
 type UpsertAppCustomerDataRequest struct {
 	// Used if the customer has a linked Stripe app.
-	Stripe *AppCustomerDataStripeInput `json:"stripe,omitempty"`
+	//
+	// Set to `null` to remove the Stripe data of the customer; omit to leave it
+	// unchanged.
+	Stripe Nullable[AppCustomerDataStripeInput] `json:"stripe,omitempty"`
 	// Used if the customer has a linked external invoicing app.
-	ExternalInvoicing *AppCustomerDataExternalInvoicingInput `json:"external_invoicing,omitempty"`
+	//
+	// Set to `null` to remove the external invoicing data of the customer; omit to
+	// leave it unchanged.
+	ExternalInvoicing Nullable[AppCustomerDataExternalInvoicingInput] `json:"external_invoicing,omitempty"`
 }
 
 // CustomerBillingData upsert request.

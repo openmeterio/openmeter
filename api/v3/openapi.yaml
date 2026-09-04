@@ -4008,14 +4008,26 @@ components:
       type: object
       properties:
         stripe:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataStripe'
-          description: Used if the customer has a linked Stripe app.
+          nullable: true
+          description: |-
+            Used if the customer has a linked Stripe app.
+
+            Set to `null` to remove the Stripe data of the customer; omit to leave it
+            unchanged.
           title: Stripe
         external_invoicing:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataExternalInvoicing'
-          description: Used if the customer has a linked external invoicing app.
+          nullable: true
+          description: |-
+            Used if the customer has a linked external invoicing app.
+
+            Set to `null` to remove the external invoicing data of the customer; omit to
+            leave it unchanged.
           title: External invoicing
       additionalProperties: false
       description: App customer data.
@@ -14934,14 +14946,26 @@ components:
       type: object
       properties:
         stripe:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataStripe'
-          description: Used if the customer has a linked Stripe app.
+          nullable: true
+          description: |-
+            Used if the customer has a linked Stripe app.
+
+            Set to `null` to remove the Stripe data of the customer; omit to leave it
+            unchanged.
           title: Stripe
         external_invoicing:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataExternalInvoicing'
-          description: Used if the customer has a linked external invoicing app.
+          nullable: true
+          description: |-
+            Used if the customer has a linked external invoicing app.
+
+            Set to `null` to remove the external invoicing data of the customer; omit to
+            leave it unchanged.
           title: External invoicing
       additionalProperties: false
       description: AppCustomerData upsert request.

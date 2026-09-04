@@ -9,15 +9,10 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
-	"github.com/openmeterio/openmeter/openmeter/app"
-	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
-	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -114,68 +109,17 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				return resp, apierrors.NewInternalError(ctx, fmt.Errorf("apps are not expanded in billing profile"))
 			}
 
-			// TODO: Only one app ID can be in the billing profile right now.
-			// We pick the payment app for now.
-			application := billingProfile.Apps.Payment
-			var appData app.CustomerData
-
-			switch application.GetType() {
-			case app.AppTypeStripe:
-				if request.AppData == nil || request.AppData.Stripe == nil {
-					return resp, apierrors.NewBadRequestError(ctx, fmt.Errorf("stripe data is required"), apierrors.InvalidParameters{
-						apierrors.InvalidParameter{
-							Field:  "app_data.stripe",
-							Rule:   "required",
-							Reason: "Stripe data is required",
-							Source: apierrors.InvalidParamSourceBody,
-						},
-					})
+			// If app data is omitted, only the billing profile is updated and the
+			// customer can provide app data later.
+			if request.AppData != nil {
+				// TODO: Only one app ID can be in the billing profile right now.
+				// We pick the payment app for now.
+				appData, err := h.applyAppCustomerData(ctx, billingProfile.Apps.Payment, request.CustomerID, *request.AppData)
+				if err != nil {
+					return resp, err
 				}
 
-				if request.AppData.Stripe.CustomerId == nil {
-					return resp, apierrors.NewBadRequestError(ctx, fmt.Errorf("stripe customer id is required"), apierrors.InvalidParameters{
-						apierrors.InvalidParameter{
-							Field:  "stripe.customer_id",
-							Rule:   "required",
-							Reason: "Stripe Customer ID is required",
-							Source: apierrors.InvalidParamSourceBody,
-						},
-					})
-				}
-
-				resp.AppData = &api.BillingAppCustomerData{
-					Stripe: request.AppData.Stripe,
-				}
-				appData = appstripe.CustomerData{
-					StripeCustomerID:             *request.AppData.Stripe.CustomerId,
-					StripeDefaultPaymentMethodID: request.AppData.Stripe.DefaultPaymentMethodId,
-				}
-			case app.AppTypeCustomInvoicing:
-				appData = appcustominvoicing.CustomerData{}
-				if request.AppData != nil && request.AppData.ExternalInvoicing != nil {
-					resp.AppData = &api.BillingAppCustomerData{
-						ExternalInvoicing: request.AppData.ExternalInvoicing,
-					}
-
-					if request.AppData.ExternalInvoicing.Labels != nil {
-						appData = appcustominvoicing.CustomerData{
-							Metadata: models.Metadata(*request.AppData.ExternalInvoicing.Labels),
-						}
-					}
-				}
-			case app.AppTypeSandbox:
-				appData = appsandbox.CustomerData{}
-			default:
-				return resp, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
-			}
-
-			// Update the customer data for the app
-			err = application.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
-				CustomerID: request.CustomerID,
-				Data:       appData,
-			})
-			if err != nil {
-				return resp, fmt.Errorf("failed to update customer data: %w", err)
+				resp.AppData = appData
 			}
 
 			// Override the billing profile if an ID was provided
