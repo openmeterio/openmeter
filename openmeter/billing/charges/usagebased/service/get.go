@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -100,18 +99,8 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 		customerOverridesById[customerID] = customerOverride
 	}
 
-	// Fetch all references featureMeters in bulk
-	referencedFeatureMeters := lo.Uniq(lo.Map(charges, func(charge usagebased.Charge, _ int) billingfeaturemeter.FeatureMeterRef {
-		return billingfeaturemeter.FeatureMeterRef{
-			IDOrKey:      charge.GetFeatureKeyOrID(),
-			RequireMeter: true,
-		}
-	}))
-
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
-		Namespace:   namespace,
-		FeatureRefs: referencedFeatureMeters,
-	})
+	// Fetch all referenced feature meters in bulk.
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, charges...)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +115,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	var wg sync.WaitGroup
 
 	for _, charge := range charges {
-		featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
+		featureMeter, err := featureMeters.Get(charge)
 		if err != nil {
 			errCh <- fmt.Errorf("resolving feature meter: %w", err)
 			break

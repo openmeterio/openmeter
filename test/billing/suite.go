@@ -30,7 +30,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -75,7 +75,7 @@ type BaseSuite struct {
 
 	BillingAdapter          billing.Adapter
 	BillingService          billing.Service
-	FeatureMeterResolver    billingfeaturemeter.Resolver
+	FeatureMeterResolver    *featuremeterservice.Resolver
 	LegacyBillingLineEngine *billinglineengine.Engine
 	SequenceService         billingsequence.Service
 	InvoiceCalculator       *invoicecalc.MockableInvoiceCalculator
@@ -241,7 +241,7 @@ func (s *BaseSuite) setupSuite() {
 	s.SequenceService = billingSequenceService
 
 	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
-	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+	featureMeterResolver, err := featuremeterservice.New(featuremeterservice.Config{
 		FeatureService: s.FeatureService,
 		MeterService:   s.MeterAdapter,
 		Logger:         slog.Default(),

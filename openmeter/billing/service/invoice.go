@@ -201,9 +201,14 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 
 	now := clock.Now()
 
-	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, invoice.Namespace, invoice.Lines.OrEmpty()...)
 	if err != nil {
-		return nil, fmt.Errorf("resolving feature meters: %w", err)
+		// The preview's quantity snapshotting surfaces validation issues with line
+		// identity, so only system errors abort live-data preparation here.
+		_, systemErr := billing.ToValidationIssues(err)
+		if systemErr != nil {
+			return nil, fmt.Errorf("resolving feature meters: %w", systemErr)
+		}
 	}
 
 	inScopeGatheringLines := make(billing.GatheringLines, 0, len(invoice.Lines.OrEmpty()))
@@ -285,7 +290,6 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	}
 
 	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{
-		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
 		LineEngines:   s.lineEngines,
@@ -913,9 +917,14 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	featureMeters, err := s.resolveFeatureMeters(ctx, input.Namespace, invoice.Lines)
+	_, err = s.featureMeterResolver.Resolve(ctx, input.Namespace, invoice.Lines.OrEmpty()...)
 	if err != nil {
-		return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+		if err := invoice.MergeValidationIssues(
+			billing.ValidationWithComponent(billing.ValidationComponentOpenMeterMetering, err),
+			billing.ValidationComponentOpenMeterMetering,
+		); err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+		}
 	}
 
 	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
@@ -929,7 +938,6 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 
 	// Let's simulate a recalculation of the invoice
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		FeatureMeters: featureMeters,
 		RatingService: s.ratingService,
 		TaxCodes:      taxCodes,
 		LineEngines:   s.lineEngines,

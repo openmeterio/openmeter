@@ -6,9 +6,11 @@
 
 ## Purpose and ownership
 
-This package resolves the feature and meter definitions needed to rate and
-invoice billing lines. It is a billing compatibility boundary, not the
-canonical product catalog feature-resolution model.
+This package defines the feature-meter contracts used to rate and invoice
+billing lines. The [service](./service) subpackage owns catalog access and the
+concrete resolved collection. This keeps billing's domain contracts independent
+from the resolver implementation while retaining a billing-specific
+compatibility boundary rather than a canonical product catalog resolver.
 
 Billing data may still refer to a feature by key. Keys identify the current
 logical feature, while IDs identify a specific persisted version. The resolver
@@ -33,16 +35,34 @@ the product catalog resolver path and this package can be converged into it.
 
 ## Validation contract
 
-By default, every requested feature must exist. Missing features are returned
-as not-found errors, and a feature whose caller requires a meter but has no
-resolved meter is returned as a validation error. Missing-feature errors take
-precedence when a batch contains both categories.
+By default, every requested feature must exist. A missing feature or required
+meter is returned as a critical validation issue. Persisted gathering lines
+and charges additionally implement the optional owner contract, which scopes
+the issue to that entity. Pre-persistence intents and static references do not
+claim an owner and therefore produce issues without an entity path.
 
-`WithAllowMissingFeatures` relaxes only feature existence. It does not suppress
-invalid references or missing required meter associations. This allows callers
-to retain a usable collection while handling absent features at their own
-boundary without hiding other catalog inconsistencies.
+Resolution accepts billing entities that provide an optional feature-meter
+reference. Entities without a feature dependency are skipped. Duplicate ID or
+key references are fetched once, then every original entity is validated so
+each failure retains its line or charge identity. The resolved collection is
+returned alongside validation failures. Callers may continue with that partial
+collection only after splitting the error into validation issues and confirming
+that no system error remains. Feature and meter service failures remain fatal.
 
-Billing-specific translation of these failures into invoice validation issues
-belongs to the consuming billing service or line engine; this package only
-resolves catalog state and classifies resolution failures.
+`FeatureMeterRef` is only the dependency value returned by those entities; it
+is intentionally not itself a resolution or lookup target. This prevents
+callers from discarding the originating line or charge identity while mapping
+references for resolution.
+
+Collection lookups accept the same entity references. An explicit feature ID
+takes precedence when a reference also contains a key, preserving access to the
+exact historical feature version. `Get` rejects an empty reference, while `Has`
+returns false for one and checks only feature existence, not the meter requirement.
+When a feature exists but its required meter is absent, `Get` returns both the
+resolved feature and the validation error so callers can retain usable billing
+output.
+
+The service subpackage constructs billing validation issues directly. Higher
+level billing services own the validation component and remain responsible for
+deciding whether a workflow can continue with the returned collection and
+validation issues.

@@ -36,6 +36,18 @@ type ChargeFeatureIDTestSuite struct {
 	BaseSuite
 }
 
+func requireFeatureMeterValidationIssue(t *testing.T, err error, expectedCode string) billing.ValidationIssue {
+	t.Helper()
+
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Len(t, issues, 1)
+	require.Equal(t, expectedCode, issues[0].Code)
+	require.Empty(t, issues[0].Component)
+
+	return issues[0]
+}
+
 func (s *ChargeFeatureIDTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }
@@ -398,9 +410,10 @@ func (s *ChargeFeatureIDTestSuite) TestCreateCustomerChargeResolvesFeatureByID()
 		})
 
 		// then:
-		// - the failure surfaces as not-found rather than a downstream "feature key is required"
+		// - the failure surfaces as a feature validation issue rather than a downstream "feature key is required"
 		s.Require().Error(err)
-		s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
+		issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureNotFound.Code)
+		s.Empty(issue.Path)
 	})
 }
 
@@ -413,7 +426,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 	// when:
 	// - the charge is created
 	// then:
-	// - creation returns a not-found error without persisting a charge
+	// - creation returns a feature validation issue without persisting a charge
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-key-unresolvable")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -452,8 +465,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 
 	s.Require().Error(err)
 	s.ErrorContains(err, "resolve create feature meter")
-	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
-	s.False(models.IsGenericValidationError(err), "not found error must not be wrapped as validation: %v", err)
+	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureNotFound.Code)
+	s.Empty(issue.Path)
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,
@@ -469,7 +482,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 	// when:
 	// - the charge is created
 	// then:
-	// - creation returns a not-found error without persisting a charge
+	// - creation returns a feature validation issue without persisting a charge
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-feature-key-unresolvable")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -501,8 +514,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 	})
 
 	s.Require().Error(err)
-	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
-	s.False(models.IsGenericValidationError(err), "not found error must not be wrapped as validation: %v", err)
+	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureNotFound.Code)
+	s.Empty(issue.Path)
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,
@@ -569,8 +582,9 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 	})
 
 	s.Require().Error(err)
-	s.True(models.IsGenericValidationError(err), "expected validation error, got %v", err)
-	s.ErrorContains(err, "has no meter associated")
+	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureHasNoMeters.Code)
+	s.Empty(issue.Path)
+	s.ErrorContains(err, "usage based invoice line: feature has no meters")
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,
@@ -580,13 +594,9 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 	s.Empty(listed.Items)
 }
 
-func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedMissingFeatureTakesPrecedenceOverMeterValidation() {
+func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidationIssues() {
 	// given:
 	// - one usage-based intent references a missing feature and another a meterless feature
-	// when:
-	// - both charges are created in one request
-	// then:
-	// - the missing feature rejects the whole request as not-found before anything is persisted
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-mixed-feature-errors")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -606,6 +616,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedMissingFeatureTakesPreced
 	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
 	defer clock.UnFreeze()
 
+	// when:
+	// - both charges are created in one request
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
@@ -636,9 +648,21 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedMissingFeatureTakesPreced
 		},
 	})
 
+	// then:
+	// - both validation issues are returned and neither charge is persisted
 	s.Require().Error(err)
-	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
-	s.False(models.IsGenericValidationError(err), "not found error must take precedence over validation: %v", err)
+	issues, systemErr := billing.ToValidationIssues(err)
+	s.NoError(systemErr)
+	s.ElementsMatch([]string{
+		billing.ErrInvoiceLineFeatureNotFound.Code,
+		billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+	}, lo.Map(issues, func(issue billing.ValidationIssue, _ int) string {
+		return issue.Code
+	}))
+	for _, issue := range issues {
+		s.Empty(issue.Path)
+		s.Empty(issue.Component)
+	}
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,

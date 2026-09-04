@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
@@ -39,20 +38,14 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get customer override: %w", err)
 	}
 
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, billingfeaturemeter.ResolveInput{
-		Namespace: charge.Namespace,
-		FeatureRefs: []billingfeaturemeter.FeatureMeterRef{{
-			IDOrKey:      charge.GetFeatureKeyOrID(),
-			RequireMeter: true,
-		}},
-	})
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, charge.Namespace, charge)
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("resolve feature meters: %w", err)
 	}
 
-	featureMeter, err := charge.ResolveFeatureMeter(featureMeters)
+	featureMeter, err := featureMeters.Get(charge)
 	if err != nil {
-		return usagebased.GetCurrentTotalsResult{}, err
+		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("resolve feature meter: %w", err)
 	}
 
 	now := clock.Now()

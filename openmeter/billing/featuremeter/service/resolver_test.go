@@ -1,4 +1,4 @@
-package featuremeter
+package featuremeterservice
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -95,7 +97,7 @@ func TestResolver(t *testing.T) {
 		{ID: "feature-other", Key: "requests"},
 	}
 
-	newResolver := func(t *testing.T, expectedFeatureIDsOrKeys, expectedMeterIDs []string) Resolver {
+	newResolver := func(t *testing.T, expectedFeatureIDsOrKeys, expectedMeterIDs []string) *Resolver {
 		t.Helper()
 
 		resolver, err := New(Config{
@@ -136,65 +138,128 @@ func TestResolver(t *testing.T) {
 	t.Run("key resolves latest while explicit IDs remain addressable", func(t *testing.T) {
 		resolver := newResolver(t, []string{"tokens", "feature-old"}, []string{meterID})
 
-		resolved, err := resolver.Resolve(t.Context(), ResolveInput{
-			Namespace: namespace,
-			FeatureRefs: []FeatureMeterRef{
-				{IDOrKey: ref.IDOrKey{Key: "tokens"}, RequireMeter: true},
-				{IDOrKey: ref.IDOrKey{ID: "feature-old"}, RequireMeter: true},
-			},
-		})
+		resolved, err := resolver.Resolve(
+			t.Context(),
+			namespace,
+			[]featureMeterReference{
+				featureMeterRef(featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "tokens"}, RequireMeter: true}),
+				featureMeterRef(featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{ID: "feature-old"}, RequireMeter: true}),
+			}...,
+		)
 		require.NoError(t, err)
 
-		byKey, err := resolved.GetByKey("tokens", true)
+		byKey, err := resolved.Get(featureMeterRef(featuremeter.FeatureMeterRef{
+			IDOrKey:      ref.IDOrKey{Key: "tokens"},
+			RequireMeter: true,
+		}))
 		require.NoError(t, err)
 		require.Equal(t, "feature-new", byKey.Feature.ID)
 		require.Equal(t, meterID, byKey.Meter.ID)
 
-		byArchivedID, err := resolved.GetByID("feature-old", true)
+		byArchivedID, err := resolved.Get(featureMeterRef(featuremeter.FeatureMeterRef{
+			IDOrKey:      ref.IDOrKey{ID: "feature-old"},
+			RequireMeter: true,
+		}))
 		require.NoError(t, err)
 		require.Equal(t, "feature-old", byArchivedID.Feature.ID)
 		require.Equal(t, meterID, byArchivedID.Meter.ID)
 	})
 
-	t.Run("missing feature validation is optional", func(t *testing.T) {
-		refs := []FeatureMeterRef{
-			{IDOrKey: ref.IDOrKey{Key: "missing-feature"}},
-			{IDOrKey: ref.IDOrKey{Key: "requests"}, RequireMeter: true},
+	t.Run("returns partial results alongside validation errors", func(t *testing.T) {
+		// given:
+		// - one resolvable feature and one missing feature
+		targets := []featureMeterReference{
+			featureMeterRef(featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "tokens"}, RequireMeter: true}),
+			featureMeterRef(featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "missing-feature"}}),
+		}
+		resolver := newResolver(t, []string{"tokens", "missing-feature"}, []string{meterID})
+
+		// when:
+		// - both feature dependencies are resolved
+		resolved, err := resolver.Resolve(t.Context(), namespace, targets...)
+
+		// then:
+		// - the resolved feature remains usable and the error contains validation issues only
+		require.NotNil(t, resolved)
+		resolvedFeature, getErr := resolved.Get(targets[0])
+		require.NoError(t, getErr)
+		require.Equal(t, "feature-new", resolvedFeature.Feature.ID)
+
+		issues, systemErr := billing.ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, billing.ValidationIssues{{
+			Severity: billing.ValidationIssueSeverityCritical,
+			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:  "feature[missing-feature]: invoice line: feature not found",
+		}}, issues)
+	})
+
+	t.Run("returns meterless feature alongside validation error", func(t *testing.T) {
+		// given:
+		// - a feature exists but has no meter
+		resolver := newResolver(t, []string{"requests"}, nil)
+		target := featureMeterRef(featuremeter.FeatureMeterRef{
+			IDOrKey:      ref.IDOrKey{Key: "requests"},
+			RequireMeter: true,
+		})
+
+		// when:
+		// - the target requires a meter
+		resolved, err := resolver.Resolve(t.Context(), namespace, target)
+
+		// then:
+		// - the feature remains addressable and the missing meter is a validation-only error
+		require.NotNil(t, resolved)
+		resolvedFeature, getErr := resolved.Get(featureMeterRef(featuremeter.FeatureMeterRef{IDOrKey: target.IDOrKey}))
+		require.NoError(t, getErr)
+		require.Equal(t, "feature-other", resolvedFeature.Feature.ID)
+
+		issues, systemErr := billing.ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, billing.ValidationIssues{{
+			Severity: billing.ValidationIssueSeverityCritical,
+			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+			Message:  "feature[requests]: usage based invoice line: feature has no meters",
+		}}, issues)
+	})
+
+	t.Run("deduplicated lookup validates every original identified reference", func(t *testing.T) {
+		// given:
+		// - two gathering lines reference the same missing feature
+		resolver := newResolver(t, []string{"missing-feature"}, nil)
+		references := []identifiedFeatureMeterRef{
+			{
+				FeatureMeterRef: featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "missing-feature"}},
+				identity: featuremeter.FeatureReferenceIdentity{
+					Kind: featuremeter.FeatureReferenceKindLines,
+					ID:   "line-1",
+				},
+			},
+			{
+				FeatureMeterRef: featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "missing-feature"}},
+				identity: featuremeter.FeatureReferenceIdentity{
+					Kind: featuremeter.FeatureReferenceKindLines,
+					ID:   "line-2",
+				},
+			},
 		}
 
-		strictResolver := newResolver(t, []string{"missing-feature", "requests"}, nil)
-		_, strictErr := strictResolver.Resolve(t.Context(), ResolveInput{
-			Namespace:   namespace,
-			FeatureRefs: refs,
-		})
-		require.True(t, models.IsGenericNotFoundError(strictErr))
+		// when:
+		// - feature meters are resolved
+		resolved, err := resolver.Resolve(t.Context(), namespace, references...)
 
-		missingOnlyResolver := newResolver(t, []string{"missing-feature"}, nil)
-		missingOnly, missingOnlyErr := missingOnlyResolver.Resolve(
-			t.Context(),
-			ResolveInput{
-				Namespace:   namespace,
-				FeatureRefs: refs[:1],
-			},
-			WithAllowMissingFeatures(),
-		)
-		require.NoError(t, missingOnlyErr)
-		_, missingErr := missingOnly.GetByKey("missing-feature", false)
-		require.True(t, models.IsGenericNotFoundError(missingErr))
-
-		allowMissingResolver := newResolver(t, []string{"missing-feature", "requests"}, nil)
-		_, allowMissingErr := allowMissingResolver.Resolve(
-			t.Context(),
-			ResolveInput{
-				Namespace:   namespace,
-				FeatureRefs: refs,
-			},
-			WithAllowMissingFeatures(),
-		)
-		require.Error(t, allowMissingErr)
-		require.False(t, models.IsGenericNotFoundError(allowMissingErr))
-		require.True(t, models.IsGenericValidationError(allowMissingErr))
-		require.ErrorContains(t, allowMissingErr, "feature[requests] has no meter associated")
+		// then:
+		// - the catalog lookup is deduplicated while each original line receives an issue
+		require.NotNil(t, resolved)
+		issues, systemErr := billing.ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.ElementsMatch(t, []string{"/lines/line-1", "/lines/line-2"}, lo.Map(issues, func(issue billing.ValidationIssue, _ int) string {
+			return issue.Path
+		}))
+		for _, issue := range issues {
+			require.Equal(t, billing.ErrInvoiceLineFeatureNotFound.Code, issue.Code)
+			require.Empty(t, issue.Component)
+		}
 	})
 }
 
@@ -218,13 +283,11 @@ func TestResolverValidatesInput(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Given an input without the namespace required to scope catalog lookups.
-	input := ResolveInput{
-		FeatureRefs: []FeatureMeterRef{{IDOrKey: ref.IDOrKey{Key: "tokens"}}},
-	}
+	// Given a feature reference without the namespace required to scope catalog lookups.
+	featureRefs := []featureMeterReference{featureMeterRef(featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "tokens"}})}
 
 	// When feature meters are resolved.
-	_, err = resolver.Resolve(t.Context(), input)
+	_, err = resolver.Resolve(t.Context(), "", featureRefs...)
 
 	// Then validation fails before either backing service is called.
 	require.True(t, models.IsGenericValidationError(err))

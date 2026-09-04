@@ -233,21 +233,21 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolve
 	// then:
 	// - validation rejects each request without creating a gathering invoice
 	testCases := []struct {
-		name               string
-		createFeature      bool
-		expectedErrorCheck func(error) bool
-		expectedError      string
+		name          string
+		createFeature bool
+		expectedCode  string
+		expectedError string
 	}{
 		{
-			name:               "missing feature",
-			expectedErrorCheck: models.IsGenericNotFoundError,
-			expectedError:      "not found",
+			name:          "missing feature",
+			expectedCode:  billing.ErrInvoiceLineFeatureNotFound.Code,
+			expectedError: "not found",
 		},
 		{
-			name:               "feature without meter",
-			createFeature:      true,
-			expectedErrorCheck: models.IsGenericValidationError,
-			expectedError:      "has no meter associated",
+			name:          "feature without meter",
+			createFeature: true,
+			expectedCode:  billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+			expectedError: "usage based invoice line: feature has no meters",
 		},
 	}
 
@@ -300,7 +300,8 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolve
 			s.Require().Error(err)
 			var validationErr billing.ValidationError
 			s.True(errors.As(err, &validationErr), "expected billing validation error, got %T: %v", err, err)
-			s.True(testCase.expectedErrorCheck(err), "unexpected error type: %T: %v", err, err)
+			issue := requireFeatureMeterValidationIssue(s.T(), err, testCase.expectedCode)
+			s.Empty(issue.Path)
 			s.ErrorContains(err, testCase.expectedError)
 
 			listed, listErr := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
@@ -363,8 +364,9 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 
 	s.Nil(result)
 	s.Require().Error(err)
-	s.True(models.IsGenericValidationError(err), "expected validation error, got %T: %v", err, err)
-	s.ErrorContains(err, "has no meter associated")
+	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureHasNoMeters.Code)
+	s.Empty(issue.Path)
+	s.ErrorContains(err, "usage based invoice line: feature has no meters")
 
 	listedCharges, listChargesErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,

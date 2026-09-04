@@ -38,6 +38,10 @@ projection. The type-specific detailed status is the lifecycle state.
 - Billing owns invoice aggregates, invoice creation, collection, and invoice
   lifecycle. Charge line engines translate charge state into billing lines and
   feed billing events back into the owning charge state machine.
+- Customer charge feature expansion is best-effort. Missing feature references
+  retain their ID or key fallback, and a feature remains expandable when only
+  its required meter is unavailable; catalog service failures still abort the
+  request.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles

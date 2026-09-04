@@ -179,9 +179,14 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			}
 		}
 
-		featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
+		featureMeters, err := s.featureMeterResolver.Resolve(ctx, invoice.Namespace, invoice.Lines.OrEmpty()...)
 		if err != nil {
-			return billing.GatheringInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+			// Quantity snapshotting surfaces validation issues with line identity when
+			// these gathering lines are collected, so only system errors abort here.
+			_, systemErr := billing.ToValidationIssues(err)
+			if systemErr != nil {
+				return billing.GatheringInvoice{}, fmt.Errorf("resolving feature meters: %w", systemErr)
+			}
 		}
 
 		// Check if the new lines are still invoicable

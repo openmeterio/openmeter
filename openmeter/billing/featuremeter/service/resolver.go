@@ -1,4 +1,4 @@
-package featuremeter
+package featuremeterservice
 
 import (
 	"context"
@@ -9,16 +9,13 @@ import (
 
 	"github.com/samber/lo"
 
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
-
-// Resolver resolves the feature and meter data needed by billing operations.
-type Resolver interface {
-	Resolve(ctx context.Context, input ResolveInput, opts ...ResolveFeatureMetersOption) (FeatureMeters, error)
-}
 
 type FeatureService interface {
 	ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error)
@@ -52,78 +49,46 @@ func (c Config) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func New(config Config) (Resolver, error) {
+func New(config Config) (*Resolver, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 
-	return &resolver{
+	return &Resolver{
 		featureService: config.FeatureService,
 		meterService:   config.MeterService,
 		logger:         config.Logger,
 	}, nil
 }
 
-type resolver struct {
+// Resolver resolves the feature and meter data needed by billing operations.
+type Resolver struct {
 	featureService FeatureService
 	meterService   MeterService
 	logger         *slog.Logger
 }
 
-var _ Resolver = (*resolver)(nil)
-
-type ResolveFeatureMetersOptions struct {
-	AllowMissingFeatures bool
-}
-
-type ResolveFeatureMetersOption func(*ResolveFeatureMetersOptions)
-
-func NewResolveFeatureMetersOptions(opts ...ResolveFeatureMetersOption) ResolveFeatureMetersOptions {
-	var options ResolveFeatureMetersOptions
-
-	for _, opt := range opts {
-		opt(&options)
+// Resolve extracts and resolves the feature and meter dependencies of billing entities.
+//
+// When target validation fails, Resolve returns any feature-meter data it could
+// resolve alongside the error. Callers that can continue with partial data must
+// split the error with billing.ToValidationIssues and may continue only when the
+// returned system error is nil.
+func (r Resolver) Resolve[T billingfeaturemeter.FeatureReferenceGetter](ctx context.Context, namespace string, targets ...T) (billingfeaturemeter.FeatureMeters, error) {
+	if namespace == "" {
+		return nil, models.NewGenericValidationError(errors.New("namespace is required"))
 	}
 
-	return options
-}
+	featureRefs := collectUniqueFeatureMeterRefs(targets)
 
-func WithAllowMissingFeatures() ResolveFeatureMetersOption {
-	return func(options *ResolveFeatureMetersOptions) {
-		options.AllowMissingFeatures = true
-	}
-}
-
-type ResolveInput struct {
-	Namespace   string
-	FeatureRefs []FeatureMeterRef
-}
-
-func (i ResolveInput) Validate() error {
-	var errs []error
-
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-func (r *resolver) Resolve(ctx context.Context, input ResolveInput, opts ...ResolveFeatureMetersOption) (FeatureMeters, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	options := NewResolveFeatureMetersOptions(opts...)
-
-	if len(input.FeatureRefs) == 0 {
+	if len(featureRefs) == 0 {
 		return FeatureMeterCollection{
-			ByKey: map[string]FeatureMeter{},
-			ByID:  map[string]FeatureMeter{},
+			ByKey: map[string]billingfeaturemeter.FeatureMeter{},
+			ByID:  map[string]billingfeaturemeter.FeatureMeter{},
 		}, nil
 	}
 
-	featuresToResolve := lo.Uniq(lo.FlatMap(input.FeatureRefs, func(featureRef FeatureMeterRef, _ int) []string {
+	featuresToResolve := lo.Uniq(lo.FlatMap(featureRefs, func(featureRef billingfeaturemeter.FeatureMeterRef, _ int) []string {
 		out := featureRef.IDOrKey.GetKeys()
 		out = append(out, featureRef.IDOrKey.GetIDs()...)
 
@@ -132,7 +97,7 @@ func (r *resolver) Resolve(ctx context.Context, input ResolveInput, opts ...Reso
 
 	features, err := r.featureService.ListFeatures(ctx, feature.ListFeaturesParams{
 		IDsOrKeys:       featuresToResolve,
-		Namespace:       input.Namespace,
+		Namespace:       namespace,
 		IncludeArchived: true,
 	})
 	if err != nil {
@@ -141,24 +106,17 @@ func (r *resolver) Resolve(ctx context.Context, input ResolveInput, opts ...Reso
 
 	resolved := resolveFeatureMeters(features.Items)
 
-	metersToResolve := lo.Uniq(
-		lo.Filter(
-			lo.Map(lo.Values(resolved.ByID), func(featureMeter FeatureMeter, _ int) string {
-				if featureMeter.Feature.MeterID == nil {
-					return ""
-				}
+	metersToResolve := lo.Uniq(lo.FilterMap(lo.Values(resolved.ByID), func(featureMeter billingfeaturemeter.FeatureMeter, _ int) (string, bool) {
+		if featureMeter.Feature.MeterID == nil {
+			return "", false
+		}
 
-				return *featureMeter.Feature.MeterID
-			}),
-			func(meterID string, _ int) bool {
-				return meterID != ""
-			},
-		),
-	)
+		return *featureMeter.Feature.MeterID, true
+	}))
 
 	meters, err := r.meterService.ListMeters(ctx, meter.ListMetersParams{
 		IDFilter:       lo.ToPtr(metersToResolve),
-		Namespace:      input.Namespace,
+		Namespace:      namespace,
 		IncludeDeleted: true,
 	})
 	if err != nil {
@@ -185,48 +143,63 @@ func (r *resolver) Resolve(ctx context.Context, input ResolveInput, opts ...Reso
 		}
 	}
 
-	if err := validateReferences(resolved, input.FeatureRefs, options); err != nil {
-		return nil, err
+	if err := validateReferences(resolved, targets); err != nil {
+		return resolved, err
 	}
 
 	return resolved, nil
 }
 
-func validateReferences(featureMeters FeatureMeters, featureRefs []FeatureMeterRef, options ResolveFeatureMetersOptions) error {
-	// Missing features take precedence over other validation failures so a mixed
-	// strict batch preserves the not-found error category at the API boundary.
-	var notFoundErrs, validationErrs []error
-	for _, featureRef := range featureRefs {
-		if _, err := featureMeters.Resolve(featureRef); err != nil {
-			if models.IsGenericNotFoundError(err) {
-				if options.AllowMissingFeatures {
-					continue
-				}
-
-				notFoundErrs = append(notFoundErrs, err)
-			} else {
-				validationErrs = append(validationErrs, err)
-			}
+func collectUniqueFeatureMeterRefs[T billingfeaturemeter.FeatureReferenceGetter](references []T) []billingfeaturemeter.FeatureMeterRef {
+	featureRefs := lo.FilterMap(references, func(reference T, _ int) (billingfeaturemeter.FeatureMeterRef, bool) {
+		featureRef := reference.GetFeatureMeterRef()
+		if featureRef == nil {
+			return billingfeaturemeter.FeatureMeterRef{}, false
 		}
-	}
 
-	if err := errors.Join(notFoundErrs...); err != nil {
-		return err
-	}
+		return *featureRef, true
+	})
 
-	return errors.Join(validationErrs...)
+	featureRefs = lo.MapToSlice(
+		lo.GroupBy(featureRefs, func(featureRef billingfeaturemeter.FeatureMeterRef) ref.IDOrKey {
+			return featureRef.IDOrKey
+		}),
+		func(idOrKey ref.IDOrKey, references []billingfeaturemeter.FeatureMeterRef) billingfeaturemeter.FeatureMeterRef {
+			return billingfeaturemeter.FeatureMeterRef{
+				IDOrKey: idOrKey,
+				RequireMeter: lo.SomeBy(references, func(reference billingfeaturemeter.FeatureMeterRef) bool {
+					return reference.RequireMeter
+				}),
+			}
+		},
+	)
+
+	return featureRefs
+}
+
+func validateReferences[T billingfeaturemeter.FeatureReferenceGetter](featureMeters billingfeaturemeter.FeatureMeters, targets []T) error {
+	errs := lo.FilterMap(targets, func(target T, _ int) (error, bool) {
+		if target.GetFeatureMeterRef() == nil {
+			return nil, false
+		}
+
+		_, err := featureMeters.Get(target)
+		return err, err != nil
+	})
+
+	return errors.Join(errs...)
 }
 
 func resolveFeatureMeters(features []feature.Feature) FeatureMeterCollection {
 	featuresByKey := getLastFeatures(features)
 
 	resolved := FeatureMeterCollection{
-		ByKey: make(map[string]FeatureMeter, len(featuresByKey)),
-		ByID:  make(map[string]FeatureMeter, len(features)),
+		ByKey: make(map[string]billingfeaturemeter.FeatureMeter, len(featuresByKey)),
+		ByID:  make(map[string]billingfeaturemeter.FeatureMeter, len(features)),
 	}
 
 	for _, featureEntity := range features {
-		resolved.ByID[featureEntity.ID] = FeatureMeter{
+		resolved.ByID[featureEntity.ID] = billingfeaturemeter.FeatureMeter{
 			Feature: featureEntity,
 		}
 	}

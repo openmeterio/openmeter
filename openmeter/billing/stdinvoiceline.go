@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -18,8 +19,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+)
+
+var (
+	_ billingfeaturemeter.FeatureReferenceGetter = (*StandardLine)(nil)
+	_ billingfeaturemeter.FeatureReferenceOwner  = (*StandardLine)(nil)
 )
 
 // StandardLineBase represents the common fields for an invoice item.
@@ -582,6 +589,26 @@ func (i StandardLine) GetFeatureKey() string {
 	return i.UsageBased.FeatureKey
 }
 
+// GetFeatureMeterRef returns the line's feature dependency. Metered prices
+// require the associated meter, while flat prices may use a meterless feature.
+func (i StandardLine) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
+	if i.UsageBased == nil || i.UsageBased.FeatureKey == "" {
+		return nil
+	}
+
+	return &billingfeaturemeter.FeatureMeterRef{
+		IDOrKey:      ref.IDOrKey{Key: i.UsageBased.FeatureKey},
+		RequireMeter: i.UsageBased.Price != nil && i.UsageBased.Price.Type() != productcatalog.FlatPriceType,
+	}
+}
+
+func (i StandardLine) GetFeatureMeterOwner() billingfeaturemeter.FeatureReferenceIdentity {
+	return billingfeaturemeter.FeatureReferenceIdentity{
+		Kind: billingfeaturemeter.FeatureReferenceKindLines,
+		ID:   i.ID,
+	}
+}
+
 func (i StandardLine) GetPrice() *productcatalog.Price {
 	if i.UsageBased == nil {
 		return nil
@@ -1026,24 +1053,6 @@ func (c *StandardLines) Sort() {
 	for idx := range *c {
 		(*c)[idx].SortDetailedLines()
 	}
-}
-
-func (c StandardLines) GetReferencedFeatureKeys() ([]string, error) {
-	out := make([]string, 0, len(c))
-
-	for _, line := range c {
-		if line.UsageBased == nil {
-			return nil, fmt.Errorf("usage based line is required")
-		}
-
-		if line.UsageBased.FeatureKey == "" {
-			continue
-		}
-
-		out = append(out, line.UsageBased.FeatureKey)
-	}
-
-	return lo.Uniq(out), nil
 }
 
 func (i StandardLines) AsGenericLines() []GenericInvoiceLine {

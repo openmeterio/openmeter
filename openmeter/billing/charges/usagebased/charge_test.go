@@ -11,13 +11,92 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestFeatureReferenceOwner(t *testing.T) {
+	charge := Charge{
+		ChargeBase: ChargeBase{
+			ManagedResource: meta.ManagedResource{ID: "charge-id"},
+		},
+	}
+
+	require.Equal(t, featuremeter.FeatureReferenceIdentity{
+		Kind: featuremeter.FeatureReferenceKindCharges,
+		ID:   "charge-id",
+	}, charge.GetFeatureMeterOwner())
+	_, hasOwner := any(Intent{}).(featuremeter.FeatureReferenceOwner)
+	require.False(t, hasOwner)
+}
+
+func TestChargeGetFeatureMeterRef(t *testing.T) {
+	tests := []struct {
+		name      string
+		status    Status
+		featureID string
+		want      featuremeter.FeatureMeterRef
+	}{
+		{
+			name:   "created charge resolves by key",
+			status: StatusCreated,
+			want: featuremeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{Key: "feature-key"},
+				RequireMeter: true,
+			},
+		},
+		{
+			name:      "active charge resolves by snapshotted ID",
+			status:    StatusActive,
+			featureID: "feature-id",
+			want: featuremeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{ID: "feature-id"},
+				RequireMeter: true,
+			},
+		},
+		{
+			name:      "deleted charge resolves by snapshotted ID",
+			status:    StatusDeleted,
+			featureID: "feature-id",
+			want: featuremeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{ID: "feature-id"},
+				RequireMeter: true,
+			},
+		},
+		{
+			name:   "deleted charge without a snapshot falls back to key",
+			status: StatusDeleted,
+			want: featuremeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{Key: "feature-key"},
+				RequireMeter: true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given a usage-based charge at a lifecycle boundary with its source key
+			// and any persisted feature snapshot available to that state.
+			charge := Charge{ChargeBase: ChargeBase{
+				Intent: Intent{FeatureKey: "feature-key"}.AsOverridableIntent(),
+				Status: tt.status,
+				State:  State{FeatureID: tt.featureID},
+			}}
+
+			// When its feature dependency is requested.
+			featureRef := charge.GetFeatureMeterRef()
+
+			// Then the charge selects the lifecycle-appropriate reference and always requires a meter.
+			require.Equal(t, &tt.want, featureRef)
+		})
+	}
+}
 
 func TestIntentValidateCostBasis(t *testing.T) {
 	ns := ulid.Make().String()

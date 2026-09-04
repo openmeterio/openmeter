@@ -16,7 +16,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
@@ -122,7 +122,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	require.NoError(t, err)
 
 	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
-	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+	featureMeterResolver, err := featuremeterservice.New(featuremeterservice.Config{
 		FeatureService: deps.FeatureConnector,
 		MeterService:   deps.MeterService,
 		Logger:         slog.Default(),

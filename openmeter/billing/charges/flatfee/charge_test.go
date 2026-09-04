@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -20,6 +21,37 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestFeatureMeterReference(t *testing.T) {
+	// given:
+	// - a pre-persistence intent and persisted flat-fee charge with a resolved feature snapshot
+	featureKey := "flat-feature"
+	featureID := "flat-feature-id"
+	intent := Intent{FeatureKey: &featureKey}
+	charge := Charge{ChargeBase: ChargeBase{
+		ManagedResource: meta.ManagedResource{ID: "charge-id"},
+		Intent:          intent.AsOverridableIntent(),
+		State:           State{FeatureID: &featureID},
+	}}
+
+	// when:
+	// - their feature references and identities are read
+	intentRef := intent.GetFeatureMeterRef()
+	chargeRef := charge.GetFeatureMeterRef()
+
+	// then:
+	// - flat fees never require meters and only the persisted charge has an identity
+	require.Equal(t, featureKey, intentRef.IDOrKey.Key)
+	require.False(t, intentRef.RequireMeter)
+	require.Equal(t, featureID, chargeRef.IDOrKey.ID)
+	require.False(t, chargeRef.RequireMeter)
+	_, hasOwner := any(intent).(featuremeter.FeatureReferenceOwner)
+	require.False(t, hasOwner)
+	require.Equal(t, featuremeter.FeatureReferenceIdentity{
+		Kind: featuremeter.FeatureReferenceKindCharges,
+		ID:   "charge-id",
+	}, charge.GetFeatureMeterOwner())
+}
 
 func TestIntentValidateCostBasis(t *testing.T) {
 	ns := ulid.Make().String()

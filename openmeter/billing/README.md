@@ -102,6 +102,10 @@ be retried without replaying stable lifecycle states. Issuing and payment
 booking therefore happen in retryable intermediary states; authorization is
 booked before settlement when a payment provider reports both at once.
 
+Simulation is read-only but still validates its lines' feature and meter
+dependencies. Critical validation issues are returned on the simulated invoice
+and mark it invalid instead of failing the simulation request.
+
 If quantity snapshotting discovers that a persisted feature no longer has its
 required meter association, collection still materializes the standard invoice
 in `draft.invalid_created` with the critical validation code

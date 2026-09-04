@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	chargesworkeradvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
@@ -118,7 +118,7 @@ func NewBillingSequenceService(
 func NewLegacyBillingLineEngine(
 	billingAdapter billing.Adapter,
 	billingRatingService rating.Service,
-	featureMeterResolver billingfeaturemeter.Resolver,
+	featureMeterResolver *billingfeaturemeterservice.Resolver,
 	streamingConnector streaming.Connector,
 	billingConfig config.BillingConfiguration,
 ) (*billinglineengine.Engine, error) {
@@ -141,7 +141,7 @@ func newBillingService(
 	legacyBillingLineEngine *billinglineengine.Engine,
 	sequenceService billingsequence.Service,
 	customerService customer.Service,
-	featureMeterResolver billingfeaturemeter.Resolver,
+	featureMeterResolver *billingfeaturemeterservice.Resolver,
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
 	subscriptionServices SubscriptionServiceWithWorkflow,
@@ -205,7 +205,7 @@ func NewBillingRegistry(
 		return BillingRegistry{}, err
 	}
 
-	featureMeterResolver, err := billingfeaturemeter.New(billingfeaturemeter.Config{
+	featureMeterResolver, err := billingfeaturemeterservice.New(billingfeaturemeterservice.Config{
 		FeatureService: featureConnector,
 		MeterService:   meterService,
 		Logger:         logger,

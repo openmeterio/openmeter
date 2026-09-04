@@ -24,7 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
@@ -43,7 +43,7 @@ type Config struct {
 	Logger *slog.Logger
 
 	BillingService       billing.Service
-	FeatureMeterResolver billingfeaturemeter.Resolver
+	FeatureMeterResolver *billingfeaturemeterservice.Resolver
 	StreamingConnector   streaming.Connector
 	RecognizerService    recognizer.Service
 	TaxCodeService       taxcode.Service
