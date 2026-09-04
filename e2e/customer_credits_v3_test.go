@@ -571,3 +571,108 @@ func TestV3CreditGrantKeyReadAndFilter(t *testing.T) {
 		require.Empty(t, list.Data)
 	})
 }
+
+func TestV3CreateCreditGrantCostBasis(t *testing.T) {
+	c := newV3Client(t)
+	currency := v3sdk.BillingCurrencyCode("USD")
+
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:      uniqueKey("credit_grant_cost_basis_customer"),
+		Name:     "Credit Grant Cost Basis Test Customer",
+		Currency: lo.ToPtr("USD"),
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, customer)
+
+	manualCostBasis := func(fiatCurrency *string) *v3sdk.ChargeCostBasis {
+		costBasis, err := v3sdk.ChargeCostBasisFromChargeCostBasisManual(v3sdk.ChargeCostBasisManual{
+			Type:         v3sdk.ChargeCostBasisTypeManual,
+			FiatCurrency: fiatCurrency,
+			Rate:         v3sdk.Numeric("0.5"),
+		})
+		require.NoError(t, err)
+
+		return &costBasis
+	}
+
+	grant := func(purchase v3sdk.CreateCreditGrantPurchase) v3sdk.CreateCreditGrantRequest {
+		return v3sdk.CreateCreditGrantRequest{
+			Name:          "cost basis grant",
+			Amount:        v3sdk.Numeric("10"),
+			Currency:      currency,
+			FundingMethod: v3sdk.CreditFundingMethodExternal,
+			Purchase:      &purchase,
+		}
+	}
+
+	requireHalfRate := func(t *testing.T, created *v3sdk.CreditGrant) {
+		t.Helper()
+
+		require.NotNil(t, created)
+		require.NotNil(t, created.Purchase)
+		require.Equal(t, "USD", created.Purchase.Currency)
+		require.Equal(t, v3sdk.Numeric("0.5"), lo.FromPtr(created.Purchase.PerUnitCostBasis))
+		require.Equal(t, v3sdk.Numeric("5"), lo.FromPtr(created.Purchase.Amount))
+		require.NotNil(t, created.Purchase.ResolvedCostBasis)
+		require.Equal(t, "USD", created.Purchase.ResolvedCostBasis.FiatCurrency)
+		require.Equal(t, v3sdk.Numeric("0.5"), created.Purchase.ResolvedCostBasis.Rate)
+		require.Nil(t, created.Purchase.ResolvedCostBasis.CostBasisID)
+	}
+
+	t.Run("manual cost basis without fiat currency", func(t *testing.T) {
+		created, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, grant(v3sdk.CreateCreditGrantPurchase{
+			Currency:  "USD",
+			CostBasis: manualCostBasis(nil),
+		}))
+		c.requireStatus(http.StatusCreated, err)
+		requireHalfRate(t, created)
+	})
+
+	t.Run("manual cost basis with a fiat currency is rejected on a fiat grant", func(t *testing.T) {
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, grant(v3sdk.CreateCreditGrantPurchase{
+			Currency:  "USD",
+			CostBasis: manualCostBasis(lo.ToPtr("USD")),
+		}))
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("deprecated per unit cost basis", func(t *testing.T) {
+		created, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, grant(v3sdk.CreateCreditGrantPurchase{
+			Currency:         "USD",
+			PerUnitCostBasis: lo.ToPtr(v3sdk.Numeric("0.5")),
+		}))
+		c.requireStatus(http.StatusCreated, err)
+		requireHalfRate(t, created)
+	})
+
+	t.Run("manual cost basis in another currency is rejected", func(t *testing.T) {
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, grant(v3sdk.CreateCreditGrantPurchase{
+			Currency:  "USD",
+			CostBasis: manualCostBasis(lo.ToPtr("EUR")),
+		}))
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("both rate inputs are rejected", func(t *testing.T) {
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, grant(v3sdk.CreateCreditGrantPurchase{
+			Currency:         "USD",
+			PerUnitCostBasis: lo.ToPtr(v3sdk.Numeric("0.5")),
+			CostBasis:        manualCostBasis(nil),
+		}))
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("dynamic cost basis on a fiat grant is rejected", func(t *testing.T) {
+		costBasis, err := v3sdk.ChargeCostBasisFromChargeCostBasisDynamic(v3sdk.ChargeCostBasisDynamic{
+			Type:         v3sdk.ChargeCostBasisTypeDynamic,
+			FiatCurrency: "USD",
+		})
+		require.NoError(t, err)
+
+		_, err = c.Customers.Credits.Grants.Create(t.Context(), customer.ID, grant(v3sdk.CreateCreditGrantPurchase{
+			Currency:  "USD",
+			CostBasis: &costBasis,
+		}))
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+}

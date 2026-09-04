@@ -65,6 +65,7 @@ type BaseSuite struct {
 	LineageService       lineage.Service
 	RevenueRecognizer    recognizer.Service
 	CurrencyService      currencies.Service
+	CurrencyResolver     currencies.CurrencyResolver
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -181,6 +182,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.CreditPurchaseSvc = stack.CreditPurchaseService
 	s.UsageBasedSvc = stack.UsageBasedService
 	s.CurrencyService = stack.CurrencyService
+	s.CurrencyResolver = stack.CurrencyResolver
 
 	customerBalanceSvc, err := customerbalance.New(customerbalance.Config{
 		AccountResolver:   deps.ResolversService,

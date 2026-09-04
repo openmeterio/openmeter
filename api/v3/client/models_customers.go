@@ -684,7 +684,7 @@ type ChargeCostBasisManual struct {
 	// Discriminator selecting the cost basis mode.
 	Type ChargeCostBasisType `json:"type"`
 	// The fiat currency the charge amount is converted into for invoicing.
-	FiatCurrency string `json:"fiat_currency"`
+	FiatCurrency *string `json:"fiat_currency,omitempty"`
 	// Fiat amount per one unit of the custom currency.
 	Rate Numeric `json:"rate"`
 }
@@ -1732,17 +1732,29 @@ type CreateCreditGrantFilters struct {
 
 // Purchase and payment terms of the grant.
 type CreateCreditGrantPurchase struct {
-	// Currency of the purchase amount.
+	// Fiat currency the purchase is settled in.
+	//
+	// Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+	// for custom-currency grants.
 	Currency string `json:"currency"`
-	// Cost basis per credit unit used to calculate the purchase amount.
+	// Fiat cost basis per credit unit of a fiat-currency grant.
 	//
 	// If `per_unit_cost_basis` is 0.50 and credit amount is
 	// $100.00, the total
 	// charge is $50.00. The value must be greater than 0. If the
 	// cost basis is 0, use `funding_method=none` instead.
 	//
-	// Defaults to 1.0.
+	// Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+	// to 1.0.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
+	// Defines how custom-currency credits are priced in the purchase `currency`; the
+	// resolved rate is exposed through `resolved_cost_basis`.
+	//
+	// Required for custom-currency grants and rejected for fiat grants, which use
+	// `per_unit_cost_basis`. `fiat_currency` must equal the purchase `currency`. A
+	// `dynamic` cost basis is resolved at the grant's effective time, so the currency
+	// cost basis must be effective by then.
+	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// Controls when credits become available for consumption.
 	//
 	// Defaults to `on_creation`.
@@ -1762,7 +1774,10 @@ type CreateCreditGrantRequest struct {
 	Labels      *map[string]string `json:"labels,omitempty"`
 	// Funding method of the grant.
 	FundingMethod CreditFundingMethod `json:"funding_method"`
-	// The currency of the granted credits.
+	// The fiat or custom currency of the granted credits.
+	//
+	// Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+	// fiat currency.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Granted credit amount.
 	Amount Numeric `json:"amount"`
@@ -1923,7 +1938,10 @@ type CreditGrant struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Funding method of the grant.
 	FundingMethod CreditFundingMethod `json:"funding_method"`
-	// The currency of the granted credits.
+	// The fiat or custom currency of the granted credits.
+	//
+	// Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+	// fiat currency.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Granted credit amount.
 	Amount Numeric `json:"amount"`
@@ -1988,19 +2006,27 @@ type CreditGrantPagePaginatedResponse struct {
 
 // Purchase and payment terms of the grant.
 type CreditGrantPurchase struct {
-	// Currency of the purchase amount.
+	// Fiat currency the purchase is settled in.
+	//
+	// Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+	// for custom-currency grants.
 	Currency string `json:"currency"`
-	// Cost basis per credit unit used to calculate the purchase amount.
+	// Fiat cost basis per credit unit of a fiat-currency grant.
 	//
 	// If `per_unit_cost_basis` is 0.50 and credit amount is
 	// $100.00, the total
 	// charge is $50.00. The value must be greater than 0. If the
 	// cost basis is 0, use `funding_method=none` instead.
 	//
-	// Defaults to 1.0.
+	// Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+	// to 1.0.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
-	// The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
-	Amount Numeric `json:"amount"`
+	// The rate the purchase is settled at in the purchase `currency`. Present once the
+	// cost basis is resolved.
+	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
+	// The purchase amount, calculated from the resolved cost basis and credit
+	// `amount`. Present once the cost basis is resolved.
+	Amount *Numeric `json:"amount,omitempty"`
 	// Controls when credits become available for consumption.
 	//
 	// Defaults to `on_creation`.

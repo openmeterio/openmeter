@@ -4867,7 +4867,6 @@ components:
       type: object
       required:
         - type
-        - fiat_currency
         - rate
       properties:
         type:
@@ -6418,7 +6417,11 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
-          description: The currency of the granted credits.
+          description: |-
+            The fiat or custom currency of the granted credits.
+
+            Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+            fiat currency.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -6531,29 +6534,43 @@ components:
       type: object
       required:
         - currency
-        - amount
       properties:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: Currency of the purchase amount.
+          description: |-
+            Fiat currency the purchase is settled in.
+
+            Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+            for custom-currency grants.
         per_unit_cost_basis:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Cost basis per credit unit used to calculate the purchase amount.
+            Fiat cost basis per credit unit of a fiat-currency grant.
 
             If `per_unit_cost_basis` is 0.50 and credit amount is
             $100.00, the total
             charge is $50.00. The value must be greater than 0. If the
             cost basis is 0, use `funding_method=none` instead.
 
-            Defaults to 1.0.
+            Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+            to 1.0.
           default: '1.0'
+        resolved_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
+          description: |-
+            The rate the purchase is settled at in the purchase `currency`. Present once the
+            cost basis is resolved.
+          title: Resolved cost basis
+          readOnly: true
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
+          description: |-
+            The purchase amount, calculated from the resolved cost basis and credit
+            `amount`. Present once the cost basis is resolved.
           readOnly: true
         availability_policy:
           allOf:
@@ -11078,6 +11095,82 @@ components:
           description: Whether this is the default profile.
       additionalProperties: false
       description: BillingProfile create request.
+    CreateChargeCostBasis:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/CreateChargeCostBasisDynamic'
+        - $ref: '#/components/schemas/CreateChargeCostBasisPinned'
+        - $ref: '#/components/schemas/CreateChargeCostBasisManual'
+      discriminator:
+        propertyName: type
+        mapping:
+          dynamic: '#/components/schemas/CreateChargeCostBasisDynamic'
+          pinned: '#/components/schemas/CreateChargeCostBasisPinned'
+          manual: '#/components/schemas/CreateChargeCostBasisManual'
+      description: |-
+        Cost basis selection for a custom-currency charge. The variant chosen fixes when
+        and how the conversion rate is determined.
+      title: Charge cost basis
+    CreateChargeCostBasisDynamic:
+      type: object
+      required:
+        - type
+        - fiat_currency
+      properties:
+        type:
+          type: string
+          enum:
+            - dynamic
+          description: Discriminator selecting the cost basis mode.
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+      additionalProperties: false
+      description: Cost basis resolved at the charge's full service period start.
+    CreateChargeCostBasisManual:
+      type: object
+      required:
+        - type
+        - rate
+      properties:
+        type:
+          type: string
+          enum:
+            - manual
+          description: Discriminator selecting the cost basis mode.
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fiat amount per one unit of the custom currency.
+      additionalProperties: false
+      description: Cost basis with an explicit conversion rate supplied with the charge.
+    CreateChargeCostBasisPinned:
+      type: object
+      required:
+        - type
+        - fiat_currency
+        - cost_basis_id
+      properties:
+        type:
+          type: string
+          enum:
+            - pinned
+          description: Discriminator selecting the cost basis mode.
+        fiat_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency the charge amount is converted into for invoicing.
+        cost_basis_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: ID of the custom currency's cost basis resource to pin.
+      additionalProperties: false
+      description: Cost basis pinned to a specific cost basis resource of the custom currency.
     CreateChargeFlatFeeRequest:
       type: object
       required:
@@ -11410,20 +11503,37 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: Currency of the purchase amount.
+          description: |-
+            Fiat currency the purchase is settled in.
+
+            Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+            for custom-currency grants.
         per_unit_cost_basis:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Cost basis per credit unit used to calculate the purchase amount.
+            Fiat cost basis per credit unit of a fiat-currency grant.
 
             If `per_unit_cost_basis` is 0.50 and credit amount is
             $100.00, the total
             charge is $50.00. The value must be greater than 0. If the
             cost basis is 0, use `funding_method=none` instead.
 
-            Defaults to 1.0.
+            Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+            to 1.0.
           default: '1.0'
+        cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/CreateChargeCostBasis'
+          description: |-
+            Defines how custom-currency credits are priced in the purchase `currency`; the
+            resolved rate is exposed through `resolved_cost_basis`.
+
+            Required for custom-currency grants and rejected for fiat grants, which use
+            `per_unit_cost_basis`. `fiat_currency` must equal the purchase `currency`. A
+            `dynamic` cost basis is resolved at the grant's effective time, so the currency
+            cost basis must be effective by then.
+          title: Cost basis
         availability_policy:
           allOf:
             - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
@@ -11466,7 +11576,11 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CreateCurrencyCode'
-          description: The currency of the granted credits.
+          description: |-
+            The fiat or custom currency of the granted credits.
+
+            Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+            fiat currency.
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'

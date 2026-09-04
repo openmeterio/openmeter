@@ -144,7 +144,10 @@ model CreditGrant {
   funding_method: CreditFundingMethod;
 
   /**
-   * The currency of the granted credits.
+   * The fiat or custom currency of the granted credits.
+   *
+   * Funded custom-currency grants must define `purchase.cost_basis` to settle in a
+   * fiat currency.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   currency: Currencies.CurrencyCode;
@@ -243,29 +246,57 @@ model CreditGrant {
 @friendlyName("BillingCreditGrantPurchase")
 model CreditGrantPurchase {
   /**
-   * Currency of the purchase amount.
+   * Fiat currency the purchase is settled in.
+   *
+   * Must equal the grant `currency` for fiat grants and `cost_basis.fiat_currency`
+   * for custom-currency grants.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   currency: Shared.CurrencyCode;
 
   /**
-   * Cost basis per credit unit used to calculate the purchase amount.
+   * Fiat cost basis per credit unit of a fiat-currency grant.
    *
    * If `per_unit_cost_basis` is 0.50 and credit amount is
    * $100.00, the total
    * charge is $50.00. The value must be greater than 0. If the
    * cost basis is 0, use `funding_method=none` instead.
    *
-   * Defaults to 1.0.
+   * Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
+   * to 1.0.
+   *
+   * @deprecated use `cost_basis` instead with manual type.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   per_unit_cost_basis?: Shared.Numeric = "1.0";
 
   /**
-   * The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`.
+   * Defines how custom-currency credits are priced in the purchase `currency`; the
+   * resolved rate is exposed through `resolved_cost_basis`.
+   *
+   * Required for custom-currency grants and rejected for fiat grants, which use
+   * `per_unit_cost_basis`. `fiat_currency` must equal the purchase `currency`. A
+   * `dynamic` cost basis is resolved at the grant's effective time, so the currency
+   * cost basis must be effective by then.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Cost basis")
+  cost_basis?: ChargeCostBasis;
+
+  /**
+   * The rate the purchase is settled at in the purchase `currency`. Present once the
+   * cost basis is resolved.
    */
   @visibility(Lifecycle.Read)
-  amount: Shared.Numeric;
+  @summary("Resolved cost basis")
+  resolved_cost_basis?: ChargeResolvedCostBasis;
+
+  /**
+   * The purchase amount, calculated from the resolved cost basis and credit
+   * `amount`. Present once the cost basis is resolved.
+   */
+  @visibility(Lifecycle.Read)
+  amount?: Shared.Numeric;
 
   /**
    * Controls when credits become available for consumption.

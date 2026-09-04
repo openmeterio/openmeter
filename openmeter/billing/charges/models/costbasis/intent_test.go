@@ -49,3 +49,17 @@ func TestIntentClone(t *testing.T) {
 		require.Equal(t, float64(2), original.manual.Rate.InexactFloat64())
 	})
 }
+
+func TestManualIntentValidate(t *testing.T) {
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	t.Run("fiat currency is required", func(t *testing.T) {
+		require.NoError(t, NewIntent(ManualIntent{FiatCurrency: usd, Rate: alpacadecimal.NewFromInt(2)}).Validate())
+		require.ErrorContains(t, NewIntent(ManualIntent{Rate: alpacadecimal.NewFromInt(2)}).Validate(), "fiat currency")
+	})
+
+	t.Run("rate must be positive", func(t *testing.T) {
+		require.ErrorContains(t, NewIntent(ManualIntent{FiatCurrency: usd}).Validate(), "rate must be positive")
+	})
+}
