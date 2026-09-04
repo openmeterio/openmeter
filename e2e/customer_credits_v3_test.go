@@ -653,6 +653,15 @@ func TestV3CreateCreditGrantCostBasis(t *testing.T) {
 		requireProblem(t, err, http.StatusBadRequest)
 	})
 
+	t.Run("both rate inputs are rejected", func(t *testing.T) {
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, grant(v3sdk.CreateCreditGrantPurchase{
+			Currency:         "USD",
+			PerUnitCostBasis: lo.ToPtr(v3sdk.Numeric("0.5")),
+			CostBasis:        manualCostBasis(nil),
+		}))
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
 	t.Run("dynamic cost basis on a fiat grant is rejected", func(t *testing.T) {
 		costBasis, err := v3sdk.ChargeCostBasisFromChargeCostBasisDynamic(v3sdk.ChargeCostBasisDynamic{
 			Type:         v3sdk.ChargeCostBasisTypeDynamic,

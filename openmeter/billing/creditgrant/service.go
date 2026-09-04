@@ -193,6 +193,14 @@ func (p PurchaseTerms) validate(creditCurrency currencyx.Code, fundingMethod Fun
 		errs = append(errs, errors.New("purchase.cost_basis is required for custom currency credit grants"))
 	}
 
+	if p.PerUnitCostBasis != nil && p.CostBasis != nil {
+		errs = append(errs, errors.New("per_unit_cost_basis and purchase.cost_basis are mutually exclusive"))
+	}
+
+	if creditCurrency.IsCustom() && p.PerUnitCostBasis != nil {
+		errs = append(errs, errors.New("per_unit_cost_basis is not supported for custom currency credit grants"))
+	}
+
 	if creditCurrency.IsFiat() {
 		if p.CostBasis != nil && p.CostBasis.Type() != creditpurchase.CostBasisTypeFiat {
 			errs = append(errs, errors.New("purchase.cost_basis is not supported for fiat credit grants"))

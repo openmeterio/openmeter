@@ -114,11 +114,10 @@ func TestToCostBasis(t *testing.T) {
 		requireFiatRate(t, costBasis, 0.25)
 	})
 
-	t.Run("fiat grant cost basis wins over the deprecated per unit rate", func(t *testing.T) {
+	t.Run("fiat grant keeps the fiat rate cost basis", func(t *testing.T) {
 		costBasis, err := toCostBasis(&creditgrant.PurchaseTerms{
-			Currency:         "USD",
-			PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromFloat(0.25)),
-			CostBasis:        lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: alpacadecimal.NewFromFloat(0.5)})),
+			Currency:  "USD",
+			CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: alpacadecimal.NewFromFloat(0.5)})),
 		}, fiatCurrency)
 		require.NoError(t, err)
 		requireFiatRate(t, costBasis, 0.5)

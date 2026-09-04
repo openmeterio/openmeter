@@ -96,6 +96,18 @@ func TestCreateInputValidateCostBasis(t *testing.T) {
 			purchase:       PurchaseTerms{Currency: "USD", CostBasis: dynamic},
 		},
 		{
+			name:           "fiat grant with both rate inputs",
+			creditCurrency: "USD",
+			purchase:       PurchaseTerms{Currency: "USD", PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)), CostBasis: fiatRate},
+			wantErr:        "per_unit_cost_basis and purchase.cost_basis are mutually exclusive",
+		},
+		{
+			name:           "custom grant with per unit cost basis",
+			creditCurrency: "TOKENS",
+			purchase:       PurchaseTerms{Currency: "USD", PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)), CostBasis: manual(usd)},
+			wantErr:        "per_unit_cost_basis is not supported for custom currency credit grants",
+		},
+		{
 			name:           "custom grant with cost basis in another currency",
 			creditCurrency: "TOKENS",
 			purchase:       PurchaseTerms{Currency: "USD", CostBasis: manual(eur)},
