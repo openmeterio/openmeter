@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -247,5 +248,69 @@ func TestFromAPICreateChargeCostBasis(t *testing.T) {
 
 		_, err := fromAPICreateChargeCostBasis(&in)
 		require.ErrorContains(t, err, "invalid cost basis rate")
+	})
+}
+
+func TestToAPICreditGrantPurchase(t *testing.T) {
+	now := time.Date(2026, time.April, 17, 10, 0, 0, 0, time.UTC)
+
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	newCharge := func(currency currencies.Currency, costBasis creditpurchase.CostBasis, rate alpacadecimal.Decimal) creditpurchase.Charge {
+		return creditpurchase.Charge{
+			ChargeBase: creditpurchase.ChargeBase{
+				Intent: creditpurchase.Intent{
+					Intent: meta.Intent{
+						CustomerID: "cust-1",
+						Currency:   currency,
+					},
+					IntentMutableFields: creditpurchase.IntentMutableFields{
+						CreditAmount: alpacadecimal.NewFromInt(100),
+						Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+							InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+						}),
+					},
+					CostBasis: costBasis,
+				},
+				State: creditpurchase.State{
+					ResolvedCostBasis: &costbasis.State{CostBasis: rate, ResolvedAt: now},
+				},
+				Status: creditpurchase.StatusActivePaymentPending,
+			},
+		}
+	}
+
+	t.Run("fiat grant echoes the rate through the deprecated field", func(t *testing.T) {
+		rate := alpacadecimal.NewFromFloat(0.5)
+		charge := newCharge(currenciestestutils.NewFiatCurrency(t, "USD"), creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: rate}), rate)
+
+		purchase, err := toAPICreditGrantPurchase(charge)
+		require.NoError(t, err)
+		require.NotNil(t, purchase)
+		require.Equal(t, api.CurrencyCode("USD"), purchase.Currency)
+		require.Equal(t, lo.ToPtr("50"), purchase.Amount)
+		require.Equal(t, lo.ToPtr("0.5"), purchase.PerUnitCostBasis)
+		require.NotNil(t, purchase.ResolvedCostBasis)
+		require.Equal(t, "0.5", purchase.ResolvedCostBasis.Rate)
+	})
+
+	t.Run("custom currency grant exposes the rate only as resolved cost basis", func(t *testing.T) {
+		rate := alpacadecimal.NewFromFloat(0.25)
+		charge := newCharge(
+			currenciestestutils.NewCustomCurrency(t, "TOKENS", 3),
+			creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: usd, Rate: rate})),
+			rate,
+		)
+
+		purchase, err := toAPICreditGrantPurchase(charge)
+		require.NoError(t, err)
+		require.NotNil(t, purchase)
+		require.Equal(t, api.CurrencyCode("USD"), purchase.Currency)
+		require.Equal(t, lo.ToPtr("25"), purchase.Amount)
+		require.Nil(t, purchase.PerUnitCostBasis)
+		require.NotNil(t, purchase.ResolvedCostBasis)
+		require.Equal(t, api.CurrencyCode("USD"), purchase.ResolvedCostBasis.FiatCurrency)
+		require.Equal(t, "0.25", purchase.ResolvedCostBasis.Rate)
 	})
 }

@@ -150,7 +150,10 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		}
 
 		purchase.Amount = lo.ToPtr(purchaseAmount.String())
-		purchase.PerUnitCostBasis = &resolvedCostBasis.Rate
+
+		if charge.Intent.Currency.IsFiat() {
+			purchase.PerUnitCostBasis = &resolvedCostBasis.Rate
+		}
 	}
 
 	return purchase, nil
