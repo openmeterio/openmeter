@@ -443,8 +443,9 @@ func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurr
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+	asOf := input.pendingGrantAsOf()
 	if len(input.Currencies.Codes) > 0 {
-		return s.getRequestedBalanceCurrencies(ctx, input.CustomerID, dedupeCurrencies(input.Currencies.Codes))
+		return s.getRequestedBalanceCurrencies(ctx, input.CustomerID, dedupeCurrencies(input.Currencies.Codes), asOf)
 	}
 
 	// FIXME[RTE]: when GetBalances discovers currencies without an explicit
@@ -452,12 +453,12 @@ func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurr
 	// again once per currency in GetBalance. This is accepted as temporary bridge
 	// behavior until they have an RTE-owned fact/index or a shared candidate cache
 	// in this service.
-	ledgerCurrencies, err := s.getLedgerBalanceCurrencies(ctx, input.CustomerID, nil)
+	ledgerCurrencies, err := s.getLedgerBalanceCurrencies(ctx, input.CustomerID, nil, asOf)
 	if err != nil {
 		return nil, err
 	}
 
-	pendingCurrencies, err := s.getPendingGrantCurrencies(ctx, input.CustomerID, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
+	pendingCurrencies, err := s.getPendingGrantCurrencies(ctx, input.CustomerID, normalizeFeatureFilter(input.FeatureFilter), asOf)
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +477,7 @@ func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurr
 	}), nil
 }
 
-func (s *service) getRequestedBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, codes []currencyx.Code) ([]currencies.CurrencyReference, error) {
+func (s *service) getRequestedBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, codes []currencyx.Code, asOf time.Time) ([]currencies.CurrencyReference, error) {
 	referencesByCode := make(map[currencyx.Code][]currencies.CurrencyReference, len(codes))
 	customCodes := make([]currencyx.Code, 0, len(codes))
 	for _, code := range codes {
@@ -513,7 +514,7 @@ func (s *service) getRequestedBalanceCurrencies(ctx context.Context, customerID 
 			referencesByCode[code] = append(referencesByCode[code], currency.Reference())
 		}
 
-		ledgerCurrencies, err := s.getLedgerBalanceCurrencies(ctx, customerID, customCodes)
+		ledgerCurrencies, err := s.getLedgerBalanceCurrencies(ctx, customerID, customCodes, asOf)
 		if err != nil {
 			return nil, err
 		}
@@ -543,7 +544,10 @@ func (s *service) getRequestedBalanceCurrencies(ctx context.Context, customerID 
 	return references, nil
 }
 
-func (s *service) getLedgerBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, currencyCodes []currencyx.Code) ([]currencies.CurrencyReference, error) {
+// getLedgerBalanceCurrencies discovers identities from booked balance activity.
+// Balance buckets retain fully consumed routes, while the cutoff and visibility
+// filter prevent future or internal-only subaccounts from leaking into the view.
+func (s *service) getLedgerBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, currencyCodes []currencyx.Code, asOf time.Time) ([]currencies.CurrencyReference, error) {
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
@@ -568,24 +572,28 @@ func (s *service) getLedgerBalanceCurrencies(ctx context.Context, customerID cus
 		}
 
 		for _, route := range routes {
-			if query.nilCostBasisOnly && route.Currency.Code != "" {
-				route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
-			}
-
-			subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+			accountID := query.account.ID().ID
+			buckets, err := s.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 				Namespace: query.account.ID().Namespace,
-				AccountID: query.account.ID().ID,
-				Route:     route,
+				Filters: ledger.Filters{
+					AccountID: &accountID,
+					AsOf:      &asOf,
+					Route:     route,
+				},
+				ExcludeAnnotationFilters: map[string]string{
+					ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+				},
 			})
 			if err != nil {
-				return nil, fmt.Errorf("list customer balance sub accounts: %w", err)
+				return nil, fmt.Errorf("list customer balance buckets: %w", err)
 			}
 
-			for _, subAccount := range subAccounts {
-				if query.nilCostBasisOnly && subAccount.Route().CostBasis != nil {
+			for _, bucket := range buckets {
+				bucketRoute := bucket.Address.Route().Route()
+				if query.nilCostBasisOnly && bucketRoute.CostBasis != nil {
 					continue
 				}
-				references = append(references, subAccount.Route().Currency.Clone())
+				references = append(references, bucketRoute.Currency.Clone())
 			}
 		}
 	}

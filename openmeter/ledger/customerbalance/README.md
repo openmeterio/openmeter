@@ -24,8 +24,9 @@ carry `custom_currency_id`; balances remain separate when historical managed
 currencies reuse a display code. A code filter selects every matching identity.
 An explicit custom code resolves against both the namespace currency catalog
 and matching historical customer state; a code found in neither is rejected.
-Unfiltered listings discover currencies from booked credit, uncovered advance,
-pending grants, and current live credit-only exposure.
+Unfiltered listings discover currencies from customer-visible booked credit,
+uncovered advance, and pending grants at `asOf`. Current listings additionally
+include live credit-only exposure.
 
 Future-dated expiration entries do not affect the current balance. They do affect a balance queried at or after their expiration timestamp.
 

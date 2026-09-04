@@ -91,6 +91,11 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	if err != nil {
 		return nil, err
 	}
+	for key, value := range q.query.ExcludeAnnotationFilters {
+		entryPredicates = append(entryPredicates,
+			ledgerentrydb.HasTransactionWith(transactionAnnotationNotEqual(key, value)),
+		)
+	}
 
 	entries := sql.Table(ledgerentrydb.Table)
 	entries.SetDialect(dialect.Postgres)

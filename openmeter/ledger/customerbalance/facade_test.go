@@ -347,6 +347,44 @@ func TestFacadeGetBalancesKeepsCustomCurrencyIdentitiesSeparate(t *testing.T) {
 	}, settledByID)
 }
 
+func TestFacadeGetBalancesHistoricalDiscoveryUsesBookedAt(t *testing.T) {
+	env := newTestEnv(t)
+	alpha := currenciestestutils.NewCustomCurrency(t, "CUSTOM", 2)
+	beta := currenciestestutils.NewCustomCurrency(t, "CUSTOM", 2)
+	firstBookedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	secondBookedAt := firstBookedAt.Add(time.Hour)
+
+	clock.FreezeTime(firstBookedAt)
+	defer clock.UnFreeze()
+	env.bookFBOBalanceInCurrencyReferenceWithFeatures(t, alpacadecimal.NewFromInt(40), alpha.Reference(), nil)
+	env.fundOpenReceivableInCurrencyReferenceWithFeatures(t, alpacadecimal.NewFromInt(40), alpha.Reference(), nil)
+
+	clock.FreezeTime(secondBookedAt)
+	env.bookFBOBalanceInCurrencyReferenceWithFeatures(t, alpacadecimal.NewFromInt(60), beta.Reference(), nil)
+	env.fundOpenReceivableInCurrencyReferenceWithFeatures(t, alpacadecimal.NewFromInt(60), beta.Reference(), nil)
+
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	// given:
+	// - two managed currencies reuse one code, but the second identity is first
+	//   booked after the requested historical cutoff
+	// when:
+	// - balances are listed without an explicit currency filter as of the first booking
+	balances, err := facade.GetBalances(t.Context(), GetBalancesInput{
+		CustomerID: env.CustomerID,
+		AsOf:       &firstBookedAt,
+	})
+	require.NoError(t, err)
+	require.Len(t, balances, 1)
+
+	// then:
+	// - only the identity with ledger activity at the cutoff is discoverable
+	require.NotNil(t, balances[0].CustomCurrencyID)
+	require.Equal(t, alpha.ID, *balances[0].CustomCurrencyID)
+	require.Equal(t, float64(40), balances[0].Balance.Settled().InexactFloat64())
+}
+
 func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	env := newTestEnv(t)
 	facade, err := NewFacade(env.Service)
