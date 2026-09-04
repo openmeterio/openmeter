@@ -26,12 +26,7 @@ func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (b
 
 	meterTypeAllowsProgressiveBilling := false
 	if linePrice.Type() != productcatalog.FlatPriceType && in.ProgressiveBilling {
-		isDependingOnIncreaseOnlyMeters, err := isDependingOnIncreaseOnlyMeters(in)
-		if err != nil {
-			return billing.IsLineBillableAsOfResult{}, err
-		}
-
-		meterTypeAllowsProgressiveBilling = isDependingOnIncreaseOnlyMeters
+		meterTypeAllowsProgressiveBilling = isDependingOnIncreaseOnlyMeters(in)
 	}
 
 	// Force disable progressive billing if the meter type does not allow it
@@ -43,7 +38,8 @@ func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (b
 		AsOf:               in.AsOf,
 		ProgressiveBilling: in.ProgressiveBilling,
 		Line:               in.Line,
-		FeatureMeters:      in.FeatureMeters,
+		Feature:            in.Feature,
+		Meter:              in.Meter,
 	})
 	if err != nil {
 		return billing.IsLineBillableAsOfResult{}, err
@@ -58,30 +54,13 @@ func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (b
 
 // isDependingOnIncreaseOnlyMeters checks if the line is depending on meters that can decrease the totals over time
 // (note: this is somewhat of a lie, as we can input negative values in events, which will have the same effect)
-func isDependingOnIncreaseOnlyMeters(in rating.ResolveBillablePeriodInput) (bool, error) {
-	featureKey := in.Line.GetFeatureKey()
-	if featureKey == "" {
-		return false, fmt.Errorf("feature key is required")
-	}
-
-	// Let's check if the underlying meter can be billed in a progressive manner
-	featureMeter, err := in.FeatureMeters.Get(in.Line)
-	if err != nil {
-		return false, err
-	}
-
-	if featureMeter.Meter == nil {
-		return false, fmt.Errorf("meter is nil for feature[%s]", featureKey)
-	}
-
-	meterEntity := *featureMeter.Meter
-
-	switch meterEntity.Aggregation {
+func isDependingOnIncreaseOnlyMeters(in rating.ResolveBillablePeriodInput) bool {
+	switch in.Meter.Aggregation {
 	case meter.MeterAggregationSum, meter.MeterAggregationCount,
 		meter.MeterAggregationMax, meter.MeterAggregationUniqueCount:
-		return true, nil
+		return true
 	default:
 		// Other types need to be billed in arrears truncated by window size
-		return false, nil
+		return false
 	}
 }

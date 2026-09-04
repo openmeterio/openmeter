@@ -12,6 +12,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -233,9 +236,16 @@ func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice
 			if err := line.Validate(); err != nil {
 				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
 			}
+
+			featureEntity, meterEntity, err := resolveRatingDependencies(line, featureMeters)
+			if err != nil {
+				return fmt.Errorf("resolving rating dependencies for line[%s]: %w", line.ID, err)
+			}
+
 			result, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
-				FeatureMeters:      featureMeters,
+				Feature:            featureEntity,
+				Meter:              meterEntity,
 				ProgressiveBilling: progressiveBilling,
 				AsOf:               line.InvoiceAt,
 			})
@@ -252,6 +262,24 @@ func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice
 			return nil
 		})...,
 	)
+}
+
+func resolveRatingDependencies(line billing.GatheringLine, featureMeters billingfeaturemeter.FeatureMeters) (*feature.Feature, *meter.Meter, error) {
+	price := line.GetPrice()
+	if price == nil {
+		return nil, nil, errors.New("line price is required")
+	}
+
+	if price.Type() == productcatalog.FlatPriceType {
+		return nil, nil, nil
+	}
+
+	featureMeter, err := featureMeters.Get(line)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &featureMeter.Feature, featureMeter.Meter, nil
 }
 
 func (s *Service) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
