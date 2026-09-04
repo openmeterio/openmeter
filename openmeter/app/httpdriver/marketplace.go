@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/app/billingprofile"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -94,7 +95,6 @@ type (
 
 type MarketplaceAppAPIKeyInstallRequest struct {
 	app.InstallAppV3Input
-	CreateBillingProfile bool
 }
 
 // MarketplaceAppAPIKeyInstall returns a handler for installing an app type with an API key
@@ -114,12 +114,12 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 
 			req := MarketplaceAppAPIKeyInstallRequest{
 				InstallAppV3Input: app.InstallAppV3Input{
-					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
-					Namespace:            namespace,
-					Name:                 lo.FromPtr(body.Name),
-					APIKey:               lo.ToPtr(body.ApiKey),
+					MarketplaceListingID:        app.MarketplaceListingID{Type: app.AppType(appType)},
+					Namespace:                   namespace,
+					Name:                        lo.FromPtr(body.Name),
+					APIKey:                      lo.ToPtr(body.ApiKey),
+					CreateDefaultBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 				},
-				CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 			}
 
 			return req, nil
@@ -127,6 +127,11 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 		func(ctx context.Context, request MarketplaceAppAPIKeyInstallRequest) (MarketplaceAppAPIKeyInstallResponse, error) {
 			resp := MarketplaceAppAPIKeyInstallResponse{
 				DefaultForCapabilityTypes: []api.AppCapabilityType{},
+			}
+
+			// make the billing profile provisioning transactional
+			request.CreateDefaultBillingProfileFn = func(ctx context.Context, installedApp app.App) ([]app.CapabilityType, error) {
+				return billingprofile.CreateDefault(ctx, h.billingService, h.stripeAppService, installedApp)
 			}
 
 			// Install app
@@ -163,7 +168,6 @@ type (
 
 type MarketplaceAppInstallRequest struct {
 	app.InstallAppV3Input
-	CreateBillingProfile bool
 }
 
 // MarketplaceAppInstall returns a handler for installing an app type
@@ -183,11 +187,11 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 
 			req := MarketplaceAppInstallRequest{
 				InstallAppV3Input: app.InstallAppV3Input{
-					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
-					Namespace:            namespace,
-					Name:                 lo.FromPtr(body.Name),
+					MarketplaceListingID:        app.MarketplaceListingID{Type: app.AppType(appType)},
+					Namespace:                   namespace,
+					Name:                        lo.FromPtr(body.Name),
+					CreateDefaultBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 				},
-				CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 			}
 
 			return req, nil
@@ -195,6 +199,11 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 		func(ctx context.Context, request MarketplaceAppInstallRequest) (MarketplaceAppInstallResponse, error) {
 			resp := MarketplaceAppInstallResponse{
 				DefaultForCapabilityTypes: []api.AppCapabilityType{},
+			}
+
+			// make the billing profile provisioning transactional
+			request.CreateDefaultBillingProfileFn = func(ctx context.Context, installedApp app.App) ([]app.CapabilityType, error) {
+				return billingprofile.CreateDefault(ctx, h.billingService, h.stripeAppService, installedApp)
 			}
 
 			// Install app
