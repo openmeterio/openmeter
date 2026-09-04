@@ -3,32 +3,32 @@ package service
 import (
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error) {
+func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
 	if err := in.Validate(); err != nil {
-		return nil, err
+		return billing.IsLineBillableAsOfResult{}, err
 	}
 
 	linePricer, err := getPricerFor(in.Line, rating.NewGenerateDetailedLinesOptions(), s.unitConfigEnabled)
 	if err != nil {
-		return nil, err
+		return billing.IsLineBillableAsOfResult{}, err
 	}
 
 	linePrice := in.Line.GetPrice()
 	if linePrice == nil {
-		return nil, fmt.Errorf("price is nil")
+		return billing.IsLineBillableAsOfResult{}, fmt.Errorf("price is nil")
 	}
 
 	meterTypeAllowsProgressiveBilling := false
 	if linePrice.Type() != productcatalog.FlatPriceType && in.ProgressiveBilling {
 		isDependingOnIncreaseOnlyMeters, err := isDependingOnIncreaseOnlyMeters(in)
 		if err != nil {
-			return nil, err
+			return billing.IsLineBillableAsOfResult{}, err
 		}
 
 		meterTypeAllowsProgressiveBilling = isDependingOnIncreaseOnlyMeters
@@ -39,17 +39,21 @@ func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*
 		in.ProgressiveBilling = false
 	}
 
-	billablePeriod, err := linePricer.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
+	result, err := linePricer.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 		AsOf:               in.AsOf,
 		ProgressiveBilling: in.ProgressiveBilling,
 		Line:               in.Line,
 		FeatureMeters:      in.FeatureMeters,
 	})
 	if err != nil {
-		return nil, err
+		return billing.IsLineBillableAsOfResult{}, err
 	}
 
-	return billablePeriod, nil
+	if err := result.Validate(); err != nil {
+		return billing.IsLineBillableAsOfResult{}, fmt.Errorf("validating billable period result: %w", err)
+	}
+
+	return result, nil
 }
 
 // isDependingOnIncreaseOnlyMeters checks if the line is depending on meters that can decrease the totals over time

@@ -7,7 +7,10 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -79,13 +82,6 @@ func (b LineEngineType) IsCharge() bool {
 		return false
 	}
 }
-
-type LineBillability struct {
-	IsBillable      bool
-	ValidationError error
-}
-
-type LineBillabilities []LineBillability
 
 type BuildStandardInvoiceLinesInput struct {
 	// Invoice is the target standard invoice that will own the built lines.
@@ -179,6 +175,25 @@ type IsLineBillableAsOfInput struct {
 	ProgressiveBilling     bool
 	FeatureMeters          billingfeaturemeter.FeatureMeters
 	ResolvedBillablePeriod timeutil.ClosedPeriod
+}
+
+type IsLineBillableAsOfResult struct {
+	Billable       bool
+	BillablePeriod timeutil.ClosedPeriod
+}
+
+func (r IsLineBillableAsOfResult) Validate() error {
+	var errs []error
+
+	if r.Billable {
+		if err := r.BillablePeriod.ValidateAsRequired(); err != nil {
+			errs = append(errs, fmt.Errorf("billable period: %w", err))
+		}
+	} else if !lo.IsEmpty(r.BillablePeriod) {
+		errs = append(errs, errors.New("billable period must be empty when line is not billable"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i IsLineBillableAsOfInput) Validate() error {

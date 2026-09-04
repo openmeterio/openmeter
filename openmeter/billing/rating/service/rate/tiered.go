@@ -3,9 +3,9 @@ package rate
 import (
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // Tiered is a pricer that can handle both volume and graduated tiered pricing acts as
@@ -33,10 +33,10 @@ func (p Tiered) GenerateDetailedLines(l PricerCalculateInput) (rating.DetailedLi
 	}
 }
 
-func (p Tiered) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error) {
+func (p Tiered) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
 	price, err := in.Line.GetPrice().AsTiered()
 	if err != nil {
-		return nil, fmt.Errorf("converting price to tiered price: %w", err)
+		return billing.IsLineBillableAsOfResult{}, fmt.Errorf("converting price to tiered price: %w", err)
 	}
 
 	switch price.Mode {
@@ -45,6 +45,6 @@ func (p Tiered) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*ti
 	case productcatalog.GraduatedTieredPrice:
 		return p.graduated.ResolveBillablePeriod(in)
 	default:
-		return nil, fmt.Errorf("unsupported tiered price mode: %s", price.Mode)
+		return billing.IsLineBillableAsOfResult{}, fmt.Errorf("unsupported tiered price mode: %s", price.Mode)
 	}
 }

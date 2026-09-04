@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	ratingtestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/testutils"
@@ -340,8 +341,8 @@ type stubRatingService struct {
 	lastOpts billingrating.GenerateDetailedLinesOptions
 }
 
-func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error) {
-	return nil, nil
+func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
+	return billing.IsLineBillableAsOfResult{}, nil
 }
 
 func (s *stubRatingService) GenerateDetailedLines(in billingrating.StandardLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
