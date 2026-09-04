@@ -7,6 +7,7 @@ import "../common/pagination.tsp";
 import "../common/parameters.tsp";
 import "./subscription.tsp";
 import "./subscriptionaddon.tsp";
+import "./edit.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -162,6 +163,22 @@ interface SubscriptionsOperations {
     body: SubscriptionChange,
   ):
     | SubscriptionChangeResponse
+    | Common.NotFound
+    | Common.Conflict
+    | Common.ErrorResponses;
+
+  /**
+   * Edits a running subscription by applying an ordered batch of customizations
+   * (adding or removing items, adding, removing, or stretching phases, or
+   * unscheduling a pending edit). The changes may take effect immediately or at the
+   * next billing cycle. Subscriptions that have add-ons cannot be edited.
+   */
+  @post
+  @operationId("edit-subscription")
+  @summary("Edit subscription")
+  @route("/{subscriptionId}/edit")
+  edit(@path subscriptionId: Shared.ULID, @body body: SubscriptionEdit):
+    | Shared.UpdateResponse<Subscription>
     | Common.NotFound
     | Common.Conflict
     | Common.ErrorResponses;

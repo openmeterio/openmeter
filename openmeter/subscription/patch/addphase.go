@@ -78,6 +78,14 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 		p := sortedPhases[i]
 		// We use !.Before() cause we might insert the phase at the same time another one starts
 		if v, _ := p.StartAfter.AddTo(spec.ActiveFrom); !v.Before(vST) && diff.IsZero() {
+			// The new phase sits before an existing one, so its span must be bounded to
+			// know where that following phase now starts. A nil duration means the phase
+			// is open-ended (only valid as the last phase); a duration is required here,
+			// so reject the input rather than dereferencing the nil pointer below.
+			if a.Value().Duration == nil {
+				return &subscription.PatchValidationError{Msg: "cannot add a phase without a duration before an existing phase"}
+			}
+
 			tillNextPhase, err := p.StartAfter.Subtract(a.Value().StartAfter)
 			if err != nil {
 				return fmt.Errorf("failed to calculate difference between phases: %w", err)

@@ -899,6 +899,36 @@ export const subscriptionEditTimingEnum = z
     'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
   )
 
+export const subscriptionEditRemoveItem = z
+  .object({
+    type: z
+      .literal('remove_item')
+      .describe('Discriminator for the remove-item operation.'),
+    phaseKey: z
+      .string()
+      .describe('The key of the phase to remove the item from.'),
+    itemKey: z.string().describe('The key of the item to remove.'),
+  })
+  .describe('Remove a rate card from a phase.')
+
+export const subscriptionRemovePhaseShifting = z
+  .enum(['next', 'prev'])
+
+  .describe(
+    "The direction to shift surrounding phases when a phase is removed. - `next`: Shift all subsequent phases to start sooner by the removed phase's length. - `prev`: Extend the previous phase to end later by the removed phase's length.",
+  )
+
+export const subscriptionEditUnscheduleEdit = z
+  .object({
+    type: z
+      .literal('unschedule_edit')
+      .describe('Discriminator for the unschedule-edit operation.'),
+  })
+
+  .describe(
+    'Discard any scheduled edits on the current phase, reverting it to its previously persisted state.',
+  )
+
 export const appType = z
   .enum(['sandbox', 'stripe', 'external_invoicing'])
   .describe('The type of the app.')
@@ -1421,6 +1451,20 @@ export const collectionAlignment = z
 export const featureUnitCostType = z
   .enum(['llm', 'manual'])
   .describe('The type of unit cost.')
+
+export const subscriptionEditOperationType = z
+  .enum([
+    'add_item',
+    'remove_item',
+    'add_phase',
+    'remove_phase',
+    'stretch_phase',
+    'unschedule_edit',
+  ])
+
+  .describe(
+    'The type of a subscription edit operation. - `add_item`: Add a rate card to a phase. - `remove_item`: Remove a rate card from a phase. - `add_phase`: Add a new phase to the subscription. - `remove_phase`: Remove a phase from the subscription. - `stretch_phase`: Extend the duration of a phase. - `unschedule_edit`: Discard scheduled edits on the current phase.',
+  )
 
 export const systemAccountAccessToken = z
   .object({
@@ -2966,6 +3010,37 @@ export const rateCardMeteredEntitlement = z
   })
   .describe('The entitlement template of a metered entitlement.')
 
+export const subscriptionPhaseCreate = z
+  .object({
+    key: resourceKey,
+    name: z.string().describe('The name of the phase.'),
+    description: z
+      .string()
+      .optional()
+      .describe('An optional description of the phase.'),
+    startAfter: iso8601Duration
+      .nullable()
+
+      .describe(
+        'The ISO-8601 interval after the subscription start at which the phase begins. When null, the phase starts immediately after the subscription starts.',
+      ),
+    duration: iso8601Duration.optional(),
+  })
+  .describe('The definition of a new subscription phase to add via an edit.')
+
+export const subscriptionEditStretchPhase = z
+  .object({
+    type: z
+      .literal('stretch_phase')
+      .describe('Discriminator for the stretch-phase operation.'),
+    phaseKey: z.string().describe('The key of the phase to stretch.'),
+    extendBy: iso8601Duration,
+  })
+
+  .describe(
+    'Extend the duration of a phase, shifting later phases by the same amount.',
+  )
+
 export const recurringPeriod = z
   .object({
     anchor: dateTime,
@@ -3167,6 +3242,16 @@ export const subscriptionEditTiming = z
   .describe(
     'Subscription edit timing defined when the changes should take effect. If the provided configuration is not supported by the subscription, an error will be returned.',
   )
+
+export const subscriptionEditRemovePhase = z
+  .object({
+    type: z
+      .literal('remove_phase')
+      .describe('Discriminator for the remove-phase operation.'),
+    phaseKey: z.string().describe('The key of the phase to remove.'),
+    shift: subscriptionRemovePhaseShifting,
+  })
+  .describe('Remove a phase from the subscription.')
 
 export const taxCodeAppMapping = z
   .object({
@@ -4249,6 +4334,18 @@ export const rateCardEntitlement = z
 
   .describe(
     'Entitlement template configured on a rate card. The feature is taken from the rate card itself, so it is omitted here.',
+  )
+
+export const subscriptionEditAddPhase = z
+  .object({
+    type: z
+      .literal('add_phase')
+      .describe('Discriminator for the add-phase operation.'),
+    phase: subscriptionPhaseCreate,
+  })
+
+  .describe(
+    'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
   )
 
 export const workflowCollectionAlignmentAnchored = z
@@ -5692,6 +5789,19 @@ export const subscriptionItem = z
     'A subscription item pins a rate card to a cadence within a subscription phase.',
   )
 
+export const subscriptionEditAddItem = z
+  .object({
+    type: z
+      .literal('add_item')
+      .describe('Discriminator for the add-item operation.'),
+    phaseKey: z.string().describe('The key of the phase to add the item to.'),
+    rateCard: rateCard,
+  })
+
+  .describe(
+    'Add a new rate card to a phase. Adding an item to the current phase closes the active version of the same item key and appends a new version.',
+  )
+
 export const subscriptionAddonRateCard = z
   .object({
     rateCard: rateCard,
@@ -6047,6 +6157,20 @@ export const subscriptionPhase = z
     "A subscription phase groups the rate cards in effect for a segment of the subscription's lifetime. Analogous to plan phases.",
   )
 
+export const subscriptionEditOperation = z
+  .discriminatedUnion('type', [
+    subscriptionEditAddItem,
+    subscriptionEditRemoveItem,
+    subscriptionEditAddPhase,
+    subscriptionEditRemovePhase,
+    subscriptionEditStretchPhase,
+    subscriptionEditUnscheduleEdit,
+  ])
+
+  .describe(
+    'A single customization to apply to a running subscription. The `type` field discriminates which operation is performed.',
+  )
+
 export const subscriptionAddon = z
   .object({
     id: ulid,
@@ -6289,6 +6413,22 @@ export const subscription = z
       ),
   })
   .describe('Subscription.')
+
+export const subscriptionEdit = z
+  .object({
+    customizations: z
+      .array(subscriptionEditOperation)
+      .max(100)
+
+      .describe(
+        'The ordered batch of customizations to apply to the running subscription.',
+      ),
+    timing: subscriptionEditTiming.optional().default('immediate'),
+  })
+
+  .describe(
+    "Request for editing a running subscription. Applies an ordered batch of customizations to the subscription's phases and items. A later customization observes the state produced by earlier ones.",
+  )
 
 export const subscriptionAddonPagePaginatedResponse = z
   .object({
@@ -6879,6 +7019,14 @@ export const changeSubscriptionPathParams = z.object({
 export const changeSubscriptionBody = subscriptionChange
 
 export const changeSubscriptionResponse = subscriptionChangeResponse
+
+export const editSubscriptionPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const editSubscriptionBody = subscriptionEdit
+
+export const editSubscriptionResponse = subscription
 
 export const createSubscriptionAddonPathParams = z.object({
   subscriptionId: ulid,
@@ -8385,6 +8533,36 @@ export const subscriptionEditTimingEnumWire = z
     'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
   )
 
+export const subscriptionEditRemoveItemWire = z
+  .strictObject({
+    type: z
+      .literal('remove_item')
+      .describe('Discriminator for the remove-item operation.'),
+    phase_key: z
+      .string()
+      .describe('The key of the phase to remove the item from.'),
+    item_key: z.string().describe('The key of the item to remove.'),
+  })
+  .describe('Remove a rate card from a phase.')
+
+export const subscriptionRemovePhaseShiftingWire = z
+  .enum(['next', 'prev'])
+
+  .describe(
+    "The direction to shift surrounding phases when a phase is removed. - `next`: Shift all subsequent phases to start sooner by the removed phase's length. - `prev`: Extend the previous phase to end later by the removed phase's length.",
+  )
+
+export const subscriptionEditUnscheduleEditWire = z
+  .strictObject({
+    type: z
+      .literal('unschedule_edit')
+      .describe('Discriminator for the unschedule-edit operation.'),
+  })
+
+  .describe(
+    'Discard any scheduled edits on the current phase, reverting it to its previously persisted state.',
+  )
+
 export const appTypeWire = z
   .enum(['sandbox', 'stripe', 'external_invoicing'])
   .describe('The type of the app.')
@@ -8904,6 +9082,20 @@ export const collectionAlignmentWire = z
 export const featureUnitCostTypeWire = z
   .enum(['llm', 'manual'])
   .describe('The type of unit cost.')
+
+export const subscriptionEditOperationTypeWire = z
+  .enum([
+    'add_item',
+    'remove_item',
+    'add_phase',
+    'remove_phase',
+    'stretch_phase',
+    'unschedule_edit',
+  ])
+
+  .describe(
+    'The type of a subscription edit operation. - `add_item`: Add a rate card to a phase. - `remove_item`: Remove a rate card from a phase. - `add_phase`: Add a new phase to the subscription. - `remove_phase`: Remove a phase from the subscription. - `stretch_phase`: Extend the duration of a phase. - `unschedule_edit`: Discard scheduled edits on the current phase.',
+  )
 
 export const systemAccountAccessTokenWire = z
   .strictObject({
@@ -10441,6 +10633,37 @@ export const rateCardMeteredEntitlementWire = z
   })
   .describe('The entitlement template of a metered entitlement.')
 
+export const subscriptionPhaseCreateWire = z
+  .strictObject({
+    key: resourceKeyWire,
+    name: z.string().describe('The name of the phase.'),
+    description: z
+      .string()
+      .optional()
+      .describe('An optional description of the phase.'),
+    start_after: iso8601DurationWire
+      .nullable()
+
+      .describe(
+        'The ISO-8601 interval after the subscription start at which the phase begins. When null, the phase starts immediately after the subscription starts.',
+      ),
+    duration: iso8601DurationWire.optional(),
+  })
+  .describe('The definition of a new subscription phase to add via an edit.')
+
+export const subscriptionEditStretchPhaseWire = z
+  .strictObject({
+    type: z
+      .literal('stretch_phase')
+      .describe('Discriminator for the stretch-phase operation.'),
+    phase_key: z.string().describe('The key of the phase to stretch.'),
+    extend_by: iso8601DurationWire,
+  })
+
+  .describe(
+    'Extend the duration of a phase, shifting later phases by the same amount.',
+  )
+
 export const recurringPeriodWire = z
   .strictObject({
     anchor: dateTimeWire,
@@ -10637,6 +10860,16 @@ export const subscriptionEditTimingWire = z
   .describe(
     'Subscription edit timing defined when the changes should take effect. If the provided configuration is not supported by the subscription, an error will be returned.',
   )
+
+export const subscriptionEditRemovePhaseWire = z
+  .strictObject({
+    type: z
+      .literal('remove_phase')
+      .describe('Discriminator for the remove-phase operation.'),
+    phase_key: z.string().describe('The key of the phase to remove.'),
+    shift: subscriptionRemovePhaseShiftingWire,
+  })
+  .describe('Remove a phase from the subscription.')
 
 export const taxCodeAppMappingWire = z
   .strictObject({
@@ -11714,6 +11947,18 @@ export const rateCardEntitlementWire = z
 
   .describe(
     'Entitlement template configured on a rate card. The feature is taken from the rate card itself, so it is omitted here.',
+  )
+
+export const subscriptionEditAddPhaseWire = z
+  .strictObject({
+    type: z
+      .literal('add_phase')
+      .describe('Discriminator for the add-phase operation.'),
+    phase: subscriptionPhaseCreateWire,
+  })
+
+  .describe(
+    'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
   )
 
 export const workflowCollectionAlignmentAnchoredWire = z
@@ -13164,6 +13409,19 @@ export const subscriptionItemWire = z
     'A subscription item pins a rate card to a cadence within a subscription phase.',
   )
 
+export const subscriptionEditAddItemWire = z
+  .strictObject({
+    type: z
+      .literal('add_item')
+      .describe('Discriminator for the add-item operation.'),
+    phase_key: z.string().describe('The key of the phase to add the item to.'),
+    rate_card: rateCardWire,
+  })
+
+  .describe(
+    'Add a new rate card to a phase. Adding an item to the current phase closes the active version of the same item key and appends a new version.',
+  )
+
 export const subscriptionAddonRateCardWire = z
   .strictObject({
     rate_card: rateCardWire,
@@ -13518,6 +13776,20 @@ export const subscriptionPhaseWire = z
     "A subscription phase groups the rate cards in effect for a segment of the subscription's lifetime. Analogous to plan phases.",
   )
 
+export const subscriptionEditOperationWire = z
+  .discriminatedUnion('type', [
+    subscriptionEditAddItemWire,
+    subscriptionEditRemoveItemWire,
+    subscriptionEditAddPhaseWire,
+    subscriptionEditRemovePhaseWire,
+    subscriptionEditStretchPhaseWire,
+    subscriptionEditUnscheduleEditWire,
+  ])
+
+  .describe(
+    'A single customization to apply to a running subscription. The `type` field discriminates which operation is performed.',
+  )
+
 export const subscriptionAddonWire = z
   .strictObject({
     id: ulidWire,
@@ -13756,6 +14028,22 @@ export const subscriptionWire = z
       ),
   })
   .describe('Subscription.')
+
+export const subscriptionEditWire = z
+  .strictObject({
+    customizations: z
+      .array(subscriptionEditOperationWire)
+      .max(100)
+
+      .describe(
+        'The ordered batch of customizations to apply to the running subscription.',
+      ),
+    timing: subscriptionEditTimingWire.optional(),
+  })
+
+  .describe(
+    "Request for editing a running subscription. Applies an ordered batch of customizations to the subscription's phases and items. A later customization observes the state produced by earlier ones.",
+  )
 
 export const subscriptionAddonPagePaginatedResponseWire = z
   .strictObject({
@@ -14381,6 +14669,14 @@ export const changeSubscriptionPathParamsWire = z.object({
 export const changeSubscriptionBodyWire = subscriptionChangeWire
 
 export const changeSubscriptionResponseWire = subscriptionChangeResponseWire
+
+export const editSubscriptionPathParamsWire = z.object({
+  subscriptionId: ulidWire,
+})
+
+export const editSubscriptionBodyWire = subscriptionEditWire
+
+export const editSubscriptionResponseWire = subscriptionWire
 
 export const createSubscriptionAddonPathParamsWire = z.object({
   subscriptionId: ulidWire,

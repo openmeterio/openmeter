@@ -25,6 +25,8 @@ import type {
   UnscheduleCancelationResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
+  EditSubscriptionRequest,
+  EditSubscriptionResponse,
   CreateSubscriptionAddonRequest,
   CreateSubscriptionAddonResponse,
   ListSubscriptionAddonsRequest,
@@ -262,6 +264,53 @@ export function changeSubscription(
           assertValid(schemas.changeSubscriptionResponseWire, data)
         }
         return fromWire(data, schemas.changeSubscriptionResponse)
+      })
+  })
+}
+
+/**
+ * Edit subscription
+ *
+ * Edits a running subscription by applying an ordered batch of customizations
+ * (adding or removing items, adding, removing, or stretching phases, or
+ * unscheduling a pending edit). The changes may take effect immediately or at the
+ * next billing cycle. Subscriptions that have add-ons cannot be edited.
+ *
+ * POST /openmeter/subscriptions/{subscriptionId}/edit
+ */
+export function editSubscription(
+  client: Client,
+  req: EditSubscriptionRequest,
+  options?: RequestOptions,
+): Promise<Result<EditSubscriptionResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      subscriptionId: req.subscriptionId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.editSubscriptionPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.editSubscriptionPathParamsWire, pathParams)
+    }
+    const path = `openmeter/subscriptions/${(() => {
+      if (pathParams.subscriptionId === undefined) {
+        throw new Error('missing path parameter: subscriptionId')
+      }
+      return encodeURIComponent(String(pathParams.subscriptionId))
+    })()}/edit`
+    const body = toWire(req.body, schemas.editSubscriptionBody)
+    if (client._options.validate) {
+      assertValid(schemas.editSubscriptionBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.editSubscriptionResponseWire, data)
+        }
+        return fromWire(data, schemas.editSubscriptionResponse)
       })
   })
 }

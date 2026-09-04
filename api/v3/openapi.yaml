@@ -3423,6 +3423,46 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionChange'
+  /openmeter/subscriptions/{subscriptionId}/edit:
+    post:
+      operationId: edit-subscription
+      summary: Edit subscription
+      description: |-
+        Edits a running subscription by applying an ordered batch of customizations
+        (adding or removing items, adding, removing, or stretching phases, or
+        unscheduling a pending edit). The changes may take effect immediately or at the
+        next billing cycle. Subscriptions that have add-ons cannot be edited.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Subscription updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionEdit'
   /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unschedule-cancelation
@@ -9737,6 +9777,168 @@ components:
           default: dynamic
       additionalProperties: false
       description: Subscription create request.
+    BillingSubscriptionEdit:
+      type: object
+      required:
+        - customizations
+      properties:
+        customizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscriptionEditOperation'
+          maxItems: 100
+          description: The ordered batch of customizations to apply to the running subscription.
+          title: Customizations
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: When the requested changes should take effect. Defaults to immediate.
+          title: Timing
+          default: immediate
+      additionalProperties: false
+      description: |-
+        Request for editing a running subscription. Applies an ordered batch of
+        customizations to the subscription's phases and items. A later customization
+        observes the state produced by earlier ones.
+    BillingSubscriptionEditAddItem:
+      type: object
+      required:
+        - type
+        - phase_key
+        - rate_card
+      properties:
+        type:
+          type: string
+          enum:
+            - add_item
+          description: Discriminator for the add-item operation.
+          title: Type
+        phase_key:
+          type: string
+          description: The key of the phase to add the item to.
+          title: Phase key
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCard'
+          description: The rate card describing what the customer gets and pays for the new item.
+          title: Rate card
+      additionalProperties: false
+      description: |-
+        Add a new rate card to a phase. Adding an item to the current phase closes the
+        active version of the same item key and appends a new version.
+    BillingSubscriptionEditAddPhase:
+      type: object
+      required:
+        - type
+        - phase
+      properties:
+        type:
+          type: string
+          enum:
+            - add_phase
+          description: Discriminator for the add-phase operation.
+          title: Type
+        phase:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionPhaseCreate'
+          description: The phase to add.
+          title: Phase
+      additionalProperties: false
+      description: |-
+        Add a new phase to the subscription. The phase is created without items; use
+        add-item operations to populate it.
+    BillingSubscriptionEditOperation:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingSubscriptionEditAddItem'
+        - $ref: '#/components/schemas/BillingSubscriptionEditRemoveItem'
+        - $ref: '#/components/schemas/BillingSubscriptionEditAddPhase'
+        - $ref: '#/components/schemas/BillingSubscriptionEditRemovePhase'
+        - $ref: '#/components/schemas/BillingSubscriptionEditStretchPhase'
+        - $ref: '#/components/schemas/BillingSubscriptionEditUnscheduleEdit'
+      discriminator:
+        propertyName: type
+        mapping:
+          add_item: '#/components/schemas/BillingSubscriptionEditAddItem'
+          remove_item: '#/components/schemas/BillingSubscriptionEditRemoveItem'
+          add_phase: '#/components/schemas/BillingSubscriptionEditAddPhase'
+          remove_phase: '#/components/schemas/BillingSubscriptionEditRemovePhase'
+          stretch_phase: '#/components/schemas/BillingSubscriptionEditStretchPhase'
+          unschedule_edit: '#/components/schemas/BillingSubscriptionEditUnscheduleEdit'
+      description: |-
+        A single customization to apply to a running subscription. The `type` field
+        discriminates which operation is performed.
+    BillingSubscriptionEditRemoveItem:
+      type: object
+      required:
+        - type
+        - phase_key
+        - item_key
+      properties:
+        type:
+          type: string
+          enum:
+            - remove_item
+          description: Discriminator for the remove-item operation.
+          title: Type
+        phase_key:
+          type: string
+          description: The key of the phase to remove the item from.
+          title: Phase key
+        item_key:
+          type: string
+          description: The key of the item to remove.
+          title: Item key
+      additionalProperties: false
+      description: Remove a rate card from a phase.
+    BillingSubscriptionEditRemovePhase:
+      type: object
+      required:
+        - type
+        - phase_key
+        - shift
+      properties:
+        type:
+          type: string
+          enum:
+            - remove_phase
+          description: Discriminator for the remove-phase operation.
+          title: Type
+        phase_key:
+          type: string
+          description: The key of the phase to remove.
+          title: Phase key
+        shift:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionRemovePhaseShifting'
+          description: The direction to shift surrounding phases to fill the removed phase's span.
+          title: Shift
+      additionalProperties: false
+      description: Remove a phase from the subscription.
+    BillingSubscriptionEditStretchPhase:
+      type: object
+      required:
+        - type
+        - phase_key
+        - extend_by
+      properties:
+        type:
+          type: string
+          enum:
+            - stretch_phase
+          description: Discriminator for the stretch-phase operation.
+          title: Type
+        phase_key:
+          type: string
+          description: The key of the phase to stretch.
+          title: Phase key
+        extend_by:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: The ISO-8601 duration to extend the phase by.
+          title: Extend by
+      additionalProperties: false
+      description: Extend the duration of a phase, shifting later phases by the same amount.
     BillingSubscriptionEditTiming:
       oneOf:
         - $ref: '#/components/schemas/BillingSubscriptionEditTimingEnum'
@@ -9755,6 +9957,21 @@ components:
         Subscription edit timing. When immediate, the requested changes take effect
         immediately. When next_billing_cycle, the requested changes take effect at the
         next billing cycle.
+    BillingSubscriptionEditUnscheduleEdit:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - unschedule_edit
+          description: Discriminator for the unschedule-edit operation.
+          title: Type
+      additionalProperties: false
+      description: |-
+        Discard any scheduled edits on the current phase, reverting it to its previously
+        persisted state.
     BillingSubscriptionItem:
       type: object
       required:
@@ -9867,6 +10084,44 @@ components:
       description: |-
         A subscription phase groups the rate cards in effect for a segment of the
         subscription's lifetime. Analogous to plan phases.
+    BillingSubscriptionPhaseCreate:
+      type: object
+      required:
+        - key
+        - name
+        - start_after
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: A locally unique identifier for the phase.
+          title: Key
+        name:
+          type: string
+          description: The name of the phase.
+          title: Name
+        description:
+          type: string
+          description: An optional description of the phase.
+          title: Description
+        start_after:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          nullable: true
+          description: |-
+            The ISO-8601 interval after the subscription start at which the phase begins.
+            When null, the phase starts immediately after the subscription starts.
+          title: Start after
+        duration:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The intended ISO-8601 duration of the phase. Required unless the phase will be
+            the last phase of the subscription.
+          title: Duration
+      additionalProperties: false
+      description: The definition of a new subscription phase to add via an edit.
     BillingSubscriptionPlanReference:
       type: object
       required:
@@ -9971,6 +10226,17 @@ components:
       description: |-
         Subscription reference represents a reference to the specific subscription item
         this entity represents.
+    BillingSubscriptionRemovePhaseShifting:
+      type: string
+      enum:
+        - next
+        - prev
+      description: |-
+        The direction to shift surrounding phases when a phase is removed.
+
+        - `next`: Shift all subsequent phases to start sooner by the removed phase's
+        length.
+        - `prev`: Extend the previous phase to end later by the removed phase's length.
     BillingSubscriptionStatus:
       type: string
       enum:

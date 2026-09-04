@@ -13,9 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -286,4 +289,144 @@ func FromAPIBillingSubscriptionCreate(
 	}
 
 	return workflowInput, nil
+}
+
+// FromAPIBillingSubscriptionEditOperation maps a single API edit operation to the
+// domain subscription patch that applies it to the target spec. The mapping mirrors
+// the v1 editSubscription handler; rate cards are converted via the shared plans
+// converter so add-item stays consistent with plan/subscription creation.
+func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOperation) (subscription.Patch, error) {
+	disc, err := op.Discriminator()
+	if err != nil {
+		return nil, models.NewGenericValidationError(fmt.Errorf("failed to read edit operation type: %w", err))
+	}
+
+	switch disc {
+	case string(api.BillingSubscriptionEditAddItemTypeAddItem):
+		apiP, err := op.AsBillingSubscriptionEditAddItem()
+		if err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode add_item operation: %w", err))
+		}
+
+		rc, err := plans.FromAPIBillingRateCard(apiP.RateCard)
+		if err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("failed to convert add_item rate card: %w", err))
+		}
+
+		phaseRC := &plansubscription.RateCard{
+			PhaseKey: apiP.PhaseKey,
+			RateCard: rc,
+		}
+
+		return patch.PatchAddItem{
+			PhaseKey: apiP.PhaseKey,
+			ItemKey:  rc.Key(),
+			CreateInput: subscription.SubscriptionItemSpec{
+				CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+					CreateSubscriptionItemPlanInput:     phaseRC.ToCreateSubscriptionItemPlanInput(),
+					CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{},
+				},
+			},
+		}, nil
+
+	case string(api.BillingSubscriptionEditRemoveItemTypeRemoveItem):
+		apiP, err := op.AsBillingSubscriptionEditRemoveItem()
+		if err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode remove_item operation: %w", err))
+		}
+
+		return patch.PatchRemoveItem{
+			PhaseKey: apiP.PhaseKey,
+			ItemKey:  apiP.ItemKey,
+		}, nil
+
+	case string(api.BillingSubscriptionEditAddPhaseTypeAddPhase):
+		apiP, err := op.AsBillingSubscriptionEditAddPhase()
+		if err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode add_phase operation: %w", err))
+		}
+
+		// start_after is required but nullable: a null (or absent) value leaves the
+		// zero offset, i.e. the subscription start. The domain then rejects that as
+		// "in the past" on a running subscription, matching v1's null handling.
+		var startAfter datetime.ISODuration
+		if apiP.Phase.StartAfter.IsSpecified() && !apiP.Phase.StartAfter.IsNull() {
+			sa, err := apiP.Phase.StartAfter.Get()
+			if err != nil {
+				return nil, models.NewGenericValidationError(fmt.Errorf("failed to read add_phase start_after: %w", err))
+			}
+			startAfter, err = datetime.ISODurationString(sa).Parse()
+			if err != nil {
+				return nil, models.NewGenericValidationError(fmt.Errorf("failed to parse add_phase start_after: %w", err))
+			}
+		}
+
+		var duration *datetime.ISODuration
+		if apiP.Phase.Duration != nil {
+			d, err := datetime.ISODurationString(*apiP.Phase.Duration).Parse()
+			if err != nil {
+				return nil, models.NewGenericValidationError(fmt.Errorf("failed to parse add_phase duration: %w", err))
+			}
+			duration = &d
+		}
+
+		return patch.PatchAddPhase{
+			PhaseKey: apiP.Phase.Key,
+			CreateInput: subscription.CreateSubscriptionPhaseInput{
+				Duration: duration,
+				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+					PhaseKey:    apiP.Phase.Key,
+					StartAfter:  startAfter,
+					Name:        apiP.Phase.Name,
+					Description: apiP.Phase.Description,
+				},
+				CreateSubscriptionPhaseCustomerInput: subscription.CreateSubscriptionPhaseCustomerInput{},
+			},
+		}, nil
+
+	case string(api.BillingSubscriptionEditRemovePhaseTypeRemovePhase):
+		apiP, err := op.AsBillingSubscriptionEditRemovePhase()
+		if err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode remove_phase operation: %w", err))
+		}
+
+		var shift subscription.RemoveSubscriptionPhaseShifting
+		switch apiP.Shift {
+		case api.BillingSubscriptionRemovePhaseShiftingNext:
+			shift = subscription.RemoveSubscriptionPhaseShiftNext
+		case api.BillingSubscriptionRemovePhaseShiftingPrev:
+			shift = subscription.RemoveSubscriptionPhaseShiftPrev
+		default:
+			return nil, models.NewGenericValidationError(fmt.Errorf("invalid remove_phase shift: %s", apiP.Shift))
+		}
+
+		return patch.PatchRemovePhase{
+			PhaseKey: apiP.PhaseKey,
+			RemoveInput: subscription.RemoveSubscriptionPhaseInput{
+				Shift: shift,
+			},
+		}, nil
+
+	case string(api.BillingSubscriptionEditStretchPhaseTypeStretchPhase):
+		apiP, err := op.AsBillingSubscriptionEditStretchPhase()
+		if err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode stretch_phase operation: %w", err))
+		}
+
+		d, err := datetime.ISODurationString(apiP.ExtendBy).Parse()
+		if err != nil {
+			return nil, models.NewGenericValidationError(fmt.Errorf("failed to parse stretch_phase extend_by: %w", err))
+		}
+
+		return patch.PatchStretchPhase{
+			PhaseKey: apiP.PhaseKey,
+			Duration: d,
+		}, nil
+
+	case string(api.BillingSubscriptionEditUnscheduleEditTypeUnscheduleEdit):
+		return patch.PatchUnscheduleEdit{}, nil
+
+	default:
+		return nil, models.NewGenericValidationError(fmt.Errorf("unknown edit operation type: %s", disc))
+	}
 }

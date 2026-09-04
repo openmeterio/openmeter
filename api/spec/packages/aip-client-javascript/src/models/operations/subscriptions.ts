@@ -14,6 +14,7 @@ import type {
   SubscriptionChangeInput,
   SubscriptionChangeResponse,
   SubscriptionCreateInput,
+  SubscriptionEditInput,
   SubscriptionPagePaginatedResponse,
 } from '../types.js'
 
@@ -63,6 +64,12 @@ export type ChangeSubscriptionRequest = AcceptDateStrings<{
   body: SubscriptionChangeInput
 }>
 export type ChangeSubscriptionResponse = SubscriptionChangeResponse
+
+export type EditSubscriptionRequest = AcceptDateStrings<{
+  subscriptionId: string
+  body: SubscriptionEditInput
+}>
+export type EditSubscriptionResponse = Subscription
 
 export type CreateSubscriptionAddonRequest = AcceptDateStrings<{
   subscriptionId: string
