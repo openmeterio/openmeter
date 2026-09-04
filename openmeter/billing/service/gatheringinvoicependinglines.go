@@ -330,7 +330,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
 		linesWithResolvedPeriods, err := slicesx.MapWithErr(invoice.Invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (gatheringLineWithBillablePeriod, error) {
-			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
+			result, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
 				FeatureMeters:      invoice.FeatureMeters,
 				ProgressiveBilling: in.ProgressiveBilling,
@@ -350,10 +350,17 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 				AsOf:                   in.AsOf,
 				ProgressiveBilling:     in.ProgressiveBilling,
 				FeatureMeters:          invoice.FeatureMeters,
-				ResolvedBillablePeriod: lo.FromPtr(period),
+				ResolvedBillablePeriod: result.BillablePeriod,
 			}
 			if err := engineInput.Validate(); err != nil {
 				return gatheringLineWithBillablePeriod{}, fmt.Errorf("validating billable status input[%s]: %w", line.ID, err)
+			}
+
+			if !result.Billable {
+				return gatheringLineWithBillablePeriod{
+					Line:   line,
+					Engine: eng,
+				}, nil
 			}
 
 			isBillable, err := eng.IsLineBillableAsOf(ctx, engineInput)
@@ -370,7 +377,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 
 			return gatheringLineWithBillablePeriod{
 				Line:           line,
-				BillablePeriod: lo.FromPtr(period),
+				BillablePeriod: result.BillablePeriod,
 				Engine:         eng,
 			}, nil
 		})

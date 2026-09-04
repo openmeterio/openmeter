@@ -5,13 +5,11 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Flat struct{}
@@ -62,9 +60,9 @@ func (p Flat) GenerateDetailedLines(l PricerCalculateInput) (rating.DetailedLine
 	return nil, nil
 }
 
-func (p Flat) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error) {
+func (p Flat) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
 	if in.Line.GetSplitLineGroupID() != nil {
-		return nil, billing.ValidationError{
+		return billing.IsLineBillableAsOfResult{}, billing.ValidationError{
 			Err: billing.ErrInvoiceProgressiveBillingNotSupported,
 		}
 	}
@@ -75,8 +73,11 @@ func (p Flat) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (*time
 	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
 
 	if invoiceAtTruncated.After(asOfTruncated) {
-		return nil, nil
+		return billing.IsLineBillableAsOfResult{}, nil
 	}
 
-	return lo.ToPtr(in.Line.GetServicePeriod()), nil
+	return billing.IsLineBillableAsOfResult{
+		Billable:       true,
+		BillablePeriod: in.Line.GetServicePeriod(),
+	}, nil
 }

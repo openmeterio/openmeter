@@ -611,8 +611,8 @@ var passthroughDetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Co
 	return charge, nil
 })
 
-func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error) {
-	return nil, nil
+func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
+	return billing.IsLineBillableAsOfResult{}, nil
 }
 
 func (s *stubRatingService) GenerateDetailedLines(in billingrating.StandardLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {

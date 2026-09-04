@@ -228,7 +228,7 @@ func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice
 			if err := line.Validate(); err != nil {
 				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
 			}
-			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
+			result, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
 				FeatureMeters:      featureMeters,
 				ProgressiveBilling: progressiveBilling,
@@ -238,7 +238,7 @@ func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice
 				return fmt.Errorf("checking if line[%s] can be invoiced: %w", line.ID, err)
 			}
 
-			if period == nil {
+			if !result.Billable {
 				return billing.ValidationError{
 					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.InvoiceAt),
 				}

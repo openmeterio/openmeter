@@ -9,11 +9,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Service interface {
-	ResolveBillablePeriod(in ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error)
+	ResolveBillablePeriod(in ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error)
 	GenerateDetailedLines(in StandardLineAccessor, opts ...GenerateDetailedLinesOption) (GenerateDetailedLinesResult, error)
 }
 
