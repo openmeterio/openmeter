@@ -81,9 +81,17 @@ func (p Plan) HasCurrencyOverrides() bool {
 	})
 }
 
+// ValidatePlanMeta validates both the identity and structure of plan metadata.
 func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return p.PlanMeta.Validate()
+	}
+}
+
+// ValidatePlanVersioning validates the fields required before catalog versioning assigns a version.
+func ValidatePlanVersioning() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		return validatePlanMetaVersioning()(p.PlanMeta)
 	}
 }
 
@@ -269,13 +277,24 @@ func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 	}
 }
 
+// ValidatePlanStructure validates the plan contents independently of its key and version.
+// This is the validation boundary for inline plans that are not persisted catalog resources.
+func ValidatePlanStructure() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		return errors.Join(
+			validatePlanMetaStructure()(p.PlanMeta),
+			ValidatePlanPhases()(p),
+			ValidatePlanCurrencyCodes()(p),
+			ValidatePlanBillingCadenceLiteral()(p),
+			ValidatePlanHasAlignedBillingCadences()(p),
+		)
+	}
+}
+
 func (p Plan) Validate() error {
 	return p.ValidateWith(
-		ValidatePlanMeta(),
-		ValidatePlanPhases(),
-		ValidatePlanCurrencyCodes(),
-		ValidatePlanBillingCadenceLiteral(),
-		ValidatePlanHasAlignedBillingCadences(),
+		ValidatePlanVersioning(),
+		ValidatePlanStructure(),
 	)
 }
 
@@ -299,9 +318,10 @@ func (p Plan) Equal(o Plan) bool {
 }
 
 var (
-	_ models.Validator             = (*PlanMeta)(nil)
-	_ models.CustomValidator[Plan] = (*Plan)(nil)
-	_ models.Equaler[PlanMeta]     = (*PlanMeta)(nil)
+	_ models.Validator                 = (*PlanMeta)(nil)
+	_ models.CustomValidator[Plan]     = (*Plan)(nil)
+	_ models.CustomValidator[PlanMeta] = (*PlanMeta)(nil)
+	_ models.Equaler[PlanMeta]         = (*PlanMeta)(nil)
 )
 
 type PlanMeta struct {
@@ -337,36 +357,55 @@ type PlanMeta struct {
 
 // Validate validates the PlanMeta.
 func (p PlanMeta) Validate() error {
-	var errs []error
+	return p.ValidateWith(
+		validatePlanMetaStructure(),
+		validatePlanMetaVersioning(),
+	)
+}
 
-	if err := p.Currency.Validate(); err != nil {
-		errs = append(errs, models.ErrorWithFieldPrefix(
-			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-			err,
-		))
+func (p PlanMeta) ValidateWith(validators ...models.ValidatorFunc[PlanMeta]) error {
+	return models.Validate(p, validators...)
+}
+
+func validatePlanMetaStructure() models.ValidatorFunc[PlanMeta] {
+	return func(p PlanMeta) error {
+		var errs []error
+
+		if err := p.Currency.Validate(); err != nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				err,
+			))
+		}
+
+		if err := p.EffectivePeriod.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
+		}
+
+		if p.Name == "" {
+			errs = append(errs, ErrResourceNameEmpty)
+		}
+
+		if p.BillingCadence.IsZero() {
+			errs = append(errs, fmt.Errorf("invalid BillingCadence: must not be empty"))
+		}
+
+		if err := p.ProRatingConfig.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid ProRatingConfig: %s", err))
+		}
+
+		return errors.Join(errs...)
 	}
+}
 
-	if err := p.EffectivePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid effective period: %w", err))
+func validatePlanMetaVersioning() models.ValidatorFunc[PlanMeta] {
+	return func(p PlanMeta) error {
+		if p.Key == "" {
+			return ErrResourceKeyEmpty
+		}
+
+		return nil
 	}
-
-	if p.Key == "" {
-		errs = append(errs, ErrResourceKeyEmpty)
-	}
-
-	if p.Name == "" {
-		errs = append(errs, ErrResourceNameEmpty)
-	}
-
-	if p.BillingCadence.IsZero() {
-		errs = append(errs, fmt.Errorf("invalid BillingCadence: must not be empty"))
-	}
-
-	if err := p.ProRatingConfig.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("invalid ProRatingConfig: %s", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // Equal returns true if the two PlanMetas are equal.
