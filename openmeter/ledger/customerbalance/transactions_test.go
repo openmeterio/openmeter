@@ -66,10 +66,9 @@ func TestApplyCreditTransactionBalances(t *testing.T) {
 	currencyReference := currencies.NewCurrencyReference("USD")
 	items := []CreditTransaction{
 		{
-			Currency:          "USD",
-			Amount:            alpacadecimal.NewFromInt(-10),
-			balanceImpact:     &balanceImpact,
-			currencyReference: currencyReference,
+			Currency:      "USD",
+			Amount:        alpacadecimal.NewFromInt(-10),
+			balanceImpact: &balanceImpact,
 		},
 	}
 
@@ -88,9 +87,9 @@ func TestApplyCreditTransactionBalancesSeparatesCustomCurrencyIdentities(t *test
 	require.NoError(t, err)
 
 	items := []CreditTransaction{
-		{Currency: "CREDITS", Amount: alpacadecimal.NewFromInt(10), currencyReference: alpha},
-		{Currency: "CREDITS", Amount: alpacadecimal.NewFromInt(20), currencyReference: beta},
-		{Currency: "CREDITS", Amount: alpacadecimal.NewFromInt(30), currencyReference: alpha},
+		{Currency: "CREDITS", CustomCurrencyID: alpha.CustomCurrencyID, Amount: alpacadecimal.NewFromInt(10)},
+		{Currency: "CREDITS", CustomCurrencyID: beta.CustomCurrencyID, Amount: alpacadecimal.NewFromInt(20)},
+		{Currency: "CREDITS", CustomCurrencyID: alpha.CustomCurrencyID, Amount: alpacadecimal.NewFromInt(30)},
 	}
 
 	applyCreditTransactionBalances(items, map[string]alpacadecimal.Decimal{

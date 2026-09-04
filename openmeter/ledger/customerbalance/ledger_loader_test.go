@@ -57,6 +57,10 @@ func TestLedgerCreditTransactionLoaderDoesNotRetainHasMoreAfterHiddenFinalPage(t
 	require.Equal(t, "tx-visible", got.Items[0].ID.ID)
 	require.Len(t, fakeLedger.inputs, 2)
 	require.NotNil(t, fakeLedger.inputs[1].Cursor)
+	require.Equal(t, map[string]string{
+		ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
+		ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+	}, fakeLedger.inputs[0].ExcludeAnnotationFilters)
 }
 
 func TestLedgerCreditTransactionLoaderScansPastHiddenRowsUntilLimit(t *testing.T) {

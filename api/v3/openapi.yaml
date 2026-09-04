@@ -6683,6 +6683,11 @@ components:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Currency of the balance affected by the transaction.
           readOnly: true
+        custom_currency_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Immutable managed currency identifier. Present only for custom currencies.
+          readOnly: true
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -11932,6 +11937,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           readOnly: true
+        custom_currency_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Immutable managed currency identifier. Present only for custom currencies.
+          readOnly: true
         live:
           allOf:
             - $ref: '#/components/schemas/Numeric'
@@ -12523,7 +12533,9 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilterExact'
-          description: Filter credit balance by currency.
+          description: |-
+            Filter credit balance by currency code. When historical custom currencies reuse
+            a code, each managed currency is returned as a separate balance row.
         feature_key:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilter'
@@ -12835,7 +12847,9 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
-          description: Filter credit transactions by currency.
+          description: |-
+            Filter credit transactions by currency code. Custom-currency rows retain their
+            managed currency identifier.
         feature_key:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilter'

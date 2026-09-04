@@ -79,6 +79,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 	templateCodes := make([]string, 0, 3)
 	for _, txAnnotations := range env.transactionAnnotations(t, result.TransactionGroup.TransactionGroupID) {
 		require.Equal(t, charge.ID, txAnnotations[ledger.AnnotationChargeID], "transaction missing charge annotation: %v", txAnnotations)
+		require.Equal(t, ledger.CustomerBalanceVisibilityInternal, txAnnotations[ledger.AnnotationCustomerBalanceVisibility])
 		templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(txAnnotations)
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)
@@ -185,6 +186,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection(t *testing.T) {
 	templateCodes := make([]string, 0, len(corrections.Items))
 	for _, transaction := range corrections.Items {
 		requireLedgerBookedAtEqual(t, bookedAt, transaction.BookedAt())
+		require.Equal(t, ledger.CustomerBalanceVisibilityInternal, transaction.Annotations()[ledger.AnnotationCustomerBalanceVisibility])
 		templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
 		require.NoError(t, err)
 		templateCodes = append(templateCodes, templateCode)

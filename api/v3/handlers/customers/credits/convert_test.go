@@ -16,6 +16,39 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type staticCreditBalance struct {
+	settled alpacadecimal.Decimal
+	live    alpacadecimal.Decimal
+	pending alpacadecimal.Decimal
+}
+
+func (b staticCreditBalance) Settled() alpacadecimal.Decimal { return b.settled }
+func (b staticCreditBalance) Live() alpacadecimal.Decimal    { return b.live }
+func (b staticCreditBalance) Pending() alpacadecimal.Decimal { return b.pending }
+
+func TestToAPICreditBalanceCustomCurrencyIdentity(t *testing.T) {
+	currency := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
+
+	result := toAPICreditBalance(currency.Reference(), staticCreditBalance{
+		settled: alpacadecimal.NewFromInt(10),
+		live:    alpacadecimal.NewFromInt(8),
+		pending: alpacadecimal.NewFromInt(2),
+	})
+
+	require.Equal(t, api.BillingCurrencyCode("CREDITS"), result.Currency)
+	require.Equal(t, lo.ToPtr(currency.ID), result.CustomCurrencyId)
+	require.Equal(t, api.Numeric("10"), result.Settled)
+	require.Equal(t, api.Numeric("8"), result.Live)
+	require.Equal(t, api.Numeric("2"), result.Pending)
+}
+
+func TestToAPICreditBalanceFiatOmitsCustomCurrencyIdentity(t *testing.T) {
+	result := toAPICreditBalance(currenciestestutils.NewFiatCurrency(t, "USD").Reference(), staticCreditBalance{})
+
+	require.Equal(t, api.BillingCurrencyCode("USD"), result.Currency)
+	require.Nil(t, result.CustomCurrencyId)
+}
+
 func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 	now := time.Date(2026, time.April, 17, 10, 0, 0, 0, time.UTC)
 

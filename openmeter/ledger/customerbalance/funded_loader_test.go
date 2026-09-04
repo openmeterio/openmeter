@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -301,7 +302,7 @@ func TestFundedCreditTransactionBalanceImpacts(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := GetBalanceServiceInput{Currency: currencyx.Code("USD")}
+			input := GetBalanceServiceInput{Currency: currencies.NewCurrencyReference("USD")}
 			switch {
 			case tt.unrestricted:
 				input.FeatureFilter = NewUnrestrictedFeatureFilter()
@@ -337,7 +338,7 @@ func TestFundedCreditTransactionBalanceImpacts(t *testing.T) {
 		require.NoError(t, err)
 
 		impacts, err := fundedCreditTransactionBalanceImpacts(restrictedGroup, GetBalanceServiceInput{
-			Currency:      env.Currency,
+			Currency:      env.CurrencyReference(),
 			FeatureFilter: NewUnrestrictedFeatureFilter(),
 		})
 		require.NoError(t, err)
