@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -39,9 +40,47 @@ func TestIsLineBillableAsOfResultValidate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "billable with period start only",
+			result: IsLineBillableAsOfResult{
+				Billable: true,
+				BillablePeriod: timeutil.ClosedPeriod{
+					From: period.From,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "billable with period end only",
+			result: IsLineBillableAsOfResult{
+				Billable: true,
+				BillablePeriod: timeutil.ClosedPeriod{
+					To: period.To,
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "not billable with period",
 			result: IsLineBillableAsOfResult{
 				BillablePeriod: period,
+			},
+			wantErr: true,
+		},
+		{
+			name: "not billable with period start only",
+			result: IsLineBillableAsOfResult{
+				BillablePeriod: timeutil.ClosedPeriod{
+					From: period.From,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "not billable with period end only",
+			result: IsLineBillableAsOfResult{
+				BillablePeriod: timeutil.ClosedPeriod{
+					To: period.To,
+				},
 			},
 			wantErr: true,
 		},
@@ -52,6 +91,7 @@ func TestIsLineBillableAsOfResultValidate(t *testing.T) {
 			err := tt.result.Validate()
 			if tt.wantErr {
 				require.Error(t, err)
+				require.True(t, models.IsGenericValidationError(err))
 				return
 			}
 

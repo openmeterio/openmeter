@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -182,19 +183,17 @@ type IsLineBillableAsOfResult struct {
 }
 
 func (r IsLineBillableAsOfResult) Validate() error {
+	var errs []error
+
 	if r.Billable {
 		if err := r.BillablePeriod.ValidateAsRequired(); err != nil {
-			return fmt.Errorf("billable period: %w", err)
+			errs = append(errs, fmt.Errorf("billable period: %w", err))
 		}
-
-		return nil
+	} else if !lo.IsEmpty(r.BillablePeriod) {
+		errs = append(errs, errors.New("billable period must be empty when line is not billable"))
 	}
 
-	if !lo.IsEmpty(r.BillablePeriod) {
-		return errors.New("billable period must be empty when line is not billable")
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i IsLineBillableAsOfInput) Validate() error {
