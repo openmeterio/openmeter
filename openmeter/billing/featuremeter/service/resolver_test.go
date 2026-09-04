@@ -165,7 +165,7 @@ func TestResolver(t *testing.T) {
 		require.Equal(t, meterID, byArchivedID.Meter.ID)
 	})
 
-	t.Run("returns partial results alongside validation errors", func(t *testing.T) {
+	t.Run("returns partial results without validating references", func(t *testing.T) {
 		// given:
 		// - one resolvable feature and one missing feature
 		targets := []featureMeterReference{
@@ -179,13 +179,15 @@ func TestResolver(t *testing.T) {
 		resolved, err := resolver.Resolve(t.Context(), namespace, targets...)
 
 		// then:
-		// - the resolved feature remains usable and the error contains validation issues only
+		// - resolution succeeds, the resolved feature remains usable, and validation is deferred to Get
 		require.NotNil(t, resolved)
+		require.NoError(t, err)
 		resolvedFeature, getErr := resolved.Get(targets[0])
 		require.NoError(t, getErr)
 		require.Equal(t, "feature-new", resolvedFeature.Feature.ID)
 
-		issues, systemErr := billing.ToValidationIssues(err)
+		_, getErr = resolved.Get(targets[1])
+		issues, systemErr := billing.ToValidationIssues(getErr)
 		require.NoError(t, systemErr)
 		require.Equal(t, billing.ValidationIssues{{
 			Severity: billing.ValidationIssueSeverityCritical,
@@ -194,7 +196,7 @@ func TestResolver(t *testing.T) {
 		}}, issues)
 	})
 
-	t.Run("returns meterless feature alongside validation error", func(t *testing.T) {
+	t.Run("returns meterless feature without validating meter requirements", func(t *testing.T) {
 		// given:
 		// - a feature exists but has no meter
 		resolver := newResolver(t, []string{"requests"}, nil)
@@ -208,13 +210,15 @@ func TestResolver(t *testing.T) {
 		resolved, err := resolver.Resolve(t.Context(), namespace, target)
 
 		// then:
-		// - the feature remains addressable and the missing meter is a validation-only error
+		// - resolution succeeds, the feature remains addressable, and Get enforces the meter requirement
 		require.NotNil(t, resolved)
+		require.NoError(t, err)
 		resolvedFeature, getErr := resolved.Get(featureMeterRef(featuremeter.FeatureMeterRef{IDOrKey: target.IDOrKey}))
 		require.NoError(t, getErr)
 		require.Equal(t, "feature-other", resolvedFeature.Feature.ID)
 
-		issues, systemErr := billing.ToValidationIssues(err)
+		_, getErr = resolved.Get(target)
+		issues, systemErr := billing.ToValidationIssues(getErr)
 		require.NoError(t, systemErr)
 		require.Equal(t, billing.ValidationIssues{{
 			Severity: billing.ValidationIssueSeverityCritical,
@@ -223,7 +227,7 @@ func TestResolver(t *testing.T) {
 		}}, issues)
 	})
 
-	t.Run("deduplicated lookup validates every original identified reference", func(t *testing.T) {
+	t.Run("require validates every original identified reference", func(t *testing.T) {
 		// given:
 		// - two gathering lines reference the same missing feature
 		resolver := newResolver(t, []string{"missing-feature"}, nil)
@@ -245,12 +249,11 @@ func TestResolver(t *testing.T) {
 		}
 
 		// when:
-		// - feature meters are resolved
-		resolved, err := resolver.Resolve(t.Context(), namespace, references...)
+		// - every feature meter is required
+		err := resolver.RequireFeatureMeters(t.Context(), namespace, references...)
 
 		// then:
 		// - the catalog lookup is deduplicated while each original line receives an issue
-		require.NotNil(t, resolved)
 		issues, systemErr := billing.ToValidationIssues(err)
 		require.NoError(t, systemErr)
 		require.ElementsMatch(t, []string{"/lines/line-1", "/lines/line-2"}, lo.Map(issues, func(issue billing.ValidationIssue, _ int) string {

@@ -211,17 +211,19 @@ func NewChargesFlatFeeService(
 	lineageService lineage.Service,
 	metaAdapter meta.Adapter,
 	locker *lockr.Locker,
+	featureMeterResolver *billingfeaturemeterservice.Resolver,
 	ratingService rating.Service,
 	currenciesService currencies.Service,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:       flatFeeAdapter,
-		Handler:       flatFeeHandler,
-		Lineage:       lineageService,
-		MetaAdapter:   metaAdapter,
-		Locker:        locker,
-		RatingService: ratingService,
-		Currencies:    currenciesService,
+		Adapter:              flatFeeAdapter,
+		Handler:              flatFeeHandler,
+		Lineage:              lineageService,
+		MetaAdapter:          metaAdapter,
+		Locker:               locker,
+		FeatureMeterResolver: featureMeterResolver,
+		RatingService:        ratingService,
+		Currencies:           currenciesService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges flat fee service: %w", err)
@@ -488,7 +490,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService, currenciesService)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, featureMeterResolver, ratingService, currenciesService)
 	if err != nil {
 		return nil, err
 	}

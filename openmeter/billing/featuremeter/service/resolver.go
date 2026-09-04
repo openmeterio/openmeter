@@ -68,12 +68,9 @@ type Resolver struct {
 	logger         *slog.Logger
 }
 
-// Resolve extracts and resolves the feature and meter dependencies of billing entities.
-//
-// When target validation fails, Resolve returns any feature-meter data it could
-// resolve alongside the error. Callers that can continue with partial data must
-// split the error with billing.ToValidationIssues and may continue only when the
-// returned system error is nil.
+// Resolve fetches the feature and meter dependencies of billing entities.
+// Missing features and required meters are reported by FeatureMeters.Get at the
+// operation that consumes each dependency.
 func (r Resolver) Resolve[T billingfeaturemeter.FeatureReferenceGetter](ctx context.Context, namespace string, targets ...T) (billingfeaturemeter.FeatureMeters, error) {
 	if namespace == "" {
 		return nil, models.NewGenericValidationError(errors.New("namespace is required"))
@@ -143,11 +140,27 @@ func (r Resolver) Resolve[T billingfeaturemeter.FeatureReferenceGetter](ctx cont
 		}
 	}
 
-	if err := validateReferences(resolved, targets); err != nil {
-		return resolved, err
+	return resolved, nil
+}
+
+// RequireFeatureMeters verifies that every supplied feature dependency can be
+// resolved, preserving each target's identity in the returned validation errors.
+func (r Resolver) RequireFeatureMeters[T billingfeaturemeter.FeatureReferenceGetter](ctx context.Context, namespace string, targets ...T) error {
+	featureMeters, err := r.Resolve(ctx, namespace, targets...)
+	if err != nil {
+		return err
 	}
 
-	return resolved, nil
+	errs := lo.Map(targets, func(target T, _ int) error {
+		if target.GetFeatureMeterRef() == nil {
+			return nil
+		}
+
+		_, err := featureMeters.Get(target)
+		return err
+	})
+
+	return errors.Join(errs...)
 }
 
 func collectUniqueFeatureMeterRefs[T billingfeaturemeter.FeatureReferenceGetter](references []T) []billingfeaturemeter.FeatureMeterRef {
@@ -175,19 +188,6 @@ func collectUniqueFeatureMeterRefs[T billingfeaturemeter.FeatureReferenceGetter]
 	)
 
 	return featureRefs
-}
-
-func validateReferences[T billingfeaturemeter.FeatureReferenceGetter](featureMeters billingfeaturemeter.FeatureMeters, targets []T) error {
-	errs := lo.FilterMap(targets, func(target T, _ int) (error, bool) {
-		if target.GetFeatureMeterRef() == nil {
-			return nil, false
-		}
-
-		_, err := featureMeters.Get(target)
-		return err, err != nil
-	})
-
-	return errors.Join(errs...)
 }
 
 func resolveFeatureMeters(features []feature.Feature) FeatureMeterCollection {

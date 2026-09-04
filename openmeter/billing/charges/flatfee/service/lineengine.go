@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -12,6 +13,7 @@ import (
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -28,12 +30,56 @@ func (e *LineEngine) GetLineEngineType() billing.LineEngineType {
 	return billing.LineEngineTypeChargeFlatFee
 }
 
-func (e *LineEngine) IsLineBillableAsOf(_ context.Context, input billing.IsLineBillableAsOfInput) (bool, error) {
+func (e *LineEngine) AreLinesBillableAsOf(ctx context.Context, input billing.AreLinesBillableAsOfInput) ([]billing.IsLineBillableAsOfResult, error) {
 	if err := input.Validate(); err != nil {
-		return false, fmt.Errorf("validating input: %w", err)
+		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	return true, nil
+	chargeIDs, err := lo.MapErr(input.Lines, func(line billing.GatheringLine, _ int) (string, error) {
+		if line.ChargeID == nil || *line.ChargeID == "" {
+			return "", fmt.Errorf("flat fee gathering line[%s]: charge id is required", line.ID)
+		}
+
+		return *line.ChargeID, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	charges, err := e.service.GetByIDs(ctx, flatfee.GetByIDsInput{
+		Namespace: input.Invoice.Namespace,
+		IDs:       chargeIDs,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting flat fee charges for billability: %w", err)
+	}
+
+	featureMeters, err := e.service.featureMeterResolver.Resolve(ctx, input.Invoice.Namespace, charges...)
+	if err != nil {
+		return nil, fmt.Errorf("resolving feature meters for flat fee charges: %w", err)
+	}
+
+	return slicesx.MapWithErrPreservingResults(input.Lines, func(line billing.GatheringLine, index int) (billing.IsLineBillableAsOfResult, error) {
+		var errs []error
+		charge := charges[index]
+		if charge.GetFeatureMeterRef() != nil {
+			_, err := featureMeters.Get(charge)
+			// This becomes a validation issue on the resulting standard invoice, but we still need to provide
+			// the result too.
+			errs = append(errs, err)
+		}
+
+		result, err := e.service.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
+			Line:               line,
+			ProgressiveBilling: input.ProgressiveBilling,
+			AsOf:               input.AsOf,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("resolving billable period for line[%s]: %w", line.ID, err))
+		}
+
+		return result, errors.Join(errs...)
+	})
 }
 
 func (e *LineEngine) SplitGatheringLine(context.Context, billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {

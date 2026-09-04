@@ -180,13 +180,14 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	}
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:       flatFeeAdapter,
-		Handler:       config.FlatFeeHandler,
-		Lineage:       lineageService,
-		MetaAdapter:   metaAdapter,
-		Locker:        locker,
-		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		Currencies:    currencyService,
+		Adapter:              flatFeeAdapter,
+		Handler:              config.FlatFeeHandler,
+		Lineage:              lineageService,
+		MetaAdapter:          metaAdapter,
+		Locker:               locker,
+		FeatureMeterResolver: config.FeatureMeterResolver,
+		RatingService:        billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:           currencyService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating flat fee service: %w", err)

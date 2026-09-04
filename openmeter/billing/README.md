@@ -74,6 +74,13 @@ owns the line-specific calculations and lifecycle side effects for the lines
 routed to it. The built-in invoicing engine handles billing-native lines;
 charge engines handle charge-backed lines.
 
+Billability is also engine-owned. Billing submits each engine's subset of one
+gathering invoice as an ordered batch. The engine resolves any feature or charge
+dependencies it needs before returning one eligibility decision and billable
+period per input in the same order. Missing feature or meter dependencies are
+reported as validation issues while billability falls back to non-progressive
+eligibility; operational dependency failures still abort collection.
+
 Engine callbacks operate on groups of lines. When a callback replaces lines,
 billing requires it to preserve the input line IDs before accepting the
 result. API-originated line edits and system-originated reconciliation are

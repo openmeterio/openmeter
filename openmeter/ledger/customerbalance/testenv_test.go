@@ -289,11 +289,12 @@ func newTestEnv(t *testing.T) *testEnv {
 			},
 			collectorService,
 		),
-		Lineage:       lineageService,
-		MetaAdapter:   metaAdapter,
-		Locker:        locker,
-		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		Currencies:    currencyService,
+		Lineage:              lineageService,
+		MetaAdapter:          metaAdapter,
+		Locker:               locker,
+		FeatureMeterResolver: featureMeterResolver,
+		RatingService:        billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:           currencyService,
 	})
 	require.NoError(t, err)
 

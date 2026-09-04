@@ -9,7 +9,6 @@ import (
 
 	"github.com/samber/lo"
 
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -169,12 +168,39 @@ type (
 	OnPaymentSettledInput              = StandardLineEventInput
 )
 
-type IsLineBillableAsOfInput struct {
-	Line                   GatheringLine
-	AsOf                   time.Time
-	ProgressiveBilling     bool
-	FeatureMeters          billingfeaturemeter.FeatureMeters
-	ResolvedBillablePeriod timeutil.ClosedPeriod
+type AreLinesBillableAsOfInput struct {
+	Invoice            GatheringInvoice
+	AsOf               time.Time
+	ProgressiveBilling bool
+	Lines              GatheringLines
+}
+
+func (i AreLinesBillableAsOfInput) Validate() error {
+	var errs []error
+
+	if err := i.Invoice.GetInvoiceID().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoice: %w", err))
+	}
+
+	if i.AsOf.IsZero() {
+		errs = append(errs, errors.New("as of is required"))
+	}
+
+	if err := i.Lines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("lines: %w", err))
+	}
+
+	for index, line := range i.Lines {
+		if line.Namespace != i.Invoice.Namespace {
+			errs = append(errs, fmt.Errorf("line[%d]: namespace %s does not match invoice namespace %s", index, line.Namespace, i.Invoice.Namespace))
+		}
+
+		if line.InvoiceID != i.Invoice.ID {
+			errs = append(errs, fmt.Errorf("line[%d]: invoice ID %s does not match invoice ID %s", index, line.InvoiceID, i.Invoice.ID))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type IsLineBillableAsOfResult struct {
@@ -196,22 +222,9 @@ func (r IsLineBillableAsOfResult) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i IsLineBillableAsOfInput) Validate() error {
-	if err := i.ResolvedBillablePeriod.Validate(); err != nil {
-		return fmt.Errorf("validating resolved billable period: %w", err)
-	}
-
-	if i.AsOf.IsZero() {
-		return fmt.Errorf("as of is required")
-	}
-
-	return nil
-}
-
 type SplitGatheringLineInput struct {
-	Line          GatheringLine
-	FeatureMeters billingfeaturemeter.FeatureMeters
-	SplitAt       time.Time
+	Line    GatheringLine
+	SplitAt time.Time
 }
 
 func (i SplitGatheringLineInput) Validate() error {
@@ -223,10 +236,6 @@ func (i SplitGatheringLineInput) Validate() error {
 
 	if i.SplitAt.IsZero() {
 		errs = append(errs, fmt.Errorf("split at is required"))
-	}
-
-	if i.FeatureMeters == nil {
-		errs = append(errs, fmt.Errorf("feature meters are required"))
 	}
 
 	return errors.Join(errs...)
@@ -257,8 +266,9 @@ type LineEngine interface {
 	// GetLineEngineType returns the discriminator owned by this engine implementation.
 	GetLineEngineType() LineEngineType
 
-	// IsLineBillableAsOf returns true if the line is billable as of the given time.
-	IsLineBillableAsOf(ctx context.Context, input IsLineBillableAsOfInput) (bool, error)
+	// AreLinesBillableAsOf returns one result for each line in the same order. Implementations may return usable
+	// results together with validation issues. Operational errors make the returned results unusable.
+	AreLinesBillableAsOf(ctx context.Context, input AreLinesBillableAsOfInput) ([]IsLineBillableAsOfResult, error)
 
 	// SplitGatheringLine splits a gathering line on an engine-specific boundary if required.
 	SplitGatheringLine(ctx context.Context, input SplitGatheringLineInput) (SplitGatheringLineResult, error)

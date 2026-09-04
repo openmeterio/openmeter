@@ -22,8 +22,16 @@ func (e NoopLineEngine) GetLineEngineType() billing.LineEngineType {
 	return e.EngineType
 }
 
-func (NoopLineEngine) IsLineBillableAsOf(context.Context, billing.IsLineBillableAsOfInput) (bool, error) {
-	return true, nil
+func (NoopLineEngine) AreLinesBillableAsOf(_ context.Context, input billing.AreLinesBillableAsOfInput) ([]billing.IsLineBillableAsOfResult, error) {
+	results := make([]billing.IsLineBillableAsOfResult, len(input.Lines))
+	for index, line := range input.Lines {
+		results[index] = billing.IsLineBillableAsOfResult{
+			Billable:       true,
+			BillablePeriod: line.ServicePeriod,
+		}
+	}
+
+	return results, nil
 }
 
 func (NoopLineEngine) SplitGatheringLine(_ context.Context, input billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {

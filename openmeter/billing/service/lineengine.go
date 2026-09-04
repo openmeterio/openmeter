@@ -2,6 +2,7 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -141,6 +142,72 @@ type GatheringLinesWithEngine struct {
 type StandardLinesWithEngine struct {
 	Engine billing.LineEngine
 	Lines  billing.StandardLines
+}
+
+type gatheringLineBillabilityResult struct {
+	billing.IsLineBillableAsOfResult
+	Engine billing.LineEngine
+}
+
+func (s *Service) areGatheringLinesBillableAsOf(ctx context.Context, input billing.AreLinesBillableAsOfInput) ([]gatheringLineBillabilityResult, error) {
+	if len(input.Lines) == 0 {
+		return []gatheringLineBillabilityResult{}, nil
+	}
+
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating billability input: %w", err)
+	}
+
+	linesWithEngines, err := s.lineEngines.groupGatheringLinesByEngine(input.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("grouping gathering lines by engine: %w", err)
+	}
+
+	resultsByLineID := make(map[string]gatheringLineBillabilityResult, len(input.Lines))
+	var errs []error
+	for _, grouped := range linesWithEngines {
+		engineType := grouped.Engine.GetLineEngineType()
+		results, err := grouped.Engine.AreLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
+			Invoice:            input.Invoice,
+			AsOf:               input.AsOf,
+			ProgressiveBilling: input.ProgressiveBilling,
+			Lines:              grouped.Lines,
+		})
+		if err != nil && !billing.IsValidationIssueOnly(err) {
+			return nil, fmt.Errorf("checking line billability with engine %s: %w", engineType, err)
+		}
+		errs = append(errs, err)
+
+		if len(results) != len(grouped.Lines) {
+			return nil, fmt.Errorf("engine %s returned %d billability results for %d inputs", engineType, len(results), len(grouped.Lines))
+		}
+
+		for index, result := range results {
+			lineID := grouped.Lines[index].ID
+			if err := result.Validate(); err != nil {
+				return nil, fmt.Errorf("validating line[%s] billability result from engine %s: %w", lineID, engineType, err)
+			}
+
+			resultsByLineID[lineID] = gatheringLineBillabilityResult{
+				IsLineBillableAsOfResult: result,
+				Engine:                   grouped.Engine,
+			}
+		}
+	}
+
+	results, err := lo.MapErr(input.Lines, func(line billing.GatheringLine, _ int) (gatheringLineBillabilityResult, error) {
+		result, ok := resultsByLineID[line.ID]
+		if !ok {
+			return gatheringLineBillabilityResult{}, fmt.Errorf("billability result for line[%s] is missing", line.ID)
+		}
+
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return results, errors.Join(errs...)
 }
 
 func (r *engineRegistry) groupGatheringLinesByEngine(lines billing.GatheringLines) ([]GatheringLinesWithEngine, error) {

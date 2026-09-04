@@ -73,8 +73,17 @@ func (m *mockCollectionCompletedLineEngine) GetLineEngineType() ombilling.LineEn
 	return m.engineType
 }
 
-func (m *mockCollectionCompletedLineEngine) IsLineBillableAsOf(_ context.Context, input ombilling.IsLineBillableAsOfInput) (bool, error) {
-	return !lo.IsEmpty(input.ResolvedBillablePeriod), nil
+func (m *mockCollectionCompletedLineEngine) AreLinesBillableAsOf(_ context.Context, batch ombilling.AreLinesBillableAsOfInput) ([]ombilling.IsLineBillableAsOfResult, error) {
+	return lo.Map(batch.Lines, func(line ombilling.GatheringLine, _ int) ombilling.IsLineBillableAsOfResult {
+		if batch.AsOf.Before(line.InvoiceAt) {
+			return ombilling.IsLineBillableAsOfResult{}
+		}
+
+		return ombilling.IsLineBillableAsOfResult{
+			Billable:       true,
+			BillablePeriod: line.ServicePeriod,
+		}
+	}), nil
 }
 
 func (m *mockCollectionCompletedLineEngine) SplitGatheringLine(_ context.Context, _ ombilling.SplitGatheringLineInput) (ombilling.SplitGatheringLineResult, error) {
