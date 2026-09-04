@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -13,11 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-// errCustomCurrenciesDisabled is returned when an inline plan uses a custom
-// currency but the credits feature (which gates custom currencies) is not enabled
-// on the deployment.
-var errCustomCurrenciesDisabled = errors.New("custom currencies are not enabled on this deployment of OpenMeter")
 
 func (s *service) Create(ctx context.Context, request plansubscription.CreateSubscriptionRequest) (subscription.Subscription, error) {
 	var def subscription.Subscription
