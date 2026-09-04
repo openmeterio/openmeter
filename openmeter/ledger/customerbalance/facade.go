@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -100,8 +101,18 @@ func (i GetBalanceInput) Validate() error {
 }
 
 type BalanceByCurrency struct {
-	Currency currencyx.Code
-	Balance  Balance
+	Currency         currencyx.Code
+	CustomCurrencyID *string
+	Balance          Balance
+}
+
+// CurrencyReference returns the immutable ledger currency identity represented
+// by this balance row.
+func (b BalanceByCurrency) CurrencyReference() currencies.CurrencyReference {
+	return currencies.CurrencyReference{
+		Code:             b.Currency,
+		CustomCurrencyID: b.CustomCurrencyID,
+	}
 }
 
 type Facade struct {
@@ -127,33 +138,28 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 		return nil, err
 	}
 
-	var codes []currencyx.Code
-	if len(input.Currencies.Codes) > 0 {
-		codes = dedupeCurrencies(input.Currencies.Codes)
-
-		for _, code := range codes {
-			if err := ledger.ValidateCurrency(code); err != nil {
-				return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
-			}
-		}
-	} else {
-		var err error
-
-		codes, err = f.service.GetBalanceCurrencies(ctx, GetBalanceCurrenciesInput{
-			CustomerID:    input.CustomerID,
-			FeatureFilter: input.FeatureFilter,
-			AsOf:          input.AsOf,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("get balance currencies: %w", err)
+	codes := dedupeCurrencies(input.Currencies.Codes)
+	for _, code := range codes {
+		if err := ledger.ValidateCurrency(code); err != nil {
+			return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
 		}
 	}
 
-	balances := make([]BalanceByCurrency, 0, len(codes))
-	for _, code := range codes {
+	references, err := f.service.GetBalanceCurrencies(ctx, GetBalanceCurrenciesInput{
+		CustomerID:    input.CustomerID,
+		Currencies:    CurrencyFilter{Codes: codes},
+		FeatureFilter: input.FeatureFilter,
+		AsOf:          input.AsOf,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get balance currencies: %w", err)
+	}
+
+	balances := make([]BalanceByCurrency, 0, len(references))
+	for _, reference := range references {
 		balance, err := f.service.GetBalance(ctx, GetBalanceServiceInput{
 			CustomerID:    input.CustomerID,
-			Currency:      code,
+			Currency:      reference,
 			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
 			BalanceQuery: ledger.BalanceQuery{
 				AsOf: input.AsOf,
@@ -164,8 +170,9 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 		}
 
 		balances = append(balances, BalanceByCurrency{
-			Currency: code,
-			Balance:  balance,
+			Currency:         reference.GetCode(),
+			CustomCurrencyID: reference.CustomCurrencyID,
+			Balance:          balance,
 		})
 	}
 
@@ -183,7 +190,7 @@ func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacad
 
 	balance, err := f.service.GetSettledBalance(ctx, GetBalanceServiceInput{
 		CustomerID:    input.CustomerID,
-		Currency:      input.Currency,
+		Currency:      currencies.NewCurrencyReference(input.Currency),
 		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
 		BalanceQuery: ledger.BalanceQuery{
 			After: input.After,

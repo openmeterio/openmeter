@@ -15,7 +15,8 @@ type CustomersCreditsBalanceService struct {
 }
 
 type GetCustomerCreditBalanceFilter struct {
-	// Filter credit balance by currency.
+	// Filter credit balance by currency code. When historical custom currencies reuse
+	// a code, each managed currency is returned as a separate balance row.
 	Currency *StringExactFilter
 	// Filter credit balance by feature key. Omit to return the total portfolio value.
 	// Use `exists=false` to return only unrestricted balance.

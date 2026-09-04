@@ -33,7 +33,7 @@ type Service interface {
 	GetBalance(ctx context.Context, input GetBalanceServiceInput) (Balance, error)
 	GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
-	GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error)
+	GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencies.CurrencyReference, error)
 }
 
 type Balance interface {
@@ -59,6 +59,10 @@ type usageBasedTotalsService interface {
 	GetCurrentTotals(ctx context.Context, input usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error)
 }
 
+type currencyLister interface {
+	ListCurrencies(ctx context.Context, input currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error)
+}
+
 const chargeListPageSize = 100
 
 // ----------------------------------------------------------------------------
@@ -73,6 +77,7 @@ type service struct {
 	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
+	Currencies        currencyLister
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
@@ -88,6 +93,7 @@ type Config struct {
 	SubAccountService subAccountLister
 	ChargesService    chargesService
 	UsageBasedService usageBasedTotalsService
+	Currencies        currencyLister
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
@@ -95,15 +101,15 @@ type Config struct {
 }
 
 type GetBalanceServiceInput struct {
-	CustomerID        customer.CustomerID
-	Currency          currencyx.Code
-	FeatureFilter     mo.Option[creditpurchase.FeatureFilters]
-	BalanceQuery      ledger.BalanceQuery
-	currencyReference currencies.CurrencyReference
+	CustomerID    customer.CustomerID
+	Currency      currencies.CurrencyReference
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	BalanceQuery  ledger.BalanceQuery
 }
 
 type GetBalanceCurrenciesInput struct {
 	CustomerID    customer.CustomerID
+	Currencies    CurrencyFilter
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
 	AsOf          *time.Time
 }
@@ -115,10 +121,12 @@ func (i GetBalanceServiceInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	if err := ledger.ValidateCurrency(i.Currency); err != nil {
+	if err := ledger.ValidateCurrency(i.Currency.GetCode()); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
-	} else if i.Currency.IsCustom() {
-		errs = append(errs, fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency reference: %w", err))
 	}
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
@@ -168,6 +176,15 @@ func (i GetBalanceCurrenciesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
+	if err := i.Currencies.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currencies: %w", err))
+	}
+	for _, code := range i.Currencies.Codes {
+		if err := ledger.ValidateCurrency(code); err != nil {
+			errs = append(errs, fmt.Errorf("currency %q is not supported by ledger: %w", code, err))
+		}
+	}
+
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
 	}
@@ -189,14 +206,14 @@ func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
 
 func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.ledgerCurrencyReference()
+	route.Currency = i.Currency.Clone()
 
 	return route
 }
 
 func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.ledgerCurrencyReference()
+	route.Currency = i.Currency.Clone()
 	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
 
 	return route
@@ -204,14 +221,6 @@ func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 
 func (i GetBalanceServiceInput) featureRoute() ledger.RouteFilter {
 	return featureFilterRoute(normalizeFeatureFilter(i.FeatureFilter))
-}
-
-func (i GetBalanceServiceInput) ledgerCurrencyReference() currencies.CurrencyReference {
-	if i.currencyReference.Code != "" {
-		return i.currencyReference.Clone()
-	}
-
-	return currencies.NewCurrencyReference(i.Currency)
 }
 
 func (c Config) Validate() error {
@@ -231,6 +240,10 @@ func (c Config) Validate() error {
 
 	if c.UsageBasedService == nil {
 		errs = append(errs, errors.New("usage based service is required"))
+	}
+
+	if c.Currencies == nil {
+		errs = append(errs, errors.New("currencies service is required"))
 	}
 
 	if c.Ledger == nil {
@@ -263,6 +276,7 @@ func New(config Config) (*service, error) {
 		SubAccountService: config.SubAccountService,
 		ChargesService:    config.ChargesService,
 		UsageBasedService: config.UsageBasedService,
+		Currencies:        config.Currencies,
 		Ledger:            config.Ledger,
 		BalanceQuerier:    config.BalanceQuerier,
 		Breakage:          breakageService,
@@ -425,16 +439,20 @@ func (s *service) getSettledBalance(ctx context.Context, input GetBalanceService
 	return bookedBalance.Add(advanceBalance), nil
 }
 
-func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error) {
+func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencies.CurrencyReference, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+	if len(input.Currencies.Codes) > 0 {
+		return s.getRequestedBalanceCurrencies(ctx, input.CustomerID, dedupeCurrencies(input.Currencies.Codes))
+	}
 
-	// FIXME[RTE]: when GetBalances discovers currencies, pending grants are
-	// scanned here and then scanned again once per currency in GetBalance. This
-	// is accepted as temporary bridge behavior until scheduled grants have an
-	// RTE-owned fact/index or a shared candidate cache in this service.
-	fboCurrencies, err := s.getFBOCurrencies(ctx, input.CustomerID)
+	// FIXME[RTE]: when GetBalances discovers currencies without an explicit
+	// filter, pending grants and live charge impacts are scanned here and then
+	// again once per currency in GetBalance. This is accepted as temporary bridge
+	// behavior until they have an RTE-owned fact/index or a shared candidate cache
+	// in this service.
+	ledgerCurrencies, err := s.getLedgerBalanceCurrencies(ctx, input.CustomerID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -444,37 +462,137 @@ func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurr
 		return nil, err
 	}
 
-	return dedupeCurrencies(append(fboCurrencies, pendingCurrencies...)), nil
+	references := append(ledgerCurrencies, pendingCurrencies...)
+	if input.AsOf == nil {
+		liveCurrencies, err := s.getChargeLiveBalanceCurrencies(ctx, input.CustomerID, normalizeFeatureFilter(input.FeatureFilter))
+		if err != nil {
+			return nil, err
+		}
+		references = append(references, liveCurrencies...)
+	}
+
+	return lo.UniqBy(references, func(reference currencies.CurrencyReference) string {
+		return reference.IdentityKey()
+	}), nil
 }
 
-func (s *service) getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
+func (s *service) getRequestedBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, codes []currencyx.Code) ([]currencies.CurrencyReference, error) {
+	referencesByCode := make(map[currencyx.Code][]currencies.CurrencyReference, len(codes))
+	customCodes := make([]currencyx.Code, 0, len(codes))
+	for _, code := range codes {
+		if code.IsFiat() {
+			referencesByCode[code] = []currencies.CurrencyReference{currencies.NewCurrencyReference(code)}
+			continue
+		}
+
+		customCodes = append(customCodes, code)
+	}
+
+	if len(customCodes) > 0 {
+		codeValues := lo.Map(customCodes, func(code currencyx.Code, _ int) string {
+			return code.String()
+		})
+		customType := currencyx.CurrencyTypeCustom
+		catalogCurrencies, err := pagination.CollectAll(
+			ctx,
+			pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[currencies.Currency], error) {
+				return s.Currencies.ListCurrencies(ctx, currencies.ListCurrenciesInput{
+					Page:         page,
+					Namespace:    customerID.Namespace,
+					CurrencyType: &customType,
+					Code:         &filter.FilterString{In: &codeValues},
+				})
+			}),
+			chargeListPageSize,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("list requested custom currencies: %w", err)
+		}
+		for _, currency := range catalogCurrencies {
+			code := currency.GetCode()
+			referencesByCode[code] = append(referencesByCode[code], currency.Reference())
+		}
+
+		ledgerCurrencies, err := s.getLedgerBalanceCurrencies(ctx, customerID, customCodes)
+		if err != nil {
+			return nil, err
+		}
+		for _, reference := range ledgerCurrencies {
+			if !slices.Contains(customCodes, reference.GetCode()) {
+				continue
+			}
+			referencesByCode[reference.GetCode()] = append(referencesByCode[reference.GetCode()], reference.Clone())
+		}
+	}
+
+	references := make([]currencies.CurrencyReference, 0, len(codes))
+	for _, code := range codes {
+		matches := lo.UniqBy(referencesByCode[code], func(reference currencies.CurrencyReference) string {
+			return reference.IdentityKey()
+		})
+		if len(matches) == 0 {
+			return nil, models.NewGenericValidationError(fmt.Errorf("custom currency %q is not defined", code))
+		}
+
+		slices.SortFunc(matches, func(a, b currencies.CurrencyReference) int {
+			return cmp.Compare(a.IdentityKey(), b.IdentityKey())
+		})
+		references = append(references, matches...)
+	}
+
+	return references, nil
+}
+
+func (s *service) getLedgerBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, currencyCodes []currencyx.Code) ([]currencies.CurrencyReference, error) {
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
-		Namespace: customerAccounts.FBOAccount.ID().Namespace,
-		AccountID: customerAccounts.FBOAccount.ID().ID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list sub accounts: %w", err)
-	}
-
-	seen := make(map[currencyx.Code]struct{}, len(subAccounts))
-	codes := make([]currencyx.Code, 0, len(subAccounts))
-
-	for _, sa := range subAccounts {
-		c := sa.Route().Currency.Code
-		if _, ok := seen[c]; ok {
-			continue
+	references := make([]currencies.CurrencyReference, 0)
+	for _, query := range []struct {
+		account          ledger.Account
+		nilCostBasisOnly bool
+	}{
+		{account: customerAccounts.FBOAccount},
+		{
+			account:          customerAccounts.ReceivableAccount,
+			nilCostBasisOnly: true,
+		},
+	} {
+		routes := []ledger.RouteFilter{{}}
+		if len(currencyCodes) > 0 {
+			routes = lo.Map(currencyCodes, func(code currencyx.Code, _ int) ledger.RouteFilter {
+				return ledger.RouteFilter{Currency: currencies.NewCurrencyReference(code)}
+			})
 		}
 
-		seen[c] = struct{}{}
-		codes = append(codes, c)
+		for _, route := range routes {
+			if query.nilCostBasisOnly && route.Currency.Code != "" {
+				route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
+			}
+
+			subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+				Namespace: query.account.ID().Namespace,
+				AccountID: query.account.ID().ID,
+				Route:     route,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("list customer balance sub accounts: %w", err)
+			}
+
+			for _, subAccount := range subAccounts {
+				if query.nilCostBasisOnly && subAccount.Route().CostBasis != nil {
+					continue
+				}
+				references = append(references, subAccount.Route().Currency.Clone())
+			}
+		}
 	}
 
-	return codes, nil
+	return lo.UniqBy(references, func(reference currencies.CurrencyReference) string {
+		return reference.IdentityKey()
+	}), nil
 }
 
 func (s *service) getPendingGrantCurrencies(
@@ -482,13 +600,13 @@ func (s *service) getPendingGrantCurrencies(
 	customerID customer.CustomerID,
 	featureFilter mo.Option[creditpurchase.FeatureFilters],
 	asOf time.Time,
-) ([]currencyx.Code, error) {
+) ([]currencies.CurrencyReference, error) {
 	charges, err := s.listPendingGrantCandidateCharges(ctx, customerID)
 	if err != nil {
 		return nil, err
 	}
 
-	codes := make([]currencyx.Code, 0, len(charges))
+	references := make([]currencies.CurrencyReference, 0, len(charges))
 	for _, charge := range charges {
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		if err != nil {
@@ -503,20 +621,28 @@ func (s *service) getPendingGrantCurrencies(
 			continue
 		}
 
-		if creditPurchaseCharge.Intent.Currency.IsCustom() {
-			return nil, fmt.Errorf("credit purchase charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
-		}
-
-		codes = append(codes, creditPurchaseCharge.Intent.Currency.GetCode())
+		references = append(references, creditPurchaseCharge.Intent.Currency.Reference())
 	}
 
-	return dedupeCurrencies(codes), nil
+	return lo.UniqBy(references, func(reference currencies.CurrencyReference) string {
+		return reference.IdentityKey()
+	}), nil
+}
+
+// currencyReferenceMatches treats a reference without a managed custom-currency
+// ID as a code filter. References carrying an ID match one immutable currency.
+func currencyReferenceMatches(currency, filter currencies.CurrencyReference) bool {
+	if currency.GetCode() != filter.GetCode() {
+		return false
+	}
+
+	return filter.CustomCurrencyID == nil || currency.Equal(filter)
 }
 
 func (s *service) getPendingGrantAmount(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	currency currencyx.Code,
+	currency currencies.CurrencyReference,
 	featureFilter mo.Option[creditpurchase.FeatureFilters],
 	asOf time.Time,
 ) (alpacadecimal.Decimal, error) {
@@ -532,7 +658,7 @@ func (s *service) getPendingGrantAmount(
 			return alpacadecimal.Zero, fmt.Errorf("map credit purchase charge: %w", err)
 		}
 
-		if creditPurchaseCharge.Intent.Currency.GetCode() != currency {
+		if !currencyReferenceMatches(creditPurchaseCharge.Intent.Currency.Reference(), currency) {
 			continue
 		}
 
@@ -644,7 +770,60 @@ func featureFilterMatchesCreditPurchase(featureFilter mo.Option[creditpurchase.F
 	return len(filterFeatures) == 1 && slices.Contains(grantFeatures, filterFeatures[0])
 }
 
-func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]Impact, error) {
+func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]Impact, error) {
+	items, err := s.listChargeLiveBalanceCandidates(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	impacts := make([]Impact, 0, len(items))
+	for _, charge := range items {
+		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, currency, featureFilter)
+		if err != nil {
+			return nil, err
+		}
+
+		if impact == nil {
+			continue
+		}
+
+		impacts = append(impacts, *impact)
+	}
+
+	return impacts, nil
+}
+
+func (s *service) getChargeLiveBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]currencies.CurrencyReference, error) {
+	items, err := s.listChargeLiveBalanceCandidates(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	references := make([]currencies.CurrencyReference, 0, len(items))
+	for _, charge := range items {
+		reference, err := s.chargeCurrencyReference(charge)
+		if err != nil {
+			return nil, err
+		}
+		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, reference, featureFilter)
+		if err != nil {
+			return nil, err
+		}
+		// credit_then_invoice overage does not change credit balance after its
+		// eligible FBO sources are exhausted. Any such source already provides a
+		// ledger-backed currency identity, so only credit_only can introduce a
+		// previously undiscovered live balance.
+		if impact != nil && impact.UnboundedAmount().IsPositive() {
+			references = append(references, reference)
+		}
+	}
+
+	return lo.UniqBy(references, func(reference currencies.CurrencyReference) string {
+		return reference.IdentityKey()
+	}), nil
+}
+
+func (s *service) listChargeLiveBalanceCandidates(ctx context.Context, customerID customer.CustomerID) ([]charges.Charge, error) {
 	items, err := pagination.CollectAll(
 		ctx,
 		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
@@ -666,24 +845,29 @@ func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID cu
 		return nil, fmt.Errorf("list charges: %w", err)
 	}
 
-	impacts := make([]Impact, 0, len(items))
-	for _, charge := range items {
-		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, currency, featureFilter)
-		if err != nil {
-			return nil, err
-		}
-
-		if impact == nil {
-			continue
-		}
-
-		impacts = append(impacts, *impact)
-	}
-
-	return impacts, nil
+	return items, nil
 }
 
-func (s *service) getChargeLiveBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
+func (s *service) chargeCurrencyReference(charge charges.Charge) (currencies.CurrencyReference, error) {
+	switch charge.Type() {
+	case meta.ChargeTypeFlatFee:
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		if err != nil {
+			return currencies.CurrencyReference{}, fmt.Errorf("map flat fee charge: %w", err)
+		}
+		return flatFeeCharge.Intent.GetCurrency().Reference(), nil
+	case meta.ChargeTypeUsageBased:
+		usageBasedCharge, err := charge.AsUsageBasedCharge()
+		if err != nil {
+			return currencies.CurrencyReference{}, fmt.Errorf("map usage based charge: %w", err)
+		}
+		return usageBasedCharge.Intent.GetCurrency().Reference(), nil
+	default:
+		return currencies.CurrencyReference{}, fmt.Errorf("charge type %s does not affect live credit balance", charge.Type())
+	}
+}
+
+func (s *service) getChargeLiveBalanceImpact(ctx context.Context, charge charges.Charge, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	if !chargeHasStarted(charge) {
 		return nil, nil
 	}
@@ -698,18 +882,14 @@ func (s *service) getChargeLiveBalanceImpact(ctx context.Context, charge charges
 	}
 }
 
-func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
+func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	flatFeeCharge, err := charge.AsFlatFeeCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map flat fee charge: %w", err)
 	}
 
-	if flatFeeCharge.Intent.GetCurrency().GetCode() != currency {
+	if !currencyReferenceMatches(flatFeeCharge.Intent.GetCurrency().Reference(), currency) {
 		return nil, nil
-	}
-
-	if flatFeeCharge.Intent.GetCurrency().IsCustom() {
-		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.GetFeatureKey()) {
@@ -719,18 +899,14 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 	return newImpactOrNil(charge, flatFeeCharge.State.AmountAfterProration)
 }
 
-func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
+func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	usageBasedCharge, err := charge.AsUsageBasedCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map usage based charge: %w", err)
 	}
 
-	if usageBasedCharge.Intent.GetCurrency().GetCode() != currency {
+	if !currencyReferenceMatches(usageBasedCharge.Intent.GetCurrency().Reference(), currency) {
 		return nil, nil
-	}
-
-	if usageBasedCharge.Intent.GetCurrency().IsCustom() {
-		return nil, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.GetFeatureKey()) {

@@ -1884,6 +1884,8 @@ func (value CreditAvailabilityPolicy) Valid() bool {
 // The credit balance by currency.
 type CreditBalance struct {
 	Currency BillingCurrencyCode `json:"currency"`
+	// Immutable managed currency identifier. Present only for custom currencies.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// Credits available after applying currently live charge impacts.
 	//
 	// Always zero for historical balance queries using the `timestamp` parameter
@@ -2155,6 +2157,8 @@ type CreditTransaction struct {
 	Type CreditTransactionType `json:"type"`
 	// Currency of the balance affected by the transaction.
 	Currency BillingCurrencyCode `json:"currency"`
+	// Immutable managed currency identifier. Present only for custom currencies.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// Signed amount of the credit movement. Positive values add balance, negative
 	// values reduce balance.
 	Amount Numeric `json:"amount"`

@@ -113,7 +113,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 
 			balances := make([]api.CreditBalance, 0, len(balancesByCurrency))
 			for _, item := range balancesByCurrency {
-				balances = append(balances, toAPICreditBalance(item.Currency, item.Balance))
+				balances = append(balances, toAPICreditBalance(item.CurrencyReference(), item.Balance))
 			}
 
 			return GetCustomerCreditBalanceResponse{

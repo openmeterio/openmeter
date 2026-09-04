@@ -105,6 +105,12 @@ model CreditTransaction {
   currency: Currencies.CurrencyCode;
 
   /**
+   * Immutable managed currency identifier. Present only for custom currencies.
+   */
+  @visibility(Lifecycle.Read)
+  custom_currency_id?: Shared.ULID;
+
+  /**
    * Signed amount of the credit movement. Positive values add balance, negative
    * values reduce balance.
    */

@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -503,13 +504,18 @@ func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCredi
 	}
 }
 
-func toAPICreditBalance(currency currencyx.Code, balance customerbalance.Balance) api.CreditBalance {
-	return api.CreditBalance{
-		Currency: api.BillingCurrencyCode(currency),
+func toAPICreditBalance(currency currencies.CurrencyReference, balance customerbalance.Balance) api.CreditBalance {
+	result := api.CreditBalance{
+		Currency: api.BillingCurrencyCode(currency.GetCode()),
 		Settled:  balance.Settled().String(),
 		Live:     balance.Live().String(),
 		Pending:  balance.Pending().String(),
 	}
+	if currency.CustomCurrencyID != nil {
+		result.CustomCurrencyId = currency.CustomCurrencyID
+	}
+
+	return result
 }
 
 func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionType) *customerbalance.CreditTransactionType {
@@ -545,6 +551,7 @@ func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) [
 }
 
 func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.BillingCreditTransaction {
+	currency := tx.CurrencyReference()
 	apiTx := api.BillingCreditTransaction{
 		Id:          tx.ID.ID,
 		CreatedAt:   tx.CreatedAt,
@@ -561,6 +568,9 @@ func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.Bil
 			Before: tx.Balance.Before.String(),
 			After:  tx.Balance.After.String(),
 		},
+	}
+	if currency.CustomCurrencyID != nil {
+		apiTx.CustomCurrencyId = currency.CustomCurrencyID
 	}
 
 	labels := creditTransactionLabels(tx.Annotations)

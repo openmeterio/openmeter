@@ -3529,6 +3529,7 @@ export const creditAdjustment = z
 export const creditBalance = z
   .object({
     currency: billingCurrencyCode,
+    customCurrencyId: ulid.optional(),
     live: numeric,
     settled: numeric,
     pending: numeric,
@@ -3585,6 +3586,7 @@ export const creditTransaction = z
     bookedAt: dateTime,
     type: creditTransactionType,
     currency: billingCurrencyCode,
+    customCurrencyId: ulid.optional(),
     amount: numeric,
     availableBalance: z
       .object({
@@ -11284,6 +11286,7 @@ export const creditAdjustmentWire = z
 export const creditBalanceWire = z
   .strictObject({
     currency: billingCurrencyCodeWire,
+    custom_currency_id: ulidWire.optional(),
     live: numericWire,
     settled: numericWire,
     pending: numericWire,
@@ -11340,6 +11343,7 @@ export const creditTransactionWire = z
     booked_at: dateTimeWire,
     type: creditTransactionTypeWire,
     currency: billingCurrencyCodeWire,
+    custom_currency_id: ulidWire.optional(),
     amount: numericWire,
     available_balance: z
       .strictObject({

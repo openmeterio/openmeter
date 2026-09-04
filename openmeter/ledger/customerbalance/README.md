@@ -8,11 +8,24 @@ This package exposes customer-facing credit balance and credit transaction views
 
 Credit balance is defined at a point in time.
 
-`asOf` controls which booked FBO ledger entries are visible:
+`asOf` controls which booked ledger entries are visible:
 
 ```text
-balance(asOf=T) = sum(FBO entries where booked_at <= T)
+balance(asOf=T) =
+  sum(FBO entries where booked_at <= T)
+  + sum(nil-cost-basis receivable entries where booked_at <= T)
 ```
+
+The receivable term represents credit-only advance: usage already consumed
+before purchased credit was available.
+
+Fiat currencies are identified by code. Custom-currency balance rows also
+carry `custom_currency_id`; balances remain separate when historical managed
+currencies reuse a display code. A code filter selects every matching identity.
+An explicit custom code resolves against both the namespace currency catalog
+and matching historical customer state; a code found in neither is rejected.
+Unfiltered listings discover currencies from booked credit, uncovered advance,
+pending grants, and current live credit-only exposure.
 
 Future-dated expiration entries do not affect the current balance. They do affect a balance queried at or after their expiration timestamp.
 
@@ -67,6 +80,10 @@ Visible types:
 - `expired`: unused credit expired.
 - `voided`: unused credit was forfeited by voiding its grant.
 
+The temporary issuance and consumption used to construct a custom-currency
+`credit_then_invoice` overage are internal accounting movements, not customer
+credit activity, and are excluded from this view.
+
 Funded rows include the response label `voided: "true"` when the backing grant
 has since been voided. The label is absent from active funded rows and from
 other transaction types.
@@ -81,6 +98,7 @@ expired  => negative FBO impact
 
 In a mixed-currency listing, `available_balance` is reconstructed independently
 for each currency identity even though the rows share one chronological stream.
+Custom-currency rows carry both their display code and `custom_currency_id`.
 
 This matters when a purchase covers an existing advance. Its funded amount can
 be split between clearing the advance receivable and issuing the remainder to

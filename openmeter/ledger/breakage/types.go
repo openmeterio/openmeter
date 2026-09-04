@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -153,7 +154,7 @@ type BreakageImpact struct {
 	CreatedAt   time.Time
 	BookedAt    time.Time
 	CustomerID  customer.CustomerID
-	Currency    currencyx.Code
+	Currency    currencies.CurrencyReference
 	Amount      alpacadecimal.Decimal
 	SourceKind  SourceKind
 	Annotations models.Annotations

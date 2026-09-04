@@ -35,15 +35,16 @@ func (l *voidedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 	for _, impact := range result.Items {
 		balanceAsOf := impact.VoidedAt
 		items = append(items, CreditTransaction{
-			ID:          impact.ID,
-			CreatedAt:   impact.CreatedAt,
-			BookedAt:    impact.VoidedAt,
-			Type:        CreditTransactionTypeVoided,
-			Currency:    impact.Currency,
-			Amount:      impact.Amount,
-			Name:        "Voided credits",
-			Annotations: impact.Annotations,
-			balanceAsOf: &balanceAsOf,
+			ID:               impact.ID,
+			CreatedAt:        impact.CreatedAt,
+			BookedAt:         impact.VoidedAt,
+			Type:             CreditTransactionTypeVoided,
+			Currency:         impact.Currency.GetCode(),
+			CustomCurrencyID: impact.Currency.CustomCurrencyID,
+			Amount:           impact.Amount,
+			Name:             "Voided credits",
+			Annotations:      impact.Annotations,
+			balanceAsOf:      &balanceAsOf,
 		})
 	}
 

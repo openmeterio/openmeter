@@ -21,6 +21,9 @@ const (
 	AnnotationBreakageKind            = "ledger.breakage.kind"
 	AnnotationBreakageRecordID        = "ledger.breakage.record_id"
 	AnnotationBreakagePlanID          = "ledger.breakage.plan_id"
+	// AnnotationCustomerBalanceVisibility classifies ledger-only accounting
+	// movements that must not be projected as customer credit activity.
+	AnnotationCustomerBalanceVisibility = "ledger.customer_balance.visibility"
 )
 
 type ChargeTransactionAnnotationsInput struct {
@@ -40,6 +43,8 @@ const (
 )
 
 const CollectionTypeBreakage = "breakage"
+
+const CustomerBalanceVisibilityInternal = "internal"
 
 type BreakageKind string
 

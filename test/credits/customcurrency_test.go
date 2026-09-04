@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -429,6 +430,18 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceUsesFiatCredits
 	s.Equal(float64(2), finalCharge.Realizations.CurrentRun.Payment.FiatAmount.InexactFloat64())
 	s.requireAccountBalance(accounts.ReceivableAccount, ledger.RouteFilter{Currency: currencies.NewCurrencyReference(USD)}, 0, "settled USD receivable")
 	s.requireAccountBalance(accounts.AccruedAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 10, "settled TOKENS accrued")
+
+	// The temporary TOKENS issuance and immediate consumption are internal
+	// balancing legs of the invoice-backed overage, not customer credit activity.
+	tokenCode := tokens.GetCode()
+	history, err := s.CustomerBalanceSvc.ListCreditTransactions(ctx, customerbalance.ListCreditTransactionsInput{
+		CustomerID:    customer.GetID(),
+		Limit:         10,
+		Currency:      &tokenCode,
+		FeatureFilter: customerbalance.AllFeatureFilter(),
+	})
+	s.Require().NoError(err)
+	s.Empty(history.Items)
 }
 
 func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFeaturesAndLeavesPartialAdvance() {

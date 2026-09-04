@@ -110,7 +110,8 @@ func (l *fundedCreditTransactionLoader) listCandidatePage(
 		AsOf:       &input.AsOf,
 		Route:      featureFilterRoute(input.FeatureFilter),
 		ExcludeAnnotationFilters: map[string]string{
-			ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,
+			ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
+			ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
 		},
 	})
 	if err != nil {
@@ -258,19 +259,19 @@ func fundedCreditTransactionFromCharge(charge creditpurchase.Charge) (CreditTran
 	}
 
 	return CreditTransaction{
-		ID:          models.NamespacedID(charge.GetChargeID()),
-		CreatedAt:   charge.CreatedAt,
-		BookedAt:    grant.Time,
-		Type:        CreditTransactionTypeFunded,
-		GrantVoided: charge.State.VoidedAt != nil,
-		Currency:    charge.Intent.Currency.GetCode(),
-		Amount:      charge.Intent.CreditAmount,
-		Name:        charge.Intent.Name,
-		Description: charge.Intent.Description,
+		ID:               models.NamespacedID(charge.GetChargeID()),
+		CreatedAt:        charge.CreatedAt,
+		BookedAt:         grant.Time,
+		Type:             CreditTransactionTypeFunded,
+		GrantVoided:      charge.State.VoidedAt != nil,
+		Currency:         charge.Intent.Currency.GetCode(),
+		CustomCurrencyID: charge.Intent.Currency.Reference().CustomCurrencyID,
+		Amount:           charge.Intent.CreditAmount,
+		Name:             charge.Intent.Name,
+		Description:      charge.Intent.Description,
 		Annotations: models.Annotations{
 			ledger.AnnotationChargeID: charge.ID,
 		},
-		currencyReference:        charge.Intent.Currency.Reference(),
 		fundedTransactionGroupID: grant.TransactionGroupID,
 	}, true
 }
@@ -309,8 +310,7 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 
 	// Validate the unfiltered group against the nominal funded amount.
 	unfilteredImpacts, err := fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
-		Currency:          item.Currency,
-		currencyReference: item.balanceCurrencyReference(),
+		Currency: item.CurrencyReference(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("resolve funded credit transaction group %s balance impacts: %w", item.fundedTransactionGroupID, err)
@@ -336,9 +336,8 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 	impacts := unfilteredImpacts
 	if input.FeatureFilter.IsPresent() {
 		impacts, err = fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
-			Currency:          item.Currency,
-			FeatureFilter:     input.FeatureFilter,
-			currencyReference: item.balanceCurrencyReference(),
+			Currency:      item.CurrencyReference(),
+			FeatureFilter: input.FeatureFilter,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("resolve funded credit transaction group %s filtered balance impacts: %w", item.fundedTransactionGroupID, err)
@@ -356,7 +355,7 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 		resolvedItem.Amount = impact.Amount
 		resolvedItem.balanceCursor = &impact.Cursor
 		resolvedItem.balanceImpact = &impact.Amount
-		resolvedItem.currencyReference = impact.CurrencyReference
+		resolvedItem.CustomCurrencyID = impact.CurrencyReference.CustomCurrencyID
 		items = append(items, resolvedItem)
 	}
 

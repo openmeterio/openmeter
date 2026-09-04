@@ -10,8 +10,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -74,19 +74,47 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		return ListExpiredBreakageImpactsResult{}, fmt.Errorf("list expired breakage records: %w", err)
 	}
 
+	currencyReferences := make(map[string]currencies.CurrencyReference)
+	for _, record := range records {
+		if record.FBOSubAccountID == "" {
+			continue
+		}
+		if _, ok := currencyReferences[record.FBOSubAccountID]; ok {
+			continue
+		}
+
+		subAccount, err := s.deps.AccountCatalog.GetSubAccountByID(ctx, models.NamespacedID{
+			Namespace: record.ID.Namespace,
+			ID:        record.FBOSubAccountID,
+		})
+		if err != nil {
+			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("get breakage FBO sub-account %s: %w", record.FBOSubAccountID, err)
+		}
+
+		reference := subAccount.Route().Currency.Clone()
+		if reference.GetCode() != record.Currency {
+			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("breakage FBO sub-account %s currency %s does not match record currency %s", record.FBOSubAccountID, reference.GetCode(), record.Currency)
+		}
+		currencyReferences[record.FBOSubAccountID] = reference
+	}
+
 	groups := make(map[expiredBreakageImpactGroupKey]*expiredBreakageImpactGroup)
 	for _, record := range records {
+		currencyReference := currencies.NewCurrencyReference(record.Currency)
+		if record.FBOSubAccountID != "" {
+			currencyReference = currencyReferences[record.FBOSubAccountID].Clone()
+		}
 		key := expiredBreakageImpactGroupKey{
-			expiresAt:      record.ExpiresAt,
-			currency:       record.Currency,
-			sourceChargeID: lo.FromPtr(record.SourceChargeID),
+			expiresAt:        record.ExpiresAt,
+			currencyIdentity: currencyReference.IdentityKey(),
+			sourceChargeID:   lo.FromPtr(record.SourceChargeID),
 		}
 
 		group := groups[key]
 		if group == nil {
 			group = &expiredBreakageImpactGroup{
 				expiresAt:      record.ExpiresAt,
-				currency:       record.Currency,
+				currency:       currencyReference,
 				sourceChargeID: record.SourceChargeID,
 			}
 			groups[key] = group
@@ -135,7 +163,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			CreatedAt:   group.expiresAt,
 			BookedAt:    group.expiresAt,
 			CustomerID:  input.CustomerID,
-			Currency:    group.currency,
+			Currency:    group.currency.Clone(),
 			Amount:      group.amount.Neg(),
 			SourceKind:  SourceKindCreditPurchase,
 			Annotations: annotations,
@@ -201,14 +229,14 @@ func breakageImpactMatchesCursorWindow(item BreakageImpact, after, before *ledge
 }
 
 type expiredBreakageImpactGroupKey struct {
-	expiresAt      time.Time
-	currency       currencyx.Code
-	sourceChargeID string
+	expiresAt        time.Time
+	currencyIdentity string
+	sourceChargeID   string
 }
 
 type expiredBreakageImpactGroup struct {
 	expiresAt      time.Time
-	currency       currencyx.Code
+	currency       currencies.CurrencyReference
 	sourceChargeID *string
 	amount         alpacadecimal.Decimal
 	cursorID       models.NamespacedID

@@ -2025,7 +2025,10 @@ export interface ValidationIssue {
 
 /** Filter options for getting a credit balance. */
 export interface GetCreditBalanceParamsFilter {
-  /** Filter credit balance by currency. */
+  /**
+   * Filter credit balance by currency code. When historical custom currencies reuse
+   * a code, each managed currency is returned as a separate balance row.
+   */
   currency?: StringFieldFilterExact
   /**
    * Filter credit balance by feature key. Omit to return the total portfolio value.
@@ -2449,6 +2452,8 @@ export interface CreditAdjustment {
 /** The credit balance by currency. */
 export interface CreditBalance {
   currency: BillingCurrencyCode
+  /** Immutable managed currency identifier. Present only for custom currencies. */
+  customCurrencyId?: string
   /**
    * Credits available after applying currently live charge impacts.
    *
@@ -2490,7 +2495,10 @@ export interface CreateCreditAdjustmentRequest {
 export interface ListCreditTransactionsParamsFilter {
   /** Filter credit transactions by type. */
   type?: 'funded' | 'consumed' | 'expired' | 'voided'
-  /** Filter credit transactions by currency. */
+  /**
+   * Filter credit transactions by currency code. Custom-currency rows retain their
+   * managed currency identifier.
+   */
   currency?: BillingCurrencyCode
   /**
    * Filter credit transactions by feature key. Omit to return all credit
@@ -2529,6 +2537,8 @@ export interface CreditTransaction {
   type: 'funded' | 'consumed' | 'expired' | 'voided'
   /** Currency of the balance affected by the transaction. */
   currency: BillingCurrencyCode
+  /** Immutable managed currency identifier. Present only for custom currencies. */
+  customCurrencyId?: string
   /**
    * Signed amount of the credit movement. Positive values add balance, negative
    * values reduce balance.

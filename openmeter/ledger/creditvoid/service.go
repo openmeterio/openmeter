@@ -179,7 +179,7 @@ type VoidImpact struct {
 	CreatedAt   time.Time
 	VoidedAt    time.Time
 	CustomerID  customer.CustomerID
-	Currency    currencyx.Code
+	Currency    currencies.CurrencyReference
 	Amount      alpacadecimal.Decimal
 	Annotations models.Annotations
 }
@@ -598,11 +598,39 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 		}, nil
 	}
 
+	currencyReferences := make(map[string]currencies.CurrencyReference)
+	for _, record := range records {
+		if record.FBOSubAccountID == "" {
+			continue
+		}
+		if _, ok := currencyReferences[record.FBOSubAccountID]; ok {
+			continue
+		}
+
+		subAccount, err := s.deps.AccountCatalog.GetSubAccountByID(ctx, models.NamespacedID{
+			Namespace: record.ID.Namespace,
+			ID:        record.FBOSubAccountID,
+		})
+		if err != nil {
+			return ListVoidedCreditImpactsResult{}, fmt.Errorf("get void FBO sub-account %s: %w", record.FBOSubAccountID, err)
+		}
+
+		reference := subAccount.Route().Currency.Clone()
+		if reference.GetCode() != record.Currency {
+			return ListVoidedCreditImpactsResult{}, fmt.Errorf("void FBO sub-account %s currency %s does not match record currency %s", record.FBOSubAccountID, reference.GetCode(), record.Currency)
+		}
+		currencyReferences[record.FBOSubAccountID] = reference
+	}
+
 	groups := make(map[voidImpactGroupKey]*voidImpactGroup)
 	for _, record := range records {
+		currencyReference := currencies.NewCurrencyReference(record.Currency)
+		if record.FBOSubAccountID != "" {
+			currencyReference = currencyReferences[record.FBOSubAccountID].Clone()
+		}
 		key := voidImpactGroupKey{
 			voidedAt:           record.VoidedAt,
-			currency:           record.Currency,
+			currencyIdentity:   currencyReference.IdentityKey(),
 			sourceChargeID:     record.SourceChargeID,
 			transactionGroupID: record.VoidTransactionGroupID,
 		}
@@ -613,7 +641,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 				id:          record.ID,
 				createdAt:   record.CreatedAt,
 				voidedAt:    record.VoidedAt,
-				currency:    record.Currency,
+				currency:    currencyReference,
 				annotations: models.Annotations{},
 			}
 			groups[key] = group
@@ -646,7 +674,7 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 			CreatedAt:   group.createdAt,
 			VoidedAt:    group.voidedAt,
 			CustomerID:  input.CustomerID,
-			Currency:    group.currency,
+			Currency:    group.currency.Clone(),
 			Amount:      group.amount.Neg(),
 			Annotations: group.annotations,
 		}
@@ -687,7 +715,7 @@ func voidImpactMatchesCursorWindow(item VoidImpact, after, before *ledger.Transa
 
 type voidImpactGroupKey struct {
 	voidedAt           time.Time
-	currency           currencyx.Code
+	currencyIdentity   string
 	sourceChargeID     string
 	transactionGroupID string
 }
@@ -696,7 +724,7 @@ type voidImpactGroup struct {
 	id          models.NamespacedID
 	createdAt   time.Time
 	voidedAt    time.Time
-	currency    currencyx.Code
+	currency    currencies.CurrencyReference
 	amount      alpacadecimal.Decimal
 	annotations models.Annotations
 }
