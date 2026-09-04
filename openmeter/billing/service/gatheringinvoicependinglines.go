@@ -335,9 +335,15 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
 		linesWithResolvedPeriods, err := slicesx.MapWithErr(invoice.Invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (gatheringLineWithBillablePeriod, error) {
+			featureEntity, meterEntity, err := resolveRatingDependencies(line, invoice.FeatureMeters)
+			if err != nil {
+				return gatheringLineWithBillablePeriod{}, fmt.Errorf("resolving rating dependencies[%s]: %w", line.ID, err)
+			}
+
 			result, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
-				FeatureMeters:      invoice.FeatureMeters,
+				Feature:            featureEntity,
+				Meter:              meterEntity,
 				ProgressiveBilling: in.ProgressiveBilling,
 				AsOf:               in.AsOf,
 			})
