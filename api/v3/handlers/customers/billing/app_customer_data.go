@@ -31,17 +31,16 @@ func (h *handler) applyAppCustomerData(ctx context.Context, application app.App,
 			return resp, h.deleteAppCustomerData(ctx, application, customerID)
 		}
 
-		var stripeData api.BillingAppCustomerDataStripe
-		if data.Stripe.IsSpecified() {
-			var err error
-			stripeData, err = data.Stripe.Get()
-			if err != nil {
-				return nil, fmt.Errorf("failed to read stripe data: %w", err)
-			}
-
-			resp.Stripe = data.Stripe
+		if !data.Stripe.IsSpecified() {
+			return resp, nil
 		}
 
+		stripeData, err := data.Stripe.Get()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read stripe data: %w", err)
+		}
+
+		resp.Stripe = data.Stripe
 		appData = appstripe.CustomerData{
 			StripeCustomerID:             lo.FromPtr(stripeData.CustomerId),
 			StripeDefaultPaymentMethodID: stripeData.DefaultPaymentMethodId,

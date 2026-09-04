@@ -28,8 +28,7 @@ import (
 // the production handler mounted behind the OpenAPI request-validation
 // middleware, mirroring api/v3/server wiring.
 func TestCustomerBillingV3(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	env, err := NewTestEnv(t, ctx)
 	require.NoError(t, err)
@@ -124,6 +123,44 @@ func TestCustomerBillingV3(t *testing.T) {
 		data, err := getStripeData(cus)
 		require.NoError(t, err)
 		require.Equal(t, "cus_upsert", data.StripeCustomerID)
+	})
+
+	t.Run("Should leave stripe app data unchanged when stripe is omitted", func(t *testing.T) {
+		// given a customer with existing stripe app data
+		cus, err := env.Fixture().setupCustomer(ctx, namespace)
+		require.NoError(t, err)
+
+		seedStripeData(t, cus, "cus_keep_billing")
+
+		// when updating billing with an app data object that omits stripe
+		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing",
+			`{"app_data":{}}`)
+
+		// then the request is a no-op and the stored stripe data stays
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+		data, err := getStripeData(cus)
+		require.NoError(t, err)
+		require.Equal(t, "cus_keep_billing", data.StripeCustomerID)
+	})
+
+	t.Run("Should leave stripe app data unchanged when stripe is omitted on app-data endpoint", func(t *testing.T) {
+		// given a customer with existing stripe app data
+		cus, err := env.Fixture().setupCustomer(ctx, namespace)
+		require.NoError(t, err)
+
+		seedStripeData(t, cus, "cus_keep_app_data")
+
+		// when updating app data with an empty object that omits stripe
+		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing/app-data",
+			`{}`)
+
+		// then the request is a no-op and the stored stripe data stays
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+		data, err := getStripeData(cus)
+		require.NoError(t, err)
+		require.Equal(t, "cus_keep_app_data", data.StripeCustomerID)
 	})
 
 	t.Run("Should wipe stripe app data with explicit null", func(t *testing.T) {
