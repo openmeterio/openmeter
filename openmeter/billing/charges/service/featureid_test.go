@@ -464,7 +464,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 	})
 
 	s.Require().Error(err)
-	s.ErrorContains(err, "resolve create feature meter")
+	s.ErrorContains(err, "resolve flat fee feature")
 	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureNotFound.Code)
 	s.Empty(issue.Path)
 
