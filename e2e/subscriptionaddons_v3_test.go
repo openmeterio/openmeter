@@ -62,7 +62,7 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 
 	subBody := v3sdk.SubscriptionCreate{
 		Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
-		Plan:     v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+		Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
 	}
 
 	sub, err := c.Subscriptions.Create(t.Context(), subBody)
@@ -214,7 +214,7 @@ func TestV3SubscriptionAddonNextBillingCycle(t *testing.T) {
 	subBody := v3sdk.SubscriptionCreate{
 		BillingAnchor: &anchor,
 		Customer:      v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
-		Plan:          v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+		Plan:          &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
 	}
 
 	sub, err := c.Subscriptions.Create(t.Context(), subBody)

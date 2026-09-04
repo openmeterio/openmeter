@@ -3114,35 +3114,6 @@ export const rateCardProrationConfiguration = z
   })
   .describe('The proration configuration of the rate card.')
 
-export const subscriptionCreate = z
-  .object({
-    labels: labels.optional(),
-    settlementMode: settlementMode.optional(),
-    customer: z
-      .object({
-        id: ulid.optional(),
-        key: externalResourceKey.optional(),
-      })
-      .describe('The customer to create the subscription for.'),
-    plan: z
-      .object({
-        id: ulid.optional(),
-        key: resourceKey.optional(),
-        version: z
-          .number()
-          .int()
-          .optional()
-
-          .describe(
-            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
-          ),
-      })
-      .describe('The plan reference of the subscription.'),
-    billingAnchor: dateTime.optional(),
-    costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
-  })
-  .describe('Subscription create request.')
-
 export const unitConfig = z
   .object({
     operation: unitConfigOperation,
@@ -4392,36 +4363,6 @@ export const subscriptionCancel = z
     timing: subscriptionEditTiming.optional().default('immediate'),
   })
   .describe('Request for canceling a subscription.')
-
-export const subscriptionChange = z
-  .object({
-    labels: labels.optional(),
-    settlementMode: settlementMode.optional(),
-    customer: z
-      .object({
-        id: ulid.optional(),
-        key: externalResourceKey.optional(),
-      })
-      .describe('The customer to create the subscription for.'),
-    plan: z
-      .object({
-        id: ulid.optional(),
-        key: resourceKey.optional(),
-        version: z
-          .number()
-          .int()
-          .optional()
-
-          .describe(
-            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
-          ),
-      })
-      .describe('The plan reference of the subscription.'),
-    billingAnchor: dateTime.optional(),
-    costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
-    timing: subscriptionEditTiming,
-  })
-  .describe('Request for changing a subscription.')
 
 export const createSubscriptionAddonRequest = z
   .object({
@@ -5789,31 +5730,6 @@ export const subscriptionItem = z
     'A subscription item pins a rate card to a cadence within a subscription phase.',
   )
 
-export const subscriptionEditAddItem = z
-  .object({
-    type: z
-      .literal('add_item')
-      .describe('Discriminator for the add-item operation.'),
-    phaseKey: z.string().describe('The key of the phase to add the item to.'),
-    rateCard: rateCard,
-  })
-
-  .describe(
-    'Add a new rate card to a phase. Adding an item to the current phase closes the active version of the same item key and appends a new version.',
-  )
-
-export const subscriptionAddonRateCard = z
-  .object({
-    rateCard: rateCard,
-    affectedSubscriptionItemIds: z
-      .array(ulid)
-
-      .describe(
-        'The IDs of the subscription items that this rate card belongs to.',
-      ),
-  })
-  .describe('A rate card for a subscription add-on.')
-
 export const planPhase = z
   .object({
     name: z
@@ -5838,6 +5754,31 @@ export const planPhase = z
   .describe(
     "The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.",
   )
+
+export const subscriptionEditAddItem = z
+  .object({
+    type: z
+      .literal('add_item')
+      .describe('Discriminator for the add-item operation.'),
+    phaseKey: z.string().describe('The key of the phase to add the item to.'),
+    rateCard: rateCard,
+  })
+
+  .describe(
+    'Add a new rate card to a phase. Adding an item to the current phase closes the active version of the same item key and appends a new version.',
+  )
+
+export const subscriptionAddonRateCard = z
+  .object({
+    rateCard: rateCard,
+    affectedSubscriptionItemIds: z
+      .array(ulid)
+
+      .describe(
+        'The IDs of the subscription items that this rate card belongs to.',
+      ),
+  })
+  .describe('A rate card for a subscription add-on.')
 
 export const addon = z
   .object({
@@ -6157,27 +6098,8 @@ export const subscriptionPhase = z
     "A subscription phase groups the rate cards in effect for a segment of the subscription's lifetime. Analogous to plan phases.",
   )
 
-export const subscriptionEditOperation = z
-  .discriminatedUnion('type', [
-    subscriptionEditAddItem,
-    subscriptionEditRemoveItem,
-    subscriptionEditAddPhase,
-    subscriptionEditRemovePhase,
-    subscriptionEditStretchPhase,
-    subscriptionEditUnscheduleEdit,
-  ])
-
-  .describe(
-    'A single customization to apply to a running subscription. The `type` field discriminates which operation is performed.',
-  )
-
-export const subscriptionAddon = z
+export const subscriptionCustomPlan = z
   .object({
-    id: ulid,
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
     name: z
       .string()
       .min(1)
@@ -6191,29 +6113,26 @@ export const subscriptionAddon = z
       .describe(
         'Optional description of the resource. Maximum 1024 characters.',
       ),
-    addon: addonReference,
-    quantity: z
-      .number()
-      .int()
-      .gte(1)
+    labels: labels.optional(),
+    currency: billingCurrencyCode,
+    billingCadence: iso8601Duration,
+    proRatingEnabled: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe('Whether pro-rating is enabled for this plan.'),
+    phases: z
+      .array(planPhase)
+      .min(1)
 
       .describe(
-        'The quantity of the add-on. Always 1 for single instance add-ons.',
+        'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
-    quantityAt: dateTime,
-    activeFrom: dateTime,
-    activeTo: dateTime.optional(),
-    timeline: z
-      .array(subscriptionAddonTimelineSegment)
-
-      .describe(
-        'The timeline of the add-on. The returned periods are sorted and continuous.',
-      ),
-    rateCards: z
-      .array(subscriptionAddonRateCard)
-      .describe('The rate cards of the add-on.'),
   })
-  .describe('Addon purchased with a subscription.')
+
+  .describe(
+    'An inline (custom) plan definition used to create or change a subscription without referencing a published plan. Mirrors the plan create shape without a key or version, since a custom plan is not persisted or versioned on its own.',
+  )
 
 export const plan = z
   .object({
@@ -6338,6 +6257,64 @@ export const upsertPlanRequest = z
   })
   .describe('Plan upsert request.')
 
+export const subscriptionEditOperation = z
+  .discriminatedUnion('type', [
+    subscriptionEditAddItem,
+    subscriptionEditRemoveItem,
+    subscriptionEditAddPhase,
+    subscriptionEditRemovePhase,
+    subscriptionEditStretchPhase,
+    subscriptionEditUnscheduleEdit,
+  ])
+
+  .describe(
+    'A single customization to apply to a running subscription. The `type` field discriminates which operation is performed.',
+  )
+
+export const subscriptionAddon = z
+  .object({
+    id: ulid,
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    addon: addonReference,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    quantityAt: dateTime,
+    activeFrom: dateTime,
+    activeTo: dateTime.optional(),
+    timeline: z
+      .array(subscriptionAddonTimelineSegment)
+
+      .describe(
+        'The timeline of the add-on. The returned periods are sorted and continuous.',
+      ),
+    rateCards: z
+      .array(subscriptionAddonRateCard)
+      .describe('The rate cards of the add-on.'),
+  })
+  .describe('Addon purchased with a subscription.')
+
 export const addonPagePaginatedResponse = z
   .object({
     data: z.array(addon),
@@ -6414,6 +6391,80 @@ export const subscription = z
   })
   .describe('Subscription.')
 
+export const subscriptionCreate = z.object({
+  labels: labels.optional(),
+  settlementMode: settlementMode.optional(),
+  customer: z
+    .object({
+      id: ulid.optional(),
+      key: externalResourceKey.optional(),
+    })
+    .describe('The customer to create the subscription for.'),
+  plan: z
+    .object({
+      id: ulid.optional(),
+      key: resourceKey.optional(),
+      version: z
+        .number()
+        .int()
+        .optional()
+
+        .describe(
+          'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
+        ),
+    })
+    .optional()
+
+    .describe(
+      'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
+    ),
+  customPlan: subscriptionCustomPlan.optional(),
+  billingAnchor: dateTime.optional(),
+  costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
+})
+
+export const subscriptionChange = z
+  .object({
+    labels: labels.optional(),
+    settlementMode: settlementMode.optional(),
+    customer: z
+      .object({
+        id: ulid.optional(),
+        key: externalResourceKey.optional(),
+      })
+      .describe('The customer to create the subscription for.'),
+    plan: z
+      .object({
+        id: ulid.optional(),
+        key: resourceKey.optional(),
+        version: z
+          .number()
+          .int()
+          .optional()
+
+          .describe(
+            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
+          ),
+      })
+      .optional()
+
+      .describe(
+        'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
+      ),
+    customPlan: subscriptionCustomPlan.optional(),
+    billingAnchor: dateTime.optional(),
+    costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
+    timing: subscriptionEditTiming,
+  })
+  .describe('Request for changing a subscription.')
+
+export const planPagePaginatedResponse = z
+  .object({
+    data: z.array(plan),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
 export const subscriptionEdit = z
   .object({
     customizations: z
@@ -6433,13 +6484,6 @@ export const subscriptionEdit = z
 export const subscriptionAddonPagePaginatedResponse = z
   .object({
     data: z.array(subscriptionAddon),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
-
-export const planPagePaginatedResponse = z
-  .object({
-    data: z.array(plan),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
@@ -10733,35 +10777,6 @@ export const rateCardProrationConfigurationWire = z
   })
   .describe('The proration configuration of the rate card.')
 
-export const subscriptionCreateWire = z
-  .strictObject({
-    labels: labelsWire.optional(),
-    settlement_mode: settlementModeWire.optional(),
-    customer: z
-      .strictObject({
-        id: ulidWire.optional(),
-        key: externalResourceKeyWire.optional(),
-      })
-      .describe('The customer to create the subscription for.'),
-    plan: z
-      .strictObject({
-        id: ulidWire.optional(),
-        key: resourceKeyWire.optional(),
-        version: z
-          .number()
-          .int()
-          .optional()
-
-          .describe(
-            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
-          ),
-      })
-      .describe('The plan reference of the subscription.'),
-    billing_anchor: dateTimeWire.optional(),
-    cost_basis_mode: subscriptionCostBasisModeWire.optional(),
-  })
-  .describe('Subscription create request.')
-
 export const unitConfigWire = z
   .strictObject({
     operation: unitConfigOperationWire,
@@ -12005,36 +12020,6 @@ export const subscriptionCancelWire = z
     timing: subscriptionEditTimingWire.optional(),
   })
   .describe('Request for canceling a subscription.')
-
-export const subscriptionChangeWire = z
-  .strictObject({
-    labels: labelsWire.optional(),
-    settlement_mode: settlementModeWire.optional(),
-    customer: z
-      .strictObject({
-        id: ulidWire.optional(),
-        key: externalResourceKeyWire.optional(),
-      })
-      .describe('The customer to create the subscription for.'),
-    plan: z
-      .strictObject({
-        id: ulidWire.optional(),
-        key: resourceKeyWire.optional(),
-        version: z
-          .number()
-          .int()
-          .optional()
-
-          .describe(
-            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
-          ),
-      })
-      .describe('The plan reference of the subscription.'),
-    billing_anchor: dateTimeWire.optional(),
-    cost_basis_mode: subscriptionCostBasisModeWire.optional(),
-    timing: subscriptionEditTimingWire,
-  })
-  .describe('Request for changing a subscription.')
 
 export const createSubscriptionAddonRequestWire = z
   .strictObject({
@@ -13409,31 +13394,6 @@ export const subscriptionItemWire = z
     'A subscription item pins a rate card to a cadence within a subscription phase.',
   )
 
-export const subscriptionEditAddItemWire = z
-  .strictObject({
-    type: z
-      .literal('add_item')
-      .describe('Discriminator for the add-item operation.'),
-    phase_key: z.string().describe('The key of the phase to add the item to.'),
-    rate_card: rateCardWire,
-  })
-
-  .describe(
-    'Add a new rate card to a phase. Adding an item to the current phase closes the active version of the same item key and appends a new version.',
-  )
-
-export const subscriptionAddonRateCardWire = z
-  .strictObject({
-    rate_card: rateCardWire,
-    affected_subscription_item_ids: z
-      .array(ulidWire)
-
-      .describe(
-        'The IDs of the subscription items that this rate card belongs to.',
-      ),
-  })
-  .describe('A rate card for a subscription add-on.')
-
 export const planPhaseWire = z
   .strictObject({
     name: z
@@ -13458,6 +13418,31 @@ export const planPhaseWire = z
   .describe(
     "The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.",
   )
+
+export const subscriptionEditAddItemWire = z
+  .strictObject({
+    type: z
+      .literal('add_item')
+      .describe('Discriminator for the add-item operation.'),
+    phase_key: z.string().describe('The key of the phase to add the item to.'),
+    rate_card: rateCardWire,
+  })
+
+  .describe(
+    'Add a new rate card to a phase. Adding an item to the current phase closes the active version of the same item key and appends a new version.',
+  )
+
+export const subscriptionAddonRateCardWire = z
+  .strictObject({
+    rate_card: rateCardWire,
+    affected_subscription_item_ids: z
+      .array(ulidWire)
+
+      .describe(
+        'The IDs of the subscription items that this rate card belongs to.',
+      ),
+  })
+  .describe('A rate card for a subscription add-on.')
 
 export const addonWire = z
   .strictObject({
@@ -13776,27 +13761,8 @@ export const subscriptionPhaseWire = z
     "A subscription phase groups the rate cards in effect for a segment of the subscription's lifetime. Analogous to plan phases.",
   )
 
-export const subscriptionEditOperationWire = z
-  .discriminatedUnion('type', [
-    subscriptionEditAddItemWire,
-    subscriptionEditRemoveItemWire,
-    subscriptionEditAddPhaseWire,
-    subscriptionEditRemovePhaseWire,
-    subscriptionEditStretchPhaseWire,
-    subscriptionEditUnscheduleEditWire,
-  ])
-
-  .describe(
-    'A single customization to apply to a running subscription. The `type` field discriminates which operation is performed.',
-  )
-
-export const subscriptionAddonWire = z
+export const subscriptionCustomPlanWire = z
   .strictObject({
-    id: ulidWire,
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
     name: z
       .string()
       .min(1)
@@ -13810,29 +13776,25 @@ export const subscriptionAddonWire = z
       .describe(
         'Optional description of the resource. Maximum 1024 characters.',
       ),
-    addon: addonReferenceWire,
-    quantity: z
-      .number()
-      .int()
-      .gte(1)
+    labels: labelsWire.optional(),
+    currency: billingCurrencyCodeWire,
+    billing_cadence: iso8601DurationWire,
+    pro_rating_enabled: z
+      .boolean()
+      .optional()
+      .describe('Whether pro-rating is enabled for this plan.'),
+    phases: z
+      .array(planPhaseWire)
+      .min(1)
 
       .describe(
-        'The quantity of the add-on. Always 1 for single instance add-ons.',
+        'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
-    quantity_at: dateTimeWire,
-    active_from: dateTimeWire,
-    active_to: dateTimeWire.optional(),
-    timeline: z
-      .array(subscriptionAddonTimelineSegmentWire)
-
-      .describe(
-        'The timeline of the add-on. The returned periods are sorted and continuous.',
-      ),
-    rate_cards: z
-      .array(subscriptionAddonRateCardWire)
-      .describe('The rate cards of the add-on.'),
   })
-  .describe('Addon purchased with a subscription.')
+
+  .describe(
+    'An inline (custom) plan definition used to create or change a subscription without referencing a published plan. Mirrors the plan create shape without a key or version, since a custom plan is not persisted or versioned on its own.',
+  )
 
 export const planWire = z
   .strictObject({
@@ -13953,6 +13915,64 @@ export const upsertPlanRequestWire = z
   })
   .describe('Plan upsert request.')
 
+export const subscriptionEditOperationWire = z
+  .discriminatedUnion('type', [
+    subscriptionEditAddItemWire,
+    subscriptionEditRemoveItemWire,
+    subscriptionEditAddPhaseWire,
+    subscriptionEditRemovePhaseWire,
+    subscriptionEditStretchPhaseWire,
+    subscriptionEditUnscheduleEditWire,
+  ])
+
+  .describe(
+    'A single customization to apply to a running subscription. The `type` field discriminates which operation is performed.',
+  )
+
+export const subscriptionAddonWire = z
+  .strictObject({
+    id: ulidWire,
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    addon: addonReferenceWire,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    quantity_at: dateTimeWire,
+    active_from: dateTimeWire,
+    active_to: dateTimeWire.optional(),
+    timeline: z
+      .array(subscriptionAddonTimelineSegmentWire)
+
+      .describe(
+        'The timeline of the add-on. The returned periods are sorted and continuous.',
+      ),
+    rate_cards: z
+      .array(subscriptionAddonRateCardWire)
+      .describe('The rate cards of the add-on.'),
+  })
+  .describe('Addon purchased with a subscription.')
+
 export const addonPagePaginatedResponseWire = z
   .strictObject({
     data: z.array(addonWire),
@@ -14029,6 +14049,80 @@ export const subscriptionWire = z
   })
   .describe('Subscription.')
 
+export const subscriptionCreateWire = z.strictObject({
+  labels: labelsWire.optional(),
+  settlement_mode: settlementModeWire.optional(),
+  customer: z
+    .strictObject({
+      id: ulidWire.optional(),
+      key: externalResourceKeyWire.optional(),
+    })
+    .describe('The customer to create the subscription for.'),
+  plan: z
+    .strictObject({
+      id: ulidWire.optional(),
+      key: resourceKeyWire.optional(),
+      version: z
+        .number()
+        .int()
+        .optional()
+
+        .describe(
+          'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
+        ),
+    })
+    .optional()
+
+    .describe(
+      'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
+    ),
+  custom_plan: subscriptionCustomPlanWire.optional(),
+  billing_anchor: dateTimeWire.optional(),
+  cost_basis_mode: subscriptionCostBasisModeWire.optional(),
+})
+
+export const subscriptionChangeWire = z
+  .strictObject({
+    labels: labelsWire.optional(),
+    settlement_mode: settlementModeWire.optional(),
+    customer: z
+      .strictObject({
+        id: ulidWire.optional(),
+        key: externalResourceKeyWire.optional(),
+      })
+      .describe('The customer to create the subscription for.'),
+    plan: z
+      .strictObject({
+        id: ulidWire.optional(),
+        key: resourceKeyWire.optional(),
+        version: z
+          .number()
+          .int()
+          .optional()
+
+          .describe(
+            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
+          ),
+      })
+      .optional()
+
+      .describe(
+        'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
+      ),
+    custom_plan: subscriptionCustomPlanWire.optional(),
+    billing_anchor: dateTimeWire.optional(),
+    cost_basis_mode: subscriptionCostBasisModeWire.optional(),
+    timing: subscriptionEditTimingWire,
+  })
+  .describe('Request for changing a subscription.')
+
+export const planPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(planWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
 export const subscriptionEditWire = z
   .strictObject({
     customizations: z
@@ -14048,13 +14142,6 @@ export const subscriptionEditWire = z
 export const subscriptionAddonPagePaginatedResponseWire = z
   .strictObject({
     data: z.array(subscriptionAddonWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
-
-export const planPagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(planWire),
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')

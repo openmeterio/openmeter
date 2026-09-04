@@ -9535,7 +9535,6 @@ components:
       type: object
       required:
         - customer
-        - plan
         - timing
       properties:
         labels:
@@ -9604,7 +9603,22 @@ components:
                 version of the plan will be used.
               title: Plan Version
           additionalProperties: false
-          description: The plan reference of the subscription.
+          description: |-
+            A reference to a published plan the subscription is created from.
+
+            Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+            subscription on an existing published plan; use `custom_plan` to define the plan
+            inline.
+        custom_plan:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionCustomPlan'
+          description: |-
+            An inline plan definition to create the subscription from, without referencing a
+            published plan.
+
+            Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+            linked to a persisted plan, so the response omits the `plan` reference.
+          title: Custom plan
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -9685,7 +9699,6 @@ components:
       type: object
       required:
         - customer
-        - plan
       properties:
         labels:
           $ref: '#/components/schemas/Labels'
@@ -9753,7 +9766,22 @@ components:
                 version of the plan will be used.
               title: Plan Version
           additionalProperties: false
-          description: The plan reference of the subscription.
+          description: |-
+            A reference to a published plan the subscription is created from.
+
+            Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+            subscription on an existing published plan; use `custom_plan` to define the plan
+            inline.
+        custom_plan:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionCustomPlan'
+          description: |-
+            An inline plan definition to create the subscription from, without referencing a
+            published plan.
+
+            Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+            linked to a persisted plan, so the response omits the `plan` reference.
+          title: Custom plan
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -9776,7 +9804,60 @@ components:
           title: Cost basis mode
           default: dynamic
       additionalProperties: false
-      description: Subscription create request.
+    BillingSubscriptionCustomPlan:
+      type: object
+      required:
+        - name
+        - currency
+        - billing_cadence
+        - phases
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The currency code of the plan.
+          title: Currency
+        billing_cadence:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: The billing cadence for subscriptions using this plan.
+          title: Billing cadence
+        pro_rating_enabled:
+          type: boolean
+          description: Whether pro-rating is enabled for this plan.
+          title: Pro-rating enabled
+          default: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingPlanPhase'
+          minItems: 1
+          description: |-
+            The plan phases define the pricing ramp for a subscription. A phase switch
+            occurs only at the end of a billing period. At least one phase is required.
+          title: Plan phases
+      additionalProperties: false
+      description: |-
+        An inline (custom) plan definition used to create or change a subscription
+        without referencing a published plan. Mirrors the plan create shape without a
+        key or version, since a custom plan is not persisted or versioned on its own.
     BillingSubscriptionEdit:
       type: object
       required:

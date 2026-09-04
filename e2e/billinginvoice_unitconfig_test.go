@@ -129,7 +129,7 @@ func TestInvoiceUnitConfigConvertedQuantity(t *testing.T) {
 
 		createdSubscription, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer:       v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customer.Id)},
-			Plan:           v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(plan.ID)},
+			Plan:           &v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(plan.ID)},
 			SettlementMode: lo.ToPtr(v3sdk.SettlementModeCreditThenInvoice),
 		})
 		c.requireStatus(http.StatusCreated, err)

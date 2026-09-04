@@ -98,8 +98,18 @@ type SubscriptionChange struct {
 	SettlementMode *SettlementMode `json:"settlement_mode,omitempty"`
 	// The customer to create the subscription for.
 	Customer SubscriptionChangeCustomer `json:"customer"`
-	// The plan reference of the subscription.
-	Plan SubscriptionChangePlan `json:"plan"`
+	// A reference to a published plan the subscription is created from.
+	//
+	// Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+	// subscription on an existing published plan; use `custom_plan` to define the plan
+	// inline.
+	Plan *SubscriptionChangePlan `json:"plan,omitempty"`
+	// An inline plan definition to create the subscription from, without referencing a
+	// published plan.
+	//
+	// Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+	// linked to a persisted plan, so the response omits the `plan` reference.
+	CustomPlan *SubscriptionCustomPlan `json:"custom_plan,omitempty"`
 	// A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:
@@ -157,7 +167,6 @@ type SubscriptionChangeResponse struct {
 	Next BillingSubscription `json:"next"`
 }
 
-// Subscription create request.
 type SubscriptionCreate struct {
 	Labels *map[string]string `json:"labels,omitempty"`
 	// Settlement mode for billing.
@@ -170,8 +179,18 @@ type SubscriptionCreate struct {
 	SettlementMode *SettlementMode `json:"settlement_mode,omitempty"`
 	// The customer to create the subscription for.
 	Customer SubscriptionChangeCustomer `json:"customer"`
-	// The plan reference of the subscription.
-	Plan SubscriptionChangePlan `json:"plan"`
+	// A reference to a published plan the subscription is created from.
+	//
+	// Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the
+	// subscription on an existing published plan; use `custom_plan` to define the plan
+	// inline.
+	Plan *SubscriptionChangePlan `json:"plan,omitempty"`
+	// An inline plan definition to create the subscription from, without referencing a
+	// published plan.
+	//
+	// Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
+	// linked to a persisted plan, so the response omits the `plan` reference.
+	CustomPlan *SubscriptionCustomPlan `json:"custom_plan,omitempty"`
 	// A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:
@@ -185,6 +204,30 @@ type SubscriptionCreate struct {
 	BillingAnchor *time.Time `json:"billing_anchor,omitempty"`
 	// Controls how custom-currency cost bases are selected for the subscription.
 	CostBasisMode *SubscriptionCostBasisMode `json:"cost_basis_mode,omitempty"`
+}
+
+// An inline (custom) plan definition used to create or change a subscription
+// without referencing a published plan. Mirrors the plan create shape without a
+// key or version, since a custom plan is not persisted or versioned on its own.
+type SubscriptionCustomPlan struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string            `json:"description,omitempty"`
+	Labels      *map[string]string `json:"labels,omitempty"`
+	// The currency code of the plan.
+	Currency BillingCurrencyCode `json:"currency"`
+	// The billing cadence for subscriptions using this plan.
+	BillingCadence string `json:"billing_cadence"`
+	// Whether pro-rating is enabled for this plan.
+	ProRatingEnabled *bool `json:"pro_rating_enabled,omitempty"`
+	// The plan phases define the pricing ramp for a subscription. A phase switch
+	// occurs only at the end of a billing period. At least one phase is required.
+	Phases []PlanPhaseInput `json:"phases"`
 }
 
 // Request for editing a running subscription. Applies an ordered batch of

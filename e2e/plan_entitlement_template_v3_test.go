@@ -117,8 +117,10 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 	// Subscribe to the published plan (v3 starts immediately; no timing on create).
 	var subBody v3sdk.SubscriptionCreate
 	subBody.Customer.Key = lo.ToPtr(customer.Key)
-	subBody.Plan.Key = lo.ToPtr(planKey)
-	subBody.Plan.Version = lo.ToPtr(int64(1))
+	subBody.Plan = &v3sdk.SubscriptionChangePlan{
+		Key:     lo.ToPtr(planKey),
+		Version: lo.ToPtr(int64(1)),
+	}
 
 	sub, err := c.Subscriptions.Create(t.Context(), subBody)
 	c.requireStatus(http.StatusCreated, err)

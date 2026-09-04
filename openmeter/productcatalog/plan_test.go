@@ -126,6 +126,61 @@ func TestValidatePlanWithCurrencies(t *testing.T) {
 	}
 }
 
+func TestPlanUsesCustomCurrency(t *testing.T) {
+	usd := currencyx.Code(currency.USD)
+	custom := currencyx.Code("CREDITS")
+
+	tests := []struct {
+		name string
+		plan productcatalog.Plan
+		want bool
+	}{
+		{
+			name: "fiat plan with fiat rate card",
+			plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Currency: mustPlanFiatCurrencyReference(t, usd),
+				},
+				Phases: []productcatalog.Phase{{
+					RateCards: productcatalog.RateCards{
+						newPlanCurrencyTestRateCard("base", mustPlanFiatCurrencyReference(t, usd)),
+					},
+				}},
+			},
+			want: false,
+		},
+		{
+			name: "custom plan-level currency",
+			plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Currency: currencies.NewCurrencyReference(custom),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "fiat plan with custom rate card override",
+			plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Currency: mustPlanFiatCurrencyReference(t, usd),
+				},
+				Phases: []productcatalog.Phase{{
+					RateCards: productcatalog.RateCards{
+						newPlanCurrencyTestRateCard("base", currencies.NewCurrencyReference(custom)),
+					},
+				}},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.plan.UsesCustomCurrency())
+		})
+	}
+}
+
 func TestValidatePlanWithCurrenciesRequiresResolvedReferences(t *testing.T) {
 	usd := currencyx.Code(currency.USD)
 	custom := currencyx.Code("CREDITS")

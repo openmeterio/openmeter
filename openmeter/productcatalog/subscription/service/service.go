@@ -19,6 +19,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// errCustomCurrenciesDisabled is returned when an inline plan uses a custom
+// currency but the credits feature (which gates custom currencies) is not enabled
+// on the deployment. Shared by the create and change paths.
+var errCustomCurrenciesDisabled = errors.New("custom currencies are not enabled on this deployment of OpenMeter")
+
 type Config struct {
 	// TODO: WorkflowService and this can probably be merged
 	WorkflowService     subscriptionworkflow.Service
