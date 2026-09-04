@@ -8,13 +8,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
-	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -182,18 +177,8 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			}
 		}
 
-		featureMeters, err := s.featureMeterResolver.Resolve(ctx, invoice.Namespace, invoice.Lines.OrEmpty()...)
-		if err != nil {
-			// Quantity snapshotting surfaces validation issues with line identity when
-			// these gathering lines are collected, so only system errors abort here.
-			_, systemErr := billing.ToValidationIssues(err)
-			if systemErr != nil {
-				return billing.GatheringInvoice{}, fmt.Errorf("resolving feature meters: %w", systemErr)
-			}
-		}
-
 		// Check if the new lines are still invoicable
-		if err := s.checkIfGatheringLinesAreInvoicable(ctx, invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling, featureMeters); err != nil {
+		if err := s.checkIfGatheringLinesAreInvoicable(ctx, invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling); err != nil {
 			return billing.GatheringInvoice{}, err
 		}
 
@@ -226,60 +211,33 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 	})
 }
 
-func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice billing.GatheringInvoice, progressiveBilling bool, featureMeters billingfeaturemeter.FeatureMeters) error {
+func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice billing.GatheringInvoice, progressiveBilling bool) error {
 	linesToCheck := lo.Filter(invoice.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) bool {
 		return line.DeletedAt == nil
 	})
 
-	return errors.Join(
-		lo.Map(linesToCheck, func(line billing.GatheringLine, _ int) error {
-			if err := line.Validate(); err != nil {
-				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
-			}
+	var errs []error
+	for _, line := range linesToCheck {
+		// Note: this is considered a low frequency operation, so we are not using the batch API here.
+		// Current implementation focuses on main use-cases and readability over the performance of this operation.
+		results, err := s.areGatheringLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
+			Invoice:            invoice,
+			AsOf:               line.InvoiceAt,
+			ProgressiveBilling: progressiveBilling,
+			Lines:              billing.GatheringLines{line},
+		})
+		if err != nil {
+			return err
+		}
 
-			featureEntity, meterEntity, err := resolveRatingDependencies(line, featureMeters)
-			if err != nil {
-				return fmt.Errorf("resolving rating dependencies for line[%s]: %w", line.ID, err)
-			}
-
-			result, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
-				Line:               line,
-				Feature:            featureEntity,
-				Meter:              meterEntity,
-				ProgressiveBilling: progressiveBilling,
-				AsOf:               line.InvoiceAt,
+		if len(results) != 1 || !results[0].Billable {
+			errs = append(errs, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.InvoiceAt),
 			})
-			if err != nil {
-				return fmt.Errorf("checking if line[%s] can be invoiced: %w", line.ID, err)
-			}
-
-			if !result.Billable {
-				return billing.ValidationError{
-					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.InvoiceAt),
-				}
-			}
-
-			return nil
-		})...,
-	)
-}
-
-func resolveRatingDependencies(line billing.GatheringLine, featureMeters billingfeaturemeter.FeatureMeters) (*feature.Feature, *meter.Meter, error) {
-	price := line.GetPrice()
-	if price == nil {
-		return nil, nil, errors.New("line price is required")
+		}
 	}
 
-	if price.Type() == productcatalog.FlatPriceType {
-		return nil, nil, nil
-	}
-
-	featureMeter, err := featureMeters.Get(line)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &featureMeter.Feature, featureMeter.Meter, nil
+	return errors.Join(errs...)
 }
 
 func (s *Service) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {

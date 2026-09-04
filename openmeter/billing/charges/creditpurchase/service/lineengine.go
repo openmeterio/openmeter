@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	creditpurchasemodels "github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -24,14 +25,25 @@ func (e *LineEngine) GetLineEngineType() billing.LineEngineType {
 	return billing.LineEngineTypeChargeCreditPurchase
 }
 
-func (e *LineEngine) IsLineBillableAsOf(_ context.Context, input billing.IsLineBillableAsOfInput) (bool, error) {
+func (e *LineEngine) AreLinesBillableAsOf(_ context.Context, input billing.AreLinesBillableAsOfInput) ([]billing.IsLineBillableAsOfResult, error) {
 	if err := input.Validate(); err != nil {
-		return false, fmt.Errorf("validating input: %w", err)
+		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	// Billing enforces that credit purchases are never progressively billed, so there is no
-	// engine-side partial-period filtering to do here.
-	return true, nil
+	return lo.MapErr(input.Lines, func(line billing.GatheringLine, _ int) (billing.IsLineBillableAsOfResult, error) {
+		if line.SplitLineGroupID != nil {
+			return billing.IsLineBillableAsOfResult{}, billing.ValidationError{Err: billing.ErrInvoiceProgressiveBillingNotSupported}
+		}
+
+		if line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration).After(input.AsOf.Truncate(streaming.MinimumWindowSizeDuration)) {
+			return billing.IsLineBillableAsOfResult{}, nil
+		}
+
+		return billing.IsLineBillableAsOfResult{
+			Billable:       true,
+			BillablePeriod: line.ServicePeriod,
+		}, nil
+	})
 }
 
 func (e *LineEngine) SplitGatheringLine(_ context.Context, _ billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {

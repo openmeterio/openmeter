@@ -12,15 +12,12 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
-	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -167,27 +164,9 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				}
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.FiatCode, gatheringInvoiceWithFeatureMeters) {
-				return i.Currency, gatheringInvoiceWithFeatureMeters{
-					Invoice: i,
-				}
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(invoice billing.GatheringInvoice) (currencyx.FiatCode, billing.GatheringInvoice) {
+				return invoice.Currency, invoice
 			})
-
-			// Let's resolve the feature meters for each gathering invoice line for downstream calculations.
-			for currency, gatheringInvoiceWithCurrency := range invoicesByCurrency {
-				featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Customer.Namespace, invoicesByCurrency[currency].Invoice.Lines.OrEmpty()...)
-				if err != nil {
-					// Quantity snapshotting surfaces validation issues with line identity,
-					// so only system errors abort line preparation here.
-					_, systemErr := billing.ToValidationIssues(err)
-					if systemErr != nil {
-						return nil, fmt.Errorf("resolving feature meters: %w", systemErr)
-					}
-				}
-
-				gatheringInvoiceWithCurrency.FeatureMeters = featureMeters
-				invoicesByCurrency[currency] = gatheringInvoiceWithCurrency
-			}
 
 			if len(invoicesByCurrency) != len(existingGatheringInvoices.Items) {
 				return nil, fmt.Errorf("customer has multiple gathering invoices for the same currency: %d", len(invoicesByCurrency))
@@ -231,8 +210,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
 				// Invariant: the gathering invoice is updated to contain the new lines if any were split.
 				prepareResults, err := s.prepareLinesToBill(ctx, prepareLinesToBillInput{
-					GatheringInvoice: gatheringInvoice.Invoice,
-					FeatureMeters:    gatheringInvoice.FeatureMeters,
+					GatheringInvoice: gatheringInvoice,
 					InScopeLines:     inScopeLines,
 				})
 				if err != nil {
@@ -310,13 +288,8 @@ type gatheringLineWithBillablePeriod struct {
 	Engine         billing.LineEngine
 }
 
-type gatheringInvoiceWithFeatureMeters struct {
-	Invoice       billing.GatheringInvoice
-	FeatureMeters billingfeaturemeter.FeatureMeters
-}
-
 type gatherInScopeLineInput struct {
-	GatheringInvoicesByCurrency map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters
+	GatheringInvoicesByCurrency map[currencyx.FiatCode]billing.GatheringInvoice
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
 	// to determine the lines to be included.
 	LinesToInclude     mo.Option[[]string]
@@ -334,67 +307,30 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
-		linesWithResolvedPeriods, err := slicesx.MapWithErr(invoice.Invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (gatheringLineWithBillablePeriod, error) {
-			featureEntity, meterEntity, err := resolveRatingDependencies(line, invoice.FeatureMeters)
-			if err != nil {
-				return gatheringLineWithBillablePeriod{}, fmt.Errorf("resolving rating dependencies[%s]: %w", line.ID, err)
-			}
-
-			result, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
-				Line:               line,
-				Feature:            featureEntity,
-				Meter:              meterEntity,
-				ProgressiveBilling: in.ProgressiveBilling,
-				AsOf:               in.AsOf,
-			})
-			if err != nil {
-				return gatheringLineWithBillablePeriod{}, fmt.Errorf("resolving billable period[%s]: %w", line.ID, err)
-			}
-
-			eng, err := s.lineEngines.Get(line.Engine)
-			if err != nil {
-				return gatheringLineWithBillablePeriod{}, fmt.Errorf("getting engine[%s]: %w", line.ID, err)
-			}
-
-			engineInput := billing.IsLineBillableAsOfInput{
-				Line:                   line,
-				AsOf:                   in.AsOf,
-				ProgressiveBilling:     in.ProgressiveBilling,
-				FeatureMeters:          invoice.FeatureMeters,
-				ResolvedBillablePeriod: result.BillablePeriod,
-			}
-			if err := engineInput.Validate(); err != nil {
-				return gatheringLineWithBillablePeriod{}, fmt.Errorf("validating billable status input[%s]: %w", line.ID, err)
-			}
-
+		lines := invoice.Lines.OrEmpty()
+		billabilityResults, err := s.areGatheringLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
+			Invoice:            invoice,
+			AsOf:               in.AsOf,
+			ProgressiveBilling: in.ProgressiveBilling,
+			Lines:              lines,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("checking gathering line billability: %w", err)
+		}
+		linesWithResolvedPeriods := lo.Map(billabilityResults, func(result gatheringLineBillabilityResult, index int) gatheringLineWithBillablePeriod {
 			if !result.Billable {
 				return gatheringLineWithBillablePeriod{
-					Line:   line,
-					Engine: eng,
-				}, nil
-			}
-
-			isBillable, err := eng.IsLineBillableAsOf(ctx, engineInput)
-			if err != nil {
-				return gatheringLineWithBillablePeriod{}, fmt.Errorf("checking billable status[%s]: %w", line.ID, err)
-			}
-
-			if !isBillable {
-				return gatheringLineWithBillablePeriod{
-					Line:   line,
-					Engine: eng,
-				}, nil
+					Line:   lines[index],
+					Engine: result.Engine,
+				}
 			}
 
 			return gatheringLineWithBillablePeriod{
-				Line:           line,
+				Line:           lines[index],
 				BillablePeriod: result.BillablePeriod,
-				Engine:         eng,
-			}, nil
+				Engine:         result.Engine,
+			}
 		})
-		if err != nil {
-			return nil, fmt.Errorf("gathering lines with resolved periods: %w", err)
-		}
 
 		linesWithResolvedPeriods = lo.Filter(linesWithResolvedPeriods, func(line gatheringLineWithBillablePeriod, _ int) bool {
 			return !lo.IsEmpty(line.BillablePeriod)
@@ -486,7 +422,6 @@ func limitGatheringLinesForInvoice(lines []gatheringLineWithBillablePeriod, maxL
 type hasInvoicableLinesInput struct {
 	Invoice            billing.GatheringInvoice
 	AsOf               time.Time
-	FeatureMeters      billingfeaturemeter.FeatureMeters
 	ProgressiveBilling bool
 }
 
@@ -501,10 +436,6 @@ func (i hasInvoicableLinesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("asOf time must not be zero"))
 	}
 
-	if i.FeatureMeters == nil {
-		errs = append(errs, fmt.Errorf("feature meters are required"))
-	}
-
 	return errors.Join(errs...)
 }
 
@@ -514,11 +445,8 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 	}
 
 	inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
-		GatheringInvoicesByCurrency: map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters{
-			in.Invoice.Currency: {
-				Invoice:       in.Invoice,
-				FeatureMeters: in.FeatureMeters,
-			},
+		GatheringInvoicesByCurrency: map[currencyx.FiatCode]billing.GatheringInvoice{
+			in.Invoice.Currency: in.Invoice,
 		},
 		AsOf:               in.AsOf,
 		ProgressiveBilling: in.ProgressiveBilling,
@@ -537,7 +465,6 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 
 type prepareLinesToBillInput struct {
 	GatheringInvoice billing.GatheringInvoice
-	FeatureMeters    billingfeaturemeter.FeatureMeters
 	InScopeLines     []gatheringLineWithBillablePeriod
 }
 
@@ -546,10 +473,6 @@ func (i prepareLinesToBillInput) Validate() error {
 
 	if i.GatheringInvoice.Lines.IsAbsent() {
 		errs = append(errs, fmt.Errorf("gathering invoice must have lines expanded"))
-	}
-
-	if i.FeatureMeters == nil {
-		errs = append(errs, fmt.Errorf("feature meters are required"))
 	}
 
 	for _, line := range i.InScopeLines {
@@ -595,9 +518,8 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 			}
 
 			engineInput := billing.SplitGatheringLineInput{
-				Line:          currentLine,
-				FeatureMeters: input.FeatureMeters,
-				SplitAt:       line.BillablePeriod.To,
+				Line:    currentLine,
+				SplitAt: line.BillablePeriod.To,
 			}
 			if err := engineInput.Validate(); err != nil {
 				return nil, fmt.Errorf("line[%s]: validating split input: %w", currentLine.ID, err)

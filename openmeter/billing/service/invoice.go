@@ -201,16 +201,6 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 
 	now := clock.Now()
 
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, invoice.Namespace, invoice.Lines.OrEmpty()...)
-	if err != nil {
-		// The preview's quantity snapshotting surfaces validation issues with line
-		// identity, so only system errors abort live-data preparation here.
-		_, systemErr := billing.ToValidationIssues(err)
-		if systemErr != nil {
-			return nil, fmt.Errorf("resolving feature meters: %w", systemErr)
-		}
-	}
-
 	inScopeGatheringLines := make(billing.GatheringLines, 0, len(invoice.Lines.OrEmpty()))
 	for _, line := range invoice.Lines.OrEmpty() {
 		if line.DeletedAt != nil {
@@ -271,7 +261,6 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		Invoice:            invoice,
 		AsOf:               now,
 		ProgressiveBilling: out.Workflow.Config.Invoicing.ProgressiveBilling,
-		FeatureMeters:      featureMeters,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("checking if has invoicable lines: %w", err)
