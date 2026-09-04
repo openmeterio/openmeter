@@ -286,14 +286,14 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	stdLines, err := slicesx.MapWithErr(input.Lines, func(stdLine *billing.StandardLine) (*billing.StandardLine, error) {
+	return slicesx.MapWithErrPreservingResults(input.Lines, func(stdLine *billing.StandardLine, _ int) (*billing.StandardLine, error) {
 		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
 		if err != nil {
-			return nil, err
+			return stdLine, err
 		}
 
 		if stateMachine.GetCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-			return nil, fmt.Errorf(
+			return stdLine, fmt.Errorf(
 				"usage based standard line[%s]: unsupported settlement mode for standard invoice creation: %s",
 				stdLine.ID,
 				stateMachine.GetCharge().Intent.GetSettlementMode(),
@@ -304,11 +304,11 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		// still rely on the generic TriggerNext/AdvanceUntilStable flow before invoice-created
 		// lifecycle transitions take over.
 		if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s]: %w", stateMachine.GetCharge().ID, err)
+			return stdLine, fmt.Errorf("advancing usage based charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
-			return nil, billing.ValidationError{
+			return stdLine, billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: %w", stdLine.ID, usagebased.ErrActiveRealizationRunAlreadyExists),
 			}
 		}
@@ -318,13 +318,13 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			InvoiceID:     input.Invoice.ID,
 			ServicePeriod: stdLine.Period,
 		}); err != nil {
-			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, stateMachine.GetCharge().ID, err)
+			return stdLine, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, stateMachine.GetCharge().ID, err)
 		}
 
 		charge := stateMachine.GetCharge()
 		currentRun, err := charge.GetCurrentRealizationRun()
 		if err != nil {
-			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
+			return stdLine, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
@@ -332,20 +332,15 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			Run:    currentRun,
 			Stage:  standardLinePopulationStageInvoiceCreated,
 		}); err != nil {
-			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+			return stdLine, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
 
 		if err := stdLine.Validate(); err != nil {
-			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
+			return stdLine, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
 		}
 
 		return stdLine, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return stdLines, nil
 }
 
 func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
