@@ -68,6 +68,45 @@ func TestValidationIssueParsing(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestIsValidationIssueOnly(t *testing.T) {
+	validationErr := NewValidationError("invalid", "invalid")
+	systemErr := errors.New("system error")
+
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name: "nil",
+		},
+		{
+			name:     "validation issue",
+			err:      validationErr,
+			expected: true,
+		},
+		{
+			name:     "joined validation issues",
+			err:      errors.Join(validationErr, NewValidationWarning("warning", "warning")),
+			expected: true,
+		},
+		{
+			name: "system error",
+			err:  systemErr,
+		},
+		{
+			name: "mixed validation and system errors",
+			err:  errors.Join(validationErr, systemErr),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.expected, IsValidationIssueOnly(test.err))
+		})
+	}
+}
+
 func TestValidationWithComponentPrecedence(t *testing.T) {
 	baseIssue := ValidationIssue{
 		Severity:  ValidationIssueSeverityWarning,

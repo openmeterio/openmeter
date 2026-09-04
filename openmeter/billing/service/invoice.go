@@ -906,7 +906,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	_, err = s.featureMeterResolver.Resolve(ctx, input.Namespace, invoice.Lines.OrEmpty()...)
+	err = s.featureMeterResolver.RequireFeatureMeters(ctx, input.Namespace, invoice.Lines.OrEmpty()...)
 	if err != nil {
 		if err := invoice.MergeValidationIssues(
 			billing.ValidationWithComponent(billing.ValidationComponentOpenMeterMetering, err),

@@ -504,10 +504,7 @@ func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace stri
 
 	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, featureReferences...)
 	if err != nil {
-		_, systemErr := billing.ToValidationIssues(err)
-		if systemErr != nil {
-			return nil, fmt.Errorf("resolving features: %w", systemErr)
-		}
+		return nil, fmt.Errorf("resolving features: %w", err)
 	}
 
 	for _, featureReference := range featureReferences {
@@ -517,18 +514,15 @@ func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace stri
 		}
 
 		featureMeter, err := featureMeters.Get(featureReference)
-		if err != nil {
-			_, systemErr := billing.ToValidationIssues(err)
-			if systemErr != nil {
-				return nil, fmt.Errorf("resolving feature %v: %w", featureRef.IDOrKey, systemErr)
-			}
+		if err != nil && !billing.IsValidationIssueOnly(err) {
+			return nil, fmt.Errorf("resolving feature %v: %w", featureRef.IDOrKey, err)
+		}
 
-			// Feature expansion is best-effort. A missing feature is omitted so
-			// the API retains its ID/key fallback, while other validation issues
-			// can still return a usable feature below.
-			if featureMeter.Feature.ID == "" {
-				continue
-			}
+		// Feature expansion is best-effort. A missing feature is omitted so
+		// the API retains its ID/key fallback, while other validation issues
+		// can still return a usable feature below.
+		if featureMeter.Feature.ID == "" {
+			continue
 		}
 
 		out[featureRef.IDOrKey] = featureMeter.Feature

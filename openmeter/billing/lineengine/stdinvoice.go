@@ -2,12 +2,13 @@ package lineengine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
@@ -92,10 +93,39 @@ func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.Stan
 	return input.Lines, nil
 }
 
-func (e *Engine) IsLineBillableAsOf(_ context.Context, input billing.IsLineBillableAsOfInput) (bool, error) {
+func (e *Engine) AreLinesBillableAsOf(ctx context.Context, input billing.AreLinesBillableAsOfInput) ([]billing.IsLineBillableAsOfResult, error) {
 	if err := input.Validate(); err != nil {
-		return false, fmt.Errorf("validating input: %w", err)
+		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	return !lo.IsEmpty(input.ResolvedBillablePeriod), nil
+	featureMeters, err := e.featureMeterResolver.Resolve(ctx, input.Invoice.Namespace, input.Lines...)
+	if err != nil {
+		return nil, fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	return slicesx.MapWithErrPreservingResults(input.Lines, func(line billing.GatheringLine, _ int) (billing.IsLineBillableAsOfResult, error) {
+		var errs []error
+		ratingInput := rating.ResolveBillablePeriodInput{
+			Line:               line,
+			ProgressiveBilling: input.ProgressiveBilling,
+			AsOf:               input.AsOf,
+		}
+
+		if line.GetFeatureMeterRef() != nil {
+			featureMeter, err := featureMeters.Get(line)
+			if err != nil {
+				errs = append(errs, err)
+			} else {
+				ratingInput.Feature = &featureMeter.Feature
+				ratingInput.Meter = featureMeter.Meter
+			}
+		}
+
+		result, err := e.ratingService.ResolveBillablePeriod(ratingInput)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("resolving billable period for line[%s]: %w", line.ID, err))
+		}
+
+		return result, errors.Join(errs...)
+	})
 }

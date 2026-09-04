@@ -191,6 +191,18 @@ func ToValidationIssues(errIn error) (ValidationIssues, error) {
 	return issues, nil
 }
 
+// IsValidationIssueOnly reports whether the error tree contains validation
+// issues only and no system errors.
+func IsValidationIssueOnly(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	_, systemErr := ToValidationIssues(err)
+
+	return systemErr == nil
+}
+
 func (v ValidationIssues) RemoveMetaForCompare() ValidationIssues {
 	return lo.Map(v, func(issue ValidationIssue, _ int) ValidationIssue {
 		issue.CreatedAt = time.Time{}
