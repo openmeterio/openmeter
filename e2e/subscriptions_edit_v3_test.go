@@ -50,7 +50,7 @@ func TestV3SubscriptionEdit(t *testing.T) {
 
 	sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 		Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
-		Plan:     v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+		Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
 	})
 	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, sub)
@@ -165,7 +165,7 @@ func TestV3SubscriptionEditAddPhase(t *testing.T) {
 
 	sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 		Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
-		Plan:     v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+		Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
 	})
 	c.requireStatus(http.StatusCreated, err)
 	require.Len(t, sub.Phases, 3)
