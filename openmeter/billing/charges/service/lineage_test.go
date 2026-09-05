@@ -323,6 +323,8 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 	customerID := cust.ID
 	apiLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"api-calls"}, alpacadecimal.NewFromInt(40))
 	storageLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"storage"}, alpacadecimal.NewFromInt(30))
+	apiLineage, err := s.DBClient.CreditRealizationLineage.Get(ctx, apiLineageID)
+	s.Require().NoError(err)
 	// Record the real legacy attribution that bounds the compatibility transition.
 	deps, err := ledgertestutils.InitDeps(s.DBClient, slog.Default())
 	s.Require().NoError(err)
@@ -334,6 +336,7 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 		transactions.ResolutionScope{CustomerID: cust.GetID(), Namespace: ns}, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At: clock.Now(), Amount: alpacadecimal.NewFromInt(40), Currency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)), CostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)),
 			AdvanceFeatures: []string{"api-calls"}, AttributedFeatures: []string{"api-calls"}, SourceChargeID: lo.ToPtr(ulid.Make().String()),
+			SpendChargeID: &apiLineage.ChargeID,
 		})
 	s.Require().NoError(err)
 	group, err := deps.HistoricalLedger.CommitGroup(ctx, transactions.GroupInputs(ns, nil, inputs...))
@@ -361,6 +364,89 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 	s.Equal(creditrealization.LineageSegmentStateAdvanceUncovered, storageSegments[0].State)
 	s.Equal(alpacadecimal.NewFromInt(30), storageSegments[0].Amount)
 	s.Nil(storageSegments[0].BackingTransactionGroupID)
+}
+
+func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsSeparatesNilSpend() {
+	// given: persisted legacy allocations whose original advances differ in spend provenance.
+	defer s.FlatFeeTestHandler.Reset()
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("legacy-nil-spend-backfill")
+	period := timeutil.ClosedPeriod{From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), To: time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)}
+	clock.FreezeTime(period.From)
+	defer clock.UnFreeze()
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	invoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "legacy-backfill")
+	_ = s.ProvisionBillingProfile(ctx, ns, invoicing.App.GetID(), billingtest.WithProgressiveBilling(), billingtest.WithManualApproval())
+	deps, err := ledgertestutils.InitDeps(s.DBClient, slog.Default())
+	s.Require().NoError(err)
+	_, err = deps.ResolversService.CreateCustomerAccounts(ctx, cust.GetID())
+	s.Require().NoError(err)
+	_, err = deps.ResolversService.EnsureBusinessAccounts(ctx, ns)
+	s.Require().NoError(err)
+	resolverDeps := transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger}
+	scope := transactions.ResolutionScope{CustomerID: cust.GetID(), Namespace: ns}
+	amount := alpacadecimal.NewFromInt(20)
+	currencyRef := currencies.NewCurrencyReference(currencyx.Code(currency.USD))
+	var roots []string
+	for _, hasSpend := range []bool{true, false} {
+		s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+			var spend *string
+			if hasSpend {
+				spend = &input.Charge.ID
+			}
+			inputs, err := transactions.ResolveTransactions(ctx, resolverDeps, scope,
+				transactions.IssueCustomerReceivableTemplate{At: clock.Now(), Amount: amount, Currency: currencyRef, SpendChargeID: spend},
+				transactions.TransferCustomerFBOAdvanceToAccruedTemplate{At: clock.Now(), Amount: amount, Currency: currencyRef, SpendChargeID: spend})
+			if err != nil {
+				return nil, err
+			}
+			group, err := deps.HistoricalLedger.CommitGroup(ctx, transactions.GroupInputs(ns, nil, inputs...))
+			if err != nil {
+				return nil, err
+			}
+			return creditrealization.CreateAllocationInputs{{
+				Amount: amount, ServicePeriod: period, Annotations: creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
+				LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID},
+			}}, nil
+		}
+		created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer: cust.GetID(), currency: currencyx.Code(currency.USD), servicePeriod: period,
+				settlementMode: productcatalog.CreditOnlySettlementMode, managedBy: billing.ManuallyManagedLine,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: amount, PaymentTerm: productcatalog.InAdvancePaymentTerm}), name: "legacy-advance",
+			}),
+		}})
+		s.Require().NoError(err)
+		charge, err := created[0].AsFlatFeeCharge()
+		s.Require().NoError(err)
+		roots = append(roots, charge.Realizations.CurrentRun.CreditRealizations[0].ID)
+		clock.FreezeTime(clock.Now().Add(time.Second))
+		defer clock.UnFreeze()
+	}
+
+	// when: a purchase's journal attributes only the nil-spend pool.
+	inputs, err := transactions.ResolveTransactions(ctx, resolverDeps, scope, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
+		At: clock.Now(), Amount: amount, Currency: currencyRef, CostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)), SourceChargeID: lo.ToPtr(ulid.Make().String()),
+	})
+	s.Require().NoError(err)
+	group, err := deps.HistoricalLedger.CommitGroup(ctx, transactions.GroupInputs(ns, nil, inputs...))
+	s.Require().NoError(err)
+	s.Require().NoError(s.LineageService.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+		Namespace: ns, CustomerID: cust.ID, Currency: currenciestestutils.NewFiatCurrency(s.T(), currency.USD), Amount: amount, BackingTransactionGroupID: group.ID().ID,
+	}))
+
+	// then: the older specific-spend allocation cannot claim that backing.
+	lineages := s.mustListLineages(ns, roots)
+	specific := s.activeLineageSegments(ctx, lineages[roots[0]].ID)
+	s.Require().Len(specific, 1)
+	s.Equal(creditrealization.LineageSegmentStateAdvanceUncovered, specific[0].State)
+	s.Equal(float64(20), specific[0].Amount.InexactFloat64())
+	nilSpend := s.activeLineageSegments(ctx, lineages[roots[1]].ID)
+	s.Require().Len(nilSpend, 1)
+	s.Equal(creditrealization.LineageSegmentStateAdvanceBackfilled, nilSpend[0].State)
+	s.Equal(float64(20), nilSpend[0].Amount.InexactFloat64())
+	s.Equal(group.ID().ID, lo.FromPtr(nilSpend[0].BackingTransactionGroupID))
 }
 
 func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillRequiresTransaction() {

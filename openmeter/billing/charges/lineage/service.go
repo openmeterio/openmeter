@@ -231,6 +231,10 @@ type Lineage struct {
 	OriginKind        creditrealization.LineageOriginKind
 	AdvanceFeatures   []string
 	Segments          []Segment
+	// LegacyNilSpend is derived from the root allocation's original journal
+	// entries when locking advances for backfill; absence is not inferred from
+	// a purchase that happened to backfill a different spend.
+	LegacyNilSpend bool
 }
 
 type Segment struct {

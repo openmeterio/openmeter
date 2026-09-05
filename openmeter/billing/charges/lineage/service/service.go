@@ -206,6 +206,9 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		for _, entry := range lineages {
 			lineageIDs = append(lineageIDs, entry.ID)
 			chargeByLineage[entry.ID] = entry.ChargeID
+			if entry.LegacyNilSpend {
+				chargeByLineage[entry.ID] = ""
+			}
 		}
 
 		state := creditrealization.LineageSegmentStateAdvanceUncovered
@@ -226,9 +229,6 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 			}
 
 			key := chargeByLineage[segment.LineageID]
-			if !amounts[key].IsPositive() {
-				key = ""
-			}
 			coveredAmount := lineage.MinDecimal(segment.Amount, lineage.MinDecimal(remaining, amounts[key]))
 			if !coveredAmount.IsPositive() {
 				continue

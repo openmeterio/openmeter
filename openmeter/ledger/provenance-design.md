@@ -113,6 +113,9 @@ large recognition batch does not repeatedly load the whole batch.
 3. New collections use provenance. Old collections continue through the legacy
    path. Purchases and recognition must keep those pools separate and update
    legacy state only for amounts actually posted against legacy origins.
+   Nil-spend backfill is eligible only for roots whose original allocation
+   entries actually lack spend provenance; an exhausted charge bucket cannot
+   claim another advance's nil-spend backing.
 4. Retain legacy tables during beta. Inspect active
    `credit_realization_lineage_segments` (`closed_at IS NULL`, positive amount),
    grouped through their roots by namespace, managed currency identity, and
