@@ -64,6 +64,9 @@ func (p Query) Validate() error {
 			"error":  err,
 		})
 	}
+	if err := validateOptionalChargeIDFilter("origin_id", p.Filters.OriginID); err != nil {
+		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{"reason": "origin_id_invalid", "error": err})
+	}
 
 	if p.Filters.BookedAtPeriod != nil {
 		if err := p.Filters.BookedAtPeriod.Validate(); err != nil {
@@ -111,6 +114,9 @@ func (p Query) Validate() error {
 }
 
 type Filters struct {
+	// OriginID isolates a collection's lifecycle. Some(nil) selects legacy and
+	// unrelated entries; absence aggregates across origins.
+	OriginID mo.Option[*string]
 	// BookedAtPeriod is inclusive-exclusive... should it be? Maybe finally add period inclusivity params?
 	BookedAtPeriod *timeutil.OpenPeriod
 	After          *TransactionCursor

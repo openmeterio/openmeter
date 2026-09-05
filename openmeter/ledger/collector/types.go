@@ -65,8 +65,9 @@ func (s fboCollectionSource) Compare(other fboCollectionSource) int {
 // Selections for Consumption Plan
 
 type fboCollectionSelection struct {
-	source fboCollectionSource
-	amount alpacadecimal.Decimal
+	originID *string
+	source   fboCollectionSource
+	amount   alpacadecimal.Decimal
 }
 
 type fboCollectionSelections []fboCollectionSelection
@@ -81,6 +82,7 @@ func (s fboCollectionSelections) postingAmounts(spendChargeID *string) []transac
 			Amount:  selection.amount,
 			Identity: ledger.EntryIdentityParts{
 				CollectionSource: &collectionSource,
+				OriginID:         selection.originID,
 				SourceChargeID:   selection.source.sourceChargeID,
 				SpendChargeID:    spendChargeID,
 			},

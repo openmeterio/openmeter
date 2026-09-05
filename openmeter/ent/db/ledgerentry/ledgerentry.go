@@ -30,6 +30,8 @@ const (
 	FieldIdentityKey = "identity_key"
 	// FieldSchemaVersion holds the string denoting the schema_version field in the database.
 	FieldSchemaVersion = "schema_version"
+	// FieldOriginID holds the string denoting the origin_id field in the database.
+	FieldOriginID = "origin_id"
 	// FieldSourceChargeID holds the string denoting the source_charge_id field in the database.
 	FieldSourceChargeID = "source_charge_id"
 	// FieldSpendChargeID holds the string denoting the spend_charge_id field in the database.
@@ -80,6 +82,7 @@ var Columns = []string{
 	FieldSubAccountID,
 	FieldIdentityKey,
 	FieldSchemaVersion,
+	FieldOriginID,
 	FieldSourceChargeID,
 	FieldSpendChargeID,
 	FieldAmount,
@@ -109,6 +112,8 @@ var (
 	DefaultIdentityKey string
 	// DefaultSchemaVersion holds the default value on creation for the "schema_version" field.
 	DefaultSchemaVersion int
+	// OriginIDValidator is a validator for the "origin_id" field. It is called by the builders before save.
+	OriginIDValidator func(string) error
 	// SourceChargeIDValidator is a validator for the "source_charge_id" field. It is called by the builders before save.
 	SourceChargeIDValidator func(string) error
 	// SpendChargeIDValidator is a validator for the "spend_charge_id" field. It is called by the builders before save.
@@ -158,6 +163,11 @@ func ByIdentityKey(opts ...sql.OrderTermOption) OrderOption {
 // BySchemaVersion orders the results by the schema_version field.
 func BySchemaVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSchemaVersion, opts...).ToFunc()
+}
+
+// ByOriginID orders the results by the origin_id field.
+func ByOriginID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOriginID, opts...).ToFunc()
 }
 
 // BySourceChargeID orders the results by the source_charge_id field.

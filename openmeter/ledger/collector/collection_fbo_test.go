@@ -316,7 +316,10 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 	})
 	requireFBOBalanceBuckets(t, env, map[string]float64{})
 	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge2, nil): float64(secondSourceRemaining), // source 2 keeps only the unconsumed planned breakage; source 1 is fully released.
+		sourceSpendChargeKey(&sourceCharge1, nil):          float64(firstSourceAmount),
+		sourceSpendChargeKey(&sourceCharge1, &spendCharge): -float64(firstSourceAmount),
+		sourceSpendChargeKey(&sourceCharge2, nil):          float64(secondSourceAmount),
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(secondSourceConsumed),
 	})
 }
 
@@ -339,7 +342,6 @@ func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *te
 	laterSourceAmount := int64(10)   // source 1 expires later and should remain untouched.
 	earlierSourceAmount := int64(15) // source 2 expires first and should fund this spend.
 	spendAmount := int64(5)          // spend only consumes part of source 2.
-	earlierSourceRemaining := earlierSourceAmount - spendAmount
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, laterSourceAmount, nil, &sourceCharge1, env.Now().Add(15*time.Hour))
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, earlierSourceAmount, nil, &sourceCharge2, env.Now().Add(10*time.Hour))
 
@@ -357,8 +359,9 @@ func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *te
 		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(spendAmount), // 5 = collection used the earlier-expiring source 2.
 	})
 	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, nil): float64(laterSourceAmount),      // 10 = later source 1 was not consumed.
-		sourceSpendChargeKey(&sourceCharge2, nil): float64(earlierSourceRemaining), // 10 = source 2 started at 15 and released 5.
+		sourceSpendChargeKey(&sourceCharge1, nil):          float64(laterSourceAmount), // 10 = later source 1 was not consumed.
+		sourceSpendChargeKey(&sourceCharge2, nil):          float64(earlierSourceAmount),
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(spendAmount),
 	})
 }
 

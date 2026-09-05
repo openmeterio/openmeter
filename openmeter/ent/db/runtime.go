@@ -2508,12 +2508,16 @@ func init() {
 	ledgerentryDescSchemaVersion := ledgerentryFields[2].Descriptor()
 	// ledgerentry.DefaultSchemaVersion holds the default value on creation for the schema_version field.
 	ledgerentry.DefaultSchemaVersion = ledgerentryDescSchemaVersion.Default.(int)
+	// ledgerentryDescOriginID is the schema descriptor for origin_id field.
+	ledgerentryDescOriginID := ledgerentryFields[3].Descriptor()
+	// ledgerentry.OriginIDValidator is a validator for the "origin_id" field. It is called by the builders before save.
+	ledgerentry.OriginIDValidator = ledgerentryDescOriginID.Validators[0].(func(string) error)
 	// ledgerentryDescSourceChargeID is the schema descriptor for source_charge_id field.
-	ledgerentryDescSourceChargeID := ledgerentryFields[3].Descriptor()
+	ledgerentryDescSourceChargeID := ledgerentryFields[4].Descriptor()
 	// ledgerentry.SourceChargeIDValidator is a validator for the "source_charge_id" field. It is called by the builders before save.
 	ledgerentry.SourceChargeIDValidator = ledgerentryDescSourceChargeID.Validators[0].(func(string) error)
 	// ledgerentryDescSpendChargeID is the schema descriptor for spend_charge_id field.
-	ledgerentryDescSpendChargeID := ledgerentryFields[4].Descriptor()
+	ledgerentryDescSpendChargeID := ledgerentryFields[5].Descriptor()
 	// ledgerentry.SpendChargeIDValidator is a validator for the "spend_charge_id" field. It is called by the builders before save.
 	ledgerentry.SpendChargeIDValidator = ledgerentryDescSpendChargeID.Validators[0].(func(string) error)
 	// ledgerentryDescID is the schema descriptor for id field.

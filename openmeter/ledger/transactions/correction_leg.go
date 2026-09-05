@@ -20,6 +20,7 @@ type routePairingKey struct {
 	costBasis         string
 	sourceChargeID    string
 	spendChargeID     string
+	originID          string
 }
 
 func (k routePairingKey) String() string {
@@ -91,6 +92,7 @@ func allocateCorrectionLegs(
 			amount:             entryAmount,
 			identity: ledger.EntryIdentityParts{
 				SourceChargeID: entry.SourceChargeID(),
+				OriginID:       entry.OriginID(),
 				SpendChargeID:  entry.SpendChargeID(),
 			},
 		})
@@ -137,6 +139,7 @@ func allocateCorrectionLegs(
 			ledger.EntryIdentityParts{
 				CorrectionSource: &leg.sourceEntryID,
 				SourceChargeID:   leg.identity.SourceChargeID,
+				OriginID:         leg.identity.OriginID,
 				SpendChargeID:    leg.identity.SpendChargeID,
 			},
 			false,

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -3810,6 +3811,23 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 	s.Len(advancedCharges, 2)
 
 	s.markLedgerEntriesLegacyBySpendChargeID(ctx, ns, unrestrictedSpendChargeID, apiRequestsSpendChargeID)
+	// Recreate the pre-cutover billing metadata too. Clearing origin columns
+	// alone no longer makes a new collection a legacy backfill candidate.
+	for _, result := range advancedCharges {
+		charge, err := result.AsFlatFeeCharge()
+		s.Require().NoError(err)
+		realizations := charge.Realizations.CurrentRun.CreditRealizations
+		for i := range realizations {
+			realizations[i].Annotations = creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance)
+			err := s.DBClient.ChargeFlatFeeRunCreditAllocations.UpdateOneID(realizations[i].ID).SetAnnotations(realizations[i].Annotations).Exec(ctx)
+			s.Require().NoError(err)
+		}
+		feature := charge.Intent.GetFeatureKey()
+		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
+			Namespace: ns, CustomerID: cust.ID, ChargeID: charge.ID, Currency: charge.Intent.GetCurrency(),
+			Features: lo.Ternary(feature == "", nil, []string{feature}), Realizations: realizations,
+		}))
+	}
 
 	s.Equal(float64(-10), s.MustCustomerReceivableBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, unrestrictedRoute).InexactFloat64(),
 		"-10 = unrestricted legacy advance receivable before creditpurchase backfill")
@@ -3870,6 +3888,7 @@ func (s *SanitySuite) markLedgerEntriesLegacyBySpendChargeID(ctx context.Context
 		result, err := s.DBClient.ExecContext(ctx, `
 			UPDATE ledger_entries
 			SET schema_version = 1,
+                origin_id = NULL,
 				source_charge_id = NULL,
 				spend_charge_id = NULL,
 				identity_key = ''

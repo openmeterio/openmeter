@@ -79,14 +79,32 @@ type resolvedCorrectionInputs struct {
 }
 
 func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAccruedInput) (creditrealization.CreateCorrectionInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
 	run := func(ctx context.Context) (creditrealization.CreateCorrectionInputs, error) {
 		if len(input.Corrections) == 0 {
 			return nil, nil
 		}
-
-		used, err := c.correctedSourceAmounts(ctx, input)
+		accounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID})
 		if err != nil {
 			return nil, err
+		}
+		if err := accounts.LockForPosting(ctx, c.deps.AccountCatalog); err != nil {
+			return nil, err
+		}
+
+		// Legacy selection reserves entry amounts across the batch. Origin
+		// corrections reconstruct only their indexed origin histories below.
+		used := make(map[string]alpacadecimal.Decimal)
+		for _, correction := range input.Corrections {
+			if correction.Allocation.Annotations[ledger.AnnotationOriginTracked] != true {
+				used, err = c.correctedSourceAmounts(ctx, input)
+				if err != nil {
+					return nil, err
+				}
+				break
+			}
 		}
 		// Reserve source capacity across the batch before committing any postings.
 		actions := make([]plannedAction, 0, len(input.Corrections))
@@ -139,7 +157,12 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 
 		out := make(creditrealization.CreateCorrectionInputs, 0, len(input.Corrections))
 		for _, correction := range input.Corrections {
+			var annotations models.Annotations
+			if correction.Allocation.Annotations[ledger.AnnotationOriginTracked] == true {
+				annotations = models.Annotations{ledger.AnnotationOriginTracked: true}
+			}
 			out = append(out, creditrealization.CreateCorrectionInput{
+				Annotations: annotations,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: transactionGroup.ID().ID,
 				},
@@ -164,6 +187,11 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	source, err := c.collectedSourceBySortHint(originalGroup, correction.Allocation.SortHint)
 	if err != nil {
 		return nil, err
+	}
+	for _, entry := range source.transaction.Entries() {
+		if entry.OriginID() != nil {
+			return c.planOriginCorrection(ctx, input, source, correction.Amount.Abs())
+		}
 	}
 
 	// Older data may not have lineage yet, so fall back to first-order source correction.
@@ -651,6 +679,7 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 				SourceKind:     breakage.SourceKindUsageCorrection,
 				SourceChargeID: correctedEntry.entry.SourceChargeID(),
 				SpendChargeID:  correctedEntry.entry.SpendChargeID(),
+				OriginID:       correctedEntry.entry.OriginID(),
 			})
 			if err != nil {
 				return nil, nil, fmt.Errorf("resolve breakage reopen: %w", err)

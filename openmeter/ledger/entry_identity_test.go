@@ -223,6 +223,7 @@ type validationEntryInput struct {
 	schemaVersion  ledger.EntrySchemaVersion
 	sourceChargeID *string
 	spendChargeID  *string
+	originID       *string
 }
 
 func (e validationEntryInput) PostingAddress() ledger.PostingAddress {
@@ -274,3 +275,5 @@ func testEntryIdentityAddress(t *testing.T, accountType ledger.AccountType, subA
 
 	return addr
 }
+
+func (e validationEntryInput) OriginID() *string { return e.originID }

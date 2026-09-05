@@ -116,6 +116,20 @@ func (_c *LedgerEntryCreate) SetNillableSchemaVersion(v *int) *LedgerEntryCreate
 	return _c
 }
 
+// SetOriginID sets the "origin_id" field.
+func (_c *LedgerEntryCreate) SetOriginID(v string) *LedgerEntryCreate {
+	_c.mutation.SetOriginID(v)
+	return _c
+}
+
+// SetNillableOriginID sets the "origin_id" field if the given value is not nil.
+func (_c *LedgerEntryCreate) SetNillableOriginID(v *string) *LedgerEntryCreate {
+	if v != nil {
+		_c.SetOriginID(*v)
+	}
+	return _c
+}
+
 // SetSourceChargeID sets the "source_charge_id" field.
 func (_c *LedgerEntryCreate) SetSourceChargeID(v string) *LedgerEntryCreate {
 	_c.mutation.SetSourceChargeID(v)
@@ -277,6 +291,11 @@ func (_c *LedgerEntryCreate) check() error {
 	if _, ok := _c.mutation.SchemaVersion(); !ok {
 		return &ValidationError{Name: "schema_version", err: errors.New(`db: missing required field "LedgerEntry.schema_version"`)}
 	}
+	if v, ok := _c.mutation.OriginID(); ok {
+		if err := ledgerentry.OriginIDValidator(v); err != nil {
+			return &ValidationError{Name: "origin_id", err: fmt.Errorf(`db: validator failed for field "LedgerEntry.origin_id": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.SourceChargeID(); ok {
 		if err := ledgerentry.SourceChargeIDValidator(v); err != nil {
 			return &ValidationError{Name: "source_charge_id", err: fmt.Errorf(`db: validator failed for field "LedgerEntry.source_charge_id": %w`, err)}
@@ -362,6 +381,10 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SchemaVersion(); ok {
 		_spec.SetField(ledgerentry.FieldSchemaVersion, field.TypeInt, value)
 		_node.SchemaVersion = value
+	}
+	if value, ok := _c.mutation.OriginID(); ok {
+		_spec.SetField(ledgerentry.FieldOriginID, field.TypeString, value)
+		_node.OriginID = &value
 	}
 	if value, ok := _c.mutation.SourceChargeID(); ok {
 		_spec.SetField(ledgerentry.FieldSourceChargeID, field.TypeString, value)
@@ -556,6 +579,9 @@ func (u *LedgerEntryUpsertOne) UpdateNewValues() *LedgerEntryUpsertOne {
 		}
 		if _, exists := u.create.mutation.SchemaVersion(); exists {
 			s.SetIgnore(ledgerentry.FieldSchemaVersion)
+		}
+		if _, exists := u.create.mutation.OriginID(); exists {
+			s.SetIgnore(ledgerentry.FieldOriginID)
 		}
 		if _, exists := u.create.mutation.SourceChargeID(); exists {
 			s.SetIgnore(ledgerentry.FieldSourceChargeID)
@@ -853,6 +879,9 @@ func (u *LedgerEntryUpsertBulk) UpdateNewValues() *LedgerEntryUpsertBulk {
 			}
 			if _, exists := b.mutation.SchemaVersion(); exists {
 				s.SetIgnore(ledgerentry.FieldSchemaVersion)
+			}
+			if _, exists := b.mutation.OriginID(); exists {
+				s.SetIgnore(ledgerentry.FieldOriginID)
 			}
 			if _, exists := b.mutation.SourceChargeID(); exists {
 				s.SetIgnore(ledgerentry.FieldSourceChargeID)

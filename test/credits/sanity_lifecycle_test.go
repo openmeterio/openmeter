@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -377,8 +376,8 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	s.Equal(purchase2Amount, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 }
 
-// Compare persisted ledger provenance with the active backing carried by each
-// original advance. Aggregate customer balances cannot detect cross-charge drift.
+// Assert the same FIFO backing as the legacy regression, now from journal
+// provenance. Aggregate customer balances cannot detect cross-charge drift.
 func (s *SanityLifecycleSuite) assertAdvanceBacking(ctx context.Context, customerID customer.CustomerID, purchase creditpurchase.Charge, costBasis alpacadecimal.Decimal, expected map[string]float64) {
 	accounts, err := s.LedgerResolver.GetCustomerAccounts(ctx, customerID)
 	s.Require().NoError(err)
@@ -398,17 +397,9 @@ func (s *SanityLifecycleSuite) assertAdvanceBacking(ctx context.Context, custome
 	}
 	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: customerID.Namespace, CustomerID: customerID.ID, Currency: currencies.NewCurrencyReference(USD)})
 	s.Require().NoError(err)
-	backed := map[string]float64{}
-	for _, root := range lineages {
-		for _, segment := range root.Segments {
-			if segment.State == creditrealization.LineageSegmentStateAdvanceBackfilled && lo.FromPtr(segment.BackingTransactionGroupID) == purchase.Realizations.CreditGrantRealization.TransactionGroupID {
-				backed[root.ChargeID] += segment.Amount.InexactFloat64()
-			}
-		}
-	}
+	s.Empty(lineages, "new collections use ledger origins")
 	for chargeID, amount := range expected {
 		s.Equal(amount, booked[chargeID], "persisted ledger backing for %s", chargeID)
-		s.Equal(amount, backed[chargeID], "persisted lineage backing for %s", chargeID)
 	}
 }
 

@@ -36,6 +36,12 @@ func (LedgerEntry) Fields() []ent.Field {
 		field.Int("schema_version").
 			Default(1).
 			Immutable(),
+		field.String("origin_id").
+			SchemaType(map[string]string{dialect.Postgres: "char(26)"}).
+			Optional().
+			Nillable().
+			NotEmpty().
+			Immutable(),
 		field.String("source_charge_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -87,6 +93,7 @@ func (LedgerEntry) Indexes() []ent.Index {
 		index.Fields("namespace", "sub_account_id"),
 		index.Fields("namespace", "source_charge_id"),
 		index.Fields("namespace", "spend_charge_id"),
+		index.Fields("namespace", "origin_id"),
 		index.Fields("namespace", "source_charge_id", "spend_charge_id"),
 		index.Fields("transaction_id", "sub_account_id", "identity_key").Unique(),
 		index.Fields("created_at", "id").Annotations(
