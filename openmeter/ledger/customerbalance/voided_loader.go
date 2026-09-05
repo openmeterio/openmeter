@@ -45,6 +45,7 @@ func (l *voidedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			Name:             "Voided credits",
 			Annotations:      impact.Annotations,
 			balanceAsOf:      &balanceAsOf,
+			balanceOffset:    impact.BalanceOffset,
 		})
 	}
 

@@ -45,6 +45,7 @@ func (l *expiredCreditTransactionLoader) Load(ctx context.Context, input creditT
 			Name:             "Expired credits",
 			Annotations:      impact.Annotations,
 			balanceAsOf:      &balanceAsOf,
+			balanceOffset:    impact.BalanceOffset,
 		})
 	}
 

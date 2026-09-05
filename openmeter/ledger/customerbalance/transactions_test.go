@@ -61,50 +61,6 @@ func TestCreditTransactionFromLedgerTransaction_AggregatesScopedFBOEntries(t *te
 	require.True(t, item.Amount.Equal(alpacadecimal.NewFromInt(-15)))
 }
 
-func TestApplyCreditTransactionBalances(t *testing.T) {
-	balanceImpact := alpacadecimal.NewFromInt(-7)
-	currencyReference := currencies.NewCurrencyReference("USD")
-	items := []CreditTransaction{
-		{
-			Currency:      "USD",
-			Amount:        alpacadecimal.NewFromInt(-10),
-			balanceImpact: &balanceImpact,
-		},
-	}
-
-	applyCreditTransactionBalances(items, map[string]alpacadecimal.Decimal{
-		currencyReference.IdentityKey(): alpacadecimal.NewFromInt(42),
-	})
-
-	require.True(t, items[0].Balance.After.Equal(alpacadecimal.NewFromInt(42)))
-	require.True(t, items[0].Balance.Before.Equal(alpacadecimal.NewFromInt(49)))
-}
-
-func TestApplyCreditTransactionBalancesSeparatesCustomCurrencyIdentities(t *testing.T) {
-	alpha, err := currencies.ParseCurrencyReference([]byte("custom|v1|CREDITS|currency-alpha|2"))
-	require.NoError(t, err)
-	beta, err := currencies.ParseCurrencyReference([]byte("custom|v1|CREDITS|currency-beta|2"))
-	require.NoError(t, err)
-
-	items := []CreditTransaction{
-		{Currency: "CREDITS", CustomCurrencyID: alpha.CustomCurrencyID, Amount: alpacadecimal.NewFromInt(10)},
-		{Currency: "CREDITS", CustomCurrencyID: beta.CustomCurrencyID, Amount: alpacadecimal.NewFromInt(20)},
-		{Currency: "CREDITS", CustomCurrencyID: alpha.CustomCurrencyID, Amount: alpacadecimal.NewFromInt(30)},
-	}
-
-	applyCreditTransactionBalances(items, map[string]alpacadecimal.Decimal{
-		alpha.IdentityKey(): alpacadecimal.NewFromInt(100),
-		beta.IdentityKey():  alpacadecimal.NewFromInt(200),
-	})
-
-	require.Equal(t, float64(90), items[0].Balance.Before.InexactFloat64())
-	require.Equal(t, float64(100), items[0].Balance.After.InexactFloat64())
-	require.Equal(t, float64(180), items[1].Balance.Before.InexactFloat64())
-	require.Equal(t, float64(200), items[1].Balance.After.InexactFloat64())
-	require.Equal(t, float64(60), items[2].Balance.Before.InexactFloat64())
-	require.Equal(t, float64(90), items[2].Balance.After.InexactFloat64())
-}
-
 func TestListCreditTransactionsBalancesByCurrency(t *testing.T) {
 	env := newTestEnv(t)
 

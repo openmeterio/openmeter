@@ -175,12 +175,16 @@ type ListVoidedCreditImpactsResult struct {
 }
 
 type VoidImpact struct {
-	ID          models.NamespacedID
-	CreatedAt   time.Time
-	VoidedAt    time.Time
-	CustomerID  customer.CustomerID
-	Currency    currencies.CurrencyReference
-	Amount      alpacadecimal.Decimal
+	ID         models.NamespacedID
+	CreatedAt  time.Time
+	VoidedAt   time.Time
+	CustomerID customer.CustomerID
+	Currency   currencies.CurrencyReference
+	Amount     alpacadecimal.Decimal
+	// BalanceOffset removes later void siblings from the terminal balance at
+	// VoidedAt. It is scoped by currency identity and the requested feature filter.
+	BalanceOffset alpacadecimal.Decimal
+
 	Annotations models.Annotations
 }
 
@@ -678,9 +682,6 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 			Amount:      group.amount.Neg(),
 			Annotations: group.annotations,
 		}
-		if !voidImpactMatchesCursorWindow(item, input.After, input.Before) {
-			continue
-		}
 
 		items = append(items, item)
 	}
@@ -689,9 +690,30 @@ func (s *service) ListVoidedCreditImpacts(ctx context.Context, input ListVoidedC
 		return -a.Cursor().Compare(b.Cursor())
 	})
 
+	// Apply offsets before cursor filtering so a page starting inside a shared
+	// timestamp retains the same balance as the complete projected history.
+	type boundaryKey struct {
+		at       time.Time
+		currency string
+	}
+	offsets := make(map[boundaryKey]alpacadecimal.Decimal)
+	selected := make([]VoidImpact, 0, len(items))
+	for _, item := range items {
+		key := boundaryKey{at: item.VoidedAt, currency: item.Currency.IdentityKey()}
+		item.BalanceOffset = offsets[key]
+		offsets[key] = offsets[key].Sub(item.Amount)
+		if voidImpactMatchesCursorWindow(item, input.After, input.Before) {
+			selected = append(selected, item)
+		}
+	}
+	items = selected
 	hasMore := len(items) > input.Limit
 	if hasMore {
-		items = items[:input.Limit]
+		if input.Before != nil {
+			items = items[len(items)-input.Limit:]
+		} else {
+			items = items[:input.Limit]
+		}
 	}
 
 	return ListVoidedCreditImpactsResult{
