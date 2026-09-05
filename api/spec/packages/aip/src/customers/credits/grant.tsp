@@ -144,7 +144,7 @@ model CreditGrant {
   funding_method: CreditFundingMethod;
 
   /**
-   * The currency of the granted credits.
+   * The fiat or custom currency of the granted credits.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   currency: Currencies.CurrencyCode;
@@ -243,7 +243,7 @@ model CreditGrant {
 @friendlyName("BillingCreditGrantPurchase")
 model CreditGrantPurchase {
   /**
-   * Currency of the purchase amount.
+   * Fiat currency of the purchase amount.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   currency: Shared.CurrencyCode;
@@ -251,10 +251,9 @@ model CreditGrantPurchase {
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+   * total purchase amount is 50 USD. The value must be greater than 0. If the cost
+   * basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */

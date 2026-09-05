@@ -11,8 +11,10 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -47,6 +49,28 @@ func TestToAPICreditBalanceFiatOmitsCustomCurrencyIdentity(t *testing.T) {
 
 	require.Equal(t, api.BillingCurrencyCode("USD"), result.Currency)
 	require.Nil(t, result.CustomCurrencyId)
+}
+
+func TestFromAPICreateCustomCurrencyGrantRequest(t *testing.T) {
+	perUnitCostBasis := api.Numeric("0.5")
+
+	request, err := fromAPICreateCreditGrantRequest("ns", "01J00000000000000000000000", api.CreateCreditGrantRequest{
+		Name:          "TOKENS purchase",
+		Amount:        "100",
+		Currency:      api.CreateCurrencyCode("TOKENS"),
+		FundingMethod: api.BillingCreditFundingMethodExternal,
+		Purchase: &api.CreateCreditGrantPurchase{
+			Currency:         api.CurrencyCode("USD"),
+			PerUnitCostBasis: &perUnitCostBasis,
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, currencyx.Code("TOKENS"), request.Currency)
+	require.Equal(t, creditgrant.FundingMethodExternal, request.FundingMethod)
+	require.NotNil(t, request.Purchase)
+	require.Equal(t, currencyx.Code("USD"), request.Purchase.Currency)
+	require.NotNil(t, request.Purchase.PerUnitCostBasis)
+	require.True(t, request.Purchase.PerUnitCostBasis.Equal(alpacadecimal.NewFromFloat(0.5)))
 }
 
 func TestToAPIBillingCreditGrantPromotional(t *testing.T) {

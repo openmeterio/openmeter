@@ -31,7 +31,7 @@ type Handler interface {
 
 	// OnPromotionalCreditPurchase is called when a promotional credit purchase is created (e.g. costbasis is 0)
 	// For promotional credit purchases we don't call any of the payment handler methods.
-	OnPromotionalCreditPurchase(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	OnPromotionalCreditPurchase(ctx context.Context, charge Charge) (CreditGrantResult, error)
 
 	// Credit purchase handler methods (cost basis > 0)
 	// ------------------------------------------------
@@ -39,7 +39,7 @@ type Handler interface {
 	// OnCreditPurchaseInitiated is called when a credit purchase is initiated that is going to be settled by
 	// a payment (either external or a standard invoice)
 	// Initial call
-	OnCreditPurchaseInitiated(ctx context.Context, charge Charge) (ledgertransaction.GroupReference, error)
+	OnCreditPurchaseInitiated(ctx context.Context, charge Charge) (CreditGrantResult, error)
 
 	// OnCreditPurchasePaymentAuthorized is called when a credit purchase payment is authorized for a credit
 	// purchase.
@@ -48,6 +48,14 @@ type Handler interface {
 	// OnCreditPurchasePaymentSettled is called when a credit purchase payment is settled for a credit
 	// purchase.
 	OnCreditPurchasePaymentSettled(ctx context.Context, input PaymentEventInput) (ledgertransaction.GroupReference, error)
+}
+
+// CreditGrantResult carries booked facts back to the charge lifecycle. Backfill
+// amounts include only accrued value attributed to an identified spend; issuance
+// and receivable-only attribution do not make usage lineage credit-backed.
+type CreditGrantResult struct {
+	ledgertransaction.GroupReference
+	AdvanceBackfillAmountsByChargeID map[string]alpacadecimal.Decimal
 }
 
 type PaymentEventInput struct {

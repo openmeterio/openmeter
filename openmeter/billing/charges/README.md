@@ -220,11 +220,28 @@ authorization and settlement; its cost basis carries the amount paid per unit.
 Custom-currency credit instead materializes a fiat-to-custom receivable exchange
 before the fiat payment is authorized.
 
+At the credit-grant boundary, the grant currency is resolved from the currency
+catalog. A funded custom-currency grant uses the purchase's fiat currency and
+per-unit rate as a manual cost basis. For fiat grants, purchase and grant
+currency must match.
+
+Custom grants require `EnableCustomCurrencyCharge` for every funding method;
+disabled requests are rejected before charge persistence or credit issuance.
+Paid purchases must round to a positive amount in the settlement currency.
+Dynamic purchases enforce this after resolving their price, before granting
+credits; promotional grants do not enter the payment lifecycle.
+
 Persisted credit purchases read settlement and cost basis only from their
 dedicated fields. Fiat purchases persist their scalar rate on the charge row;
 custom-currency purchases reference durable shared cost-basis state. Resolution
 time and charge creation time are not a validation invariant. The legacy
 settlement JSON column is deprecated and ignored.
+
+Credit purchases carry the ledger's booked accrued-backfill amounts per spend
+back to lineage persistence. Each spend consumes its own oldest uncovered
+segments; a purchase-wide amount cannot redistribute backing across spends.
+Source-less legacy attribution and receivable-only attribution do not make
+tracked usage lineage credit-backed.
 
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier

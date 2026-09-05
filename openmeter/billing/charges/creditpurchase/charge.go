@@ -141,6 +141,20 @@ func (c Charge) GetFiatSettlementAmount() (alpacadecimal.Decimal, error) {
 	return fiatAmount, nil
 }
 
+// ValidateSettlementAmount prevents issuing paid credits whose rounded purchase
+// value cannot enter the payment lifecycle. Dynamic purchases call this after
+// resolving their cost basis; promotional credits have no settlement amount.
+func (c Charge) ValidateSettlementAmount() error {
+	amount, err := c.GetFiatSettlementAmount()
+	if err != nil {
+		return err
+	}
+	if !amount.IsPositive() {
+		return models.NewGenericValidationError(errors.New("purchase amount must be positive after rounding to settlement currency precision"))
+	}
+	return nil
+}
+
 type Intent struct {
 	meta.Intent
 	IntentMutableFields

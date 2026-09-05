@@ -666,7 +666,7 @@ func (t CoverCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledge
 		negativeFBOEntries,
 		positiveReceivableEntries,
 		t.entryRoutePairingKey,
-		func(entry ledger.Entry) alpacadecimal.Decimal { return entry.Amount().Abs() },
+		scope.sourceEntryAmount,
 		scope.Amount,
 	)
 	if err != nil {

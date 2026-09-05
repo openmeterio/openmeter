@@ -1901,15 +1901,14 @@ export interface EntitlementAccessResult {
 
 /** Purchase and payment terms of the grant. */
 export interface CreateCreditGrantPurchase {
-  /** Currency of the purchase amount. */
+  /** Fiat currency of the purchase amount. */
   currency: string
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+   * total purchase amount is 50 USD. The value must be greater than 0. If the cost
+   * basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
@@ -1985,15 +1984,14 @@ export interface RecurringPeriod {
 
 /** Purchase and payment terms of the grant. */
 export interface CreditGrantPurchase {
-  /** Currency of the purchase amount. */
+  /** Fiat currency of the purchase amount. */
   currency: string
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+   * total purchase amount is 50 USD. The value must be greater than 0. If the cost
+   * basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
@@ -2017,16 +2015,6 @@ export interface CreditGrantPurchase {
 export interface UpdateCreditGrantExternalSettlementRequest {
   /** The new payment settlement status. */
   status: 'pending' | 'authorized' | 'settled'
-}
-
-/** Filter options for listing credit grants. */
-export interface ListCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by currency. */
-  currency?: string
-  /** Filter credit grants by key. */
-  key?: StringFieldFilter
 }
 
 /** Filter options for getting a credit balance. */
@@ -2477,6 +2465,16 @@ export interface CreditAdjustment {
    */
   description?: string
   labels?: Labels
+}
+
+/** Filter options for listing credit grants. */
+export interface ListCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by currency. */
+  currency?: BillingCurrencyCode
+  /** Filter credit grants by key. */
+  key?: StringFieldFilter
 }
 
 /** The credit balance by currency. */
@@ -3765,7 +3763,7 @@ export interface CreateCreditGrantRequest {
   labels?: CreateLabels
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
+  /** The fiat or custom currency of the granted credits. */
   currency: CreateCurrencyCode
   /** Granted credit amount. */
   amount: string
@@ -3834,7 +3832,7 @@ export interface CreditGrant {
   deletedAt?: Date
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
+  /** The fiat or custom currency of the granted credits. */
   currency: BillingCurrencyCode
   /** Granted credit amount. */
   amount: string
@@ -6790,15 +6788,14 @@ export interface AppStripeCreateCheckoutSessionTaxIdCollectionInput {
 
 /** Purchase and payment terms of the grant. */
 export interface CreateCreditGrantPurchaseInput {
-  /** Currency of the purchase amount. */
+  /** Fiat currency of the purchase amount. */
   currency: string
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+   * total purchase amount is 50 USD. The value must be greater than 0. If the cost
+   * basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
@@ -6836,15 +6833,14 @@ export interface RateCardMeteredEntitlementInput {
 
 /** Purchase and payment terms of the grant. */
 export interface CreditGrantPurchaseInput {
-  /** Currency of the purchase amount. */
+  /** Fiat currency of the purchase amount. */
   currency: string
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is
-   * $100.00, the total
-   * charge is $50.00. The value must be greater than 0. If the
-   * cost basis is 0, use `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+   * total purchase amount is 50 USD. The value must be greater than 0. If the cost
+   * basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
@@ -7022,7 +7018,7 @@ export interface CreateCreditGrantRequestInput {
   labels?: CreateLabels
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
+  /** The fiat or custom currency of the granted credits. */
   currency: CreateCurrencyCode
   /** Granted credit amount. */
   amount: string
@@ -7091,7 +7087,7 @@ export interface CreditGrantInput {
   deletedAt?: Date
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
-  /** The currency of the granted credits. */
+  /** The fiat or custom currency of the granted credits. */
   currency: BillingCurrencyCode
   /** Granted credit amount. */
   amount: string

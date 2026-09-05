@@ -94,6 +94,9 @@ func (i PersistCorrectionLineageSegmentsInput) Validate() error {
 }
 
 type BackfillAdvanceLineageSegmentsInput struct {
+	// AmountsByChargeID is the actual accrued attribution booked for each spend.
+	// Empty facts make no lineage transitions, including source-less legacy postings.
+	AmountsByChargeID         map[string]alpacadecimal.Decimal
 	Namespace                 string
 	CustomerID                string
 	Currency                  currencies.Currency
@@ -121,6 +124,19 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 		errs = append(errs, errors.New("backing transaction group id is required"))
 	}
 
+	total := alpacadecimal.Zero
+	for chargeID, amount := range i.AmountsByChargeID {
+		if chargeID == "" {
+			errs = append(errs, errors.New("backfill charge id is required"))
+		}
+		if !amount.IsPositive() {
+			errs = append(errs, fmt.Errorf("backfill amount for charge %s must be positive", chargeID))
+		}
+		total = total.Add(amount)
+	}
+	if total.GreaterThan(i.Amount) {
+		errs = append(errs, errors.New("backfill amounts exceed purchase amount"))
+	}
 	return errors.Join(errs...)
 }
 

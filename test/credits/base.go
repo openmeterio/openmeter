@@ -22,6 +22,7 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -65,6 +66,7 @@ type BaseSuite struct {
 	LineageService       lineage.Service
 	RevenueRecognizer    recognizer.Service
 	CurrencyService      currencies.Service
+	CurrencyResolver     currencies.CurrencyResolver
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -181,6 +183,8 @@ func (s *BaseSuite) SetupSuite() {
 	s.CreditPurchaseSvc = stack.CreditPurchaseService
 	s.UsageBasedSvc = stack.UsageBasedService
 	s.CurrencyService = stack.CurrencyService
+	s.CurrencyResolver, err = currencyresolver.New(s.CurrencyService)
+	s.NoError(err)
 
 	customerBalanceSvc, err := customerbalance.New(customerbalance.Config{
 		AccountResolver:   deps.ResolversService,
@@ -318,6 +322,25 @@ func (s *BaseSuite) CreateLedgerBackedCustomer(ns string, subjectKey string) *cu
 	return cust
 }
 
+func (s *BaseSuite) CreateCustomCurrency(namespace string, code currencyx.Code) currencies.Currency {
+	s.T().Helper()
+
+	currency, err := s.CurrencyService.CreateCurrency(s.T().Context(), currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		CurrencyDetails: currencyx.CurrencyDetails{
+			Code:               code,
+			Name:               code.String(),
+			Symbol:             code.String(),
+			Precision:          2,
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	})
+	s.Require().NoError(err)
+
+	return currency
+}
+
 // MustCustomerFBOBalance returns customer FBO balance in a currency. Pass mo.None()
 // for all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
 // mo.Some(&costBasis) for one concrete cost-basis route.
@@ -338,6 +361,22 @@ func (s *BaseSuite) MustCustomerFBOBalanceAsOf(customerID customer.CustomerID, c
 }
 
 func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], priority int, asOf *time.Time) alpacadecimal.Decimal {
+	return s.MustCustomerFBOBalanceByRouteAsOf(customerID, ledger.RouteFilter{
+		Currency:       currencies.NewCurrencyReference(code),
+		CostBasis:      costBasis,
+		CreditPriority: lo.ToPtr(priority),
+	}, asOf)
+}
+
+// MustCustomerFBOBalanceByRoute returns the customer FBO balance for a route
+// filter that can preserve resolved custom-currency identity and cost-basis currency.
+func (s *BaseSuite) MustCustomerFBOBalanceByRoute(customerID customer.CustomerID, route ledger.RouteFilter) alpacadecimal.Decimal {
+	return s.MustCustomerFBOBalanceByRouteAsOf(customerID, route, nil)
+}
+
+// MustCustomerFBOBalanceByRouteAsOf applies the supplied route filter to the
+// customer FBO balance at an optional historical point.
+func (s *BaseSuite) MustCustomerFBOBalanceByRouteAsOf(customerID customer.CustomerID, route ledger.RouteFilter, asOf *time.Time) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
@@ -348,11 +387,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 		query.AsOf = asOf
 	}
 
-	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       currencies.NewCurrencyReference(code),
-		CostBasis:      costBasis,
-		CreditPriority: lo.ToPtr(priority),
-	}, query)
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, route, query)
 	s.NoError(err)
 
 	return balance
@@ -383,16 +418,22 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityForFeatures(customerID cus
 // for one authorization state. Pass mo.None() for all cost bases, mo.Some(nil)
 // for the explicit nil-cost-basis route, or mo.Some(&costBasis) for one concrete route.
 func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], status ledger.TransactionAuthorizationStatus) alpacadecimal.Decimal {
+	return s.MustCustomerReceivableBalanceByRoute(customerID, ledger.RouteFilter{
+		Currency:                       currencies.NewCurrencyReference(code),
+		CostBasis:                      costBasis,
+		TransactionAuthorizationStatus: lo.ToPtr(status),
+	})
+}
+
+// MustCustomerReceivableBalanceByRoute returns the customer receivable balance
+// for a route filter that can preserve resolved custom-currency identity.
+func (s *BaseSuite) MustCustomerReceivableBalanceByRoute(customerID customer.CustomerID, route ledger.RouteFilter) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       currencies.NewCurrencyReference(code),
-		CostBasis:                      costBasis,
-		TransactionAuthorizationStatus: lo.ToPtr(status),
-	}, ledger.BalanceQuery{})
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, route, ledger.BalanceQuery{})
 	s.NoError(err)
 
 	return balance

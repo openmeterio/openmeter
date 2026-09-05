@@ -1732,14 +1732,13 @@ type CreateCreditGrantFilters struct {
 
 // Purchase and payment terms of the grant.
 type CreateCreditGrantPurchase struct {
-	// Currency of the purchase amount.
+	// Fiat currency of the purchase amount.
 	Currency string `json:"currency"`
 	// Cost basis per credit unit used to calculate the purchase amount.
 	//
-	// If `per_unit_cost_basis` is 0.50 and credit amount is
-	// $100.00, the total
-	// charge is $50.00. The value must be greater than 0. If the
-	// cost basis is 0, use `funding_method=none` instead.
+	// If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+	// total purchase amount is 50 USD. The value must be greater than 0. If the cost
+	// basis is 0, use `funding_method=none` instead.
 	//
 	// Defaults to 1.0.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
@@ -1762,7 +1761,7 @@ type CreateCreditGrantRequest struct {
 	Labels      *map[string]string `json:"labels,omitempty"`
 	// Funding method of the grant.
 	FundingMethod CreditFundingMethod `json:"funding_method"`
-	// The currency of the granted credits.
+	// The fiat or custom currency of the granted credits.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Granted credit amount.
 	Amount Numeric `json:"amount"`
@@ -1925,7 +1924,7 @@ type CreditGrant struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Funding method of the grant.
 	FundingMethod CreditFundingMethod `json:"funding_method"`
-	// The currency of the granted credits.
+	// The fiat or custom currency of the granted credits.
 	Currency BillingCurrencyCode `json:"currency"`
 	// Granted credit amount.
 	Amount Numeric `json:"amount"`
@@ -1990,14 +1989,13 @@ type CreditGrantPagePaginatedResponse struct {
 
 // Purchase and payment terms of the grant.
 type CreditGrantPurchase struct {
-	// Currency of the purchase amount.
+	// Fiat currency of the purchase amount.
 	Currency string `json:"currency"`
 	// Cost basis per credit unit used to calculate the purchase amount.
 	//
-	// If `per_unit_cost_basis` is 0.50 and credit amount is
-	// $100.00, the total
-	// charge is $50.00. The value must be greater than 0. If the
-	// cost basis is 0, use `funding_method=none` instead.
+	// If `per_unit_cost_basis` is 0.50 USD and the grant amount is 100 credits, the
+	// total purchase amount is 50 USD. The value must be greater than 0. If the cost
+	// basis is 0, use `funding_method=none` instead.
 	//
 	// Defaults to 1.0.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`

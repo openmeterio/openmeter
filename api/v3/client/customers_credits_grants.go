@@ -18,7 +18,7 @@ type CreditGrantFilter struct {
 	// Filter credit grants by status.
 	Status *CreditGrantStatus
 	// Filter credit grants by currency.
-	Currency *string
+	Currency *BillingCurrencyCode
 	// Filter credit grants by key.
 	Key *StringFilter
 }
@@ -38,7 +38,7 @@ func (p CreditGrantListParams) values() url.Values {
 			q.Set("filter[status]", string(*p.Filter.Status))
 		}
 		if p.Filter.Currency != nil {
-			q.Set("filter[currency]", *p.Filter.Currency)
+			q.Set("filter[currency]", string(*p.Filter.Currency))
 		}
 		addStringFilter(q, "filter[key]", p.Filter.Key)
 	}

@@ -150,20 +150,22 @@ func newCreditPurchaseTestHandler() *creditPurchaseTestHandler {
 	return &creditPurchaseTestHandler{}
 }
 
-func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
 	if h.onPromotionalCreditPurchase == nil {
-		return ledgertransaction.GroupReference{}, errors.New("onPromotionalCreditPurchase is not set")
+		return creditpurchase.CreditGrantResult{}, errors.New("onPromotionalCreditPurchase is not set")
 	}
 
-	return h.onPromotionalCreditPurchase(ctx, charge)
+	reference, err := h.onPromotionalCreditPurchase(ctx, charge)
+	return creditpurchase.CreditGrantResult{GroupReference: reference}, err
 }
 
-func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
 	if h.onCreditPurchaseInitiated == nil {
-		return ledgertransaction.GroupReference{}, errors.New("onCreditPurchaseInitiated is not set")
+		return creditpurchase.CreditGrantResult{}, errors.New("onCreditPurchaseInitiated is not set")
 	}
 
-	return h.onCreditPurchaseInitiated(ctx, charge)
+	reference, err := h.onCreditPurchaseInitiated(ctx, charge)
+	return creditpurchase.CreditGrantResult{GroupReference: reference}, err
 }
 
 func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {

@@ -13,9 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -245,7 +248,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	s.Equal(alpacadecimal.NewFromInt(40), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 
 	// Given the first later credit purchase arrives while both charges still contribute uncovered advance.
-	// When the customer buys 25 credits at cost basis 0.5, it backfills the older uncovered usage first.
+	// When the customer buys 25 credits at cost basis 0.5, proportional attribution backs 12.5 of each spend.
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
@@ -276,6 +279,27 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	s.Equal(purchase1Amount, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 
+	// The ledger and lineage must agree on the exact per-spend backing, not only
+	// the customer-wide total; the original global FIFO lineage split was 20/5.
+	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+		Currency: currencies.NewCurrencyReference(USD), CostBasis: mo.Some(&costBasis1),
+	}, map[string]float64{
+		sourceSpendChargeBucketKey(&purchase1Charge.ID, &chargeA.ID): 12.5,
+		sourceSpendChargeBucketKey(&purchase1Charge.ID, &chargeB.ID): 12.5,
+	})
+	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: ns, CustomerID: cust.ID, Currency: currencies.NewCurrencyReference(USD)})
+	s.Require().NoError(err)
+	backedBySpend := map[string]alpacadecimal.Decimal{}
+	for _, entry := range lineages {
+		for _, segment := range entry.Segments {
+			if segment.State == creditrealization.LineageSegmentStateAdvanceBackfilled {
+				backedBySpend[entry.ChargeID] = backedBySpend[entry.ChargeID].Add(segment.Amount)
+			}
+		}
+	}
+	s.Equal(float64(12.5), backedBySpend[chargeA.ID].InexactFloat64())
+	s.Equal(float64(12.5), backedBySpend[chargeB.ID].InexactFloat64())
+
 	// Given one more unit becomes visible for Charge B before the final cutoff.
 	// This reduces Charge B's priced amount from 20 down to 11, so part of Purchase 1 is released again.
 	s.MockStreamingConnector.AddSimpleEvent(
@@ -285,30 +309,23 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 		streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-03-02T00:00:00Z", time.UTC).AsTime()),
 	)
 
-	// When Charge B finalizes, the lifecycle-driven correction should free the 5 cost-basis-backed
-	// part first and only then reduce the still-uncovered remainder.
-	// That 5 is the portion of Purchase 1 that had already been attributed to Charge B after
-	// fully backfilling Charge A's older 20 first.
-	// !!! Released purchased credit goes back to FBO here. It does not immediately snap onto
-	// Charge B's or any other charge's remaining uncovered advance. Only a later purchase/initiation
-	// pass will backfill uncovered advance again.
+	// When Charge B finalizes, all 9 corrected credits come from its 12.5 backed
+	// portion. Released credit returns to FBO without automatically backfilling
+	// either spend's remaining uncovered advance.
 	clock.FreezeTime(chargeBFinalizeAt)
 	advancedChargeB = s.mustAdvanceUsageBasedChargeByID(ctx, cust.GetID(), chargeB.GetChargeID())
 	s.Require().NotNil(advancedChargeB)
 	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(advancedChargeB.Status))
-	s.Equal(alpacadecimal.NewFromInt(-36), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	// After the correction, Charge A still accounts for the full 20 costBasis1-backed usage,
-	// while Charge B drops back to 11 uncovered usage and releases those 5 purchased credits to FBO.
-	s.Equal(alpacadecimal.NewFromInt(-11), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(11), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.NewFromInt(-40), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	// Charge A retains 12.5 backed + 7.5 uncovered; B retains 3.5 backed + 7.5 uncovered.
+	s.Equal(alpacadecimal.NewFromInt(-15), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(15), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 	s.Equal(purchase1Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(16), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(9), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 
-	// Given a second later credit purchase now sees only Charge B's remaining uncovered amount.
-	// !!! The released 5 from Purchase 1 stayed as available purchased credit in FBO; it did not
-	// auto-cover this remaining uncovered advance on its own.
-	// When the customer buys another 10 credits at a different cost basis, it should backfill only Charge B.
+	// A second purchase proportionally covers 5 more of each spend's 7.5 advance.
+	// The 9 released credits from Purchase 1 remain available in FBO.
 	clock.FreezeTime(chargeBFinalizeAt.Add(time.Minute))
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
@@ -333,40 +350,40 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 
 	purchase2Charge, err := res[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.Equal(alpacadecimal.NewFromInt(-36), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(-1), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(1), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.NewFromInt(-40), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(-5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 	s.Equal(purchase1Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(16), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromInt(9), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 	s.Equal(purchase2Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
 	s.Equal(purchase2Amount, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 	s.Equal(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 
 	// When Charge B is refunded, only its current backing should be released.
 	s.MustRefundCharge(ctx, cust.GetID(), chargeB.GetChargeID())
-	s.Equal(alpacadecimal.NewFromInt(-35), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.NewFromFloat(-37.5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromFloat(-2.5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromFloat(2.5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 	s.Equal(purchase1Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromFloat(12.5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromFloat(12.5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 	s.Equal(purchase2Amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
-	s.Equal(purchase2Amount, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 
 	// When both later purchases complete their payment lifecycle too.
 	s.mustSettleExternalCreditPurchase(ctx, purchase1Charge.GetChargeID())
 	s.mustSettleExternalCreditPurchase(ctx, purchase2Charge.GetChargeID())
-	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
+	s.Equal(alpacadecimal.NewFromFloat(-2.5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromFloat(-2.5), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen))
+	s.Equal(alpacadecimal.NewFromFloat(2.5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis1), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
-	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromFloat(12.5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
+	s.Equal(alpacadecimal.NewFromFloat(12.5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis1)))
 	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis2), ledger.TransactionAuthorizationStatusOpen))
-	s.Equal(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
-	s.Equal(purchase2Amount, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
+	s.Equal(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis2)))
 }
 
 // Use this helper for the shared single-charge lifecycle setup that stops after
