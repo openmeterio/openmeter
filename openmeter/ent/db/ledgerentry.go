@@ -38,6 +38,8 @@ type LedgerEntry struct {
 	IdentityKey string `json:"identity_key,omitempty"`
 	// SchemaVersion holds the value of the "schema_version" field.
 	SchemaVersion int `json:"schema_version,omitempty"`
+	// OriginID holds the value of the "origin_id" field.
+	OriginID *string `json:"origin_id,omitempty"`
 	// SourceChargeID holds the value of the "source_charge_id" field.
 	SourceChargeID *string `json:"source_charge_id,omitempty"`
 	// SpendChargeID holds the value of the "spend_charge_id" field.
@@ -107,7 +109,7 @@ func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case ledgerentry.FieldSchemaVersion:
 			values[i] = new(sql.NullInt64)
-		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldSourceChargeID, ledgerentry.FieldSpendChargeID, ledgerentry.FieldTransactionID:
+		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldOriginID, ledgerentry.FieldSourceChargeID, ledgerentry.FieldSpendChargeID, ledgerentry.FieldTransactionID:
 			values[i] = new(sql.NullString)
 		case ledgerentry.FieldCreatedAt, ledgerentry.FieldUpdatedAt, ledgerentry.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -182,6 +184,13 @@ func (_m *LedgerEntry) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field schema_version", values[i])
 			} else if value.Valid {
 				_m.SchemaVersion = int(value.Int64)
+			}
+		case ledgerentry.FieldOriginID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field origin_id", values[i])
+			} else if value.Valid {
+				_m.OriginID = new(string)
+				*_m.OriginID = value.String
 			}
 		case ledgerentry.FieldSourceChargeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -285,6 +294,11 @@ func (_m *LedgerEntry) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("schema_version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SchemaVersion))
+	builder.WriteString(", ")
+	if v := _m.OriginID; v != nil {
+		builder.WriteString("origin_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := _m.SourceChargeID; v != nil {
 		builder.WriteString("source_charge_id=")

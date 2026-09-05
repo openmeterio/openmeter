@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -44,6 +45,8 @@ func collectFromAttributableCustomerAccrued(
 	currency currencies.CurrencyReference,
 	target alpacadecimal.Decimal,
 	deps ResolverDependencies,
+	originTracked bool,
+	at time.Time,
 ) ([]postingAddressAmount, error) {
 	customerAccounts, err := deps.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -60,6 +63,7 @@ func collectFromAttributableCustomerAccrued(
 		Namespace: customerID.Namespace,
 		Filters: ledger.Filters{
 			AccountID: &accruedAccountID,
+			AsOf:      &at,
 			Route: ledger.RouteFilter{
 				Currency: currency,
 			},
@@ -67,6 +71,7 @@ func collectFromAttributableCustomerAccrued(
 		GroupBy: []string{
 			ledger.BalanceBucketGroupBySourceChargeID,
 			ledger.BalanceBucketGroupBySpendChargeID,
+			ledger.BalanceBucketGroupByOriginID,
 		},
 	})
 	if err != nil {
@@ -82,9 +87,10 @@ func collectFromAttributableCustomerAccrued(
 
 		identity := ledger.EntryIdentityParts{
 			SourceChargeID: bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			OriginID:       bucket.GroupByValues[ledger.BalanceBucketGroupByOriginID],
 			SpendChargeID:  bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
 		}
-		if !isCreditBackedAccruedIdentity(identity) {
+		if (identity.OriginID != nil) != originTracked || !isCreditBackedAccruedIdentity(identity) {
 			continue
 		}
 

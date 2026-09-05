@@ -3,9 +3,12 @@ package collector
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -168,6 +171,9 @@ func (c *accrualCollector) resolveCoveredReceivableInputs(ctx context.Context, i
 		return resolvedCollectedInputs{}, nil
 	}
 
+	for i := range selections {
+		selections[i].originID = lo.ToPtr(ulid.Make().String())
+	}
 	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -218,6 +224,9 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, nil
 	}
 
+	for i := range selections {
+		selections[i].originID = lo.ToPtr(ulid.Make().String())
+	}
 	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -274,10 +283,12 @@ func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, 
 			SourceKind:     breakage.SourceKindUsage,
 			SourceChargeID: selection.source.sourceChargeID,
 			SpendChargeID:  &chargeID,
+			OriginID:       selection.originID,
 			SourceEntryIdentityKey: func() string {
 				collectionSource := strconv.Itoa(idx)
 				identityKey, _ := ledger.EntryIdentityParts{
 					CollectionSource: &collectionSource,
+					OriginID:         selection.originID,
 					SourceChargeID:   selection.source.sourceChargeID,
 					SpendChargeID:    &chargeID,
 				}.Text()
@@ -297,6 +308,7 @@ func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, 
 }
 
 func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input CollectToAccruedInput, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {
+	originID := ulid.Make().String()
 	var features []string
 	if input.FeatureKey != "" {
 		features = []string{input.FeatureKey}
@@ -312,6 +324,7 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 			Currency:      input.Currency,
 			Features:      features,
 			SpendChargeID: &input.ChargeID,
+			OriginID:      &originID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:            input.BookedAt,
@@ -321,6 +334,7 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 			TaxBehavior:   input.TaxBehavior,
 			Features:      features,
 			SpendChargeID: &input.ChargeID,
+			OriginID:      &originID,
 		},
 	)
 	if err != nil {
@@ -355,7 +369,11 @@ func (i collectedInputs) toCreditRealizations(servicePeriod timeutil.ClosedPerio
 			continue
 		}
 
-		annotations := creditRealizationAnnotationsForCollectedInput(input)
+		annotations := maps.Clone(input.Annotations())
+		if annotations == nil {
+			annotations = make(models.Annotations)
+		}
+		annotations[ledger.AnnotationOriginTracked] = true
 		// Keep billing realization granularity at the FBO sub-account bucket.
 		// Entry identity may split same-sub-account collection internally, but
 		// that should not leak as separate credit realizations.
@@ -405,30 +423,4 @@ func (i collectedInputs) collectedFBOAmount() alpacadecimal.Decimal {
 	}
 
 	return total
-}
-
-func creditRealizationAnnotationsForCollectedInput(input ledger.TransactionInput) models.Annotations {
-	templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(input.Annotations())
-	if err != nil {
-		return input.Annotations()
-	}
-
-	var originKind creditrealization.LineageOriginKind
-	switch templateCode {
-	case transactions.TemplateCode(transactions.TransferCustomerFBOToAccruedTemplate{}):
-		originKind = creditrealization.LineageOriginKindRealCredit
-	case transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}):
-		originKind = creditrealization.LineageOriginKindAdvance
-	case transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}):
-		originKind = creditrealization.LineageOriginKindReceivableCoverage
-	default:
-		return input.Annotations()
-	}
-
-	annotations, err := input.Annotations().Merge(creditrealization.LineageAnnotations(originKind))
-	if err != nil {
-		return input.Annotations()
-	}
-
-	return annotations
 }

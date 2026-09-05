@@ -59,6 +59,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			SchemaVersion:  ledger.EntrySchemaVersion(entry.SchemaVersion),
 			SourceChargeID: entry.SourceChargeID,
 			SpendChargeID:  entry.SpendChargeID,
+			OriginID:       entry.OriginID,
 			SubAccountID:   entry.SubAccountID,
 			AccountType:    account.AccountType,
 			Route: ledger.Route{
@@ -85,6 +86,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 	reconstructed, err := ledgerhistorical.NewTransactionFromData(
 		ledgerhistorical.TransactionData{
 			ID:          tx.ID,
+			GroupID:     tx.GroupID,
 			Namespace:   tx.Namespace,
 			Annotations: tx.Annotations,
 			CreatedAt:   tx.CreatedAt,
@@ -138,6 +140,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				SetSchemaVersion(int(entryInput.SchemaVersion())).
 				SetNillableSourceChargeID(entryInput.SourceChargeID()).
 				SetNillableSpendChargeID(entryInput.SpendChargeID()).
+				SetNillableOriginID(entryInput.OriginID()).
 				SetAnnotations(entryInput.Annotations()).
 				SetAmount(entryInput.Amount()).
 				SetTransactionID(entity.ID))
@@ -154,6 +157,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 		transaction, err := ledgerhistorical.NewTransactionFromData(
 			ledgerhistorical.TransactionData{
 				ID:          entity.ID,
+				GroupID:     entity.GroupID,
 				Namespace:   entity.Namespace,
 				Annotations: entity.Annotations,
 				CreatedAt:   entity.CreatedAt,
@@ -169,6 +173,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 					SchemaVersion:  ledger.EntrySchemaVersion(e.SchemaVersion),
 					SourceChargeID: e.SourceChargeID,
 					SpendChargeID:  e.SpendChargeID,
+					OriginID:       e.OriginID,
 					SubAccountID:   e.SubAccountID,
 					AccountType:    accountTypesBySubAccountID[e.SubAccountID],
 					Route:          routeBySubAccountID[e.SubAccountID],
@@ -298,6 +303,10 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		if err != nil {
 			return ledger.ListTransactionsResult{}, err
 		}
+		if input.OriginID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.Namespace(input.Namespace), ledgerentrydb.OriginID(*input.OriginID))
+		}
+
 		subAccountPredicates, err := listTransactionsSubAccountPredicates(input.AccountIDs, input.Currency, input.Route)
 		if err != nil {
 			return ledger.ListTransactionsResult{}, err
@@ -321,6 +330,9 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 
 		if input.TransactionID != nil {
 			query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
+		}
+		if input.OriginID != nil {
+			query = query.Where(ledgertransactiondb.HasEntriesWith(ledgerentrydb.Namespace(input.Namespace), ledgerentrydb.OriginID(*input.OriginID)))
 		}
 
 		if input.AsOf != nil {

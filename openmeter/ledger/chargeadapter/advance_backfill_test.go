@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
@@ -101,14 +102,21 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Then both persisted representations carry the same occurrence allocation.
+		// Then each original occurrence retains its exact journal backing.
+		require.Empty(t, result.BackfillAllocations, "new origins do not allocate legacy segments")
 		for i, run := range runs {
-			segments := env.activeSegmentsByRealization(t, run.CreditsAllocated)[run.CreditsAllocated[0].ID]
+			require.Empty(t, env.activeSegmentsByRealization(t, run.CreditsAllocated))
+			group, err := env.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{Namespace: env.Namespace, ID: groups[run.CreditsAllocated[0].ID]})
+			require.NoError(t, err)
+			origin := group.Transactions()[0].Entries()[0].OriginID()
+			require.NotNil(t, origin)
+			buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+				Namespace: env.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(env.CustomerAccounts.AccruedAccount.ID().ID), SourceChargeID: mo.Some(&purchase.ID), OriginID: mo.Some(origin)},
+			})
+			require.NoError(t, err)
 			var backed float64
-			for _, segment := range segments {
-				if lo.FromPtr(segment.BackingTransactionGroupID) == result.TransactionGroupID {
-					backed += segment.Amount.InexactFloat64()
-				}
+			for _, bucket := range buckets {
+				backed += bucket.SettledAmount.InexactFloat64()
 			}
 			require.Equal(t, scenario.perRun[i], backed, "run %d", i)
 		}
