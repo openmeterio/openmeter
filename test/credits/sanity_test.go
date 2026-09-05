@@ -3872,6 +3872,7 @@ func (s *SanitySuite) markLedgerEntriesLegacyBySpendChargeID(ctx context.Context
 		result, err := s.DBClient.ExecContext(ctx, `
 			UPDATE ledger_entries
 			SET schema_version = 1,
+                origin_id = NULL,
 				source_charge_id = NULL,
 				spend_charge_id = NULL,
 				identity_key = ''

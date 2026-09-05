@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Config struct {
@@ -181,6 +182,13 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		amounts, err := s.adapter.LoadLegacyBackfillAmounts(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.BackingTransactionGroupID})
+		if err != nil {
+			return err
+		}
+		if len(amounts) == 0 {
+			return nil
+		}
 		lineages, err := s.adapter.LockAdvanceLineagesForBackfill(ctx, input.Namespace, input.CustomerID, input.Currency.Reference())
 		if err != nil {
 			return fmt.Errorf("lock advance lineages for backfill: %w", err)
@@ -194,8 +202,13 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		}
 
 		lineageIDs := make([]string, 0, len(lineages))
+		chargeByLineage := make(map[string]string, len(lineages))
 		for _, entry := range lineages {
 			lineageIDs = append(lineageIDs, entry.ID)
+			chargeByLineage[entry.ID] = entry.ChargeID
+			if entry.LegacyNilSpend {
+				chargeByLineage[entry.ID] = ""
+			}
 		}
 
 		state := creditrealization.LineageSegmentStateAdvanceUncovered
@@ -215,7 +228,12 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 				break
 			}
 
-			coveredAmount := lineage.MinDecimal(segment.Amount, remaining)
+			key := chargeByLineage[segment.LineageID]
+			coveredAmount := lineage.MinDecimal(segment.Amount, lineage.MinDecimal(remaining, amounts[key]))
+			if !coveredAmount.IsPositive() {
+				continue
+			}
+			amounts[key] = amounts[key].Sub(coveredAmount)
 			if err := s.adapter.CloseSegment(ctx, segment.ID, now); err != nil {
 				return fmt.Errorf("close uncovered advance lineage segment %s: %w", segment.ID, err)
 			}

@@ -19,6 +19,7 @@ const (
 	balanceBucketFieldSubAccountID   = "sub_account_id"
 	balanceBucketFieldSourceChargeID = "source_charge_id"
 	balanceBucketFieldSpendChargeID  = "spend_charge_id"
+	balanceBucketFieldOriginID       = "origin_id"
 	balanceBucketFieldSumAmount      = "sum_amount"
 )
 
@@ -48,6 +49,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		buckets.C(balanceBucketFieldSubAccountID),
 		buckets.C(balanceBucketFieldSourceChargeID),
 		buckets.C(balanceBucketFieldSpendChargeID),
+		buckets.C(balanceBucketFieldOriginID),
 		buckets.C(balanceBucketFieldSumAmount),
 		subAccounts.C(ledgersubaccountdb.FieldRouteID),
 		accounts.C(ledgeraccountdb.FieldAccountType),
@@ -74,6 +76,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 			buckets.C(balanceBucketFieldSubAccountID),
 			buckets.C(balanceBucketFieldSourceChargeID),
 			buckets.C(balanceBucketFieldSpendChargeID),
+			buckets.C(balanceBucketFieldOriginID),
 		)
 	selector.SetDialect(dialect.Postgres)
 
@@ -98,6 +101,7 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	selector := sql.Select(entries.C(ledgerentrydb.FieldSubAccountID)).From(entries)
 	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupBySourceChargeID, ledgerentrydb.FieldSourceChargeID)
 	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupBySpendChargeID, ledgerentrydb.FieldSpendChargeID)
+	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupByOriginID, ledgerentrydb.FieldOriginID)
 	selector.AppendSelect(sql.As(sql.Sum(entries.C(ledgerentrydb.FieldAmount)), balanceBucketFieldSumAmount))
 	selector.SetDialect(dialect.Postgres)
 	for _, predicate := range entryPredicates {
@@ -110,6 +114,9 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	}
 	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupBySpendChargeID) {
 		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldSpendChargeID))
+	}
+	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupByOriginID) {
+		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldOriginID))
 	}
 	selector.GroupBy(groupColumns...)
 

@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -282,16 +281,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 		Currency:   tokens.Reference(),
 	})
 	s.Require().NoError(err)
-	advanceLineage, found := lo.Find(lineages, func(entry lineage.Lineage) bool {
-		return entry.ChargeID == usageChargeID && entry.OriginKind == creditrealization.LineageOriginKindAdvance
-	})
-	s.Require().True(found, "advance lineage is missing")
-	s.Equal([]string{usageFeature}, advanceLineage.AdvanceFeatures)
-	s.Require().Len(advanceLineage.Segments, 1)
-	s.Equal(float64(5), advanceLineage.Segments[0].Amount.InexactFloat64())
-	s.Equal(creditrealization.LineageSegmentStateAdvanceBackfilled, advanceLineage.Segments[0].State)
-	s.Require().NotNil(advanceLineage.Segments[0].BackingTransactionGroupID)
-	s.Equal(backfillPurchase.Realizations.CreditGrantRealization.TransactionGroupID, *advanceLineage.Segments[0].BackingTransactionGroupID)
+	s.Empty(lineages, "new collections must not create lineage state")
 }
 
 func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceUsesFiatCreditsAndSettlesRemainder() {
@@ -497,14 +487,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		Currency:   tokens.Reference(),
 	})
 	s.Require().NoError(err)
-	advanceLineage, found := lo.Find(lineages, func(entry lineage.Lineage) bool {
-		return entry.ChargeID == usageCharge.ID && entry.OriginKind == creditrealization.LineageOriginKindAdvance
-	})
-	s.Require().True(found, "initial advance lineage is missing")
-	s.Equal([]string{usageFeature}, advanceLineage.AdvanceFeatures)
-	s.Require().Len(advanceLineage.Segments, 1)
-	s.Equal(float64(10), advanceLineage.Segments[0].Amount.InexactFloat64())
-	s.Equal(creditrealization.LineageSegmentStateAdvanceUncovered, advanceLineage.Segments[0].State)
+	s.Empty(lineages, "new collections must not create lineage state")
 
 	// when:
 	// - a paid TOKENS purchase is restricted to another feature
@@ -551,13 +534,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		Currency:   tokens.Reference(),
 	})
 	s.Require().NoError(err)
-	advanceLineage, found = lo.Find(lineages, func(entry lineage.Lineage) bool {
-		return entry.ChargeID == usageCharge.ID && entry.OriginKind == creditrealization.LineageOriginKindAdvance
-	})
-	s.Require().True(found, "advance lineage after wrong-feature purchase is missing")
-	s.Require().Len(advanceLineage.Segments, 1)
-	s.Equal(float64(10), advanceLineage.Segments[0].Amount.InexactFloat64())
-	s.Equal(creditrealization.LineageSegmentStateAdvanceUncovered, advanceLineage.Segments[0].State)
+	s.Empty(lineages, "new collections must not create lineage state")
 
 	// when:
 	// - a matching paid purchase can cover only 6 of the 10 uncovered TOKENS
@@ -618,23 +595,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		Currency:   tokens.Reference(),
 	})
 	s.Require().NoError(err)
-	advanceLineage, found = lo.Find(lineages, func(entry lineage.Lineage) bool {
-		return entry.ChargeID == usageCharge.ID && entry.OriginKind == creditrealization.LineageOriginKindAdvance
-	})
-	s.Require().True(found, "partially backfilled advance lineage is missing")
-	s.Require().Len(advanceLineage.Segments, 2)
-	backfilledSegment, found := lo.Find(advanceLineage.Segments, func(segment lineage.Segment) bool {
-		return segment.State == creditrealization.LineageSegmentStateAdvanceBackfilled
-	})
-	s.Require().True(found, "backfilled lineage segment is missing")
-	s.Equal(float64(6), backfilledSegment.Amount.InexactFloat64())
-	s.Require().NotNil(backfilledSegment.BackingTransactionGroupID)
-	s.Equal(matchingPurchase.Realizations.CreditGrantRealization.TransactionGroupID, *backfilledSegment.BackingTransactionGroupID)
-	uncoveredSegment, found := lo.Find(advanceLineage.Segments, func(segment lineage.Segment) bool {
-		return segment.State == creditrealization.LineageSegmentStateAdvanceUncovered
-	})
-	s.Require().True(found, "uncovered lineage segment is missing")
-	s.Equal(float64(4), uncoveredSegment.Amount.InexactFloat64())
+	s.Empty(lineages, "new collections must not create lineage state")
 }
 
 func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNativeCreditsBeforeSelectiveFiatCoverage() {

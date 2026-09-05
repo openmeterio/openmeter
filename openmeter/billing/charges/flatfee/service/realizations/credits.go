@@ -479,6 +479,10 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 	charge flatfee.Charge,
 	realizations creditrealization.Realizations,
 ) (lineage.ActiveSegmentsByRealizationID, error) {
+	realizations = realizations.LegacyLineageRealizations()
+	if len(realizations) == 0 {
+		return lineage.ActiveSegmentsByRealizationID{}, nil
+	}
 	realizationIDs := lo.Map(realizations, func(realization creditrealization.Realization, _ int) string {
 		return realization.ID
 	})

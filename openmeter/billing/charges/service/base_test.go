@@ -607,3 +607,15 @@ func (s *BaseSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {
 	s.NoError(err)
 	return charge
 }
+
+// Ledger-backed services use the same provisioned customer accounts as production.
+func (s *BaseSuite) CreateTestCustomer(ns, subjectKey string) *customer.Customer {
+	cust := s.BaseSuite.CreateTestCustomer(ns, subjectKey)
+	if s.UseRealRecognizer || s.UseRealLedgerHandlers {
+		_, err := s.LedgerDeps.ResolversService.CreateCustomerAccounts(s.T().Context(), cust.GetID())
+		s.Require().NoError(err)
+		_, err = s.LedgerDeps.ResolversService.EnsureBusinessAccounts(s.T().Context(), ns)
+		s.Require().NoError(err)
+	}
+	return cust
+}

@@ -71,6 +71,10 @@ func (s *Service) createCreditRealizationLineages(
 	currency currencies.Currency,
 	realizations creditrealization.Realizations,
 ) error {
+	realizations = realizations.LegacyLineageRealizations()
+	if len(realizations) == 0 {
+		return nil
+	}
 	featureKey := charge.Intent.GetFeatureKey()
 	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,

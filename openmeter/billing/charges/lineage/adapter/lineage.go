@@ -186,6 +186,16 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 			return nil, err
 		}
 
+		nilSpend, err := (legacyNilSpendQuery{
+			namespace: namespace,
+			realizationIDs: lo.Map(lineages, func(entry *entdb.CreditRealizationLineage, _ int) string {
+				return entry.RootRealizationID
+			}),
+		}).Run(ctx, tx.db)
+		if err != nil {
+			return nil, fmt.Errorf("load legacy advance spend provenance: %w", err)
+		}
+
 		return lo.Map(lineages, func(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 			return lineage.Lineage{
 				ID:                entry.ID,
@@ -195,6 +205,7 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 				Currency:          currencies.CurrencyReference{Code: entry.Currency, CustomCurrencyID: entry.CustomCurrencyID},
 				OriginKind:        entry.OriginKind,
 				AdvanceFeatures:   []string(entry.AdvanceFeatures),
+				LegacyNilSpend:    nilSpend[entry.RootRealizationID],
 			}
 		}), nil
 	})

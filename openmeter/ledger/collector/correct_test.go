@@ -49,9 +49,7 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(20), allocations[0].Amount.InexactFloat64())
-	originKind, err := creditrealization.LineageOriginKindFromAnnotations(allocations[0].Annotations)
-	require.NoError(t, err)
-	require.Equal(t, creditrealization.LineageOriginKindReceivableCoverage, originKind)
+	require.Equal(t, true, allocations[0].Annotations[ledger.AnnotationOriginTracked])
 
 	// then: FBO -> receivable retains the purchased source and overage spend.
 	require.Equal(t, float64(10), env.SumBalance(t, fbo).InexactFloat64())
@@ -237,7 +235,9 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 		sourceSpendChargeKey(&unrestrictedSourceCharge, nil): float64(correctionAmount), // current FBO is restored by the corrected 10 before future breakage reopen nets it out.
 	})
 	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&unrestrictedSourceCharge, nil): float64(correctionAmount), // reopened breakage is source-attributed, but not spend-attributed.
+		sourceSpendChargeKey(&restrictedSourceCharge, nil):       float64(restrictedAmount),
+		sourceSpendChargeKey(&restrictedSourceCharge, &chargeID): -float64(restrictedAmount),
+		sourceSpendChargeKey(&unrestrictedSourceCharge, nil):     float64(correctionAmount),
 	})
 }
 
@@ -252,7 +252,7 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 	// when:
 	// - part of that collection is corrected
 	// then:
-	// - reopened breakage is attributed to the original source without spend provenance
+	// - reopened breakage offsets the exact source and spend release
 	priority := 1 // only one source is available, so priority just selects its FBO route.
 	sourceCharge := testChargeID(1)
 	spendCharge := testChargeID(2)
@@ -303,7 +303,8 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 		sourceSpendChargeKey(&sourceCharge, &spendCharge): float64(sourceAmount - correctionAmount), // 20 original accrued minus 8 corrected leaves 12 accrued to the spend.
 	})
 	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, nil): float64(correctionAmount), // the corrected slice is broken again under the original source, without spend attribution.
+		sourceSpendChargeKey(&sourceCharge, nil):          float64(sourceAmount),
+		sourceSpendChargeKey(&sourceCharge, &spendCharge): -float64(sourceAmount - correctionAmount),
 	})
 }
 
@@ -414,10 +415,7 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-remainingAdvance)))
 	require.True(t, env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).Equal(alpacadecimal.Zero))
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(remainingAdvance)))
-	requireFBOProvenanceBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(nil, nil):       float64(correctionAmount),  // accrual correction frees 10 back into unspent advance/FBO value.
-		sourceSpendChargeKey(nil, &chargeID): float64(-correctionAmount), // companion receivable correction removes 10 from the spend-backed advance issuance.
-	})
+	requireFBOProvenanceBalanceBuckets(t, env, map[string]float64{})
 	requireReceivableBalanceBuckets(t, env, map[string]float64{
 		sourceSpendChargeKey(nil, &chargeID): float64(-remainingAdvance), // receivable remains negative for the uncorrected 20 advance.
 	})

@@ -346,8 +346,8 @@ receivable.
 Settlement-fiat credits then cover part of that gross fiat receivable using the
 [collector's custom-currency CTI coverage rules](../../ledger/collector/README.md#custom-currency-cti-receivable-coverage).
 The invoice records the gross converted amount, credit coverage, and net amount
-due. Receivable-coverage lineage preserves the selected credit sources for
-correction but is excluded from earnings recognition because it represents no
+due. Receivable-coverage origins preserve the selected credit sources for
+correction but are excluded from earnings recognition because they represent no
 accrued value. Authorization and settlement move only the remaining receivable,
 using the invoice currency and the charge's persisted cost-basis route.
 
@@ -356,10 +356,10 @@ Charges persist no cross-run FX remainder, so later runs cannot carry or absorb
 an earlier run's rounding difference. Correction reverses the complete original
 conversion rather than partially recomputing it.
 
-Credit realization lineage identifies a managed currency by code and
-namespace-scoped currency ID, not display code alone. Advance, backfill, and
-earnings-recognized transitions therefore remain isolated when managed
-currencies reuse a code. `AdvanceCharges` recognizes credit-backed lineage in
+New credit realizations use ledger origins; pre-cutover realizations retain
+lineage compatibility. Both use the namespace-scoped managed currency ID in
+addition to code. Advance, backfill, and recognition therefore remain isolated
+when managed currencies reuse a code. `AdvanceCharges` recognizes credit-backed value in
 the charge's native currency only when accrued entries have distinct source-
 credit and spend-charge provenance. Accrued value without that provenance -
 including the same-charge custom overage and an unbackfilled advance - remains
