@@ -86,6 +86,10 @@ func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, ledger.Ba
 	return alpacadecimal.Zero, nil
 }
 
+func (Ledger) GetBalancesAtBoundaries(_ context.Context, input ledger.GetBalancesAtBoundariesInput) ([]ledger.Balance, error) {
+	return make([]ledger.Balance, len(input.Queries)), nil
+}
+
 func (Ledger) GetBalanceBuckets(context.Context, ledger.BalanceBucketQuery) ([]ledger.BalanceBucket, error) {
 	return nil, nil
 }

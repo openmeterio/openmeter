@@ -71,3 +71,12 @@ func (l *Ledger) sumEntries(ctx context.Context, query ledger.Query) (alpacadeci
 
 	return total, nil
 }
+
+// GetBalancesAtBoundaries reads every boundary in one database statement so a
+// filtered page does not need a round trip for each omitted interval.
+func (l *Ledger) GetBalancesAtBoundaries(ctx context.Context, input ledger.GetBalancesAtBoundariesInput) ([]ledger.Balance, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+	return l.repo.GetBalancesAtBoundaries(ctx, input)
+}

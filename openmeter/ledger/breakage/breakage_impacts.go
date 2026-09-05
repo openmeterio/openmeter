@@ -169,10 +169,6 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			Annotations: annotations,
 		}
 
-		if !breakageImpactMatchesCursorWindow(item, input.After, input.Before) {
-			continue
-		}
-
 		items = append(items, item)
 	}
 
@@ -180,9 +176,30 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		return -a.Cursor().Compare(b.Cursor())
 	})
 
+	// Apply offsets before cursor filtering so a page starting inside a shared
+	// timestamp retains the same balance as the complete projected history.
+	type boundaryKey struct {
+		at       time.Time
+		currency string
+	}
+	offsets := make(map[boundaryKey]alpacadecimal.Decimal)
+	selected := make([]BreakageImpact, 0, len(items))
+	for _, item := range items {
+		key := boundaryKey{at: item.BookedAt, currency: item.Currency.IdentityKey()}
+		item.BalanceOffset = offsets[key]
+		offsets[key] = offsets[key].Sub(item.Amount)
+		if breakageImpactMatchesCursorWindow(item, input.After, input.Before) {
+			selected = append(selected, item)
+		}
+	}
+	items = selected
 	hasMore := len(items) > input.Limit
 	if hasMore {
-		items = items[:input.Limit]
+		if input.Before != nil {
+			items = items[len(items)-input.Limit:]
+		} else {
+			items = items[:input.Limit]
+		}
 	}
 
 	return ListExpiredBreakageImpactsResult{

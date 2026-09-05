@@ -101,6 +101,14 @@ In a mixed-currency listing, `available_balance` is reconstructed independently
 for each currency identity even though the rows share one chronological stream.
 Custom-currency rows carry both their display code and `custom_currency_id`.
 
+Balances are resolved independently at each row's persisted boundary. Funded
+and consumed rows use their last contributing ledger transaction. Expired and
+voided rows are net projections at their booked timestamp: they include all
+postings at that timestamp, with later siblings of the same type and currency
+removed to retain stable balances within each terminal group. Across different
+types sharing one timestamp, these virtual before/after balances need not form a
+continuous chain. Type filtering and pagination preserve each row's balances.
+
 This matters when a purchase covers an existing advance. Its funded amount can
 be split between clearing the advance receivable and issuing the remainder to
 FBO. Impacts at the same effective time are shown as one funded row. If the
@@ -198,16 +206,11 @@ created_at
 transaction_id
 ```
 
-For expired rows, customerbalance uses the cursor from the newest breakage transaction that contributed to the visible net impact.
-
-Example:
-
-```text
-@T10 [plan]    created at C1
-@T10 [release] created at C2
-```
-
-The visible expired row is booked at `T10` and uses the `C2` cursor. This gives one stable customer-facing row for the expiry bucket while preserving cursor pagination.
+Expired rows use a synthetic cursor: expiry time for both timestamps and the
+first plan record ID for the source grant. Later releases or reopens change the
+net amount without changing that identity. Sibling offsets are calculated
+before cursor filtering, so a page starting within one expiry timestamp keeps
+the same balances as the full list.
 
 ## Type Filtering
 
@@ -217,7 +220,9 @@ If the caller requests a specific type:
 type=funded
 ```
 
-only funded rows are returned.
+only funded rows are returned. Type filtering changes row selection, not balance
+reconstruction: each returned row keeps the before/after balance from the
+complete movement history for its currency identity and feature scope.
 
 If the caller requests:
 
