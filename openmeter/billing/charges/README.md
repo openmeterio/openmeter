@@ -237,6 +237,12 @@ custom-currency purchases reference durable shared cost-basis state. Resolution
 time and charge creation time are not a validation invariant. The legacy
 settlement JSON column is deprecated and ignored.
 
+Credit purchases carry the ledger's booked accrued-backfill amounts per spend
+back to lineage persistence. Each spend consumes its own oldest uncovered
+segments; a purchase-wide amount cannot redistribute backing across spends.
+Source-less legacy attribution and receivable-only attribution do not make
+tracked usage lineage credit-backed.
+
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier
 one.
