@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -95,6 +96,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 		CreditVoidService:     creditvoid.NewNoopService(),
 		CurrencyResolver:      s.CurrencyResolver,
 		TransactionManager:    enttx.NewCreator(s.DBClient),
+		CreditsConfig:         config.CreditsConfiguration{EnableCustomCurrencyCharge: true},
 	})
 	s.Require().NoError(err)
 

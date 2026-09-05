@@ -103,6 +103,10 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 		return creditpurchase.Charge{}, fmt.Errorf("promotional credit purchases do not use payment-backed credit grants")
 	}
 
+	if err := charge.ValidateSettlementAmount(); err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
 	if charge.Realizations.CreditGrantRealization != nil && charge.Realizations.CreditGrantRealization.TransactionGroupID != "" {
 		return creditpurchase.Charge{}, fmt.Errorf("credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
 	}

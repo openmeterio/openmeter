@@ -65,6 +65,7 @@ func NewCreditVoidService(
 }
 
 func NewCreditGrantService(
+	creditsConfig config.CreditsConfiguration,
 	db *entdb.Client,
 	billingRegistry BillingRegistry,
 	customerService customer.Service,
@@ -83,6 +84,7 @@ func NewCreditGrantService(
 		CreditVoidService:     creditVoidService,
 		CurrencyResolver:      currencyResolver,
 		TransactionManager:    enttx.NewCreator(db),
+		CreditsConfig:         creditsConfig,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create credit grant service: %w", err)

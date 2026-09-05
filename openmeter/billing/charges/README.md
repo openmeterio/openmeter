@@ -225,6 +225,12 @@ catalog. A funded custom-currency grant uses the purchase's fiat currency and
 per-unit rate as a manual cost basis. For fiat grants, purchase and grant
 currency must match.
 
+Custom grants require `EnableCustomCurrencyCharge` for every funding method;
+disabled requests are rejected before charge persistence or credit issuance.
+Paid purchases must round to a positive amount in the settlement currency.
+Dynamic purchases enforce this after resolving their price, before granting
+credits; promotional grants do not enter the payment lifecycle.
+
 Persisted credit purchases read settlement and cost basis only from their
 dedicated fields. Fiat purchases persist their scalar rate on the charge row;
 custom-currency purchases reference durable shared cost-basis state. Resolution
