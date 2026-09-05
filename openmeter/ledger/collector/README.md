@@ -207,7 +207,14 @@ Net breakage is zero unless the original advance-backed usage is later corrected
 
 Usage correction restores previously collected value. It does not increase usage; it unwinds up to the original collected amount.
 
-Correction uses reverse original collection order.
+Correction uses reverse original collection order within the allocation's FBO
+subaccount. Repeated corrections subtract prior immutable correction links before
+selecting the next source slice. Breakage reopening uses that same selection.
+
+If a shared earnings-recognition group contains other spends or cost bases,
+correction reverses only the accrued route and source/spend provenance needed by
+the original collection or backfill unwind. Group membership alone is not
+sufficient to select recognized value.
 
 Example:
 

@@ -72,9 +72,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope Correcti
 		negativeAccruedEntries,
 		positiveEarningsEntries,
 		t.entryRoutePairingKey,
-		func(entry ledger.Entry) alpacadecimal.Decimal {
-			return entry.Amount().Abs()
-		},
+		scope.sourceEntryAmount,
 		scope.Amount,
 	)
 	if err != nil {
