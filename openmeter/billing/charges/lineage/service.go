@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
@@ -25,6 +26,7 @@ type Service interface {
 
 type Adapter interface {
 	entutils.TxCreator
+	LoadLegacyBackfillAmounts(ctx context.Context, groupID models.NamespacedID) (map[string]alpacadecimal.Decimal, error)
 
 	CreateLineages(ctx context.Context, input CreateLineagesInput) error
 	LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (ActiveSegmentsByRealizationID, error)

@@ -115,8 +115,8 @@ remaining receivable: RECEIVABLE -2
 
 Coverage preserves the original credit's source charge and records the charge
 whose receivable is covered as the spend charge. Correction restores the exact
-selected FBO sources and reopens their breakage releases. Its lineage records
-that correction provenance but is not eligible for earnings recognition because
+selected FBO sources and reopens their breakage releases. Each source slice has
+a collection origin, but is not eligible for earnings recognition because
 covering a receivable creates no accrued value.
 
 ## Source Entry Identity
@@ -139,6 +139,11 @@ The ledger entries carry source identity/order metadata:
 source #0 -> order 0
 source #1 -> order 1
 ```
+
+Every new source slice also receives an immutable `origin_id`. Its downstream
+backfill, recognition, and correction entries retain that origin. Two runs of
+the same spend charge consuming the same purchase therefore remain independently
+correctable. Reused FBO credit starts a fresh origin.
 
 That identity is not a second source of numeric truth. Amounts come from ledger entries. The identity only records the order in which committed source entries were selected.
 
@@ -207,7 +212,11 @@ Net breakage is zero unless the original advance-backed usage is later corrected
 
 Usage correction restores previously collected value. It does not increase usage; it unwinds up to the original collected amount.
 
-Correction uses reverse original collection order.
+Correction uses reverse original collection order. For origin-tracked entries it
+first reverses recognized earnings and advance backing, using exact original
+entry references and subtracting previous corrections. Pre-cutover allocations
+use the retained lineage compatibility path. See the
+[provenance design](../provenance-design.md) for rollout constraints.
 
 Example:
 

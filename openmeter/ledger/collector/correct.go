@@ -32,6 +32,7 @@ type accrualCorrector struct {
 // collectedSource is one logical “collection” in the group: the FBO→accrued
 // forward tx, plus the receivable issue when that slice was advance-backed.
 type collectedSource struct {
+	fboSubAccountID                   string
 	transaction                       ledger.Transaction
 	group                             ledger.TransactionGroup
 	advanceReceivableIssueTransaction ledger.Transaction
@@ -74,9 +75,19 @@ type resolvedCorrectionInputs struct {
 }
 
 func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAccruedInput) (creditrealization.CreateCorrectionInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
 	run := func(ctx context.Context) (creditrealization.CreateCorrectionInputs, error) {
 		if len(input.Corrections) == 0 {
 			return nil, nil
+		}
+		accounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID})
+		if err != nil {
+			return nil, err
+		}
+		if err := accounts.LockForPosting(ctx, c.deps.AccountCatalog); err != nil {
+			return nil, err
 		}
 
 		// Plan first, execute later, so we can merge overlapping corrections cleanly.
@@ -130,7 +141,12 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 
 		out := make(creditrealization.CreateCorrectionInputs, 0, len(input.Corrections))
 		for _, correction := range input.Corrections {
+			var annotations models.Annotations
+			if correction.Allocation.Annotations[ledger.AnnotationOriginTracked] == true {
+				annotations = models.Annotations{ledger.AnnotationOriginTracked: true}
+			}
 			out = append(out, creditrealization.CreateCorrectionInput{
+				Annotations: annotations,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: transactionGroup.ID().ID,
 				},
@@ -155,6 +171,11 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	source, err := c.collectedSourceBySortHint(originalGroup, correction.Allocation.SortHint)
 	if err != nil {
 		return nil, err
+	}
+	for _, entry := range source.transaction.Entries() {
+		if entry.OriginID() != nil {
+			return c.planOriginCorrection(ctx, input, source, correction.Amount.Abs())
+		}
 	}
 
 	// Older data may not have lineage yet, so fall back to first-order source correction.
@@ -588,6 +609,7 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 				SourceKind:     breakage.SourceKindUsageCorrection,
 				SourceChargeID: correctedEntry.entry.SourceChargeID(),
 				SpendChargeID:  correctedEntry.entry.SpendChargeID(),
+				OriginID:       correctedEntry.entry.OriginID(),
 			})
 			if err != nil {
 				return nil, nil, fmt.Errorf("resolve breakage reopen: %w", err)
@@ -690,9 +712,15 @@ func (c *accrualCorrector) collectedSourcesForGroup(group ledger.TransactionGrou
 			}
 		}
 
+		seenSubAccounts := make(map[string]bool)
 		for _, entry := range transaction.Entries() {
 			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative() {
+				if seenSubAccounts[entry.PostingAddress().SubAccountID()] {
+					continue
+				}
+				seenSubAccounts[entry.PostingAddress().SubAccountID()] = true
 				out = append(out, collectedSource{
+					fboSubAccountID:                   entry.PostingAddress().SubAccountID(),
 					transaction:                       transaction,
 					group:                             group,
 					advanceReceivableIssueTransaction: advanceReceivableIssueTransaction,

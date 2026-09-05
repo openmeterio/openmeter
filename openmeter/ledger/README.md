@@ -58,9 +58,13 @@ facts stored independently from the journal.
   preserves charge provenance and route pairing, links replacement postings to
   their source entries, and uses deterministic source order rather than
   recomputing an idealized replacement from current balances.
-- Entry identity records collection or correction linkage and source and spend
-  charge provenance when present. Template codes and transaction annotations
-  describe accounting meaning.
+- New credit collections mint an `origin_id` per original source slice. Backfill,
+  recognition, breakage release, and correction preserve it alongside source and
+  spend attribution. Core validators require each origin to balance independently.
+- Corrections reference both original legs; the journal supplies their remaining
+  reversible amounts. Only pre-cutover collections retain lineage state. See
+  [provenance design and migration](provenance-design.md) for the compatibility
+  boundary and writer cutover requirements.
 - Credit-backed earnings recognition consumes only accrued buckets whose
   source credit and spend charge are both present and distinct. Buckets without
   that provenance - including invoice-backed accrued value and unbackfilled

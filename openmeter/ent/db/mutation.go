@@ -100461,6 +100461,7 @@ type LedgerEntryMutation struct {
 	identity_key                   *string
 	schema_version                 *int
 	addschema_version              *int
+	origin_id                      *string
 	source_charge_id               *string
 	spend_charge_id                *string
 	amount                         *alpacadecimal.Decimal
@@ -100915,6 +100916,55 @@ func (m *LedgerEntryMutation) ResetSchemaVersion() {
 	m.addschema_version = nil
 }
 
+// SetOriginID sets the "origin_id" field.
+func (m *LedgerEntryMutation) SetOriginID(s string) {
+	m.origin_id = &s
+}
+
+// OriginID returns the value of the "origin_id" field in the mutation.
+func (m *LedgerEntryMutation) OriginID() (r string, exists bool) {
+	v := m.origin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOriginID returns the old "origin_id" field's value of the LedgerEntry entity.
+// If the LedgerEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerEntryMutation) OldOriginID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOriginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOriginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOriginID: %w", err)
+	}
+	return oldValue.OriginID, nil
+}
+
+// ClearOriginID clears the value of the "origin_id" field.
+func (m *LedgerEntryMutation) ClearOriginID() {
+	m.origin_id = nil
+	m.clearedFields[ledgerentry.FieldOriginID] = struct{}{}
+}
+
+// OriginIDCleared returns if the "origin_id" field was cleared in this mutation.
+func (m *LedgerEntryMutation) OriginIDCleared() bool {
+	_, ok := m.clearedFields[ledgerentry.FieldOriginID]
+	return ok
+}
+
+// ResetOriginID resets all changes to the "origin_id" field.
+func (m *LedgerEntryMutation) ResetOriginID() {
+	m.origin_id = nil
+	delete(m.clearedFields, ledgerentry.FieldOriginID)
+}
+
 // SetSourceChargeID sets the "source_charge_id" field.
 func (m *LedgerEntryMutation) SetSourceChargeID(s string) {
 	m.source_charge_id = &s
@@ -101227,7 +101277,7 @@ func (m *LedgerEntryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerEntryMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, ledgerentry.FieldNamespace)
 	}
@@ -101251,6 +101301,9 @@ func (m *LedgerEntryMutation) Fields() []string {
 	}
 	if m.schema_version != nil {
 		fields = append(fields, ledgerentry.FieldSchemaVersion)
+	}
+	if m.origin_id != nil {
+		fields = append(fields, ledgerentry.FieldOriginID)
 	}
 	if m.source_charge_id != nil {
 		fields = append(fields, ledgerentry.FieldSourceChargeID)
@@ -101288,6 +101341,8 @@ func (m *LedgerEntryMutation) Field(name string) (ent.Value, bool) {
 		return m.IdentityKey()
 	case ledgerentry.FieldSchemaVersion:
 		return m.SchemaVersion()
+	case ledgerentry.FieldOriginID:
+		return m.OriginID()
 	case ledgerentry.FieldSourceChargeID:
 		return m.SourceChargeID()
 	case ledgerentry.FieldSpendChargeID:
@@ -101321,6 +101376,8 @@ func (m *LedgerEntryMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldIdentityKey(ctx)
 	case ledgerentry.FieldSchemaVersion:
 		return m.OldSchemaVersion(ctx)
+	case ledgerentry.FieldOriginID:
+		return m.OldOriginID(ctx)
 	case ledgerentry.FieldSourceChargeID:
 		return m.OldSourceChargeID(ctx)
 	case ledgerentry.FieldSpendChargeID:
@@ -101393,6 +101450,13 @@ func (m *LedgerEntryMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSchemaVersion(v)
+		return nil
+	case ledgerentry.FieldOriginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOriginID(v)
 		return nil
 	case ledgerentry.FieldSourceChargeID:
 		v, ok := value.(string)
@@ -101473,6 +101537,9 @@ func (m *LedgerEntryMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgerentry.FieldDeletedAt) {
 		fields = append(fields, ledgerentry.FieldDeletedAt)
 	}
+	if m.FieldCleared(ledgerentry.FieldOriginID) {
+		fields = append(fields, ledgerentry.FieldOriginID)
+	}
 	if m.FieldCleared(ledgerentry.FieldSourceChargeID) {
 		fields = append(fields, ledgerentry.FieldSourceChargeID)
 	}
@@ -101498,6 +101565,9 @@ func (m *LedgerEntryMutation) ClearField(name string) error {
 		return nil
 	case ledgerentry.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case ledgerentry.FieldOriginID:
+		m.ClearOriginID()
 		return nil
 	case ledgerentry.FieldSourceChargeID:
 		m.ClearSourceChargeID()
@@ -101536,6 +101606,9 @@ func (m *LedgerEntryMutation) ResetField(name string) error {
 		return nil
 	case ledgerentry.FieldSchemaVersion:
 		m.ResetSchemaVersion()
+		return nil
+	case ledgerentry.FieldOriginID:
+		m.ResetOriginID()
 		return nil
 	case ledgerentry.FieldSourceChargeID:
 		m.ResetSourceChargeID()

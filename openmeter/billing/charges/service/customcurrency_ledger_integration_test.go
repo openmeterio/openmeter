@@ -742,16 +742,14 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 		Currency:   currencies.NewCurrencyReference(USD),
 	})
 	s.Require().NoError(err)
-	// The 3 USD coverage is one real-credit realization owned by the overage
-	// charge. Its lineage lets later correction unwind the allocation's current
-	// segment state instead of using the legacy first-order fallback.
-	s.Require().Len(lineages, 1)
-	s.Equal(input.ChargeID, lineages[0].ChargeID)
-	s.Equal(input.FiatCreditRealization.ID, lineages[0].RootRealizationID)
-	s.Equal(creditrealization.LineageOriginKindReceivableCoverage, lineages[0].OriginKind)
-	s.Require().Len(lineages[0].Segments, 1)
-	s.Equal(float64(3), lineages[0].Segments[0].Amount.InexactFloat64())
-	s.Equal(creditrealization.LineageSegmentStateReceivableCoverage, lineages[0].Segments[0].State)
+	// New coverage is corrected from its ledger origin, with no lineage side state.
+	s.Empty(lineages)
+	s.Equal(true, input.FiatCreditRealization.Annotations[ledger.AnnotationOriginTracked])
+	for _, tx := range coverageGroup.Transactions() {
+		for _, entry := range tx.Entries() {
+			s.NotNil(entry.OriginID())
+		}
+	}
 }
 
 type requireCustomCurrencyCorrectionOutcomeInput struct {
@@ -813,18 +811,15 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyCorrecti
 	s.requireAccountBalance(accounts.FBOAccount, fiatFilter, 3)
 	s.requireAccountBalance(accounts.ReceivableAccount, fiatFilter, 0)
 
-	// The lineage root remains as audit history, but its full allocation segment
-	// is closed so no active fiat coverage remains attached to the deleted run.
+	// The immutable journal retains the origin and its reversal without lineage.
 	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
 		Namespace:  input.Namespace,
 		CustomerID: input.CustomerID.ID,
 		Currency:   currencies.NewCurrencyReference(USD),
 	})
 	s.Require().NoError(err)
-	s.Require().Len(lineages, 1)
-	s.Equal(input.ChargeID, lineages[0].ChargeID)
-	s.Equal(input.OriginalFiatRealization.ID, lineages[0].RootRealizationID)
-	s.Empty(lineages[0].Segments)
+	s.Empty(lineages)
+	s.Equal(true, correction.Annotations[ledger.AnnotationOriginTracked])
 }
 
 type requireSettledCustomCurrencyPaymentInput struct {

@@ -20,6 +20,7 @@ type balanceBucketRow struct {
 	SubAccountID                   string
 	SourceChargeID                 stdsql.NullString
 	SpendChargeID                  stdsql.NullString
+	OriginID                       stdsql.NullString
 	SumAmount                      stdsql.NullString
 	RouteID                        string
 	AccountType                    string
@@ -74,6 +75,7 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.SubAccountID,
 		&r.SourceChargeID,
 		&r.SpendChargeID,
+		&r.OriginID,
 		&r.SumAmount,
 		&r.RouteID,
 		&r.AccountType,
@@ -146,6 +148,8 @@ func balanceBucketGroupByValues(groupBy []string, row balanceBucketRow) map[stri
 		switch dimension {
 		case ledger.BalanceBucketGroupBySourceChargeID:
 			values[dimension] = nullableStringValue(row.SourceChargeID)
+		case ledger.BalanceBucketGroupByOriginID:
+			values[dimension] = nullableStringValue(row.OriginID)
 		case ledger.BalanceBucketGroupBySpendChargeID:
 			values[dimension] = nullableStringValue(row.SpendChargeID)
 		}

@@ -221,7 +221,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(
 
 func TestOnUsageBasedCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testing.T) {
 	env := newUsageBasedHandlerTestEnv(t)
-	sourceChargeID := "fiat-credit-source"
+	sourceChargeID := "01J00000000000000000000006"
 	fbo := env.fundPriorityForSource(t, 1, 6, sourceChargeID)
 
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
@@ -682,12 +682,24 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 
 	// Backfilling the first managed currency's uncovered advance must not touch
 	// the second managed currency's lineage, even though both share "ACME".
+	// The compatibility transition is bounded by the actual legacy journal posting.
+	inputs, err := transactions.ResolveTransactions(t.Context(), transactions.ResolverDependencies{
+		AccountService: env.Deps.ResolversService, AccountCatalog: env.Deps.AccountService, BalanceQuerier: env.Deps.HistoricalLedger,
+	}, transactions.ResolutionScope{CustomerID: env.CustomerID, Namespace: env.Namespace},
+		transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
+			At: env.Now(), Amount: alpacadecimal.NewFromInt(30), Currency: firstCurrency.Reference(),
+			CostBasis: lo.ToPtr(alpacadecimal.NewFromFloat(.5)), CostBasisCurrency: lo.ToPtr(currencyx.Code("USD")),
+			SpendChargeID: &firstChargeID, SourceChargeID: lo.ToPtr(ulid.Make().String()),
+		})
+	require.NoError(t, err)
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
 	err = env.lineage.BackfillAdvanceLineageSegments(t.Context(), lineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 env.Namespace,
 		CustomerID:                env.CustomerID.ID,
 		Currency:                  firstCurrency,
 		Amount:                    alpacadecimal.NewFromInt(30),
-		BackingTransactionGroupID: ulid.Make().String(),
+		BackingTransactionGroupID: group.ID().ID,
 	})
 	require.NoError(t, err)
 
@@ -755,7 +767,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditsOnlyCharge(t *testing
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
-				ID: "usage-based-charge-cc",
+				ID: "01J00000000000000000000005",
 			},
 			Intent: chargeusagebased.Intent{
 				Intent: meta.Intent{
@@ -817,7 +829,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *t
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
-				ID: "usage-based-charge-cc-cti",
+				ID: "01J00000000000000000000004",
 			},
 			Intent: chargeusagebased.Intent{
 				Intent: meta.Intent{

@@ -126,6 +126,7 @@ func (t TransferCustomerFBOToAccruedTemplate) entryRoutePairingKey(entry ledger.
 	key := t.routePairingKey(entry.PostingAddress())
 	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
 	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
+	key.originID = lo.FromPtrOr(entry.OriginID(), "null")
 
 	return key
 }
@@ -134,6 +135,7 @@ func (t TransferCustomerFBOToAccruedTemplate) sourceRoutePairingKey(source Posti
 	key := t.routePairingKey(source.Address)
 	key.sourceChargeID = lo.FromPtrOr(source.Identity.SourceChargeID, "null")
 	key.spendChargeID = lo.FromPtrOr(source.Identity.SpendChargeID, "null")
+	key.originID = lo.FromPtrOr(source.Identity.OriginID, "null")
 
 	return key
 }
@@ -215,6 +217,7 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 			current.Address = accruedSubAccount.Address()
 			current.Identity = ledger.EntryIdentityParts{
 				SourceChargeID: source.Identity.SourceChargeID,
+				OriginID:       source.Identity.OriginID,
 				SpendChargeID:  source.Identity.SpendChargeID,
 			}
 		}
@@ -290,6 +293,7 @@ type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	Features          []string
 	SourceChargeID    *string
 	SpendChargeID     *string
+	OriginID          *string
 	CreditPriority    *int
 }
 
@@ -432,6 +436,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
 					SourceChargeID: t.SourceChargeID,
+					OriginID:       t.OriginID,
 					SpendChargeID:  t.SpendChargeID,
 				},
 			},
@@ -440,6 +445,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
 					SourceChargeID: t.SourceChargeID,
+					OriginID:       t.OriginID,
 					SpendChargeID:  t.SpendChargeID,
 				},
 			},
@@ -551,6 +557,7 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 
 // TranslateCustomerAccruedCostBasisTemplate moves accrued balance between cost-basis buckets
 // without changing account type or currency.
+
 type TranslateCustomerAccruedCostBasisTemplate struct {
 	At            time.Time
 	Amount        alpacadecimal.Decimal
@@ -564,6 +571,7 @@ type TranslateCustomerAccruedCostBasisTemplate struct {
 	CostBasisCurrency *currencyx.Code
 	SourceChargeID    *string
 	SpendChargeID     *string
+	OriginID          *string
 }
 
 func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
@@ -710,6 +718,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 				address: fromAccrued.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
+					OriginID:      t.OriginID,
 					SpendChargeID: t.SpendChargeID,
 				},
 			},
@@ -718,6 +727,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
 					SourceChargeID: t.SourceChargeID,
+					OriginID:       t.OriginID,
 					SpendChargeID:  t.SpendChargeID,
 				},
 			},

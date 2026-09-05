@@ -77,6 +77,7 @@ type TransactionGroupData struct {
 }
 
 type TransactionData struct {
+	GroupID     string
 	ID          string
 	Namespace   string
 	Annotations models.Annotations

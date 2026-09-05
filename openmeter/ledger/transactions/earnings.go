@@ -18,9 +18,11 @@ import (
 // RecognizeEarningsFromAttributableAccruedTemplate recognizes up to Amount from accrued
 // routes that already have a known cost basis. Unknown-cost accrued balances are skipped.
 type RecognizeEarningsFromAttributableAccruedTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencies.CurrencyReference
+	// OriginTracked selects the provenance pool; false is the legacy pool.
+	OriginTracked bool
+	At            time.Time
+	Amount        alpacadecimal.Decimal
+	Currency      currencies.CurrencyReference
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
@@ -100,18 +102,20 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 		costBasis:         costBasisKey(route.CostBasis),
 		sourceChargeID:    lo.FromPtrOr(identity.SourceChargeID, "null"),
 		spendChargeID:     lo.FromPtrOr(identity.SpendChargeID, "null"),
+		originID:          lo.FromPtrOr(identity.OriginID, "null"),
 	}
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
 	return t.routePairingKey(entry.PostingAddress(), ledger.EntryIdentityParts{
 		SourceChargeID: entry.SourceChargeID(),
+		OriginID:       entry.OriginID(),
 		SpendChargeID:  entry.SpendChargeID(),
 	})
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	collections, err := collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers)
+	collections, err := collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers, t.OriginTracked, t.At)
 	if err != nil {
 		return nil, fmt.Errorf("collect from attributable accrued: %w", err)
 	}

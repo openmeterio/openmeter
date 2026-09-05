@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -30,6 +31,8 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -304,7 +307,7 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 }
 
 func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFiltersByAdvanceFeatures() {
-	ctx := context.Background()
+	ctx := s.T().Context()
 	adapter, err := lineageadapter.New(lineageadapter.Config{
 		Client: s.DBClient,
 	})
@@ -316,10 +319,26 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 	s.Require().NoError(err)
 
 	ns := s.GetUniqueNamespace("charges-service-lineage-feature-backfill")
-	customerID := ulid.Make().String()
+	cust := s.CreateTestCustomer(ns, "backfill")
+	customerID := cust.ID
 	apiLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"api-calls"}, alpacadecimal.NewFromInt(40))
 	storageLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"storage"}, alpacadecimal.NewFromInt(30))
-	backingTransactionGroupID := ulid.Make().String()
+	// Record the real legacy attribution that bounds the compatibility transition.
+	deps, err := ledgertestutils.InitDeps(s.DBClient, slog.Default())
+	s.Require().NoError(err)
+	_, err = deps.ResolversService.CreateCustomerAccounts(ctx, cust.GetID())
+	s.Require().NoError(err)
+	_, err = deps.ResolversService.EnsureBusinessAccounts(ctx, ns)
+	s.Require().NoError(err)
+	inputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{AccountService: deps.ResolversService, AccountCatalog: deps.AccountService, BalanceQuerier: deps.HistoricalLedger},
+		transactions.ResolutionScope{CustomerID: cust.GetID(), Namespace: ns}, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
+			At: clock.Now(), Amount: alpacadecimal.NewFromInt(40), Currency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)), CostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)),
+			AdvanceFeatures: []string{"api-calls"}, AttributedFeatures: []string{"api-calls"}, SourceChargeID: lo.ToPtr(ulid.Make().String()),
+		})
+	s.Require().NoError(err)
+	group, err := deps.HistoricalLedger.CommitGroup(ctx, transactions.GroupInputs(ns, nil, inputs...))
+	s.Require().NoError(err)
+	backingTransactionGroupID := group.ID().ID
 
 	err = service.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 ns,
