@@ -84,6 +84,7 @@ type testEnv struct {
 
 	BreakageService   ledgerbreakage.Service
 	CreditVoidService creditvoid.Service
+	Currencies        currencies.Service
 	Service           *service
 	creditPurchase    creditpurchase.Service
 	flatFeeService    flatfee.Service
@@ -362,6 +363,7 @@ func newTestEnv(t *testing.T) *testEnv {
 			usageBasedService:     usageService,
 		},
 		UsageBasedService: usageService,
+		Currencies:        currencyService,
 		Ledger:            base.Deps.HistoricalLedger,
 		BalanceQuerier:    base.Deps.HistoricalLedger,
 		Breakage:          breakageService,
@@ -373,6 +375,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		IntegrationEnv:    base,
 		BreakageService:   breakageService,
 		CreditVoidService: creditVoidService,
+		Currencies:        currencyService,
 		Service:           service,
 		creditPurchase:    creditPurchaseService,
 		flatFeeService:    flatFeeService,
@@ -417,6 +420,10 @@ func (e *testEnv) bookFBOBalanceWithFeatures(t *testing.T, amount alpacadecimal.
 }
 
 func (e *testEnv) bookFBOBalanceInCurrencyWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features []string) {
+	e.bookFBOBalanceInCurrencyReferenceWithFeatures(t, amount, e.currencyReference(currency), features)
+}
+
+func (e *testEnv) bookFBOBalanceInCurrencyReferenceWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencies.CurrencyReference, features []string) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -433,7 +440,7 @@ func (e *testEnv) bookFBOBalanceInCurrencyWithFeatures(t *testing.T, amount alpa
 		transactions.IssueCustomerReceivableTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: e.currencyReference(currency),
+			Currency: currency,
 			Features: features,
 		},
 	)
@@ -456,6 +463,10 @@ func (e *testEnv) fundOpenReceivableWithFeatures(t *testing.T, amount alpacadeci
 }
 
 func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features []string) {
+	e.fundOpenReceivableInCurrencyReferenceWithFeatures(t, amount, e.currencyReference(currency), features)
+}
+
+func (e *testEnv) fundOpenReceivableInCurrencyReferenceWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencies.CurrencyReference, features []string) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -472,13 +483,13 @@ func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount 
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: e.currencyReference(currency),
+			Currency: currency,
 			Features: features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: e.currencyReference(currency),
+			Currency: currency,
 			Features: features,
 		},
 	)

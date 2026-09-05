@@ -341,7 +341,9 @@ charge, and converts the resulting custom receivable into the authoritative
 rounded fiat receivable in one atomic transaction group. The booking reuses the
 persisted cost basis and keeps the native amount and fiat provenance on the
 accrued route. It leaves neither spendable custom balance nor an open custom
-receivable.
+receivable. Its temporary issuance and consumption are internal accounting
+movements and are excluded from the customer-facing
+[credit transaction view](../../ledger/customerbalance/README.md#transaction-listing).
 
 Settlement-fiat credits then cover part of that gross fiat receivable using the
 [collector's custom-currency CTI coverage rules](../../ledger/collector/README.md#custom-currency-cti-receivable-coverage).

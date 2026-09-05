@@ -139,6 +139,13 @@ func (h *customCurrencyOverageHandler) book(ctx context.Context, input bookCusto
 		return ledgertransaction.GroupReference{}, err
 	}
 
+	annotations, err := input.Annotations.Merge(models.Annotations{
+		ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+	})
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("merge custom-currency overage annotations: %w", err)
+	}
+
 	customerID := customer.CustomerID{
 		Namespace: input.Namespace,
 		ID:        input.CustomerID,
@@ -186,13 +193,13 @@ func (h *customCurrencyOverageHandler) book(ctx context.Context, input bookCusto
 
 	for i, transactionInput := range inputs {
 		if transactionInput != nil {
-			inputs[i] = transactions.WithAnnotations(transactionInput, input.Annotations)
+			inputs[i] = transactions.WithAnnotations(transactionInput, annotations)
 		}
 	}
 
 	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
 		input.Namespace,
-		input.Annotations,
+		annotations,
 		inputs...,
 	))
 	if err != nil {
@@ -209,6 +216,13 @@ func (h *customCurrencyOverageHandler) book(ctx context.Context, input bookCusto
 func (h *customCurrencyOverageHandler) correct(ctx context.Context, input correctCustomCurrencyOverageInput) error {
 	if err := input.Validate(); err != nil {
 		return err
+	}
+
+	annotations, err := input.Annotations.Merge(models.Annotations{
+		ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+	})
+	if err != nil {
+		return fmt.Errorf("merge custom-currency overage correction annotations: %w", err)
 	}
 
 	originalGroup, err := h.ledger.GetTransactionGroup(ctx, models.NamespacedID{
@@ -264,13 +278,13 @@ func (h *customCurrencyOverageHandler) correct(ctx context.Context, input correc
 		}
 
 		for _, correctionInput := range resolved {
-			correctionInputs = append(correctionInputs, transactions.WithAnnotations(correctionInput, input.Annotations))
+			correctionInputs = append(correctionInputs, transactions.WithAnnotations(correctionInput, annotations))
 		}
 	}
 
 	if _, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
 		input.Namespace,
-		input.Annotations,
+		annotations,
 		correctionInputs...,
 	)); err != nil {
 		return fmt.Errorf("commit correction transaction group: %w", err)

@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -752,6 +753,31 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	s.Require().Len(lineages[0].Segments, 1)
 	s.Equal(float64(3), lineages[0].Segments[0].Amount.InexactFloat64())
 	s.Equal(creditrealization.LineageSegmentStateReceivableCoverage, lineages[0].Segments[0].State)
+
+	// The custom FBO and receivable were temporary accounting routes, not a
+	// customer credit balance. The real USD credit remains the only discoverable
+	// balance identity.
+	balanceService, err := customerbalance.New(customerbalance.Config{
+		AccountResolver:   s.LedgerDeps.ResolversService,
+		SubAccountService: s.LedgerDeps.AccountService,
+		ChargesService:    s.Charges,
+		UsageBasedService: s.UsageBasedService,
+		Currencies:        s.CurrencyService,
+		Ledger:            s.LedgerDeps.HistoricalLedger,
+		BalanceQuerier:    s.LedgerDeps.HistoricalLedger,
+	})
+	s.Require().NoError(err)
+	balanceFacade, err := customerbalance.NewFacade(balanceService)
+	s.Require().NoError(err)
+	balanceAsOf := coverageGroup.Transactions()[0].BookedAt()
+	balances, err := balanceFacade.GetBalances(ctx, customerbalance.GetBalancesInput{
+		CustomerID: input.CustomerID,
+		AsOf:       &balanceAsOf,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(balances, 1)
+	s.Equal(USD, balances[0].Currency)
+	s.Nil(balances[0].CustomCurrencyID)
 }
 
 type requireCustomCurrencyCorrectionOutcomeInput struct {

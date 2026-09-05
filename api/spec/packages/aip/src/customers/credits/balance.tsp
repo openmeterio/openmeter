@@ -33,6 +33,12 @@ model CreditBalance {
   currency: Currencies.CurrencyCode;
 
   /**
+   * Immutable managed currency identifier. Present only for custom currencies.
+   */
+  @visibility(Lifecycle.Read)
+  custom_currency_id?: Shared.ULID;
+
+  /**
    * Credits available after applying currently live charge impacts.
    *
    * Always zero for historical balance queries using the `timestamp` parameter

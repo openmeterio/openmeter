@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -113,6 +114,63 @@ func TestListCreditTransactionsExpiredBreakage(t *testing.T) {
 			requireExpiredTransactions(t, issuedAt, expired.Items, tt.expectedExpired)
 		})
 	}
+}
+
+func TestListCreditTransactionsExpiredBreakagePreservesCustomCurrencyIdentity(t *testing.T) {
+	env := newTestEnv(t)
+	alpha := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
+	beta := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
+	env.Currency = alpha.GetCode()
+
+	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	expiresAt := issuedAt.Add(time.Hour)
+	clock.FreezeTime(issuedAt)
+	t.Cleanup(clock.UnFreeze)
+
+	for _, grant := range []struct {
+		currency currencies.CurrencyReference
+		amount   int64
+	}{
+		{currency: alpha.Reference(), amount: 10},
+		{currency: beta.Reference(), amount: 20},
+	} {
+		amount := alpacadecimal.NewFromInt(grant.amount)
+		env.bookFBOBalanceInCurrencyReferenceWithFeatures(t, amount, grant.currency, nil)
+		env.fundOpenReceivableInCurrencyReferenceWithFeatures(t, amount, grant.currency, nil)
+
+		inputs, pending, err := env.BreakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
+			CustomerID: env.CustomerID,
+			Amount:     amount,
+			Currency:   grant.currency,
+			ExpiresAt:  expiresAt,
+		})
+		require.NoError(t, err)
+		env.commitBreakageRecords(t, inputs, pending)
+	}
+
+	expiredType := CreditTransactionTypeExpired
+	history, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         10,
+		Type:          &expiredType,
+		Currency:      &env.Currency,
+		AsOf:          &expiresAt,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+	require.Len(t, history.Items, 2)
+	expiredByCurrencyID := make(map[string]CreditTransaction, len(history.Items))
+	for _, item := range history.Items {
+		require.Equal(t, CreditTransactionTypeExpired, item.Type)
+		require.NotNil(t, item.CustomCurrencyID)
+		expiredByCurrencyID[*item.CustomCurrencyID] = item
+	}
+	require.Equal(t, float64(-10), expiredByCurrencyID[alpha.ID].Amount.InexactFloat64())
+	require.Equal(t, float64(10), expiredByCurrencyID[alpha.ID].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(0), expiredByCurrencyID[alpha.ID].Balance.After.InexactFloat64())
+	require.Equal(t, float64(-20), expiredByCurrencyID[beta.ID].Amount.InexactFloat64())
+	require.Equal(t, float64(20), expiredByCurrencyID[beta.ID].Balance.Before.InexactFloat64())
+	require.Equal(t, float64(0), expiredByCurrencyID[beta.ID].Balance.After.InexactFloat64())
 }
 
 func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
