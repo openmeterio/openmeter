@@ -158,6 +158,9 @@ func ValidateTransactionInputWith(ctx context.Context, transaction TransactionIn
 	if err := ValidateInvariance(ctx, entries); err != nil {
 		return err
 	}
+	if err := ValidateOriginProvenance(entries); err != nil {
+		return err
+	}
 
 	if routingValidator != nil {
 		if err := routingValidator.ValidateEntries(transaction.EntryInputs()); err != nil {

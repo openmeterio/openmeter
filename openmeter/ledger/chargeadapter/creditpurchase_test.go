@@ -686,6 +686,7 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 type creditPurchaseHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	handler               chargecreditpurchase.Handler
+	breakage              ledgerbreakage.Service
 	currency              currencies.Currency
 	lineage               lineage.Service
 	originalAdvanceGroups map[string]string
@@ -726,6 +727,7 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 	return &creditPurchaseHandlerTestEnv{
 		IntegrationEnv:        base,
 		handler:               handler,
+		breakage:              breakageService,
 		lineage:               lineageService,
 		originalAdvanceGroups: map[string]string{},
 		currency:              currenciestestutils.NewFiatCurrency(t, "USD"),
