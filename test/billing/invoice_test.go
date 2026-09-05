@@ -4905,6 +4905,33 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		s.Require().NotNil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
 		s.Equal(float64(7), invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity.InexactFloat64())
 	})
+
+	s.Run("And the repaired invoice can be issued with the recovered amount", func() {
+		// given: retry has restored the original line's metered quantity and removed its dependency error.
+		invoiceID := invoice.GetInvoiceID()
+		mockApp := s.SandboxApp.EnableMock(s.T())
+		defer s.SandboxApp.DisableMock()
+		mockApp.OnFinalizeStandardInvoice(nil)
+		mockApp.OnUpsertStandardInvoice(func(actual billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+			s.Equal(float64(7), actual.Totals.Total.InexactFloat64())
+			s.Empty(actual.ValidationIssues)
+			return billing.NewUpsertStandardInvoiceResult(), nil
+		})
+
+		// when: the recovered invoice is approved for issuance.
+		var err error
+		invoice, err = s.BillingService.ApproveInvoice(ctx, invoiceID)
+		s.Require().NoError(err)
+
+		// then: the same invoice and line reach issuance with the actual usage, and finalize runs once.
+		s.Equal(invoiceID, invoice.GetInvoiceID())
+		s.Equal(pendingLineID, invoice.Lines.OrEmpty()[0].ID)
+		s.NotNil(invoice.IssuedAt)
+		s.Equal(float64(7), invoice.Totals.Total.InexactFloat64())
+		s.Empty(invoice.ValidationIssues)
+		s.Equal(1, mockApp.FinalizeInvoiceCallCount())
+		mockApp.AssertExpectations(s.T())
+	})
 }
 
 func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {

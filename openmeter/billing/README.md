@@ -124,6 +124,10 @@ Post-collection validation failures use `draft.invalid` and retry validation
 instead. Operational snapshot failures abort collection instead of persisting
 an incomplete invoice.
 
+The [legacy retryability assessment](docs/retryability.md) records the tested
+dependency-recovery flows and the remaining gaps in creation, retry, deletion,
+and API reporting.
+
 Before external invoice finalization, billing invokes each line engine's line
 finalization callback. Engines return fully calculated lines with unchanged
 line IDs; billing replaces those lines, sums their totals, and persists the

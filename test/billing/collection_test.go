@@ -28,6 +28,108 @@ func TestCollection(t *testing.T) {
 	suite.Run(t, new(CollectionTestSuite))
 }
 
+func (s *LegacyDependencyRecoverySuite) TestNotDueBrokenLinesDoNotBlockHealthyCollection() {
+	for _, dependency := range []string{"feature", "meter"} {
+		s.Run(dependency, func() {
+			// given: healthy flat fees are due before usage lines whose dependencies have disappeared.
+			f := s.newDependencyFixture()
+			clock.FreezeTime(f.period.From)
+			defer clock.UnFreeze()
+			dueAt := f.period.From.Add(15 * 24 * time.Hour)
+			healthy := f.usageLine("due flat fee")
+			healthy.FeatureKey = ""
+			healthy.InvoiceAt = dueAt
+			healthy.ServicePeriod.To = dueAt
+			healthy.Price = *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount: alpacadecimal.NewFromInt(10), PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			})
+			created := s.createDependencyLines(f, healthy, f.usageLine("future usage"))
+			code := billing.ErrInvoiceLineFeatureNotFound.Code
+			if dependency == "meter" {
+				s.Require().NoError(s.MeterAdapter.ReplaceMeters(s.T().Context(), nil))
+				code = billing.ErrInvoiceLineFeatureHasNoMeters.Code
+			} else {
+				s.Require().NoError(s.DBClient.Feature.DeleteOneID(f.feature.ID).Exec(s.T().Context()))
+			}
+
+			// when: collection first runs at the healthy line's due time.
+			clock.FreezeTime(dueAt.Add(2 * time.Hour))
+			defer clock.UnFreeze()
+			invoice := s.collectDependencyInvoice(f, dueAt)
+
+			// then: only the healthy line is issued and the future line retains its gathering identity and period.
+			s.Require().Len(invoice.Lines.OrEmpty(), 1)
+			s.Equal(created.Lines[0].ID, invoice.Lines.OrEmpty()[0].ID)
+			s.requireInvoiceReadyForApproval(invoice, 10)
+			invoiceApp := s.expectInvoiceIssuance(10)
+			issuedInvoice, err := s.BillingService.ApproveInvoice(s.T().Context(), invoice.GetInvoiceID())
+			s.Require().NoError(err)
+			s.requirePersistedIssuedInvoice(issuedInvoice, invoice, 10)
+			s.requireInvoiceFinalizedOnce(invoiceApp)
+			s.SandboxApp.DisableMock()
+			gathering, err := s.BillingService.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+				Invoice: created.Invoice.GetInvoiceID(), Expand: billing.GatheringInvoiceExpandAll,
+			})
+			s.Require().NoError(err)
+			s.Require().Len(gathering.Lines.OrEmpty(), 1)
+			s.Equal(created.Lines[1].ID, gathering.Lines.OrEmpty()[0].ID)
+			s.True(f.period.Equal(gathering.Lines.OrEmpty()[0].ServicePeriod))
+			clock.FreezeTime(f.period.To.Add(2 * time.Hour))
+			defer clock.UnFreeze()
+			broken := s.collectDependencyInvoice(f, f.period.To)
+			s.requireDependencyIssues(broken, map[string]string{created.Lines[1].ID: code})
+		})
+	}
+}
+
+func (s *LegacyDependencyRecoverySuite) TestBrokenDependencyFallbackWaitsForInvoiceAt() {
+	for _, dependency := range []string{"feature", "meter"} {
+		s.Run(dependency, func() {
+			// given: progressive billing is enabled, but the missing dependency requires non-progressive fallback.
+			f := s.newDependencyFixture(WithProgressiveBilling())
+			clock.FreezeTime(f.period.From)
+			defer clock.UnFreeze()
+			line := f.usageLine("delayed usage")
+			line.InvoiceAt = f.period.To.Add(7 * 24 * time.Hour)
+			created := s.createDependencyLines(f, line)
+			code := billing.ErrInvoiceLineFeatureNotFound.Code
+			if dependency == "meter" {
+				s.Require().NoError(s.MeterAdapter.ReplaceMeters(s.T().Context(), nil))
+				code = billing.ErrInvoiceLineFeatureHasNoMeters.Code
+			} else {
+				s.Require().NoError(s.DBClient.Feature.DeleteOneID(f.feature.ID).Exec(s.T().Context()))
+			}
+
+			// when: collection runs mid-period and after service completion but before InvoiceAt.
+			for _, asOf := range []time.Time{f.period.From.Add(15 * 24 * time.Hour), f.period.To, line.InvoiceAt.Add(-time.Minute)} {
+				clock.FreezeTime(asOf)
+				defer clock.UnFreeze()
+
+				invoices, err := s.BillingService.InvoicePendingLines(s.T().Context(), billing.InvoicePendingLinesInput{
+					Customer: f.customer, AsOf: &asOf,
+				})
+				s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+				s.Empty(invoices)
+				gathering, err := s.BillingService.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+					Invoice: created.Invoice.GetInvoiceID(), Expand: billing.GatheringInvoiceExpandAll,
+				})
+				s.Require().NoError(err)
+				s.Require().Len(gathering.Lines.OrEmpty(), 1)
+				s.Equal(created.Lines[0].ID, gathering.Lines.OrEmpty()[0].ID)
+				s.Nil(gathering.Lines.OrEmpty()[0].SplitLineGroupID)
+				s.True(f.period.Equal(gathering.Lines.OrEmpty()[0].ServicePeriod))
+			}
+
+			// then: only InvoiceAt materializes the complete period as an invalid standard invoice.
+			clock.FreezeTime(line.InvoiceAt)
+			defer clock.UnFreeze()
+			invoice := s.collectDependencyInvoice(f, line.InvoiceAt)
+			s.requireDependencyIssues(invoice, map[string]string{created.Lines[0].ID: code})
+			s.True(f.period.Equal(invoice.Lines.OrEmpty()[0].Period))
+		})
+	}
+}
+
 type collectionNSResult struct {
 	TestFeature
 	customer *customer.Customer
