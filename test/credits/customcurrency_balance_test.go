@@ -22,8 +22,8 @@ func (s *CustomCurrencyCreditsSuite) TestBalanceAndTransactionsPreserveCustomCur
 	ns := s.GetUniqueNamespace("custom-currency-balance-history")
 	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 	customer := s.CreateLedgerBackedCustomer(ns, "custom-currency-balance-history")
-	tokens := s.createCustomCurrency(ns, "TOKENS")
-	points := s.createCustomCurrency(ns, "POINTS")
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
+	points := s.CreateCustomCurrency(ns, "POINTS")
 
 	createdAt := datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime()
 	chargeAt := createdAt.Add(time.Hour)
@@ -159,7 +159,7 @@ func (s *CustomCurrencyCreditsSuite) TestBalanceDiscoversCustomCurrencyWithoutSt
 	ns := s.GetUniqueNamespace("custom-currency-balance-discovery")
 	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
 	customer := s.CreateLedgerBackedCustomer(ns, "custom-currency-balance-discovery")
-	tokens := s.createCustomCurrency(ns, "TOKENS")
+	tokens := s.CreateCustomCurrency(ns, "TOKENS")
 
 	createdAt := datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime()
 	chargeAt := createdAt.Add(time.Hour)
