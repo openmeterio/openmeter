@@ -6556,7 +6556,6 @@ components:
 
             Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
             to 1.0.
-          default: '1.0'
         resolved_cost_basis:
           allOf:
             - $ref: '#/components/schemas/BillingChargeResolvedCostBasis'
@@ -11521,7 +11520,6 @@ components:
 
             Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
             to 1.0.
-          default: '1.0'
         cost_basis:
           allOf:
             - $ref: '#/components/schemas/CreateChargeCostBasis'

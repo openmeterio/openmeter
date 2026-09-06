@@ -4701,7 +4701,7 @@ export const pricePagePaginatedResponse = z
 export const createCreditGrantPurchase = z
   .object({
     currency: currencyCode,
-    perUnitCostBasis: numeric.optional().default('1.0'),
+    perUnitCostBasis: numeric.optional(),
     costBasis: createChargeCostBasis.optional(),
     availabilityPolicy: creditAvailabilityPolicy
       .optional()
@@ -4712,7 +4712,7 @@ export const createCreditGrantPurchase = z
 export const creditGrantPurchase = z
   .object({
     currency: currencyCode,
-    perUnitCostBasis: numeric.optional().default('1.0'),
+    perUnitCostBasis: numeric.optional(),
     resolvedCostBasis: chargeResolvedCostBasis.optional(),
     amount: numeric.optional(),
     availabilityPolicy: creditAvailabilityPolicy

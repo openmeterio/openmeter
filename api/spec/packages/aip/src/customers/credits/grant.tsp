@@ -268,7 +268,7 @@ model CreditGrantPurchase {
    * @deprecated use `cost_basis` instead with manual type.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
-  per_unit_cost_basis?: Shared.Numeric = "1.0";
+  per_unit_cost_basis?: Shared.Numeric;
 
   /**
    * Defines how custom-currency credits are priced in the purchase `currency`; the

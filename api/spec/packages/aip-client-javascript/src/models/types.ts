@@ -3736,7 +3736,7 @@ export interface CreateCreditGrantPurchase {
    * Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
    * to 1.0.
    */
-  perUnitCostBasis: string
+  perUnitCostBasis?: string
   /**
    * Defines how custom-currency credits are priced in the purchase `currency`; the
    * resolved rate is exposed through `resolved_cost_basis`.
@@ -3775,7 +3775,7 @@ export interface CreditGrantPurchase {
    * Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
    * to 1.0.
    */
-  perUnitCostBasis: string
+  perUnitCostBasis?: string
   /**
    * The rate the purchase is settled at in the purchase `currency`. Present once the
    * cost basis is resolved.
