@@ -112,9 +112,10 @@ func fromDBBase(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) (usageba
 	}
 
 	return usagebased.ChargeBase{
-		ManagedResource: chargeMeta.ManagedResource,
-		Status:          entity.StatusDetailed,
-		Intent:          usagebased.NewOverridableIntent(intent, fromDBOverride(entity.Edges.IntentOverride)),
+		ManagedResource:  chargeMeta.ManagedResource,
+		Status:           entity.StatusDetailed,
+		ValidationIssues: chargeMeta.ValidationIssues,
+		Intent:           usagebased.NewOverridableIntent(intent, fromDBOverride(entity.Edges.IntentOverride)),
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,
 			AdvanceAfter:            entity.AdvanceAfter,

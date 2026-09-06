@@ -1550,6 +1550,16 @@ func DescriptionContainsFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldDescription, v))
 }
 
+// ValidationIssuesIsNil applies the IsNil predicate on the "validation_issues" field.
+func ValidationIssuesIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldValidationIssues))
+}
+
+// ValidationIssuesNotNil applies the NotNil predicate on the "validation_issues" field.
+func ValidationIssuesNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldValidationIssues))
+}
+
 // InvoiceAtEQ applies the EQ predicate on the "invoice_at" field.
 func InvoiceAtEQ(v time.Time) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldInvoiceAt, v))

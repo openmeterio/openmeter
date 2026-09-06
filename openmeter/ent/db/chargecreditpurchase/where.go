@@ -1577,6 +1577,16 @@ func DescriptionContainsFold(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldDescription, v))
 }
 
+// ValidationIssuesIsNil applies the IsNil predicate on the "validation_issues" field.
+func ValidationIssuesIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldValidationIssues))
+}
+
+// ValidationIssuesNotNil applies the NotNil predicate on the "validation_issues" field.
+func ValidationIssuesNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldValidationIssues))
+}
+
 // SchemaLevelEQ applies the EQ predicate on the "schema_level" field.
 func SchemaLevelEQ(v int) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldSchemaLevel, v))

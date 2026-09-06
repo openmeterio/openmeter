@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingInvoiceValidationIssueCreate is the builder for creating a BillingInvoiceValidationIssue entity.
@@ -122,6 +123,12 @@ func (_c *BillingInvoiceValidationIssueCreate) SetNillablePath(v *string) *Billi
 // SetComponent sets the "component" field.
 func (_c *BillingInvoiceValidationIssueCreate) SetComponent(v string) *BillingInvoiceValidationIssueCreate {
 	_c.mutation.SetComponent(v)
+	return _c
+}
+
+// SetAttributes sets the "attributes" field.
+func (_c *BillingInvoiceValidationIssueCreate) SetAttributes(v models.Annotations) *BillingInvoiceValidationIssueCreate {
+	_c.mutation.SetAttributes(v)
 	return _c
 }
 
@@ -331,6 +338,10 @@ func (_c *BillingInvoiceValidationIssueCreate) createSpec() (*BillingInvoiceVali
 		_spec.SetField(billinginvoicevalidationissue.FieldComponent, field.TypeString, value)
 		_node.Component = value
 	}
+	if value, ok := _c.mutation.Attributes(); ok {
+		_spec.SetField(billinginvoicevalidationissue.FieldAttributes, field.TypeJSON, value)
+		_node.Attributes = value
+	}
 	if value, ok := _c.mutation.DedupeHash(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDedupeHash, field.TypeBytes, value)
 		_node.DedupeHash = value
@@ -515,6 +526,24 @@ func (u *BillingInvoiceValidationIssueUpsert) SetComponent(v string) *BillingInv
 // UpdateComponent sets the "component" field to the value that was provided on create.
 func (u *BillingInvoiceValidationIssueUpsert) UpdateComponent() *BillingInvoiceValidationIssueUpsert {
 	u.SetExcluded(billinginvoicevalidationissue.FieldComponent)
+	return u
+}
+
+// SetAttributes sets the "attributes" field.
+func (u *BillingInvoiceValidationIssueUpsert) SetAttributes(v models.Annotations) *BillingInvoiceValidationIssueUpsert {
+	u.Set(billinginvoicevalidationissue.FieldAttributes, v)
+	return u
+}
+
+// UpdateAttributes sets the "attributes" field to the value that was provided on create.
+func (u *BillingInvoiceValidationIssueUpsert) UpdateAttributes() *BillingInvoiceValidationIssueUpsert {
+	u.SetExcluded(billinginvoicevalidationissue.FieldAttributes)
+	return u
+}
+
+// ClearAttributes clears the value of the "attributes" field.
+func (u *BillingInvoiceValidationIssueUpsert) ClearAttributes() *BillingInvoiceValidationIssueUpsert {
+	u.SetNull(billinginvoicevalidationissue.FieldAttributes)
 	return u
 }
 
@@ -714,6 +743,27 @@ func (u *BillingInvoiceValidationIssueUpsertOne) SetComponent(v string) *Billing
 func (u *BillingInvoiceValidationIssueUpsertOne) UpdateComponent() *BillingInvoiceValidationIssueUpsertOne {
 	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
 		s.UpdateComponent()
+	})
+}
+
+// SetAttributes sets the "attributes" field.
+func (u *BillingInvoiceValidationIssueUpsertOne) SetAttributes(v models.Annotations) *BillingInvoiceValidationIssueUpsertOne {
+	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
+		s.SetAttributes(v)
+	})
+}
+
+// UpdateAttributes sets the "attributes" field to the value that was provided on create.
+func (u *BillingInvoiceValidationIssueUpsertOne) UpdateAttributes() *BillingInvoiceValidationIssueUpsertOne {
+	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
+		s.UpdateAttributes()
+	})
+}
+
+// ClearAttributes clears the value of the "attributes" field.
+func (u *BillingInvoiceValidationIssueUpsertOne) ClearAttributes() *BillingInvoiceValidationIssueUpsertOne {
+	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
+		s.ClearAttributes()
 	})
 }
 
@@ -1082,6 +1132,27 @@ func (u *BillingInvoiceValidationIssueUpsertBulk) SetComponent(v string) *Billin
 func (u *BillingInvoiceValidationIssueUpsertBulk) UpdateComponent() *BillingInvoiceValidationIssueUpsertBulk {
 	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
 		s.UpdateComponent()
+	})
+}
+
+// SetAttributes sets the "attributes" field.
+func (u *BillingInvoiceValidationIssueUpsertBulk) SetAttributes(v models.Annotations) *BillingInvoiceValidationIssueUpsertBulk {
+	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
+		s.SetAttributes(v)
+	})
+}
+
+// UpdateAttributes sets the "attributes" field to the value that was provided on create.
+func (u *BillingInvoiceValidationIssueUpsertBulk) UpdateAttributes() *BillingInvoiceValidationIssueUpsertBulk {
+	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
+		s.UpdateAttributes()
+	})
+}
+
+// ClearAttributes clears the value of the "attributes" field.
+func (u *BillingInvoiceValidationIssueUpsertBulk) ClearAttributes() *BillingInvoiceValidationIssueUpsertBulk {
+	return u.Update(func(s *BillingInvoiceValidationIssueUpsert) {
+		s.ClearAttributes()
 	})
 }
 

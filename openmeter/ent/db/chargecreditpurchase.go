@@ -89,6 +89,8 @@ type ChargeCreditPurchase struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// ValidationIssues holds the value of the "validation_issues" field.
+	ValidationIssues billing.ValidationIssues `json:"validation_issues,omitempty"`
 	// SchemaLevel holds the value of the "schema_level" field.
 	SchemaLevel int `json:"schema_level,omitempty"`
 	// FiatCostBasis holds the value of the "fiat_cost_basis" field.
@@ -282,7 +284,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargecreditpurchase.FieldFiatCostBasis:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
-		case chargecreditpurchase.FieldAnnotations, chargecreditpurchase.FieldMetadata:
+		case chargecreditpurchase.FieldAnnotations, chargecreditpurchase.FieldMetadata, chargecreditpurchase.FieldValidationIssues:
 			values[i] = new([]byte)
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
@@ -484,6 +486,14 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
+			}
+		case chargecreditpurchase.FieldValidationIssues:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field validation_issues", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ValidationIssues); err != nil {
+					return fmt.Errorf("unmarshal field validation_issues: %w", err)
+				}
 			}
 		case chargecreditpurchase.FieldSchemaLevel:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -767,6 +777,9 @@ func (_m *ChargeCreditPurchase) String() string {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("validation_issues=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ValidationIssues))
 	builder.WriteString(", ")
 	builder.WriteString("schema_level=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SchemaLevel))

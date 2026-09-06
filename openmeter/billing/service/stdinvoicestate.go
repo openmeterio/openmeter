@@ -610,7 +610,10 @@ func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger billi
 
 	activationError := m.StateMachine.ActivateCtx(ctx)
 	if activationError != nil || m.Invoice.HasCriticalValidationIssues() {
-		validationIssues := m.Invoice.ValidationIssues.Clone()
+		validationIssues, err := m.Invoice.ValidationIssues.Clone()
+		if err != nil {
+			return fmt.Errorf("cloning validation issues: %w", err)
+		}
 
 		// There was an error activating the state, we should trigger a transition to the failed state
 		canFire, err := m.StateMachine.CanFireCtx(ctx, billing.TriggerFailed)

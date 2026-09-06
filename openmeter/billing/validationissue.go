@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ValidationIssueSeverity string
@@ -39,7 +40,10 @@ type ValidationIssue struct {
 	Message   string                  `json:"message"`
 	Code      string                  `json:"code,omitempty"`
 	Component ComponentName           `json:"component,omitempty"`
-	Path      string                  `json:"path,omitempty"`
+	// TODO: migrate billing validation issues to models.ValidationIssue's FieldDescriptor-based path.
+	// Deprecated: this field should be moved to models.ValidationIssue's FieldDescriptor-based path implementation.
+	Path       string             `json:"path,omitempty"`
+	Attributes models.Annotations `json:"attributes,omitempty"`
 }
 
 func (i ValidationIssue) EncodeAsErrorExtension() map[string]interface{} {
@@ -60,11 +64,35 @@ func (i ValidationIssue) EncodeAsErrorExtension() map[string]interface{} {
 		out["code"] = i.Code
 	}
 
+	if len(i.Attributes) > 0 {
+		out["attributes"] = i.Attributes
+	}
+
 	return out
+}
+
+func (i ValidationIssue) Clone() (ValidationIssue, error) {
+	clone := i
+
+	attributes, err := i.Attributes.Clone()
+	if err != nil {
+		return ValidationIssue{}, fmt.Errorf("cloning attributes: %w", err)
+	}
+
+	clone.Attributes = attributes
+
+	return clone, nil
 }
 
 func (i ValidationIssue) Error() string {
 	return i.Message
+}
+
+// Is identifies coded validation issues independently of their contextual details.
+func (i ValidationIssue) Is(target error) bool {
+	other, ok := target.(ValidationIssue)
+
+	return ok && i.Code != "" && i.Code == other.Code
 }
 
 func NewValidationWarning(code, message string) ValidationIssue {
@@ -171,19 +199,45 @@ func ValidationWithFieldPrefix(prefix string, err error) error {
 	}
 }
 
+type attributesWrapper struct {
+	attributes models.Annotations
+	err        error
+}
+
+func (a attributesWrapper) Error() string {
+	return a.err.Error()
+}
+
+func (a attributesWrapper) Unwrap() error {
+	return a.err
+}
+
+// ValidationWithAttributes adds contextual attributes to validation issues extracted from err.
+// When wrappers are nested, attributes from the outermost wrapper take precedence.
+func ValidationWithAttributes(attributes models.Annotations, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return attributesWrapper{
+		attributes: attributes,
+		err:        err,
+	}
+}
+
 type ValidationIssues []ValidationIssue
 
 // ToValidationIssues converts an error into a list of validation issues
 // If the error is nil, it returns nil
-// If any error in the error tree is not wrapped in ValidationWithComponent or ValidationWithFieldPrefix
-// and not an instance of ValidationIssue, it will return an error. This behavior allows us to have
-// critical errors that are not validation issues.
+// If any error in the error tree is not wrapped in ValidationWithComponent,
+// ValidationWithFieldPrefix, or ValidationWithAttributes and not an instance of ValidationIssue,
+// it will return an error. This behavior allows us to have critical errors that are not validation issues.
 func ToValidationIssues(errIn error) (ValidationIssues, error) {
 	if errIn == nil {
 		return nil, nil
 	}
 
-	issues, err := toValidationIssue(errIn, "", "", "", false)
+	issues, err := toValidationIssue(errIn, "", "", "", nil, false)
 	if err != nil {
 		return nil, errIn
 	}
@@ -202,8 +256,14 @@ func (v ValidationIssues) RemoveMetaForCompare() ValidationIssues {
 	})
 }
 
-func (v ValidationIssues) Clone() ValidationIssues {
-	return append(make(ValidationIssues, 0, len(v)), v...)
+func (v ValidationIssues) Clone() (ValidationIssues, error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	return lo.MapErr(v, func(issue ValidationIssue, _ int) (ValidationIssue, error) {
+		return issue.Clone()
+	})
 }
 
 func (v ValidationIssues) AsError() error {
@@ -260,7 +320,7 @@ func appendMessagePrefix(prefix string, message string) string {
 	return prefix + ": " + message
 }
 
-func toValidationIssue(err error, fieldPrefix string, component ComponentName, messagePrefix string, unknownAsValidationIssue bool) ([]ValidationIssue, error) {
+func toValidationIssue(err error, fieldPrefix string, component ComponentName, messagePrefix string, attributes models.Annotations, unknownAsValidationIssue bool) ([]ValidationIssue, error) {
 	if err == nil {
 		return nil, nil
 	}
@@ -274,24 +334,42 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 			issueComponent = errT.component
 		}
 
-		return toValidationIssue(errT.err, fieldPrefix, issueComponent, messagePrefix, true)
+		return toValidationIssue(errT.err, fieldPrefix, issueComponent, messagePrefix, attributes, true)
 	case fieldPrefixWrapper:
-		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, messagePrefix, true)
+		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, messagePrefix, attributes, true)
 	case messageWrapper:
-		return toValidationIssue(errT.err, fieldPrefix, component, appendMessagePrefix(messagePrefix, errT.prefix), unknownAsValidationIssue)
+		return toValidationIssue(errT.err, fieldPrefix, component, appendMessagePrefix(messagePrefix, errT.prefix), attributes, unknownAsValidationIssue)
+	case attributesWrapper:
+		mergedAttributes, err := errT.attributes.Merge(attributes)
+		if err != nil {
+			return nil, fmt.Errorf("merging validation issue attributes: %w", err)
+		}
+
+		return toValidationIssue(errT.err, fieldPrefix, component, messagePrefix, mergedAttributes, true)
 	case ValidationIssue:
 		issueComponent := component
 		if issueComponent == "" {
 			issueComponent = errT.Component
 		}
 
+		mergedAttributes, err := errT.Attributes.Merge(attributes)
+		if err != nil {
+			return nil, fmt.Errorf("merging validation issue attributes: %w", err)
+		}
+
+		mergedAttributes, err = mergedAttributes.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("cloning validation issue attributes: %w", err)
+		}
+
 		return []ValidationIssue{
 			{
-				Severity:  errT.Severity,
-				Message:   appendMessagePrefix(messagePrefix, errT.Message),
-				Code:      errT.Code,
-				Path:      appendToPrefix(fieldPrefix, errT.Path),
-				Component: issueComponent,
+				Severity:   errT.Severity,
+				Message:    appendMessagePrefix(messagePrefix, errT.Message),
+				Code:       errT.Code,
+				Path:       appendToPrefix(fieldPrefix, errT.Path),
+				Component:  issueComponent,
+				Attributes: mergedAttributes,
 			},
 		}, nil
 	}
@@ -300,7 +378,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 	case errorsUnwrap:
 		var issues []ValidationIssue
 		for _, e := range errT.Unwrap() {
-			out, err := toValidationIssue(e, fieldPrefix, component, messagePrefix, unknownAsValidationIssue)
+			out, err := toValidationIssue(e, fieldPrefix, component, messagePrefix, attributes, unknownAsValidationIssue)
 			if err != nil {
 				return nil, err
 			}
@@ -311,16 +389,22 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 
 		return issues, nil
 	case errorUnwrap:
-		return toValidationIssue(errT.Unwrap(), fieldPrefix, component, messagePrefix, unknownAsValidationIssue)
+		return toValidationIssue(errT.Unwrap(), fieldPrefix, component, messagePrefix, attributes, unknownAsValidationIssue)
 	default:
 		// Non-validation errors get coded as critical
 		if unknownAsValidationIssue {
+			issueAttributes, cloneErr := attributes.Clone()
+			if cloneErr != nil {
+				return nil, fmt.Errorf("cloning validation issue attributes: %w", cloneErr)
+			}
+
 			return []ValidationIssue{
 				{
-					Severity:  ValidationIssueSeverityCritical,
-					Message:   appendMessagePrefix(messagePrefix, err.Error()),
-					Path:      fieldPrefix,
-					Component: component,
+					Severity:   ValidationIssueSeverityCritical,
+					Message:    appendMessagePrefix(messagePrefix, err.Error()),
+					Path:       fieldPrefix,
+					Component:  component,
+					Attributes: issueAttributes,
 				},
 			}, nil
 		} else {

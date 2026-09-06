@@ -758,11 +758,12 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 				UpdatedAt: issue.UpdatedAt.In(time.UTC),
 				DeletedAt: convert.TimePtrIn(issue.DeletedAt, time.UTC),
 
-				Severity:  issue.Severity,
-				Message:   issue.Message,
-				Code:      lo.FromPtr(issue.Code),
-				Component: billing.ComponentName(issue.Component),
-				Path:      lo.FromPtr(issue.Path),
+				Severity:   issue.Severity,
+				Message:    issue.Message,
+				Code:       lo.FromPtr(issue.Code),
+				Component:  billing.ComponentName(issue.Component),
+				Path:       lo.FromPtr(issue.Path),
+				Attributes: issue.Attributes,
 			}
 		})
 	}

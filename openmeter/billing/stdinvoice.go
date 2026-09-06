@@ -550,7 +550,10 @@ func (i StandardInvoice) Clone() (StandardInvoice, error) {
 	}
 
 	clone.Lines = clonedLines
-	clone.ValidationIssues = i.ValidationIssues.Clone()
+	clone.ValidationIssues, err = i.ValidationIssues.Clone()
+	if err != nil {
+		return StandardInvoice{}, fmt.Errorf("cloning validation issues: %w", err)
+	}
 	clone.Totals = i.Totals
 
 	return clone, nil

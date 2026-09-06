@@ -88,6 +88,8 @@ type ChargeUsageBased struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// ValidationIssues holds the value of the "validation_issues" field.
+	ValidationIssues billing.ValidationIssues `json:"validation_issues,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// SettlementMode holds the value of the "settlement_mode" field.
@@ -295,7 +297,7 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
+		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata, chargeusagebased.FieldValidationIssues:
 			values[i] = new([]byte)
 		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldFiatCurrencyCode, chargeusagebased.FieldCustomCurrencyID, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldCostBasisID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
@@ -497,6 +499,14 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
+			}
+		case chargeusagebased.FieldValidationIssues:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field validation_issues", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ValidationIssues); err != nil {
+					return fmt.Errorf("unmarshal field validation_issues: %w", err)
+				}
 			}
 		case chargeusagebased.FieldInvoiceAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -771,6 +781,9 @@ func (_m *ChargeUsageBased) String() string {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("validation_issues=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ValidationIssues))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_at=")
 	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))

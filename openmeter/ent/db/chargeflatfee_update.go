@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -257,6 +258,24 @@ func (_u *ChargeFlatFeeUpdate) SetNillableDescription(v *string) *ChargeFlatFeeU
 // ClearDescription clears the value of the "description" field.
 func (_u *ChargeFlatFeeUpdate) ClearDescription() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (_u *ChargeFlatFeeUpdate) SetValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeUpdate {
+	_u.mutation.SetValidationIssues(v)
+	return _u
+}
+
+// AppendValidationIssues appends value to the "validation_issues" field.
+func (_u *ChargeFlatFeeUpdate) AppendValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeUpdate {
+	_u.mutation.AppendValidationIssues(v)
+	return _u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (_u *ChargeFlatFeeUpdate) ClearValidationIssues() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearValidationIssues()
 	return _u
 }
 
@@ -678,6 +697,17 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeflatfee.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargeflatfee.FieldValidationIssues, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedValidationIssues(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeflatfee.FieldValidationIssues, value)
+		})
+	}
+	if _u.mutation.ValidationIssuesCleared() {
+		_spec.ClearField(chargeflatfee.FieldValidationIssues, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.PaymentTerm(); ok {
 		_spec.SetField(chargeflatfee.FieldPaymentTerm, field.TypeString, value)
@@ -1116,6 +1146,24 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableDescription(v *string) *ChargeFlatF
 // ClearDescription clears the value of the "description" field.
 func (_u *ChargeFlatFeeUpdateOne) ClearDescription() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (_u *ChargeFlatFeeUpdateOne) SetValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetValidationIssues(v)
+	return _u
+}
+
+// AppendValidationIssues appends value to the "validation_issues" field.
+func (_u *ChargeFlatFeeUpdateOne) AppendValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeUpdateOne {
+	_u.mutation.AppendValidationIssues(v)
+	return _u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearValidationIssues() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearValidationIssues()
 	return _u
 }
 
@@ -1567,6 +1615,17 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeflatfee.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargeflatfee.FieldValidationIssues, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedValidationIssues(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeflatfee.FieldValidationIssues, value)
+		})
+	}
+	if _u.mutation.ValidationIssuesCleared() {
+		_spec.ClearField(chargeflatfee.FieldValidationIssues, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.PaymentTerm(); ok {
 		_spec.SetField(chargeflatfee.FieldPaymentTerm, field.TypeString, value)

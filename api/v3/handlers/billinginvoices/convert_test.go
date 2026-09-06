@@ -15,6 +15,21 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestMapValidationIssues(t *testing.T) {
+	require.Nil(t, mapValidationIssues(nil))
+
+	issues := mapValidationIssues(billing.ValidationIssues{
+		{
+			Severity:   billing.ValidationIssueSeverityWarning,
+			Message:    "invoice line needs attention",
+			Code:       "line_context",
+			Attributes: models.Annotations{"invoice": "invoice-1", "line": "line-1"},
+		},
+	})
+	require.NotNil(t, issues)
+	require.Equal(t, &map[string]any{"invoice": "invoice-1", "line": "line-1"}, (*issues)[0].Attributes)
+}
+
 func mergeTestPeriod() timeutil.ClosedPeriod {
 	return timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),

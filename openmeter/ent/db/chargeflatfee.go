@@ -88,6 +88,8 @@ type ChargeFlatFee struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// ValidationIssues holds the value of the "validation_issues" field.
+	ValidationIssues billing.ValidationIssues `json:"validation_issues,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
@@ -286,7 +288,7 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeflatfee.FieldAnnotations, chargeflatfee.FieldMetadata:
+		case chargeflatfee.FieldAnnotations, chargeflatfee.FieldMetadata, chargeflatfee.FieldValidationIssues:
 			values[i] = new([]byte)
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
@@ -486,6 +488,14 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
+			}
+		case chargeflatfee.FieldValidationIssues:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field validation_issues", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ValidationIssues); err != nil {
+					return fmt.Errorf("unmarshal field validation_issues: %w", err)
+				}
 			}
 		case chargeflatfee.FieldPaymentTerm:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -763,6 +773,9 @@ func (_m *ChargeFlatFee) String() string {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("validation_issues=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ValidationIssues))
 	builder.WriteString(", ")
 	builder.WriteString("payment_term=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PaymentTerm))

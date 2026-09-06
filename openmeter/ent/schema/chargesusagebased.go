@@ -29,6 +29,7 @@ type ChargeUsageBased struct {
 func (ChargeUsageBased) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		ChargesMetaMixin{},
+		ChargeValidationIssuesMixin{},
 	}
 }
 

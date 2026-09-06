@@ -29,6 +29,7 @@ type ChargeFlatFee struct {
 func (ChargeFlatFee) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		ChargesMetaMixin{},
+		ChargeValidationIssuesMixin{},
 	}
 }
 

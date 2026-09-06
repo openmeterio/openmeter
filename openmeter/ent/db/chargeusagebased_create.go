@@ -294,6 +294,12 @@ func (_c *ChargeUsageBasedCreate) SetNillableDescription(v *string) *ChargeUsage
 	return _c
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (_c *ChargeUsageBasedCreate) SetValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedCreate {
+	_c.mutation.SetValidationIssues(v)
+	return _c
+}
+
 // SetInvoiceAt sets the "invoice_at" field.
 func (_c *ChargeUsageBasedCreate) SetInvoiceAt(v time.Time) *ChargeUsageBasedCreate {
 	_c.mutation.SetInvoiceAt(v)
@@ -853,6 +859,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
+	if value, ok := _c.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargeusagebased.FieldValidationIssues, field.TypeJSON, value)
+		_node.ValidationIssues = value
+	}
 	if value, ok := _c.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
 		_node.InvoiceAt = value
@@ -1386,6 +1396,24 @@ func (u *ChargeUsageBasedUpsert) ClearDescription() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeUsageBasedUpsert) SetValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldValidationIssues, v)
+	return u
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateValidationIssues() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldValidationIssues)
+	return u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeUsageBasedUpsert) ClearValidationIssues() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldValidationIssues)
+	return u
+}
+
 // SetInvoiceAt sets the "invoice_at" field.
 func (u *ChargeUsageBasedUpsert) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldInvoiceAt, v)
@@ -1857,6 +1885,27 @@ func (u *ChargeUsageBasedUpsertOne) UpdateDescription() *ChargeUsageBasedUpsertO
 func (u *ChargeUsageBasedUpsertOne) ClearDescription() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeUsageBasedUpsertOne) SetValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetValidationIssues(v)
+	})
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateValidationIssues() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateValidationIssues()
+	})
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeUsageBasedUpsertOne) ClearValidationIssues() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearValidationIssues()
 	})
 }
 
@@ -2523,6 +2572,27 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateDescription() *ChargeUsageBasedUpsert
 func (u *ChargeUsageBasedUpsertBulk) ClearDescription() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeUsageBasedUpsertBulk) SetValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetValidationIssues(v)
+	})
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateValidationIssues() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateValidationIssues()
+	})
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearValidationIssues() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearValidationIssues()
 	})
 }
 

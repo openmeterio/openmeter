@@ -10,8 +10,10 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
@@ -256,6 +258,24 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableDescription(v *string) *ChargeC
 // ClearDescription clears the value of the "description" field.
 func (_u *ChargeCreditPurchaseUpdate) ClearDescription() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (_u *ChargeCreditPurchaseUpdate) SetValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetValidationIssues(v)
+	return _u
+}
+
+// AppendValidationIssues appends value to the "validation_issues" field.
+func (_u *ChargeCreditPurchaseUpdate) AppendValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseUpdate {
+	_u.mutation.AppendValidationIssues(v)
+	return _u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearValidationIssues() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearValidationIssues()
 	return _u
 }
 
@@ -654,6 +674,17 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargecreditpurchase.FieldValidationIssues, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedValidationIssues(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargecreditpurchase.FieldValidationIssues, value)
+		})
+	}
+	if _u.mutation.ValidationIssuesCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldValidationIssues, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.SchemaLevel(); ok {
 		_spec.SetField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)
@@ -1096,6 +1127,24 @@ func (_u *ChargeCreditPurchaseUpdateOne) ClearDescription() *ChargeCreditPurchas
 	return _u
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetValidationIssues(v)
+	return _u
+}
+
+// AppendValidationIssues appends value to the "validation_issues" field.
+func (_u *ChargeCreditPurchaseUpdateOne) AppendValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.AppendValidationIssues(v)
+	return _u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearValidationIssues() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearValidationIssues()
+	return _u
+}
+
 // SetSchemaLevel sets the "schema_level" field.
 func (_u *ChargeCreditPurchaseUpdateOne) SetSchemaLevel(v int) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ResetSchemaLevel()
@@ -1521,6 +1570,17 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargecreditpurchase.FieldValidationIssues, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedValidationIssues(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargecreditpurchase.FieldValidationIssues, value)
+		})
+	}
+	if _u.mutation.ValidationIssuesCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldValidationIssues, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.SchemaLevel(); ok {
 		_spec.SetField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)

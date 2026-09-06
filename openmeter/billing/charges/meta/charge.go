@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/expand"
@@ -159,6 +160,7 @@ type Charge struct {
 	IntentMutableFields IntentMutableFields
 	Status              ChargeStatus
 	AdvanceAfter        *time.Time
+	ValidationIssues    billing.ValidationIssues
 }
 
 func (c Charge) Validate() error {

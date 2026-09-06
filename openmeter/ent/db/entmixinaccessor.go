@@ -1100,6 +1100,10 @@ func (e *ChargeCreditPurchase) GetDescription() *string {
 	return e.Description
 }
 
+func (e *ChargeCreditPurchase) GetValidationIssues() billing.ValidationIssues {
+	return e.ValidationIssues
+}
+
 func (e *ChargeCreditPurchaseCostBasis) GetID() string {
 	return e.ID
 }
@@ -1398,6 +1402,10 @@ func (e *ChargeFlatFee) GetName() string {
 
 func (e *ChargeFlatFee) GetDescription() *string {
 	return e.Description
+}
+
+func (e *ChargeFlatFee) GetValidationIssues() billing.ValidationIssues {
+	return e.ValidationIssues
 }
 
 func (e *ChargeFlatFeeCostBasis) GetID() string {
@@ -1978,6 +1986,10 @@ func (e *ChargeUsageBased) GetName() string {
 
 func (e *ChargeUsageBased) GetDescription() *string {
 	return e.Description
+}
+
+func (e *ChargeUsageBased) GetValidationIssues() billing.ValidationIssues {
+	return e.ValidationIssues
 }
 
 func (e *ChargeUsageBasedCostBasis) GetID() string {

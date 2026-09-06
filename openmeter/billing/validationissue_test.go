@@ -6,7 +6,144 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestValidationIssueAttributes(t *testing.T) {
+	issue := ValidationIssue{
+		Severity: ValidationIssueSeverityWarning,
+		Message:  "invoice line needs attention",
+		Code:     "line_context",
+		Attributes: models.Annotations{
+			"invoice": map[string]any{"id": "invoice-1"},
+			"line":    map[string]any{"id": "line-1"},
+		},
+	}
+
+	t.Run("preserved through error extraction", func(t *testing.T) {
+		wrapped := ValidationWithComponent("test", issue)
+		require.ErrorIs(t, wrapped, issue)
+
+		issues, err := ToValidationIssues(wrapped)
+		require.NoError(t, err)
+		require.Equal(t, issue.Attributes, issues[0].Attributes)
+	})
+
+	t.Run("code determines error identity", func(t *testing.T) {
+		require.ErrorIs(t, issue, ValidationIssue{
+			Severity: ValidationIssueSeverityCritical,
+			Message:  "different context",
+			Code:     issue.Code,
+		})
+		require.NotErrorIs(t, issue, ValidationIssue{Message: issue.Message})
+	})
+
+	t.Run("encoded as API attributes", func(t *testing.T) {
+		extension := issue.EncodeAsErrorExtension()
+		require.Equal(t, issue.Attributes, extension["attributes"])
+		require.NotContains(t, extension, "annotations")
+	})
+
+	t.Run("deep cloned", func(t *testing.T) {
+		clone, err := issue.Clone()
+		require.NoError(t, err)
+
+		clone.Attributes["invoice"].(map[string]any)["id"] = "invoice-2"
+		require.Equal(t, "invoice-1", issue.Attributes["invoice"].(map[string]any)["id"])
+	})
+}
+
+func TestValidationWithAttributes(t *testing.T) {
+	baseIssue := ValidationIssue{
+		Severity: ValidationIssueSeverityWarning,
+		Message:  "invoice line needs attention",
+		Code:     "line_context",
+		Attributes: models.Annotations{
+			"base":       "base",
+			"precedence": "base",
+		},
+	}
+
+	t.Run("merges nested attributes with outermost precedence", func(t *testing.T) {
+		err := ValidationWithAttributes(
+			models.Annotations{
+				"outer":      "outer",
+				"precedence": "outer",
+			},
+			ValidationWithAttributes(
+				models.Annotations{
+					"inner":      "inner",
+					"precedence": "inner",
+				},
+				baseIssue,
+			),
+		)
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, models.Annotations{
+			"base":       "base",
+			"inner":      "inner",
+			"outer":      "outer",
+			"precedence": "outer",
+		}, issues[0].Attributes)
+	})
+
+	t.Run("applies attributes to every joined issue", func(t *testing.T) {
+		attributes := models.Annotations{
+			"invoice": map[string]any{"id": "invoice-1"},
+		}
+		err := ValidationWithAttributes(
+			attributes,
+			errors.Join(baseIssue, NewValidationError("second", "second issue")),
+		)
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Len(t, issues, 2)
+		require.Equal(t, "invoice-1", issues[0].Attributes["invoice"].(map[string]any)["id"])
+		require.Equal(t, "invoice-1", issues[1].Attributes["invoice"].(map[string]any)["id"])
+
+		issues[0].Attributes["invoice"].(map[string]any)["id"] = "invoice-2"
+		require.Equal(t, "invoice-1", issues[1].Attributes["invoice"].(map[string]any)["id"])
+		require.Equal(t, "invoice-1", attributes["invoice"].(map[string]any)["id"])
+	})
+
+	t.Run("classifies an ordinary error as a validation issue", func(t *testing.T) {
+		err := ValidationWithAttributes(
+			models.Annotations{"invoice_id": "invoice-1"},
+			errors.New("invoice context unavailable"),
+		)
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, ValidationIssues{
+			{
+				Severity:   ValidationIssueSeverityCritical,
+				Message:    "invoice context unavailable",
+				Attributes: models.Annotations{"invoice_id": "invoice-1"},
+			},
+		}, issues)
+	})
+
+	t.Run("does not alias input attributes", func(t *testing.T) {
+		attributes := models.Annotations{
+			"invoice": map[string]any{"id": "invoice-1"},
+		}
+		err := ValidationWithAttributes(attributes, baseIssue)
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+
+		issues[0].Attributes["invoice"].(map[string]any)["id"] = "invoice-2"
+		require.Equal(t, "invoice-1", attributes["invoice"].(map[string]any)["id"])
+	})
+
+	t.Run("returns nil for a nil error", func(t *testing.T) {
+		require.NoError(t, ValidationWithAttributes(models.Annotations{"unused": true}, nil))
+	})
+}
 
 func TestValidationIssueParsing(t *testing.T) {
 	quantityNegativeErr := NewValidationError("quantity_negative", "Quantity is negative")

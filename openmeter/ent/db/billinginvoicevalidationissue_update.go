@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingInvoiceValidationIssueUpdate is the builder for updating BillingInvoiceValidationIssue entities.
@@ -152,6 +153,18 @@ func (_u *BillingInvoiceValidationIssueUpdate) SetNillableComponent(v *string) *
 	return _u
 }
 
+// SetAttributes sets the "attributes" field.
+func (_u *BillingInvoiceValidationIssueUpdate) SetAttributes(v models.Annotations) *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.SetAttributes(v)
+	return _u
+}
+
+// ClearAttributes clears the value of the "attributes" field.
+func (_u *BillingInvoiceValidationIssueUpdate) ClearAttributes() *BillingInvoiceValidationIssueUpdate {
+	_u.mutation.ClearAttributes()
+	return _u
+}
+
 // SetDedupeHash sets the "dedupe_hash" field.
 func (_u *BillingInvoiceValidationIssueUpdate) SetDedupeHash(v []byte) *BillingInvoiceValidationIssueUpdate {
 	_u.mutation.SetDedupeHash(v)
@@ -285,6 +298,12 @@ func (_u *BillingInvoiceValidationIssueUpdate) sqlSave(ctx context.Context) (_no
 	}
 	if value, ok := _u.mutation.Component(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldComponent, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Attributes(); ok {
+		_spec.SetField(billinginvoicevalidationissue.FieldAttributes, field.TypeJSON, value)
+	}
+	if _u.mutation.AttributesCleared() {
+		_spec.ClearField(billinginvoicevalidationissue.FieldAttributes, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.DedupeHash(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDedupeHash, field.TypeBytes, value)
@@ -460,6 +479,18 @@ func (_u *BillingInvoiceValidationIssueUpdateOne) SetNillableComponent(v *string
 	return _u
 }
 
+// SetAttributes sets the "attributes" field.
+func (_u *BillingInvoiceValidationIssueUpdateOne) SetAttributes(v models.Annotations) *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.SetAttributes(v)
+	return _u
+}
+
+// ClearAttributes clears the value of the "attributes" field.
+func (_u *BillingInvoiceValidationIssueUpdateOne) ClearAttributes() *BillingInvoiceValidationIssueUpdateOne {
+	_u.mutation.ClearAttributes()
+	return _u
+}
+
 // SetDedupeHash sets the "dedupe_hash" field.
 func (_u *BillingInvoiceValidationIssueUpdateOne) SetDedupeHash(v []byte) *BillingInvoiceValidationIssueUpdateOne {
 	_u.mutation.SetDedupeHash(v)
@@ -623,6 +654,12 @@ func (_u *BillingInvoiceValidationIssueUpdateOne) sqlSave(ctx context.Context) (
 	}
 	if value, ok := _u.mutation.Component(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldComponent, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Attributes(); ok {
+		_spec.SetField(billinginvoicevalidationissue.FieldAttributes, field.TypeJSON, value)
+	}
+	if _u.mutation.AttributesCleared() {
+		_spec.ClearField(billinginvoicevalidationissue.FieldAttributes, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.DedupeHash(); ok {
 		_spec.SetField(billinginvoicevalidationissue.FieldDedupeHash, field.TypeBytes, value)

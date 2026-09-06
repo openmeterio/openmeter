@@ -97,6 +97,7 @@ type Updater[T any] interface {
 	SetFullServicePeriodTo(fullServicePeriodTo time.Time) T
 	SetStatus(status meta.ChargeStatus) T
 	SetOrClearAdvanceAfter(advanceAfter *time.Time) T
+	SetOrClearValidationIssues(validationIssues *billing.ValidationIssues) T
 }
 
 func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
@@ -169,8 +170,9 @@ type UpdateInput struct {
 	Intent              meta.Intent
 	IntentMutableFields meta.IntentMutableFields
 
-	Status       meta.ChargeStatus
-	AdvanceAfter *time.Time
+	Status           meta.ChargeStatus
+	AdvanceAfter     *time.Time
+	ValidationIssues billing.ValidationIssues
 }
 
 func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
@@ -187,6 +189,11 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 		return empty, err
 	}
 
+	var validationIssues *billing.ValidationIssues
+	if len(in.ValidationIssues) > 0 {
+		validationIssues = &in.ValidationIssues
+	}
+
 	return updater.
 		SetName(in.IntentMutableFields.Name).
 		SetOrClearDescription(in.IntentMutableFields.Description).
@@ -199,7 +206,8 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 		SetFullServicePeriodFrom(in.IntentMutableFields.FullServicePeriod.From.UTC()).
 		SetFullServicePeriodTo(in.IntentMutableFields.FullServicePeriod.To.UTC()).
 		SetStatus(in.Status).
-		SetOrClearAdvanceAfter(in.AdvanceAfter), nil
+		SetOrClearAdvanceAfter(in.AdvanceAfter).
+		SetOrClearValidationIssues(validationIssues), nil
 }
 
 type Getter[T any] interface {
@@ -230,6 +238,7 @@ type Getter[T any] interface {
 	GetTaxBehavior() *productcatalog.TaxBehavior
 	GetFiatCurrencyCode() *currencyx.Code
 	GetCustomCurrencyID() *string
+	GetValidationIssues() billing.ValidationIssues
 }
 
 type EdgeGetter interface {
@@ -260,6 +269,11 @@ func FromDB[T Getter[T]](entity T, edges EdgeGetter) (meta.Charge, error) {
 func FromDBWithCurrency[T Getter[T]](entity T, currency currencies.Currency) (meta.Charge, error) {
 	if err := currency.Validate(); err != nil {
 		return meta.Charge{}, fmt.Errorf("currency: %w", err)
+	}
+
+	validationIssues := entity.GetValidationIssues()
+	if len(validationIssues) == 0 {
+		validationIssues = nil
 	}
 
 	var subscriptionReference *meta.SubscriptionReference
@@ -308,7 +322,8 @@ func FromDBWithCurrency[T Getter[T]](entity T, currency currencies.Currency) (me
 				To:   entity.GetBillingPeriodTo().UTC(),
 			},
 		},
-		Status:       entity.GetStatus(),
-		AdvanceAfter: entity.GetAdvanceAfter(),
+		Status:           entity.GetStatus(),
+		AdvanceAfter:     entity.GetAdvanceAfter(),
+		ValidationIssues: validationIssues,
 	}, nil
 }
