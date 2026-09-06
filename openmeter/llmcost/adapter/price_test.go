@@ -1,22 +1,18 @@
 package adapter_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	llmcostadapter "github.com/openmeterio/openmeter/openmeter/llmcost/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 )
 
-func newLLMCostTestAdapter(t *testing.T) (llmcost.Adapter, *db.Client) {
-	t.Helper()
-
+func TestAdapterResolvePricePrefersNamespaceOverride(t *testing.T) {
 	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	dbClient := testDB.EntDriver.Client()
 
@@ -31,13 +27,7 @@ func newLLMCostTestAdapter(t *testing.T) (llmcost.Adapter, *db.Client) {
 	})
 	require.NoError(t, err)
 
-	return adapter, dbClient
-}
-
-func TestAdapterResolvePricePrefersNamespaceOverride(t *testing.T) {
-	ctx := context.Background()
-	adapter, _ := newLLMCostTestAdapter(t)
-
+	ctx := t.Context()
 	effectiveFrom := time.Now().Add(-time.Hour)
 
 	globalPrice := llmcost.Price{
@@ -82,5 +72,5 @@ func TestAdapterResolvePricePrefersNamespaceOverride(t *testing.T) {
 		ModelID:   "gpt-test",
 	})
 	require.NoError(t, err)
-	require.Equal(t, resolvedGlobal.Pricing.InputPerToken.String(), globalPrice.Pricing.InputPerToken.String(), "namespaces without an override resolve to the global price")
+	require.Equal(t, globalPrice.Pricing.InputPerToken.InexactFloat64(), resolvedGlobal.Pricing.InputPerToken.InexactFloat64(), "namespaces without an override resolve to the global price")
 }
