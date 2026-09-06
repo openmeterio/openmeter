@@ -1744,16 +1744,18 @@ type CreateCreditGrantPurchase struct {
 	// charge is $50.00. The value must be greater than 0. If the
 	// cost basis is 0, use `funding_method=none` instead.
 	//
-	// Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
-	// to 1.0.
+	// Only applies to fiat grants and cannot be combined with `cost_basis`. Defaults
+	// to 1.0 when neither is provided.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
 	// Defines how custom-currency credits are priced in the purchase `currency`; the
 	// resolved rate is exposed through `resolved_cost_basis`.
 	//
-	// Required for custom-currency grants and rejected for fiat grants, which use
-	// `per_unit_cost_basis`. `fiat_currency` must equal the purchase `currency`. A
-	// `dynamic` cost basis is resolved at the grant's effective time, so the currency
-	// cost basis must be effective by then.
+	// Fiat grants accept only a `manual` cost basis without `fiat_currency`, where
+	// `rate` is the fiat cost per credit unit. Custom-currency grants require a cost
+	// basis of any type with `fiat_currency` set and equal to the purchase `currency`.
+	// A `dynamic` cost basis is resolved at the grant's effective time, so the
+	// currency cost basis must be effective by then. Cannot be combined with
+	// `per_unit_cost_basis`.
 	CostBasis *ChargeCostBasis `json:"cost_basis,omitempty"`
 	// Controls when credits become available for consumption.
 	//
@@ -2018,8 +2020,8 @@ type CreditGrantPurchase struct {
 	// charge is $50.00. The value must be greater than 0. If the
 	// cost basis is 0, use `funding_method=none` instead.
 	//
-	// Only applies to fiat grants; custom-currency grants use `cost_basis`. Defaults
-	// to 1.0.
+	// Only applies to fiat grants and cannot be combined with `cost_basis`. Defaults
+	// to 1.0 when neither is provided.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
 	// The rate the purchase is settled at in the purchase `currency`. Present once the
 	// cost basis is resolved.

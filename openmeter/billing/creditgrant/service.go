@@ -87,9 +87,11 @@ func (f FundingMethod) Validate() error {
 type PurchaseTerms struct {
 	// Currency is the fiat currency the purchase is settled in.
 	Currency currencyx.Code
-	// CostBasis prices custom-currency credits in Currency; fiat grants must omit it.
+	// CostBasis prices the credits in Currency: fiat grants accept only a fiat rate,
+	// custom-currency grants require a custom-currency intent. Mutually exclusive
+	// with PerUnitCostBasis.
 	CostBasis *creditpurchase.CostBasis
-	// PerUnitCostBasis is the fiat-only rate, defaulting to 1.
+	// PerUnitCostBasis is the deprecated fiat-only rate, defaulting to 1.
 	PerUnitCostBasis   *alpacadecimal.Decimal
 	AvailabilityPolicy *creditpurchase.InitialPaymentSettlementStatus
 }
