@@ -243,6 +243,7 @@ jobs:
           cache: false
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -305,7 +306,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: api/spec/pnpm-lock.yaml
 
-      - name: Verify Depot Go cache and runner tools
+      - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -315,6 +317,9 @@ jobs:
           fi
 
           echo "Using ${cache_program}"
+
+      - name: Verify runner tools
+        run: |
           yq --version
 
       - name: Ensure code generators are run
@@ -418,6 +423,7 @@ jobs:
             ${{ runner.os }}-openmeter-go-modules-
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -479,6 +485,7 @@ jobs:
           cache: false
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -523,6 +530,7 @@ jobs:
           cache: false
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -590,6 +598,7 @@ jobs:
           cache: false
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -663,6 +672,7 @@ jobs:
           skip-cache: true
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -875,6 +885,7 @@ jobs:
           cache: false
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -985,6 +996,7 @@ jobs:
           cache: false
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
@@ -1123,6 +1135,7 @@ jobs:
           cache: false
 
       - name: Verify Depot Go cache
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           cache_program="$(go env GOCACHEPROG)"
 
