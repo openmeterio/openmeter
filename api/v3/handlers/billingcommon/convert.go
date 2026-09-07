@@ -4,6 +4,8 @@
 package billingcommon
 
 import (
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -22,6 +24,26 @@ func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
 		TaxesTotal:          t.TaxesTotal.String(),
 		Total:               t.Total.String(),
 	}
+}
+
+func ToAPIValidationIssues(issues billing.ValidationIssues) *[]api.BillingValidationIssue {
+	if len(issues) == 0 {
+		return nil
+	}
+
+	out := make([]api.BillingValidationIssue, len(issues))
+	for idx, issue := range issues {
+		out[idx] = api.BillingValidationIssue{
+			Attributes: lo.EmptyableToPtr(map[string]any(issue.Attributes)),
+			Code:       issue.Code,
+			Component:  lo.EmptyableToPtr(string(issue.Component)),
+			Field:      lo.EmptyableToPtr(issue.Path),
+			Message:    issue.Message,
+			Severity:   api.BillingValidationIssueSeverity(issue.Severity),
+		}
+	}
+
+	return &out
 }
 
 func ConvertClosedPeriodToAPI(p timeutil.ClosedPeriod) api.ClosedPeriod {

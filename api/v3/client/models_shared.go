@@ -555,43 +555,6 @@ func (value InvoiceType) Valid() bool {
 	}
 }
 
-// A validation issue found during invoice processing.
-//
-// Converges on the same structure used by plan and subscription validation errors:
-// a machine-readable `code`, a human-readable `message`, optional structured
-// `attributes`, plus a `severity` and optional `field` path.
-type InvoiceValidationIssue struct {
-	// Machine-readable error code.
-	Code string `json:"code"`
-	// Human-readable description of the error.
-	Message string `json:"message"`
-	// Additional structured context.
-	Attributes map[string]any `json:"attributes,omitempty"`
-	// Severity of the validation issue.
-	Severity InvoiceValidationIssueSeverity `json:"severity"`
-	// JSON path to the field that caused this validation issue, if applicable.
-	//
-	// For example: `lines/0/rate_card/price`.
-	Field *string `json:"field,omitempty"`
-}
-
-// Severity level of an invoice validation issue.
-type InvoiceValidationIssueSeverity string
-
-const (
-	InvoiceValidationIssueSeverityCritical InvoiceValidationIssueSeverity = "critical"
-	InvoiceValidationIssueSeverityWarning  InvoiceValidationIssueSeverity = "warning"
-)
-
-func (value InvoiceValidationIssueSeverity) Valid() bool {
-	switch value {
-	case InvoiceValidationIssueSeverityCritical, InvoiceValidationIssueSeverityWarning:
-		return true
-	default:
-		return false
-	}
-}
-
 // Invoice-level snapshot of the workflow configuration.
 //
 // Contains only the settings that are meaningful for an already-created invoice:
@@ -1762,6 +1725,39 @@ const (
 func (value UnitConfigRoundingMode) Valid() bool {
 	switch value {
 	case UnitConfigRoundingModeCeiling, UnitConfigRoundingModeFloor, UnitConfigRoundingModeHalfUp, UnitConfigRoundingModeNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// A validation issue found while processing a billing resource.
+type ValidationIssue struct {
+	// Machine-readable error code.
+	Code string `json:"code"`
+	// Human-readable description of the error.
+	Message string `json:"message"`
+	// Additional structured context.
+	Attributes map[string]any `json:"attributes,omitempty"`
+	// Severity of the validation issue.
+	Severity ValidationIssueSeverity `json:"severity"`
+	// JSON path to the field that caused the validation issue, if applicable.
+	Field *string `json:"field,omitempty"`
+	// Component that reported the validation issue, if applicable.
+	Component *string `json:"component,omitempty"`
+}
+
+// Severity level of a billing validation issue.
+type ValidationIssueSeverity string
+
+const (
+	ValidationIssueSeverityCritical ValidationIssueSeverity = "critical"
+	ValidationIssueSeverityWarning  ValidationIssueSeverity = "warning"
+)
+
+func (value ValidationIssueSeverity) Valid() bool {
+	switch value {
+	case ValidationIssueSeverityCritical, ValidationIssueSeverityWarning:
 		return true
 	default:
 		return false

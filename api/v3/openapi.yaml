@@ -5020,6 +5020,17 @@ components:
           description: The lifecycle status of the charge.
           title: Status
           readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingValidationIssue'
+          description: |-
+            Validation issues found while processing the charge.
+
+            Present only when there are one or more validation findings. An empty list is
+            omitted.
+          title: Validation issues
+          readOnly: true
         invoice_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -5664,7 +5675,7 @@ components:
         validation_issues:
           type: array
           items:
-            $ref: '#/components/schemas/BillingInvoiceValidationIssue'
+            $ref: '#/components/schemas/BillingValidationIssue'
           description: |-
             Validation issues found during invoice processing.
 
@@ -6005,6 +6016,17 @@ components:
             - $ref: '#/components/schemas/BillingChargeStatus'
           description: The lifecycle status of the charge.
           title: Status
+          readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingValidationIssue'
+          description: |-
+            Validation issues found while processing the charge.
+
+            Present only when there are one or more validation findings. An empty list is
+            omitted.
+          title: Validation issues
           readOnly: true
         invoice_at:
           allOf:
@@ -6487,6 +6509,17 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCreditGrantStatus'
           description: Current lifecycle status of the grant.
+          readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingValidationIssue'
+          description: |-
+            Validation issues found while processing the credit grant.
+
+            Present only when there are one or more validation findings. An empty list is
+            omitted.
+          title: Validation issues
           readOnly: true
       additionalProperties: false
       description: |-
@@ -8084,7 +8117,7 @@ components:
         validation_issues:
           type: array
           items:
-            $ref: '#/components/schemas/BillingInvoiceValidationIssue'
+            $ref: '#/components/schemas/BillingValidationIssue'
           description: |-
             Validation issues found during invoice processing.
 
@@ -8397,56 +8430,6 @@ components:
         Usage quantity details on an invoice line item when UnitConfig is in effect.
 
         Provides the full audit trail from raw meter output to the invoiced amount.
-    BillingInvoiceValidationIssue:
-      type: object
-      required:
-        - code
-        - message
-        - severity
-      properties:
-        code:
-          type: string
-          description: Machine-readable error code.
-          title: Code
-          readOnly: true
-        message:
-          type: string
-          description: Human-readable description of the error.
-          title: Message
-          readOnly: true
-        attributes:
-          type: object
-          additionalProperties: {}
-          description: Additional structured context.
-          title: Attributes
-          readOnly: true
-        severity:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceValidationIssueSeverity'
-          description: Severity of the validation issue.
-          title: Severity
-          readOnly: true
-        field:
-          type: string
-          description: |-
-            JSON path to the field that caused this validation issue, if applicable.
-
-            For example: `lines/0/rate_card/price`.
-          title: Field path
-          readOnly: true
-      additionalProperties: false
-      description: |-
-        A validation issue found during invoice processing.
-
-        Converges on the same structure used by plan and subscription validation errors:
-        a machine-readable `code`, a human-readable `message`, optional structured
-        `attributes`, plus a `severity` and optional `field` path.
-    BillingInvoiceValidationIssueSeverity:
-      type: string
-      enum:
-        - critical
-        - warning
-      description: Severity level of an invoice validation issue.
     BillingInvoiceWorkflow:
       type: object
       properties:
@@ -10715,6 +10698,53 @@ components:
           sandbox: '#/components/schemas/UpdateAppSandboxRequest'
           external_invoicing: '#/components/schemas/UpdateAppExternalInvoicingRequest'
       description: Request to update an installed app.
+    BillingValidationIssue:
+      type: object
+      required:
+        - code
+        - message
+        - severity
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          title: Code
+          readOnly: true
+        message:
+          type: string
+          description: Human-readable description of the error.
+          title: Message
+          readOnly: true
+        attributes:
+          type: object
+          additionalProperties: {}
+          description: Additional structured context.
+          title: Attributes
+          readOnly: true
+        severity:
+          allOf:
+            - $ref: '#/components/schemas/BillingValidationIssueSeverity'
+          description: Severity of the validation issue.
+          title: Severity
+          readOnly: true
+        field:
+          type: string
+          description: JSON path to the field that caused the validation issue, if applicable.
+          title: Field path
+          readOnly: true
+        component:
+          type: string
+          description: Component that reported the validation issue, if applicable.
+          title: Component
+          readOnly: true
+      additionalProperties: false
+      description: A validation issue found while processing a billing resource.
+    BillingValidationIssueSeverity:
+      type: string
+      enum:
+        - critical
+        - warning
+      description: Severity level of a billing validation issue.
     BillingWorkflow:
       type: object
       properties:

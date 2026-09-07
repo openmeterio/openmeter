@@ -135,7 +135,7 @@ func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoiceStanda
 		Customer:              toAPIInvoiceCustomer(std.Customer),
 		Supplier:              billingprofiles.ToAPIBillingSupplier(std.Supplier),
 		Totals:                billingcommon.ToAPIBillingTotals(std.Totals),
-		ValidationIssues:      mapValidationIssues(std.ValidationIssues),
+		ValidationIssues:      billingcommon.ToAPIValidationIssues(std.ValidationIssues),
 		ExternalReferences:    toAPIInvoiceExternalReferences(std.ExternalIDs),
 		Workflow:              workflow,
 		Lines:                 outLines,
@@ -250,24 +250,6 @@ func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSetting
 			Payment:   payment,
 		},
 	}, nil
-}
-
-func mapValidationIssues(issues []billing.ValidationIssue) *[]api.BillingInvoiceValidationIssue {
-	if len(issues) == 0 {
-		return nil
-	}
-
-	out := lo.Map(issues, func(v billing.ValidationIssue, _ int) api.BillingInvoiceValidationIssue {
-		return api.BillingInvoiceValidationIssue{
-			Severity:   api.BillingInvoiceValidationIssueSeverity(v.Severity),
-			Message:    v.Message,
-			Code:       v.Code,
-			Field:      lo.EmptyableToPtr(v.Path),
-			Attributes: lo.EmptyableToPtr(map[string]any(v.Attributes)),
-		}
-	})
-
-	return &out
 }
 
 func toAPIInvoiceExternalReferences(e externalid.InvoiceExternalIDs) *api.BillingInvoiceExternalReferences {

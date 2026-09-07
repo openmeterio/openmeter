@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
@@ -48,6 +49,15 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 				},
 			},
 			Status: creditpurchase.StatusActive,
+			ValidationIssues: billing.ValidationIssues{
+				{
+					Severity:   billing.ValidationIssueSeverityWarning,
+					Message:    "grant needs attention",
+					Code:       "grant_context",
+					Component:  billing.ComponentName("openmeter.creditgrant"),
+					Attributes: models.Annotations{"invoice": "invoice-1", "line": "line-1"},
+				},
+			},
 		},
 	}
 
@@ -58,6 +68,15 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 	require.Equal(t, "25", grant.Amount)
 	require.Equal(t, api.BillingCreditGrantStatusActive, grant.Status)
 	require.Nil(t, grant.VoidedAt)
+	require.Equal(t, &[]api.BillingValidationIssue{
+		{
+			Severity:   api.BillingValidationIssueSeverityWarning,
+			Message:    "grant needs attention",
+			Code:       "grant_context",
+			Component:  lo.ToPtr("openmeter.creditgrant"),
+			Attributes: &map[string]any{"invoice": "invoice-1", "line": "line-1"},
+		},
+	}, grant.ValidationIssues)
 
 	t.Run("ledger-derived voiding overrides the charge status", func(t *testing.T) {
 		voidedAt := now.Add(time.Hour)

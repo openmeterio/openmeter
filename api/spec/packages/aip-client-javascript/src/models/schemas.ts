@@ -554,6 +554,10 @@ export const creditGrantStatus = z
     'Credit grant lifecycle status. - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met) - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met) - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed. - `voided`: The credit block was voided. Remaining balance is forfeited.',
   )
 
+export const validationIssueSeverity = z
+  .enum(['critical', 'warning'])
+  .describe('Severity level of a billing validation issue.')
+
 export const stringFieldFilterExact = z
   .union([
     z.string(),
@@ -730,10 +734,6 @@ export const taxIdentificationCode = z
   .describe(
     'Tax identifier code is a normalized tax code shown on the original identity document.',
   )
-
-export const invoiceValidationIssueSeverity = z
-  .enum(['critical', 'warning'])
-  .describe('Severity level of an invoice validation issue.')
 
 export const invoiceExternalReferences = z
   .object({
@@ -3090,6 +3090,29 @@ export const listCreditGrantsParamsFilter = z
   })
   .describe('Filter options for listing credit grants.')
 
+export const validationIssue = z
+  .object({
+    code: z.string().describe('Machine-readable error code.'),
+    message: z.string().describe('Human-readable description of the error.'),
+    attributes: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe('Additional structured context.'),
+    severity: validationIssueSeverity,
+    field: z
+      .string()
+      .optional()
+
+      .describe(
+        'JSON path to the field that caused the validation issue, if applicable.',
+      ),
+    component: z
+      .string()
+      .optional()
+      .describe('Component that reported the validation issue, if applicable.'),
+  })
+  .describe('A validation issue found while processing a billing resource.')
+
 export const getCreditBalanceParamsFilter = z
   .object({
     currency: stringFieldFilterExact.optional(),
@@ -3170,28 +3193,6 @@ export const updateBillingPartyTaxIdentity = z
 
   .describe(
     'Identity stores the details required to identify an entity for tax purposes in a specific country.',
-  )
-
-export const invoiceValidationIssue = z
-  .object({
-    code: z.string().describe('Machine-readable error code.'),
-    message: z.string().describe('Human-readable description of the error.'),
-    attributes: z
-      .record(z.string(), z.unknown())
-      .optional()
-      .describe('Additional structured context.'),
-    severity: invoiceValidationIssueSeverity,
-    field: z
-      .string()
-      .optional()
-
-      .describe(
-        'JSON path to the field that caused this validation issue, if applicable. For example: `lines/0/rate_card/price`.',
-      ),
-  })
-
-  .describe(
-    'A validation issue found during invoice processing. Converges on the same structure used by plan and subscription validation errors: a machine-readable `code`, a human-readable `message`, optional structured `attributes`, plus a `severity` and optional `field` path.',
   )
 
 export const invoiceAvailableActions = z
@@ -5469,6 +5470,13 @@ export const creditGrant = z
     expiresAt: dateTime.optional(),
     voidedAt: dateTime.optional(),
     status: creditGrantStatus,
+    validationIssues: z
+      .array(validationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found while processing the credit grant. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
   })
 
   .describe(
@@ -5513,7 +5521,7 @@ export const invoiceBase = z
     totals: totals,
     servicePeriod: closedPeriod,
     validationIssues: z
-      .array(invoiceValidationIssue)
+      .array(validationIssue)
       .optional()
 
       .describe(
@@ -5575,7 +5583,7 @@ export const chargeRealizationInvoice = z
     totals: totals,
     servicePeriod: closedPeriod,
     validationIssues: z
-      .array(invoiceValidationIssue)
+      .array(validationIssue)
       .optional()
 
       .describe(
@@ -6582,7 +6590,7 @@ export const invoiceStandard = z
     totals: totals,
     servicePeriod: closedPeriod,
     validationIssues: z
-      .array(invoiceValidationIssue)
+      .array(validationIssue)
       .optional()
 
       .describe(
@@ -6694,6 +6702,13 @@ export const chargeFlatFee = z
     currency: billingCurrencyCode,
     resolvedCostBasis: chargeResolvedCostBasis.optional(),
     status: chargeStatus,
+    validationIssues: z
+      .array(validationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found while processing the charge. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
     invoiceAt: dateTime,
     servicePeriod: closedPeriod,
     fullServicePeriod: closedPeriod,
@@ -6745,6 +6760,13 @@ export const chargeUsageBased = z
     currency: billingCurrencyCode,
     resolvedCostBasis: chargeResolvedCostBasis.optional(),
     status: chargeStatus,
+    validationIssues: z
+      .array(validationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found while processing the charge. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
     invoiceAt: dateTime,
     servicePeriod: closedPeriod,
     fullServicePeriod: closedPeriod,
@@ -8307,6 +8329,10 @@ export const creditGrantStatusWire = z
     'Credit grant lifecycle status. - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met) - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met) - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed. - `voided`: The credit block was voided. Remaining balance is forfeited.',
   )
 
+export const validationIssueSeverityWire = z
+  .enum(['critical', 'warning'])
+  .describe('Severity level of a billing validation issue.')
+
 export const stringFieldFilterExactWire = z
   .union([
     z.string(),
@@ -8483,10 +8509,6 @@ export const taxIdentificationCodeWire = z
   .describe(
     'Tax identifier code is a normalized tax code shown on the original identity document.',
   )
-
-export const invoiceValidationIssueSeverityWire = z
-  .enum(['critical', 'warning'])
-  .describe('Severity level of an invoice validation issue.')
 
 export const invoiceExternalReferencesWire = z
   .strictObject({
@@ -10831,6 +10853,29 @@ export const listCreditGrantsParamsFilterWire = z
   })
   .describe('Filter options for listing credit grants.')
 
+export const validationIssueWire = z
+  .strictObject({
+    code: z.string().describe('Machine-readable error code.'),
+    message: z.string().describe('Human-readable description of the error.'),
+    attributes: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe('Additional structured context.'),
+    severity: validationIssueSeverityWire,
+    field: z
+      .string()
+      .optional()
+
+      .describe(
+        'JSON path to the field that caused the validation issue, if applicable.',
+      ),
+    component: z
+      .string()
+      .optional()
+      .describe('Component that reported the validation issue, if applicable.'),
+  })
+  .describe('A validation issue found while processing a billing resource.')
+
 export const getCreditBalanceParamsFilterWire = z
   .strictObject({
     currency: stringFieldFilterExactWire.optional(),
@@ -10908,28 +10953,6 @@ export const updateBillingPartyTaxIdentityWire = z
 
   .describe(
     'Identity stores the details required to identify an entity for tax purposes in a specific country.',
-  )
-
-export const invoiceValidationIssueWire = z
-  .strictObject({
-    code: z.string().describe('Machine-readable error code.'),
-    message: z.string().describe('Human-readable description of the error.'),
-    attributes: z
-      .record(z.string(), z.unknown())
-      .optional()
-      .describe('Additional structured context.'),
-    severity: invoiceValidationIssueSeverityWire,
-    field: z
-      .string()
-      .optional()
-
-      .describe(
-        'JSON path to the field that caused this validation issue, if applicable. For example: `lines/0/rate_card/price`.',
-      ),
-  })
-
-  .describe(
-    'A validation issue found during invoice processing. Converges on the same structure used by plan and subscription validation errors: a machine-readable `code`, a human-readable `message`, optional structured `attributes`, plus a `severity` and optional `field` path.',
   )
 
 export const invoiceAvailableActionsWire = z
@@ -13204,6 +13227,13 @@ export const creditGrantWire = z
     expires_at: dateTimeWire.optional(),
     voided_at: dateTimeWire.optional(),
     status: creditGrantStatusWire,
+    validation_issues: z
+      .array(validationIssueWire)
+      .optional()
+
+      .describe(
+        'Validation issues found while processing the credit grant. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
   })
 
   .describe(
@@ -13248,7 +13278,7 @@ export const invoiceBaseWire = z
     totals: totalsWire,
     service_period: closedPeriodWire,
     validation_issues: z
-      .array(invoiceValidationIssueWire)
+      .array(validationIssueWire)
       .optional()
 
       .describe(
@@ -13307,7 +13337,7 @@ export const chargeRealizationInvoiceWire = z
     totals: totalsWire,
     service_period: closedPeriodWire,
     validation_issues: z
-      .array(invoiceValidationIssueWire)
+      .array(validationIssueWire)
       .optional()
 
       .describe(
@@ -14312,7 +14342,7 @@ export const invoiceStandardWire = z
     totals: totalsWire,
     service_period: closedPeriodWire,
     validation_issues: z
-      .array(invoiceValidationIssueWire)
+      .array(validationIssueWire)
       .optional()
 
       .describe(
@@ -14424,6 +14454,13 @@ export const chargeFlatFeeWire = z
     currency: billingCurrencyCodeWire,
     resolved_cost_basis: chargeResolvedCostBasisWire.optional(),
     status: chargeStatusWire,
+    validation_issues: z
+      .array(validationIssueWire)
+      .optional()
+
+      .describe(
+        'Validation issues found while processing the charge. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
     invoice_at: dateTimeWire,
     service_period: closedPeriodWire,
     full_service_period: closedPeriodWire,
@@ -14475,6 +14512,13 @@ export const chargeUsageBasedWire = z
     currency: billingCurrencyCodeWire,
     resolved_cost_basis: chargeResolvedCostBasisWire.optional(),
     status: chargeStatusWire,
+    validation_issues: z
+      .array(validationIssueWire)
+      .optional()
+
+      .describe(
+        'Validation issues found while processing the charge. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
     invoice_at: dateTimeWire,
     service_period: closedPeriodWire,
     full_service_period: closedPeriodWire,

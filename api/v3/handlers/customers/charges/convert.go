@@ -139,6 +139,7 @@ func convertFlatFeeChargeToAPI(charge billingcharges.CustomerCharge, expands met
 		Type:                   api.BillingChargeFlatFeeTypeFlatFee,
 		UniqueReferenceId:      flatFee.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:              flatFee.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
+		ValidationIssues:       billingcommon.ToAPIValidationIssues(flatFee.ValidationIssues),
 	}, nil
 }
 
@@ -242,6 +243,7 @@ func convertUsageBasedChargeToAPI(charge billingcharges.CustomerCharge, expands 
 		UniqueReferenceId:   usageBasedFee.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:           usageBasedFee.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 		Usage:               usage,
+		ValidationIssues:    billingcommon.ToAPIValidationIssues(usageBasedFee.ValidationIssues),
 	}, nil
 }
 

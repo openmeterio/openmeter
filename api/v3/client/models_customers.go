@@ -759,6 +759,11 @@ type ChargeFlatFee struct {
 	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
+	// Validation issues found while processing the charge.
+	//
+	// Present only when there are one or more validation findings. An empty list is
+	// omitted.
+	ValidationIssues []ValidationIssue `json:"validation_issues,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.
 	InvoiceAt time.Time `json:"invoice_at"`
 	// The effective service period covered by the charge.
@@ -1120,7 +1125,7 @@ type ChargeRealizationInvoice struct {
 	//
 	// Present only when there are one or more validation findings. An empty list is
 	// omitted.
-	ValidationIssues []InvoiceValidationIssue `json:"validation_issues,omitempty"`
+	ValidationIssues []ValidationIssue `json:"validation_issues,omitempty"`
 	// External identifiers assigned to this invoice by third-party systems.
 	ExternalReferences *InvoiceExternalReferences `json:"external_references,omitempty"`
 	// Discriminator field identifying this as a standard invoice.
@@ -1391,6 +1396,11 @@ type ChargeUsageBased struct {
 	ResolvedCostBasis *ChargeResolvedCostBasis `json:"resolved_cost_basis,omitempty"`
 	// The lifecycle status of the charge.
 	Status ChargeStatus `json:"status"`
+	// Validation issues found while processing the charge.
+	//
+	// Present only when there are one or more validation findings. An empty list is
+	// omitted.
+	ValidationIssues []ValidationIssue `json:"validation_issues,omitempty"`
 	// The timestamp when the charge is intended to be invoiced.
 	InvoiceAt time.Time `json:"invoice_at"`
 	// The effective service period covered by the charge.
@@ -1979,6 +1989,11 @@ type CreditGrant struct {
 	VoidedAt *time.Time `json:"voided_at,omitempty"`
 	// Current lifecycle status of the grant.
 	Status CreditGrantStatus `json:"status"`
+	// Validation issues found while processing the credit grant.
+	//
+	// Present only when there are one or more validation findings. An empty list is
+	// omitted.
+	ValidationIssues []ValidationIssue `json:"validation_issues,omitempty"`
 }
 
 // Filters for the credit grant.
