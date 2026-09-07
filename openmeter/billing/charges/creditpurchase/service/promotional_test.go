@@ -236,10 +236,8 @@ func newPromotionalStateMachineTestMachine(
 	adapter := &promotionalStateMachineAdapter{}
 	lineageService := &promotionalStateMachineLineage{}
 	handler := &promotionalStateMachineHandler{
-		onPromotionalCreditPurchase: func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-			return ledgertransaction.GroupReference{
-				TransactionGroupID: "ledger-tx-1",
-			}, nil
+		onPromotionalCreditPurchase: func(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
+			return creditpurchase.CreditGrantResult{GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "ledger-tx-1"}}, nil
 		},
 	}
 	realizationsService := newPromotionalStateMachineRealizations(t, adapter, handler, lineageService)
@@ -356,12 +354,12 @@ func (a *promotionalStateMachineAdapter) CreateCreditGrant(ctx context.Context, 
 type promotionalStateMachineHandler struct {
 	creditpurchase.Handler
 
-	onPromotionalCreditPurchase func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
+	onPromotionalCreditPurchase func(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error)
 }
 
-func (h *promotionalStateMachineHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *promotionalStateMachineHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
 	if h.onPromotionalCreditPurchase == nil {
-		return ledgertransaction.GroupReference{}, nil
+		return creditpurchase.CreditGrantResult{}, nil
 	}
 
 	return h.onPromotionalCreditPurchase(ctx, charge)

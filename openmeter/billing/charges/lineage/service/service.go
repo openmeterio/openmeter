@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -180,6 +181,9 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		return err
 	}
 
+	if len(input.AmountsByChargeID) == 0 {
+		return nil
+	}
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		lineages, err := s.adapter.LockAdvanceLineagesForBackfill(ctx, input.Namespace, input.CustomerID, input.Currency.Reference())
 		if err != nil {
@@ -194,10 +198,18 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		}
 
 		lineageIDs := make([]string, 0, len(lineages))
+		chargeByLineageID := make(map[string]string, len(lineages))
 		for _, entry := range lineages {
+			if !input.AmountsByChargeID[entry.ChargeID].IsPositive() {
+				continue
+			}
+			chargeByLineageID[entry.ID] = entry.ChargeID
 			lineageIDs = append(lineageIDs, entry.ID)
 		}
 
+		if len(lineageIDs) == 0 {
+			return nil
+		}
 		state := creditrealization.LineageSegmentStateAdvanceUncovered
 		segments, err := s.adapter.ListActiveSegments(ctx, lineage.ListActiveSegmentsInput{
 			LineageIDs: lineageIDs,
@@ -208,11 +220,13 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		}
 
 		now := clock.Now().Truncate(time.Microsecond)
-		remaining := input.Amount
+		remainingByChargeID := maps.Clone(input.AmountsByChargeID)
 
 		for _, segment := range segments {
+			chargeID := chargeByLineageID[segment.LineageID]
+			remaining := remainingByChargeID[chargeID]
 			if !remaining.IsPositive() {
-				break
+				continue
 			}
 
 			coveredAmount := lineage.MinDecimal(segment.Amount, remaining)
@@ -240,7 +254,7 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 				return fmt.Errorf("create backfilled advance lineage segment for segment %s: %w", segment.ID, err)
 			}
 
-			remaining = remaining.Sub(coveredAmount)
+			remainingByChargeID[chargeID] = remaining.Sub(coveredAmount)
 		}
 
 		return nil

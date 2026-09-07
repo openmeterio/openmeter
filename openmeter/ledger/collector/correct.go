@@ -4,10 +4,12 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -32,15 +34,17 @@ type accrualCorrector struct {
 // collectedSource is one logical “collection” in the group: the FBO→accrued
 // forward tx, plus the receivable issue when that slice was advance-backed.
 type collectedSource struct {
+	entries                           []ledger.Entry
 	transaction                       ledger.Transaction
 	group                             ledger.TransactionGroup
 	advanceReceivableIssueTransaction ledger.Transaction
 }
 
 type transactionCorrectionPlan struct {
-	transaction ledger.Transaction
-	group       ledger.TransactionGroup
-	amount      alpacadecimal.Decimal
+	sourceEntryAmounts map[string]alpacadecimal.Decimal
+	transaction        ledger.Transaction
+	group              ledger.TransactionGroup
+	amount             alpacadecimal.Decimal
 }
 
 type plannedAction interface {
@@ -48,9 +52,10 @@ type plannedAction interface {
 }
 
 type plannedTransactionCorrection struct {
-	transaction ledger.Transaction
-	group       ledger.TransactionGroup
-	amount      alpacadecimal.Decimal
+	sourceEntryAmounts map[string]alpacadecimal.Decimal
+	transaction        ledger.Transaction
+	group              ledger.TransactionGroup
+	amount             alpacadecimal.Decimal
 }
 
 func (plannedTransactionCorrection) isPlannedAction() {}
@@ -79,10 +84,14 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 			return nil, nil
 		}
 
-		// Plan first, execute later, so we can merge overlapping corrections cleanly.
+		used, err := c.correctedSourceAmounts(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		// Reserve source capacity across the batch before committing any postings.
 		actions := make([]plannedAction, 0, len(input.Corrections))
 		for _, correction := range input.Corrections {
-			correctionActions, err := c.planCorrection(ctx, input, correction)
+			correctionActions, err := c.planCorrection(ctx, input, correction, used)
 			if err != nil {
 				return nil, err
 			}
@@ -145,7 +154,7 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 	return transaction.Run(ctx, c.transactionManager, run)
 }
 
-func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectCollectedAccruedInput, correction creditrealization.CorrectionRequestItem) ([]plannedAction, error) {
+func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectCollectedAccruedInput, correction creditrealization.CorrectionRequestItem, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	originalGroup, err := c.originalGroup(ctx, input, correction)
 	if err != nil {
 		return nil, err
@@ -160,7 +169,7 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	// Older data may not have lineage yet, so fall back to first-order source correction.
 	segments := input.LineageSegmentsByRealization[correction.Allocation.ID]
 	if len(segments) == 0 {
-		return plannedSourceCorrectionActions(source, correction.Amount.Abs(), source.advanceReceivableIssueTransaction != nil), nil
+		return plannedSourceCorrectionActions(source, correction.Amount.Abs(), source.advanceReceivableIssueTransaction != nil, used)
 	}
 
 	// Lineage tells us what this value looks like now, so consume that state first.
@@ -176,7 +185,7 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 			continue
 		}
 
-		segmentActions, err := c.planSegmentCorrection(ctx, input, source, segment, segmentAmount)
+		segmentActions, err := c.planSegmentCorrection(ctx, input, source, segment, segmentAmount, used)
 		if err != nil {
 			return nil, err
 		}
@@ -204,24 +213,24 @@ func (c *accrualCorrector) originalGroup(ctx context.Context, input CorrectColle
 	return group, nil
 }
 
-func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	// Each current segment state needs a slightly different unwind.
 	switch segment.State {
 	case creditrealization.LineageSegmentStateRealCredit,
 		creditrealization.LineageSegmentStateReceivableCoverage:
-		return plannedSourceCorrectionActions(source, amount, false), nil
+		return plannedSourceCorrectionActions(source, amount, false, used)
 	case creditrealization.LineageSegmentStateAdvanceUncovered:
-		return plannedSourceCorrectionActions(source, amount, true), nil
+		return plannedSourceCorrectionActions(source, amount, true, used)
 	case creditrealization.LineageSegmentStateAdvanceBackfilled:
-		return c.planBackfilledAdvanceSegment(ctx, input, source, segment, amount)
+		return c.planBackfilledAdvanceSegment(ctx, input, source, segment, amount, used)
 	case creditrealization.LineageSegmentStateEarningsRecognized:
-		return c.planRecognizedEarningsSegment(ctx, input, source, segment, amount)
+		return c.planRecognizedEarningsSegment(ctx, input, source, segment, amount, used)
 	default:
 		return nil, fmt.Errorf("unsupported active lineage segment state %s", segment.State)
 	}
 }
 
-func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
 		return nil, fmt.Errorf("earnings_recognized segment missing backing transaction group id")
 	}
@@ -251,16 +260,23 @@ func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, in
 	sourceSegment.SourceState = nil
 	sourceSegment.SourceBackingTransactionGroupID = nil
 
-	sourceActions, err := c.planSegmentCorrection(ctx, input, source, sourceSegment, amount)
+	sourceActions, err := c.planSegmentCorrection(ctx, input, source, sourceSegment, amount, used)
 	if err != nil {
 		return nil, err
 	}
 
+	entryAmounts, err := c.recognizedSourceAmounts(ctx, recognizedSourceAmountsInput{
+		correction: input, recognition: recognitionTx, actions: sourceActions, amount: amount, used: used,
+	})
+	if err != nil {
+		return nil, err
+	}
 	actions := []plannedAction{
 		plannedTransactionCorrection{
-			transaction: recognitionTx,
-			group:       recognitionGroup,
-			amount:      amount,
+			sourceEntryAmounts: entryAmounts,
+			transaction:        recognitionTx,
+			group:              recognitionGroup,
+			amount:             amount,
 		},
 	}
 	actions = append(actions, sourceActions...)
@@ -268,7 +284,7 @@ func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, in
 	return actions, nil
 }
 
-func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
 		return nil, fmt.Errorf("advance_backfilled segment missing backing transaction group id")
 	}
@@ -284,7 +300,15 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 	}
 
 	actions := make([]plannedAction, 0, 4)
-	if translateTx, err := c.forwardTransactionByTemplate(backingGroup, transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})); err == nil {
+	translateTx, err := backfillTransactionForSource(backfillTransactionForSourceInput{
+		group: backingGroup, original: source.transaction,
+		accountType:  ledger.AccountTypeCustomerAccrued,
+		templateCode: transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if translateTx != nil {
 		actions = append(actions, plannedTransactionCorrection{
 			transaction: translateTx,
 			group:       backingGroup,
@@ -292,16 +316,27 @@ func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, inp
 		})
 	}
 
-	attributeTx, err := c.forwardTransactionByTemplate(backingGroup, transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}))
+	attributeTx, err := backfillTransactionForSource(backfillTransactionForSourceInput{
+		group: backingGroup, original: source.advanceReceivableIssueTransaction,
+		accountType:  ledger.AccountTypeCustomerReceivable,
+		templateCode: transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("find backing advance receivable attribution transaction in group %s: %w", backingGroup.ID().ID, err)
+	}
+	if attributeTx == nil {
+		return nil, fmt.Errorf("backing group %s has no receivable attribution matching the collected source", backingGroup.ID().ID)
 	}
 	actions = append(actions, plannedTransactionCorrection{
 		transaction: attributeTx,
 		group:       backingGroup,
 		amount:      amount,
 	})
-	actions = append(actions, plannedSourceCorrectionActions(source, amount, true)...)
+	sourceActions, err := plannedSourceCorrectionActions(source, amount, true, used)
+	if err != nil {
+		return nil, err
+	}
+	actions = append(actions, sourceActions...)
 
 	reopenInputs, reopenPending, err := c.resolveAdvanceBackfillBreakageReopenInputs(ctx, input, backingGroup, amount)
 	if err != nil {
@@ -370,15 +405,24 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 	return out, nil
 }
 
-func plannedSourceCorrectionActions(source collectedSource, amount alpacadecimal.Decimal, includeAdvanceReceivable bool) []plannedAction {
+func plannedSourceCorrectionActions(source collectedSource, amount alpacadecimal.Decimal, includeAdvanceReceivable bool, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+	var entryAmounts map[string]alpacadecimal.Decimal
+	if source.advanceReceivableIssueTransaction == nil {
+		var err error
+		entryAmounts, err = reserveCorrectionSources(source.entries, amount, used)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// A source correction always offsets the original collection transaction itself.
 	// Advance-backed collection also needs the companion receivable-issue correction
 	// so the offset reduces the advance-side obligation instead of manufacturing credit.
 	actions := []plannedAction{
 		plannedTransactionCorrection{
-			transaction: source.transaction,
-			group:       source.group,
-			amount:      amount,
+			sourceEntryAmounts: entryAmounts,
+			transaction:        source.transaction,
+			group:              source.group,
+			amount:             amount,
 		},
 	}
 
@@ -390,7 +434,7 @@ func plannedSourceCorrectionActions(source collectedSource, amount alpacadecimal
 		})
 	}
 
-	return actions
+	return actions, nil
 }
 
 func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input CorrectCollectedAccruedInput, actions []plannedAction) (resolvedCorrectionInputs, error) {
@@ -406,14 +450,21 @@ func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input Corre
 		case plannedTransactionCorrection:
 			key := planned.mergeKey()
 			if existing, ok := mergedCorrections[key]; ok {
+				if (existing.sourceEntryAmounts == nil) != (planned.sourceEntryAmounts == nil) {
+					return resolvedCorrectionInputs{}, fmt.Errorf("cannot merge scoped and unscoped corrections of transaction %s", key)
+				}
 				existing.amount = existing.amount.Add(planned.amount)
+				for id, amount := range planned.sourceEntryAmounts {
+					existing.sourceEntryAmounts[id] = existing.sourceEntryAmounts[id].Add(amount)
+				}
 				continue
 			}
 
 			mergedCorrections[key] = &transactionCorrectionPlan{
-				transaction: planned.transaction,
-				group:       planned.group,
-				amount:      planned.amount,
+				sourceEntryAmounts: maps.Clone(planned.sourceEntryAmounts),
+				transaction:        planned.transaction,
+				group:              planned.group,
+				amount:             planned.amount,
 			}
 			correctionOrder = append(correctionOrder, key)
 		case plannedDirectInputs:
@@ -436,6 +487,7 @@ func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input Corre
 		correctionInputs, err := transactions.CorrectTransaction(ctx, c.deps, transactions.CorrectionInput{
 			At:                  input.AllocateAt,
 			Amount:              transactionPlan.amount,
+			SourceEntryAmounts:  transactionPlan.sourceEntryAmounts,
 			OriginalTransaction: transactionPlan.transaction,
 			OriginalGroup:       transactionPlan.group,
 		})
@@ -483,6 +535,9 @@ func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx contex
 		}
 
 		releaseFacts := releaseFactsByTransactionID[release.BreakageTransactionID]
+		if releaseFacts.SpendChargeID != nil && *releaseFacts.SpendChargeID != input.ChargeID {
+			continue
+		}
 		reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
 			Release:        release,
 			Amount:         reopenAmount,
@@ -542,6 +597,14 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 	}
 
 	correctedEntries := correctedFBOEntriesForAmount(transactionPlan.transaction, transactionPlan.amount)
+	if transactionPlan.sourceEntryAmounts != nil {
+		correctedEntries = nil
+		for _, entry := range transactionPlan.transaction.Entries() {
+			if amount := transactionPlan.sourceEntryAmounts[entry.ID().ID]; amount.IsPositive() {
+				correctedEntries = append(correctedEntries, correctedFBOEntry{entry: entry, amount: amount})
+			}
+		}
+	}
 	if len(correctedEntries) == 0 {
 		return nil, nil, nil
 	}
@@ -690,9 +753,17 @@ func (c *accrualCorrector) collectedSourcesForGroup(group ledger.TransactionGrou
 			}
 		}
 
+		sourceIndexBySubAccount := make(map[string]int)
 		for _, entry := range transaction.Entries() {
 			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative() {
+				subAccountID := entry.PostingAddress().SubAccountID()
+				if idx, ok := sourceIndexBySubAccount[subAccountID]; ok {
+					out[idx].entries = append(out[idx].entries, entry)
+					continue
+				}
+				sourceIndexBySubAccount[subAccountID] = len(out)
 				out = append(out, collectedSource{
+					entries:                           []ledger.Entry{entry},
 					transaction:                       transaction,
 					group:                             group,
 					advanceReceivableIssueTransaction: advanceReceivableIssueTransaction,
@@ -822,4 +893,191 @@ func minDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
 	}
 
 	return a
+}
+
+// correctedSourceAmounts reads immutable correction links so a later partial
+// correction resumes the original source suffix instead of restoring it twice.
+func (c *accrualCorrector) correctedSourceAmounts(ctx context.Context, input CorrectCollectedAccruedInput) (map[string]alpacadecimal.Decimal, error) {
+	out := make(map[string]alpacadecimal.Decimal)
+	var cursor *ledger.TransactionCursor
+	for {
+		page, err := c.ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
+			Namespace: input.Namespace, Limit: 100, Cursor: cursor,
+			AnnotationFilters: map[string]string{
+				ledger.AnnotationChargeID:             input.ChargeID,
+				ledger.AnnotationTransactionDirection: string(ledger.TransactionDirectionCorrection),
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list prior charge corrections: %w", err)
+		}
+		for _, tx := range page.Items {
+			for _, entry := range tx.Entries() {
+				if !entry.Amount().IsPositive() {
+					continue
+				}
+				_, identity, err := ledger.EntryIdentityKeyText(entry.IdentityKey()).Parse()
+				if err != nil {
+					return nil, fmt.Errorf("parse correction entry identity: %w", err)
+				}
+				if identity.CorrectionSource != nil {
+					out[*identity.CorrectionSource] = out[*identity.CorrectionSource].Add(entry.Amount())
+				}
+			}
+		}
+		if page.NextCursor == nil {
+			return out, nil
+		}
+		cursor = page.NextCursor
+	}
+}
+
+// reserveCorrectionSources resumes the reverse original collection order after
+// subtracting both persisted corrections and reservations earlier in this batch.
+func reserveCorrectionSources(entries []ledger.Entry, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) (map[string]alpacadecimal.Decimal, error) {
+	entries = slices.Clone(entries)
+	slices.SortStableFunc(entries, compareCollectedFBOCorrectionSourceEntries)
+	out := make(map[string]alpacadecimal.Decimal)
+	remaining := amount
+	for i := len(entries) - 1; i >= 0 && remaining.IsPositive(); i-- {
+		entry := entries[i]
+		available := entry.Amount().Abs().Sub(used[entry.ID().ID])
+		if !available.IsPositive() {
+			continue
+		}
+		selected := minDecimal(available, remaining)
+		out[entry.ID().ID] = selected
+		used[entry.ID().ID] = used[entry.ID().ID].Add(selected)
+		remaining = remaining.Sub(selected)
+	}
+	if remaining.IsPositive() {
+		return nil, fmt.Errorf("correction exceeds remaining source capacity by %s", remaining)
+	}
+	return out, nil
+}
+
+// Recognition groups can include multiple spends and cost bases. Reverse only
+// the accrued buckets that the source unwind will debit, including a backfill's
+// translation from unknown to known cost basis.
+type recognizedSourceAmountsInput struct {
+	correction  CorrectCollectedAccruedInput
+	recognition ledger.Transaction
+	actions     []plannedAction
+	amount      alpacadecimal.Decimal
+	used        map[string]alpacadecimal.Decimal
+}
+
+func (c *accrualCorrector) recognizedSourceAmounts(ctx context.Context, input recognizedSourceAmountsInput) (map[string]alpacadecimal.Decimal, error) {
+	accrued := make(map[correctionPostingKey]alpacadecimal.Decimal)
+	for _, action := range input.actions {
+		var inputs []ledger.TransactionInput
+		switch planned := action.(type) {
+		case plannedTransactionCorrection:
+			var err error
+			inputs, err = transactions.CorrectTransaction(ctx, c.deps, transactions.CorrectionInput{
+				At: input.correction.AllocateAt, Amount: planned.amount, OriginalTransaction: planned.transaction, OriginalGroup: planned.group, SourceEntryAmounts: planned.sourceEntryAmounts,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("resolve recognition source unwind: %w", err)
+			}
+		case plannedDirectInputs:
+			inputs = planned.inputs
+		default:
+			return nil, fmt.Errorf("unsupported recognition source action %T", action)
+		}
+		for _, tx := range inputs {
+			for _, entry := range tx.EntryInputs() {
+				if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued {
+					key := correctionEntryKey(entry)
+					accrued[key] = accrued[key].Sub(entry.Amount())
+				}
+			}
+		}
+	}
+	out := make(map[string]alpacadecimal.Decimal)
+	selected := alpacadecimal.Zero
+	for _, entry := range input.recognition.Entries() {
+		if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerAccrued || !entry.Amount().IsNegative() {
+			continue
+		}
+		key := correctionEntryKey(entry)
+		required := accrued[key]
+		available := entry.Amount().Abs().Sub(input.used[entry.ID().ID])
+		if !required.IsPositive() || !available.IsPositive() {
+			continue
+		}
+		take := minDecimal(required, available)
+		out[entry.ID().ID] = take
+		input.used[entry.ID().ID] = input.used[entry.ID().ID].Add(take)
+		accrued[key] = required.Sub(take)
+		selected = selected.Add(take)
+	}
+	if !selected.Equal(input.amount) {
+		return nil, fmt.Errorf("recognition source coverage %s does not match correction amount %s", selected, input.amount)
+	}
+	for _, remaining := range accrued {
+		if !remaining.IsZero() {
+			return nil, fmt.Errorf("recognition correction leaves unmatched accrued amount %s", remaining)
+		}
+	}
+	return out, nil
+}
+
+type correctionPostingKey struct{ subAccountID, sourceChargeID, spendChargeID string }
+
+func correctionEntryKey(entry ledger.EntryInput) correctionPostingKey {
+	return correctionPostingKey{
+		subAccountID:   entry.PostingAddress().SubAccountID(),
+		sourceChargeID: lo.FromPtrOr(entry.SourceChargeID(), ""),
+		spendChargeID:  lo.FromPtrOr(entry.SpendChargeID(), ""),
+	}
+}
+
+// A purchase can backfill multiple spends in one group. Match the original
+// unknown-cost route and spend rather than taking the group's first template.
+type backfillTransactionForSourceInput struct {
+	group        ledger.TransactionGroup
+	original     ledger.Transaction
+	accountType  ledger.AccountType
+	templateCode string
+}
+
+func backfillTransactionForSource(input backfillTransactionForSourceInput) (ledger.Transaction, error) {
+	if input.original == nil {
+		return nil, fmt.Errorf("backfill correction requires original %s transaction", input.accountType)
+	}
+	keys := make(map[correctionPostingKey]struct{})
+	for _, entry := range input.original.Entries() {
+		if entry.PostingAddress().AccountType() == input.accountType {
+			keys[correctionEntryKey(entry)] = struct{}{}
+		}
+	}
+	var found ledger.Transaction
+	for _, tx := range input.group.Transactions() {
+		code, err := ledger.TransactionTemplateCodeFromAnnotations(tx.Annotations())
+		if err != nil {
+			return nil, err
+		}
+		direction, err := ledger.TransactionDirectionFromAnnotations(tx.Annotations())
+		if err != nil {
+			return nil, err
+		}
+		if code != input.templateCode || direction != ledger.TransactionDirectionForward {
+			continue
+		}
+		for _, entry := range tx.Entries() {
+			if entry.PostingAddress().AccountType() != input.accountType {
+				continue
+			}
+			if _, ok := keys[correctionEntryKey(entry)]; !ok {
+				continue
+			}
+			if found != nil {
+				return nil, fmt.Errorf("multiple backfill transactions match the original %s source", input.accountType)
+			}
+			found = tx
+			break
+		}
+	}
+	return found, nil
 }

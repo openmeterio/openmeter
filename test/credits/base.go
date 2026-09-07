@@ -320,6 +320,25 @@ func (s *BaseSuite) CreateLedgerBackedCustomer(ns string, subjectKey string) *cu
 	return cust
 }
 
+func (s *BaseSuite) CreateCustomCurrency(namespace string, code currencyx.Code) currencies.Currency {
+	s.T().Helper()
+
+	currency, err := s.CurrencyService.CreateCurrency(s.T().Context(), currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		CurrencyDetails: currencyx.CurrencyDetails{
+			Code:               code,
+			Name:               code.String(),
+			Symbol:             code.String(),
+			Precision:          2,
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	})
+	s.Require().NoError(err)
+
+	return currency
+}
+
 // MustCustomerFBOBalance returns customer FBO balance in a currency. Pass mo.None()
 // for all cost bases, mo.Some(nil) for the explicit nil-cost-basis route, or
 // mo.Some(&costBasis) for one concrete cost-basis route.
@@ -340,6 +359,16 @@ func (s *BaseSuite) MustCustomerFBOBalanceAsOf(customerID customer.CustomerID, c
 }
 
 func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], priority int, asOf *time.Time) alpacadecimal.Decimal {
+	return s.MustCustomerFBOBalanceByRouteAsOf(customerID, ledger.RouteFilter{
+		Currency:       currencies.NewCurrencyReference(code),
+		CostBasis:      costBasis,
+		CreditPriority: lo.ToPtr(priority),
+	}, asOf)
+}
+
+// MustCustomerFBOBalanceByRouteAsOf applies the supplied route filter to the
+// customer FBO balance at an optional historical point.
+func (s *BaseSuite) MustCustomerFBOBalanceByRouteAsOf(customerID customer.CustomerID, route ledger.RouteFilter, asOf *time.Time) alpacadecimal.Decimal {
 	s.T().Helper()
 
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
@@ -350,11 +379,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 		query.AsOf = asOf
 	}
 
-	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       currencies.NewCurrencyReference(code),
-		CostBasis:      costBasis,
-		CreditPriority: lo.ToPtr(priority),
-	}, query)
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, route, query)
 	s.NoError(err)
 
 	return balance

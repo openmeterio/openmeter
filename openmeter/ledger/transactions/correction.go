@@ -18,6 +18,9 @@ type CorrectionInput struct {
 	At     time.Time
 	Amount alpacadecimal.Decimal
 
+	// SourceEntryAmounts selects exact original source slices. Nil keeps the template default.
+	SourceEntryAmounts map[string]alpacadecimal.Decimal
+
 	// CostBasis is required only by templates whose correction must reapply an
 	// immutable conversion rate (e.g. ConvertCurrencyTemplate). The charge layer
 	// supplies it; the template validates it against the original booking
@@ -45,6 +48,23 @@ func (i CorrectionScope) Validate() error {
 		errs = append(errs, errors.New("original transaction is required"))
 	}
 
+	if i.SourceEntryAmounts != nil && i.OriginalTransaction != nil {
+		original := make(map[string]ledger.Entry)
+		for _, entry := range i.OriginalTransaction.Entries() {
+			original[entry.ID().ID] = entry
+		}
+		total := alpacadecimal.Zero
+		for id, amount := range i.SourceEntryAmounts {
+			entry, ok := original[id]
+			if !ok || !entry.Amount().IsNegative() || !amount.IsPositive() || amount.GreaterThan(entry.Amount().Abs()) {
+				errs = append(errs, fmt.Errorf("invalid correction source amount for entry %s", id))
+			}
+			total = total.Add(amount)
+		}
+		if !total.Equal(i.Amount) {
+			errs = append(errs, errors.New("source entry amounts must sum to correction amount"))
+		}
+	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -69,6 +89,14 @@ func CorrectTransaction(
 	template, err := transactionTemplateFromAnnotations(scope.OriginalTransaction.Annotations())
 	if err != nil {
 		return nil, fmt.Errorf("transaction template: %w", err)
+	}
+
+	if scope.SourceEntryAmounts != nil {
+		switch template.(type) {
+		case TransferCustomerFBOToAccruedTemplate, CoverCustomerReceivableTemplate, RecognizeEarningsFromAttributableAccruedTemplate:
+		default:
+			return nil, fmt.Errorf("transaction template %T does not support source entry selection", template)
+		}
 	}
 
 	outputs, err := correctTemplate(scope, template)
@@ -134,4 +162,11 @@ func correctTemplate(scope CorrectionScope, template TransactionTemplate) ([]led
 
 func templateCorrectionNotImplemented(template string) error {
 	return fmt.Errorf("%s correction is not implemented", template)
+}
+
+func (i CorrectionInput) sourceEntryAmount(entry ledger.Entry) alpacadecimal.Decimal {
+	if i.SourceEntryAmounts != nil {
+		return i.SourceEntryAmounts[entry.ID().ID]
+	}
+	return entry.Amount().Abs()
 }

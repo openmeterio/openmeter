@@ -1015,3 +1015,114 @@ func realizationsFromAllocations(env *ledgertestutils.IntegrationEnv, allocation
 
 	return out
 }
+
+func TestCorrectCollectedAccruedResumesCollapsedSourceSuffix(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-source-suffix")
+	collector := newTestAccrualCollector(env)
+	corrector := newTestAccrualCorrector(env, nil)
+
+	// given: one allocation collapses two source charges, followed by another route.
+	sourceA, sourceB, sourceC, spend := testChargeID(1), testChargeID(2), testChargeID(3), testChargeID(4)
+	sharedFBO := fundSourceCharge(t, env, sourceA, 1, 10)
+	fundSourceCharge(t, env, sourceB, 1, 20)
+	otherFBO := fundSourceCharge(t, env, sourceC, 2, 15)
+	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+		Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID,
+		BookedAt: env.Now(), SourceBalanceAsOf: env.Now(), Currency: env.CurrencyReference(),
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		ServicePeriod:  testServicePeriod(env), Amount: alpacadecimal.NewFromInt(45),
+	})
+	require.NoError(t, err)
+	require.Len(t, allocations, 2)
+	realizations := realizationsFromAllocations(env, allocations)
+
+	// when: correct the second allocation, then repeatedly unwind the collapsed first.
+	for _, correction := range []struct {
+		allocation int
+		amount     int64
+	}{{1, 5}, {0, 10}, {0, 15}} {
+		_, err := corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+			Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID, AllocateAt: env.Now(),
+			Corrections: creditrealization.CorrectionRequest{{Allocation: realizations[correction.allocation], Amount: alpacadecimal.NewFromInt(-correction.amount)}},
+		})
+		require.NoError(t, err)
+	}
+
+	// then: B's entire 20 and A's last 5 are restored; C independently retains 10 spent.
+	require.Equal(t, float64(25), env.SumBalance(t, sharedFBO).InexactFloat64())
+	require.Equal(t, float64(5), env.SumBalance(t, otherFBO).InexactFloat64())
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceA, &spend): 5,
+		sourceSpendChargeKey(&sourceC, &spend): 10,
+	})
+}
+
+func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-shared-backfill")
+	env.Currency = "ACME"
+	collector := newTestAccrualCollector(env)
+	corrector := newTestAccrualCorrector(env, nil)
+	spends := []string{testChargeID(1), testChargeID(2)}
+	purchase := testChargeID(3)
+	var allocations creditrealization.Realizations
+	var templates []transactions.TransactionTemplate
+	amount := alpacadecimal.NewFromInt(30)
+	basis := alpacadecimal.NewFromFloat(0.5)
+	fiat := currencyx.Code("USD")
+
+	// given: two spends share one later purchase/backfill group and recognition group.
+	for _, spend := range spends {
+		collected, err := collector.collect(t.Context(), CollectToAccruedInput{
+			Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID,
+			BookedAt: env.Now(), SourceBalanceAsOf: env.Now(), Currency: env.CurrencyReference(),
+			SettlementMode: productcatalog.CreditOnlySettlementMode, ServicePeriod: testServicePeriod(env), Amount: amount,
+		})
+		require.NoError(t, err)
+		require.Len(t, collected, 1)
+		allocations = append(allocations, realizationsFromAllocations(env, collected)...)
+		templates = append(templates,
+			transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), CostBasis: &basis, CostBasisCurrency: &fiat, SourceChargeID: &purchase, SpendChargeID: lo.ToPtr(spend)},
+			transactions.TranslateCustomerAccruedCostBasisTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), ToCostBasis: &basis, CostBasisCurrency: &fiat, SourceChargeID: &purchase, SpendChargeID: lo.ToPtr(spend)},
+		)
+	}
+	scope := transactions.ResolutionScope{Namespace: env.Namespace, CustomerID: env.CustomerID}
+	inputs, err := transactions.ResolveTransactions(t.Context(), corrector.deps, scope, templates...)
+	require.NoError(t, err)
+	backing, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+	inputs, err = transactions.ResolveTransactions(t.Context(), corrector.deps, scope, transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: env.Now(), Amount: alpacadecimal.NewFromInt(60), Currency: env.CurrencyReference()})
+	require.NoError(t, err)
+	recognition, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+
+	// when: repeatedly correct the second spend, whose backfill transaction is not first.
+	for _, correction := range []int64{10, 20} {
+		_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+			Namespace: env.Namespace, ChargeID: spends[1], CustomerID: env.CustomerID.ID, AllocateAt: env.Now(),
+			Corrections: creditrealization.CorrectionRequest{{Allocation: allocations[1], Amount: alpacadecimal.NewFromInt(-correction)}},
+			LineageSegmentsByRealization: lineage.ActiveSegmentsByRealizationID{allocations[1].ID: {{
+				Amount: amount, State: creditrealization.LineageSegmentStateEarningsRecognized,
+				BackingTransactionGroupID:       lo.ToPtr(recognition.ID().ID),
+				SourceState:                     lo.ToPtr(creditrealization.LineageSegmentStateAdvanceBackfilled),
+				SourceBackingTransactionGroupID: lo.ToPtr(backing.ID().ID),
+			}}},
+		})
+		require.NoError(t, err)
+	}
+
+	// then: the first spend retains earnings and no accrued bucket goes negative.
+	requireAccruedBalanceBuckets(t, env, map[string]float64{})
+	page, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{Namespace: env.Namespace, Limit: 100})
+	require.NoError(t, err)
+	require.Nil(t, page.NextCursor)
+	earnings := map[string]alpacadecimal.Decimal{}
+	for _, tx := range page.Items {
+		for _, entry := range tx.Entries() {
+			if entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.SpendChargeID() != nil {
+				earnings[*entry.SpendChargeID()] = earnings[*entry.SpendChargeID()].Add(entry.Amount())
+			}
+		}
+	}
+	require.Equal(t, float64(30), earnings[spends[0]].InexactFloat64())
+	require.Equal(t, float64(0), earnings[spends[1]].InexactFloat64())
+}
