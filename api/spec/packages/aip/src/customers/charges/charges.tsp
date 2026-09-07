@@ -823,7 +823,7 @@ model ChargeCostBasisManual {
    * The fiat currency the charge amount is converted into for invoicing.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
-  fiat_currency: Shared.CurrencyCode;
+  fiat_currency?: Shared.CurrencyCode;
 
   /**
    * Fiat amount per one unit of the custom currency.

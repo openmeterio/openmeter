@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/openmeterio/openmeter/app/config"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -52,6 +53,8 @@ func (s *VoidGrantTestSuite) SetupSuite() {
 		CustomerService:       s.CustomerService,
 		CreditVoidService:     s.CreditVoidService,
 		TransactionManager:    enttx.NewCreator(s.DBClient),
+		CurrencyResolver:      s.CurrencyResolver,
+		CreditsConfig:         config.CreditsConfiguration{EnableCustomCurrencyCharge: true},
 	})
 	s.Require().NoError(err)
 	s.CreditGrantService = creditGrantService

@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -91,77 +92,71 @@ func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCred
 }
 
 // toAPICreditGrantPurchase builds the purchase block for funded grants (invoice or external).
-// Returns nil for promotional grants (funding_method=none).
+// Returns nil for promotional grants (funding_method=none). Amount and the resolved
+// cost basis are omitted while a dynamic cost basis is still unresolved.
 func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditGrantPurchase, error) {
 	settlement := charge.Intent.Settlement
 
+	var availabilityPolicy *api.BillingCreditAvailabilityPolicy
+	settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
+
 	switch settlement.Type() {
 	case creditpurchase.SettlementTypeInvoice:
-		purchaseAmount, err := charge.GetFiatSettlementAmount()
-		if err != nil {
-			return nil, fmt.Errorf("getting fiat settlement amount: %w", err)
-		}
-
-		fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
-		if err != nil {
-			return nil, fmt.Errorf("getting settlement fiat currency: %w", err)
-		}
-
-		costBasis := charge.State.ResolvedCostBasis.CostBasis.String()
-		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
-
 		if charge.Realizations.InvoiceSettlement != nil {
 			settlementStatus = toAPIBillingCreditPurchasePaymentSettlementStatus(charge.Realizations.InvoiceSettlement.Status)
 		}
-
-		return &api.BillingCreditGrantPurchase{
-			Amount:           purchaseAmount.String(),
-			Currency:         api.CurrencyCode(fiatCurrency.GetFiatCode()),
-			PerUnitCostBasis: &costBasis,
-			SettlementStatus: &settlementStatus,
-		}, nil
-
 	case creditpurchase.SettlementTypeExternal:
 		ext, err := settlement.AsExternalSettlement()
 		if err != nil {
 			return nil, fmt.Errorf("getting external settlement: %w", err)
 		}
 
+		policy, err := toAPIBillingCreditAvailabilityPolicy(ext.InitialStatus)
+		if err != nil {
+			return nil, fmt.Errorf("converting availability policy: %w", err)
+		}
+		availabilityPolicy = &policy
+
+		if charge.Realizations.ExternalPaymentSettlement != nil {
+			settlementStatus = toAPIBillingCreditPurchasePaymentSettlementStatus(charge.Realizations.ExternalPaymentSettlement.Status)
+		}
+	case creditpurchase.SettlementTypePromotional:
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("invalid settlement type: %s", settlement.Type())
+	}
+
+	fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+	if err != nil {
+		return nil, fmt.Errorf("getting settlement fiat currency: %w", err)
+	}
+
+	resolvedCostBasis, err := billingcommon.ToAPIChargeResolvedCostBasis(fiatCurrency, charge.State.ResolvedCostBasis)
+	if err != nil {
+		return nil, fmt.Errorf("converting resolved cost basis: %w", err)
+	}
+
+	purchase := &api.BillingCreditGrantPurchase{
+		Currency:           api.CurrencyCode(fiatCurrency.GetFiatCode()),
+		ResolvedCostBasis:  resolvedCostBasis,
+		AvailabilityPolicy: availabilityPolicy,
+		SettlementStatus:   &settlementStatus,
+	}
+
+	if resolvedCostBasis != nil {
 		purchaseAmount, err := charge.GetFiatSettlementAmount()
 		if err != nil {
 			return nil, fmt.Errorf("getting fiat settlement amount: %w", err)
 		}
 
-		fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
-		if err != nil {
-			return nil, fmt.Errorf("getting settlement fiat currency: %w", err)
+		purchase.Amount = lo.ToPtr(purchaseAmount.String())
+
+		if charge.Intent.Currency.IsFiat() {
+			purchase.PerUnitCostBasis = &resolvedCostBasis.Rate
 		}
-
-		costBasis := charge.State.ResolvedCostBasis.CostBasis.String()
-		availPolicy, err := toAPIBillingCreditAvailabilityPolicy(ext.InitialStatus)
-		if err != nil {
-			return nil, fmt.Errorf("converting availability policy: %w", err)
-		}
-		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
-
-		if charge.Realizations.ExternalPaymentSettlement != nil {
-			settlementStatus = toAPIBillingCreditPurchasePaymentSettlementStatus(charge.Realizations.ExternalPaymentSettlement.Status)
-		}
-
-		return &api.BillingCreditGrantPurchase{
-			Amount:             purchaseAmount.String(),
-			Currency:           api.CurrencyCode(fiatCurrency.GetFiatCode()),
-			PerUnitCostBasis:   &costBasis,
-			AvailabilityPolicy: &availPolicy,
-			SettlementStatus:   &settlementStatus,
-		}, nil
-
-	case creditpurchase.SettlementTypePromotional:
-		return nil, nil
-
-	default:
-		return nil, fmt.Errorf("invalid settlement type: %s", settlement.Type())
 	}
+
+	return purchase, nil
 }
 
 func toAPIBillingCreditPurchasePaymentSettlementStatus(status payment.Status) api.BillingCreditPurchasePaymentSettlementStatus {
@@ -381,6 +376,11 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 			purchase.PerUnitCostBasis = &costBasis
 		}
 
+		purchase.CostBasis, err = fromAPICreateChargeCostBasis(body.Purchase.CostBasis)
+		if err != nil {
+			return creditgrant.CreateInput{}, fmt.Errorf("invalid cost_basis: %w", err)
+		}
+
 		if body.Purchase.AvailabilityPolicy != nil {
 			policy, err := fromAPIBillingCreditAvailabilityPolicy(*body.Purchase.AvailabilityPolicy)
 			if err != nil {
@@ -403,6 +403,41 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 	req.Filters = filters
 
 	return req, nil
+}
+
+func fromAPICreateChargeCostBasis(in *api.CreateChargeCostBasis) (*creditpurchase.CostBasis, error) {
+	if in == nil {
+		return nil, nil
+	}
+
+	costBasisType, err := in.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("invalid cost basis: %w", err)
+	}
+
+	if costBasisType == string(api.BillingChargeCostBasisManualTypeManual) {
+		manual, err := in.AsCreateChargeCostBasisManual()
+		if err != nil {
+			return nil, fmt.Errorf("invalid manual cost basis: %w", err)
+		}
+
+		rate, err := alpacadecimal.NewFromString(manual.Rate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cost basis rate: %w", err)
+		}
+
+		if manual.FiatCurrency == nil {
+			return new(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+				Rate: rate,
+			})), nil
+		}
+	}
+
+	costBasis, err := billingcommon.FromAPIChargeCostBasis(new(api.BillingChargeCostBasis(*in)))
+	if err != nil {
+		return nil, err
+	}
+	return new(creditpurchase.NewCostBasis(*costBasis)), nil
 }
 
 func fromAPIVoidCreditGrantRequest(

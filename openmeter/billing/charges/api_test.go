@@ -5,12 +5,15 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -254,4 +257,28 @@ func TestClearCustomerChargeOverrideInputValidate(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestCreateCustomerChargeInputValidateCostBasisFiatCurrency(t *testing.T) {
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	newInput := func(costBasis costbasis.Intent) CreateCustomerChargeInput {
+		return CreateCustomerChargeInput{
+			Namespace:    "ns",
+			CustomerID:   "customer-1",
+			CurrencyCode: "TOKENS",
+			CostBasis:    &costBasis,
+		}
+	}
+
+	t.Run("manual cost basis without fiat currency is rejected", func(t *testing.T) {
+		err := newInput(costbasis.NewIntent(costbasis.ManualIntent{Rate: alpacadecimal.NewFromInt(2)})).Validate()
+		require.ErrorContains(t, err, "cost basis: fiat currency is required")
+	})
+
+	t.Run("manual cost basis with fiat currency passes the cost basis check", func(t *testing.T) {
+		err := newInput(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: usd, Rate: alpacadecimal.NewFromInt(2)})).Validate()
+		require.NotContains(t, lo.FromPtr(lo.ToPtr(err.Error())), "fiat currency is required")
+	})
 }

@@ -165,6 +165,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		CustomerService:       s.CustomerService,
 		CreditVoidService:     creditvoid.NewNoopService(),
 		TransactionManager:    enttx.NewCreator(s.DBClient),
+		CurrencyResolver:      chargeStack.CurrencyResolver,
 	})
 	s.Require().NoError(err, "failed to initialize credit grant service")
 	s.CreditGrant = creditGrantService

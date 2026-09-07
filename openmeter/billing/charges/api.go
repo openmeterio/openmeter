@@ -122,6 +122,10 @@ func (i CreateCustomerChargeInput) Validate() error {
 		if err := i.CostBasis.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("cost basis: %w", err))
 		}
+
+		if fiatCurrency, err := i.CostBasis.GetFiatCurrency(); err != nil || fiatCurrency == nil {
+			errs = append(errs, errors.New("cost basis: fiat currency is required"))
+		}
 	}
 
 	if (i.FlatFee == nil) == (i.UsageBased == nil) {

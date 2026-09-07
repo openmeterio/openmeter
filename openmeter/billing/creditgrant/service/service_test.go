@@ -4,10 +4,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -73,5 +79,57 @@ func TestValidateChargeVoidable(t *testing.T) {
 		require.NoError(t, validateChargeVoidable(newCharge(creditpurchase.StatusActive, func(charge *creditpurchase.Charge) {
 			charge.Intent.ExpiresAt = &expiresAt
 		})))
+	})
+}
+
+func TestToCostBasis(t *testing.T) {
+	fiatCurrency := currenciestestutils.NewFiatCurrency(t, "USD")
+	customCurrency := currenciestestutils.NewCustomCurrency(t, "TOKENS", 3)
+
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	requireFiatRate := func(t *testing.T, costBasis creditpurchase.CostBasis, want float64) {
+		t.Helper()
+
+		require.Equal(t, creditpurchase.CostBasisTypeFiat, costBasis.Type())
+
+		fiat, err := costBasis.AsFiat()
+		require.NoError(t, err)
+		require.Equal(t, want, fiat.Rate.InexactFloat64())
+	}
+
+	t.Run("fiat grant defaults to a rate of one", func(t *testing.T) {
+		costBasis, err := toCostBasis(&creditgrant.PurchaseTerms{Currency: "USD"}, fiatCurrency)
+		require.NoError(t, err)
+		requireFiatRate(t, costBasis, 1)
+	})
+
+	t.Run("fiat grant uses the deprecated per unit rate", func(t *testing.T) {
+		costBasis, err := toCostBasis(&creditgrant.PurchaseTerms{
+			Currency:         "USD",
+			PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromFloat(0.25)),
+		}, fiatCurrency)
+		require.NoError(t, err)
+		requireFiatRate(t, costBasis, 0.25)
+	})
+
+	t.Run("fiat grant keeps the fiat rate cost basis", func(t *testing.T) {
+		costBasis, err := toCostBasis(&creditgrant.PurchaseTerms{
+			Currency:  "USD",
+			CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: alpacadecimal.NewFromFloat(0.5)})),
+		}, fiatCurrency)
+		require.NoError(t, err)
+		requireFiatRate(t, costBasis, 0.5)
+	})
+
+	t.Run("custom grant keeps the intent", func(t *testing.T) {
+		costBasis, err := toCostBasis(&creditgrant.PurchaseTerms{
+			Currency:  "USD",
+			CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: usd}))),
+		}, customCurrency)
+		require.NoError(t, err)
+		require.Equal(t, creditpurchase.CostBasisTypeCustomCurrency, costBasis.Type())
+		require.Equal(t, costbasis.ModeDynamic, costBasis.GetCustomCurrencyModeOrEmpty())
 	})
 }
