@@ -54,6 +54,54 @@ func TestValidationIssueAttributes(t *testing.T) {
 	})
 }
 
+func TestValidationIssuesHasWithComponentCode(t *testing.T) {
+	existing := ValidationIssue{
+		Severity:  ValidationIssueSeverityWarning,
+		Message:   "existing",
+		Code:      "existing",
+		Component: "component",
+	}
+	issues := ValidationIssues{existing}
+
+	require.True(t, issues.HasWithComponentCode(existing.Component, existing.Code))
+	require.False(t, issues.HasWithComponentCode("other", existing.Code))
+	require.False(t, issues.HasWithComponentCode(existing.Component, "other"))
+}
+
+func TestValidationIssuesWithout(t *testing.T) {
+	issue := ValidationIssue{
+		Severity:  ValidationIssueSeverityCritical,
+		Message:   "blocked",
+		Code:      "blocked",
+		Component: "component",
+	}
+	otherComponentIssue := issue
+	otherComponentIssue.Component = "other"
+	existing := ValidationIssue{
+		Severity:  ValidationIssueSeverityWarning,
+		Message:   "existing",
+		Code:      "existing",
+		Component: "component",
+	}
+
+	t.Run("removes every issue with the code and component", func(t *testing.T) {
+		original := ValidationIssues{issue, existing, otherComponentIssue, issue}
+
+		issues := original.Without(issue.Component, issue.Code)
+
+		require.Equal(t, ValidationIssues{existing, otherComponentIssue}, issues)
+		require.Len(t, original, 4)
+	})
+
+	t.Run("keeps the collection unchanged when the issue is absent", func(t *testing.T) {
+		original := ValidationIssues{existing, otherComponentIssue}
+
+		issues := original.Without(issue.Component, issue.Code)
+
+		require.Equal(t, original, issues)
+	})
+}
+
 func TestValidationWithAttributes(t *testing.T) {
 	baseIssue := ValidationIssue{
 		Severity: ValidationIssueSeverityWarning,

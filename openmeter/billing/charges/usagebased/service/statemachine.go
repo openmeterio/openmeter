@@ -99,7 +99,10 @@ func (c StateMachineConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
-func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
+func newStateMachineBase(
+	config StateMachineConfig,
+	updateBaseHandlers ...chargestatemachine.UpdateBaseHandler[usagebased.ChargeBase],
+) (*stateMachine, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
@@ -116,11 +119,10 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
-		Charge: config.Charge,
+		Charge:             config.Charge,
+		UpdateBaseHandlers: updateBaseHandlers,
 		Persistence: chargestatemachine.Persistence[usagebased.Charge, usagebased.ChargeBase]{
-			UpdateBase: func(ctx context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
-				return out.Adapter.UpdateCharge(ctx, base)
-			},
+			UpdateBase: out.Adapter.UpdateCharge,
 			Refetch: func(ctx context.Context, chargeID meta.ChargeID) (usagebased.Charge, error) {
 				return out.Adapter.GetByID(ctx, usagebased.GetByIDInput{
 					ChargeID: chargeID,

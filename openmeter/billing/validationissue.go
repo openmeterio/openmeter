@@ -3,6 +3,7 @@ package billing
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
@@ -226,6 +227,20 @@ func ValidationWithAttributes(attributes models.Annotations, err error) error {
 }
 
 type ValidationIssues []ValidationIssue
+
+func (v ValidationIssues) HasWithComponentCode(component ComponentName, code string) bool {
+	return slices.ContainsFunc(v, func(issue ValidationIssue) bool {
+		return issue.Component == component && issue.Code == code
+	})
+}
+
+func (v ValidationIssues) Without(component ComponentName, code string) ValidationIssues {
+	issues := slices.DeleteFunc(slices.Clone(v), func(issue ValidationIssue) bool {
+		return issue.Component == component && issue.Code == code
+	})
+
+	return issues
+}
 
 // ToValidationIssues converts an error into a list of validation issues
 // If the error is nil, it returns nil

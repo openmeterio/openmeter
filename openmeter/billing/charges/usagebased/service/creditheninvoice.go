@@ -55,7 +55,7 @@ func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInv
 		return nil, fmt.Errorf("charge %s is not credit_then_invoice", config.Charge.ID)
 	}
 
-	stateMachine, err := newStateMachineBase(config)
+	stateMachine, err := newStateMachineBase(config, clearInvoiceAssignmentIssueWithoutCurrentRun)
 	if err != nil {
 		return nil, fmt.Errorf("new state machine: %w", err)
 	}

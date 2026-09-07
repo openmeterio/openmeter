@@ -2016,7 +2016,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		// when:
 		// - billing tries to invoice pending lines again before the first invoice is issued
 		// then:
-		// - the request is rejected and no additional run or invoice is created
+		// - the pending line is excluded and the active run is recorded on the charge
 		s.MockStreamingConnector.AddSimpleEvent(
 			meterSlug,
 			5,
@@ -2025,19 +2025,23 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		clock.FreezeTime(secondPartialAttemptAt)
 
 		// when
-		_, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(secondPartialAttemptAt),
 		})
 
 		// then
-		s.Error(err)
-		s.ErrorAs(err, &billing.ValidationError{})
-		s.ErrorIs(err, usagebased.ErrActiveRealizationRunAlreadyExists)
+		s.NoError(err)
+		s.Empty(invoices)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 1)
+		s.Require().Len(charge.ValidationIssues, 1)
+		s.Equal(usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun, charge.ValidationIssues[0].Code)
+		s.Equal(usagebased.ValidationIssueComponentLineEngine, charge.ValidationIssues[0].Component)
+		s.Equal(partialInvoice.ID, charge.ValidationIssues[0].Attributes["invoice_id"])
+		s.Equal(partialInvoice.Lines.OrEmpty()[0].ID, charge.ValidationIssues[0].Attributes["line_id"])
 
 		currentRun, runErr := charge.GetCurrentRealizationRun()
 		s.NoError(runErr)
@@ -2127,6 +2131,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 
 		charge = s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(usagebased.StatusActive, charge.Status)
+		s.Empty(charge.ValidationIssues)
 	})
 
 	s.Run("when the final invoice is created and the final realization completes after the service period", func() {
@@ -2400,7 +2405,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		// when:
 		// - billing tries to invoice pending lines for the final period
 		// then:
-		// - final realization is blocked by the active-run invariant
+		// - final realization is excluded and the active run is recorded on the charge
 		s.MockStreamingConnector.AddSimpleEvent(
 			meterSlug,
 			5,
@@ -2415,13 +2420,32 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		})
 
 		// then
-		s.Error(err)
-		s.ErrorAs(err, &billing.ValidationError{})
-		s.ErrorIs(err, usagebased.ErrActiveRealizationRunAlreadyExists)
-		s.Nil(invoices)
+		s.NoError(err)
+		s.Empty(invoices)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
+		s.Require().Len(charge.ValidationIssues, 1)
+		s.Equal(billing.ValidationIssueSeverityCritical, charge.ValidationIssues[0].Severity)
+		s.Equal(usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun, charge.ValidationIssues[0].Code)
+		s.Equal(usagebased.ValidationIssueComponentLineEngine, charge.ValidationIssues[0].Component)
+		s.Contains(charge.ValidationIssues[0].Message, "must be completed before")
+		s.Equal(partialInvoice.ID, charge.ValidationIssues[0].Attributes["invoice_id"])
+		s.Equal(partialInvoice.Lines.OrEmpty()[0].ID, charge.ValidationIssues[0].Attributes["line_id"])
+
+		// when
+		// collection retries while the same run is still active
+		invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+
+		// then
+		// the gate remains idempotent
+		s.NoError(err)
+		s.Empty(invoices)
+		charge = s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Len(charge.ValidationIssues, 1)
 
 		invoicesResult, listErr := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 			Namespace: ns,
@@ -2454,6 +2478,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 		s.Equal(usagebased.StatusActive, charge.Status)
+		s.Empty(charge.ValidationIssues)
 	})
 
 	s.Run("when invoice pending lines is retried after the partial invoice approval", func() {

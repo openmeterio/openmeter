@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -32,12 +33,26 @@ type ChargeCostBasisAdapter interface {
 type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
+	UpdateChargeValidationIssues(ctx context.Context, input UpdateChargeValidationIssuesInput) error
 	CreateChargeOverride(ctx context.Context, charge ChargeBase, override IntentMutableFields) (ChargeBase, error)
 	DeleteChargeOverride(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
+}
+
+type UpdateChargeValidationIssuesInput struct {
+	ChargeID         meta.ChargeID
+	ValidationIssues billing.ValidationIssues
+}
+
+func (i UpdateChargeValidationIssuesInput) Validate() error {
+	if err := i.ChargeID.Validate(); err != nil {
+		return fmt.Errorf("charge ID: %w", err)
+	}
+
+	return nil
 }
 
 type RealizationRunAdapter interface {

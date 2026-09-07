@@ -95,6 +95,29 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 	})
 }
 
+func (a *adapter) UpdateChargeValidationIssues(ctx context.Context, input usagebased.UpdateChargeValidationIssuesInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		update := tx.db.ChargeUsageBased.UpdateOneID(input.ChargeID.ID).
+			Where(dbchargeusagebased.NamespaceEQ(input.ChargeID.Namespace))
+
+		if len(input.ValidationIssues) == 0 {
+			update = update.ClearValidationIssues()
+		} else {
+			update = update.SetValidationIssues(input.ValidationIssues)
+		}
+
+		if _, err := update.Save(ctx); err != nil {
+			return fmt.Errorf("updating validation issues for usage based charge[%s]: %w", input.ChargeID.ID, err)
+		}
+
+		return nil
+	})
+}
+
 func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebased.Charge, newSubscriptionItemID string) (usagebased.Charge, error) {
 	if err := charge.ManagedModel.Validate(); err != nil {
 		return usagebased.Charge{}, err
