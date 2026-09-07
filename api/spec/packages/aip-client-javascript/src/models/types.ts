@@ -2735,6 +2735,14 @@ export interface ListSubscriptionsParamsFilter {
   planKey?: StringFieldFilterExact
 }
 
+/** Filter options for listing apps. */
+export interface ListAppsParamsFilter {
+  id?: UlidFieldFilter
+  name?: StringFieldFilter
+  type?: StringFieldFilterExact
+  status?: StringFieldFilterExact
+}
+
 /** Filter options for listing features. */
 export interface ListFeatureParamsFilter {
   meterId?: UlidFieldFilter
