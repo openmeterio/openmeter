@@ -23,7 +23,7 @@ jobs:
       rebuild: ${{ steps.cache-key.outputs.rebuild }}
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -121,7 +121,7 @@ jobs:
       GOCACHEPROG: ""
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -225,7 +225,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -272,7 +272,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -343,7 +343,7 @@ jobs:
     runs-on: depot-ubuntu-24.04
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -391,7 +391,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -461,7 +461,7 @@ jobs:
     runs-on: depot-ubuntu-24.04
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -500,7 +500,7 @@ jobs:
       COMPOSE_PROFILES: redis,depot-registry-svix
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -571,7 +571,7 @@ jobs:
       ATLAS_VERSION: 0.36.0
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -634,7 +634,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -691,7 +691,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -768,7 +768,7 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -793,7 +793,7 @@ jobs:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -915,7 +915,7 @@ jobs:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -1052,7 +1052,7 @@ jobs:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
 
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
