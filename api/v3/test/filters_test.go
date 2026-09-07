@@ -30,6 +30,7 @@ type fieldFiltersTarget struct {
 	ULID        *filters.FilterULID        `json:"ulid,omitempty"`
 	DateTime    *filters.FilterDateTime    `json:"datetime,omitempty"`
 	Labels      *filters.FilterLabels      `json:"labels,omitempty"`
+	Presence    *filters.FilterPresence    `json:"presence,omitempty"`
 }
 
 // validatorErrorResponse mirrors the AIP-style error body produced by
@@ -122,6 +123,16 @@ func TestFieldFilterValidation(t *testing.T) {
 		{name: "boolean valid short false", query: "filter[boolean]=false", wantStatus: http.StatusNoContent},
 		{name: "boolean valid eq true", query: "filter[boolean][eq]=true", wantStatus: http.StatusNoContent},
 		{name: "boolean valid eq false", query: "filter[boolean][eq]=false", wantStatus: http.StatusNoContent},
+
+		// PresenceFieldFilter
+		{name: "presence valid bare", query: "filter[presence]", wantStatus: http.StatusNoContent},
+		{name: "presence valid null", query: "filter[presence]=null", wantStatus: http.StatusNoContent},
+		{name: "presence valid eq null", query: "filter[presence][eq]=null", wantStatus: http.StatusNoContent},
+		{name: "presence valid neq null", query: "filter[presence][neq]=null", wantStatus: http.StatusNoContent},
+		{name: "presence invalid value", query: "filter[presence]=value", wantStatus: http.StatusBadRequest},
+		// kin-openapi does not retain unknown deepObject properties for schema
+		// validation; the filter parser rejects this before it reaches a handler.
+		{name: "presence unknown operator passes schema validation", query: "filter[presence][exists]=true", wantStatus: http.StatusNoContent},
 
 		// NumericFieldFilter — every documented operator
 		{name: "numeric valid short", query: "filter[numeric]=42", wantStatus: http.StatusNoContent},
@@ -337,6 +348,34 @@ func TestFieldFilterParse(t *testing.T) {
 			name:      "boolean eq false",
 			query:     "filter[boolean][eq]=false",
 			wantParse: fieldFiltersTarget{Boolean: &filters.FilterBoolean{Eq: lo.ToPtr(false)}},
+		},
+
+		// PresenceFieldFilter
+		{
+			name:      "presence bare",
+			query:     "filter[presence]",
+			wantParse: fieldFiltersTarget{Presence: &filters.FilterPresence{Exists: lo.ToPtr(true)}},
+		},
+		{
+			name:      "presence null",
+			query:     "filter[presence]=null",
+			wantParse: fieldFiltersTarget{Presence: &filters.FilterPresence{Exists: lo.ToPtr(false)}},
+		},
+		{
+			name:      "presence eq null",
+			query:     "filter[presence][eq]=null",
+			wantParse: fieldFiltersTarget{Presence: &filters.FilterPresence{Exists: lo.ToPtr(false)}},
+		},
+		{
+			name:      "presence neq null",
+			query:     "filter[presence][neq]=null",
+			wantParse: fieldFiltersTarget{Presence: &filters.FilterPresence{Exists: lo.ToPtr(true)}},
+		},
+		{
+			name:           "presence unknown operator",
+			query:          "filter[presence][exists]=true",
+			wantErr:        true,
+			wantBodySubstr: "unsupported operator",
 		},
 
 		// NumericFieldFilter

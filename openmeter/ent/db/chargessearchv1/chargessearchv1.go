@@ -23,6 +23,8 @@ const (
 	FieldFeatureID = "feature_id"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
 	FieldFeatureKey = "feature_key"
+	// FieldHasValidationIssues holds the string denoting the has_validation_issues field in the database.
+	FieldHasValidationIssues = "has_validation_issues"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
@@ -87,6 +89,7 @@ var Columns = []string{
 	FieldBaseIntentDeletedAt,
 	FieldFeatureID,
 	FieldFeatureKey,
+	FieldHasValidationIssues,
 	FieldCustomerID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
@@ -198,6 +201,11 @@ func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureKey orders the results by the feature_key field.
 func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
+}
+
+// ByHasValidationIssues orders the results by the has_validation_issues field.
+func ByHasValidationIssues(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHasValidationIssues, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.

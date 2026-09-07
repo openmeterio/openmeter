@@ -25,6 +25,7 @@ type testFilter struct {
 	Count     *FilterNumeric     `json:"count,omitempty"`
 	CreatedAt *FilterDateTime    `json:"created_at,omitempty"`
 	Enabled   *FilterBoolean     `json:"enabled,omitempty"`
+	Presence  *FilterPresence    `json:"presence,omitempty"`
 	StrPtr    *string            `json:"str_ptr,omitempty"`
 	TimePtr   *time.Time         `json:"time_ptr,omitempty"`
 	TxType    *testStringType    `json:"tx_type,omitempty"`
@@ -351,6 +352,69 @@ func TestParse_FilterBoolean(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported operator")
 	})
+}
+
+func TestParse_FilterPresence(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      url.Values
+		wantExists *bool
+		wantErr    string
+	}{
+		{
+			name:       "bare field is present",
+			query:      url.Values{"filter[presence]": {""}},
+			wantExists: lo.ToPtr(true),
+		},
+		{
+			name:       "null shorthand is absent",
+			query:      url.Values{"filter[presence]": {"null"}},
+			wantExists: lo.ToPtr(false),
+		},
+		{
+			name:       "explicit null equality is absent",
+			query:      url.Values{"filter[presence][eq]": {"null"}},
+			wantExists: lo.ToPtr(false),
+		},
+		{
+			name:       "null inequality is present",
+			query:      url.Values{"filter[presence][neq]": {"null"}},
+			wantExists: lo.ToPtr(true),
+		},
+		{
+			name:    "non-null value is rejected",
+			query:   url.Values{"filter[presence]": {"value"}},
+			wantErr: "expected null",
+		},
+		{
+			name:    "explicit exists operator is rejected",
+			query:   url.Values{"filter[presence][exists]": {"true"}},
+			wantErr: "unsupported operator",
+		},
+		{
+			name: "multiple operators are rejected",
+			query: url.Values{
+				"filter[presence][eq]":  {"null"},
+				"filter[presence][neq]": {"null"},
+			},
+			wantErr: "only one filter can be set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var f testFilter
+			err := Parse(tt.query, &f)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, f.Presence)
+			assert.Equal(t, tt.wantExists, f.Presence.Exists)
+		})
+	}
 }
 
 func TestParse_StringPtr(t *testing.T) {

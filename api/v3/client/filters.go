@@ -49,3 +49,8 @@ type NumericFilter struct {
 type BooleanFilter struct {
 	Eq *bool
 }
+
+// PresenceFilter expresses whether a field must be present or null.
+type PresenceFilter struct {
+	Exists *bool
+}

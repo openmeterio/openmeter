@@ -78,6 +78,7 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 		query = filter.ApplyToQuery(query, input.FeatureKey, dbchargessearchv1.FieldFeatureKey)
 		query = filter.ApplyToQuery(query, input.ServicePeriodFrom, dbchargessearchv1.FieldServicePeriodFrom)
 		query = filter.ApplyToQuery(query, input.ServicePeriodTo, dbchargessearchv1.FieldServicePeriodTo)
+		query = filter.ApplyToQuery(query, input.HasValidationIssues, dbchargessearchv1.FieldHasValidationIssues)
 
 		// Apply ordering: default to created_at asc with id as tie-breaker.
 		ord := entutils.GetOrdering(input.Order)

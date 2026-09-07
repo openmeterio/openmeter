@@ -560,6 +560,9 @@ function queryFilterField(program: Program, property: ModelProperty) {
     case 'boolean':
       type = <go.Pointer>BooleanFilter</go.Pointer>
       break
+    case 'presence':
+      type = <go.Pointer>PresenceFilter</go.Pointer>
+      break
     case 'labels':
       type = 'map[string]*StringFilter'
       break
@@ -610,6 +613,8 @@ function deepObjectValues(
         return ay.code`addNumericFilter(q, ${prefix}, ${field})`
       case 'boolean':
         return ay.code`addBooleanFilter(q, ${prefix}, ${field})`
+      case 'presence':
+        return ay.code`addPresenceFilter(q, ${prefix}, ${field})`
       case 'labels':
         return ay.code`for key, filter := range ${field} {
           addStringFilter(q, ${JSON.stringify(`${parameter.name}[${wireName}][`)}+key+"]", filter)

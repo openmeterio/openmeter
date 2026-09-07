@@ -196,6 +196,18 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 					})
 				}
 				req.ServicePeriodTo = servicePeriodTo
+
+				hasValidationIssues, err := filters.FromAPIFilterPresence(args.Params.Filter.ValidationIssues)
+				if err != nil {
+					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[validation_issues]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.HasValidationIssues = hasValidationIssues
 			}
 
 			return req, nil

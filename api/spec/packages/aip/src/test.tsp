@@ -30,6 +30,8 @@ model FieldFilters {
   datetime?: Common.DateTimeFieldFilter;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "test model"
   labels?: Common.LabelsFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "test model"
+  presence?: Common.PresenceFieldFilter;
 }
 
 @route("/field-filters")

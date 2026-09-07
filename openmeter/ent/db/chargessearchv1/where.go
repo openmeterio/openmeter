@@ -34,6 +34,11 @@ func FeatureKey(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldFeatureKey, v))
 }
 
+// HasValidationIssues applies equality check predicate on the "has_validation_issues" field. It's identical to HasValidationIssuesEQ.
+func HasValidationIssues(v bool) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldHasValidationIssues, v))
+}
+
 // CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
 func CustomerID(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldCustomerID, v))
@@ -427,6 +432,16 @@ func FeatureKeyEqualFold(v string) predicate.ChargesSearchV1 {
 // FeatureKeyContainsFold applies the ContainsFold predicate on the "feature_key" field.
 func FeatureKeyContainsFold(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldFeatureKey, v))
+}
+
+// HasValidationIssuesEQ applies the EQ predicate on the "has_validation_issues" field.
+func HasValidationIssuesEQ(v bool) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldHasValidationIssues, v))
+}
+
+// HasValidationIssuesNEQ applies the NEQ predicate on the "has_validation_issues" field.
+func HasValidationIssuesNEQ(v bool) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldHasValidationIssues, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.

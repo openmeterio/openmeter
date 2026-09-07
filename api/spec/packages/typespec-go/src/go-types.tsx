@@ -115,6 +115,7 @@ export type GoQueryFilterKind =
   | 'dateTime'
   | 'numeric'
   | 'boolean'
+  | 'presence'
   | 'labels'
   | 'scalar'
 
@@ -377,6 +378,7 @@ const runtimeFilterTypesByUnionName = new Map<string, string>([
   ['DateTimeFieldFilter', 'DateTimeFilter'],
   ['NumericFieldFilter', 'NumericFilter'],
   ['BooleanFieldFilter', 'BooleanFilter'],
+  ['PresenceFieldFilter', 'PresenceFilter'],
 ])
 
 export function runtimeFilterTypeName(name: string): string {
@@ -599,6 +601,8 @@ export function queryFilterKind(
       return 'numeric'
     case 'BooleanFieldFilter':
       return 'boolean'
+    case 'PresenceFieldFilter':
+      return 'presence'
     case 'LabelsFieldFilter':
       return 'labels'
     default:

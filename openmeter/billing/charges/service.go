@@ -152,9 +152,10 @@ type ListChargesInput struct {
 	// ServicePeriodFrom and ServicePeriodTo filter on the charge's service
 	// period bounds independently, with the full operator set; the caller
 	// composes them into containment, overlap, or one-sided queries.
-	ServicePeriodFrom *filter.FilterTime
-	ServicePeriodTo   *filter.FilterTime
-	IncludeDeleted    bool
+	ServicePeriodFrom   *filter.FilterTime
+	ServicePeriodTo     *filter.FilterTime
+	HasValidationIssues *filter.FilterBoolean
+	IncludeDeleted      bool
 	// DeletedAtFilter selects which deleted-at field is used when IncludeDeleted is false.
 	// Empty defaults to effective charge deletion.
 	DeletedAtFilter ListChargesDeletedAtFilter
@@ -220,6 +221,12 @@ func (i ListChargesInput) Validate() error {
 	if i.ServicePeriodTo != nil {
 		if err := i.ServicePeriodTo.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("service period to filter: %w", err))
+		}
+	}
+
+	if i.HasValidationIssues != nil {
+		if err := i.HasValidationIssues.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("has validation issues filter: %w", err))
 		}
 	}
 

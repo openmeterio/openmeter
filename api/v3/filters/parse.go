@@ -83,6 +83,7 @@ var (
 	filterNumericType     = reflect.TypeFor[*FilterNumeric]()
 	filterDateTimeType    = reflect.TypeFor[*FilterDateTime]()
 	filterBooleanType     = reflect.TypeFor[*FilterBoolean]()
+	filterPresenceType    = reflect.TypeFor[*FilterPresence]()
 	filterLabelsType      = reflect.TypeFor[FilterLabels]()
 	filterLabelsPtrType   = reflect.TypeFor[*FilterLabels]()
 	stringPtrType         = reflect.TypeFor[*string]()
@@ -174,6 +175,13 @@ func parseFiltersValue(qs url.Values, v reflect.Value) error {
 
 		case filterBooleanType:
 			parsed, err := parseFilterBoolean(qs, name)
+			if err != nil {
+				return err
+			}
+			fieldVal.Set(reflect.ValueOf(&parsed))
+
+		case filterPresenceType:
+			parsed, err := parseFilterPresence(qs, name)
 			if err != nil {
 				return err
 			}
@@ -495,6 +503,41 @@ func parseFilterBoolean(qs url.Values, field string) (FilterBoolean, error) {
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
 		}
+	})
+
+	return f, err
+}
+
+// parseFilterPresence extracts a null-state filter.
+func parseFilterPresence(qs url.Values, field string) (FilterPresence, error) {
+	var f FilterPresence
+
+	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
+		if f.Exists != nil {
+			return fmt.Errorf("filter[%s]: only one filter can be set", field)
+		}
+
+		if p.bare {
+			f.Exists = lo.ToPtr(true)
+			return nil
+		}
+
+		if p.op != OpEq && p.op != OpNeq {
+			return fieldError(field, p.op, ErrUnsupportedOperator)
+		}
+
+		if p.value != "null" {
+			return fieldError(field, p.op, fmt.Errorf("expected null, got %q", p.value))
+		}
+
+		switch p.op {
+		case OpEq:
+			f.Exists = lo.ToPtr(false)
+		case OpNeq:
+			f.Exists = lo.ToPtr(true)
+		}
+
+		return nil
 	})
 
 	return f, err

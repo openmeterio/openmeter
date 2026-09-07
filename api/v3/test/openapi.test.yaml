@@ -94,6 +94,8 @@ components:
           $ref: "#/components/schemas/DateTimeFieldFilter"
         labels:
           $ref: "#/components/schemas/LabelsFieldFilter"
+        presence:
+          $ref: "#/components/schemas/PresenceFieldFilter"
       additionalProperties: false
       description: Field filters with all supported types.
     LabelsFieldFilter:
@@ -152,6 +154,34 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterNumeric
+    PresenceFieldFilter:
+      anyOf:
+        - type: string
+          enum:
+            - ""
+            - "null"
+        - type: object
+          properties:
+            eq:
+              type: string
+              enum:
+                - "null"
+              description: The field must be null.
+            neq:
+              type: string
+              enum:
+                - "null"
+              description: The field must be present and non-null.
+          additionalProperties: false
+      description: |-
+        Filter by whether a field is present or null.
+
+        A bare filter key, represented by an empty value, requires the field to be
+        present. The `null` literal requires the field to be null.
+      title: Presence Field Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterPresence
     StringFieldFilter:
       anyOf:
         - type: string

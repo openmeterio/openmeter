@@ -8,6 +8,12 @@ type FilterBoolean struct {
 	Eq *bool `json:"eq,omitempty"`
 }
 
+// FilterPresence represents a null-state filter on a field.
+type FilterPresence struct {
+	// Exists requires the field to be present (true) or null (false).
+	Exists *bool `json:"exists,omitempty"`
+}
+
 // FilterNumeric represents a filter operation on a numeric field.
 type FilterNumeric struct {
 	// Eq requires the field to match the provided value exactly.

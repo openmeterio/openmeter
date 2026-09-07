@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -21,6 +22,7 @@ import (
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -167,6 +169,54 @@ func (s *ListCustomersToAdvanceSuite) TestListChargesDeletedAtFilter() {
 	s.ElementsMatch([]string{liveChargeID, overrideDeletedChargeID, baseDeletedChargeID}, listIDs(charges.ListChargesInput{
 		IncludeDeleted: true,
 	}))
+}
+
+func (s *ListCustomersToAdvanceSuite) TestListChargesValidationIssuePresenceFilter() {
+	ctx := s.T().Context()
+	namespace := "test-list-charges-validation-issue-presence-filter"
+	customerID := s.createCustomer(namespace)
+
+	chargeWithoutIssuesID := s.insertFlatFeeCharge(namespace, customerID, meta.ChargeStatusActive, nil)
+	chargeWithIssuesID := s.insertFlatFeeCharge(namespace, customerID, meta.ChargeStatusActive, nil)
+
+	_, err := s.dbClient.ChargeFlatFee.UpdateOneID(chargeWithIssuesID).
+		SetValidationIssues(billing.ValidationIssues{
+			billing.NewValidationError("test_issue", "test issue"),
+		}).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	tests := []struct {
+		name   string
+		has    bool
+		wantID string
+	}{
+		{
+			name:   "with validation issues",
+			has:    true,
+			wantID: chargeWithIssuesID,
+		},
+		{
+			name:   "without validation issues",
+			has:    false,
+			wantID: chargeWithoutIssuesID,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result, err := s.adapter.ListCharges(ctx, charges.ListChargesInput{
+				Page:                pagination.NewPage(1, 10),
+				Namespace:           namespace,
+				ChargeTypes:         []meta.ChargeType{meta.ChargeTypeFlatFee},
+				HasValidationIssues: &filter.FilterBoolean{Eq: lo.ToPtr(tt.has)},
+			})
+			s.Require().NoError(err)
+			s.Equal(1, result.TotalCount)
+			s.Require().Len(result.Items, 1)
+			s.Equal(tt.wantID, result.Items[0].ID.ID)
+		})
+	}
 }
 
 func (s *ListCustomersToAdvanceSuite) TestReturnsOnlyEligibleCustomers() {

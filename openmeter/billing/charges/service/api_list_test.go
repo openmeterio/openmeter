@@ -330,6 +330,37 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		s.ErrorContains(err, "unsupported charge type")
 	})
 
+	s.Run("validation issue presence filters scope the listing", func() {
+		// given:
+		// - the persisted March charge has a validation issue
+		usageCharge, err := created[0].AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		_, err = s.DBClient.ChargeUsageBased.UpdateOneID(usageCharge.ID).
+			SetValidationIssues(billing.ValidationIssues{
+				billing.NewValidationError("test_issue", "test issue"),
+			}).
+			Save(ctx)
+		require.NoError(s.T(), err)
+
+		// when:
+		// - listing once for charges with issues and once for charges without them
+		withIssues := newListInput(meta.ExpandNone)
+		withIssues.HasValidationIssues = &filter.FilterBoolean{Eq: lo.ToPtr(true)}
+		withIssuesResult, err := s.Charges.ListCustomerCharges(ctx, withIssues)
+		require.NoError(s.T(), err)
+
+		withoutIssues := newListInput(meta.ExpandNone)
+		withoutIssues.HasValidationIssues = &filter.FilterBoolean{Eq: lo.ToPtr(false)}
+		withoutIssuesResult, err := s.Charges.ListCustomerCharges(ctx, withoutIssues)
+		require.NoError(s.T(), err)
+
+		// then:
+		// - only the matching null state is returned
+		require.Len(s.T(), withIssuesResult.Charges.Items, 1)
+		s.Equal(created[0].GetID(), withIssuesResult.Charges.Items[0].GetID())
+		s.Empty(withoutIssuesResult.Charges.Items)
+	})
+
 	s.Run("service period filters apply per column with any operator", func() {
 		// given:
 		// - a second charge one month after the first (March vs May)

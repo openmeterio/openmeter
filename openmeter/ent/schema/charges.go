@@ -108,7 +108,8 @@ func (ChargesSearchV1) buildChargesSearchV1TableSelector(s *sql.Selector, table 
 		AppendSelectExprAs(baseIntentDeletedAt, "base_intent_deleted_at").
 		AppendSelectExprAs(sql.Raw("'"+string(chargeType)+"'"), "type").
 		AppendSelectExprAs(featureID, "feature_id").
-		AppendSelectExprAs(featureKey, "feature_key")
+		AppendSelectExprAs(featureKey, "feature_key").
+		AppendSelectExprAs(sql.Raw(`"validation_issues" IS NOT NULL`), "has_validation_issues")
 }
 
 func (ChargesSearchV1) Fields() []ent.Field {
@@ -132,6 +133,8 @@ func (ChargesSearchV1) Fields() []ent.Field {
 		field.String("feature_key").
 			Optional().
 			Nillable(),
+		field.Bool("has_validation_issues").
+			Immutable(),
 	}
 
 	for _, mixin := range mixins {

@@ -29,6 +29,8 @@ type ChargesSearchV1 struct {
 	FeatureID *string `json:"feature_id,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey *string `json:"feature_key,omitempty"`
+	// HasValidationIssues holds the value of the "has_validation_issues" field.
+	HasValidationIssues bool `json:"has_validation_issues,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
@@ -93,6 +95,8 @@ func (*ChargesSearchV1) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargessearchv1.FieldAnnotations, chargessearchv1.FieldMetadata:
 			values[i] = new([]byte)
+		case chargessearchv1.FieldHasValidationIssues:
+			values[i] = new(sql.NullBool)
 		case chargessearchv1.FieldType, chargessearchv1.FieldFeatureID, chargessearchv1.FieldFeatureKey, chargessearchv1.FieldCustomerID, chargessearchv1.FieldStatus, chargessearchv1.FieldUniqueReferenceID, chargessearchv1.FieldFiatCurrencyCode, chargessearchv1.FieldCustomCurrencyID, chargessearchv1.FieldManagedBy, chargessearchv1.FieldSubscriptionID, chargessearchv1.FieldSubscriptionPhaseID, chargessearchv1.FieldSubscriptionItemID, chargessearchv1.FieldTaxCodeID, chargessearchv1.FieldTaxBehavior, chargessearchv1.FieldID, chargessearchv1.FieldNamespace, chargessearchv1.FieldName, chargessearchv1.FieldDescription:
 			values[i] = new(sql.NullString)
 		case chargessearchv1.FieldBaseIntentDeletedAt, chargessearchv1.FieldServicePeriodFrom, chargessearchv1.FieldServicePeriodTo, chargessearchv1.FieldBillingPeriodFrom, chargessearchv1.FieldBillingPeriodTo, chargessearchv1.FieldFullServicePeriodFrom, chargessearchv1.FieldFullServicePeriodTo, chargessearchv1.FieldAdvanceAfter, chargessearchv1.FieldCreatedAt, chargessearchv1.FieldUpdatedAt, chargessearchv1.FieldDeletedAt:
@@ -138,6 +142,12 @@ func (_m *ChargesSearchV1) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.FeatureKey = new(string)
 				*_m.FeatureKey = value.String
+			}
+		case chargessearchv1.FieldHasValidationIssues:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field has_validation_issues", values[i])
+			} else if value.Valid {
+				_m.HasValidationIssues = value.Bool
 			}
 		case chargessearchv1.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -360,6 +370,9 @@ func (_m *ChargesSearchV1) String() string {
 		builder.WriteString("feature_key=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("has_validation_issues=")
+	builder.WriteString(fmt.Sprintf("%v", _m.HasValidationIssues))
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(_m.CustomerID)
