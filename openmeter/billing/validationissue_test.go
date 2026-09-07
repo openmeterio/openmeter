@@ -90,7 +90,7 @@ func TestValidationIssuesWithout(t *testing.T) {
 		issues := original.Without(issue.Component, issue.Code)
 
 		require.Equal(t, ValidationIssues{existing, otherComponentIssue}, issues)
-		require.Len(t, original, 4)
+		require.Equal(t, ValidationIssues{issue, existing, otherComponentIssue, issue}, original)
 	})
 
 	t.Run("keeps the collection unchanged when the issue is absent", func(t *testing.T) {

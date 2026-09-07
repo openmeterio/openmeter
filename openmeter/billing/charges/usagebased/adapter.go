@@ -48,11 +48,13 @@ type UpdateChargeValidationIssuesInput struct {
 }
 
 func (i UpdateChargeValidationIssuesInput) Validate() error {
+	var errs []error
+
 	if err := i.ChargeID.Validate(); err != nil {
-		return fmt.Errorf("charge ID: %w", err)
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type RealizationRunAdapter interface {

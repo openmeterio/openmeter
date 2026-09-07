@@ -92,7 +92,7 @@ func (c Config[CHARGE, BASE, STATUS]) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Machine[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] struct {
