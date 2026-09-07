@@ -42,6 +42,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Labels:        labels.FromMetadata(charge.Intent.Metadata),
 		Key:           charge.Intent.Key,
 	}
+	grant.ValidationIssues = billingcommon.ToAPIValidationIssues(charge.ValidationIssues)
 
 	grant.Filters = toAPIBillingCreditGrantFilters(charge.Intent.FeatureFilters)
 

@@ -4,6 +4,7 @@ import "../../subscriptions/index.tsp";
 import "../../features/index.tsp";
 import "../customer.tsp";
 import "../../currencies/currency.tsp";
+import "../../billing/validationissue.tsp";
 
 namespace Customers;
 
@@ -603,6 +604,16 @@ model ChargeBase<T extends ChargeType> {
   @visibility(Lifecycle.Read)
   @summary("Status")
   status: ChargeStatus;
+
+  /**
+   * Validation issues found while processing the charge.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Validation issues")
+  validation_issues?: global.Billing.ValidationIssue[];
 
   /**
    * The timestamp when the charge is intended to be invoiced.

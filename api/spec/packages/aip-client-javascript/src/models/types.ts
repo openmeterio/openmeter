@@ -2007,6 +2007,22 @@ export interface ListCreditGrantsParamsFilter {
   key?: StringFieldFilter
 }
 
+/** A validation issue found while processing a billing resource. */
+export interface ValidationIssue {
+  /** Machine-readable error code. */
+  code: string
+  /** Human-readable description of the error. */
+  message: string
+  /** Additional structured context. */
+  attributes?: Record<string, unknown>
+  /** Severity of the validation issue. */
+  severity: 'critical' | 'warning'
+  /** JSON path to the field that caused the validation issue, if applicable. */
+  field?: string
+  /** Component that reported the validation issue, if applicable. */
+  component?: string
+}
+
 /** Filter options for getting a credit balance. */
 export interface GetCreditBalanceParamsFilter {
   /** Filter credit balance by currency. */
@@ -2127,30 +2143,6 @@ export interface PartyTaxIdentity {
 export interface UpdateBillingPartyTaxIdentity {
   /** Normalized tax identification code shown on the original identity document. */
   code?: string
-}
-
-/**
- * A validation issue found during invoice processing.
- *
- * Converges on the same structure used by plan and subscription validation errors:
- * a machine-readable `code`, a human-readable `message`, optional structured
- * `attributes`, plus a `severity` and optional `field` path.
- */
-export interface InvoiceValidationIssue {
-  /** Machine-readable error code. */
-  code: string
-  /** Human-readable description of the error. */
-  message: string
-  /** Additional structured context. */
-  attributes?: Record<string, unknown>
-  /** Severity of the validation issue. */
-  severity: 'critical' | 'warning'
-  /**
-   * JSON path to the field that caused this validation issue, if applicable.
-   *
-   * For example: `lines/0/rate_card/price`.
-   */
-  field?: string
 }
 
 /**
@@ -4673,6 +4665,13 @@ export interface CreditGrant {
   voidedAt?: Date
   /** Current lifecycle status of the grant. */
   status: 'pending' | 'active' | 'expired' | 'voided'
+  /**
+   * Validation issues found while processing the credit grant.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  validationIssues?: ValidationIssue[]
 }
 
 /** Page paginated response. */
@@ -4734,7 +4733,7 @@ export interface InvoiceBase {
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validationIssues?: InvoiceValidationIssue[]
+  validationIssues?: ValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
   externalReferences?: InvoiceExternalReferences
 }
@@ -4822,7 +4821,7 @@ export interface ChargeRealizationInvoice {
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validationIssues?: InvoiceValidationIssue[]
+  validationIssues?: ValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
   externalReferences?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
@@ -6094,7 +6093,7 @@ export interface InvoiceStandard {
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validationIssues?: InvoiceValidationIssue[]
+  validationIssues?: ValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
   externalReferences?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
@@ -6241,6 +6240,13 @@ export interface ChargeFlatFee {
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
+  /**
+   * Validation issues found while processing the charge.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  validationIssues?: ValidationIssue[]
   /** The timestamp when the charge is intended to be invoiced. */
   invoiceAt: Date
   /** The effective service period covered by the charge. */
@@ -6336,6 +6342,13 @@ export interface ChargeUsageBased {
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
+  /**
+   * Validation issues found while processing the charge.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  validationIssues?: ValidationIssue[]
   /** The timestamp when the charge is intended to be invoiced. */
   invoiceAt: Date
   /** The effective service period covered by the charge. */
@@ -7455,6 +7468,13 @@ export interface CreditGrantInput {
   voidedAt?: Date
   /** Current lifecycle status of the grant. */
   status: 'pending' | 'active' | 'expired' | 'voided'
+  /**
+   * Validation issues found while processing the credit grant.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  validationIssues?: ValidationIssue[]
 }
 
 /** Bad Request. */
@@ -7546,7 +7566,7 @@ export interface ChargeRealizationInvoiceInput {
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validationIssues?: InvoiceValidationIssue[]
+  validationIssues?: ValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
   externalReferences?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
@@ -8728,7 +8748,7 @@ export interface InvoiceStandardInput {
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validationIssues?: InvoiceValidationIssue[]
+  validationIssues?: ValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
   externalReferences?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
@@ -8875,6 +8895,13 @@ export interface ChargeFlatFeeInput {
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
+  /**
+   * Validation issues found while processing the charge.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  validationIssues?: ValidationIssue[]
   /** The timestamp when the charge is intended to be invoiced. */
   invoiceAt: Date
   /** The effective service period covered by the charge. */
@@ -8970,6 +8997,13 @@ export interface ChargeUsageBasedInput {
   resolvedCostBasis?: ChargeResolvedCostBasis
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
+  /**
+   * Validation issues found while processing the charge.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  validationIssues?: ValidationIssue[]
   /** The timestamp when the charge is intended to be invoiced. */
   invoiceAt: Date
   /** The effective service period covered by the charge. */

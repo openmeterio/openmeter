@@ -1,5 +1,6 @@
 import "../../shared/index.tsp";
 import "../../currencies/index.tsp";
+import "../../billing/validationissue.tsp";
 
 namespace Customers;
 
@@ -238,6 +239,16 @@ model CreditGrant {
    */
   @visibility(Lifecycle.Read)
   status: CreditGrantStatus;
+
+  /**
+   * Validation issues found while processing the credit grant.
+   *
+   * Present only when there are one or more validation findings. An empty list is
+   * omitted.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Validation issues")
+  validation_issues?: global.Billing.ValidationIssue[];
 }
 
 /**
