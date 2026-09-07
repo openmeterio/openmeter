@@ -40,7 +40,7 @@ func TestExternalCreditPurchaseServiceRoutesAuthorizedInitialStatus(t *testing.T
 	lineageService := &externalStateMachineLineage{}
 	handler := &externalStateMachineHandler{}
 	handler.On("OnCreditPurchaseInitiated", mock.Anything, mock.Anything).
-		Return(ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"}, nil).
+		Return(creditpurchase.CreditGrantResult{GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"}}, nil).
 		Once()
 	lineageService.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
 		Return(nil).
@@ -304,9 +304,9 @@ type externalStateMachineHandler struct {
 	mock.Mock
 }
 
-func (h *externalStateMachineHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *externalStateMachineHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
 	args := h.Called(ctx, charge)
-	return args.Get(0).(ledgertransaction.GroupReference), args.Error(1)
+	return args.Get(0).(creditpurchase.CreditGrantResult), args.Error(1)
 }
 
 func (h *externalStateMachineHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {

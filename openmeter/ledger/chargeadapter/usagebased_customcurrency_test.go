@@ -688,6 +688,7 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 		Currency:                  firstCurrency,
 		Amount:                    alpacadecimal.NewFromInt(30),
 		BackingTransactionGroupID: ulid.Make().String(),
+		AmountsByChargeID:         map[string]alpacadecimal.Decimal{firstChargeID: alpacadecimal.NewFromInt(30)},
 	})
 	require.NoError(t, err)
 

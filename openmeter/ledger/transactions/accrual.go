@@ -95,9 +95,7 @@ func (t TransferCustomerFBOToAccruedTemplate) correct(scope CorrectionInput) ([]
 		negativeFBOEntries,
 		positiveAccruedEntries,
 		t.entryRoutePairingKey,
-		func(entry ledger.Entry) alpacadecimal.Decimal {
-			return entry.Amount().Abs()
-		},
+		scope.sourceEntryAmount,
 		scope.Amount,
 	)
 	if err != nil {

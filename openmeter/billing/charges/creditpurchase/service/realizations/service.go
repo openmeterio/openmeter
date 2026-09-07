@@ -84,6 +84,7 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 			CustomerID:                charge.Intent.CustomerID,
 			Currency:                  charge.Intent.Currency,
 			Amount:                    charge.Intent.CreditAmount,
+			AmountsByChargeID:         ledgerTransactionGroupReference.AdvanceBackfillAmountsByChargeID,
 			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
 			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
 		}); err != nil {
@@ -101,6 +102,10 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 
 	if charge.Intent.Settlement.Type() == creditpurchase.SettlementTypePromotional {
 		return creditpurchase.Charge{}, fmt.Errorf("promotional credit purchases do not use payment-backed credit grants")
+	}
+
+	if err := charge.ValidateSettlementAmount(); err != nil {
+		return creditpurchase.Charge{}, err
 	}
 
 	if charge.Realizations.CreditGrantRealization != nil && charge.Realizations.CreditGrantRealization.TransactionGroupID != "" {
@@ -128,6 +133,7 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 			CustomerID:                charge.Intent.CustomerID,
 			Currency:                  charge.Intent.Currency,
 			Amount:                    charge.Intent.CreditAmount,
+			AmountsByChargeID:         ledgerTransactionGroupReference.AdvanceBackfillAmountsByChargeID,
 			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
 			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
 		}); err != nil {

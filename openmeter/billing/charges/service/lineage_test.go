@@ -320,12 +320,15 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 	apiLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"api-calls"}, alpacadecimal.NewFromInt(40))
 	storageLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"storage"}, alpacadecimal.NewFromInt(30))
 	backingTransactionGroupID := ulid.Make().String()
+	apiLineage, err := s.DBClient.CreditRealizationLineage.Get(ctx, apiLineageID)
+	s.Require().NoError(err)
 
 	err = service.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 ns,
 		CustomerID:                customerID,
 		Currency:                  currenciestestutils.NewFiatCurrency(s.T(), currency.USD),
 		Amount:                    alpacadecimal.NewFromInt(50),
+		AmountsByChargeID:         map[string]alpacadecimal.Decimal{apiLineage.ChargeID: alpacadecimal.NewFromInt(40)},
 		BackingTransactionGroupID: backingTransactionGroupID,
 		FeatureFilters:            []string{"api-calls"},
 	})

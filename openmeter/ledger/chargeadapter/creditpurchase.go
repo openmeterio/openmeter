@@ -92,11 +92,11 @@ func resolveCreditPurchasePaymentPosting(input chargecreditpurchase.PaymentEvent
 	}, nil
 }
 
-func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (chargecreditpurchase.CreditGrantResult, error) {
 	return h.issueCreditPurchase(ctx, charge)
 }
 
-func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseHandler) OnCreditPurchaseInitiated(ctx context.Context, charge chargecreditpurchase.Charge) (chargecreditpurchase.CreditGrantResult, error) {
 	return h.issueCreditPurchase(ctx, charge)
 }
 
@@ -252,19 +252,19 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 // issueCreditPurchase is the shared logic for issuing credits (both promotional and externally settled).
 // It attributes outstanding advance receivables and unattributed accrued balances to the given cost basis,
 // then issues new receivables for any remaining amount.
-func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	return transaction.Run(ctx, h.transactionManager, func(ctx context.Context) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (chargecreditpurchase.CreditGrantResult, error) {
+	return transaction.Run(ctx, h.transactionManager, func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
 		return h.issueCreditPurchaseGroup(ctx, charge)
 	})
 }
 
-func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, charge chargecreditpurchase.Charge) (chargecreditpurchase.CreditGrantResult, error) {
 	if err := charge.Validate(); err != nil {
-		return ledgertransaction.GroupReference{}, err
+		return chargecreditpurchase.CreditGrantResult{}, err
 	}
 
 	if charge.Intent.CreditAmount.IsZero() {
-		return ledgertransaction.GroupReference{}, nil
+		return chargecreditpurchase.CreditGrantResult{}, nil
 	}
 
 	var costBasisPtr *alpacadecimal.Decimal
@@ -275,7 +275,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		}
 	} else {
 		if charge.State.ResolvedCostBasis == nil {
-			return ledgertransaction.GroupReference{}, models.NewGenericPreConditionFailedError(
+			return chargecreditpurchase.CreditGrantResult{}, models.NewGenericPreConditionFailedError(
 				fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
 			)
 		}
@@ -284,7 +284,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		if charge.Intent.Currency.IsCustom() {
 			fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
 			if err != nil {
-				return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement fiat currency: %w", err)
+				return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("get settlement fiat currency: %w", err)
 			}
 
 			costBasisCurrency = lo.ToPtr(currencyx.Code(fiatCurrency.GetFiatCode()))
@@ -318,7 +318,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	if costBasisPtr != nil {
 		advanceAttributions, err = h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
 		if err != nil {
-			return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
+			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("get advance attributions: %w", err)
 		}
 	}
 
@@ -401,7 +401,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:
 		// Deferred settlement modes are handled by later lifecycle events.
 	default:
-		return ledgertransaction.GroupReference{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
+		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
 	}
 
 	inputs, err := transactions.ResolveTransactions(
@@ -414,7 +414,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates...,
 	)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve transactions: %w", err)
 	}
 
 	var pendingBreakage []breakage.PendingRecord
@@ -444,7 +444,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			SourceChargeID:    &charge.ID,
 		})
 		if err != nil {
-			return ledgertransaction.GroupReference{}, fmt.Errorf("resolve breakage plan: %w", err)
+			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve breakage plan: %w", err)
 		}
 
 		inputs = append(inputs, breakageInputs...)
@@ -452,7 +452,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	}
 
 	if len(inputs) == 0 {
-		return ledgertransaction.GroupReference{}, nil
+		return chargecreditpurchase.CreditGrantResult{}, nil
 	}
 
 	for i, input := range inputs {
@@ -467,15 +467,24 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		inputs...,
 	))
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
 	}
 
 	if err := h.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("persist breakage records: %w", err)
+		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("persist breakage records: %w", err)
 	}
 
-	return ledgertransaction.GroupReference{
-		TransactionGroupID: transactionGroup.ID().ID,
+	backfillAmounts := make(map[string]alpacadecimal.Decimal)
+	for _, attribution := range advanceAttributions {
+		if attribution.spendChargeID == nil || *attribution.spendChargeID == "" || !attribution.accruedAmount.IsPositive() {
+			continue
+		}
+		spendID := *attribution.spendChargeID
+		backfillAmounts[spendID] = backfillAmounts[spendID].Add(attribution.accruedAmount)
+	}
+	return chargecreditpurchase.CreditGrantResult{
+		GroupReference:                   ledgertransaction.GroupReference{TransactionGroupID: transactionGroup.ID().ID},
+		AdvanceBackfillAmountsByChargeID: backfillAmounts,
 	}, nil
 }
 

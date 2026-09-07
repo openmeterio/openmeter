@@ -43,6 +43,12 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 			return creditpurchase.ChargeWithGatheringLine{}, err
 		}
 
+		if charge.State.ResolvedCostBasis != nil {
+			if err := charge.ValidateSettlementAmount(); err != nil {
+				return creditpurchase.ChargeWithGatheringLine{}, err
+			}
+		}
+
 		// Let's activate the state machine for the credit purchase charge
 		switch charge.Intent.Settlement.Type() {
 		case creditpurchase.SettlementTypePromotional:
