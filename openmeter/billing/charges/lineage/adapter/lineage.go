@@ -207,7 +207,12 @@ func (a *adapter) ListActiveSegments(ctx context.Context, input lineage.ListActi
 				creditrealizationlineagesegment.ClosedAtIsNil(),
 				creditrealizationlineagesegment.LineageIDIn(input.LineageIDs...),
 			).
-			Order(creditrealizationlineagesegment.ByCreatedAt())
+			Order(
+				creditrealizationlineagesegment.ByLineageField(creditrealizationlineage.FieldCreatedAt),
+				creditrealizationlineagesegment.ByLineageID(),
+				creditrealizationlineagesegment.ByCreatedAt(),
+				creditrealizationlineagesegment.ByID(),
+			)
 
 		if input.State != nil {
 			query = query.Where(creditrealizationlineagesegment.StateEQ(*input.State))
