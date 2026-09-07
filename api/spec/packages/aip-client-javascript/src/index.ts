@@ -246,6 +246,7 @@ export type {
   ListCustomersParamsFilter,
   ListSubscriptionsParamsFilter,
   ListAppsParamsFilter,
+  ListBillingProfilesParamsFilter,
   ListFeatureParamsFilter,
   ListAddonsParamsFilter,
   ListPlanAddonsParamsFilter,

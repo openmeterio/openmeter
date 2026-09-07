@@ -3,8 +3,14 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { toURLSearchParams } from '../lib/encodings.js'
-import { toWire, toPathWire, fromWire, assertValid } from '../lib/wire.js'
+import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import {
+  toWire,
+  toPathWire,
+  fromWire,
+  assertValid,
+  toSnakeCase,
+} from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListBillingProfilesRequest,
@@ -32,9 +38,14 @@ export function listBillingProfiles(
   options?: RequestOptions,
 ): Promise<Result<ListBillingProfilesResponse>> {
   return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.listBillingProfilesQueryParams.shape.sort, req.sort)
+    }
     const query = toWire(
       {
         page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
       },
       schemas.listBillingProfilesQueryParams,
     )

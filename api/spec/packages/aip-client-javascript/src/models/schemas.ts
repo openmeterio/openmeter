@@ -3750,6 +3750,13 @@ export const listAppsParamsFilter = z
   })
   .describe('Filter options for listing apps.')
 
+export const listBillingProfilesParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing billing profiles.')
+
 export const listFeatureParamsFilter = z
   .object({
     meterId: ulidFieldFilter.optional(),
@@ -7296,6 +7303,8 @@ export const listBillingProfilesQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listBillingProfilesParamsFilter.optional(),
 })
 
 export const listBillingProfilesResponse = z.object({
@@ -11518,6 +11527,13 @@ export const listAppsParamsFilterWire = z
   })
   .describe('Filter options for listing apps.')
 
+export const listBillingProfilesParamsFilterWire = z
+  .strictObject({
+    id: ulidFieldFilterWire.optional(),
+    name: stringFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing billing profiles.')
+
 export const listFeatureParamsFilterWire = z
   .strictObject({
     meter_id: ulidFieldFilterWire.optional(),
@@ -15109,6 +15125,14 @@ export const listBillingProfilesQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort billing profiles returned in the response. Supported sort attributes are: - `id` - `name` - `created_at` (default) The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listBillingProfilesParamsFilterWire.optional(),
 })
 
 export const listBillingProfilesResponseWire = z.strictObject({
