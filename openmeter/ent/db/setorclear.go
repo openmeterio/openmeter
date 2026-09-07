@@ -2108,6 +2108,20 @@ func (u *BillingInvoiceValidationIssueUpdateOne) SetOrClearPath(value *string) *
 	return u.SetPath(*value)
 }
 
+func (u *BillingInvoiceValidationIssueUpdate) SetOrClearAttributes(value *models.Annotations) *BillingInvoiceValidationIssueUpdate {
+	if value == nil {
+		return u.ClearAttributes()
+	}
+	return u.SetAttributes(*value)
+}
+
+func (u *BillingInvoiceValidationIssueUpdateOne) SetOrClearAttributes(value *models.Annotations) *BillingInvoiceValidationIssueUpdateOne {
+	if value == nil {
+		return u.ClearAttributes()
+	}
+	return u.SetAttributes(*value)
+}
+
 func (u *BillingProfileUpdate) SetOrClearMetadata(value *map[string]string) *BillingProfileUpdate {
 	if value == nil {
 		return u.ClearMetadata()
@@ -2612,6 +2626,20 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDescription(value *string) *Ch
 	return u.SetDescription(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearValidationIssues(value *billing.ValidationIssues) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearValidationIssues()
+	}
+	return u.SetValidationIssues(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearValidationIssues(value *billing.ValidationIssues) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearValidationIssues()
+	}
+	return u.SetValidationIssues(*value)
+}
+
 func (u *ChargeCreditPurchaseUpdate) SetOrClearFiatCostBasis(value *alpacadecimal.Decimal) *ChargeCreditPurchaseUpdate {
 	if value == nil {
 		return u.ClearFiatCostBasis()
@@ -3016,6 +3044,20 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearDescription(value *string) *ChargeFla
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearValidationIssues(value *billing.ValidationIssues) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearValidationIssues()
+	}
+	return u.SetValidationIssues(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearValidationIssues(value *billing.ValidationIssues) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearValidationIssues()
+	}
+	return u.SetValidationIssues(*value)
 }
 
 func (u *ChargeFlatFeeUpdate) SetOrClearIntentDeletedAt(value *time.Time) *ChargeFlatFeeUpdate {
@@ -3730,6 +3772,20 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDescription(value *string) *Charge
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearValidationIssues(value *billing.ValidationIssues) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearValidationIssues()
+	}
+	return u.SetValidationIssues(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearValidationIssues(value *billing.ValidationIssues) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearValidationIssues()
+	}
+	return u.SetValidationIssues(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearIntentDeletedAt(value *time.Time) *ChargeUsageBasedUpdate {

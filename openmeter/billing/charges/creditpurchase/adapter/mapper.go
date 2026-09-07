@@ -43,8 +43,9 @@ func fromDBBase(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge) (c
 	}
 
 	charge := creditpurchase.ChargeBase{
-		ManagedResource: mappedMeta.ManagedResource,
-		Status:          dbEntity.StatusDetailed,
+		ManagedResource:  mappedMeta.ManagedResource,
+		Status:           dbEntity.StatusDetailed,
+		ValidationIssues: mappedMeta.ValidationIssues,
 		Intent: creditpurchase.Intent{
 			Intent: mappedMeta.Intent,
 			IntentMutableFields: creditpurchase.IntentMutableFields{

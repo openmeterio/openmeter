@@ -32,8 +32,9 @@ var (
 type ChargeBase struct {
 	meta.ManagedResource
 
-	Intent OverridableIntent `json:"intent"`
-	Status Status            `json:"status"`
+	Intent           OverridableIntent        `json:"intent"`
+	Status           Status                   `json:"status"`
+	ValidationIssues billing.ValidationIssues `json:"validationIssues,omitempty"`
 
 	State State `json:"state"`
 }

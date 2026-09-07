@@ -294,6 +294,12 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableDescription(v *string) *ChargeC
 	return _c
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (_c *ChargeCreditPurchaseCreate) SetValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetValidationIssues(v)
+	return _c
+}
+
 // SetSchemaLevel sets the "schema_level" field.
 func (_c *ChargeCreditPurchaseCreate) SetSchemaLevel(v int) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetSchemaLevel(v)
@@ -874,6 +880,10 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_spec.SetField(chargecreditpurchase.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
+	if value, ok := _c.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargecreditpurchase.FieldValidationIssues, field.TypeJSON, value)
+		_node.ValidationIssues = value
+	}
 	if value, ok := _c.mutation.SchemaLevel(); ok {
 		_spec.SetField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)
 		_node.SchemaLevel = value
@@ -1377,6 +1387,24 @@ func (u *ChargeCreditPurchaseUpsert) ClearDescription() *ChargeCreditPurchaseUps
 	return u
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeCreditPurchaseUpsert) SetValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldValidationIssues, v)
+	return u
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateValidationIssues() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldValidationIssues)
+	return u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeCreditPurchaseUpsert) ClearValidationIssues() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldValidationIssues)
+	return u
+}
+
 // SetSchemaLevel sets the "schema_level" field.
 func (u *ChargeCreditPurchaseUpsert) SetSchemaLevel(v int) *ChargeCreditPurchaseUpsert {
 	u.Set(chargecreditpurchase.FieldSchemaLevel, v)
@@ -1857,6 +1885,27 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateDescription() *ChargeCreditPurchas
 func (u *ChargeCreditPurchaseUpsertOne) ClearDescription() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetValidationIssues(v)
+	})
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateValidationIssues() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateValidationIssues()
+	})
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearValidationIssues() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearValidationIssues()
 	})
 }
 
@@ -2529,6 +2578,27 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateDescription() *ChargeCreditPurcha
 func (u *ChargeCreditPurchaseUpsertBulk) ClearDescription() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetValidationIssues(v billing.ValidationIssues) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetValidationIssues(v)
+	})
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateValidationIssues() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateValidationIssues()
+	})
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearValidationIssues() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearValidationIssues()
 	})
 }
 

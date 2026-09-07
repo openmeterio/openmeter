@@ -36,6 +36,8 @@ const (
 	FieldPath = "path"
 	// FieldComponent holds the string denoting the component field in the database.
 	FieldComponent = "component"
+	// FieldAttributes holds the string denoting the attributes field in the database.
+	FieldAttributes = "attributes"
 	// FieldDedupeHash holds the string denoting the dedupe_hash field in the database.
 	FieldDedupeHash = "dedupe_hash"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
@@ -64,6 +66,7 @@ var Columns = []string{
 	FieldMessage,
 	FieldPath,
 	FieldComponent,
+	FieldAttributes,
 	FieldDedupeHash,
 }
 

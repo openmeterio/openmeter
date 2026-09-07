@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -258,6 +259,24 @@ func (_u *ChargeUsageBasedUpdate) SetNillableDescription(v *string) *ChargeUsage
 // ClearDescription clears the value of the "description" field.
 func (_u *ChargeUsageBasedUpdate) ClearDescription() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (_u *ChargeUsageBasedUpdate) SetValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedUpdate {
+	_u.mutation.SetValidationIssues(v)
+	return _u
+}
+
+// AppendValidationIssues appends value to the "validation_issues" field.
+func (_u *ChargeUsageBasedUpdate) AppendValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedUpdate {
+	_u.mutation.AppendValidationIssues(v)
+	return _u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (_u *ChargeUsageBasedUpdate) ClearValidationIssues() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearValidationIssues()
 	return _u
 }
 
@@ -698,6 +717,17 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargeusagebased.FieldValidationIssues, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedValidationIssues(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeusagebased.FieldValidationIssues, value)
+		})
+	}
+	if _u.mutation.ValidationIssuesCleared() {
+		_spec.ClearField(chargeusagebased.FieldValidationIssues, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
@@ -1189,6 +1219,24 @@ func (_u *ChargeUsageBasedUpdateOne) ClearDescription() *ChargeUsageBasedUpdateO
 	return _u
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (_u *ChargeUsageBasedUpdateOne) SetValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetValidationIssues(v)
+	return _u
+}
+
+// AppendValidationIssues appends value to the "validation_issues" field.
+func (_u *ChargeUsageBasedUpdateOne) AppendValidationIssues(v billing.ValidationIssues) *ChargeUsageBasedUpdateOne {
+	_u.mutation.AppendValidationIssues(v)
+	return _u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearValidationIssues() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearValidationIssues()
+	return _u
+}
+
 // SetInvoiceAt sets the "invoice_at" field.
 func (_u *ChargeUsageBasedUpdateOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetInvoiceAt(v)
@@ -1656,6 +1704,17 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargeusagebased.FieldValidationIssues, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedValidationIssues(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeusagebased.FieldValidationIssues, value)
+		})
+	}
+	if _u.mutation.ValidationIssuesCleared() {
+		_spec.ClearField(chargeusagebased.FieldValidationIssues, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)

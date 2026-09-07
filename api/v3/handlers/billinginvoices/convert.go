@@ -259,10 +259,11 @@ func mapValidationIssues(issues []billing.ValidationIssue) *[]api.BillingInvoice
 
 	out := lo.Map(issues, func(v billing.ValidationIssue, _ int) api.BillingInvoiceValidationIssue {
 		return api.BillingInvoiceValidationIssue{
-			Severity: api.BillingInvoiceValidationIssueSeverity(v.Severity),
-			Message:  v.Message,
-			Code:     v.Code,
-			Field:    lo.EmptyableToPtr(v.Path),
+			Severity:   api.BillingInvoiceValidationIssueSeverity(v.Severity),
+			Message:    v.Message,
+			Code:       v.Code,
+			Field:      lo.EmptyableToPtr(v.Path),
+			Attributes: lo.EmptyableToPtr(map[string]any(v.Attributes)),
 		}
 	})
 

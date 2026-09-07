@@ -21,6 +21,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
+type ChargeValidationIssuesMixin struct {
+	mixin.Schema
+}
+
+func (ChargeValidationIssuesMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.JSON("validation_issues", billing.ValidationIssues(nil)).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
+	}
+}
+
 var chargesSearchV1Columns = []string{
 	"id",
 	"namespace",

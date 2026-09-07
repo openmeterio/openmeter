@@ -686,6 +686,16 @@ func ComponentContainsFold(v string) predicate.BillingInvoiceValidationIssue {
 	return predicate.BillingInvoiceValidationIssue(sql.FieldContainsFold(FieldComponent, v))
 }
 
+// AttributesIsNil applies the IsNil predicate on the "attributes" field.
+func AttributesIsNil() predicate.BillingInvoiceValidationIssue {
+	return predicate.BillingInvoiceValidationIssue(sql.FieldIsNull(FieldAttributes))
+}
+
+// AttributesNotNil applies the NotNil predicate on the "attributes" field.
+func AttributesNotNil() predicate.BillingInvoiceValidationIssue {
+	return predicate.BillingInvoiceValidationIssue(sql.FieldNotNull(FieldAttributes))
+}
+
 // DedupeHashEQ applies the EQ predicate on the "dedupe_hash" field.
 func DedupeHashEQ(v []byte) predicate.BillingInvoiceValidationIssue {
 	return predicate.BillingInvoiceValidationIssue(sql.FieldEQ(FieldDedupeHash, v))

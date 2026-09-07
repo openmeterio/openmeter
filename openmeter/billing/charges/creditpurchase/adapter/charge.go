@@ -45,6 +45,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 			Intent:              charge.Intent.Intent,
 			IntentMutableFields: charge.Intent.IntentMutableFields.IntentMutableFields,
 			Status:              metaStatus,
+			ValidationIssues:    charge.ValidationIssues,
 		})
 		if err != nil {
 			return creditpurchase.ChargeBase{}, err

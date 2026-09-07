@@ -1189,7 +1189,7 @@ func (s *InvoicingTestSuite) TestStatusDetailsSimulationDoesNotMutatePaymentProc
 }
 
 type ValidationIssueIntrospector interface {
-	IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) ([]billingadapter.ValidationIssueWithDBMeta, error)
+	IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) (billing.ValidationIssues, error)
 }
 
 func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
@@ -1218,12 +1218,21 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 			advance: func(t *testing.T, ctx context.Context, ns string, customer *customer.Customer, mockApp *appsandbox.MockApp) *billing.StandardInvoice {
 				calcMock := s.InvoiceCalculator.EnableMock()
 				defer s.InvoiceCalculator.DisableMock(t)
+				validationAttributes := models.Annotations{
+					"invoice": "invoice-context",
+					"line":    "line-context",
+				}
 
 				validationIssueGetter, ok := s.BillingAdapter.(ValidationIssueIntrospector)
 				require.True(t, ok)
 
 				// Given that the app will return a validation error
-				mockApp.OnValidateStandardInvoice(billing.NewValidationError("test1", "validation error"))
+				mockApp.OnValidateStandardInvoice(billing.ValidationIssue{
+					Severity:   billing.ValidationIssueSeverityCritical,
+					Code:       "test1",
+					Message:    "validation error",
+					Attributes: validationAttributes,
+				})
 				calcMock.OnCalculate(nil)
 				calcMock.OnCalculateGatheringInvoice(nil)
 
@@ -1249,10 +1258,11 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				}, invoice.StatusDetails)
 				require.Equal(s.T(), billing.ValidationIssues{
 					{
-						Severity:  billing.ValidationIssueSeverityCritical,
-						Code:      "test1",
-						Message:   "validation error",
-						Component: "app.sandbox.invoiceCustomers.validate",
+						Severity:   billing.ValidationIssueSeverityCritical,
+						Code:       "test1",
+						Message:    "validation error",
+						Component:  "app.sandbox.invoiceCustomers.validate",
+						Attributes: validationAttributes,
 					},
 				}, invoice.ValidationIssues.RemoveMetaForCompare())
 
@@ -1265,12 +1275,13 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Len(t, issues, 1)
 				require.Equal(t,
 					billing.ValidationIssue{
-						Severity:  billing.ValidationIssueSeverityCritical,
-						Code:      "test1",
-						Message:   "validation error",
-						Component: "app.sandbox.invoiceCustomers.validate",
+						Severity:   billing.ValidationIssueSeverityCritical,
+						Code:       "test1",
+						Message:    "validation error",
+						Component:  "app.sandbox.invoiceCustomers.validate",
+						Attributes: validationAttributes,
 					},
-					issues[0].ValidationIssue,
+					billing.ValidationIssues{issues[0]}.RemoveMetaForCompare()[0],
 				)
 				require.Nil(t, issues[0].DeletedAt)
 				customerValidationIssueID := issues[0].ID
@@ -1323,39 +1334,41 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				require.Len(t, issues, 3)
 
 				// The old issue should be deleted
-				invoiceIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+				invoiceIssue, ok := lo.Find(issues, func(i billing.ValidationIssue) bool {
 					return i.ID == customerValidationIssueID
 				})
 				require.True(t, ok, "old issue should be present")
 				require.NotNil(t, invoiceIssue.DeletedAt)
 				require.Equal(t,
 					billing.ValidationIssue{
-						Severity:  billing.ValidationIssueSeverityCritical,
-						Code:      "test1",
-						Message:   "validation error",
-						Component: "app.sandbox.invoiceCustomers.validate",
+						Severity:   billing.ValidationIssueSeverityCritical,
+						Code:       "test1",
+						Message:    "validation error",
+						Component:  "app.sandbox.invoiceCustomers.validate",
+						Attributes: validationAttributes,
 					},
-					invoiceIssue.ValidationIssue,
+					billing.ValidationIssues{invoiceIssue}.RemoveMetaForCompare()[0],
 				)
 
 				// A new version of the issue is present with downgraded severity, to facilitate the retry
-				downgradedIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+				downgradedIssue, ok := lo.Find(issues, func(i billing.ValidationIssue) bool {
 					return i.Code == "test1" && i.Severity == billing.ValidationIssueSeverityWarning
 				})
 				require.True(t, ok, "the issue should be present")
 				require.NotNil(t, downgradedIssue.DeletedAt)
 				require.Equal(t,
 					billing.ValidationIssue{
-						Severity:  billing.ValidationIssueSeverityWarning,
-						Code:      "test1",
-						Message:   "validation error",
-						Component: "app.sandbox.invoiceCustomers.validate",
+						Severity:   billing.ValidationIssueSeverityWarning,
+						Code:       "test1",
+						Message:    "validation error",
+						Component:  "app.sandbox.invoiceCustomers.validate",
+						Attributes: validationAttributes,
 					},
-					downgradedIssue.ValidationIssue,
+					billing.ValidationIssues{downgradedIssue}.RemoveMetaForCompare()[0],
 				)
 
 				// The new issue should not be deleted
-				calculationErrorIssue, ok := lo.Find(issues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+				calculationErrorIssue, ok := lo.Find(issues, func(i billing.ValidationIssue) bool {
 					return i.Code == "test2"
 				})
 				require.True(t, ok, "new issue should be present")
@@ -1366,14 +1379,19 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 						Message:   "validation error",
 						Component: "openmeter",
 					},
-					calculationErrorIssue.ValidationIssue,
+					billing.ValidationIssues{calculationErrorIssue}.RemoveMetaForCompare()[0],
 				)
 
 				mockApp.Reset(t)
 				calcMock.Reset(t)
 
 				// Given that both issues are present, both will be reported
-				mockApp.OnValidateStandardInvoice(billing.NewValidationError("test1", "validation error"))
+				mockApp.OnValidateStandardInvoice(billing.ValidationIssue{
+					Severity:   billing.ValidationIssueSeverityCritical,
+					Code:       "test1",
+					Message:    "validation error",
+					Attributes: validationAttributes,
+				})
 				calcMock.OnCalculate(billing.NewValidationError("test2", "validation error"))
 
 				// regardless the state transition will be the same for now.
@@ -1399,10 +1417,11 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				}, invoice.StatusDetails)
 				require.ElementsMatch(s.T(), billing.ValidationIssues{
 					{
-						Severity:  billing.ValidationIssueSeverityCritical,
-						Code:      "test1",
-						Message:   "validation error",
-						Component: "app.sandbox.invoiceCustomers.validate",
+						Severity:   billing.ValidationIssueSeverityCritical,
+						Code:       "test1",
+						Message:    "validation error",
+						Component:  "app.sandbox.invoiceCustomers.validate",
+						Attributes: validationAttributes,
 					},
 					{
 						Severity:  billing.ValidationIssueSeverityCritical,
@@ -1418,12 +1437,12 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					ID:        invoice.ID,
 				})
 				require.NoError(t, err)
-				criticalIssues := lo.Filter(issues, func(i billingadapter.ValidationIssueWithDBMeta, _ int) bool {
+				criticalIssues := lo.Filter(issues, func(i billing.ValidationIssue, _ int) bool {
 					return i.Severity == billing.ValidationIssueSeverityCritical
 				})
 				require.Len(t, criticalIssues, 2)
 
-				_, deletedIssueFound := lo.Find(criticalIssues, func(i billingadapter.ValidationIssueWithDBMeta) bool {
+				_, deletedIssueFound := lo.Find(criticalIssues, func(i billing.ValidationIssue) bool {
 					return i.DeletedAt != nil
 				})
 				require.False(t, deletedIssueFound, "no issues should be deleted")

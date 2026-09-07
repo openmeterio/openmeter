@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // BillingInvoiceValidationIssue is the model entity for the BillingInvoiceValidationIssue schema.
@@ -39,6 +41,8 @@ type BillingInvoiceValidationIssue struct {
 	Path *string `json:"path,omitempty"`
 	// Component holds the value of the "component" field.
 	Component string `json:"component,omitempty"`
+	// Attributes holds the value of the "attributes" field.
+	Attributes models.Annotations `json:"attributes,omitempty"`
 	// DedupeHash holds the value of the "dedupe_hash" field.
 	DedupeHash []byte `json:"dedupe_hash,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -72,7 +76,7 @@ func (*BillingInvoiceValidationIssue) scanValues(columns []string) ([]any, error
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoicevalidationissue.FieldDedupeHash:
+		case billinginvoicevalidationissue.FieldAttributes, billinginvoicevalidationissue.FieldDedupeHash:
 			values[i] = new([]byte)
 		case billinginvoicevalidationissue.FieldID, billinginvoicevalidationissue.FieldNamespace, billinginvoicevalidationissue.FieldInvoiceID, billinginvoicevalidationissue.FieldSeverity, billinginvoicevalidationissue.FieldCode, billinginvoicevalidationissue.FieldMessage, billinginvoicevalidationissue.FieldPath, billinginvoicevalidationissue.FieldComponent:
 			values[i] = new(sql.NullString)
@@ -162,6 +166,14 @@ func (_m *BillingInvoiceValidationIssue) assignValues(columns []string, values [
 			} else if value.Valid {
 				_m.Component = value.String
 			}
+		case billinginvoicevalidationissue.FieldAttributes:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field attributes", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Attributes); err != nil {
+					return fmt.Errorf("unmarshal field attributes: %w", err)
+				}
+			}
 		case billinginvoicevalidationissue.FieldDedupeHash:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field dedupe_hash", values[i])
@@ -244,6 +256,9 @@ func (_m *BillingInvoiceValidationIssue) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("component=")
 	builder.WriteString(_m.Component)
+	builder.WriteString(", ")
+	builder.WriteString("attributes=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Attributes))
 	builder.WriteString(", ")
 	builder.WriteString("dedupe_hash=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DedupeHash))

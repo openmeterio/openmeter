@@ -3,6 +3,8 @@ package billingadapter
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -12,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 type validationIssueWithDedupe struct {
@@ -19,7 +22,7 @@ type validationIssueWithDedupe struct {
 	hash  []byte
 }
 
-func issueDedupeHash(issue billing.ValidationIssue) []byte {
+func issueDedupeHash(issue billing.ValidationIssue) ([]byte, error) {
 	algo := sha256.New()
 
 	algo.Write([]byte(issue.Severity))
@@ -27,27 +30,47 @@ func issueDedupeHash(issue billing.ValidationIssue) []byte {
 	algo.Write([]byte(issue.Message))
 	algo.Write([]byte(issue.Component))
 	algo.Write([]byte(issue.Path))
-	return algo.Sum(nil)
+
+	if len(issue.Attributes) > 0 {
+		attributes, err := json.Marshal(issue.Attributes)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling attributes: %w", err)
+		}
+
+		algo.Write([]byte{0})
+		algo.Write(attributes)
+	}
+
+	return algo.Sum(nil), nil
 }
 
 // persistValidationIssues persists the validation issues for the given invoice, it will remove any
 // existing issues that are not present in the new list. It relies on consistent hashing to deduplicate
 // issues.
 func (a *adapter) persistValidationIssues(ctx context.Context, invoice billing.InvoiceID, issues []billing.ValidationIssue) error {
-	// FIXME (pmarton): Why do we need to deduplicate issues?
-	hashedIssues := lo.FindUniquesBy(
-		lo.Map(issues, func(issue billing.ValidationIssue, _ int) validationIssueWithDedupe {
-			return validationIssueWithDedupe{
-				issue: issue,
-				hash:  issueDedupeHash(issue),
-			}
-		}),
+	hashedIssues, err := lo.MapErr(issues, func(issue billing.ValidationIssue, _ int) (validationIssueWithDedupe, error) {
+		hash, err := issueDedupeHash(issue)
+		if err != nil {
+			return validationIssueWithDedupe{}, fmt.Errorf("hashing validation issue: %w", err)
+		}
+
+		return validationIssueWithDedupe{
+			issue: issue,
+			hash:  hash,
+		}, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	hashedIssues = lo.FindUniquesBy(
+		hashedIssues,
 		func(issue validationIssueWithDedupe) string {
 			return string(issue.hash)
 		},
 	)
 
-	err := a.db.BillingInvoiceValidationIssue.Update().
+	err = a.db.BillingInvoiceValidationIssue.Update().
 		Where(billinginvoicevalidationissue.InvoiceID(invoice.ID)).
 		Where(billinginvoicevalidationissue.Namespace(invoice.Namespace)).
 		Where(billinginvoicevalidationissue.DedupeHashNotIn(
@@ -78,6 +101,10 @@ func (a *adapter) persistValidationIssues(ctx context.Context, invoice billing.I
 		if issue.Path != "" {
 			c.SetPath(issue.Path)
 		}
+
+		if len(issue.Attributes) > 0 {
+			c.SetAttributes(issue.Attributes)
+		}
 	}).OnConflict(
 		sql.ConflictColumns(
 			billinginvoicevalidationissue.FieldNamespace,
@@ -92,17 +119,10 @@ func (a *adapter) persistValidationIssues(ctx context.Context, invoice billing.I
 		}).Exec(ctx)
 }
 
-type ValidationIssueWithDBMeta struct {
-	billing.ValidationIssue
-
-	ID        string     `json:"id"`
-	DeletedAt *time.Time `json:"deletedAt,omitempty"`
-}
-
 // IntropectValidationIssues returns the validation issues for the given invoice, this is not
 // exposed via the adpter interface, as it's only used by tests to validate the state of the
 // database.
-func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) ([]ValidationIssueWithDBMeta, error) {
+func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) (billing.ValidationIssues, error) {
 	issues, err := a.db.BillingInvoiceValidationIssue.Query().
 		Where(billinginvoicevalidationissue.InvoiceID(invoice.ID)).
 		Where(billinginvoicevalidationissue.Namespace(invoice.Namespace)).
@@ -112,17 +132,19 @@ func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billin
 		return nil, err
 	}
 
-	return lo.Map(issues, func(issue *db.BillingInvoiceValidationIssue, _ int) ValidationIssueWithDBMeta {
-		return ValidationIssueWithDBMeta{
-			ValidationIssue: billing.ValidationIssue{
-				Severity:  issue.Severity,
-				Message:   issue.Message,
-				Code:      lo.FromPtr(issue.Code),
-				Component: billing.ComponentName(issue.Component),
-				Path:      lo.FromPtr(issue.Path),
-			},
+	return lo.Map(issues, func(issue *db.BillingInvoiceValidationIssue, _ int) billing.ValidationIssue {
+		return billing.ValidationIssue{
 			ID:        issue.ID,
-			DeletedAt: issue.DeletedAt,
+			CreatedAt: issue.CreatedAt.In(time.UTC),
+			UpdatedAt: issue.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(issue.DeletedAt, time.UTC),
+
+			Severity:   issue.Severity,
+			Message:    issue.Message,
+			Code:       lo.FromPtr(issue.Code),
+			Component:  billing.ComponentName(issue.Component),
+			Path:       lo.FromPtr(issue.Path),
+			Attributes: issue.Attributes,
 		}
 	}), nil
 }

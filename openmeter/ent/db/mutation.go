@@ -29950,6 +29950,7 @@ type BillingInvoiceValidationIssueMutation struct {
 	message                *string
 	_path                  *string
 	component              *string
+	attributes             *models.Annotations
 	dedupe_hash            *[]byte
 	clearedFields          map[string]struct{}
 	billing_invoice        *string
@@ -30462,6 +30463,55 @@ func (m *BillingInvoiceValidationIssueMutation) ResetComponent() {
 	m.component = nil
 }
 
+// SetAttributes sets the "attributes" field.
+func (m *BillingInvoiceValidationIssueMutation) SetAttributes(value models.Annotations) {
+	m.attributes = &value
+}
+
+// Attributes returns the value of the "attributes" field in the mutation.
+func (m *BillingInvoiceValidationIssueMutation) Attributes() (r models.Annotations, exists bool) {
+	v := m.attributes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttributes returns the old "attributes" field's value of the BillingInvoiceValidationIssue entity.
+// If the BillingInvoiceValidationIssue object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceValidationIssueMutation) OldAttributes(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttributes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttributes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttributes: %w", err)
+	}
+	return oldValue.Attributes, nil
+}
+
+// ClearAttributes clears the value of the "attributes" field.
+func (m *BillingInvoiceValidationIssueMutation) ClearAttributes() {
+	m.attributes = nil
+	m.clearedFields[billinginvoicevalidationissue.FieldAttributes] = struct{}{}
+}
+
+// AttributesCleared returns if the "attributes" field was cleared in this mutation.
+func (m *BillingInvoiceValidationIssueMutation) AttributesCleared() bool {
+	_, ok := m.clearedFields[billinginvoicevalidationissue.FieldAttributes]
+	return ok
+}
+
+// ResetAttributes resets all changes to the "attributes" field.
+func (m *BillingInvoiceValidationIssueMutation) ResetAttributes() {
+	m.attributes = nil
+	delete(m.clearedFields, billinginvoicevalidationissue.FieldAttributes)
+}
+
 // SetDedupeHash sets the "dedupe_hash" field.
 func (m *BillingInvoiceValidationIssueMutation) SetDedupeHash(b []byte) {
 	m.dedupe_hash = &b
@@ -30572,7 +30622,7 @@ func (m *BillingInvoiceValidationIssueMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceValidationIssueMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicevalidationissue.FieldNamespace)
 	}
@@ -30602,6 +30652,9 @@ func (m *BillingInvoiceValidationIssueMutation) Fields() []string {
 	}
 	if m.component != nil {
 		fields = append(fields, billinginvoicevalidationissue.FieldComponent)
+	}
+	if m.attributes != nil {
+		fields = append(fields, billinginvoicevalidationissue.FieldAttributes)
 	}
 	if m.dedupe_hash != nil {
 		fields = append(fields, billinginvoicevalidationissue.FieldDedupeHash)
@@ -30634,6 +30687,8 @@ func (m *BillingInvoiceValidationIssueMutation) Field(name string) (ent.Value, b
 		return m.Path()
 	case billinginvoicevalidationissue.FieldComponent:
 		return m.Component()
+	case billinginvoicevalidationissue.FieldAttributes:
+		return m.Attributes()
 	case billinginvoicevalidationissue.FieldDedupeHash:
 		return m.DedupeHash()
 	}
@@ -30665,6 +30720,8 @@ func (m *BillingInvoiceValidationIssueMutation) OldField(ctx context.Context, na
 		return m.OldPath(ctx)
 	case billinginvoicevalidationissue.FieldComponent:
 		return m.OldComponent(ctx)
+	case billinginvoicevalidationissue.FieldAttributes:
+		return m.OldAttributes(ctx)
 	case billinginvoicevalidationissue.FieldDedupeHash:
 		return m.OldDedupeHash(ctx)
 	}
@@ -30746,6 +30803,13 @@ func (m *BillingInvoiceValidationIssueMutation) SetField(name string, value ent.
 		}
 		m.SetComponent(v)
 		return nil
+	case billinginvoicevalidationissue.FieldAttributes:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttributes(v)
+		return nil
 	case billinginvoicevalidationissue.FieldDedupeHash:
 		v, ok := value.([]byte)
 		if !ok {
@@ -30792,6 +30856,9 @@ func (m *BillingInvoiceValidationIssueMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicevalidationissue.FieldPath) {
 		fields = append(fields, billinginvoicevalidationissue.FieldPath)
 	}
+	if m.FieldCleared(billinginvoicevalidationissue.FieldAttributes) {
+		fields = append(fields, billinginvoicevalidationissue.FieldAttributes)
+	}
 	return fields
 }
 
@@ -30814,6 +30881,9 @@ func (m *BillingInvoiceValidationIssueMutation) ClearField(name string) error {
 		return nil
 	case billinginvoicevalidationissue.FieldPath:
 		m.ClearPath()
+		return nil
+	case billinginvoicevalidationissue.FieldAttributes:
+		m.ClearAttributes()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceValidationIssue nullable field %s", name)
@@ -30852,6 +30922,9 @@ func (m *BillingInvoiceValidationIssueMutation) ResetField(name string) error {
 		return nil
 	case billinginvoicevalidationissue.FieldComponent:
 		m.ResetComponent()
+		return nil
+	case billinginvoicevalidationissue.FieldAttributes:
+		m.ResetAttributes()
 		return nil
 	case billinginvoicevalidationissue.FieldDedupeHash:
 		m.ResetDedupeHash()
@@ -39950,6 +40023,8 @@ type ChargeCreditPurchaseMutation struct {
 	deleted_at                        *time.Time
 	name                              *string
 	description                       *string
+	validation_issues                 *billing.ValidationIssues
+	appendvalidation_issues           billing.ValidationIssues
 	schema_level                      *int
 	addschema_level                   *int
 	fiat_cost_basis                   *alpacadecimal.Decimal
@@ -41189,6 +41264,71 @@ func (m *ChargeCreditPurchaseMutation) ResetDescription() {
 	delete(m.clearedFields, chargecreditpurchase.FieldDescription)
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (m *ChargeCreditPurchaseMutation) SetValidationIssues(bi billing.ValidationIssues) {
+	m.validation_issues = &bi
+	m.appendvalidation_issues = nil
+}
+
+// ValidationIssues returns the value of the "validation_issues" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) ValidationIssues() (r billing.ValidationIssues, exists bool) {
+	v := m.validation_issues
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValidationIssues returns the old "validation_issues" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldValidationIssues(ctx context.Context) (v billing.ValidationIssues, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValidationIssues is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValidationIssues requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValidationIssues: %w", err)
+	}
+	return oldValue.ValidationIssues, nil
+}
+
+// AppendValidationIssues adds bi to the "validation_issues" field.
+func (m *ChargeCreditPurchaseMutation) AppendValidationIssues(bi billing.ValidationIssues) {
+	m.appendvalidation_issues = append(m.appendvalidation_issues, bi...)
+}
+
+// AppendedValidationIssues returns the list of values that were appended to the "validation_issues" field in this mutation.
+func (m *ChargeCreditPurchaseMutation) AppendedValidationIssues() (billing.ValidationIssues, bool) {
+	if len(m.appendvalidation_issues) == 0 {
+		return nil, false
+	}
+	return m.appendvalidation_issues, true
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (m *ChargeCreditPurchaseMutation) ClearValidationIssues() {
+	m.validation_issues = nil
+	m.appendvalidation_issues = nil
+	m.clearedFields[chargecreditpurchase.FieldValidationIssues] = struct{}{}
+}
+
+// ValidationIssuesCleared returns if the "validation_issues" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) ValidationIssuesCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldValidationIssues]
+	return ok
+}
+
+// ResetValidationIssues resets all changes to the "validation_issues" field.
+func (m *ChargeCreditPurchaseMutation) ResetValidationIssues() {
+	m.validation_issues = nil
+	m.appendvalidation_issues = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldValidationIssues)
+}
+
 // SetSchemaLevel sets the "schema_level" field.
 func (m *ChargeCreditPurchaseMutation) SetSchemaLevel(i int) {
 	m.schema_level = &i
@@ -42256,7 +42396,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 40)
+	fields := make([]string, 0, 41)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -42334,6 +42474,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	}
 	if m.description != nil {
 		fields = append(fields, chargecreditpurchase.FieldDescription)
+	}
+	if m.validation_issues != nil {
+		fields = append(fields, chargecreditpurchase.FieldValidationIssues)
 	}
 	if m.schema_level != nil {
 		fields = append(fields, chargecreditpurchase.FieldSchemaLevel)
@@ -42437,6 +42580,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case chargecreditpurchase.FieldDescription:
 		return m.Description()
+	case chargecreditpurchase.FieldValidationIssues:
+		return m.ValidationIssues()
 	case chargecreditpurchase.FieldSchemaLevel:
 		return m.SchemaLevel()
 	case chargecreditpurchase.FieldFiatCostBasis:
@@ -42526,6 +42671,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldName(ctx)
 	case chargecreditpurchase.FieldDescription:
 		return m.OldDescription(ctx)
+	case chargecreditpurchase.FieldValidationIssues:
+		return m.OldValidationIssues(ctx)
 	case chargecreditpurchase.FieldSchemaLevel:
 		return m.OldSchemaLevel(ctx)
 	case chargecreditpurchase.FieldFiatCostBasis:
@@ -42745,6 +42892,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetDescription(v)
 		return nil
+	case chargecreditpurchase.FieldValidationIssues:
+		v, ok := value.(billing.ValidationIssues)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValidationIssues(v)
+		return nil
 	case chargecreditpurchase.FieldSchemaLevel:
 		v, ok := value.(int)
 		if !ok {
@@ -42936,6 +43090,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldDescription) {
 		fields = append(fields, chargecreditpurchase.FieldDescription)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldValidationIssues) {
+		fields = append(fields, chargecreditpurchase.FieldValidationIssues)
+	}
 	if m.FieldCleared(chargecreditpurchase.FieldFiatCostBasis) {
 		fields = append(fields, chargecreditpurchase.FieldFiatCostBasis)
 	}
@@ -43018,6 +43175,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case chargecreditpurchase.FieldValidationIssues:
+		m.ClearValidationIssues()
 		return nil
 	case chargecreditpurchase.FieldFiatCostBasis:
 		m.ClearFiatCostBasis()
@@ -43137,6 +43297,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldDescription:
 		m.ResetDescription()
+		return nil
+	case chargecreditpurchase.FieldValidationIssues:
+		m.ResetValidationIssues()
 		return nil
 	case chargecreditpurchase.FieldSchemaLevel:
 		m.ResetSchemaLevel()
@@ -48027,6 +48190,8 @@ type ChargeFlatFeeMutation struct {
 	deleted_at                *time.Time
 	name                      *string
 	description               *string
+	validation_issues         *billing.ValidationIssues
+	appendvalidation_issues   billing.ValidationIssues
 	payment_term              *productcatalog.PaymentTermType
 	invoice_at                *time.Time
 	settlement_mode           *productcatalog.SettlementMode
@@ -49264,6 +49429,71 @@ func (m *ChargeFlatFeeMutation) ResetDescription() {
 	delete(m.clearedFields, chargeflatfee.FieldDescription)
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (m *ChargeFlatFeeMutation) SetValidationIssues(bi billing.ValidationIssues) {
+	m.validation_issues = &bi
+	m.appendvalidation_issues = nil
+}
+
+// ValidationIssues returns the value of the "validation_issues" field in the mutation.
+func (m *ChargeFlatFeeMutation) ValidationIssues() (r billing.ValidationIssues, exists bool) {
+	v := m.validation_issues
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValidationIssues returns the old "validation_issues" field's value of the ChargeFlatFee entity.
+// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeMutation) OldValidationIssues(ctx context.Context) (v billing.ValidationIssues, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValidationIssues is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValidationIssues requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValidationIssues: %w", err)
+	}
+	return oldValue.ValidationIssues, nil
+}
+
+// AppendValidationIssues adds bi to the "validation_issues" field.
+func (m *ChargeFlatFeeMutation) AppendValidationIssues(bi billing.ValidationIssues) {
+	m.appendvalidation_issues = append(m.appendvalidation_issues, bi...)
+}
+
+// AppendedValidationIssues returns the list of values that were appended to the "validation_issues" field in this mutation.
+func (m *ChargeFlatFeeMutation) AppendedValidationIssues() (billing.ValidationIssues, bool) {
+	if len(m.appendvalidation_issues) == 0 {
+		return nil, false
+	}
+	return m.appendvalidation_issues, true
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (m *ChargeFlatFeeMutation) ClearValidationIssues() {
+	m.validation_issues = nil
+	m.appendvalidation_issues = nil
+	m.clearedFields[chargeflatfee.FieldValidationIssues] = struct{}{}
+}
+
+// ValidationIssuesCleared returns if the "validation_issues" field was cleared in this mutation.
+func (m *ChargeFlatFeeMutation) ValidationIssuesCleared() bool {
+	_, ok := m.clearedFields[chargeflatfee.FieldValidationIssues]
+	return ok
+}
+
+// ResetValidationIssues resets all changes to the "validation_issues" field.
+func (m *ChargeFlatFeeMutation) ResetValidationIssues() {
+	m.validation_issues = nil
+	m.appendvalidation_issues = nil
+	delete(m.clearedFields, chargeflatfee.FieldValidationIssues)
+}
+
 // SetPaymentTerm sets the "payment_term" field.
 func (m *ChargeFlatFeeMutation) SetPaymentTerm(ptt productcatalog.PaymentTermType) {
 	m.payment_term = &ptt
@@ -50232,7 +50462,7 @@ func (m *ChargeFlatFeeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeMutation) Fields() []string {
-	fields := make([]string, 0, 39)
+	fields := make([]string, 0, 40)
 	if m.customer != nil {
 		fields = append(fields, chargeflatfee.FieldCustomerID)
 	}
@@ -50310,6 +50540,9 @@ func (m *ChargeFlatFeeMutation) Fields() []string {
 	}
 	if m.description != nil {
 		fields = append(fields, chargeflatfee.FieldDescription)
+	}
+	if m.validation_issues != nil {
+		fields = append(fields, chargeflatfee.FieldValidationIssues)
 	}
 	if m.payment_term != nil {
 		fields = append(fields, chargeflatfee.FieldPaymentTerm)
@@ -50410,6 +50643,8 @@ func (m *ChargeFlatFeeMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case chargeflatfee.FieldDescription:
 		return m.Description()
+	case chargeflatfee.FieldValidationIssues:
+		return m.ValidationIssues()
 	case chargeflatfee.FieldPaymentTerm:
 		return m.PaymentTerm()
 	case chargeflatfee.FieldInvoiceAt:
@@ -50497,6 +50732,8 @@ func (m *ChargeFlatFeeMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldName(ctx)
 	case chargeflatfee.FieldDescription:
 		return m.OldDescription(ctx)
+	case chargeflatfee.FieldValidationIssues:
+		return m.OldValidationIssues(ctx)
 	case chargeflatfee.FieldPaymentTerm:
 		return m.OldPaymentTerm(ctx)
 	case chargeflatfee.FieldInvoiceAt:
@@ -50714,6 +50951,13 @@ func (m *ChargeFlatFeeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDescription(v)
 		return nil
+	case chargeflatfee.FieldValidationIssues:
+		v, ok := value.(billing.ValidationIssues)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValidationIssues(v)
+		return nil
 	case chargeflatfee.FieldPaymentTerm:
 		v, ok := value.(productcatalog.PaymentTermType)
 		if !ok {
@@ -50871,6 +51115,9 @@ func (m *ChargeFlatFeeMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfee.FieldDescription) {
 		fields = append(fields, chargeflatfee.FieldDescription)
 	}
+	if m.FieldCleared(chargeflatfee.FieldValidationIssues) {
+		fields = append(fields, chargeflatfee.FieldValidationIssues)
+	}
 	if m.FieldCleared(chargeflatfee.FieldIntentDeletedAt) {
 		fields = append(fields, chargeflatfee.FieldIntentDeletedAt)
 	}
@@ -50938,6 +51185,9 @@ func (m *ChargeFlatFeeMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfee.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case chargeflatfee.FieldValidationIssues:
+		m.ClearValidationIssues()
 		return nil
 	case chargeflatfee.FieldIntentDeletedAt:
 		m.ClearIntentDeletedAt()
@@ -51042,6 +51292,9 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfee.FieldDescription:
 		m.ResetDescription()
+		return nil
+	case chargeflatfee.FieldValidationIssues:
+		m.ResetValidationIssues()
 		return nil
 	case chargeflatfee.FieldPaymentTerm:
 		m.ResetPaymentTerm()
@@ -64097,6 +64350,8 @@ type ChargeUsageBasedMutation struct {
 	deleted_at                *time.Time
 	name                      *string
 	description               *string
+	validation_issues         *billing.ValidationIssues
+	appendvalidation_issues   billing.ValidationIssues
 	invoice_at                *time.Time
 	settlement_mode           *productcatalog.SettlementMode
 	intent_deleted_at         *time.Time
@@ -65336,6 +65591,71 @@ func (m *ChargeUsageBasedMutation) ResetDescription() {
 	delete(m.clearedFields, chargeusagebased.FieldDescription)
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (m *ChargeUsageBasedMutation) SetValidationIssues(bi billing.ValidationIssues) {
+	m.validation_issues = &bi
+	m.appendvalidation_issues = nil
+}
+
+// ValidationIssues returns the value of the "validation_issues" field in the mutation.
+func (m *ChargeUsageBasedMutation) ValidationIssues() (r billing.ValidationIssues, exists bool) {
+	v := m.validation_issues
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValidationIssues returns the old "validation_issues" field's value of the ChargeUsageBased entity.
+// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedMutation) OldValidationIssues(ctx context.Context) (v billing.ValidationIssues, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValidationIssues is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValidationIssues requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValidationIssues: %w", err)
+	}
+	return oldValue.ValidationIssues, nil
+}
+
+// AppendValidationIssues adds bi to the "validation_issues" field.
+func (m *ChargeUsageBasedMutation) AppendValidationIssues(bi billing.ValidationIssues) {
+	m.appendvalidation_issues = append(m.appendvalidation_issues, bi...)
+}
+
+// AppendedValidationIssues returns the list of values that were appended to the "validation_issues" field in this mutation.
+func (m *ChargeUsageBasedMutation) AppendedValidationIssues() (billing.ValidationIssues, bool) {
+	if len(m.appendvalidation_issues) == 0 {
+		return nil, false
+	}
+	return m.appendvalidation_issues, true
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (m *ChargeUsageBasedMutation) ClearValidationIssues() {
+	m.validation_issues = nil
+	m.appendvalidation_issues = nil
+	m.clearedFields[chargeusagebased.FieldValidationIssues] = struct{}{}
+}
+
+// ValidationIssuesCleared returns if the "validation_issues" field was cleared in this mutation.
+func (m *ChargeUsageBasedMutation) ValidationIssuesCleared() bool {
+	_, ok := m.clearedFields[chargeusagebased.FieldValidationIssues]
+	return ok
+}
+
+// ResetValidationIssues resets all changes to the "validation_issues" field.
+func (m *ChargeUsageBasedMutation) ResetValidationIssues() {
+	m.validation_issues = nil
+	m.appendvalidation_issues = nil
+	delete(m.clearedFields, chargeusagebased.FieldValidationIssues)
+}
+
 // SetInvoiceAt sets the "invoice_at" field.
 func (m *ChargeUsageBasedMutation) SetInvoiceAt(t time.Time) {
 	m.invoice_at = &t
@@ -66309,7 +66629,7 @@ func (m *ChargeUsageBasedMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedMutation) Fields() []string {
-	fields := make([]string, 0, 38)
+	fields := make([]string, 0, 39)
 	if m.customer != nil {
 		fields = append(fields, chargeusagebased.FieldCustomerID)
 	}
@@ -66387,6 +66707,9 @@ func (m *ChargeUsageBasedMutation) Fields() []string {
 	}
 	if m.description != nil {
 		fields = append(fields, chargeusagebased.FieldDescription)
+	}
+	if m.validation_issues != nil {
+		fields = append(fields, chargeusagebased.FieldValidationIssues)
 	}
 	if m.invoice_at != nil {
 		fields = append(fields, chargeusagebased.FieldInvoiceAt)
@@ -66484,6 +66807,8 @@ func (m *ChargeUsageBasedMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case chargeusagebased.FieldDescription:
 		return m.Description()
+	case chargeusagebased.FieldValidationIssues:
+		return m.ValidationIssues()
 	case chargeusagebased.FieldInvoiceAt:
 		return m.InvoiceAt()
 	case chargeusagebased.FieldSettlementMode:
@@ -66569,6 +66894,8 @@ func (m *ChargeUsageBasedMutation) OldField(ctx context.Context, name string) (e
 		return m.OldName(ctx)
 	case chargeusagebased.FieldDescription:
 		return m.OldDescription(ctx)
+	case chargeusagebased.FieldValidationIssues:
+		return m.OldValidationIssues(ctx)
 	case chargeusagebased.FieldInvoiceAt:
 		return m.OldInvoiceAt(ctx)
 	case chargeusagebased.FieldSettlementMode:
@@ -66784,6 +67111,13 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetDescription(v)
 		return nil
+	case chargeusagebased.FieldValidationIssues:
+		v, ok := value.(billing.ValidationIssues)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValidationIssues(v)
+		return nil
 	case chargeusagebased.FieldInvoiceAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -66934,6 +67268,9 @@ func (m *ChargeUsageBasedMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebased.FieldDescription) {
 		fields = append(fields, chargeusagebased.FieldDescription)
 	}
+	if m.FieldCleared(chargeusagebased.FieldValidationIssues) {
+		fields = append(fields, chargeusagebased.FieldValidationIssues)
+	}
 	if m.FieldCleared(chargeusagebased.FieldIntentDeletedAt) {
 		fields = append(fields, chargeusagebased.FieldIntentDeletedAt)
 	}
@@ -66998,6 +67335,9 @@ func (m *ChargeUsageBasedMutation) ClearField(name string) error {
 		return nil
 	case chargeusagebased.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case chargeusagebased.FieldValidationIssues:
+		m.ClearValidationIssues()
 		return nil
 	case chargeusagebased.FieldIntentDeletedAt:
 		m.ClearIntentDeletedAt()
@@ -67099,6 +67439,9 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebased.FieldDescription:
 		m.ResetDescription()
+		return nil
+	case chargeusagebased.FieldValidationIssues:
+		m.ResetValidationIssues()
 		return nil
 	case chargeusagebased.FieldInvoiceAt:
 		m.ResetInvoiceAt()

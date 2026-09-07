@@ -1567,6 +1567,16 @@ func DescriptionContainsFold(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldDescription, v))
 }
 
+// ValidationIssuesIsNil applies the IsNil predicate on the "validation_issues" field.
+func ValidationIssuesIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldValidationIssues))
+}
+
+// ValidationIssuesNotNil applies the NotNil predicate on the "validation_issues" field.
+func ValidationIssuesNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldValidationIssues))
+}
+
 // PaymentTermEQ applies the EQ predicate on the "payment_term" field.
 func PaymentTermEQ(v productcatalog.PaymentTermType) predicate.ChargeFlatFee {
 	vc := string(v)

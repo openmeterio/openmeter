@@ -1391,6 +1391,7 @@ var (
 		{Name: "message", Type: field.TypeString},
 		{Name: "path", Type: field.TypeString, Nullable: true},
 		{Name: "component", Type: field.TypeString},
+		{Name: "attributes", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "dedupe_hash", Type: field.TypeBytes, Size: 32},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -1402,7 +1403,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_validation_issues_billing_invoices_billing_invoice_validation_issues",
-				Columns:    []*schema.Column{BillingInvoiceValidationIssuesColumns[11]},
+				Columns:    []*schema.Column{BillingInvoiceValidationIssuesColumns[12]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1421,7 +1422,7 @@ var (
 			{
 				Name:    "billinginvoicevalidationissue_namespace_invoice_id_dedupe_hash",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceValidationIssuesColumns[1], BillingInvoiceValidationIssuesColumns[11], BillingInvoiceValidationIssuesColumns[10]},
+				Columns: []*schema.Column{BillingInvoiceValidationIssuesColumns[1], BillingInvoiceValidationIssuesColumns[12], BillingInvoiceValidationIssuesColumns[11]},
 			},
 		},
 	}
@@ -1852,6 +1853,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "validation_issues", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "schema_level", Type: field.TypeInt, Default: 2, SchemaType: map[string]string{"postgres": "smallint"}},
 		{Name: "fiat_cost_basis", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "settlement_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"invoice", "external", "promotional"}},
@@ -1881,43 +1883,43 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_purchase_cost_basis_charge_fk",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[34]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[35]},
 				RefColumns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_credit_purchases_custom_currencies_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[35]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[36]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[36]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[37]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[37]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[38]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[38]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[39]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[39]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[40]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[40]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[41]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1926,7 +1928,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[36], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[37], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1959,17 +1961,17 @@ var (
 			{
 				Name:    "chargecreditpurchases_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[40]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[41]},
 			},
 			{
 				Name:    "chargecreditpurchases_cost_basis_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[34]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[35]},
 			},
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[36], ChargeCreditPurchasesColumns[32]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[37], ChargeCreditPurchasesColumns[33]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "key IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2231,6 +2233,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "validation_issues", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "payment_term", Type: field.TypeString},
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}},
@@ -2259,55 +2262,55 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fees_charge_flat_fee_runs_current_run",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
 				RefColumns: []*schema.Column{ChargeFlatFeeRunsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fee_cost_basis_charge_fk",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
 				RefColumns: []*schema.Column{ChargeFlatFeeCostBasesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_flat_fees_custom_currencies_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[34]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_flat_fees_customers_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[34]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[35]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_flat_fees_features_flat_fee_charges",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[35]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[36]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscriptions_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[36]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[37]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_items_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[37]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[38]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_phases_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[38]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[39]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_tax_codes_charge_flat_fees",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[39]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[40]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2316,7 +2319,7 @@ var (
 			{
 				Name:    "chargeflatfee_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[34], ChargeFlatFeesColumns[8]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[35], ChargeFlatFeesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2349,12 +2352,12 @@ var (
 			{
 				Name:    "chargeflatfees_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[39]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[40]},
 			},
 			{
 				Name:    "chargeflatfees_cost_basis_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[32]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[33]},
 			},
 		},
 	}
@@ -2931,6 +2934,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "validation_issues", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}},
 		{Name: "intent_deleted_at", Type: field.TypeTime, Nullable: true},
@@ -2958,55 +2962,55 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_charge_usage_based_runs_current_run",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_cost_basis_charge_fk",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
 				RefColumns: []*schema.Column{ChargeUsageBasedCostBasesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_usage_based_custom_currencies_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_usage_based_customers_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_features_usage_based_charges",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[35]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_subscriptions_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[35]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[36]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_items_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[36]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[37]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_phases_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[37]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[38]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_tax_codes_charge_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[38]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[39]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -3015,7 +3019,7 @@ var (
 			{
 				Name:    "chargeusagebased_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[33], ChargeUsageBasedColumns[8]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[34], ChargeUsageBasedColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -3048,12 +3052,12 @@ var (
 			{
 				Name:    "chargeusagebased_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[38]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[39]},
 			},
 			{
 				Name:    "chargeusagebased_cost_basis_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[31]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[32]},
 			},
 		},
 	}

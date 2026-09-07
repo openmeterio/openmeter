@@ -197,8 +197,9 @@ func fromDBBase(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge) (flatfee.Ch
 	}
 
 	return flatfee.ChargeBase{
-		ManagedResource: mappedMeta.ManagedResource,
-		Status:          entity.StatusDetailed,
+		ManagedResource:  mappedMeta.ManagedResource,
+		Status:           entity.StatusDetailed,
+		ValidationIssues: mappedMeta.ValidationIssues,
 		State: flatfee.State{
 			AdvanceAfter:         mappedMeta.AdvanceAfter,
 			FeatureID:            entity.FeatureID,

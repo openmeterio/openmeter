@@ -72,6 +72,8 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldValidationIssues holds the string denoting the validation_issues field in the database.
+	FieldValidationIssues = "validation_issues"
 	// FieldPaymentTerm holds the string denoting the payment_term field in the database.
 	FieldPaymentTerm = "payment_term"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
@@ -239,6 +241,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
+	FieldValidationIssues,
 	FieldPaymentTerm,
 	FieldInvoiceAt,
 	FieldSettlementMode,

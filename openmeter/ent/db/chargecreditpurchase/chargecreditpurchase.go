@@ -71,6 +71,8 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldValidationIssues holds the string denoting the validation_issues field in the database.
+	FieldValidationIssues = "validation_issues"
 	// FieldSchemaLevel holds the string denoting the schema_level field in the database.
 	FieldSchemaLevel = "schema_level"
 	// FieldFiatCostBasis holds the string denoting the fiat_cost_basis field in the database.
@@ -231,6 +233,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
+	FieldValidationIssues,
 	FieldSchemaLevel,
 	FieldFiatCostBasis,
 	FieldSettlementType,

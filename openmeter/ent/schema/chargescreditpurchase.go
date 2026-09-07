@@ -23,6 +23,7 @@ type ChargeCreditPurchase struct {
 func (ChargeCreditPurchase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		ChargesMetaMixin{},
+		ChargeValidationIssuesMixin{},
 	}
 }
 

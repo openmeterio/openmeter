@@ -293,6 +293,12 @@ func (_c *ChargeFlatFeeCreate) SetNillableDescription(v *string) *ChargeFlatFeeC
 	return _c
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (_c *ChargeFlatFeeCreate) SetValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeCreate {
+	_c.mutation.SetValidationIssues(v)
+	return _c
+}
+
 // SetPaymentTerm sets the "payment_term" field.
 func (_c *ChargeFlatFeeCreate) SetPaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeCreate {
 	_c.mutation.SetPaymentTerm(v)
@@ -846,6 +852,10 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_spec.SetField(chargeflatfee.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
+	if value, ok := _c.mutation.ValidationIssues(); ok {
+		_spec.SetField(chargeflatfee.FieldValidationIssues, field.TypeJSON, value)
+		_node.ValidationIssues = value
+	}
 	if value, ok := _c.mutation.PaymentTerm(); ok {
 		_spec.SetField(chargeflatfee.FieldPaymentTerm, field.TypeString, value)
 		_node.PaymentTerm = value
@@ -1359,6 +1369,24 @@ func (u *ChargeFlatFeeUpsert) ClearDescription() *ChargeFlatFeeUpsert {
 	return u
 }
 
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeFlatFeeUpsert) SetValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldValidationIssues, v)
+	return u
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateValidationIssues() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldValidationIssues)
+	return u
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeFlatFeeUpsert) ClearValidationIssues() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldValidationIssues)
+	return u
+}
+
 // SetPaymentTerm sets the "payment_term" field.
 func (u *ChargeFlatFeeUpsert) SetPaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldPaymentTerm, v)
@@ -1842,6 +1870,27 @@ func (u *ChargeFlatFeeUpsertOne) UpdateDescription() *ChargeFlatFeeUpsertOne {
 func (u *ChargeFlatFeeUpsertOne) ClearDescription() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeFlatFeeUpsertOne) SetValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetValidationIssues(v)
+	})
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateValidationIssues() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateValidationIssues()
+	})
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeFlatFeeUpsertOne) ClearValidationIssues() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearValidationIssues()
 	})
 }
 
@@ -2522,6 +2571,27 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateDescription() *ChargeFlatFeeUpsertBulk {
 func (u *ChargeFlatFeeUpsertBulk) ClearDescription() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetValidationIssues sets the "validation_issues" field.
+func (u *ChargeFlatFeeUpsertBulk) SetValidationIssues(v billing.ValidationIssues) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetValidationIssues(v)
+	})
+}
+
+// UpdateValidationIssues sets the "validation_issues" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateValidationIssues() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateValidationIssues()
+	})
+}
+
+// ClearValidationIssues clears the value of the "validation_issues" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearValidationIssues() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearValidationIssues()
 	})
 }
 

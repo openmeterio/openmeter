@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -23,8 +24,9 @@ import (
 type ChargeBase struct {
 	meta.ManagedResource
 
-	Intent Intent `json:"intent"`
-	Status Status `json:"status"`
+	Intent           Intent                   `json:"intent"`
+	Status           Status                   `json:"status"`
+	ValidationIssues billing.ValidationIssues `json:"validationIssues,omitempty"`
 
 	State State `json:"state"`
 }

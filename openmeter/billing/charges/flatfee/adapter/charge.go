@@ -79,6 +79,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			IntentMutableFields: intent.IntentMutableFields.IntentMutableFields,
 			Status:              metaStatus,
 			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
+			ValidationIssues:    charge.ValidationIssues,
 		})
 		if err != nil {
 			return flatfee.ChargeBase{}, err
@@ -192,6 +193,7 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 			Intent:              baseIntent.Intent,
 			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
 			Status:              metaStatus,
+			ValidationIssues:    charge.ValidationIssues,
 		})
 		if err != nil {
 			return err

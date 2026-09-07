@@ -830,7 +830,7 @@ func init() {
 	// billinginvoicevalidationissue.MessageValidator is a validator for the "message" field. It is called by the builders before save.
 	billinginvoicevalidationissue.MessageValidator = billinginvoicevalidationissueDescMessage.Validators[0].(func(string) error)
 	// billinginvoicevalidationissueDescDedupeHash is the schema descriptor for dedupe_hash field.
-	billinginvoicevalidationissueDescDedupeHash := billinginvoicevalidationissueFields[6].Descriptor()
+	billinginvoicevalidationissueDescDedupeHash := billinginvoicevalidationissueFields[7].Descriptor()
 	// billinginvoicevalidationissue.DedupeHashValidator is a validator for the "dedupe_hash" field. It is called by the builders before save.
 	billinginvoicevalidationissue.DedupeHashValidator = func() func([]byte) error {
 		validators := billinginvoicevalidationissueDescDedupeHash.Validators

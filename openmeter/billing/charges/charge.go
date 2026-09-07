@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -165,6 +166,31 @@ func (c Charge) GetUniqueReferenceID() (*string, error) {
 		}
 
 		return c.usageBased.Intent.GetUniqueReferenceID(), nil
+	}
+
+	return nil, fmt.Errorf("invalid charge type: %s", c.t)
+}
+
+func (c Charge) GetValidationIssues() (billing.ValidationIssues, error) {
+	switch c.t {
+	case meta.ChargeTypeFlatFee:
+		if c.flatFee == nil {
+			return nil, fmt.Errorf("flat fee charge is nil")
+		}
+
+		return c.flatFee.ValidationIssues.Clone()
+	case meta.ChargeTypeCreditPurchase:
+		if c.creditPurchase == nil {
+			return nil, fmt.Errorf("credit purchase charge is nil")
+		}
+
+		return c.creditPurchase.ValidationIssues.Clone()
+	case meta.ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return nil, fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.ValidationIssues.Clone()
 	}
 
 	return nil, fmt.Errorf("invalid charge type: %s", c.t)

@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var (
@@ -1455,6 +1456,12 @@ func (BillingInvoiceValidationIssue) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("component"),
+
+		field.JSON("attributes", models.Annotations{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 
 		field.Bytes("dedupe_hash").
 			MinLen(32).
