@@ -1276,6 +1276,7 @@ type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Description *string
 
 	Lines                       GatheringLines
+	ValidationIssues            ValidationIssues
 	PostCreationCalculationHook PostCreationCalculationHook
 	ForceAsyncAdvance           bool
 }

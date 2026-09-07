@@ -81,6 +81,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 					Customer:          input.Customer,
 					Currency:          currency,
 					Lines:             inScopeLines,
+					ValidationIssues:  billableLines.ValidationIssuesByCurrency[currency],
 					ForceAsyncAdvance: input.ForceAsyncAdvance,
 				})
 				if err != nil {
@@ -173,7 +174,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 			}
 
 			// let's gather the in-scope lines and validate it
-			inScopeLinesByCurrency, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
+			inScopeLinesResult, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
 				GatheringInvoicesByCurrency: invoicesByCurrency,
 				LinesToInclude:              input.IncludePendingLines,
 				AsOf:                        asOf,
@@ -184,10 +185,13 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 			}
 
 			linesToBeBilledByCurrency := make(map[currencyx.FiatCode]billing.GatheringLines)
+			validationIssuesByCurrency := make(map[currencyx.FiatCode]billing.ValidationIssues)
 			assignmentCandidateLineCount := 0
 			assignmentExcludedLineCount := 0
 
-			for currency, inScopeLines := range inScopeLinesByCurrency {
+			for currency, inScopeLines := range inScopeLinesResult.LinesByCurrency {
+				// Let's first make sure we have properly split the progressively billed
+				// lines into multiple lines on the gathering invoice if needed.
 				gatheringInvoice, ok := invoicesByCurrency[currency]
 				if !ok {
 					return nil, fmt.Errorf("gathering invoice for currency [%s] not found", currency)
@@ -220,6 +224,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 					inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
 				}
 
+				billabilityValidationIssues := inScopeLinesResult.ValidationIssuesByCurrency[currency]
 				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
 				// Invariant: the gathering invoice is updated to contain the new lines if any were split.
 				prepareResults, err := s.prepareLinesToBill(ctx, prepareLinesToBillInput{
@@ -234,7 +239,24 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 					continue
 				}
 
+				if len(billabilityValidationIssues) > 0 {
+					_, billabilityErr := s.areGatheringLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
+						Invoice:            prepareResults.GatheringInvoice,
+						AsOf:               asOf,
+						ProgressiveBilling: progressiveBilling,
+						Lines:              prepareResults.LinesToBill,
+					})
+					selectedValidationIssues, systemErr := billing.ToValidationIssues(billabilityErr)
+					if systemErr != nil {
+						return nil, fmt.Errorf("checking selected gathering line billability: %w", systemErr)
+					}
+					billabilityValidationIssues = selectedValidationIssues
+				}
+
 				linesToBeBilledByCurrency[currency] = prepareResults.LinesToBill
+				if len(billabilityValidationIssues) > 0 {
+					validationIssuesByCurrency[currency] = billabilityValidationIssues
+				}
 			}
 
 			totalLinesToBeBilled := 0
@@ -255,7 +277,8 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 			}
 
 			return &billing.PrepareBillableLinesResult{
-				LinesByCurrency: linesToBeBilledByCurrency,
+				LinesByCurrency:            linesToBeBilledByCurrency,
+				ValidationIssuesByCurrency: validationIssuesByCurrency,
 			}, nil
 		},
 	)
@@ -317,10 +340,16 @@ type gatherInScopeLineInput struct {
 	ProgressiveBilling bool
 }
 
-type gatherInScopeLinesResult map[currencyx.FiatCode][]gatheringLineWithBillablePeriod
+type gatherInScopeLinesResult struct {
+	LinesByCurrency            map[currencyx.FiatCode][]gatheringLineWithBillablePeriod
+	ValidationIssuesByCurrency map[currencyx.FiatCode]billing.ValidationIssues
+}
 
 func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineInput) (gatherInScopeLinesResult, error) {
-	res := make(gatherInScopeLinesResult)
+	res := gatherInScopeLinesResult{
+		LinesByCurrency:            make(map[currencyx.FiatCode][]gatheringLineWithBillablePeriod),
+		ValidationIssuesByCurrency: make(map[currencyx.FiatCode]billing.ValidationIssues),
+	}
 
 	billableLineIDs := make(map[string]interface{})
 
@@ -332,10 +361,12 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 			ProgressiveBilling: in.ProgressiveBilling,
 			Lines:              lines,
 		})
-		if err != nil && !billing.IsValidationIssueOnly(err) {
-			return nil, fmt.Errorf("checking gathering line billability: %w", err)
+		validationIssues, systemErr := billing.ToValidationIssues(err)
+		if systemErr != nil {
+			return gatherInScopeLinesResult{}, fmt.Errorf("checking gathering line billability: %w", systemErr)
 		}
-		if err != nil {
+		if len(validationIssues) > 0 {
+			res.ValidationIssuesByCurrency[currency] = validationIssues
 			s.logger.WarnContext(
 				ctx, "gathering line billability has validation issues; continuing with fallback results",
 				"namespace", invoice.Namespace,
@@ -366,7 +397,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 			billableLineIDs[line.Line.ID] = struct{}{}
 		}
 
-		res[currency] = linesWithResolvedPeriods
+		res.LinesByCurrency[currency] = linesWithResolvedPeriods
 	}
 
 	// If the user has requested specific lines to be included, we need to filter the output to only include those lines
@@ -382,7 +413,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 		}
 
 		if len(nonBillableLineIDs) > 0 {
-			return nil, billing.ValidationError{
+			return gatherInScopeLinesResult{}, billing.ValidationError{
 				Err: fmt.Errorf("%w: %s", billing.ErrInvoiceLinesNotBillable, strings.Join(nonBillableLineIDs, ",")),
 			}
 		}
@@ -393,14 +424,15 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 			return lineID, struct{}{}
 		})
 
-		for currency, lines := range res {
-			res[currency] = lo.Filter(lines, func(line gatheringLineWithBillablePeriod, _ int) bool {
+		for currency, lines := range res.LinesByCurrency {
+			res.LinesByCurrency[currency] = lo.Filter(lines, func(line gatheringLineWithBillablePeriod, _ int) bool {
 				_, ok := linesShouldBeIncluded[line.Line.ID]
 				return ok
 			})
 
-			if len(res[currency]) == 0 {
-				delete(res, currency)
+			if len(res.LinesByCurrency[currency]) == 0 {
+				delete(res.LinesByCurrency, currency)
+				delete(res.ValidationIssuesByCurrency, currency)
 			}
 		}
 	}
@@ -528,7 +560,7 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 		return false, fmt.Errorf("gathering in scope lines: %w", err)
 	}
 
-	res, found := inScopeLines[in.Invoice.Currency]
+	res, found := inScopeLines.LinesByCurrency[in.Invoice.Currency]
 	if !found {
 		return false, nil
 	}
@@ -727,6 +759,11 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 	// let's set the workflow apps as some checks such as CanDraftSyncAdvance depends on the apps
 	invoice.Workflow.Apps = profile.MergedProfile.Apps
+	validationIssues, err := in.ValidationIssues.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning validation issues: %w", err)
+	}
+	invoice.ValidationIssues = append(invoice.ValidationIssues, validationIssues...)
 
 	linesWithEngines, err := s.lineEngines.groupGatheringLinesByEngine(in.Lines)
 	if err != nil {
@@ -924,7 +961,11 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
+		var requestValidationError billing.ValidationError
 		lines, err := grouped.Engine.OnStandardInvoiceCreated(ctx, input)
+		if errors.As(err, &requestValidationError) {
+			return billing.StandardInvoice{}, err
+		}
 		validationIssues, systemErr := billing.ToValidationIssues(err)
 		if systemErr != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("standard invoice created for engine %s: %w", grouped.Engine.GetLineEngineType(), systemErr)

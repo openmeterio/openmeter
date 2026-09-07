@@ -89,9 +89,6 @@ func (e *LineEngine) AreLinesBillableAsOf(ctx context.Context, input billing.Are
 			errs = append(errs, fmt.Errorf("resolving billable period for line[%s]: %w", line.ID, err))
 		}
 
-		// TODO: We should disallow billing in case the charge has a current realization run, so
-		// that we enforce that there are no multiple drafts for the same charge.
-
 		return result, errors.Join(errs...)
 	})
 }

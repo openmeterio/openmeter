@@ -92,7 +92,10 @@ func TestAreGatheringLinesBillableAsOfPreservesResultsWithValidationIssues(t *te
 		Severity: billing.ValidationIssueSeverityCritical,
 		Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
 		Message:  billing.ErrInvoiceLineFeatureNotFound.Message,
-		Path:     "/charges/charge-1",
+		Component: billing.LineEngineValidationComponent(
+			billing.LineEngineTypeChargeUsageBased,
+		),
+		Path: "/charges/charge-1",
 	}}, issues)
 }
 
@@ -128,10 +131,19 @@ func TestGatherInScopeLinesContinuesWithBillabilityValidationIssues(t *testing.T
 		ProgressiveBilling: true,
 	})
 
-	// Then the validation issue does not abort selection.
+	// Then the validation issue does not abort selection and remains available for the standard invoice.
 	require.NoError(t, err)
-	require.Len(t, results[line.Currency], 1)
-	require.Equal(t, line.ID, results[line.Currency][0].Line.ID)
+	require.Len(t, results.LinesByCurrency[line.Currency], 1)
+	require.Equal(t, line.ID, results.LinesByCurrency[line.Currency][0].Line.ID)
+	require.Equal(t, billing.ValidationIssues{{
+		Severity: billing.ValidationIssueSeverityCritical,
+		Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
+		Message:  billing.ErrInvoiceLineFeatureNotFound.Message,
+		Component: billing.LineEngineValidationComponent(
+			billing.LineEngineTypeChargeUsageBased,
+		),
+		Path: "/charges/charge-1",
+	}}, results.ValidationIssuesByCurrency[line.Currency])
 }
 
 func TestCheckIfGatheringLinesAreInvoicableUsesEachLineInvoiceAt(t *testing.T) {

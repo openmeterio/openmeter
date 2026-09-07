@@ -176,7 +176,7 @@ func (s *Service) areGatheringLinesBillableAsOf(ctx context.Context, input billi
 		if err != nil && !billing.IsValidationIssueOnly(err) {
 			return nil, fmt.Errorf("checking line billability with engine %s: %w", engineType, err)
 		}
-		errs = append(errs, err)
+		errs = append(errs, billing.NewLineEngineValidationError(grouped.Engine, err))
 
 		if len(results) != len(grouped.Lines) {
 			return nil, fmt.Errorf("engine %s returned %d billability results for %d inputs", engineType, len(results), len(grouped.Lines))
