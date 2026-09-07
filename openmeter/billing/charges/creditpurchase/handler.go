@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,7 +32,7 @@ type Handler interface {
 
 	// OnPromotionalCreditPurchase is called when a promotional credit purchase is created (e.g. costbasis is 0)
 	// For promotional credit purchases we don't call any of the payment handler methods.
-	OnPromotionalCreditPurchase(ctx context.Context, charge Charge) (CreditGrantResult, error)
+	OnPromotionalCreditPurchase(ctx context.Context, input CreditGrantInput) (CreditGrantResult, error)
 
 	// Credit purchase handler methods (cost basis > 0)
 	// ------------------------------------------------
@@ -39,7 +40,7 @@ type Handler interface {
 	// OnCreditPurchaseInitiated is called when a credit purchase is initiated that is going to be settled by
 	// a payment (either external or a standard invoice)
 	// Initial call
-	OnCreditPurchaseInitiated(ctx context.Context, charge Charge) (CreditGrantResult, error)
+	OnCreditPurchaseInitiated(ctx context.Context, input CreditGrantInput) (CreditGrantResult, error)
 
 	// OnCreditPurchasePaymentAuthorized is called when a credit purchase payment is authorized for a credit
 	// purchase.
@@ -48,14 +49,6 @@ type Handler interface {
 	// OnCreditPurchasePaymentSettled is called when a credit purchase payment is settled for a credit
 	// purchase.
 	OnCreditPurchasePaymentSettled(ctx context.Context, input PaymentEventInput) (ledgertransaction.GroupReference, error)
-}
-
-// CreditGrantResult carries booked facts back to the charge lifecycle. Backfill
-// amounts include only accrued value attributed to an identified spend; issuance
-// and receivable-only attribution do not make usage lineage credit-backed.
-type CreditGrantResult struct {
-	ledgertransaction.GroupReference
-	AdvanceBackfillAmountsByChargeID map[string]alpacadecimal.Decimal
 }
 
 type PaymentEventInput struct {
@@ -80,4 +73,29 @@ func (i PaymentEventInput) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// CreditGrantInput supplies advance occurrences in original collection
+// order. The ledger owns the final allocation against eligible posting routes.
+// Accrued backfill is restricted to these roots; nil and empty both skip it.
+// Remaining eligible receivable may still be attributed without accrued backfill.
+type CreditGrantInput struct {
+	Charge          Charge
+	AdvanceLineages []lineage.Lineage
+}
+
+func (i CreditGrantInput) Validate() error {
+	var errs []error
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+var _ models.Validator = CreditGrantInput{}
+
+type CreditGrantResult struct {
+	ledgertransaction.GroupReference
+	// BackfillAllocations excludes receivable-only attribution without accrued translation.
+	BackfillAllocations []lineage.AdvanceBackfillAllocation
 }

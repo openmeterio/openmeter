@@ -66,6 +66,19 @@ facts stored independently from the journal.
   that provenance - including invoice-backed accrued value and unbackfilled
   advances - remain deferred.
 
+Credit-purchase backfill uses the charge domain's original advance occurrences
+in order, bounded by their matching receivable and accrued routes. A partial
+purchase exhausts an older eligible occurrence before funding a newer one;
+tax treatment, feature eligibility, currency identity, and purchase cost basis
+remain attached to the booked amounts. Corrections select the original spend
+and posting route, including when a purchase or recognition group spans several
+charges. This forward policy does not reconcile historical misallocations.
+
+After accrued backfill, the remaining purchase attributes eligible outstanding
+advance receivable even when matching accrued is absent. This receivable-only
+attribution preserves spend and feature routes without creating accrued or
+marking lineage as backfilled. Only the excess then becomes new credit.
+
 The historical ledger makes a group atomic, but it does not deduplicate a
 repeated `CommitGroup` call. The initiating domain must make retries safe and
 persist the returned group reference with its own lifecycle state. Ledger

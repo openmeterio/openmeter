@@ -63,7 +63,13 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 		return creditpurchase.Charge{}, fmt.Errorf("promotional credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
 	}
 
-	ledgerTransactionGroupReference, err := s.handler.OnPromotionalCreditPurchase(ctx, charge)
+	advanceLineages, err := s.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+		Namespace: charge.Namespace, CustomerID: charge.Intent.CustomerID, Currency: charge.Intent.Currency.Reference(),
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+	ledgerTransactionGroupReference, err := s.handler.OnPromotionalCreditPurchase(ctx, creditpurchase.CreditGrantInput{Charge: charge, AdvanceLineages: advanceLineages})
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -84,8 +90,8 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 			CustomerID:                charge.Intent.CustomerID,
 			Currency:                  charge.Intent.Currency,
 			Amount:                    charge.Intent.CreditAmount,
-			AmountsByChargeID:         ledgerTransactionGroupReference.AdvanceBackfillAmountsByChargeID,
 			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+			Allocations:               ledgerTransactionGroupReference.BackfillAllocations,
 			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
 		}); err != nil {
 			return creditpurchase.Charge{}, err
@@ -112,7 +118,13 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 		return creditpurchase.Charge{}, fmt.Errorf("credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
 	}
 
-	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)
+	advanceLineages, err := s.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+		Namespace: charge.Namespace, CustomerID: charge.Intent.CustomerID, Currency: charge.Intent.Currency.Reference(),
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, creditpurchase.CreditGrantInput{Charge: charge, AdvanceLineages: advanceLineages})
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -133,8 +145,8 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 			CustomerID:                charge.Intent.CustomerID,
 			Currency:                  charge.Intent.Currency,
 			Amount:                    charge.Intent.CreditAmount,
-			AmountsByChargeID:         ledgerTransactionGroupReference.AdvanceBackfillAmountsByChargeID,
 			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+			Allocations:               ledgerTransactionGroupReference.BackfillAllocations,
 			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
 		}); err != nil {
 			return creditpurchase.Charge{}, err

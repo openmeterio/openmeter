@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
@@ -93,10 +94,15 @@ func (i PersistCorrectionLineageSegmentsInput) Validate() error {
 	return errors.Join(errs...)
 }
 
+// AdvanceBackfillAllocation records the segment and amount actually booked by
+// the ledger. Persistence must not independently allocate the purchase total.
+type AdvanceBackfillAllocation struct {
+	SegmentID string
+	Amount    alpacadecimal.Decimal
+}
+
 type BackfillAdvanceLineageSegmentsInput struct {
-	// AmountsByChargeID is the actual accrued attribution booked for each spend.
-	// Empty facts make no lineage transitions, including source-less legacy postings.
-	AmountsByChargeID         map[string]alpacadecimal.Decimal
+	Allocations               []AdvanceBackfillAllocation
 	Namespace                 string
 	CustomerID                string
 	Currency                  currencies.Currency
@@ -125,19 +131,21 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 	}
 
 	total := alpacadecimal.Zero
-	for chargeID, amount := range i.AmountsByChargeID {
-		if chargeID == "" {
-			errs = append(errs, errors.New("backfill charge id is required"))
+	seen := map[string]bool{}
+	for _, allocation := range i.Allocations {
+		if allocation.SegmentID == "" || seen[allocation.SegmentID] {
+			errs = append(errs, errors.New("backfill segment IDs must be nonempty and unique"))
 		}
-		if !amount.IsPositive() {
-			errs = append(errs, fmt.Errorf("backfill amount for charge %s must be positive", chargeID))
+		seen[allocation.SegmentID] = true
+		if !allocation.Amount.IsPositive() {
+			errs = append(errs, errors.New("backfill allocation must be positive"))
 		}
-		total = total.Add(amount)
+		total = total.Add(allocation.Amount)
 	}
 	if total.GreaterThan(i.Amount) {
-		errs = append(errs, errors.New("backfill amounts exceed purchase amount"))
+		errs = append(errs, errors.New("backfill allocations exceed purchase amount"))
 	}
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type LoadLineagesByCustomerInput struct {
@@ -237,14 +245,15 @@ func (i CreateSegmentInput) Validate() error {
 }
 
 type Lineage struct {
-	ID                string
-	ChargeID          string
-	RootRealizationID string
-	CustomerID        string
-	Currency          currencies.CurrencyReference
-	OriginKind        creditrealization.LineageOriginKind
-	AdvanceFeatures   []string
-	Segments          []Segment
+	OriginalTransactionGroupID string
+	ID                         string
+	ChargeID                   string
+	RootRealizationID          string
+	CustomerID                 string
+	Currency                   currencies.CurrencyReference
+	OriginKind                 creditrealization.LineageOriginKind
+	AdvanceFeatures            []string
+	Segments                   []Segment
 }
 
 type Segment struct {

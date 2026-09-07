@@ -304,8 +304,8 @@ type externalStateMachineHandler struct {
 	mock.Mock
 }
 
-func (h *externalStateMachineHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
-	args := h.Called(ctx, charge)
+func (h *externalStateMachineHandler) OnCreditPurchaseInitiated(ctx context.Context, input creditpurchase.CreditGrantInput) (creditpurchase.CreditGrantResult, error) {
+	args := h.Called(ctx, input.Charge)
 	return args.Get(0).(creditpurchase.CreditGrantResult), args.Error(1)
 }
 
@@ -333,3 +333,7 @@ var (
 	_ creditpurchase.Handler = (*externalStateMachineHandler)(nil)
 	_ lineage.Service        = (*externalStateMachineLineage)(nil)
 )
+
+func (*externalStateMachineLineage) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+	return nil, nil
+}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -181,7 +180,7 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		return err
 	}
 
-	if len(input.AmountsByChargeID) == 0 {
+	if len(input.Allocations) == 0 {
 		return nil
 	}
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
@@ -189,47 +188,22 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		if err != nil {
 			return fmt.Errorf("lock advance lineages for backfill: %w", err)
 		}
-		if len(lineages) == 0 {
-			return nil
-		}
 		lineages = lineage.FilterAdvanceLineagesForBackfill(lineages, input.FeatureFilters)
-		if len(lineages) == 0 {
-			return nil
-		}
 
-		lineageIDs := make([]string, 0, len(lineages))
-		chargeByLineageID := make(map[string]string, len(lineages))
-		for _, entry := range lineages {
-			if !input.AmountsByChargeID[entry.ChargeID].IsPositive() {
-				continue
+		segmentsByID := make(map[string]lineage.Segment)
+		for _, root := range lineages {
+			for _, segment := range root.Segments {
+				segmentsByID[segment.ID] = segment
 			}
-			chargeByLineageID[entry.ID] = entry.ChargeID
-			lineageIDs = append(lineageIDs, entry.ID)
-		}
-
-		if len(lineageIDs) == 0 {
-			return nil
-		}
-		state := creditrealization.LineageSegmentStateAdvanceUncovered
-		segments, err := s.adapter.ListActiveSegments(ctx, lineage.ListActiveSegmentsInput{
-			LineageIDs: lineageIDs,
-			State:      &state,
-		})
-		if err != nil {
-			return fmt.Errorf("query active uncovered advance lineage segments: %w", err)
 		}
 
 		now := clock.Now().Truncate(time.Microsecond)
-		remainingByChargeID := maps.Clone(input.AmountsByChargeID)
-
-		for _, segment := range segments {
-			chargeID := chargeByLineageID[segment.LineageID]
-			remaining := remainingByChargeID[chargeID]
-			if !remaining.IsPositive() {
-				continue
+		for _, allocation := range input.Allocations {
+			segment, ok := segmentsByID[allocation.SegmentID]
+			if !ok || allocation.Amount.GreaterThan(segment.Amount) {
+				return fmt.Errorf("backfill allocation exceeds active eligible segment %s", allocation.SegmentID)
 			}
-
-			coveredAmount := lineage.MinDecimal(segment.Amount, remaining)
+			coveredAmount := allocation.Amount
 			if err := s.adapter.CloseSegment(ctx, segment.ID, now); err != nil {
 				return fmt.Errorf("close uncovered advance lineage segment %s: %w", segment.ID, err)
 			}
@@ -253,8 +227,6 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 			}); err != nil {
 				return fmt.Errorf("create backfilled advance lineage segment for segment %s: %w", segment.ID, err)
 			}
-
-			remainingByChargeID[chargeID] = remaining.Sub(coveredAmount)
 		}
 
 		return nil

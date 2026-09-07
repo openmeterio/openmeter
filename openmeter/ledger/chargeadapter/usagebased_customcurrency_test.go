@@ -684,11 +684,11 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	// the second managed currency's lineage, even though both share "ACME".
 	err = env.lineage.BackfillAdvanceLineageSegments(t.Context(), lineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 env.Namespace,
+		Allocations:               []lineage.AdvanceBackfillAllocation{{SegmentID: firstLineages[0].Segments[0].ID, Amount: alpacadecimal.NewFromInt(30)}},
 		CustomerID:                env.CustomerID.ID,
 		Currency:                  firstCurrency,
 		Amount:                    alpacadecimal.NewFromInt(30),
 		BackingTransactionGroupID: ulid.Make().String(),
-		AmountsByChargeID:         map[string]alpacadecimal.Decimal{firstChargeID: alpacadecimal.NewFromInt(30)},
 	})
 	require.NoError(t, err)
 

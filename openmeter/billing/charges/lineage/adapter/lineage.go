@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -109,13 +111,17 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.Load
 				q.Where(creditrealizationlineagesegment.ClosedAtIsNil()).
 					Order(creditrealizationlineagesegment.ByCreatedAt())
 			}).
-			Order(creditrealizationlineage.ByCreatedAt()).
+			Order(creditrealizationlineage.ByCreatedAt(), creditrealizationlineage.ByID()).
 			All(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		return lo.Map(lineages, mapLineage), nil
+		mapped := lo.Map(lineages, mapLineage)
+		if err := tx.loadAdvanceOriginalGroups(ctx, input.Namespace, mapped); err != nil {
+			return nil, err
+		}
+		return mapped, nil
 	})
 }
 
@@ -179,24 +185,18 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 					creditrealizationlineagesegment.StateEQ(creditrealization.LineageSegmentStateAdvanceUncovered),
 				),
 			).
-			Order(creditrealizationlineage.ByCreatedAt()).
+			WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
+				q.Where(creditrealizationlineagesegment.ClosedAtIsNil(), creditrealizationlineagesegment.StateEQ(creditrealization.LineageSegmentStateAdvanceUncovered)).
+					Order(creditrealizationlineagesegment.ByCreatedAt(), creditrealizationlineagesegment.ByID())
+			}).
+			Order(creditrealizationlineage.ByCreatedAt(), creditrealizationlineage.ByID()).
 			ForUpdate().
 			All(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		return lo.Map(lineages, func(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
-			return lineage.Lineage{
-				ID:                entry.ID,
-				ChargeID:          entry.ChargeID,
-				RootRealizationID: entry.RootRealizationID,
-				CustomerID:        entry.CustomerID,
-				Currency:          currencies.CurrencyReference{Code: entry.Currency, CustomCurrencyID: entry.CustomCurrencyID},
-				OriginKind:        entry.OriginKind,
-				AdvanceFeatures:   []string(entry.AdvanceFeatures),
-			}
-		}), nil
+		return lo.Map(lineages, mapLineage), nil
 	})
 }
 
@@ -286,4 +286,37 @@ func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment 
 		SourceState:                     segment.SourceState,
 		SourceBackingTransactionGroupID: segment.SourceBackingTransactionGroupID,
 	}
+}
+
+// Original allocation references distinguish a legacy nil-spend collection from
+// a current charge-specific collection even when they share account routes.
+func (a *adapter) loadAdvanceOriginalGroups(ctx context.Context, namespace string, roots []lineage.Lineage) error {
+	var ids []string
+	for _, root := range roots {
+		if root.OriginKind == creditrealization.LineageOriginKindAdvance {
+			ids = append(ids, root.RootRealizationID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	flat, err := a.db.ChargeFlatFeeRunCreditAllocations.Query().Where(chargeflatfeeruncreditallocations.Namespace(namespace), chargeflatfeeruncreditallocations.IDIn(ids...)).All(ctx)
+	if err != nil {
+		return err
+	}
+	usage, err := a.db.ChargeUsageBasedRunCreditAllocations.Query().Where(chargeusagebasedruncreditallocations.Namespace(namespace), chargeusagebasedruncreditallocations.IDIn(ids...)).All(ctx)
+	if err != nil {
+		return err
+	}
+	groups := make(map[string]string, len(flat)+len(usage))
+	for _, allocation := range flat {
+		groups[allocation.ID] = allocation.LedgerTransactionGroupID
+	}
+	for _, allocation := range usage {
+		groups[allocation.ID] = allocation.LedgerTransactionGroupID
+	}
+	for i := range roots {
+		roots[i].OriginalTransactionGroupID = groups[roots[i].RootRealizationID]
+	}
+	return nil
 }

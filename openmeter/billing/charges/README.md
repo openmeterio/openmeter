@@ -230,11 +230,13 @@ custom-currency purchases reference durable shared cost-basis state. Resolution
 time and charge creation time are not a validation invariant. The legacy
 settlement JSON column is deprecated and ignored.
 
-Credit purchases carry the ledger's booked accrued-backfill amounts per spend
-back to lineage persistence. Each spend consumes its own oldest uncovered
-segments; a purchase-wide amount cannot redistribute backing across spends.
-Source-less legacy attribution and receivable-only attribution do not make
-tracked usage lineage credit-backed.
+Later purchases backfill eligible advances in original collection order. Each
+collection occurrence keeps its place after partial backfill or correction;
+charge IDs and replacement segment creation times do not define that order.
+The ledger returns the amounts actually booked for each uncovered segment, and
+lineage persists that same allocation. The purchase's lifecycle transaction
+rolls back if a selected segment changed before persistence. Ledger account
+locks still precede lineage locks.
 
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier

@@ -150,22 +150,22 @@ func newCreditPurchaseTestHandler() *creditPurchaseTestHandler {
 	return &creditPurchaseTestHandler{}
 }
 
-func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
+func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Context, input creditpurchase.CreditGrantInput) (creditpurchase.CreditGrantResult, error) {
 	if h.onPromotionalCreditPurchase == nil {
 		return creditpurchase.CreditGrantResult{}, errors.New("onPromotionalCreditPurchase is not set")
 	}
 
-	reference, err := h.onPromotionalCreditPurchase(ctx, charge)
-	return creditpurchase.CreditGrantResult{GroupReference: reference}, err
+	ref, err := h.onPromotionalCreditPurchase(ctx, input.Charge)
+	return creditpurchase.CreditGrantResult{GroupReference: ref}, err
 }
 
-func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
+func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Context, input creditpurchase.CreditGrantInput) (creditpurchase.CreditGrantResult, error) {
 	if h.onCreditPurchaseInitiated == nil {
 		return creditpurchase.CreditGrantResult{}, errors.New("onCreditPurchaseInitiated is not set")
 	}
 
-	reference, err := h.onCreditPurchaseInitiated(ctx, charge)
-	return creditpurchase.CreditGrantResult{GroupReference: reference}, err
+	ref, err := h.onCreditPurchaseInitiated(ctx, input.Charge)
+	return creditpurchase.CreditGrantResult{GroupReference: ref}, err
 }
 
 func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, input creditpurchase.PaymentEventInput) (ledgertransaction.GroupReference, error) {
@@ -360,4 +360,8 @@ func (c *countedCreditAllocationCallback[T]) Handler(t *testing.T, allocations f
 			TransactionGroupID: c.id,
 		}), nil
 	}
+}
+
+func (*mockLineageService) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+	return nil, nil
 }

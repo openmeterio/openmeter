@@ -116,11 +116,11 @@ type mockCreditPurchaseHandler struct{}
 
 var _ creditpurchase.Handler = (*mockCreditPurchaseHandler)(nil)
 
-func (mockCreditPurchaseHandler) OnPromotionalCreditPurchase(context.Context, creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
+func (mockCreditPurchaseHandler) OnPromotionalCreditPurchase(context.Context, creditpurchase.CreditGrantInput) (creditpurchase.CreditGrantResult, error) {
 	return creditpurchase.CreditGrantResult{GroupReference: newMockLedgerTransactionGroupReference()}, nil
 }
 
-func (mockCreditPurchaseHandler) OnCreditPurchaseInitiated(context.Context, creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
+func (mockCreditPurchaseHandler) OnCreditPurchaseInitiated(context.Context, creditpurchase.CreditGrantInput) (creditpurchase.CreditGrantResult, error) {
 	return creditpurchase.CreditGrantResult{GroupReference: newMockLedgerTransactionGroupReference()}, nil
 }
 
