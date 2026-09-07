@@ -37,7 +37,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
 	github.com/forscht/namegen v1.0.1 // indirect
-	github.com/getkin/kin-openapi v0.147.0 // indirect
+	github.com/getkin/kin-openapi v0.149.0 // indirect
 	github.com/go-chi/chi/v5 v5.3.2 // indirect
 	github.com/go-chi/render v1.0.3 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/rickb777/period v1.0.32 // indirect
 	github.com/rickb777/plural/v2 v2.1.1 // indirect
 	github.com/samber/mo v1.17.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/zclconf/go-cty v1.16.2 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect

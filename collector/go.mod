@@ -204,7 +204,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/generikvault/gvalstrings v0.0.0-20180926130504-471f38f0112a // indirect
-	github.com/getkin/kin-openapi v0.147.0 // indirect
+	github.com/getkin/kin-openapi v0.149.0 // indirect
 	github.com/getsentry/sentry-go v0.47.0 // indirect
 	github.com/go-chi/chi/v5 v5.3.2 // indirect
 	github.com/go-faker/faker/v4 v4.7.0 // indirect
@@ -382,7 +382,7 @@ require (
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/sashabaranov/go-openai v1.41.2 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
