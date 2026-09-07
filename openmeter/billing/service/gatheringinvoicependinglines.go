@@ -205,15 +205,28 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 			}
 
 			linesToBeBilledByCurrency := make(map[currencyx.FiatCode]billing.GatheringLines)
+			assignmentCandidateLineCount := 0
+			assignmentExcludedLineCount := 0
 
 			for currency, inScopeLines := range inScopeLinesByCurrency {
-				// Let's first make sure we have properly split the progressively billed
-				// lines into multiple lines on the gathering invoice if needed.
 				gatheringInvoice, ok := invoicesByCurrency[currency]
 				if !ok {
 					return nil, fmt.Errorf("gathering invoice for currency [%s] not found", currency)
 				}
 
+				if len(inScopeLines) == 0 {
+					continue
+				}
+
+				assignmentCandidateLineCount += len(inScopeLines)
+
+				gateResult, err := s.gateInvoiceAssignment(ctx, inScopeLines)
+				if err != nil {
+					return nil, fmt.Errorf("gating invoice assignment for currency [%s]: %w", currency, err)
+				}
+
+				inScopeLines = gateResult.Lines
+				assignmentExcludedLineCount += gateResult.ExcludedLineCount
 				if len(inScopeLines) == 0 {
 					continue
 				}
@@ -252,6 +265,12 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 			}
 
 			if totalLinesToBeBilled == 0 {
+				if assignmentCandidateLineCount > 0 && assignmentCandidateLineCount == assignmentExcludedLineCount {
+					return &billing.PrepareBillableLinesResult{
+						LinesByCurrency: linesToBeBilledByCurrency,
+					}, nil
+				}
+
 				return nil, billing.ValidationError{
 					Err: billing.ErrInvoiceCreateNoLines,
 				}
@@ -454,6 +473,69 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	}
 
 	return res, nil
+}
+
+type gateInvoiceAssignmentResult struct {
+	Lines             []gatheringLineWithBillablePeriod
+	ExcludedLineCount int
+}
+
+func (s *Service) gateInvoiceAssignment(ctx context.Context, lines []gatheringLineWithBillablePeriod) (gateInvoiceAssignmentResult, error) {
+	result := gateInvoiceAssignmentResult{
+		Lines: make([]gatheringLineWithBillablePeriod, 0, len(lines)),
+	}
+
+	if len(lines) == 0 {
+		return result, nil
+	}
+
+	gatheringLines := lo.Map(lines, func(line gatheringLineWithBillablePeriod, _ int) billing.GatheringLine {
+		return line.Line
+	})
+
+	groupedLines, err := s.lineEngines.groupGatheringLinesByEngine(gatheringLines)
+	if err != nil {
+		return gateInvoiceAssignmentResult{}, fmt.Errorf("grouping gathering lines by engine: %w", err)
+	}
+
+	responsesByLineID := make(map[billing.LineID]billing.InvoiceAssignmentGateResponse)
+	for _, grouped := range groupedLines {
+		input := billing.GateInvoiceAssignmentInput{
+			Lines: grouped.Lines,
+		}
+		if err := input.Validate(); err != nil {
+			return gateInvoiceAssignmentResult{}, fmt.Errorf("validating input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		gateResult, err := grouped.Engine.GateInvoiceAssignment(ctx, input)
+		if err != nil {
+			return gateInvoiceAssignmentResult{}, fmt.Errorf("gating invoice assignment with engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		if err := gateResult.Validate(input); err != nil {
+			return gateInvoiceAssignmentResult{}, fmt.Errorf("validating result from engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		}
+
+		for lineID, response := range gateResult {
+			if _, ok := responsesByLineID[lineID]; ok {
+				return gateInvoiceAssignmentResult{}, fmt.Errorf("line ID returned by multiple engines: %s/%s", lineID.Namespace, lineID.ID)
+			}
+
+			responsesByLineID[lineID] = response
+		}
+	}
+
+	for _, line := range lines {
+		lineID := line.Line.GetLineID()
+		if responsesByLineID[lineID].ExcludeFromInvoice {
+			result.ExcludedLineCount++
+			continue
+		}
+
+		result.Lines = append(result.Lines, line)
+	}
+
+	return result, nil
 }
 
 func limitGatheringLinesForInvoice(lines []gatheringLineWithBillablePeriod, maxLines int) []gatheringLineWithBillablePeriod {

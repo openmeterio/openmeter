@@ -1,12 +1,18 @@
 package billingservice
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -43,6 +49,104 @@ func TestLimitGatheringLinesForInvoice(t *testing.T) {
 		got := limitGatheringLinesForInvoice(lines, 3)
 
 		require.Equal(t, []string{"earliest", "tie-a", "tie-b"}, gatheringLineIDsForLimitTest(got))
+	})
+}
+
+func TestGateInvoiceAssignment(t *testing.T) {
+	t.Run("filters blocked lines and preserves input order", func(t *testing.T) {
+		invoiceEngine := &syntheticGateLineEngine{
+			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
+		}
+		chargeEngine := &syntheticGateLineEngine{
+			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeChargeFlatFee},
+		}
+		invoiceEngine.gate = func(_ context.Context, input billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+			return billing.GateInvoiceAssignmentResult{
+				input.Lines[1].GetLineID(): {ExcludeFromInvoice: true},
+			}, nil
+		}
+
+		service := newGateTestService(t, invoiceEngine, chargeEngine)
+		lines := []gatheringLineWithBillablePeriod{
+			newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice),
+			newGateTestGatheringLine("line-2", billing.LineEngineTypeInvoice),
+			newGateTestGatheringLine("line-3", billing.LineEngineTypeChargeFlatFee),
+		}
+
+		result, err := service.gateInvoiceAssignment(t.Context(), lines)
+
+		require.NoError(t, err)
+		require.Equal(t, 1, result.ExcludedLineCount)
+		require.Equal(t, []string{"line-1", "line-3"}, gatheringLineIDsForLimitTest(result.Lines))
+		require.Len(t, invoiceEngine.inputs, 1)
+		require.Len(t, invoiceEngine.inputs[0].Lines, 2)
+		require.Len(t, chargeEngine.inputs, 1)
+		require.Len(t, chargeEngine.inputs[0].Lines, 1)
+	})
+
+	t.Run("allows an empty candidate set without invoking an engine", func(t *testing.T) {
+		service := &Service{lineEngines: newEngineRegistry()}
+
+		result, err := service.gateInvoiceAssignment(t.Context(), nil)
+
+		require.NoError(t, err)
+		require.Empty(t, result.Lines)
+		require.Zero(t, result.ExcludedLineCount)
+	})
+
+	t.Run("returns gate errors", func(t *testing.T) {
+		gateErr := errors.New("gate failed")
+		engine := &syntheticGateLineEngine{
+			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
+			gate: func(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+				return billing.GateInvoiceAssignmentResult{}, gateErr
+			},
+		}
+		service := newGateTestService(t, engine)
+
+		_, err := service.gateInvoiceAssignment(t.Context(), []gatheringLineWithBillablePeriod{
+			newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice),
+		})
+
+		require.ErrorIs(t, err, gateErr)
+		require.ErrorContains(t, err, "gating invoice assignment with engine invoicing")
+	})
+
+	t.Run("allows omitted responses", func(t *testing.T) {
+		engine := &syntheticGateLineEngine{
+			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
+			gate: func(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+				return nil, nil
+			},
+		}
+		service := newGateTestService(t, engine)
+
+		result, err := service.gateInvoiceAssignment(t.Context(), []gatheringLineWithBillablePeriod{
+			newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice),
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, []string{"line-1"}, gatheringLineIDsForLimitTest(result.Lines))
+		require.Zero(t, result.ExcludedLineCount)
+	})
+
+	t.Run("rejects unknown decisions", func(t *testing.T) {
+		engine := &syntheticGateLineEngine{
+			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
+			gate: func(_ context.Context, input billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+				return billing.GateInvoiceAssignmentResult{
+					{Namespace: "default", ID: "unknown"}: {},
+				}, nil
+			},
+		}
+		service := newGateTestService(t, engine)
+
+		_, err := service.gateInvoiceAssignment(t.Context(), []gatheringLineWithBillablePeriod{
+			newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice),
+		})
+
+		require.ErrorContains(t, err, "validating result from engine invoicing")
+		require.ErrorContains(t, err, "unknown line ID: default/unknown")
 	})
 }
 
@@ -201,4 +305,55 @@ func gatheringLineIDsForLimitTest(lines []gatheringLineWithBillablePeriod) []str
 	}
 
 	return ids
+}
+
+type syntheticGateLineEngine struct {
+	billingtestutils.NoopLineEngine
+
+	gate   func(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error)
+	inputs []billing.GateInvoiceAssignmentInput
+}
+
+func (e *syntheticGateLineEngine) GateInvoiceAssignment(ctx context.Context, input billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+	e.inputs = append(e.inputs, input)
+	if e.gate == nil {
+		return nil, nil
+	}
+
+	return e.gate(ctx, input)
+}
+
+func newGateTestService(t *testing.T, engines ...billing.LineEngine) *Service {
+	t.Helper()
+
+	service := &Service{lineEngines: newEngineRegistry()}
+	for _, engine := range engines {
+		require.NoError(t, service.lineEngines.Register(engine))
+	}
+
+	return service
+}
+
+func newGateTestGatheringLine(id string, engineType billing.LineEngineType) gatheringLineWithBillablePeriod {
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		ID:            id,
+		Namespace:     "default",
+		Period:        period,
+		InvoiceAt:     period.To,
+		Name:          id,
+		Currency:      currencyx.FiatCode("USD"),
+		ManagedBy:     billing.ManuallyManagedLine,
+		PerUnitAmount: alpacadecimal.NewFromInt(1),
+		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+	})
+	line.Engine = engineType
+
+	return gatheringLineWithBillablePeriod{
+		Line:           line,
+		BillablePeriod: period,
+	}
 }

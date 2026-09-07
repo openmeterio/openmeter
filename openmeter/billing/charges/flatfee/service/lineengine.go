@@ -36,6 +36,10 @@ func (e *LineEngine) IsLineBillableAsOf(_ context.Context, input billing.IsLineB
 	return true, nil
 }
 
+func (e *LineEngine) GateInvoiceAssignment(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+	return nil, nil
+}
+
 func (e *LineEngine) SplitGatheringLine(context.Context, billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
 	return billing.SplitGatheringLineResult{}, fmt.Errorf("flat fee line is not progressively billed")
 }

@@ -26,6 +26,10 @@ func (NoopLineEngine) IsLineBillableAsOf(context.Context, billing.IsLineBillable
 	return true, nil
 }
 
+func (NoopLineEngine) GateInvoiceAssignment(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+	return nil, nil
+}
+
 func (NoopLineEngine) SplitGatheringLine(_ context.Context, input billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
 	return billing.SplitGatheringLineResult{
 		PreSplitAtLine: input.Line,

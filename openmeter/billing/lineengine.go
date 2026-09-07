@@ -208,6 +208,53 @@ func (i IsLineBillableAsOfInput) Validate() error {
 	return nil
 }
 
+type GateInvoiceAssignmentInput struct {
+	Lines GatheringLines
+}
+
+func (i GateInvoiceAssignmentInput) Validate() error {
+	var errs []error
+
+	if len(i.Lines) == 0 {
+		errs = append(errs, errors.New("lines are required"))
+	}
+
+	if err := i.Lines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("lines: %w", err))
+	}
+
+	lineIDs := lo.Map(i.Lines, func(line GatheringLine, _ int) LineID {
+		return line.GetLineID()
+	})
+	if len(lo.Uniq(lineIDs)) != len(lineIDs) {
+		errs = append(errs, errors.New("line IDs must be unique"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type InvoiceAssignmentGateResponse struct {
+	ExcludeFromInvoice bool
+}
+
+type GateInvoiceAssignmentResult map[LineID]InvoiceAssignmentGateResponse
+
+func (r GateInvoiceAssignmentResult) Validate(input GateInvoiceAssignmentInput) error {
+	var errs []error
+
+	expectedLineIDs := lo.SliceToMap(input.Lines, func(line GatheringLine) (LineID, struct{}) {
+		return line.GetLineID(), struct{}{}
+	})
+
+	for lineID := range r {
+		if _, ok := expectedLineIDs[lineID]; !ok {
+			errs = append(errs, fmt.Errorf("unknown line ID: %s/%s", lineID.Namespace, lineID.ID))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type SplitGatheringLineInput struct {
 	Line          GatheringLine
 	FeatureMeters billingfeaturemeter.FeatureMeters
@@ -259,6 +306,10 @@ type LineEngine interface {
 
 	// IsLineBillableAsOf returns true if the line is billable as of the given time.
 	IsLineBillableAsOf(ctx context.Context, input IsLineBillableAsOfInput) (bool, error)
+	// GateInvoiceAssignment decides which otherwise billable gathering lines may be assigned to an invoice.
+	// Implementations may persist engine-owned state explaining blocked decisions. Returning an error aborts
+	// invoice creation and rolls back those writes.
+	GateInvoiceAssignment(ctx context.Context, input GateInvoiceAssignmentInput) (GateInvoiceAssignmentResult, error)
 
 	// SplitGatheringLine splits a gathering line on an engine-specific boundary if required.
 	SplitGatheringLine(ctx context.Context, input SplitGatheringLineInput) (SplitGatheringLineResult, error)
