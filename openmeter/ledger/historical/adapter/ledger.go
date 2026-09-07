@@ -344,12 +344,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 
 		// Exclude transactions by annotation key-value matches.
 		for key, value := range input.ExcludeAnnotationFilters {
-			query = query.Where(func(s *sql.Selector) {
-				s.Where(sql.Or(
-					sql.Not(sqljson.HasKey(ledgertransactiondb.FieldAnnotations, sqljson.Path(key))),
-					sqljson.ValueNEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)),
-				))
-			})
+			query = query.Where(transactionAnnotationNotEqual(key, value))
 		}
 
 		if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
@@ -414,6 +409,15 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			NextCursor: nextCursor,
 		}, nil
 	})
+}
+
+func transactionAnnotationNotEqual(key, value string) predicate.LedgerTransaction {
+	return func(s *sql.Selector) {
+		s.Where(sql.Or(
+			sql.Not(sqljson.HasKey(ledgertransactiondb.FieldAnnotations, sqljson.Path(key))),
+			sqljson.ValueNEQ(ledgertransactiondb.FieldAnnotations, value, sqljson.Path(key)),
+		))
+	}
 }
 
 func listTransactionsEntryPredicates(accountIDs []string, currency *currencyx.Code, route ledger.RouteFilter) ([]predicate.LedgerEntry, error) {

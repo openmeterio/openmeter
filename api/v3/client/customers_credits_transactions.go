@@ -17,7 +17,8 @@ type CustomersCreditsTransactionsService struct {
 type CreditTransactionFilter struct {
 	// Filter credit transactions by type.
 	Type *CreditTransactionType
-	// Filter credit transactions by currency.
+	// Filter credit transactions by currency code. Custom-currency rows retain their
+	// managed currency identifier.
 	Currency *BillingCurrencyCode
 	// Filter credit transactions by feature key. Omit to return all credit
 	// transactions. Use `exists=false` to return only unrestricted credit

@@ -37,7 +37,8 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			Route:          featureFilterRoute(input.FeatureFilter),
 			CreditMovement: l.movement,
 			ExcludeAnnotationFilters: map[string]string{
-				ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,
+				ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
+				ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
 			},
 		})
 		if err != nil {

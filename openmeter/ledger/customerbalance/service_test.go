@@ -30,12 +30,13 @@ import (
 )
 
 func TestGetBalanceServiceInputValidate(t *testing.T) {
+	customCurrency := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
 	valid := GetBalanceServiceInput{
 		CustomerID: customer.CustomerID{
 			Namespace: "ns",
 			ID:        "customer-id",
 		},
-		Currency:      currencyx.Code("USD"),
+		Currency:      currencies.NewCurrencyReference("USD"),
 		FeatureFilter: AllFeatureFilter(),
 	}
 	now := clock.Now()
@@ -60,14 +61,14 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 		},
 		{
 			name:    "missing customer",
-			input:   GetBalanceServiceInput{Currency: currencyx.Code("USD")},
+			input:   GetBalanceServiceInput{Currency: currencies.NewCurrencyReference("USD")},
 			wantErr: true,
 		},
 		{
 			name: "invalid currency",
 			input: GetBalanceServiceInput{
 				CustomerID: valid.CustomerID,
-				Currency:   currencyx.Code("INVALID|CURRENCY"),
+				Currency:   currencies.NewCurrencyReference("INVALID|CURRENCY"),
 			},
 			wantErr: true,
 		},
@@ -75,7 +76,7 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 			name: "too short custom currency",
 			input: GetBalanceServiceInput{
 				CustomerID: valid.CustomerID,
-				Currency:   currencyx.Code("X"),
+				Currency:   currencies.NewCurrencyReference("X"),
 			},
 			wantErr: true,
 		},
@@ -83,10 +84,19 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 			name: "custom currency",
 			input: GetBalanceServiceInput{
 				CustomerID: valid.CustomerID,
-				Currency:   currencyx.Code("CREDITS"),
+				Currency:   customCurrency.Reference(),
 			},
-			wantErr:   true,
-			wantErrIs: chargemeta.ErrCustomCurrencyNotSupported,
+		},
+		{
+			name: "fiat currency with custom currency ID",
+			input: GetBalanceServiceInput{
+				CustomerID: valid.CustomerID,
+				Currency: currencies.CurrencyReference{
+					Code:             "USD",
+					CustomCurrencyID: customCurrency.Reference().CustomCurrencyID,
+				},
+			},
+			wantErr: true,
 		},
 		{
 			name: "multiple feature filters",
@@ -147,7 +157,7 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 
 func TestGetBalanceServiceInputRoutes(t *testing.T) {
 	input := GetBalanceServiceInput{
-		Currency:      currencyx.Code("USD"),
+		Currency:      currencies.NewCurrencyReference("USD"),
 		FeatureFilter: NewFeatureFilter([]string{"feature-a"}),
 	}
 
@@ -164,7 +174,7 @@ func TestGetBalanceServiceInputRoutes(t *testing.T) {
 	require.Nil(t, costBasis)
 
 	unrestrictedRoute := GetBalanceServiceInput{
-		Currency:      currencyx.Code("USD"),
+		Currency:      currencies.NewCurrencyReference("USD"),
 		FeatureFilter: NewUnrestrictedFeatureFilter(),
 	}.bookedRoute()
 	require.True(t, unrestrictedRoute.Features.IsPresent())
@@ -309,7 +319,7 @@ func TestGetBalance(t *testing.T) {
 
 			balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 				CustomerID:    env.CustomerID,
-				Currency:      env.Currency,
+				Currency:      env.CurrencyReference(),
 				FeatureFilter: AllFeatureFilter(),
 			})
 			require.NoError(t, err)
@@ -339,7 +349,7 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 
 		balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 			CustomerID:    env.CustomerID,
-			Currency:      env.Currency,
+			Currency:      env.CurrencyReference(),
 			FeatureFilter: AllFeatureFilter(),
 		})
 		require.NoError(t, err)
@@ -527,7 +537,7 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 
 	usdBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      currencyx.Code("USD"),
+		Currency:      currencies.NewCurrencyReference("USD"),
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
@@ -536,12 +546,46 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 
 	eurBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      currencyx.Code("EUR"),
+		Currency:      currencies.NewCurrencyReference("EUR"),
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
 	require.Equal(t, float64(200), eurBalance.Settled().InexactFloat64())
 	require.Equal(t, float64(130), eurBalance.Live().InexactFloat64())
+}
+
+func TestFlatFeeCustomCurrencyLiveImpactUsesManagedIdentity(t *testing.T) {
+	customCurrency := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
+	otherCurrency := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
+	charge := charges.NewCharge(flatfee.Charge{
+		ChargeBase: flatfee.ChargeBase{
+			Intent: flatfee.Intent{
+				Intent: chargemeta.Intent{
+					Currency: customCurrency,
+				},
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+			}.AsOverridableIntent(),
+			State: flatfee.State{
+				AmountAfterProration: alpacadecimal.NewFromInt(30),
+			},
+		},
+	})
+
+	// The exact managed identity and a code-only filter both select the charge.
+	impact, err := getFlatFeeChargePendingBalanceImpact(charge, customCurrency.Reference(), AllFeatureFilter())
+	require.NoError(t, err)
+	require.NotNil(t, impact)
+	require.Equal(t, float64(30), impact.UnboundedAmount().InexactFloat64())
+
+	impact, err = getFlatFeeChargePendingBalanceImpact(charge, currencies.NewCurrencyReference("CREDITS"), AllFeatureFilter())
+	require.NoError(t, err)
+	require.NotNil(t, impact)
+
+	// Reusing the display code does not let another managed currency's charge
+	// affect this balance identity.
+	impact, err = getFlatFeeChargePendingBalanceImpact(charge, otherCurrency.Reference(), AllFeatureFilter())
+	require.NoError(t, err)
+	require.Nil(t, impact)
 }
 
 func TestGetBalanceFeatureFilter(t *testing.T) {
@@ -594,7 +638,7 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 				CustomerID:    env.CustomerID,
-				Currency:      env.Currency,
+				Currency:      env.CurrencyReference(),
 				FeatureFilter: tt.filter,
 			})
 			require.NoError(t, err)
@@ -606,7 +650,7 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 
 	_, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: NewFeatureFilter([]string{"feature-a", "feature-b"}),
 	})
 	require.Error(t, err)
@@ -674,7 +718,7 @@ func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 				CustomerID:    env.CustomerID,
-				Currency:      env.Currency,
+				Currency:      env.CurrencyReference(),
 				FeatureFilter: tt.filter,
 			})
 			require.NoError(t, err)
@@ -696,7 +740,7 @@ func TestGetBalanceAllFeatureFilterDoesNotApplyBoundedUsageToIneligibleRestricte
 
 	allBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
@@ -705,7 +749,7 @@ func TestGetBalanceAllFeatureFilterDoesNotApplyBoundedUsageToIneligibleRestricte
 
 	storageBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: NewFeatureFilter([]string{"storage"}),
 	})
 	require.NoError(t, err)
@@ -714,7 +758,7 @@ func TestGetBalanceAllFeatureFilterDoesNotApplyBoundedUsageToIneligibleRestricte
 
 	apiRequestsBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: NewFeatureFilter([]string{testFeatureKey}),
 	})
 	require.NoError(t, err)
@@ -734,7 +778,7 @@ func TestGetBalancePendingGrants(t *testing.T) {
 
 	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: AllFeatureFilter(),
 		BalanceQuery: ledger.BalanceQuery{
 			AsOf: &now,
@@ -749,7 +793,7 @@ func TestGetBalancePendingGrants(t *testing.T) {
 	afterFutureEffectiveAt := futureEffectiveAt.Add(time.Second)
 	balance, err = env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: AllFeatureFilter(),
 		BalanceQuery: ledger.BalanceQuery{
 			AsOf: &afterFutureEffectiveAt,
@@ -769,7 +813,7 @@ func TestGetBalancePendingInvoiceGrantBeforeDraft(t *testing.T) {
 
 	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
@@ -788,7 +832,7 @@ func TestGetBalancePendingGrantExcludesDeletedCharge(t *testing.T) {
 
 	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
+		Currency:      env.CurrencyReference(),
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
@@ -1007,7 +1051,7 @@ func TestGetBalancePendingGrantFeatureFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 				CustomerID:    env.CustomerID,
-				Currency:      env.Currency,
+				Currency:      env.CurrencyReference(),
 				FeatureFilter: tt.filter,
 			})
 			require.NoError(t, err)

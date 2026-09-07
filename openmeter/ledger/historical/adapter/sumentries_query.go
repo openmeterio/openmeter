@@ -32,21 +32,26 @@ func (b *sumEntriesQuery) Build(client *db.Client) (*db.LedgerEntryQuery, error)
 
 // SQL returns the final SQL shape and args used for sum aggregation.
 func (b *sumEntriesQuery) SQL() (string, []any, error) {
-	e := sql.Table(ledgerentrydb.Table)
-	selector := sql.Select(sql.As(sql.Sum(e.C(ledgerentrydb.FieldAmount)), "sum_amount")).From(e)
-	selector.SetDialect(dialect.Postgres)
-
-	entryPredicates, err := b.entryPredicates()
+	selector, err := b.selector()
 	if err != nil {
 		return "", nil, err
 	}
+	query, args := selector.Query()
+	return query, args, nil
+}
 
+func (b *sumEntriesQuery) selector() (*sql.Selector, error) {
+	e := sql.Table(ledgerentrydb.Table)
+	selector := sql.Select(sql.As(sql.Sum(e.C(ledgerentrydb.FieldAmount)), "sum_amount")).From(e)
+	selector.SetDialect(dialect.Postgres)
+	entryPredicates, err := b.entryPredicates()
+	if err != nil {
+		return nil, err
+	}
 	for _, predicate := range entryPredicates {
 		predicate(selector)
 	}
-
-	sql, args := selector.Query()
-	return sql, args, nil
+	return selector, nil
 }
 
 func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {

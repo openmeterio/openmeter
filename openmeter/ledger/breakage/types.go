@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -149,13 +150,17 @@ type ListExpiredBreakageImpactsResult struct {
 // BreakageImpact is the customer-facing effect of breakage that has reached its
 // expiration timestamp. Amount is negative because expiry reduces FBO balance.
 type BreakageImpact struct {
-	ID          models.NamespacedID
-	CreatedAt   time.Time
-	BookedAt    time.Time
-	CustomerID  customer.CustomerID
-	Currency    currencyx.Code
-	Amount      alpacadecimal.Decimal
-	SourceKind  SourceKind
+	ID         models.NamespacedID
+	CreatedAt  time.Time
+	BookedAt   time.Time
+	CustomerID customer.CustomerID
+	Currency   currencies.CurrencyReference
+	Amount     alpacadecimal.Decimal
+	SourceKind SourceKind
+	// BalanceOffset removes later expiry siblings from the terminal balance at
+	// BookedAt. It is scoped by currency identity and the requested feature filter.
+	BalanceOffset alpacadecimal.Decimal
+
 	Annotations models.Annotations
 }
 

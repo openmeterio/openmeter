@@ -211,6 +211,60 @@ func TestRepo_GetBalanceBuckets_HydratesCostBasisCurrency(t *testing.T) {
 	require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
 }
 
+func TestRepo_GetBalanceBuckets_ExcludesTransactionAnnotations(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+	})
+	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeWash, ledger.Route{
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+	})
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	visibleInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(5), nil, nil),
+		provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-5), nil, nil),
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, visibleInput)
+	require.NoError(t, err)
+
+	internalInput := &transactionstestutils.AnyTransactionInput{
+		BookedAtValue: time.Now().UTC(),
+		EntryInputsValues: []*transactionstestutils.AnyEntryInput{
+			provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(3), nil, nil),
+			provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-3), nil, nil),
+		},
+		AnnotationsValue: models.Annotations{
+			ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+		},
+	}
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, internalInput)
+	require.NoError(t, err)
+
+	accountID := fbo.AccountID
+	buckets, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			AccountID: &accountID,
+		},
+		ExcludeAnnotationFilters: map[string]string{
+			ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+	require.Equal(t, float64(5), buckets[0].SettledAmount.InexactFloat64())
+}
+
 func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
