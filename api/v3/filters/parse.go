@@ -513,34 +513,38 @@ func parseFilterPresence(qs url.Values, field string) (FilterPresence, error) {
 	var f FilterPresence
 
 	err := forEachFieldParam(qs, field, func(p parsedFilterParam) error {
-		if f.Exists != nil {
-			return fmt.Errorf("filter[%s]: only one filter can be set", field)
-		}
-
-		if p.bare {
-			f.Exists = lo.ToPtr(true)
-			return nil
-		}
-
-		if p.op != OpEq && p.op != OpNeq {
-			return fieldError(field, p.op, ErrUnsupportedOperator)
-		}
-
-		if p.value != "null" {
-			return fieldError(field, p.op, fmt.Errorf("expected null, got %q", p.value))
-		}
-
-		switch p.op {
-		case OpEq:
-			f.Exists = lo.ToPtr(false)
-		case OpNeq:
-			f.Exists = lo.ToPtr(true)
-		}
-
-		return nil
+		return applyFilterPresenceParam(&f, field, p)
 	})
 
 	return f, err
+}
+
+func applyFilterPresenceParam(f *FilterPresence, field string, p parsedFilterParam) error {
+	if f.Exists != nil {
+		return fmt.Errorf("filter[%s]: only one filter can be set", field)
+	}
+
+	if p.bare {
+		f.Exists = lo.ToPtr(true)
+		return nil
+	}
+
+	if p.op != OpEq && p.op != OpNeq {
+		return fieldError(field, p.op, ErrUnsupportedOperator)
+	}
+
+	if p.value != "null" {
+		return fieldError(field, p.op, fmt.Errorf("expected null, got %q", p.value))
+	}
+
+	switch p.op {
+	case OpEq:
+		f.Exists = lo.ToPtr(false)
+	case OpNeq:
+		f.Exists = lo.ToPtr(true)
+	}
+
+	return nil
 }
 
 // applyLabelOp folds a single (op, value) pair into a FilterLabel.
