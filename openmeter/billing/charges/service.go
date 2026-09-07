@@ -149,10 +149,9 @@ type ListChargesInput struct {
 	// credit purchase charges carry no feature reference and never match.
 	FeatureID  *filter.FilterULID
 	FeatureKey *filter.FilterString
-	// ServicePeriodFrom and ServicePeriodTo filter on the charge's effective
-	// service period bounds independently. The v3 API restricts them to gte
-	// and lt respectively, so combined they express a half-open [from, to)
-	// window; the domain applies whatever operators are set.
+	// ServicePeriodFrom and ServicePeriodTo filter on the charge's service
+	// period bounds independently, with the full operator set; the caller
+	// composes them into containment, overlap, or one-sided queries.
 	ServicePeriodFrom *filter.FilterTime
 	ServicePeriodTo   *filter.FilterTime
 	IncludeDeleted    bool
@@ -212,21 +211,15 @@ func (i ListChargesInput) Validate() error {
 		}
 	}
 
-	// The service-period window is half-open, [from, to): the start filter
-	// supports only gte and the end filter only lt.
 	if i.ServicePeriodFrom != nil {
 		if err := i.ServicePeriodFrom.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("service period from filter: %w", err))
-		} else if i.ServicePeriodFrom.Gte == nil {
-			errs = append(errs, errors.New("service period from filter supports only the gte operator"))
 		}
 	}
 
 	if i.ServicePeriodTo != nil {
 		if err := i.ServicePeriodTo.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("service period to filter: %w", err))
-		} else if i.ServicePeriodTo.Lt == nil {
-			errs = append(errs, errors.New("service period to filter supports only the lt operator"))
 		}
 	}
 
