@@ -25,7 +25,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.15.0
 	github.com/forscht/namegen v1.0.1
-	github.com/getkin/kin-openapi v0.147.0
+	github.com/getkin/kin-openapi v0.149.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/cors v1.2.2
 	github.com/go-chi/render v1.0.3
@@ -187,7 +187,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/samber/slog-common v0.21.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/sony/gobreaker v1.0.0 // indirect
