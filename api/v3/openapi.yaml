@@ -3041,7 +3041,8 @@ paths:
           description: |-
             Filter billing profiles returned in the response.
 
-            To filter billing profiles by name add the following query param: filter[name]=my-profile
+            To filter billing profiles by name add the following query param:
+            filter[name]=my-profile
           schema:
             $ref: '#/components/schemas/ListBillingProfilesParamsFilter'
           style: deepObject

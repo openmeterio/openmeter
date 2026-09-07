@@ -29,7 +29,8 @@ export interface ListBillingProfilesQuery {
   /**
    * Filter billing profiles returned in the response.
    *
-   * To filter billing profiles by name add the following query param: filter[name]=my-profile
+   * To filter billing profiles by name add the following query param:
+   * filter[name]=my-profile
    */
   filter?: ListBillingProfilesParamsFilter
 }
