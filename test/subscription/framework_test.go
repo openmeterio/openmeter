@@ -16,11 +16,12 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
@@ -30,6 +31,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
+	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	pcsubscriptionservice "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
@@ -53,13 +62,14 @@ type testDeps struct {
 	subscriptionSyncService     subscriptionsync.Service
 	billingService              billing.Service
 	chargesService              charges.Service
+	ledgerDeps                  ledgertestutils.Deps
+	lineageService              lineage.Service
 	sandboxApp                  app.App
 	cleanup                     func(t *testing.T) // Cleanup function
 }
 
 type setupConfig struct {
-	usageBasedHandler       usagebased.Handler
-	lineageService          lineage.Service
+	enableCharges           bool
 	enableCreditThenInvoice bool
 }
 
@@ -167,8 +177,33 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	billingService = billingService.WithInvoiceCalculator(invoiceCalculator)
 
 	var chargesService charges.Service
-	if config.usageBasedHandler != nil {
-		handlers := chargestestutils.NewMockHandlers()
+	var ledgerDeps ledgertestutils.Deps
+	var lineageService lineage.Service
+	if config.enableCharges {
+		logger := testutils.NewLogger(t)
+		ledgerDeps, err = ledgertestutils.InitDeps(deps.DBDeps.DBClient, logger)
+		require.NoError(t, err)
+		resolverDeps := transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}
+		transactionManager := enttx.NewCreator(deps.DBDeps.DBClient)
+		lineageAdapter, err := lineageadapter.New(lineageadapter.Config{Client: deps.DBDeps.DBClient})
+		require.NoError(t, err)
+		lineageService, err = lineageservice.New(lineageservice.Config{Adapter: lineageAdapter})
+		require.NoError(t, err)
+		breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{Client: deps.DBDeps.DBClient})
+		require.NoError(t, err)
+		breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{Adapter: breakageAdapter, Dependencies: resolverDeps})
+		require.NoError(t, err)
+		collector, err := ledgercollector.NewService(ledgercollector.Config{
+			Ledger: ledgerDeps.HistoricalLedger, Dependencies: resolverDeps, Breakage: breakageService,
+			AccountLocker: ledgerDeps.AccountService, TransactionManager: transactionManager,
+		})
+		require.NoError(t, err)
+		revenueRecognizer, err := recognizer.NewService(recognizer.Config{
+			Ledger: ledgerDeps.HistoricalLedger, Dependencies: resolverDeps, Lineage: lineageService, TransactionManager: transactionManager,
+		})
+		require.NoError(t, err)
+		creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, breakageService, transactionManager)
+		require.NoError(t, err)
 		stack, err := chargestestutils.NewServices(t, chargestestutils.Config{
 			Client:                deps.DBDeps.DBClient,
 			Logger:                slog.Default(),
@@ -177,10 +212,12 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			CustomerService:       deps.CustomerService,
 			StreamingConnector:    deps.MockStreamingConnector,
 			TaxCodeService:        taxCodeService,
-			FlatFeeHandler:        handlers.FlatFee,
-			CreditPurchaseHandler: handlers.CreditPurchase,
-			UsageBasedHandler:     config.usageBasedHandler,
-			LineageService:        config.lineageService,
+			FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(ledgerDeps.HistoricalLedger, resolverDeps, collector),
+			CreditPurchaseHandler: creditPurchaseHandler,
+			UsageBasedHandler:     ledgerchargeadapter.NewUsageBasedHandler(ledgerDeps.HistoricalLedger, resolverDeps, collector),
+			LineageService:        lineageService,
+			RecognizerService:     revenueRecognizer,
+			SubscriptionService:   deps.SubscriptionService,
 		})
 		require.NoError(t, err)
 		chargesService = stack.ChargesService
@@ -252,6 +289,8 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		subscriptionSyncService:     subscriptionSyncService,
 		billingService:              billingService,
 		chargesService:              chargesService,
+		ledgerDeps:                  ledgerDeps,
+		lineageService:              lineageService,
 		sandboxApp:                  sandboxApp,
 	}
 }
