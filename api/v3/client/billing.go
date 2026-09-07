@@ -14,14 +14,28 @@ type BillingService struct {
 	client *Client
 }
 
+type ProfileFilter struct {
+	ID   *StringExactFilter
+	Name *StringFilter
+}
+
 type ProfileListParams struct {
-	Page *PageParams
+	Page   *PageParams
+	Sort   *Sort
+	Filter *ProfileFilter
 }
 
 func (p ProfileListParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
+
+	addSort(q, "sort", p.Sort)
+
+	if p.Filter != nil {
+		addStringExactFilter(q, "filter[id]", p.Filter.ID)
+		addStringFilter(q, "filter[name]", p.Filter.Name)
+	}
 
 	return q
 }

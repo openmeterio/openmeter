@@ -14,7 +14,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type ProfileTestSuite struct {
@@ -596,4 +599,110 @@ func toUpdateProfileInput(profile billing.Profile) billing.UpdateProfileInput {
 		CreatedAt:      profile.CreatedAt,
 		UpdatedAt:      profile.UpdatedAt,
 	}
+}
+
+func (s *ProfileTestSuite) TestListProfilesFilterAndSort() {
+	// given:
+	// - three profiles with distinct names created in a known order
+	// when:
+	// - profiles are listed with each supported filter and sort
+	// then:
+	// - only matching profiles are returned in the requested order
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("profile-list")
+	appID := s.InstallSandboxApp(s.T(), ns).GetID()
+
+	newProfile := func(name string, isDefault bool) *billing.Profile {
+		return s.ProvisionBillingProfile(ctx, ns, appID, WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
+			p.Name = name
+			p.Default = isDefault
+		}))
+	}
+
+	charlie := newProfile("Charlie", true)
+	alpha := newProfile("Alpha", false)
+	bravo := newProfile("Bravo Team", false)
+
+	testCases := []struct {
+		name     string
+		input    billing.ListProfilesInput
+		expected []string
+	}{
+		{
+			name:     "default sort is created_at asc",
+			expected: []string{charlie.ID, alpha.ID, bravo.ID},
+		},
+		{
+			name:     "sort by created_at desc",
+			input:    billing.ListProfilesInput{OrderBy: billing.ProfileOrderByCreatedAt, Order: sortx.OrderDesc},
+			expected: []string{bravo.ID, alpha.ID, charlie.ID},
+		},
+		{
+			name:     "sort by name asc",
+			input:    billing.ListProfilesInput{OrderBy: billing.ProfileOrderByName},
+			expected: []string{alpha.ID, bravo.ID, charlie.ID},
+		},
+		{
+			name:     "sort by name desc",
+			input:    billing.ListProfilesInput{OrderBy: billing.ProfileOrderByName, Order: sortx.OrderDesc},
+			expected: []string{charlie.ID, bravo.ID, alpha.ID},
+		},
+		{
+			name:     "filter by id eq",
+			input:    billing.ListProfilesInput{ID: &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(alpha.ID)}}},
+			expected: []string{alpha.ID},
+		},
+		{
+			name:     "filter by id in",
+			input:    billing.ListProfilesInput{ID: &filter.FilterULID{FilterString: filter.FilterString{In: &[]string{alpha.ID, bravo.ID}}}},
+			expected: []string{alpha.ID, bravo.ID},
+		},
+		{
+			name:     "filter by name eq",
+			input:    billing.ListProfilesInput{Name: &filter.FilterString{Eq: lo.ToPtr("Charlie")}},
+			expected: []string{charlie.ID},
+		},
+		{
+			name:     "filter by name contains is case insensitive",
+			input:    billing.ListProfilesInput{Name: &filter.FilterString{Contains: lo.ToPtr("bravo")}},
+			expected: []string{bravo.ID},
+		},
+		{
+			name:     "filter by name with no match",
+			input:    billing.ListProfilesInput{Name: &filter.FilterString{Eq: lo.ToPtr("Nobody")}},
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			input := tc.input
+			input.Namespace = ns
+			input.Page = pagination.NewPage(1, 20)
+
+			result, err := s.BillingService.ListProfiles(ctx, input)
+			s.NoError(err)
+			s.Equal(len(tc.expected), result.TotalCount)
+			s.Equal(tc.expected, lo.Map(result.Items, func(p billing.Profile, _ int) string { return p.ID }))
+		})
+	}
+}
+
+func (s *ProfileTestSuite) TestListProfilesRejectsInvalidInput() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("profile-list-invalid")
+
+	_, err := s.BillingService.ListProfiles(ctx, billing.ListProfilesInput{
+		Namespace: ns,
+		Page:      pagination.NewPage(1, 20),
+		OrderBy:   billing.ProfileOrderBy("nope"),
+	})
+	s.ErrorContains(err, "invalid order by")
+
+	_, err = s.BillingService.ListProfiles(ctx, billing.ListProfilesInput{
+		Namespace: ns,
+		Page:      pagination.NewPage(1, 20),
+		Name:      &filter.FilterString{Eq: lo.ToPtr("a"), Ne: lo.ToPtr("b")},
+	})
+	s.ErrorContains(err, "invalid name filter")
 }

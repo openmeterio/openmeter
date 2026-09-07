@@ -2743,6 +2743,12 @@ export interface ListAppsParamsFilter {
   status?: StringFieldFilterExact
 }
 
+/** Filter options for listing billing profiles. */
+export interface ListBillingProfilesParamsFilter {
+  id?: UlidFieldFilter
+  name?: StringFieldFilter
+}
+
 /** Filter options for listing features. */
 export interface ListFeatureParamsFilter {
   meterId?: UlidFieldFilter

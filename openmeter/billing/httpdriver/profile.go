@@ -237,6 +237,19 @@ type (
 	ListProfilesHandler  httptransport.HandlerWithArgs[ListProfilesRequest, ListProfilesResponse, ListProfilesParams]
 )
 
+func mapProfileOrderBy(orderBy api.BillingProfileOrderBy) billing.ProfileOrderBy {
+	switch orderBy {
+	case api.BillingProfileOrderByName:
+		return billing.ProfileOrderByName
+	case api.BillingProfileOrderByUpdatedAt:
+		return billing.ProfileOrderByUpdatedAt
+	case api.BillingProfileOrderByDefault:
+		return billing.ProfileOrderByDefault
+	default:
+		return billing.ProfileOrderByCreatedAt
+	}
+}
+
 func (h *handler) ListProfiles() ListProfilesHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ListProfilesParams) (ListProfilesRequest, error) {
@@ -248,7 +261,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 			return ListProfilesRequest{
 				Namespace:       ns,
 				IncludeArchived: lo.FromPtrOr(params.IncludeArchived, DefaultIncludeArchived),
-				OrderBy:         lo.FromPtrOr(params.OrderBy, api.BillingProfileOrderByCreatedAt),
+				OrderBy:         mapProfileOrderBy(lo.FromPtrOr(params.OrderBy, api.BillingProfileOrderByCreatedAt)),
 				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
 
 				Page: pagination.Page{

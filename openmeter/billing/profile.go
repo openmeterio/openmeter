@@ -8,10 +8,10 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -445,6 +445,34 @@ type CreateProfileAppsInput = ProfileAppReferences
 
 type ListProfilesResult = pagination.Result[Profile]
 
+type ProfileOrderBy string
+
+const (
+	ProfileOrderByID        ProfileOrderBy = "id"
+	ProfileOrderByName      ProfileOrderBy = "name"
+	ProfileOrderByCreatedAt ProfileOrderBy = "created_at"
+	ProfileOrderByUpdatedAt ProfileOrderBy = "updated_at"
+	ProfileOrderByDefault   ProfileOrderBy = "default"
+)
+
+func (o ProfileOrderBy) Values() []ProfileOrderBy {
+	return []ProfileOrderBy{
+		ProfileOrderByID,
+		ProfileOrderByName,
+		ProfileOrderByCreatedAt,
+		ProfileOrderByUpdatedAt,
+		ProfileOrderByDefault,
+	}
+}
+
+func (o ProfileOrderBy) Validate() error {
+	if !slices.Contains(o.Values(), o) {
+		return fmt.Errorf("invalid order by value: %s", o)
+	}
+
+	return nil
+}
+
 type ListProfilesInput struct {
 	pagination.Page
 
@@ -452,20 +480,43 @@ type ListProfilesInput struct {
 
 	Namespace       string
 	IncludeArchived bool
-	OrderBy         api.BillingProfileOrderBy
+	OrderBy         ProfileOrderBy
 	Order           sortx.Order
+
+	ID   *filter.FilterULID
+	Name *filter.FilterString
 }
 
 func (i ListProfilesInput) Validate() error {
+	var errs []error
+
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if err := i.Expand.Validate(); err != nil {
-		return fmt.Errorf("error validating expand: %w", err)
+		errs = append(errs, fmt.Errorf("error validating expand: %w", err))
 	}
 
-	return nil
+	if i.OrderBy != "" {
+		if err := i.OrderBy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid order by: %w", err))
+		}
+	}
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid id filter: %w", err))
+		}
+	}
+
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid name filter: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ProfileExpand struct {
