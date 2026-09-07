@@ -143,7 +143,7 @@ func TestGateInvoiceAssignmentResultValidate(t *testing.T) {
 	})
 
 	t.Run("accepts an empty response", func(t *testing.T) {
-		require.NoError(t, (GateInvoiceAssignmentResult(nil)).Validate(input))
+		require.NoError(t, GateInvoiceAssignmentResult(nil).Validate(input))
 	})
 
 	t.Run("rejects unknown decisions", func(t *testing.T) {

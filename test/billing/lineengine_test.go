@@ -215,6 +215,7 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 	defer s.unregisterLineEngine(s.T(), mockEngine)
 
 	s.Run("all otherwise billable lines blocked returns an empty successful result", func() {
+		// given
 		mockEngine.Reset()
 		namespace := s.GetUniqueNamespace("ns-line-engine-gate-all-blocked")
 		customerID, pendingLines := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now, now)
@@ -234,6 +235,7 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 			return nil, errors.New("blocked lines must not be materialized")
 		}
 
+		// when
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
 			Customer:            customerID,
 			IncludePendingLines: mo.Some(lo.Map(pendingLines, func(line ombilling.GatheringLine, _ int) string { return line.ID })),
@@ -241,6 +243,7 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 			ForceAsyncAdvance:   true,
 		}, ombilling.WithBypassCollectionAlignment())
 
+		// then
 		s.Require().NoError(err)
 		s.Empty(invoices)
 		s.True(gateCalled)
@@ -248,6 +251,7 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 	})
 
 	s.Run("no otherwise billable lines preserves ErrInvoiceCreateNoLines", func() {
+		// given
 		mockEngine.Reset()
 		namespace := s.GetUniqueNamespace("ns-line-engine-gate-no-billable-lines")
 		customerID, _ := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now.Add(time.Hour))
@@ -257,12 +261,14 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 			return nil, nil
 		}
 
+		// when
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
 			Customer:          customerID,
 			AsOf:              &now,
 			ForceAsyncAdvance: true,
 		}, ombilling.WithBypassCollectionAlignment())
 
+		// then
 		s.Require().Error(err)
 		s.ErrorIs(err, ombilling.ErrInvoiceCreateNoLines)
 		s.ErrorAs(err, &ombilling.ValidationError{})
@@ -271,6 +277,7 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 	})
 
 	s.Run("blocked lines do not consume the invoice line limit", func() {
+		// given
 		mockEngine.Reset()
 		namespace := s.GetUniqueNamespace("ns-line-engine-gate-line-limit")
 		customerID, pendingLines := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now.Add(-time.Hour), now)
@@ -284,12 +291,14 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 			return mustAsNewStandardLines(input), nil
 		}
 
+		// when
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
 			Customer:          customerID,
 			AsOf:              &now,
 			ForceAsyncAdvance: true,
 		}, ombilling.WithBypassCollectionAlignment(), ombilling.WithMaxLinesPerInvoice(1))
 
+		// then
 		s.Require().NoError(err)
 		s.Require().Len(invoices, 1)
 		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
@@ -297,6 +306,7 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 	})
 
 	s.Run("gate errors abort invoice creation", func() {
+		// given
 		mockEngine.Reset()
 		namespace := s.GetUniqueNamespace("ns-line-engine-gate-error")
 		customerID, _ := s.createInvoiceAssignmentGateFixture(ctx, namespace, mockEngine.GetLineEngineType(), now)
@@ -305,12 +315,14 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 			return ombilling.GateInvoiceAssignmentResult{}, gateErr
 		}
 
+		// when
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
 			Customer:          customerID,
 			AsOf:              &now,
 			ForceAsyncAdvance: true,
 		}, ombilling.WithBypassCollectionAlignment())
 
+		// then
 		s.Require().ErrorIs(err, gateErr)
 		s.ErrorContains(err, "gating invoice assignment")
 		s.Empty(invoices)

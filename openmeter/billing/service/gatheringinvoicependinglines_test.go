@@ -54,6 +54,7 @@ func TestLimitGatheringLinesForInvoice(t *testing.T) {
 
 func TestGateInvoiceAssignment(t *testing.T) {
 	t.Run("filters blocked lines and preserves input order", func(t *testing.T) {
+		// given
 		invoiceEngine := &syntheticGateLineEngine{
 			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
 		}
@@ -73,8 +74,10 @@ func TestGateInvoiceAssignment(t *testing.T) {
 			newGateTestGatheringLine("line-3", billing.LineEngineTypeChargeFlatFee),
 		}
 
+		// when
 		result, err := service.gateInvoiceAssignment(t.Context(), lines)
 
+		// then
 		require.NoError(t, err)
 		require.Equal(t, 1, result.ExcludedLineCount)
 		require.Equal(t, []string{"line-1", "line-3"}, gatheringLineIDsForLimitTest(result.Lines))
@@ -85,16 +88,20 @@ func TestGateInvoiceAssignment(t *testing.T) {
 	})
 
 	t.Run("allows an empty candidate set without invoking an engine", func(t *testing.T) {
+		// given
 		service := &Service{lineEngines: newEngineRegistry()}
 
+		// when
 		result, err := service.gateInvoiceAssignment(t.Context(), nil)
 
+		// then
 		require.NoError(t, err)
 		require.Empty(t, result.Lines)
 		require.Zero(t, result.ExcludedLineCount)
 	})
 
 	t.Run("returns gate errors", func(t *testing.T) {
+		// given
 		gateErr := errors.New("gate failed")
 		engine := &syntheticGateLineEngine{
 			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
@@ -104,15 +111,18 @@ func TestGateInvoiceAssignment(t *testing.T) {
 		}
 		service := newGateTestService(t, engine)
 
+		// when
 		_, err := service.gateInvoiceAssignment(t.Context(), []gatheringLineWithBillablePeriod{
 			newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice),
 		})
 
+		// then
 		require.ErrorIs(t, err, gateErr)
 		require.ErrorContains(t, err, "gating invoice assignment with engine invoicing")
 	})
 
 	t.Run("allows omitted responses", func(t *testing.T) {
+		// given
 		engine := &syntheticGateLineEngine{
 			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
 			gate: func(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
@@ -121,16 +131,19 @@ func TestGateInvoiceAssignment(t *testing.T) {
 		}
 		service := newGateTestService(t, engine)
 
+		// when
 		result, err := service.gateInvoiceAssignment(t.Context(), []gatheringLineWithBillablePeriod{
 			newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice),
 		})
 
+		// then
 		require.NoError(t, err)
 		require.Equal(t, []string{"line-1"}, gatheringLineIDsForLimitTest(result.Lines))
 		require.Zero(t, result.ExcludedLineCount)
 	})
 
 	t.Run("rejects unknown decisions", func(t *testing.T) {
+		// given
 		engine := &syntheticGateLineEngine{
 			NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice},
 			gate: func(_ context.Context, input billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
@@ -141,10 +154,12 @@ func TestGateInvoiceAssignment(t *testing.T) {
 		}
 		service := newGateTestService(t, engine)
 
+		// when
 		_, err := service.gateInvoiceAssignment(t.Context(), []gatheringLineWithBillablePeriod{
 			newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice),
 		})
 
+		// then
 		require.ErrorContains(t, err, "validating result from engine invoicing")
 		require.ErrorContains(t, err, "unknown line ID: default/unknown")
 	})
