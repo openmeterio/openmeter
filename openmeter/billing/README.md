@@ -74,6 +74,13 @@ owns the line-specific calculations and lifecycle side effects for the lines
 routed to it. The built-in invoicing engine handles billing-native lines;
 charge engines handle charge-backed lines.
 
+Before splitting or materializing otherwise billable gathering lines, billing
+asks each line engine to gate their invoice assignment. Blocked lines remain on
+the gathering invoice and do not consume the invoice line limit. A gate may
+persist engine-owned state explaining its decision; when every candidate is
+blocked, collection succeeds without creating an invoice so those writes can
+commit. Gate errors abort collection and roll back its writes.
+
 Engine callbacks operate on groups of lines. When a callback replaces lines,
 billing requires it to preserve the input line IDs before accepting the
 result. API-originated line edits and system-originated reconciliation are

@@ -99,3 +99,7 @@ func (e *Engine) IsLineBillableAsOf(_ context.Context, input billing.IsLineBilla
 
 	return !lo.IsEmpty(input.ResolvedBillablePeriod), nil
 }
+
+func (e *Engine) GateInvoiceAssignment(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+	return nil, nil
+}

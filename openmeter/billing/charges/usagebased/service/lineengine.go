@@ -38,6 +38,10 @@ func (e *LineEngine) IsLineBillableAsOf(_ context.Context, input billing.IsLineB
 	return !input.AsOf.Before(input.ResolvedBillablePeriod.To), nil
 }
 
+func (e *LineEngine) GateInvoiceAssignment(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+	return nil, nil
+}
+
 func (e *LineEngine) SplitGatheringLine(_ context.Context, input billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
 	res := billing.SplitGatheringLineResult{}
 
