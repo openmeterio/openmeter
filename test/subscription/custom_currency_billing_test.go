@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -284,7 +284,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				require.Equal(t, float64(-8), advance.InexactFloat64())
 			}
 
-			lineages, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{Namespace: namespace, CustomerID: customer.ID, Currency: customCurrency.Reference()})
+			lineages, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{Namespace: namespace, CustomerID: customer.ID, Currency: customCurrency.Reference()})
 			require.NoError(t, err)
 			require.NotEmpty(t, lineages)
 			allocated := decimal.Zero
@@ -335,7 +335,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				advance, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), accounts.ReceivableAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 				require.NoError(t, err)
 				require.Equal(t, float64(0), advance.InexactFloat64())
-				backfilled, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{Namespace: namespace, CustomerID: customer.ID, Currency: customCurrency.Reference()})
+				backfilled, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{Namespace: namespace, CustomerID: customer.ID, Currency: customCurrency.Reference()})
 				require.NoError(t, err)
 				business, err := deps.ledgerDeps.ResolversService.GetBusinessAccounts(t.Context(), namespace)
 				require.NoError(t, err)

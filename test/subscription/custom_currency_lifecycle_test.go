@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -145,7 +145,7 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	require.Equal(t, float64(5), charge.State.AmountAfterProration.InexactFloat64())
 	requireCustomCurrencyAccountBalance(t, f, f.accounts.FBOAccount, 15)
 	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 5)
-	beforeLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
+	beforeLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
 	require.NoError(t, err)
 	require.NotEmpty(t, beforeLineage)
 	beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
@@ -156,7 +156,7 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	afterEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
 	require.NoError(t, err)
 	require.Equal(t, beforeEntries, afterEntries)
-	afterLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
+	afterLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
 	require.NoError(t, err)
 	require.Equal(t, beforeLineage, afterLineage)
 	assertNoSubscriptionInvoices(t, f.testDeps, f.view.Customer.ID)

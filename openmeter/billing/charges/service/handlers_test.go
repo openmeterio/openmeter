@@ -11,26 +11,26 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
 
 type mockLineageService struct {
-	lineage.Service
+	legacylineage.Service
 	mock.Mock
 }
 
-func (m *mockLineageService) CreateInitialLineages(ctx context.Context, input lineage.CreateInitialLineagesInput) error {
+func (m *mockLineageService) CreateInitialLineages(ctx context.Context, input legacylineage.CreateInitialLineagesInput) error {
 	return m.Called(ctx, input).Error(0)
 }
 
-func (m *mockLineageService) PersistCorrectionLineageSegments(ctx context.Context, input lineage.PersistCorrectionLineageSegmentsInput) error {
+func (m *mockLineageService) PersistCorrectionLineageSegments(ctx context.Context, input legacylineage.PersistCorrectionLineageSegmentsInput) error {
 	return m.Called(ctx, input).Error(0)
 }
 
-func (m *mockLineageService) BackfillAdvanceLineageSegments(ctx context.Context, input lineage.BackfillAdvanceLineageSegmentsInput) error {
+func (m *mockLineageService) BackfillAdvanceLineageSegments(ctx context.Context, input legacylineage.BackfillAdvanceLineageSegmentsInput) error {
 	return m.Called(ctx, input).Error(0)
 }
 
@@ -362,6 +362,6 @@ func (c *countedCreditAllocationCallback[T]) Handler(t *testing.T, allocations f
 	}
 }
 
-func (*mockLineageService) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+func (*mockLineageService) LoadLineagesByCustomer(context.Context, legacylineage.LoadLineagesByCustomerInput) ([]legacylineage.Lineage, error) {
 	return nil, nil
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -241,7 +241,7 @@ func (c *accrualCorrector) originalGroup(ctx context.Context, input CorrectColle
 	return group, nil
 }
 
-func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment legacylineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	// Each current segment state needs a slightly different unwind.
 	switch segment.State {
 	case creditrealization.LineageSegmentStateRealCredit,
@@ -258,7 +258,7 @@ func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input Corr
 	}
 }
 
-func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment legacylineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
 		return nil, fmt.Errorf("earnings_recognized segment missing backing transaction group id")
 	}
@@ -312,7 +312,7 @@ func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, in
 	return actions, nil
 }
 
-func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment legacylineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
 		return nil, fmt.Errorf("advance_backfilled segment missing backing transaction group id")
 	}
@@ -889,7 +889,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	return backfilledCreditReissueRouteResult{}, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
 }
 
-func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {
+func sortCorrectionSegments(segments []legacylineage.Segment) []legacylineage.Segment {
 	sorted := slices.Clone(segments)
 	sort.SliceStable(sorted, func(i, j int) bool {
 		// Go from most downstream representation back outward.

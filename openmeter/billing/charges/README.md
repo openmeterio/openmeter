@@ -44,6 +44,9 @@ projection. The type-specific detailed status is the lifecycle state.
   request.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
+- [Legacy lineage](legacylineage/README.md) is deprecated compatibility for
+  pre-cutover credit histories. New collections use ledger origins; remaining
+  lineage reads and writes must stay confined to legacy histories.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles
   subscription-derived source intent, including item currency and subscription
   cost-basis selection. It does not treat API overrides as new subscription

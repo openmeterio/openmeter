@@ -8,14 +8,14 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type Config struct {
-	Adapter lineage.Adapter
+	Adapter legacylineage.Adapter
 }
 
 func (c Config) Validate() error {
@@ -26,7 +26,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (lineage.Service, error) {
+func New(config Config) (legacylineage.Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -37,10 +37,10 @@ func New(config Config) (lineage.Service, error) {
 }
 
 type service struct {
-	adapter lineage.Adapter
+	adapter legacylineage.Adapter
 }
 
-func (s *service) CreateInitialLineages(ctx context.Context, input lineage.CreateInitialLineagesInput) error {
+func (s *service) CreateInitialLineages(ctx context.Context, input legacylineage.CreateInitialLineagesInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (s *service) CreateInitialLineages(ctx context.Context, input lineage.Creat
 			return nil
 		}
 
-		return s.adapter.CreateLineages(ctx, lineage.CreateLineagesInput{
+		return s.adapter.CreateLineages(ctx, legacylineage.CreateLineagesInput{
 			Namespace:  input.Namespace,
 			ChargeID:   input.ChargeID,
 			CustomerID: input.CustomerID,
@@ -69,9 +69,9 @@ func (s *service) CreateInitialLineages(ctx context.Context, input lineage.Creat
 	})
 }
 
-func (s *service) LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (lineage.ActiveSegmentsByRealizationID, error) {
+func (s *service) LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (legacylineage.ActiveSegmentsByRealizationID, error) {
 	if len(realizationIDs) == 0 {
-		return lineage.ActiveSegmentsByRealizationID{}, nil
+		return legacylineage.ActiveSegmentsByRealizationID{}, nil
 	}
 
 	segmentsByRealizationID, err := s.adapter.LoadActiveSegmentsByRealizationID(ctx, namespace, realizationIDs)
@@ -82,7 +82,7 @@ func (s *service) LoadActiveSegmentsByRealizationID(ctx context.Context, namespa
 	return segmentsByRealizationID, nil
 }
 
-func (s *service) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+func (s *service) LoadLineagesByCustomer(ctx context.Context, input legacylineage.LoadLineagesByCustomerInput) ([]legacylineage.Lineage, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (s *service) LoadLineagesByCustomer(ctx context.Context, input lineage.Load
 	return s.adapter.LoadLineagesByCustomer(ctx, input)
 }
 
-func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input lineage.PersistCorrectionLineageSegmentsInput) error {
+func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input legacylineage.PersistCorrectionLineageSegmentsInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input li
 			return fmt.Errorf("lock lineages for correction persistence: %w", err)
 		}
 
-		lineagesByRealizationID := make(map[string]lineage.Lineage, len(lineages))
+		lineagesByRealizationID := make(map[string]legacylineage.Lineage, len(lineages))
 		for _, entry := range lineages {
 			lineagesByRealizationID[entry.RootRealizationID] = entry
 		}
@@ -135,12 +135,12 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input li
 			}
 
 			remaining := correctionAmountsByRealizationID[realizationID]
-			for _, segment := range lineage.SortCorrectionPersistSegments(entry.Segments) {
+			for _, segment := range legacylineage.SortCorrectionPersistSegments(entry.Segments) {
 				if !remaining.IsPositive() {
 					break
 				}
 
-				consumedAmount := lineage.MinDecimal(segment.Amount, remaining)
+				consumedAmount := legacylineage.MinDecimal(segment.Amount, remaining)
 				if !consumedAmount.IsPositive() {
 					continue
 				}
@@ -151,7 +151,7 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input li
 
 				remainder := segment.Amount.Sub(consumedAmount)
 				if remainder.IsPositive() {
-					if err := s.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{
+					if err := s.adapter.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 						LineageID:                       segment.LineageID,
 						Amount:                          remainder,
 						State:                           segment.State,
@@ -175,7 +175,7 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input li
 	})
 }
 
-func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input lineage.BackfillAdvanceLineageSegmentsInput) error {
+func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input legacylineage.BackfillAdvanceLineageSegmentsInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -188,9 +188,9 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 		if err != nil {
 			return fmt.Errorf("lock advance lineages for backfill: %w", err)
 		}
-		lineages = lineage.FilterAdvanceLineagesForBackfill(lineages, input.FeatureFilters)
+		lineages = legacylineage.FilterAdvanceLineagesForBackfill(lineages, input.FeatureFilters)
 
-		segmentsByID := make(map[string]lineage.Segment)
+		segmentsByID := make(map[string]legacylineage.Segment)
 		for _, root := range lineages {
 			for _, segment := range root.Segments {
 				segmentsByID[segment.ID] = segment
@@ -210,7 +210,7 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 
 			remainder := segment.Amount.Sub(coveredAmount)
 			if remainder.IsPositive() {
-				if err := s.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{
+				if err := s.adapter.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 					LineageID: segment.LineageID,
 					Amount:    remainder,
 					State:     creditrealization.LineageSegmentStateAdvanceUncovered,
@@ -219,7 +219,7 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 				}
 			}
 
-			if err := s.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{
+			if err := s.adapter.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 				LineageID:                 segment.LineageID,
 				Amount:                    coveredAmount,
 				State:                     creditrealization.LineageSegmentStateAdvanceBackfilled,
@@ -237,6 +237,6 @@ func (s *service) CloseSegment(ctx context.Context, segmentID string, closedAt t
 	return s.adapter.CloseSegment(ctx, segmentID, closedAt)
 }
 
-func (s *service) CreateSegment(ctx context.Context, input lineage.CreateSegmentInput) error {
+func (s *service) CreateSegment(ctx context.Context, input legacylineage.CreateSegmentInput) error {
 	return s.adapter.CreateSegment(ctx, input)
 }

@@ -9,6 +9,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
+// InitialLineageSpec initializes the compatibility state for a legacy allocation.
+//
+// Deprecated: Origin-tracked collections must not create lineage roots or segments.
 type InitialLineageSpec struct {
 	LineageID         string
 	RootRealizationID string
@@ -18,6 +21,9 @@ type InitialLineageSpec struct {
 	AdvanceFeatures   []string
 }
 
+// InitialLineageSpecs excludes origin-tracked collections from legacy persistence.
+//
+// Deprecated: Retained only for processing pre-cutover realizations.
 func InitialLineageSpecs(realizations Realizations) ([]InitialLineageSpec, error) {
 	out := make([]InitialLineageSpec, 0, len(realizations))
 

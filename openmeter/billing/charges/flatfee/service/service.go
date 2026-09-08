@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
@@ -21,7 +21,7 @@ import (
 type Config struct {
 	Adapter              flatfee.Adapter
 	Handler              flatfee.Handler
-	Lineage              lineage.Service
+	Lineage              legacylineage.Service
 	MetaAdapter          meta.Adapter
 	Locker               *lockr.Locker
 	RatingService        rating.Service

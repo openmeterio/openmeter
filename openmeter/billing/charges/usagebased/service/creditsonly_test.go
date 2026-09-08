@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -398,9 +398,9 @@ type creditsOnlyStateMachineRater struct {
 }
 
 type creditsOnlyStateMachineLineage struct {
-	lineage.Service
+	legacylineage.Service
 }
 
-func (creditsOnlyStateMachineLineage) LoadActiveSegmentsByRealizationID(_ context.Context, _ string, _ []string) (lineage.ActiveSegmentsByRealizationID, error) {
-	return lineage.ActiveSegmentsByRealizationID{}, nil
+func (creditsOnlyStateMachineLineage) LoadActiveSegmentsByRealizationID(_ context.Context, _ string, _ []string) (legacylineage.ActiveSegmentsByRealizationID, error) {
+	return legacylineage.ActiveSegmentsByRealizationID{}, nil
 }

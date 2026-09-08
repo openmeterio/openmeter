@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -276,7 +276,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 	s.requireAccountBalance(accounts.FBOAccount, ledger.RouteFilter{Currency: points.Reference()}, 7, "POINTS after backfill")
 	s.requireAccountBalance(accounts.FBOAccount, ledger.RouteFilter{Currency: currencies.NewCurrencyReference(USD)}, 11, "USD after backfill")
 
-	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  ns,
 		CustomerID: customer.ID,
 		Currency:   tokens.Reference(),
@@ -494,7 +494,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 	}, 10, "initial advance-backed TOKENS accrued")
 
-	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  ns,
 		CustomerID: customer.ID,
 		Currency:   tokens.Reference(),
@@ -541,7 +541,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		TransactionAuthorizationStatus: &openStatus,
 	}, -10, "uncovered TOKENS after wrong-feature purchase")
 
-	lineages, err = s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	lineages, err = s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  ns,
 		CustomerID: customer.ID,
 		Currency:   tokens.Reference(),
@@ -602,7 +602,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		Features:          mo.Some([]string{otherFeature}),
 	}, 4, "wrong-feature TOKENS after matching backfill")
 
-	lineages, err = s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	lineages, err = s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  ns,
 		CustomerID: customer.ID,
 		Currency:   tokens.Reference(),

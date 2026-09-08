@@ -3,27 +3,27 @@ package run
 import (
 	"errors"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 )
 
 // Service owns usage-based realization run mechanics: rating snapshots,
-// run persistence, credit allocation/correction, and credit-realization lineage.
+// run persistence, credit allocation/correction, and credit-realization legacylineage.
 // It must not make state-machine decisions such as which triggers to fire, which
 // statuses to enter, or whether invoice lifecycle events should advance a charge.
 type Service struct {
 	adapter usagebased.Adapter
 	rater   usagebasedrating.Service
 	handler usagebased.Handler
-	lineage lineage.Service
+	lineage legacylineage.Service
 }
 
 type Config struct {
 	Adapter usagebased.Adapter
 	Rater   usagebasedrating.Service
 	Handler usagebased.Handler
-	Lineage lineage.Service
+	Lineage legacylineage.Service
 }
 
 func (c Config) Validate() error {

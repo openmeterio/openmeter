@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -737,7 +737,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	s.requireAccountBalance(accounts.FBOAccount, fiatFilter, 0)
 	s.requireAccountBalance(accounts.ReceivableAccount, fiatFilter, -2)
 
-	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  input.Namespace,
 		CustomerID: input.CustomerID.ID,
 		Currency:   currencies.NewCurrencyReference(USD),
@@ -837,8 +837,8 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyCorrecti
 	s.requireAccountBalance(accounts.FBOAccount, fiatFilter, 3)
 	s.requireAccountBalance(accounts.ReceivableAccount, fiatFilter, 0)
 
-	// The immutable journal retains the origin and its reversal without lineage.
-	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	// The immutable journal retains the origin and its reversal without legacylineage.
+	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  input.Namespace,
 		CustomerID: input.CustomerID.ID,
 		Currency:   currencies.NewCurrencyReference(USD),

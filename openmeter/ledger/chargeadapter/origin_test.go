@@ -15,9 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -38,7 +38,7 @@ type originTestEnv struct {
 	*creditPurchaseHandlerTestEnv
 	collector  collector.Service
 	recognizer recognizer.Service
-	legacy     lineage.Service
+	legacy     legacylineage.Service
 }
 
 func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
@@ -54,9 +54,9 @@ func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 		Breakage: base.breakage, AccountLocker: base.Deps.AccountService, TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
-	adapter, err := lineageadapter.New(lineageadapter.Config{Client: base.DB})
+	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: base.DB})
 	require.NoError(t, err)
-	legacy, err := lineageservice.New(lineageservice.Config{Adapter: adapter})
+	legacy, err := legacylineageservice.New(legacylineageservice.Config{Adapter: adapter})
 	require.NoError(t, err)
 	rec, err := recognizer.NewService(recognizer.Config{
 		Ledger: base.Deps.HistoricalLedger, Dependencies: deps,
@@ -285,7 +285,7 @@ func TestOriginAndLegacyHistoriesSharePurchasesWithoutSharingCorrectionState(t *
 	}
 	_, err = e.DB.Charge.Create().SetNamespace(e.Namespace).SetID(legacySpend).SetType(meta.ChargeTypeUsageBased).Save(t.Context())
 	require.NoError(t, err)
-	require.NoError(t, e.legacy.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{Namespace: e.Namespace, ChargeID: legacySpend, CustomerID: e.CustomerID.ID, Currency: e.currency, Realizations: creditrealization.Realizations{legacyAllocation}}))
+	require.NoError(t, e.legacy.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{Namespace: e.Namespace, ChargeID: legacySpend, CustomerID: e.CustomerID.ID, Currency: e.currency, Realizations: creditrealization.Realizations{legacyAllocation}}))
 	e.originalAdvanceGroups[legacyAllocation.ID] = group.ID().ID
 	allocated := e.collect(t, spend, 20)
 	// when purchases cross the legacy/new boundary, FIFO exhausts the legacy

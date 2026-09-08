@@ -17,9 +17,9 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -57,7 +57,7 @@ type Config struct {
 	CreditPurchaseHandler creditpurchase.Handler
 	UsageBasedHandler     usagebased.Handler
 	CreditsConfig         config.CreditsConfiguration
-	LineageService        lineage.Service
+	LineageService        legacylineage.Service
 }
 
 func (c Config) Validate() error {

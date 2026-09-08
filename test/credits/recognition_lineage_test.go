@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -107,7 +107,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			s.requireCustomerAccruedSourceSpendBalanceBuckets(customer.GetID(), ledger.RouteFilter{Currency: tokens.Reference()}, map[string]float64{
 				sourceSpendChargeBucketKey(&promo.ID, &usage.ID): 2,
 			})
-			roots, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+			roots, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 				Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference(),
 			})
 			s.Require().NoError(err)
@@ -146,7 +146,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			s.requireAccountBalance(business.EarningsAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 0, "refunded earnings")
 			s.requireAccountBalance(accounts.AccruedAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 0, "refunded accrued")
 			s.requireAccountBalance(accounts.FBOAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 10, "refunded credit")
-			roots, err = s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference()})
+			roots, err = s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference()})
 			s.Require().NoError(err)
 			for _, root := range roots {
 				s.Empty(root.Segments)
