@@ -1,6 +1,7 @@
 package subscription_test
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -23,7 +24,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -159,6 +162,83 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	assertNoSubscriptionInvoices(t, f.testDeps, f.view.Customer.ID)
 }
 
+// Capture the same snapshot Cancel publishes, then let later workflow writes
+// receive a newer root timestamp instead of hiding them behind a frozen clock.
+type cancellationSnapshotHook struct {
+	subscription.NoOpSubscriptionCommandHook
+	event *subscription.CancelledEvent
+}
+
+func (h *cancellationSnapshotHook) AfterCancel(ctx context.Context, view subscription.SubscriptionView) error {
+	h.event = lo.ToPtr(subscription.NewCancelledEvent(ctx, view))
+	clock.FreezeTime(clock.Now().Add(time.Second))
+	return nil
+}
+
+func TestSubscriptionCustomCurrencyPlanChangeReconcilesCancellation(t *testing.T) {
+	// given: a realized fee and future charges on the subscription being replaced.
+	clock.FreezeTime(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+	f := setupCustomCurrencyFlatFeeSubscription(t)
+	ctx := t.Context()
+	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)))
+	ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
+	require.Len(t, ids, 2)
+	clock.FreezeTime(f.view.Subscription.ActiveFrom)
+	_, err := f.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: f.view.Customer.GetID()})
+	require.NoError(t, err)
+	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 10)
+	hook := &cancellationSnapshotHook{}
+	require.NoError(t, f.subscriptionService.RegisterHook(hook))
+	month := datetime.MustParseDuration(t, "P1M")
+	planInput := pcsubscription.PlanInput{}
+	planInput.FromInput(&plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: f.view.Subscription.Namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{Name: "Replacement", Currency: f.currency.Reference(), SettlementMode: productcatalog.CreditOnlySettlementMode, BillingCadence: month},
+			Phases: []productcatalog.Phase{{PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"}, RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{Key: "flat-fee", Name: "Replacement fee", Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: decimal.NewFromInt(20), PaymentTerm: productcatalog.InAdvancePaymentTerm})}, BillingCadence: &month,
+			}}}},
+		},
+	})
+
+	// when: plan replacement annotates the old root after publishing cancellation.
+	cancelAt := time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(cancelAt)
+	changed, err := f.pcSubscriptionService.Change(ctx, pcsubscription.ChangeSubscriptionRequest{
+		ID: f.view.Subscription.NamespacedID,
+		WorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}, Name: "Replacement", CostBasisMode: subscription.CostBasisModeDynamic,
+		},
+		PlanInput: planInput, SettlementMode: lo.ToPtr(productcatalog.CreditOnlySettlementMode),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, hook.event)
+	require.True(t, changed.Current.UpdatedAt.After(hook.event.Subscription.UpdatedAt))
+	require.Equal(t, changed.Next.Subscription.ID, lo.FromPtr(subscription.AnnotationParser.GetSupersedingSubscriptionID(changed.Current.Annotations)))
+	require.NoError(t, f.subscriptionSyncService.HandleCancelledEvent(ctx, hook.event))
+
+	// then: annotation-only freshness does not suppress the old fee's correction.
+	remaining := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
+	require.Len(t, remaining, 1)
+	require.Contains(t, ids, remaining[0])
+	result, err := f.chargesService.GetByID(ctx, charges.GetByIDInput{ChargeID: chargesmeta.ChargeID{Namespace: f.view.Subscription.Namespace, ID: remaining[0]}})
+	require.NoError(t, err)
+	charge, err := result.AsFlatFeeCharge()
+	require.NoError(t, err)
+	require.Equal(t, cancelAt, charge.Intent.GetEffectiveServicePeriod().To)
+	require.Equal(t, float64(5), charge.State.AmountAfterProration.InexactFloat64())
+	requireCustomCurrencyAccountBalance(t, f, f.accounts.FBOAccount, 15)
+	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 5)
+	beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
+	require.NoError(t, err)
+	require.NoError(t, f.subscriptionSyncService.HandleCancelledEvent(ctx, hook.event))
+	afterEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
+	require.NoError(t, err)
+	require.Equal(t, beforeEntries, afterEntries)
+	require.Equal(t, remaining, listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID))
+}
+
 func TestSubscriptionCustomCurrencyStaleCancellation(t *testing.T) {
 	for _, tc := range []struct {
 		name            string
@@ -217,7 +297,14 @@ func TestSubscriptionCustomCurrencyStaleCancellation(t *testing.T) {
 				afterStates, err := f.subscriptionSyncService.GetSyncStates(ctx, []models.NamespacedID{f.view.Subscription.NamespacedID})
 				require.NoError(t, err)
 				require.Len(t, afterStates, 1)
-				require.Equal(t, states, afterStates)
+				if current.Spec.ActiveTo == nil {
+					require.Equal(t, states, afterStates)
+				} else {
+					require.Equal(t, states[0].HasBillables, afterStates[0].HasBillables)
+					require.Equal(t, clock.Now().UTC(), afterStates[0].SyncedAt)
+					require.NotNil(t, afterStates[0].NextSyncAfter)
+					require.False(t, afterStates[0].NextSyncAfter.Before(*current.Spec.ActiveTo))
+				}
 			}
 		})
 	}

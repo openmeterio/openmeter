@@ -90,11 +90,12 @@ charge.
 ## Deletion, cancellation, and retries
 
 Cancellation syncs through the subscription end so artifacts are shortened or
-removed according to the final desired periods. A cancellation event whose root
-subscription `UpdatedAt` predates the current root is ignored. Cancellation and
-continuation update that timestamp, including when the same cancellation date
-is reused; it is not a version for all child changes. The newer event and
-periodic reconciler own that schedule. A deleted subscription has no view and
+removed according to the final desired periods. When a cancellation event's root
+`UpdatedAt` predates the current subscription, sync uses the current view and
+current cancellation end; a continued subscription needs no cancellation sync.
+Annotation writes can also advance the root timestamp, so age alone must not
+discard a still-valid cancellation. This timestamp is not a version for all child
+changes. A deleted subscription has no view and
 therefore produces an empty target, asking reconciliation to remove its remaining
 owned artifacts subject to immutable-invoice rules. Cleanup must
 use an ID-based entrypoint because the normal subscription view lookup excludes

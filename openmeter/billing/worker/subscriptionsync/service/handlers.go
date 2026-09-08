@@ -40,19 +40,23 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 		return err
 	}
 
-	// Cancellation and continuation update the root subscription timestamp,
-	// even when a later cancellation reuses the same end date. Ignore older
-	// events so their horizon cannot reconcile a newer subscription state.
+	refOrView := newSubscriptionReferenceOrView(event.SubscriptionView)
+	asOf := *event.Spec.ActiveTo
+
+	// Cancellation and continuation update the root timestamp, but annotation
+	// writes can also advance it after cancellation (for example, plan changes).
+	// An older snapshot must use the current cancellation and horizon instead of
+	// dropping valid billing work or replaying obsolete subscription state.
 	if current.UpdatedAt.After(event.Subscription.UpdatedAt) {
-		return nil
+		if current.ActiveTo == nil {
+			return nil
+		}
+		refOrView = newSubscriptionReferenceOrView(current.NamespacedID)
+		asOf = *current.ActiveTo
 	}
 
 	// Let's sync up to the end of the subscription
-	err = s.synchronizeSubscriptionAndInvoiceCustomer(
-		ctx,
-		newSubscriptionReferenceOrView(event.SubscriptionView),
-		*event.Spec.ActiveTo,
-	)
+	err = s.synchronizeSubscriptionAndInvoiceCustomer(ctx, refOrView, asOf)
 	if err != nil {
 		return err
 	}

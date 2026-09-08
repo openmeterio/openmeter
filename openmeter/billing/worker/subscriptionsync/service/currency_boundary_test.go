@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestDeletedSubscriptionStillReconcilesAfterCustomCurrencySupport(t *testing.T) {
+func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 	// given:
 	// - a deleted subscription whose billing artifacts still need cleanup
 	// when:
