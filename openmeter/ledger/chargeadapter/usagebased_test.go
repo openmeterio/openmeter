@@ -585,7 +585,7 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	})
 	require.NoError(t, err)
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	dbLineage, err := lineageservice.New(lineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	require.NoError(t, err)
@@ -595,6 +595,8 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 		AccountCatalog: base.Deps.AccountService,
 		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
+	lineageService := &ledgertestutils.LineageWithAllocations{Service: dbLineage}
+
 	recognizerService, err := recognizer.NewService(recognizer.Config{
 		Ledger:             base.Deps.HistoricalLedger,
 		Dependencies:       deps,

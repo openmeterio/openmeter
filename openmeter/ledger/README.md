@@ -64,7 +64,11 @@ facts stored independently from the journal.
 - Credit-backed earnings recognition consumes only accrued buckets whose
   source credit and spend charge are both present and distinct. Buckets without
   that provenance - including invoice-backed accrued value and unbackfilled
-  advances - remain deferred.
+  advances - remain deferred. Unknown-cost promotional credits also remain
+  deferred. Recognition maps each segment to its original allocation bucket or
+  recorded backfill group, preserving source, spend, currency, and tax route.
+  The same selected slices drive journal postings and lineage transitions;
+  customer-wide recognized totals cannot be redistributed across lineages.
 
 Credit-purchase backfill uses the charge domain's original advance occurrences
 in order, bounded by their matching receivable and accrued routes. The ledger

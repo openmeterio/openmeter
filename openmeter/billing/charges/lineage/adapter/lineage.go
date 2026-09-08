@@ -130,7 +130,7 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.Load
 		}
 
 		mapped := lo.Map(lineages, mapLineage)
-		if err := tx.loadAdvanceOriginalGroups(ctx, input.Namespace, mapped); err != nil {
+		if err := tx.loadOriginalAllocations(ctx, input.Namespace, mapped); err != nil {
 			return nil, err
 		}
 		return mapped, nil
@@ -312,14 +312,12 @@ func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment 
 	}
 }
 
-// Original allocation references distinguish a legacy nil-spend collection from
-// a current charge-specific collection even when they share account routes.
-func (a *adapter) loadAdvanceOriginalGroups(ctx context.Context, namespace string, roots []lineage.Lineage) error {
+// Original allocation references identify the collected source bucket within a
+// group, including legacy collections without spend provenance.
+func (a *adapter) loadOriginalAllocations(ctx context.Context, namespace string, roots []lineage.Lineage) error {
 	var ids []string
 	for _, root := range roots {
-		if root.OriginKind == creditrealization.LineageOriginKindAdvance {
-			ids = append(ids, root.RootRealizationID)
-		}
+		ids = append(ids, root.RootRealizationID)
 	}
 	if len(ids) == 0 {
 		return nil
@@ -333,14 +331,18 @@ func (a *adapter) loadAdvanceOriginalGroups(ctx context.Context, namespace strin
 		return err
 	}
 	groups := make(map[string]string, len(flat)+len(usage))
+	sortHints := make(map[string]int, len(flat)+len(usage))
 	for _, allocation := range flat {
 		groups[allocation.ID] = allocation.LedgerTransactionGroupID
+		sortHints[allocation.ID] = allocation.SortHint
 	}
 	for _, allocation := range usage {
 		groups[allocation.ID] = allocation.LedgerTransactionGroupID
+		sortHints[allocation.ID] = allocation.SortHint
 	}
 	for i := range roots {
 		roots[i].OriginalTransactionGroupID = groups[roots[i].RootRealizationID]
+		roots[i].OriginalAllocationSortHint = sortHints[roots[i].RootRealizationID]
 	}
 	return nil
 }
