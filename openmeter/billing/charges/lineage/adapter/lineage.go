@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -13,6 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -99,24 +102,49 @@ func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineag
 
 func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {
-		lineages, err := tx.db.CreditRealizationLineage.Query().
-			Where(
-				creditrealizationlineage.Namespace(input.Namespace),
-				creditrealizationlineage.CustomerIDEQ(input.CustomerID),
-				currencyIdentityPredicate(input.Currency),
-			).
-			WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
-				q.Where(creditrealizationlineagesegment.ClosedAtIsNil()).
-					Order(creditrealizationlineagesegment.ByCreatedAt())
-			}).
-			Order(creditrealizationlineage.ByCreatedAt()).
-			All(ctx)
+		activeSegments := []predicate.CreditRealizationLineageSegment{creditrealizationlineagesegment.ClosedAtIsNil()}
+		if input.SegmentState != nil {
+			activeSegments = append(activeSegments, creditrealizationlineagesegment.StateEQ(*input.SegmentState))
+		}
+		query := tx.db.CreditRealizationLineage.Query().Where(
+			creditrealizationlineage.Namespace(input.Namespace),
+			creditrealizationlineage.CustomerIDEQ(input.CustomerID),
+			currencyIdentityPredicate(input.Currency),
+		)
+		if input.OriginKind != nil {
+			query.Where(creditrealizationlineage.OriginKindEQ(*input.OriginKind))
+		}
+		if input.HasActiveSegments || input.SegmentState != nil {
+			// Filtering the eager-loaded children alone would still return every
+			// historical root, including ones with no matching segments.
+			query.Where(creditrealizationlineage.HasSegmentsWith(activeSegments...))
+		}
+		if len(input.FeatureFilters) > 0 {
+			query.Where(advanceFeaturesOverlap(input.FeatureFilters))
+		}
+		lineages, err := query.WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
+			q.Where(activeSegments...).Order(creditrealizationlineagesegment.ByCreatedAt(), creditrealizationlineagesegment.ByID())
+		}).Order(creditrealizationlineage.ByCreatedAt(), creditrealizationlineage.ByID()).All(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		return lo.Map(lineages, mapLineage), nil
+		mapped := lo.Map(lineages, mapLineage)
+		if err := tx.loadAdvanceOriginalGroups(ctx, input.Namespace, mapped); err != nil {
+			return nil, err
+		}
+		return mapped, nil
 	})
+}
+
+// advanceFeaturesOverlap mirrors purchase eligibility, including excluding
+// featureless legacy routes from a feature-restricted purchase.
+func advanceFeaturesOverlap(features []string) predicate.CreditRealizationLineage {
+	return func(s *sql.Selector) {
+		s.Where(sql.P(func(b *sql.Builder) {
+			b.Ident(s.C(creditrealizationlineage.FieldAdvanceFeatures)).WriteString(" && ").Arg(pq.StringArray(features))
+		}))
+	}
 }
 
 // currencyIdentityPredicate matches a lineage's persisted currency identity:
@@ -179,24 +207,18 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 					creditrealizationlineagesegment.StateEQ(creditrealization.LineageSegmentStateAdvanceUncovered),
 				),
 			).
-			Order(creditrealizationlineage.ByCreatedAt()).
+			WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
+				q.Where(creditrealizationlineagesegment.ClosedAtIsNil(), creditrealizationlineagesegment.StateEQ(creditrealization.LineageSegmentStateAdvanceUncovered)).
+					Order(creditrealizationlineagesegment.ByCreatedAt(), creditrealizationlineagesegment.ByID())
+			}).
+			Order(creditrealizationlineage.ByCreatedAt(), creditrealizationlineage.ByID()).
 			ForUpdate().
 			All(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		return lo.Map(lineages, func(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
-			return lineage.Lineage{
-				ID:                entry.ID,
-				ChargeID:          entry.ChargeID,
-				RootRealizationID: entry.RootRealizationID,
-				CustomerID:        entry.CustomerID,
-				Currency:          currencies.CurrencyReference{Code: entry.Currency, CustomCurrencyID: entry.CustomCurrencyID},
-				OriginKind:        entry.OriginKind,
-				AdvanceFeatures:   []string(entry.AdvanceFeatures),
-			}
-		}), nil
+		return lo.Map(lineages, mapLineage), nil
 	})
 }
 
@@ -207,7 +229,12 @@ func (a *adapter) ListActiveSegments(ctx context.Context, input lineage.ListActi
 				creditrealizationlineagesegment.ClosedAtIsNil(),
 				creditrealizationlineagesegment.LineageIDIn(input.LineageIDs...),
 			).
-			Order(creditrealizationlineagesegment.ByCreatedAt())
+			Order(
+				creditrealizationlineagesegment.ByLineageField(creditrealizationlineage.FieldCreatedAt),
+				creditrealizationlineagesegment.ByLineageID(),
+				creditrealizationlineagesegment.ByCreatedAt(),
+				creditrealizationlineagesegment.ByID(),
+			)
 
 		if input.State != nil {
 			query = query.Where(creditrealizationlineagesegment.StateEQ(*input.State))
@@ -258,6 +285,7 @@ func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegment
 
 func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 	return lineage.Lineage{
+		CreatedAt:         entry.CreatedAt,
 		ID:                entry.ID,
 		ChargeID:          entry.ChargeID,
 		RootRealizationID: entry.RootRealizationID,
@@ -273,6 +301,7 @@ func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 
 func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment {
 	return lineage.Segment{
+		CreatedAt:                       segment.CreatedAt,
 		ID:                              segment.ID,
 		LineageID:                       segment.LineageID,
 		Amount:                          segment.Amount,
@@ -281,4 +310,37 @@ func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment 
 		SourceState:                     segment.SourceState,
 		SourceBackingTransactionGroupID: segment.SourceBackingTransactionGroupID,
 	}
+}
+
+// Original allocation references distinguish a legacy nil-spend collection from
+// a current charge-specific collection even when they share account routes.
+func (a *adapter) loadAdvanceOriginalGroups(ctx context.Context, namespace string, roots []lineage.Lineage) error {
+	var ids []string
+	for _, root := range roots {
+		if root.OriginKind == creditrealization.LineageOriginKindAdvance {
+			ids = append(ids, root.RootRealizationID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	flat, err := a.db.ChargeFlatFeeRunCreditAllocations.Query().Where(chargeflatfeeruncreditallocations.Namespace(namespace), chargeflatfeeruncreditallocations.IDIn(ids...)).All(ctx)
+	if err != nil {
+		return err
+	}
+	usage, err := a.db.ChargeUsageBasedRunCreditAllocations.Query().Where(chargeusagebasedruncreditallocations.Namespace(namespace), chargeusagebasedruncreditallocations.IDIn(ids...)).All(ctx)
+	if err != nil {
+		return err
+	}
+	groups := make(map[string]string, len(flat)+len(usage))
+	for _, allocation := range flat {
+		groups[allocation.ID] = allocation.LedgerTransactionGroupID
+	}
+	for _, allocation := range usage {
+		groups[allocation.ID] = allocation.LedgerTransactionGroupID
+	}
+	for i := range roots {
+		roots[i].OriginalTransactionGroupID = groups[roots[i].RootRealizationID]
+	}
+	return nil
 }

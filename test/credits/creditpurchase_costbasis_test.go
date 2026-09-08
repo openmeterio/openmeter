@@ -581,3 +581,7 @@ type creditPurchaseCostBasisLineage struct {
 func (creditPurchaseCostBasisLineage) BackfillAdvanceLineageSegments(context.Context, lineage.BackfillAdvanceLineageSegmentsInput) error {
 	return nil
 }
+
+func (creditPurchaseCostBasisLineage) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+	return nil, nil
+}

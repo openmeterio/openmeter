@@ -357,12 +357,12 @@ type promotionalStateMachineHandler struct {
 	onPromotionalCreditPurchase func(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error)
 }
 
-func (h *promotionalStateMachineHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.CreditGrantResult, error) {
+func (h *promotionalStateMachineHandler) OnPromotionalCreditPurchase(ctx context.Context, input creditpurchase.CreditGrantInput) (creditpurchase.CreditGrantResult, error) {
 	if h.onPromotionalCreditPurchase == nil {
 		return creditpurchase.CreditGrantResult{}, nil
 	}
 
-	return h.onPromotionalCreditPurchase(ctx, charge)
+	return h.onPromotionalCreditPurchase(ctx, input.Charge)
 }
 
 type promotionalStateMachineLineage struct {
@@ -379,3 +379,7 @@ var (
 	_ creditpurchase.Handler = (*promotionalStateMachineHandler)(nil)
 	_ lineage.Service        = (*promotionalStateMachineLineage)(nil)
 )
+
+func (*promotionalStateMachineLineage) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+	return nil, nil
+}

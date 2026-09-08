@@ -3680,7 +3680,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	s.NoError(err)
 
 	// then:
-	// - partial attribution is split proportionally across TaxCode/TaxBehavior buckets
+	// - partial attribution funds the older tax-A advance while preserving its tax route
 	// - the purchased grant is fully consumed by advance backfill
 	templateCounts := map[string]int{}
 	for _, tx := range backingGroup.Transactions() {
@@ -3689,17 +3689,17 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		templateCounts[code]++
 	}
 
-	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{})])
-	s.Equal(2, templateCounts[transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})])
+	s.Equal(1, templateCounts[transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{})])
+	s.Equal(1, templateCounts[transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})])
 	s.Equal(0, templateCounts[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})])
 
 	s.Equal(float64(-10), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
-	s.Equal(float64(3.33), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
-	s.Equal(float64(1.67), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxA.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&purchaseCostBasis), mo.Some(&taxB.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
-	s.Equal(float64(6.67), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
-	s.Equal(float64(3.33), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxA.ID), mo.Some(&taxABehavior)).InexactFloat64())
+	s.Equal(float64(5), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&purchaseCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64())
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 		Currency:    currencies.NewCurrencyReference(USD),
@@ -3707,23 +3707,21 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		TaxCode:     mo.Some(&taxA.ID),
 		TaxBehavior: mo.Some(&taxABehavior),
 	}, map[string]float64{
-		sourceSpendChargeBucketKey(&sourceChargeID, &taxASpendChargeID): 3.33, // 3.33 = 5 purchase allocated proportionally to the 10/15 tax-A advance bucket.
+		sourceSpendChargeBucketKey(&sourceChargeID, &taxASpendChargeID): 5, // The older advance receives the entire partial purchase.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some(&purchaseCostBasis),
 		TaxCode:     mo.Some(&taxB.ID),
 		TaxBehavior: mo.Some(&taxBBehavior),
-	}, map[string]float64{
-		sourceSpendChargeBucketKey(&sourceChargeID, &taxBSpendChargeID): 1.67, // 1.67 = 5 purchase allocated proportionally to the 5/15 tax-B advance bucket.
-	})
+	}, map[string]float64{})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some[*alpacadecimal.Decimal](nil),
 		TaxCode:     mo.Some(&taxA.ID),
 		TaxBehavior: mo.Some(&taxABehavior),
 	}, map[string]float64{
-		sourceSpendChargeBucketKey(nil, &taxASpendChargeID): 6.67, // 6.67 = original tax-A advance less the purchased attribution.
+		sourceSpendChargeBucketKey(nil, &taxASpendChargeID): 5, // The remainder retains the original tax treatment.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 		Currency:    currencies.NewCurrencyReference(USD),
@@ -3731,7 +3729,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		TaxCode:     mo.Some(&taxB.ID),
 		TaxBehavior: mo.Some(&taxBBehavior),
 	}, map[string]float64{
-		sourceSpendChargeBucketKey(nil, &taxBSpendChargeID): 3.33, // 3.33 = original tax-B advance less the purchased attribution.
+		sourceSpendChargeBucketKey(nil, &taxBSpendChargeID): 5, // The newer tax-B advance is still entirely uncovered.
 	})
 }
 
