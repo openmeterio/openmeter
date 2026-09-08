@@ -1,4 +1,4 @@
-package chargeadapter_test
+package adapter_test
 
 import (
 	"testing"
@@ -10,17 +10,30 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
-	env := newCreditPurchaseHandlerTestEnv(t)
 	ctx := t.Context()
-	adapter, err := lineageadapter.New(lineageadapter.Config{Client: env.DB})
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
+	t.Cleanup(func() {
+		require.NoError(t, testDB.EntDriver.Close())
+		require.NoError(t, testDB.PGDriver.Close())
+	})
+	db := testDB.EntDriver.Client()
+	adapter, err := lineageadapter.New(lineageadapter.Config{Client: db})
 	require.NoError(t, err)
+	service, err := lineageservice.New(lineageservice.Config{Adapter: adapter})
+	require.NoError(t, err)
+	testNamespace, testCustomerID := ulid.Make().String(), ulid.Make().String()
+	testCurrency := currenciestestutils.NewFiatCurrency(t, "USD")
 
 	// Given outstanding advances, a partial remainder, fully backed and consumed
 	// history, ordinary credit, and unrelated customers/currencies/namespaces.
@@ -44,7 +57,7 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		{name: "other currency", features: []string{"api"}, otherScope: "currency"},
 		{name: "other namespace", features: []string{"api"}, otherScope: "namespace"},
 	} {
-		namespace, customerID, currency := env.Namespace, env.CustomerID.ID, env.currency.Reference()
+		namespace, customerID, currency := testNamespace, testCustomerID, testCurrency.Reference()
 		switch scenario.otherScope {
 		case "customer":
 			customerID = ulid.Make().String()
@@ -58,7 +71,7 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 			origin = creditrealization.LineageOriginKindAdvance
 		}
 		chargeID, rootID := ulid.Make().String(), ulid.Make().String()
-		_, err := env.DB.Charge.Create().SetID(chargeID).SetNamespace(namespace).SetType(meta.ChargeTypeUsageBased).Save(ctx)
+		_, err := db.Charge.Create().SetID(chargeID).SetNamespace(namespace).SetType(meta.ChargeTypeUsageBased).Save(ctx)
 		require.NoError(t, err)
 		require.NoError(t, adapter.CreateLineages(ctx, lineage.CreateLineagesInput{
 			Namespace: namespace, CustomerID: customerID, ChargeID: chargeID, Currency: currency,
@@ -73,14 +86,14 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, segments, 1)
 		if scenario.backed > 0 {
-			require.NoError(t, env.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
-				Namespace: namespace, CustomerID: customerID, Currency: env.currency,
+			require.NoError(t, service.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+				Namespace: namespace, CustomerID: customerID, Currency: testCurrency,
 				Amount: alpacadecimal.NewFromInt(scenario.backed), BackingTransactionGroupID: ulid.Make().String(),
 				Allocations: []lineage.AdvanceBackfillAllocation{{SegmentID: segments[0].ID, Amount: alpacadecimal.NewFromInt(scenario.backed)}},
 			}))
 		}
 		if scenario.consumed {
-			require.NoError(t, env.lineage.CloseSegment(ctx, segments[0].ID, env.Now()))
+			require.NoError(t, service.CloseSegment(ctx, segments[0].ID, clock.Now()))
 		}
 	}
 
@@ -93,14 +106,16 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		{name: "active excludes consumed roots", input: lineage.LoadLineagesByCustomerInput{HasActiveSegments: true}, expected: []string{"api", "partial", "storage", "featureless", "fully backed", "real credit"}},
 		{name: "origin selects ordinary credit", input: lineage.LoadLineagesByCustomerInput{OriginKind: lo.ToPtr(creditrealization.LineageOriginKindRealCredit)}, expected: []string{"real credit"}},
 		{name: "uncovered excludes fully backed and consumed roots", input: lineage.LoadLineagesByCustomerInput{OriginKind: lo.ToPtr(creditrealization.LineageOriginKindAdvance), SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered)}, expected: []string{"api", "partial", "storage", "featureless"}},
+		{name: "backfilled selects only backed segments", input: lineage.LoadLineagesByCustomerInput{SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceBackfilled)}, expected: []string{"partial", "fully backed"}},
+		{name: "empty feature filter is unrestricted", input: lineage.LoadLineagesByCustomerInput{FeatureFilters: []string{}}, expected: []string{"api", "partial", "storage", "featureless", "fully backed", "consumed", "real credit"}},
 		{name: "restricted purchase includes any overlapping feature", input: lineage.LoadLineagesByCustomerInput{OriginKind: lo.ToPtr(creditrealization.LineageOriginKindAdvance), HasActiveSegments: true, SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered), FeatureFilters: []string{"api", "unrelated"}}, expected: []string{"api", "partial"}},
 		{name: "no matching feature", input: lineage.LoadLineagesByCustomerInput{FeatureFilters: []string{"unrelated"}}},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			// When the caller selects candidate roots in the database.
 			input := scenario.input
-			input.Namespace, input.CustomerID, input.Currency = env.Namespace, env.CustomerID.ID, env.currency.Reference()
-			roots, err := env.lineage.LoadLineagesByCustomer(ctx, input)
+			input.Namespace, input.CustomerID, input.Currency = testNamespace, testCustomerID, testCurrency.Reference()
+			roots, err := service.LoadLineagesByCustomer(ctx, input)
 			require.NoError(t, err)
 
 			// Then excluded history contributes neither roots nor eager-loaded segments.
@@ -112,7 +127,11 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 					require.Len(t, root.Segments, 1)
 					require.Equal(t, *input.SegmentState, root.Segments[0].State)
 					if root.ID == ids["partial"] {
-						require.Equal(t, float64(15), root.Segments[0].Amount.InexactFloat64())
+						expectedAmount := float64(15)
+						if *input.SegmentState == creditrealization.LineageSegmentStateAdvanceBackfilled {
+							expectedAmount = 5
+						}
+						require.Equal(t, expectedAmount, root.Segments[0].Amount.InexactFloat64())
 					}
 				}
 			}
