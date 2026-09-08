@@ -121,7 +121,7 @@ func (a *adapter) ResolvePrice(ctx context.Context, input llmcost.ResolvePriceIn
 		).
 		Order(
 			// Prioritize namespace overrides
-			pricedb.ByNamespace(sql.OrderDesc()),
+			pricedb.ByNamespace(sql.OrderDesc(), sql.OrderNullsLast()),
 			// Then effective from
 			pricedb.ByEffectiveFrom(sql.OrderDesc()),
 		).
