@@ -9,7 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -23,8 +23,8 @@ var recognizableSegmentStates = map[creditrealization.LineageSegmentState]bool{
 
 // lineageEligible holds a lineage and its recognizable segment amounts.
 type lineageEligible struct {
-	lineage  lineage.Lineage
-	segments []lineage.Segment
+	lineage  legacylineage.Lineage
+	segments []legacylineage.Segment
 }
 
 func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInput) (RecognizeEarningsResult, error) {
@@ -45,7 +45,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 			return RecognizeEarningsResult{}, err
 		}
 		// Load all lineages for this customer+currency with their active segments.
-		lineages, err := s.lnge.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+		lineages, err := s.lnge.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 			Namespace:  in.CustomerID.Namespace,
 			CustomerID: in.CustomerID.ID,
 			Currency:   in.Currency.Reference(),
@@ -126,11 +126,11 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 
 // collectEligibleLineages extracts lineages with recognizable active segments,
 // sorted by lineage ID for deterministic ordering.
-func collectEligibleLineages(lineages []lineage.Lineage) []lineageEligible {
+func collectEligibleLineages(lineages []legacylineage.Lineage) []lineageEligible {
 	out := make([]lineageEligible, 0, len(lineages))
 
 	for _, l := range lineages {
-		var segments []lineage.Segment
+		var segments []legacylineage.Segment
 
 		for _, seg := range l.Segments {
 			if recognizableSegmentStates[seg.State] && seg.Amount.IsPositive() {
@@ -147,7 +147,7 @@ func collectEligibleLineages(lineages []lineage.Lineage) []lineageEligible {
 	}
 
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].lineage.ID < out[j].lineage.ID
+		return out[i].legacylineage.ID < out[j].legacylineage.ID
 	})
 
 	return out
@@ -169,7 +169,7 @@ func (s *service) allocateRecognition(ctx context.Context, allocations []recogni
 		// If partial consumption, create remainder in original state.
 		remainder := seg.Amount.Sub(consumed)
 		if remainder.IsPositive() {
-			if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
+			if err := s.lnge.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 				LineageID:                 seg.LineageID,
 				Amount:                    remainder,
 				State:                     seg.State,
@@ -182,7 +182,7 @@ func (s *service) allocateRecognition(ctx context.Context, allocations []recogni
 		// Create earnings_recognized segment for the consumed portion.
 		// Source fields let correction unwind recognition back to the prior state.
 		sourceState := seg.State
-		if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
+		if err := s.lnge.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 			LineageID:                       seg.LineageID,
 			Amount:                          consumed,
 			State:                           creditrealization.LineageSegmentStateEarningsRecognized,

@@ -3,7 +3,7 @@ package testutils
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
 
@@ -12,11 +12,11 @@ import (
 // still uses the real database-backed service. Full lifecycle tests load these
 // references from the charge allocation tables.
 type LineageWithAllocations struct {
-	lineage.Service
+	legacylineage.Service
 	allocations map[string]creditrealization.Realization
 }
 
-func (s *LineageWithAllocations) CreateInitialLineages(ctx context.Context, input lineage.CreateInitialLineagesInput) error {
+func (s *LineageWithAllocations) CreateInitialLineages(ctx context.Context, input legacylineage.CreateInitialLineagesInput) error {
 	if err := s.Service.CreateInitialLineages(ctx, input); err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func (s *LineageWithAllocations) CreateInitialLineages(ctx context.Context, inpu
 	return nil
 }
 
-func (s *LineageWithAllocations) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+func (s *LineageWithAllocations) LoadLineagesByCustomer(ctx context.Context, input legacylineage.LoadLineagesByCustomerInput) ([]legacylineage.Lineage, error) {
 	roots, err := s.Service.LoadLineagesByCustomer(ctx, input)
 	if err != nil {
 		return nil, err

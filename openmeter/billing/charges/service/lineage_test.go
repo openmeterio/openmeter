@@ -18,9 +18,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	lineage "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -91,7 +91,7 @@ func (s *CreditRealizationLineageTestSuite) TestCustomCurrencyLineagesUseManaged
 			Save(ctx)
 		s.Require().NoError(err)
 
-		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
+		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 			Namespace:  ns,
 			ChargeID:   chargeID,
 			CustomerID: customerID,
@@ -114,13 +114,13 @@ func (s *CreditRealizationLineageTestSuite) TestCustomCurrencyLineagesUseManaged
 	}
 
 	// when: each currency's customer lineages are loaded by persisted identity
-	lineagesA, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	lineagesA, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  ns,
 		CustomerID: customerID,
 		Currency:   currencyA.Reference(),
 	})
 	s.Require().NoError(err)
-	lineagesB, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	lineagesB, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  ns,
 		CustomerID: customerID,
 		Currency:   currencyB.Reference(),
@@ -308,12 +308,12 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 
 func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFiltersByAdvanceFeatures() {
 	ctx := s.T().Context()
-	adapter, err := lineageadapter.New(lineageadapter.Config{
+	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.Require().NoError(err)
 
-	service, err := lineageservice.New(lineageservice.Config{
+	service, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: adapter,
 	})
 	s.Require().NoError(err)
@@ -340,9 +340,9 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 	s.Require().NoError(err)
 	backingTransactionGroupID := group.ID().ID
 
-	err = service.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+	err = service.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 ns,
-		Allocations:               []lineage.AdvanceBackfillAllocation{{SegmentID: s.activeLineageSegments(ctx, apiLineageID)[0].ID, Amount: alpacadecimal.NewFromInt(40)}},
+		Allocations:               []legacylineage.AdvanceBackfillAllocation{{SegmentID: s.activeLineageSegments(ctx, apiLineageID)[0].ID, Amount: alpacadecimal.NewFromInt(40)}},
 		CustomerID:                customerID,
 		Currency:                  currenciestestutils.NewFiatCurrency(s.T(), currency.USD),
 		Amount:                    alpacadecimal.NewFromInt(50),
@@ -367,7 +367,7 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillRequiresTransaction() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-lineage-lock-tx")
-	adapter, err := lineageadapter.New(lineageadapter.Config{
+	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.Require().NoError(err)
@@ -389,7 +389,7 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 	})
 
 	ns := s.GetUniqueNamespace("charges-service-lineage-lock-in-tx")
-	adapter, err := lineageadapter.New(lineageadapter.Config{
+	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.Require().NoError(err)
@@ -401,12 +401,12 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 
 func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegmentsConsumesBackfilledBeforeUncovered() {
 	ctx := context.Background()
-	adapter, err := lineageadapter.New(lineageadapter.Config{
+	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.Require().NoError(err)
 
-	service, err := lineageservice.New(lineageservice.Config{
+	service, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: adapter,
 	})
 	s.Require().NoError(err)
@@ -450,7 +450,7 @@ func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegments
 	).Save(ctx)
 	s.Require().NoError(err)
 
-	err = service.PersistCorrectionLineageSegments(ctx, lineage.PersistCorrectionLineageSegmentsInput{
+	err = service.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{
 		Namespace: ns,
 		Realizations: creditrealization.Realizations{
 			{
@@ -485,12 +485,12 @@ func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegments
 
 func (s *CreditRealizationLineageTestSuite) TestCreateSegmentRejectsInvalidInput() {
 	ctx := context.Background()
-	adapter, err := lineageadapter.New(lineageadapter.Config{
+	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.Require().NoError(err)
 
-	err = adapter.CreateSegment(ctx, lineage.CreateSegmentInput{
+	err = adapter.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 		LineageID: ulid.Make().String(),
 		Amount:    alpacadecimal.NewFromInt(10),
 		State:     creditrealization.LineageSegmentStateAdvanceBackfilled,
@@ -532,7 +532,7 @@ func (s *CreditRealizationLineageTestSuite) mustListLineages(namespace string, r
 
 	out := make(map[string]*entdb.CreditRealizationLineage, len(lineages))
 	for _, lineage := range lineages {
-		out[lineage.RootRealizationID] = lineage
+		out[legacylineage.RootRealizationID] = lineage
 	}
 
 	return out
@@ -593,13 +593,13 @@ func (s *CreditRealizationLineageTestSuite) assertInitialLineage(lineage *entdb.
 	s.T().Helper()
 
 	require.NotNil(s.T(), lineage)
-	s.Equal(chargeID, lineage.ChargeID)
-	s.Equal(originKind, lineage.OriginKind)
-	s.Require().Len(lineage.Edges.Segments, 1)
-	s.Equal(amount, lineage.Edges.Segments[0].Amount)
-	s.Equal(state, lineage.Edges.Segments[0].State)
-	s.Nil(lineage.Edges.Segments[0].ClosedAt)
-	s.Nil(lineage.Edges.Segments[0].BackingTransactionGroupID)
+	s.Equal(chargeID, legacylineage.ChargeID)
+	s.Equal(originKind, legacylineage.OriginKind)
+	s.Require().Len(legacylineage.Edges.Segments, 1)
+	s.Equal(amount, legacylineage.Edges.Segments[0].Amount)
+	s.Equal(state, legacylineage.Edges.Segments[0].State)
+	s.Nil(legacylineage.Edges.Segments[0].ClosedAt)
+	s.Nil(legacylineage.Edges.Segments[0].BackingTransactionGroupID)
 }
 
 func realizationIDs(realizations creditrealization.Realizations) []string {

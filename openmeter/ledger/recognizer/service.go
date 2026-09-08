@@ -8,7 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -27,7 +27,7 @@ type Service interface {
 type Config struct {
 	Ledger             ledger.Ledger
 	Dependencies       transactions.ResolverDependencies
-	Lineage            lineage.Service
+	Lineage            legacylineage.Service
 	TransactionManager transaction.Creator
 }
 
@@ -72,7 +72,7 @@ func NewService(config Config) (Service, error) {
 type service struct {
 	ledger             ledger.Ledger
 	deps               transactions.ResolverDependencies
-	lnge               lineage.Service
+	lnge               legacylineage.Service
 	transactionManager transaction.Creator
 }
 

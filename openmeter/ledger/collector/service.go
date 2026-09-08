@@ -8,7 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -86,7 +86,7 @@ type CorrectCollectedAccruedInput struct {
 	Annotations                  models.Annotations
 	AllocateAt                   time.Time
 	Corrections                  creditrealization.CorrectionRequest
-	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID
+	LineageSegmentsByRealization legacylineage.ActiveSegmentsByRealizationID
 }
 
 func (i CorrectCollectedAccruedInput) Validate() error {

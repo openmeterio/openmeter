@@ -10,7 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -76,7 +76,7 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 		CustomerID:  env.CustomerID.ID,
 		AllocateAt:  env.Now(),
 		Corrections: request,
-		LineageSegmentsByRealization: lineage.ActiveSegmentsByRealizationID{
+		LineageSegmentsByRealization: legacylineage.ActiveSegmentsByRealizationID{
 			realizations[0].ID: {
 				{
 					Amount: alpacadecimal.NewFromInt(20),
@@ -1104,7 +1104,7 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 		_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
 			Namespace: env.Namespace, ChargeID: spends[1], CustomerID: env.CustomerID.ID, AllocateAt: env.Now(),
 			Corrections: creditrealization.CorrectionRequest{{Allocation: allocations[1], Amount: alpacadecimal.NewFromInt(-correction)}},
-			LineageSegmentsByRealization: lineage.ActiveSegmentsByRealizationID{allocations[1].ID: {{
+			LineageSegmentsByRealization: legacylineage.ActiveSegmentsByRealizationID{allocations[1].ID: {{
 				Amount: amount, State: creditrealization.LineageSegmentStateEarningsRecognized,
 				BackingTransactionGroupID:       lo.ToPtr(recognition.ID().ID),
 				SourceState:                     lo.ToPtr(creditrealization.LineageSegmentStateAdvanceBackfilled),

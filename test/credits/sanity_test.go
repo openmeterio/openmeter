@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -3823,7 +3823,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 			s.Require().NoError(err)
 		}
 		feature := charge.Intent.GetFeatureKey()
-		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
+		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 			Namespace: ns, CustomerID: cust.ID, ChargeID: charge.ID, Currency: charge.Intent.GetCurrency(),
 			Features: lo.Ternary(feature == "", nil, []string{feature}), Realizations: realizations,
 		}))

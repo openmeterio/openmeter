@@ -11,9 +11,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargeflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
@@ -692,7 +692,7 @@ func TestOnFlatFeePaymentUncollectible(t *testing.T) {
 type flatFeeHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	handler    chargeflatfee.Handler
-	lineage    lineage.Service
+	lineage    legacylineage.Service
 	recognizer recognizer.Service
 	currency   currencies.Currency
 }
@@ -711,7 +711,7 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: base.DB,
 	})
 	require.NoError(t, err)
@@ -1148,7 +1148,7 @@ func (e *flatFeeHandlerTestEnv) createInitialLineages(t *testing.T, chargeID str
 
 	e.ensureCharge(t, chargeID)
 
-	err := e.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
+	err := e.legacylineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
@@ -1158,7 +1158,7 @@ func (e *flatFeeHandlerTestEnv) createInitialLineages(t *testing.T, chargeID str
 	require.NoError(t, err)
 }
 
-func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realizations creditrealization.Realizations) lineage.ActiveSegmentsByRealizationID {
+func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realizations creditrealization.Realizations) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 
 	ids := make([]string, 0, len(realizations))
@@ -1166,13 +1166,13 @@ func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realiz
 		ids = append(ids, realization.ID)
 	}
 
-	segments, err := e.lineage.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, ids)
+	segments, err := e.legacylineage.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, ids)
 	require.NoError(t, err)
 
 	return segments
 }
 
-func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) lineage.ActiveSegmentsByRealizationID {
+func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 	require.NotEmpty(t, recognitionGroupID)
 	segments := e.activeSegmentsByRealization(t, realizations)
