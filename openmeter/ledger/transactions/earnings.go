@@ -21,6 +21,9 @@ type RecognizeEarningsFromAttributableAccruedTemplate struct {
 	At       time.Time
 	Amount   alpacadecimal.Decimal
 	Currency currencies.CurrencyReference
+	// Sources, when provided, are the accrued slices already selected by the
+	// caller within its transaction. Nil selects from attributable balances.
+	Sources []PostingAmount
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
@@ -36,6 +39,25 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
 		return fmt.Errorf("currency: %w", err)
 	}
 
+	if t.Sources != nil {
+		total := alpacadecimal.Zero
+		for i, source := range t.Sources {
+			if source.Address == nil || source.Address.AccountType() != ledger.AccountTypeCustomerAccrued {
+				return fmt.Errorf("sources[%d]: customer accrued address is required", i)
+			}
+			route := source.Address.Route().Route()
+			if !route.Currency.Equal(t.Currency) || route.CostBasis == nil || !isCreditBackedAccruedIdentity(source.Identity) {
+				return fmt.Errorf("sources[%d]: known-cost credit-backed accrued in the recognition currency is required", i)
+			}
+			if err := ledger.ValidateTransactionAmount(source.Amount); err != nil {
+				return fmt.Errorf("sources[%d]: %w", i, err)
+			}
+			total = total.Add(source.Amount)
+		}
+		if !total.Equal(t.Amount) {
+			return fmt.Errorf("source total %s does not match recognition amount %s", total, t.Amount)
+		}
+	}
 	return nil
 }
 
@@ -109,9 +131,17 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) entryRoutePairingKey(e
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	collections, err := collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers)
-	if err != nil {
-		return nil, fmt.Errorf("collect from attributable accrued: %w", err)
+	var collections []postingAddressAmount
+	if t.Sources == nil {
+		var err error
+		collections, err = collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers)
+		if err != nil {
+			return nil, fmt.Errorf("collect from attributable accrued: %w", err)
+		}
+	} else {
+		for _, source := range t.Sources {
+			collections = append(collections, postingAddressAmount{address: source.Address, amount: source.Amount, identity: source.Identity})
+		}
 	}
 	if len(collections) == 0 {
 		return nil, nil

@@ -267,6 +267,7 @@ type Lineage struct {
 	// CreatedAt is the immutable recording time of the original collection occurrence.
 	CreatedAt                  time.Time
 	OriginalTransactionGroupID string
+	OriginalAllocationSortHint int
 	ID                         string
 	ChargeID                   string
 	RootRealizationID          string

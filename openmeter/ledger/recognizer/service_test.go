@@ -28,8 +28,9 @@ import (
 
 type recognizerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
-	recognizer recognizer.Service
-	lineage    lineage.Service
+	recognizer  recognizer.Service
+	lineage     lineage.Service
+	lastGroupID string
 }
 
 func newRecognizerTestEnv(t *testing.T) *recognizerTestEnv {
@@ -47,10 +48,12 @@ func newRecognizerTestEnv(t *testing.T) *recognizerTestEnv {
 	})
 	require.NoError(t, err)
 
-	lngeSvc, err := lineageservice.New(lineageservice.Config{
+	dbLineage, err := lineageservice.New(lineageservice.Config{
 		Adapter: lngeAdapter,
 	})
 	require.NoError(t, err)
+
+	lngeSvc := &ledgertestutils.LineageWithAllocations{Service: dbLineage}
 
 	recSvc, err := recognizer.NewService(recognizer.Config{
 		Ledger:             base.Deps.HistoricalLedger,
@@ -93,8 +96,9 @@ func (e *recognizerTestEnv) resolveAndCommit(t *testing.T, templates ...transact
 	)
 	require.NoError(t, err)
 
-	_, err = e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
+	group, err := e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
+	e.lastGroupID = group.ID().ID
 }
 
 // ensureCharge creates a minimal charge record in the DB if it doesn't exist.
@@ -137,7 +141,7 @@ func (e *recognizerTestEnv) createLineageForRealization(t *testing.T, chargeID, 
 						To:   clock.Now(),
 					},
 					LedgerTransaction: ledgertransaction.GroupReference{
-						TransactionGroupID: "test-group-" + realizationID,
+						TransactionGroupID: e.lastGroupID,
 					},
 					Annotations: creditrealization.LineageAnnotations(originKind),
 				},
@@ -334,5 +338,78 @@ func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testin
 			require.NotNil(t, seg.SourceState)
 			require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *seg.SourceState)
 		}
+	}
+}
+
+func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		alreadyRecognized int64
+	}{
+		{name: "matching source only"},
+		{name: "partially available source", alreadyRecognized: 15},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newRecognizerTestEnv(t)
+			currency := currenciestestutils.NewFiatCurrency(t, env.Currency)
+			costBasis := alpacadecimal.NewFromInt(1)
+			spend, source := testID(), testID()
+
+			// given: one allocation has lineage, and an unrelated source/spend
+			// shares its accrued subaccount. Existing journal recognition may
+			// leave less live accrued than the lineage's face amount.
+			env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+				At: env.Now(), Amount: alpacadecimal.NewFromInt(40), Currency: env.CurrencyReference(), CostBasis: &costBasis,
+				SourceChargeID: &source, SpendChargeID: &spend,
+			})
+			env.createLineageForRealization(t, spend, testID(), currency, alpacadecimal.NewFromInt(40), creditrealization.LineageOriginKindRealCredit)
+			if tc.alreadyRecognized > 0 {
+				env.resolveAndCommit(t, transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+					At: env.Now(), Amount: alpacadecimal.NewFromInt(tc.alreadyRecognized), Currency: env.CurrencyReference(),
+				})
+			}
+			// This source sorts before the tracked one, so scalar recognition
+			// would consume it even when the tracked source has enough balance.
+			unrelatedSource, unrelatedSpend := "00000000000000000000000001", testID()
+			env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+				At: env.Now(), Amount: alpacadecimal.NewFromInt(10), Currency: env.CurrencyReference(), CostBasis: &costBasis,
+				SourceChargeID: &unrelatedSource, SpendChargeID: &unrelatedSpend,
+			})
+
+			// when: recognition selects only the allocation's actual remaining source.
+			result, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+				CustomerID: env.CustomerID, At: env.Now(), Currency: currency,
+			})
+			require.NoError(t, err)
+			require.Equal(t, float64(40-tc.alreadyRecognized), result.RecognizedAmount.InexactFloat64())
+
+			// then: all postings have the allocation's source/spend, unrelated
+			// accrued remains deferred, and any partial segment retains its state.
+			for _, entry := range env.TransactionGroupEntries(t, result.LedgerGroupID) {
+				require.Equal(t, &source, entry.SourceChargeID)
+				require.Equal(t, &spend, entry.SpendChargeID)
+			}
+			require.Equal(t, float64(10), env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
+			roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+				Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.CurrencyReference(),
+			})
+			require.NoError(t, err)
+			require.Len(t, roots, 1)
+			amounts := make(map[creditrealization.LineageSegmentState]float64)
+			for _, segment := range roots[0].Segments {
+				amounts[segment.State] += segment.Amount.InexactFloat64()
+				if segment.State == creditrealization.LineageSegmentStateEarningsRecognized {
+					require.Equal(t, &result.LedgerGroupID, segment.BackingTransactionGroupID)
+					require.NotNil(t, segment.SourceState)
+					require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *segment.SourceState)
+				}
+			}
+			require.Equal(t, float64(40-tc.alreadyRecognized), amounts[creditrealization.LineageSegmentStateEarningsRecognized])
+			require.Equal(t, float64(tc.alreadyRecognized), amounts[creditrealization.LineageSegmentStateRealCredit])
+			retry, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{CustomerID: env.CustomerID, At: env.Now(), Currency: currency})
+			require.NoError(t, err)
+			require.Zero(t, retry.RecognizedAmount.InexactFloat64())
+			require.Empty(t, retry.LedgerGroupID)
+		})
 	}
 }

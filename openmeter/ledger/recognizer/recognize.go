@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -25,7 +24,6 @@ var recognizableSegmentStates = map[creditrealization.LineageSegmentState]bool{
 type lineageEligible struct {
 	lineage  lineage.Lineage
 	segments []lineage.Segment
-	amount   alpacadecimal.Decimal
 }
 
 func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInput) (RecognizeEarningsResult, error) {
@@ -50,12 +48,19 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 			return RecognizeEarningsResult{}, nil
 		}
 
-		totalEligible := alpacadecimal.Zero
-		for _, e := range eligible {
-			totalEligible = totalEligible.Add(e.amount)
+		sources, allocations, err := s.planRecognition(ctx, in, eligible)
+		if err != nil {
+			return RecognizeEarningsResult{}, fmt.Errorf("plan recognition: %w", err)
+		}
+		actualAmount := alpacadecimal.Zero
+		for _, allocation := range allocations {
+			actualAmount = actualAmount.Add(allocation.amount)
+		}
+		if !actualAmount.IsPositive() {
+			return RecognizeEarningsResult{}, nil
 		}
 
-		// Resolve the recognition template against the actual ledger accrued balance.
+		// Resolve postings for the exact accrued slices selected for these segments.
 		resolved, err := transactions.ResolveTransactions(
 			ctx,
 			s.deps,
@@ -65,7 +70,8 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 			},
 			transactions.RecognizeEarningsFromAttributableAccruedTemplate{
 				At:       in.At,
-				Amount:   totalEligible,
+				Amount:   actualAmount,
+				Sources:  sources,
 				Currency: in.Currency.Reference(),
 			},
 		)
@@ -73,12 +79,6 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 			return RecognizeEarningsResult{}, fmt.Errorf("resolve recognition: %w", err)
 		}
 		if len(resolved) == 0 {
-			return RecognizeEarningsResult{}, nil
-		}
-
-		// Compute actual recognized amount from the template output entries.
-		actualAmount := sumPositiveEntries(resolved)
-		if !actualAmount.IsPositive() {
 			return RecognizeEarningsResult{}, nil
 		}
 
@@ -95,9 +95,8 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 
 		groupID := group.ID().ID
 
-		// Allocate actual recognized amount back to lineages in deterministic order
-		// and transition their segments to earnings_recognized.
-		if err := s.allocateRecognition(ctx, eligible, actualAmount, groupID, in.At); err != nil {
+		// Persist exactly the segments that supplied the committed postings.
+		if err := s.allocateRecognition(ctx, allocations, groupID, in.At); err != nil {
 			return RecognizeEarningsResult{}, fmt.Errorf("allocate recognition: %w", err)
 		}
 
@@ -115,20 +114,17 @@ func collectEligibleLineages(lineages []lineage.Lineage) []lineageEligible {
 
 	for _, l := range lineages {
 		var segments []lineage.Segment
-		amount := alpacadecimal.Zero
 
 		for _, seg := range l.Segments {
 			if recognizableSegmentStates[seg.State] && seg.Amount.IsPositive() {
 				segments = append(segments, seg)
-				amount = amount.Add(seg.Amount)
 			}
 		}
 
-		if amount.IsPositive() {
+		if len(segments) > 0 {
 			out = append(out, lineageEligible{
 				lineage:  l,
 				segments: segments,
-				amount:   amount,
 			})
 		}
 	}
@@ -140,83 +136,47 @@ func collectEligibleLineages(lineages []lineage.Lineage) []lineageEligible {
 	return out
 }
 
-// allocateRecognition distributes the actual recognized amount across eligible
-// lineages and transitions their segments to earnings_recognized.
-func (s *service) allocateRecognition(ctx context.Context, eligible []lineageEligible, actualAmount alpacadecimal.Decimal, groupID string, at time.Time) error {
-	remaining := actualAmount
+// allocateRecognition transitions the preselected source segments atomically with
+// their journal postings and preserves the backing needed by correction.
+func (s *service) allocateRecognition(ctx context.Context, allocations []recognitionAllocation, groupID string, at time.Time) error {
 	now := at.Truncate(time.Microsecond)
-
-	for _, e := range eligible {
-		if !remaining.IsPositive() {
-			break
+	for _, allocation := range allocations {
+		seg := allocation.segment
+		consumed := allocation.amount
+		// Close the source segment before recreating its remainder and
+		// recognized portion. This keeps the active segment set non-overlapping.
+		if err := s.lnge.CloseSegment(ctx, seg.ID, now); err != nil {
+			return fmt.Errorf("close segment %s: %w", seg.ID, err)
 		}
 
-		lineageAlloc := minDecimal(e.amount, remaining)
-		segRemaining := lineageAlloc
-
-		for _, seg := range e.segments {
-			if !segRemaining.IsPositive() {
-				break
-			}
-
-			consumed := minDecimal(seg.Amount, segRemaining)
-
-			// Close the source segment before recreating its remainder and
-			// recognized portion. This keeps the active segment set non-overlapping.
-			if err := s.lnge.CloseSegment(ctx, seg.ID, now); err != nil {
-				return fmt.Errorf("close segment %s: %w", seg.ID, err)
-			}
-
-			// If partial consumption, create remainder in original state.
-			remainder := seg.Amount.Sub(consumed)
-			if remainder.IsPositive() {
-				if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
-					LineageID:                 seg.LineageID,
-					Amount:                    remainder,
-					State:                     seg.State,
-					BackingTransactionGroupID: seg.BackingTransactionGroupID,
-				}); err != nil {
-					return fmt.Errorf("create remainder segment: %w", err)
-				}
-			}
-
-			// Create earnings_recognized segment for the consumed portion.
-			// Source fields let correction unwind recognition back to the prior state.
-			sourceState := seg.State
+		// If partial consumption, create remainder in original state.
+		remainder := seg.Amount.Sub(consumed)
+		if remainder.IsPositive() {
 			if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
-				LineageID:                       seg.LineageID,
-				Amount:                          consumed,
-				State:                           creditrealization.LineageSegmentStateEarningsRecognized,
-				BackingTransactionGroupID:       &groupID,
-				SourceState:                     &sourceState,
-				SourceBackingTransactionGroupID: seg.BackingTransactionGroupID,
+				LineageID:                 seg.LineageID,
+				Amount:                    remainder,
+				State:                     seg.State,
+				BackingTransactionGroupID: seg.BackingTransactionGroupID,
 			}); err != nil {
-				return fmt.Errorf("create recognized segment: %w", err)
+				return fmt.Errorf("create remainder segment: %w", err)
 			}
-
-			segRemaining = segRemaining.Sub(consumed)
 		}
 
-		remaining = remaining.Sub(lineageAlloc)
+		// Create earnings_recognized segment for the consumed portion.
+		// Source fields let correction unwind recognition back to the prior state.
+		sourceState := seg.State
+		if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
+			LineageID:                       seg.LineageID,
+			Amount:                          consumed,
+			State:                           creditrealization.LineageSegmentStateEarningsRecognized,
+			BackingTransactionGroupID:       &groupID,
+			SourceState:                     &sourceState,
+			SourceBackingTransactionGroupID: seg.BackingTransactionGroupID,
+		}); err != nil {
+			return fmt.Errorf("create recognized segment: %w", err)
+		}
 	}
-
 	return nil
-}
-
-// sumPositiveEntries sums positive entry amounts across resolved transaction inputs.
-// For recognition this is the total amount credited to earnings accounts.
-func sumPositiveEntries(inputs []ledger.TransactionInput) alpacadecimal.Decimal {
-	total := alpacadecimal.Zero
-
-	for _, input := range inputs {
-		for _, entry := range input.EntryInputs() {
-			if entry.Amount().IsPositive() {
-				total = total.Add(entry.Amount())
-			}
-		}
-	}
-
-	return total
 }
 
 func minDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
