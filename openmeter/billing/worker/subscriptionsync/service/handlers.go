@@ -40,10 +40,10 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 		return err
 	}
 
-	// Continuation or a later cancellation supersedes this event. Its old end
-	// must not truncate charges already provisioned by a newer sync. The newer
-	// lifecycle event and periodic reconciler own synchronization of that state.
-	if current.ActiveTo == nil || !current.ActiveTo.Equal(*event.Spec.ActiveTo) {
+	// Cancellation and continuation update the root subscription timestamp,
+	// even when a later cancellation reuses the same end date. Ignore older
+	// events so their horizon cannot reconcile a newer subscription state.
+	if current.UpdatedAt.After(event.Subscription.UpdatedAt) {
 		return nil
 	}
 
