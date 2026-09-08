@@ -13,6 +13,7 @@ import (
 	creditpurchasemodels "github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var _ billing.LineEngine = (*LineEngine)(nil)
@@ -30,7 +31,7 @@ func (e *LineEngine) AreLinesBillableAsOf(_ context.Context, input billing.AreLi
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	return lo.MapErr(input.Lines, func(line billing.GatheringLine, _ int) (billing.IsLineBillableAsOfResult, error) {
+	return slicesx.MapWithErrPreservingResults(input.Lines, func(line billing.GatheringLine, _ int) (billing.IsLineBillableAsOfResult, error) {
 		if line.SplitLineGroupID != nil {
 			return billing.IsLineBillableAsOfResult{}, billing.ValidationError{Err: billing.ErrInvoiceProgressiveBillingNotSupported}
 		}

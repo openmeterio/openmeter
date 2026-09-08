@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -81,5 +82,23 @@ func TestResolveBillablePeriodInputValidate(t *testing.T) {
 		}).Validate()
 
 		require.NoError(t, err)
+	})
+
+	t.Run("missing line and as of return a generic validation error", func(t *testing.T) {
+		err := (rating.ResolveBillablePeriodInput{}).Validate()
+
+		require.True(t, models.IsGenericValidationError(err))
+		require.ErrorContains(t, err, "line is required")
+		require.ErrorContains(t, err, "as of is required")
+	})
+
+	t.Run("missing line price returns a generic validation error", func(t *testing.T) {
+		err := (rating.ResolveBillablePeriodInput{
+			AsOf: asOf,
+			Line: gatheringLine{},
+		}).Validate()
+
+		require.True(t, models.IsGenericValidationError(err))
+		require.ErrorContains(t, err, "line price is required")
 	})
 }
