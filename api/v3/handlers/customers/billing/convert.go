@@ -2,8 +2,17 @@
 package customersbilling
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/oapi-codegen/nullable"
+	"github.com/samber/lo"
+
 	apilegacy "github.com/openmeterio/openmeter/api"
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
@@ -61,4 +70,55 @@ var (
 
 func ResolveIDFromCustomerId(namespacedID customer.CustomerID) string {
 	return namespacedID.ID
+}
+
+func fromAPIBillingAppCustomerData(ctx context.Context, application app.App, data app.CustomerData) (*api.BillingAppCustomerData, error) {
+	appData := &api.BillingAppCustomerData{}
+
+	switch application.GetType() {
+	case app.AppTypeStripe:
+		// data is nil when the customer has no stripe data for the configured
+		// payment app
+		if data == nil {
+			appData.Stripe = nullable.NewNullNullable[api.BillingAppCustomerDataStripe]()
+			return appData, nil
+		}
+
+		// The handler selected the app by type, so the type must match. A
+		// mismatch is a programming error, not a "no data" state.
+		stripeData, ok := data.(appstripe.CustomerData)
+		if !ok {
+			return nil, apierrors.NewInternalError(ctx, fmt.Errorf("stripe app returned %T, want appstripe.CustomerData", data))
+		}
+
+		// TODO: we don't have metadata on the stripe customer data yet
+		appData.Stripe = nullable.NewNullableWithValue(api.BillingAppCustomerDataStripe{
+			CustomerId:             &stripeData.StripeCustomerID,
+			DefaultPaymentMethodId: stripeData.StripeDefaultPaymentMethodID,
+		})
+		return appData, nil
+
+	case app.AppTypeCustomInvoicing:
+		if data == nil {
+			appData.ExternalInvoicing = nullable.NewNullNullable[api.BillingAppCustomerDataExternalInvoicing]()
+			return appData, nil
+		}
+
+		invoicingData, ok := data.(appcustominvoicing.CustomerData)
+		if !ok {
+			return nil, apierrors.NewInternalError(ctx, fmt.Errorf("custom invoicing app returned %T, want appcustominvoicing.CustomerData", data))
+		}
+
+		appData.ExternalInvoicing = nullable.NewNullableWithValue(api.BillingAppCustomerDataExternalInvoicing{
+			Labels: (*api.Labels)(lo.ToPtr(invoicingData.Metadata.ToMap())),
+		})
+		return appData, nil
+
+	case app.AppTypeSandbox:
+		// No app data.
+		return nil, nil
+
+	default:
+		return nil, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
+	}
 }

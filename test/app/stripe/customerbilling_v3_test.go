@@ -2,6 +2,7 @@ package appstripe
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -51,7 +52,7 @@ func TestCustomerBillingV3(t *testing.T) {
 
 	router := newCustomerBillingRouter(t, env, namespace)
 
-	getStripeData := func(cus *customer.Customer) (appstripe.CustomerData, error) {
+	getStripeData := func(ctx context.Context, cus *customer.Customer) (appstripe.CustomerData, error) {
 		return env.AppStripe().GetStripeCustomerData(ctx, appstripe.GetStripeCustomerDataInput{
 			AppID:      stripeApp.GetID(),
 			CustomerID: cus.GetID(),
@@ -59,7 +60,7 @@ func TestCustomerBillingV3(t *testing.T) {
 	}
 
 	// Stripe customer IDs are unique per app, so every seeding gets its own.
-	seedStripeData := func(t *testing.T, cus *customer.Customer, stripeCustomerID string) {
+	seedStripeData := func(ctx context.Context, t *testing.T, cus *customer.Customer, stripeCustomerID string) {
 		t.Helper()
 
 		env.StripeAppClient().
@@ -74,6 +75,8 @@ func TestCustomerBillingV3(t *testing.T) {
 	}
 
 	t.Run("Should set billing profile without app data", func(t *testing.T) {
+		ctx := t.Context()
+
 		// given a customer with no stripe app data
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
@@ -91,11 +94,13 @@ func TestCustomerBillingV3(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, pinnedProfile.ID, override.MergedProfile.ID)
 
-		_, err = getStripeData(cus)
+		_, err = getStripeData(ctx, cus)
 		require.Error(t, err, "no stripe customer data should have been created")
 	})
 
 	t.Run("Should reject stripe app data without customer id", func(t *testing.T) {
+		ctx := t.Context()
+
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
 
@@ -107,6 +112,8 @@ func TestCustomerBillingV3(t *testing.T) {
 	})
 
 	t.Run("Should upsert stripe app data", func(t *testing.T) {
+		ctx := t.Context()
+
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
 
@@ -120,17 +127,19 @@ func TestCustomerBillingV3(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		data, err := getStripeData(cus)
+		data, err := getStripeData(ctx, cus)
 		require.NoError(t, err)
 		require.Equal(t, "cus_upsert", data.StripeCustomerID)
 	})
 
 	t.Run("Should leave stripe app data unchanged when stripe is omitted", func(t *testing.T) {
+		ctx := t.Context()
+
 		// given a customer with existing stripe app data
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
 
-		seedStripeData(t, cus, "cus_keep_billing")
+		seedStripeData(ctx, t, cus, "cus_keep_billing")
 
 		// when updating billing with an app data object that omits stripe
 		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing",
@@ -139,17 +148,19 @@ func TestCustomerBillingV3(t *testing.T) {
 		// then the request is a no-op and the stored stripe data stays
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		data, err := getStripeData(cus)
+		data, err := getStripeData(ctx, cus)
 		require.NoError(t, err)
 		require.Equal(t, "cus_keep_billing", data.StripeCustomerID)
 	})
 
 	t.Run("Should leave stripe app data unchanged when stripe is omitted on app-data endpoint", func(t *testing.T) {
+		ctx := t.Context()
+
 		// given a customer with existing stripe app data
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
 
-		seedStripeData(t, cus, "cus_keep_app_data")
+		seedStripeData(ctx, t, cus, "cus_keep_app_data")
 
 		// when updating app data with an empty object that omits stripe
 		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing/app-data",
@@ -158,17 +169,19 @@ func TestCustomerBillingV3(t *testing.T) {
 		// then the request is a no-op and the stored stripe data stays
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		data, err := getStripeData(cus)
+		data, err := getStripeData(ctx, cus)
 		require.NoError(t, err)
 		require.Equal(t, "cus_keep_app_data", data.StripeCustomerID)
 	})
 
 	t.Run("Should wipe stripe app data with explicit null", func(t *testing.T) {
+		ctx := t.Context()
+
 		// given a customer with existing stripe app data
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
 
-		seedStripeData(t, cus, "cus_wipe_billing")
+		seedStripeData(ctx, t, cus, "cus_wipe_billing")
 
 		// when updating billing with an explicit stripe null
 		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing",
@@ -177,23 +190,79 @@ func TestCustomerBillingV3(t *testing.T) {
 		// then the stripe customer data is deleted
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		_, err = getStripeData(cus)
+		_, err = getStripeData(ctx, cus)
 		require.Error(t, err, "stripe customer data should have been wiped")
 	})
 
 	t.Run("Should wipe stripe app data with explicit null on app-data endpoint", func(t *testing.T) {
+		ctx := t.Context()
+
 		cus, err := env.Fixture().setupCustomer(ctx, namespace)
 		require.NoError(t, err)
 
-		seedStripeData(t, cus, "cus_wipe_app_data")
+		seedStripeData(ctx, t, cus, "cus_wipe_app_data")
 
 		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing/app-data",
 			`{"stripe":null}`)
 
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		_, err = getStripeData(cus)
+		_, err = getStripeData(ctx, cus)
 		require.Error(t, err, "stripe customer data should have been wiped")
+	})
+
+	t.Run("Should return stripe app data on get", func(t *testing.T) {
+		ctx := t.Context()
+
+		// given a customer with existing stripe app data
+		cus, err := env.Fixture().setupCustomer(ctx, namespace)
+		require.NoError(t, err)
+
+		seedStripeData(ctx, t, cus, "cus_get_billing")
+
+		// when reading the customer billing
+		rec := doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
+
+		// then the response returns the stripe customer id
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+		var got api.BillingCustomerData
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+		require.NotNil(t, got.AppData)
+		require.True(t, got.AppData.Stripe.IsSpecified())
+		require.False(t, got.AppData.Stripe.IsNull())
+
+		stripeData, err := got.AppData.Stripe.Get()
+		require.NoError(t, err)
+		require.NotNil(t, stripeData.CustomerId)
+		require.Equal(t, "cus_get_billing", *stripeData.CustomerId)
+	})
+
+	t.Run("Should return null stripe app data on get after a wipe", func(t *testing.T) {
+		ctx := t.Context()
+
+		// given a customer whose stripe app data was wiped while the profile
+		// still names stripe as the payment app
+		cus, err := env.Fixture().setupCustomer(ctx, namespace)
+		require.NoError(t, err)
+
+		seedStripeData(ctx, t, cus, "cus_get_after_wipe")
+
+		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing",
+			`{"app_data":{"stripe":null}}`)
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+		// when reading the customer billing
+		rec = doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
+
+		// then the read succeeds and reports the stripe app data as explicit null
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+		var got api.BillingCustomerData
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+		require.NotNil(t, got.AppData)
+		require.True(t, got.AppData.Stripe.IsSpecified())
+		require.True(t, got.AppData.Stripe.IsNull())
 	})
 }
 
@@ -231,6 +300,9 @@ func newCustomerBillingRouter(t *testing.T, env TestEnv, namespace string) http.
 	})
 	router.Put("/openmeter/customers/{customerId}/billing/app-data", func(w http.ResponseWriter, r *http.Request) {
 		handler.UpdateCustomerBillingAppData().With(chi.URLParam(r, "customerId")).ServeHTTP(w, r)
+	})
+	router.Get("/openmeter/customers/{customerId}/billing", func(w http.ResponseWriter, r *http.Request) {
+		handler.GetCustomerBilling().With(chi.URLParam(r, "customerId")).ServeHTTP(w, r)
 	})
 
 	return router
