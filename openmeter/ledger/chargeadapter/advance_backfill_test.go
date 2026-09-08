@@ -2,6 +2,7 @@ package chargeadapter_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -80,7 +81,11 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 			for i := range roots {
 				roots[i].OriginalTransactionGroupID = groups[roots[i].RootRealizationID]
 			}
+			// Deliberately pass newest-first: FIFO must be owned by the ledger.
+			slices.Reverse(roots)
+			inputOrder := lo.Map(roots, func(root lineage.Lineage, _ int) string { return root.ID })
 			result, err := handler.OnCreditPurchaseInitiated(ctx, creditpurchase.CreditGrantInput{Charge: purchase, AdvanceLineages: roots})
+			require.Equal(t, inputOrder, lo.Map(roots, func(root lineage.Lineage, _ int) string { return root.ID }), "caller order must remain unchanged")
 			if err != nil {
 				return result, err
 			}

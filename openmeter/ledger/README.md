@@ -67,7 +67,9 @@ facts stored independently from the journal.
   advances - remain deferred.
 
 Credit-purchase backfill uses the charge domain's original advance occurrences
-in order, bounded by their matching receivable and accrued routes. A partial
+in order, bounded by their matching receivable and accrued routes. The ledger
+sorts its inputs by original collection time and ID independently of query order,
+and stops reading journals when the purchase amount is allocated. A partial
 purchase exhausts an older eligible occurrence before funding a newer one;
 tax treatment, feature eligibility, currency identity, and purchase cost basis
 remain attached to the booked amounts. Corrections select the original spend

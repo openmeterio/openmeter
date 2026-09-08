@@ -75,8 +75,8 @@ func (i PaymentEventInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// CreditGrantInput supplies advance occurrences in original collection
-// order. The ledger owns the final allocation against eligible posting routes.
+// CreditGrantInput supplies advance occurrences. The ledger sorts them by
+// immutable collection time and ID before allocating eligible posting routes.
 // Accrued backfill is restricted to these roots; nil and empty both skip it.
 // Remaining eligible receivable may still be attributed without accrued backfill.
 type CreditGrantInput struct {

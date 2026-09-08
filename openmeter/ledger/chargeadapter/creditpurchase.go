@@ -578,11 +578,9 @@ func (h *creditPurchaseHandler) advanceAttributions(
 
 	plan := advanceBackfillPlan{}
 	remaining := amount
-	// Root order is immutable collection order; replacement segment timestamps
-	// and charge IDs cannot express interleaved runs of the same charge.
-	for _, root := range lineage.FilterAdvanceLineagesForBackfill(roots, creditFeatures) {
-		if root.OriginKind != creditrealization.LineageOriginKindAdvance {
-			continue
+	for _, root := range sortedAdvanceBackfillLineages(lineage.FilterAdvanceLineagesForBackfill(roots, creditFeatures)) {
+		if !remaining.IsPositive() {
+			break
 		}
 		receivableBuckets.requiredFeatures = root.AdvanceFeatures
 		spendKey, accruedBuckets, err := h.accruedBucketsForAdvance(ctx, customerID.Namespace, root, unattributedAccrued)
@@ -590,9 +588,6 @@ func (h *creditPurchaseHandler) advanceAttributions(
 			return advanceBackfillPlan{}, err
 		}
 		for _, segment := range root.Segments {
-			if segment.State != creditrealization.LineageSegmentStateAdvanceUncovered {
-				continue
-			}
 			if !remaining.IsPositive() {
 				break
 			}
@@ -628,6 +623,33 @@ func (h *creditPurchaseHandler) advanceAttributions(
 	// Only the accrued-backed amounts above become lineage backfill allocations.
 	plan.attributions = append(plan.attributions, receivableBuckets.attributeRemaining(remaining)...)
 	return plan, nil
+}
+
+// sortedAdvanceBackfillLineages makes FIFO independent of caller/query order.
+// Collection time orders occurrences; replacement times only order segments
+// within an occurrence. Copies preserve the caller's slices and omit history
+// that cannot consume purchase value before any journal is loaded.
+func sortedAdvanceBackfillLineages(roots []lineage.Lineage) []lineage.Lineage {
+	candidates := make([]lineage.Lineage, 0, len(roots))
+	for _, root := range roots {
+		if root.OriginKind != creditrealization.LineageOriginKindAdvance {
+			continue
+		}
+		root.Segments = lo.Filter(root.Segments, func(segment lineage.Segment, _ int) bool {
+			return segment.State == creditrealization.LineageSegmentStateAdvanceUncovered
+		})
+		if len(root.Segments) == 0 {
+			continue
+		}
+		slices.SortFunc(root.Segments, func(a, b lineage.Segment) int {
+			return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), cmp.Compare(a.ID, b.ID))
+		})
+		candidates = append(candidates, root)
+	}
+	slices.SortFunc(candidates, func(a, b lineage.Lineage) int {
+		return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), cmp.Compare(a.ID, b.ID))
+	})
+	return candidates
 }
 
 // newAdvanceReceivableBuckets selects open source-less advance receivable that

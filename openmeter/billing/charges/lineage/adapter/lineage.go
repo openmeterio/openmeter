@@ -285,6 +285,7 @@ func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegment
 
 func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 	return lineage.Lineage{
+		CreatedAt:         entry.CreatedAt,
 		ID:                entry.ID,
 		ChargeID:          entry.ChargeID,
 		RootRealizationID: entry.RootRealizationID,
@@ -300,6 +301,7 @@ func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 
 func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment {
 	return lineage.Segment{
+		CreatedAt:                       segment.CreatedAt,
 		ID:                              segment.ID,
 		LineageID:                       segment.LineageID,
 		Amount:                          segment.Amount,

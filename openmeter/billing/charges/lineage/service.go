@@ -264,6 +264,8 @@ func (i CreateSegmentInput) Validate() error {
 }
 
 type Lineage struct {
+	// CreatedAt is the immutable recording time of the original collection occurrence.
+	CreatedAt                  time.Time
 	OriginalTransactionGroupID string
 	ID                         string
 	ChargeID                   string
@@ -276,6 +278,7 @@ type Lineage struct {
 }
 
 type Segment struct {
+	CreatedAt                       time.Time
 	ID                              string
 	LineageID                       string
 	Amount                          alpacadecimal.Decimal
