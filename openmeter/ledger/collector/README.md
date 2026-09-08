@@ -224,8 +224,7 @@ sufficient to select recognized value.
 Correction uses reverse original collection order. For origin-tracked entries it
 first reverses recognized earnings and advance backing, using exact original
 entry references and subtracting previous corrections. Pre-cutover allocations
-use the retained lineage compatibility path. See the
-[provenance design](../provenance-design.md) for rollout constraints.
+use the retained [legacy lineage compatibility path](../../billing/charges/legacylineage/README.md).
 
 Example:
 

@@ -63,9 +63,8 @@ facts stored independently from the journal.
   spend attribution. Core validators require each origin to balance independently.
 - Corrections reference both original legs; the journal supplies their remaining
   reversible amounts. Only pre-cutover collections retain
-  [deprecated lineage state](../billing/charges/legacylineage/README.md). See
-  [provenance design and migration](provenance-design.md) for the compatibility
-  boundary and writer cutover requirements.
+  [deprecated lineage state](../billing/charges/legacylineage/README.md), whose
+  compatibility boundary requires a coordinated writer cutover.
 - Credit-backed earnings recognition consumes only accrued buckets whose
   source credit and spend charge are both present and distinct. Buckets without
   that provenance - including invoice-backed accrued value and unbackfilled
