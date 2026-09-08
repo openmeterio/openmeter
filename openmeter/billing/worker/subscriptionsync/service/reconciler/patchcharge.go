@@ -11,8 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -141,4 +144,44 @@ func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.Ap
 	for _, intent := range patches.Creates {
 		log.InfoContext(ctx, "creating charge", "intent", intent)
 	}
+}
+
+func newChargeCostBasisIntent(target targetstate.StateItem) (*costbasis.Intent, error) {
+	if !target.Currency.IsCustom() || target.Subscription.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		return nil, nil
+	}
+
+	fiatCurrency, err := currencyx.NewFiatCurrency(target.Subscription.InvoiceCurrency)
+	if err != nil {
+		return nil, fmt.Errorf("building invoice currency: %w", err)
+	}
+
+	if !target.Subscription.CostBasisMode.IsPinned() {
+		intent := costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: fiatCurrency})
+		return &intent, nil
+	}
+
+	var costBasisID string
+	for _, pin := range target.Subscription.CostBasisPins {
+		if pin.CustomCurrencyID != target.Currency.ID || pin.InvoiceCurrency != target.Subscription.InvoiceCurrency {
+			continue
+		}
+
+		if costBasisID != "" {
+			return nil, fmt.Errorf("multiple pinned cost bases found for custom currency [currency_id=%s invoice_currency=%s]", target.Currency.ID, target.Subscription.InvoiceCurrency)
+		}
+
+		costBasisID = pin.CostBasis.ID
+	}
+
+	if costBasisID == "" {
+		return nil, fmt.Errorf("pinned cost basis not found for custom currency [currency_id=%s invoice_currency=%s]", target.Currency.ID, target.Subscription.InvoiceCurrency)
+	}
+
+	intent := costbasis.NewIntent(costbasis.PinnedIntent{
+		FiatCurrency:        fiatCurrency,
+		CurrencyCostBasisID: costBasisID,
+	})
+
+	return &intent, nil
 }

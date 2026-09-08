@@ -175,7 +175,7 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	require.Equal(t, customCurrency, createdCurrency.GetCode())
 	require.NotNil(t, createdCurrency.CustomCurrencyID)
 	require.Equal(t, managedCurrency.ID, *createdCurrency.CustomCurrencyID)
-	require.False(t, createdCurrency.IsResolved())
+	require.True(t, createdCurrency.IsResolved())
 
 	customItemRow, err := dbDeps.DBClient.SubscriptionItem.Get(t.Context(), created.ID)
 	require.NoError(t, err)
@@ -192,5 +192,5 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	require.Equal(t, customCurrency, reloadedCurrency.GetCode())
 	require.NotNil(t, reloadedCurrency.CustomCurrencyID)
 	require.Equal(t, managedCurrency.ID, *reloadedCurrency.CustomCurrencyID)
-	require.False(t, reloadedCurrency.IsResolved())
+	require.True(t, reloadedCurrency.IsResolved())
 }

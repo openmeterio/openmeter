@@ -2,7 +2,6 @@ package subscriptionsync
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -35,8 +34,7 @@ type SyncStateService interface {
 }
 
 type SynchronizeSubscriptionOptions struct {
-	DryRun                          bool
-	SkipCustomCurrencySubscriptions bool
+	DryRun bool
 }
 
 type SynchronizeSubscriptionOption func(*SynchronizeSubscriptionOptions)
@@ -46,16 +44,3 @@ func EnableDryRun() SynchronizeSubscriptionOption {
 		o.DryRun = true
 	}
 }
-
-// SkipCustomCurrencySubscriptions makes automatic reconciliation ignore subscriptions
-// that billing cannot represent yet. Explicit sync callers should omit this option so
-// the unsupported operation remains visible to them.
-func SkipCustomCurrencySubscriptions() SynchronizeSubscriptionOption {
-	return func(o *SynchronizeSubscriptionOptions) {
-		o.SkipCustomCurrencySubscriptions = true
-	}
-}
-
-// ErrCustomCurrencyBillingNotSupported is returned when explicit sync reaches
-// a subscription that billing cannot represent without currency conversion.
-var ErrCustomCurrencyBillingNotSupported = errors.New("billing sync does not support subscriptions with custom-currency priced items")

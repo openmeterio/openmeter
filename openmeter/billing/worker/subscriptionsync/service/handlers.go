@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -28,7 +27,6 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 			ctx,
 			newSubscriptionReferenceOrView(event.SubscriptionView),
 			now,
-			subscriptionsync.SkipCustomCurrencySubscriptions(),
 		)
 		if err != nil {
 			return err
@@ -37,13 +35,28 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 		return errors.New("active_to is required for canceled events")
 	}
 
+	current, err := s.getSubscription(ctx, event.Subscription.NamespacedID)
+	if err != nil {
+		return err
+	}
+
+	refOrView := newSubscriptionReferenceOrView(event.SubscriptionView)
+	asOf := *event.Spec.ActiveTo
+
+	// Cancellation and continuation update the root timestamp, but annotation
+	// writes can also advance it after cancellation (for example, plan changes).
+	// An older snapshot must use the current cancellation and horizon instead of
+	// dropping valid billing work or replaying obsolete subscription state.
+	if current.UpdatedAt.After(event.Subscription.UpdatedAt) {
+		if current.ActiveTo == nil {
+			return nil
+		}
+		refOrView = newSubscriptionReferenceOrView(current.NamespacedID)
+		asOf = *current.ActiveTo
+	}
+
 	// Let's sync up to the end of the subscription
-	err := s.synchronizeSubscriptionAndInvoiceCustomer(
-		ctx,
-		newSubscriptionReferenceOrView(event.SubscriptionView),
-		*event.Spec.ActiveTo,
-		subscriptionsync.SkipCustomCurrencySubscriptions(),
-	)
+	err = s.synchronizeSubscriptionAndInvoiceCustomer(ctx, refOrView, asOf)
 	if err != nil {
 		return err
 	}
@@ -82,7 +95,6 @@ func (s *Service) HandleInvoiceCreation(ctx context.Context, event *billing.Stan
 				ID:        subscriptionID,
 			}),
 			clock.Now(),
-			subscriptionsync.SkipCustomCurrencySubscriptions(),
 		); err != nil {
 			return fmt.Errorf("syncing subscription[%s]: %w", subscriptionID, err)
 		}
@@ -98,7 +110,6 @@ func (s *Service) HandleDeletedEvent(ctx context.Context, event *subscription.De
 		ctx,
 		newSubscriptionReferenceOrView(event.Subscription.NamespacedID),
 		clock.Now(),
-		subscriptionsync.SkipCustomCurrencySubscriptions(),
 	)
 	return err
 }

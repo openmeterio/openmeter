@@ -140,11 +140,19 @@ func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.State
 	}
 
 	if !enabled {
+		if target.Currency.IsCustom() {
+			return nil, fmt.Errorf("custom currency subscription items require the charges service [currency=%s]", target.Currency.GetCode())
+		}
+
 		return c.lineCollection, nil
 	}
 
 	// If credit then invoice is not enabled, we return the lineCollection.
 	if target.Subscription.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode && !c.creditThenInvoiceEnabled {
+		if target.Currency.IsCustom() {
+			return nil, fmt.Errorf("custom currency credit-then-invoice subscription items require charge-based credit-then-invoice billing [currency=%s]", target.Currency.GetCode())
+		}
+
 		return c.lineCollection, nil
 	}
 
