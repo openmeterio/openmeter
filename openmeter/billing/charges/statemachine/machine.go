@@ -36,9 +36,12 @@ type Persistence[CHARGE any, BASE any] struct {
 	Refetch    func(ctx context.Context, chargeID meta.ChargeID) (CHARGE, error)
 }
 
+type UpdateBaseHandler[BASE any] func(BASE) BASE
+
 type Config[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] struct {
-	Charge      CHARGE
-	Persistence Persistence[CHARGE, BASE]
+	Charge             CHARGE
+	Persistence        Persistence[CHARGE, BASE]
+	UpdateBaseHandlers []UpdateBaseHandler[BASE]
 }
 
 type StateMachine[CHARGE any] interface {
@@ -83,7 +86,13 @@ func (c Config[CHARGE, BASE, STATUS]) Validate() error {
 		errs = append(errs, errors.New("persistence.refetch is required"))
 	}
 
-	return errors.Join(errs...)
+	for idx, handler := range c.UpdateBaseHandlers {
+		if handler == nil {
+			errs = append(errs, fmt.Errorf("update base handlers[%d] is required", idx))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Machine[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] struct {
@@ -198,7 +207,12 @@ func (m *Machine[CHARGE, BASE, STATUS]) fireAndActivate(ctx context.Context, tri
 		return err
 	}
 
-	updatedBase, err := m.config.Persistence.UpdateBase(ctx, m.Charge.GetBase())
+	base := m.Charge.GetBase()
+	for _, handler := range m.config.UpdateBaseHandlers {
+		base = handler(base)
+	}
+
+	updatedBase, err := m.config.Persistence.UpdateBase(ctx, base)
 	if err != nil {
 		return fmt.Errorf("persist charge: %w", err)
 	}

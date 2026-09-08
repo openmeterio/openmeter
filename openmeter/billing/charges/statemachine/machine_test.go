@@ -604,6 +604,69 @@ func TestMachine_AdvanceUntilStablePersistsPostActivationBase(t *testing.T) {
 	require.Equal(t, 8, charge.GetBase().Revision)
 }
 
+func TestMachine_AdvanceUntilStableAppliesUpdateBaseHandlersBeforePersistence(t *testing.T) {
+	// given
+	// a machine with ordered base update handlers and activation logic that mutates the base
+	var persistedBase fakeBase
+	machine, err := New(Config[fakeCharge, fakeBase, fakeStatus]{
+		Charge: newFakeCharge(fakeStatusCreated),
+		Persistence: Persistence[fakeCharge, fakeBase]{
+			UpdateBase: func(_ context.Context, base fakeBase) (fakeBase, error) {
+				persistedBase = base
+
+				return base, nil
+			},
+			Refetch: func(context.Context, meta.ChargeID) (fakeCharge, error) {
+				return fakeCharge{}, nil
+			},
+		},
+		UpdateBaseHandlers: []UpdateBaseHandler[fakeBase]{
+			func(base fakeBase) fakeBase {
+				base.Revision++
+
+				return base
+			},
+			func(base fakeBase) fakeBase {
+				base.Revision *= 2
+
+				return base
+			},
+		},
+	})
+	require.NoError(t, err)
+	machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
+	machine.Configure(fakeStatusActive).OnActive(func(context.Context) error {
+		machine.Charge = machine.Charge.WithBase(fakeBase{Revision: 7})
+
+		return nil
+	})
+
+	// when
+	err = machine.AdvanceUntilStable(t.Context())
+
+	// then
+	require.NoError(t, err)
+	require.Equal(t, 16, persistedBase.Revision)
+	require.Equal(t, persistedBase, machine.GetCharge().GetBase())
+}
+
+func TestNewRejectsNilUpdateBaseHandler(t *testing.T) {
+	_, err := New(Config[fakeCharge, fakeBase, fakeStatus]{
+		Charge: newFakeCharge(fakeStatusCreated),
+		Persistence: Persistence[fakeCharge, fakeBase]{
+			UpdateBase: func(_ context.Context, base fakeBase) (fakeBase, error) {
+				return base, nil
+			},
+			Refetch: func(context.Context, meta.ChargeID) (fakeCharge, error) {
+				return fakeCharge{}, nil
+			},
+		},
+		UpdateBaseHandlers: []UpdateBaseHandler[fakeBase]{nil},
+	})
+
+	require.ErrorContains(t, err, "update base handlers[0] is required")
+}
+
 func TestMachine_FireAndAdvanceUntilStablePropagatesActivationErrors(t *testing.T) {
 	// Given:
 	// a machine whose activation callback fails after a valid transition fires.

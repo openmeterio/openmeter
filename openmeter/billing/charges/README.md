@@ -267,6 +267,12 @@ one.
   boundary. A billing standard line expects line-period and pre-line-period
   quantities, so charge mappers translate rather than copy it. Translation
   reads the referenced run's persisted quantity, or zero for the first run.
+- An invoice-backed usage-based charge with a current realization run excludes
+  its gathering lines from assignment to another invoice. The charge records a
+  critical validation issue identifying the current invoice and line; repeated
+  collection attempts remain idempotent. The issue is removed when lifecycle
+  progress releases the current run, and a later collection retry can create
+  the next realization normally.
 - Corrections reconcile against persisted allocations in the same realization
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.

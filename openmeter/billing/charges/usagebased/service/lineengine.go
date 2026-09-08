@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -38,8 +39,91 @@ func (e *LineEngine) IsLineBillableAsOf(_ context.Context, input billing.IsLineB
 	return !input.AsOf.Before(input.ResolvedBillablePeriod.To), nil
 }
 
-func (e *LineEngine) GateInvoiceAssignment(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
-	return nil, nil
+func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	namespace := input.Lines[0].Namespace
+	chargeIDs := make([]string, 0, len(input.Lines))
+	linesByChargeID := make(map[string]billing.GatheringLines)
+	for _, line := range input.Lines {
+		if line.Namespace != namespace {
+			return nil, fmt.Errorf("usage based gathering line[%s] namespace %s does not match namespace %s", line.ID, line.Namespace, namespace)
+		}
+
+		if line.ChargeID == nil || *line.ChargeID == "" {
+			return nil, fmt.Errorf("usage based gathering line[%s]: charge ID is required", line.ID)
+		}
+
+		if _, ok := linesByChargeID[*line.ChargeID]; !ok {
+			chargeIDs = append(chargeIDs, *line.ChargeID)
+		}
+		linesByChargeID[*line.ChargeID] = append(linesByChargeID[*line.ChargeID], line)
+	}
+
+	charges, err := e.service.GetByIDs(ctx, usagebased.GetByIDsInput{
+		Namespace: namespace,
+		IDs:       chargeIDs,
+		Expands:   meta.Expands{meta.ExpandRealizations},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting usage based charges for invoice assignment: %w", err)
+	}
+
+	chargesByID := lo.KeyBy(charges, func(charge usagebased.Charge) string {
+		return charge.ID
+	})
+	result := make(billing.GateInvoiceAssignmentResult)
+	for _, chargeID := range chargeIDs {
+		charge, ok := chargesByID[chargeID]
+		if !ok {
+			return nil, fmt.Errorf("usage based charge[%s] not found for invoice assignment", chargeID)
+		}
+
+		if charge.State.CurrentRealizationRunID == nil {
+			if charge.ValidationIssues.HasWithComponentCode(
+				usagebased.ValidationIssueComponentLineEngine,
+				usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
+			) {
+				if err := e.service.adapter.UpdateChargeValidationIssues(ctx, usagebased.UpdateChargeValidationIssuesInput{
+					ChargeID: charge.GetChargeID(),
+					ValidationIssues: charge.ValidationIssues.Without(
+						usagebased.ValidationIssueComponentLineEngine,
+						usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
+					),
+				}); err != nil {
+					return nil, err
+				}
+			}
+
+			continue
+		}
+
+		currentRun, err := charge.GetCurrentRealizationRun()
+		if err != nil {
+			return nil, fmt.Errorf("getting current realization run for usage based charge[%s]: %w", charge.ID, err)
+		}
+
+		validationIssue, err := newActiveRunInvoiceAssignmentIssue(currentRun)
+		if err != nil {
+			return nil, fmt.Errorf("building invoice assignment validation issue for usage based charge[%s]: %w", charge.ID, err)
+		}
+		if !charge.ValidationIssues.HasWithComponentCode(validationIssue.Component, validationIssue.Code) {
+			if err := e.service.adapter.UpdateChargeValidationIssues(ctx, usagebased.UpdateChargeValidationIssuesInput{
+				ChargeID:         charge.GetChargeID(),
+				ValidationIssues: append(slices.Clone(charge.ValidationIssues), validationIssue),
+			}); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, line := range linesByChargeID[chargeID] {
+			result[line.GetLineID()] = billing.InvoiceAssignmentGateResponse{ExcludeFromInvoice: true}
+		}
+	}
+
+	return result, nil
 }
 
 func (e *LineEngine) SplitGatheringLine(_ context.Context, input billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
