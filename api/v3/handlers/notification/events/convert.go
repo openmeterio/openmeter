@@ -31,45 +31,9 @@ func FromAPIEventSortField(ctx context.Context, field string) (notification.Orde
 	}
 }
 
-// ToDomainEventType maps the v3 wire-format event type ("invoice_created") to the domain
-// EventType ("invoice.created"). The wire value is snake_case to satisfy the v3 enum
-// casing convention while the domain/DB value keeps the dotted form used by v1 and by
-// the event bus. An unknown value returns a validation error rather than passing
-// through, since an invalid EventType would silently match zero rows in filter[type].
-func ToDomainEventType(v api.NotificationEventType) (notification.EventType, error) {
-	switch v {
-	case api.NotificationEventTypeEntitlementsBalanceThreshold:
-		return notification.EventTypeBalanceThreshold, nil
-	case api.NotificationEventTypeEntitlementsReset:
-		return notification.EventTypeEntitlementReset, nil
-	case api.NotificationEventTypeInvoiceCreated:
-		return notification.EventTypeInvoiceCreated, nil
-	case api.NotificationEventTypeInvoiceUpdated:
-		return notification.EventTypeInvoiceUpdated, nil
-	default:
-		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification event type: %s", v))
-	}
-}
-
-// ToAPIEventType maps the domain EventType to the v3 wire-format event type.
-func ToAPIEventType(v notification.EventType) (api.NotificationEventType, error) {
-	switch v {
-	case notification.EventTypeBalanceThreshold:
-		return api.NotificationEventTypeEntitlementsBalanceThreshold, nil
-	case notification.EventTypeEntitlementReset:
-		return api.NotificationEventTypeEntitlementsReset, nil
-	case notification.EventTypeInvoiceCreated:
-		return api.NotificationEventTypeInvoiceCreated, nil
-	case notification.EventTypeInvoiceUpdated:
-		return api.NotificationEventTypeInvoiceUpdated, nil
-	default:
-		return "", fmt.Errorf("invalid notification event type: %s", v)
-	}
-}
-
 // ToDomainDeliveryState maps the v3 wire-format delivery state ("failed") to the domain
-// state ("FAILED"). As with the event type, the wire value is lowercased for the v3 enum
-// casing convention while the column keeps the uppercase value written by v1.
+// state ("FAILED"). The wire value is lowercased for the v3 enum casing convention while
+// the column keeps the uppercase value written by v1.
 func ToDomainDeliveryState(v api.NotificationEventDeliveryState) (notification.EventDeliveryStatusState, error) {
 	switch v {
 	case api.NotificationEventDeliveryStateSuccess:
@@ -178,16 +142,6 @@ func requireExactFilter(field string, f *filter.FilterString) error {
 
 // ToAPIEvent maps a domain Event to its v3 API representation.
 func ToAPIEvent(e notification.Event) (api.NotificationEvent, error) {
-	eventType, err := ToAPIEventType(e.Type)
-	if err != nil {
-		return api.NotificationEvent{}, err
-	}
-
-	ruleType, err := ToAPIEventType(e.Rule.Type)
-	if err != nil {
-		return api.NotificationEvent{}, fmt.Errorf("failed to map notification rule type: %w", err)
-	}
-
 	deliveryStatus, err := ToAPIDeliveryStatuses(e.DeliveryStatus)
 	if err != nil {
 		return api.NotificationEvent{}, err
@@ -195,11 +149,11 @@ func ToAPIEvent(e notification.Event) (api.NotificationEvent, error) {
 
 	event := api.NotificationEvent{
 		Id:        e.ID,
-		Type:      eventType,
+		Type:      api.NotificationEventType(e.Type),
 		CreatedAt: e.CreatedAt,
 		Rule: api.NotificationRuleReference{
 			Id:   e.Rule.ID,
-			Type: ruleType,
+			Type: api.NotificationEventType(e.Rule.Type),
 			Name: e.Rule.Name,
 		},
 		DeliveryStatus: deliveryStatus,

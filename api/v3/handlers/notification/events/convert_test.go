@@ -45,9 +45,9 @@ func TestFromAPIEventSortField(t *testing.T) {
 	}
 }
 
-// TestEventTypeCasing pins the wire/domain split: the v3 enum uses snake_case while the
-// column keeps the dotted value written by v1.
-func TestEventTypeCasing(t *testing.T) {
+// TestEventTypeWireEqualsDomain pins that the v3 enum reuses the dotted domain values, which
+// is what lets the handler cast between the two types instead of mapping them.
+func TestEventTypeWireEqualsDomain(t *testing.T) {
 	testCases := []struct {
 		wire   api.NotificationEventType
 		domain notification.EventType
@@ -60,27 +60,9 @@ func TestEventTypeCasing(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(string(tc.wire), func(t *testing.T) {
-			assert.NotEqual(t, string(tc.wire), string(tc.domain), "wire and domain spellings must differ, otherwise the mapping is dead code")
-
-			domain, err := ToDomainEventType(tc.wire)
-			require.NoError(t, err)
-			assert.Equal(t, tc.domain, domain)
-
-			wire, err := ToAPIEventType(tc.domain)
-			require.NoError(t, err)
-			assert.Equal(t, tc.wire, wire)
+			assert.Equal(t, string(tc.wire), string(tc.domain))
 		})
 	}
-
-	t.Run("unknown wire value is rejected", func(t *testing.T) {
-		_, err := ToDomainEventType(api.NotificationEventType("invoice.created"))
-		require.Error(t, err)
-	})
-
-	t.Run("unknown domain value is rejected", func(t *testing.T) {
-		_, err := ToAPIEventType(notification.EventType("invoice_created"))
-		require.Error(t, err)
-	})
 }
 
 func TestDeliveryStateCasing(t *testing.T) {

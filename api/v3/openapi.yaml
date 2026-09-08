@@ -2812,7 +2812,7 @@ paths:
             Filter notification events returned in the response.
 
             To filter notification events by type add the following query param:
-            filter[type]=invoice_created
+            filter[type]=invoice.created
           schema:
             $ref: '#/components/schemas/ListNotificationEventsParamsFilter'
           style: deepObject
@@ -14333,7 +14333,7 @@ components:
         type:
           type: string
           enum:
-            - entitlements_balance_threshold
+            - entitlements.balance.threshold
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -14575,7 +14575,7 @@ components:
         type:
           type: string
           enum:
-            - invoice_created
+            - invoice.created
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -14661,7 +14661,7 @@ components:
         type:
           type: string
           enum:
-            - invoice_updated
+            - invoice.updated
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -14700,10 +14700,10 @@ components:
       discriminator:
         propertyName: type
         mapping:
-          entitlements_balance_threshold: '#/components/schemas/NotificationEventBalanceThresholdPayload'
-          entitlements_reset: '#/components/schemas/NotificationEventResetPayload'
-          invoice_created: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
-          invoice_updated: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
+          entitlements.balance.threshold: '#/components/schemas/NotificationEventBalanceThresholdPayload'
+          entitlements.reset: '#/components/schemas/NotificationEventResetPayload'
+          invoice.created: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
+          invoice.updated: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
       description: |-
         The payload delivered to the channels of the generating rule, discriminated by
         the event type.
@@ -14723,7 +14723,7 @@ components:
         type:
           type: string
           enum:
-            - entitlements_reset
+            - entitlements.reset
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -14741,10 +14741,10 @@ components:
     NotificationEventType:
       type: string
       enum:
-        - entitlements_balance_threshold
-        - entitlements_reset
-        - invoice_created
-        - invoice_updated
+        - entitlements.balance.threshold
+        - entitlements.reset
+        - invoice.created
+        - invoice.updated
       description: |-
         The type of a notification event. The event type determines which payload
         variant the event carries and which rule configuration produced it.

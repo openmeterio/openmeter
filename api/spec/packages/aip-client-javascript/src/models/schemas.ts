@@ -1228,10 +1228,10 @@ export const notificationChannelType = z
 
 export const notificationEventType = z
   .enum([
-    'entitlements_balance_threshold',
-    'entitlements_reset',
-    'invoice_created',
-    'invoice_updated',
+    'entitlements.balance.threshold',
+    'entitlements.reset',
+    'invoice.created',
+    'invoice.updated',
   ])
 
   .describe(
@@ -5178,7 +5178,7 @@ export const planAddonPagePaginatedResponse = z
 export const notificationEventResetPayload = z
   .object({
     id: ulid,
-    type: z.literal('entitlements_reset').describe('The type of the event.'),
+    type: z.literal('entitlements.reset').describe('The type of the event.'),
     timestamp: dateTime,
     data: notificationEventEntitlementData,
   })
@@ -5187,7 +5187,7 @@ export const notificationEventResetPayload = z
 export const notificationEventInvoiceCreatedPayload = z
   .object({
     id: ulid,
-    type: z.literal('invoice_created').describe('The type of the event.'),
+    type: z.literal('invoice.created').describe('The type of the event.'),
     timestamp: dateTime,
     data: notificationEventInvoiceData,
   })
@@ -5196,7 +5196,7 @@ export const notificationEventInvoiceCreatedPayload = z
 export const notificationEventInvoiceUpdatedPayload = z
   .object({
     id: ulid,
-    type: z.literal('invoice_updated').describe('The type of the event.'),
+    type: z.literal('invoice.updated').describe('The type of the event.'),
     timestamp: dateTime,
     data: notificationEventInvoiceData,
   })
@@ -5715,7 +5715,7 @@ export const notificationEventBalanceThresholdPayload = z
   .object({
     id: ulid,
     type: z
-      .literal('entitlements_balance_threshold')
+      .literal('entitlements.balance.threshold')
       .describe('The type of the event.'),
     timestamp: dateTime,
     data: notificationEventBalanceThresholdData,
@@ -9539,10 +9539,10 @@ export const notificationChannelTypeWire = z
 
 export const notificationEventTypeWire = z
   .enum([
-    'entitlements_balance_threshold',
-    'entitlements_reset',
-    'invoice_created',
-    'invoice_updated',
+    'entitlements.balance.threshold',
+    'entitlements.reset',
+    'invoice.created',
+    'invoice.updated',
   ])
 
   .describe(
@@ -13473,7 +13473,7 @@ export const planAddonPagePaginatedResponseWire = z
 export const notificationEventResetPayloadWire = z
   .strictObject({
     id: ulidWire,
-    type: z.literal('entitlements_reset').describe('The type of the event.'),
+    type: z.literal('entitlements.reset').describe('The type of the event.'),
     timestamp: dateTimeWire,
     data: notificationEventEntitlementDataWire,
   })
@@ -13482,7 +13482,7 @@ export const notificationEventResetPayloadWire = z
 export const notificationEventInvoiceCreatedPayloadWire = z
   .strictObject({
     id: ulidWire,
-    type: z.literal('invoice_created').describe('The type of the event.'),
+    type: z.literal('invoice.created').describe('The type of the event.'),
     timestamp: dateTimeWire,
     data: notificationEventInvoiceDataWire,
   })
@@ -13491,7 +13491,7 @@ export const notificationEventInvoiceCreatedPayloadWire = z
 export const notificationEventInvoiceUpdatedPayloadWire = z
   .strictObject({
     id: ulidWire,
-    type: z.literal('invoice_updated').describe('The type of the event.'),
+    type: z.literal('invoice.updated').describe('The type of the event.'),
     timestamp: dateTimeWire,
     data: notificationEventInvoiceDataWire,
   })
@@ -14009,7 +14009,7 @@ export const notificationEventBalanceThresholdPayloadWire = z
   .strictObject({
     id: ulidWire,
     type: z
-      .literal('entitlements_balance_threshold')
+      .literal('entitlements.balance.threshold')
       .describe('The type of the event.'),
     timestamp: dateTimeWire,
     data: notificationEventBalanceThresholdDataWire,
