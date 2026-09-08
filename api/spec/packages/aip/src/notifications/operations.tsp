@@ -225,7 +225,7 @@ interface NotificationEventOperations {
      * Filter notification events returned in the response.
      *
      * To filter notification events by type add the following query param:
-     * filter[type]=invoice_created
+     * filter[type]=invoice.created
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListNotificationEventsParamsFilter,

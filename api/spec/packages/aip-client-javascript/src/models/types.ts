@@ -2670,10 +2670,10 @@ export interface NotificationRuleReference {
   id: string
   /** The type of event the rule generates. */
   type:
-    | 'entitlements_balance_threshold'
-    | 'entitlements_reset'
-    | 'invoice_created'
-    | 'invoice_updated'
+    | 'entitlements.balance.threshold'
+    | 'entitlements.reset'
+    | 'invoice.created'
+    | 'invoice.updated'
   /** The user provided name of the rule. */
   name: string
 }
@@ -4808,7 +4808,7 @@ export interface NotificationEventResetPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'entitlements_reset'
+  type: 'entitlements.reset'
   /** When the event was generated. */
   timestamp: Date
   /** The entities the event refers to. */
@@ -4820,7 +4820,7 @@ export interface NotificationEventInvoiceCreatedPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'invoice_created'
+  type: 'invoice.created'
   /** When the event was generated. */
   timestamp: Date
   /** The invoice the event refers to. */
@@ -4832,7 +4832,7 @@ export interface NotificationEventInvoiceUpdatedPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'invoice_updated'
+  type: 'invoice.updated'
   /** When the event was generated. */
   timestamp: Date
   /** The invoice the event refers to. */
@@ -5480,7 +5480,7 @@ export interface NotificationEventBalanceThresholdPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'entitlements_balance_threshold'
+  type: 'entitlements.balance.threshold'
   /** When the event was generated. */
   timestamp: Date
   /** The entities and threshold the event refers to. */
@@ -6180,10 +6180,10 @@ export interface NotificationEvent {
   id: string
   /** The type of the event. */
   type:
-    | 'entitlements_balance_threshold'
-    | 'entitlements_reset'
-    | 'invoice_created'
-    | 'invoice_updated'
+    | 'entitlements.balance.threshold'
+    | 'entitlements.reset'
+    | 'invoice.created'
+    | 'invoice.updated'
   /** When the event was generated. */
   createdAt: Date
   /** The rule that generated the event. */

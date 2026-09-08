@@ -365,8 +365,8 @@ func (u NotificationEventPayload) MarshalJSON() ([]byte, error) {
 }
 
 func (u NotificationEventPayload) AsNotificationEventBalanceThresholdPayload() (*NotificationEventBalanceThresholdPayload, error) {
-	if u.Type != "entitlements_balance_threshold" {
-		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "entitlements_balance_threshold", u.Type)
+	if u.Type != "entitlements.balance.threshold" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "entitlements.balance.threshold", u.Type)
 	}
 	var value NotificationEventBalanceThresholdPayload
 	if err := json.Unmarshal(u.raw, &value); err != nil {
@@ -376,7 +376,7 @@ func (u NotificationEventPayload) AsNotificationEventBalanceThresholdPayload() (
 }
 
 func NotificationEventPayloadFromNotificationEventBalanceThresholdPayload(value NotificationEventBalanceThresholdPayload) (NotificationEventPayload, error) {
-	value.Type = "entitlements_balance_threshold"
+	value.Type = "entitlements.balance.threshold"
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return NotificationEventPayload{}, err
@@ -389,8 +389,8 @@ func NotificationEventPayloadFromNotificationEventBalanceThresholdPayload(value 
 }
 
 func (u NotificationEventPayload) AsNotificationEventResetPayload() (*NotificationEventResetPayload, error) {
-	if u.Type != "entitlements_reset" {
-		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "entitlements_reset", u.Type)
+	if u.Type != "entitlements.reset" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "entitlements.reset", u.Type)
 	}
 	var value NotificationEventResetPayload
 	if err := json.Unmarshal(u.raw, &value); err != nil {
@@ -400,7 +400,7 @@ func (u NotificationEventPayload) AsNotificationEventResetPayload() (*Notificati
 }
 
 func NotificationEventPayloadFromNotificationEventResetPayload(value NotificationEventResetPayload) (NotificationEventPayload, error) {
-	value.Type = "entitlements_reset"
+	value.Type = "entitlements.reset"
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return NotificationEventPayload{}, err
@@ -413,8 +413,8 @@ func NotificationEventPayloadFromNotificationEventResetPayload(value Notificatio
 }
 
 func (u NotificationEventPayload) AsNotificationEventInvoiceCreatedPayload() (*NotificationEventInvoiceCreatedPayload, error) {
-	if u.Type != "invoice_created" {
-		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "invoice_created", u.Type)
+	if u.Type != "invoice.created" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "invoice.created", u.Type)
 	}
 	var value NotificationEventInvoiceCreatedPayload
 	if err := json.Unmarshal(u.raw, &value); err != nil {
@@ -424,7 +424,7 @@ func (u NotificationEventPayload) AsNotificationEventInvoiceCreatedPayload() (*N
 }
 
 func NotificationEventPayloadFromNotificationEventInvoiceCreatedPayload(value NotificationEventInvoiceCreatedPayload) (NotificationEventPayload, error) {
-	value.Type = "invoice_created"
+	value.Type = "invoice.created"
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return NotificationEventPayload{}, err
@@ -437,8 +437,8 @@ func NotificationEventPayloadFromNotificationEventInvoiceCreatedPayload(value No
 }
 
 func (u NotificationEventPayload) AsNotificationEventInvoiceUpdatedPayload() (*NotificationEventInvoiceUpdatedPayload, error) {
-	if u.Type != "invoice_updated" {
-		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "invoice_updated", u.Type)
+	if u.Type != "invoice.updated" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "invoice.updated", u.Type)
 	}
 	var value NotificationEventInvoiceUpdatedPayload
 	if err := json.Unmarshal(u.raw, &value); err != nil {
@@ -448,7 +448,7 @@ func (u NotificationEventPayload) AsNotificationEventInvoiceUpdatedPayload() (*N
 }
 
 func NotificationEventPayloadFromNotificationEventInvoiceUpdatedPayload(value NotificationEventInvoiceUpdatedPayload) (NotificationEventPayload, error) {
-	value.Type = "invoice_updated"
+	value.Type = "invoice.updated"
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return NotificationEventPayload{}, err
@@ -477,10 +477,10 @@ type NotificationEventResetPayload struct {
 type NotificationEventType string
 
 const (
-	NotificationEventTypeEntitlementsBalanceThreshold NotificationEventType = "entitlements_balance_threshold"
-	NotificationEventTypeEntitlementsReset            NotificationEventType = "entitlements_reset"
-	NotificationEventTypeInvoiceCreated               NotificationEventType = "invoice_created"
-	NotificationEventTypeInvoiceUpdated               NotificationEventType = "invoice_updated"
+	NotificationEventTypeEntitlementsBalanceThreshold NotificationEventType = "entitlements.balance.threshold"
+	NotificationEventTypeEntitlementsReset            NotificationEventType = "entitlements.reset"
+	NotificationEventTypeInvoiceCreated               NotificationEventType = "invoice.created"
+	NotificationEventTypeInvoiceUpdated               NotificationEventType = "invoice.updated"
 )
 
 func (value NotificationEventType) Valid() bool {

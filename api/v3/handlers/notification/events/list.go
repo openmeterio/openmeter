@@ -140,11 +140,8 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	if err != nil {
 		return badRequest("filter[type]", err)
 	}
-	// The column stores the dotted domain value ("invoice.created"), not the snake_case
-	// wire value, so translate before this reaches the adapter.
 	typeFilter, err = mapAPIEnumFilter(typeFilter, func(v string) (string, error) {
-		domain, err := ToDomainEventType(api.NotificationEventType(v))
-		return string(domain), err
+		return v, notification.EventType(v).Validate()
 	})
 	if err != nil {
 		return badRequest("filter[type]", err)
