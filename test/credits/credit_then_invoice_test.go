@@ -240,7 +240,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
-		s.Contains(issue.Message, fmt.Sprintf("feature[%s] has no meter associated", apiRequestsTotal.Feature.Key))
+		s.Equal(
+			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
+			issue.Message,
+		)
 
 		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),
@@ -352,8 +355,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		issueMessages = append(issueMessages, issue.Message)
 	}
 	s.ElementsMatch([]string{
-		fmt.Sprintf("feature[%s] has no meter associated", apiRequestsTotal.Feature.Key),
-		fmt.Sprintf("feature[%s] has no meter associated", aiTokens.Key),
+		fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
+		fmt.Sprintf("feature[%s]: %s", aiTokens.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
 	}, issueMessages)
 
 	for _, line := range invoice.Lines.OrEmpty() {
@@ -619,13 +622,13 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(partialInvoice.ID, lo.FromPtr(currentRun.InvoiceID))
 	})
 
-	s.Run("Then final collection persists the active-run failure as an invalid invoice", func() {
+	s.Run("Then final collection excludes the blocked line and records the issue on the charge", func() {
 		// given:
 		// - the earlier draft.invalid partial invoice still owns the charge's active realization run
 		// when:
 		// - billing collects the remaining line at the end of the service period
 		// then:
-		// - collection persists the new invoice and records the line-engine failure as a critical validation issue
+		// - the assignment gate leaves the line gathering and records the blocking run on the charge
 		clock.FreezeTime(servicePeriod.To)
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -633,26 +636,28 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 			AsOf:     lo.ToPtr(servicePeriod.To),
 		})
 		s.Require().NoError(err)
-		s.Require().Len(invoices, 1)
+		s.Empty(invoices)
 
-		invoice := invoices[0]
-		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
-		s.Require().Len(invoice.Lines.OrEmpty(), 1)
-		s.Require().Len(invoice.ValidationIssues, 1)
-
-		issue := invoice.ValidationIssues[0]
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
+		s.Require().Len(charge.ValidationIssues, 1)
+		issue := charge.ValidationIssues[0]
 		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
-		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
-		s.Contains(issue.Message, usagebased.ErrActiveRealizationRunAlreadyExists.Error())
+		s.Equal(usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun, issue.Code)
+		s.Equal(usagebased.ValidationIssueComponentLineEngine, issue.Component)
+		s.Contains(issue.Message, "must be completed before")
+		s.Require().Len(partialInvoice.Lines.OrEmpty(), 1)
+		s.Equal(partialInvoice.ID, issue.Attributes["invoice_id"])
+		s.Equal(partialInvoice.Lines.OrEmpty()[0].ID, issue.Attributes["line_id"])
 
-		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-			Invoice: invoice.GetInvoiceID(),
-			Expand:  billing.StandardInvoiceExpandAll,
+		gatheringLines := s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, false)
+		s.Require().Len(gatheringLines, 1)
+
+		standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+			Namespace: ns,
 		})
 		s.NoError(err)
-		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
-		s.Require().Len(persistedInvoice.ValidationIssues, 1)
-		s.Contains(persistedInvoice.ValidationIssues[0].Message, usagebased.ErrActiveRealizationRunAlreadyExists.Error())
+		s.Require().Len(standardInvoices.Items, 1)
+		s.Equal(partialInvoice.ID, standardInvoices.Items[0].ID)
 	})
 }
 
