@@ -7,7 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -25,7 +25,7 @@ func entryAccruedKey(entry ledger.EntryInput) accruedKey {
 }
 
 type recognitionAllocation struct {
-	segment lineage.Segment
+	segment legacylineage.Segment
 	amount  alpacadecimal.Decimal
 }
 
@@ -57,11 +57,11 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 	sourceIndexes := make(map[accruedKey]int)
 	var allocations []recognitionAllocation
 	for _, e := range eligible {
-		original, err := s.recognitionGroup(ctx, in.CustomerID.Namespace, e.lineage.OriginalTransactionGroupID, groups)
+		original, err := s.recognitionGroup(ctx, in.CustomerID.Namespace, e.legacylineage.OriginalTransactionGroupID, groups)
 		if err != nil {
 			return nil, nil, err
 		}
-		collected, err := allocationAccruedSources(original, e.lineage.OriginalAllocationSortHint)
+		collected, err := allocationAccruedSources(original, e.legacylineage.OriginalAllocationSortHint)
 		if err != nil {
 			return nil, nil, err
 		}

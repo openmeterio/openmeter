@@ -8,7 +8,8 @@ both amounts and unwind history. New credit collections carry an immutable
 preserve it. No new lineage roots or segment
 snapshots are needed for these collections.
 
-Keep the existing lineage reader/writer only for pre-cutover collections. Do
+Keep the deprecated [legacylineage reader/writer](../billing/charges/legacylineage/README.md)
+only for pre-cutover collections. Do
 not guess missing attribution or rewrite historical monetary entries. This is
 an additive rollout with a legacy drain, not a flag that permits old and new
 writers to process the same origin interchangeably.

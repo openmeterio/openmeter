@@ -8,7 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -168,8 +168,8 @@ type CorrectCreditAllocationsInput struct {
 	Charge   Charge    `json:"charge"`
 	BookedAt time.Time `json:"bookedAt"`
 
-	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
-	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
+	Corrections                  creditrealization.CorrectionRequest         `json:"corrections"`
+	LineageSegmentsByRealization legacylineage.ActiveSegmentsByRealizationID `json:"-"`
 }
 
 func (i CorrectCreditAllocationsInput) Validate() error {
@@ -258,8 +258,8 @@ type CorrectFiatOverageCreditAllocationsInput struct {
 	Run      RealizationRun `json:"run"`
 	BookedAt time.Time      `json:"bookedAt"`
 
-	Corrections                  creditrealization.CorrectionRequest   `json:"corrections"`
-	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID `json:"-"`
+	Corrections                  creditrealization.CorrectionRequest         `json:"corrections"`
+	LineageSegmentsByRealization legacylineage.ActiveSegmentsByRealizationID `json:"-"`
 }
 
 func (i CorrectFiatOverageCreditAllocationsInput) GetFiatCurrency() (*currencyx.FiatCurrency, error) {

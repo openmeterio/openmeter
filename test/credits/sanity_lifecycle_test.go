@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -395,7 +395,7 @@ func (s *SanityLifecycleSuite) assertAdvanceBacking(ctx context.Context, custome
 	for _, bucket := range buckets {
 		booked[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] += bucket.SettledAmount.InexactFloat64()
 	}
-	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: customerID.Namespace, CustomerID: customerID.ID, Currency: currencies.NewCurrencyReference(USD)})
+	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: customerID.Namespace, CustomerID: customerID.ID, Currency: currencies.NewCurrencyReference(USD)})
 	s.Require().NoError(err)
 	s.Empty(lineages, "new collections use ledger origins")
 	for chargeID, amount := range expected {

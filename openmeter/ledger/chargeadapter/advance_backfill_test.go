@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -54,7 +54,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
 		require.Len(t, run.CreditsAllocated, 1)
 		groups[run.CreditsAllocated[0].ID] = run.CreditsAllocated[0].LedgerTransaction.TransactionGroupID
-		require.NoError(t, env.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
+		require.NoError(t, env.legacylineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 			Namespace: env.Namespace, CustomerID: env.CustomerID.ID, ChargeID: charge.ID, Currency: env.currency,
 			Features: []string{"api_requests"}, Realizations: run.CreditsAllocated,
 		}))
@@ -76,7 +76,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		purchase := purchaseEnv.newExternalCharge(alpacadecimal.NewFromInt(scenario.amount), alpacadecimal.NewFromFloat(scenario.costBasis))
 		purchase.ID = ulid.Make().String()
 		result, err := transaction.Run(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) (creditpurchase.CreditGrantResult, error) {
-			roots, err := env.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency.Reference()})
+			roots, err := env.legacylineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency.Reference()})
 			if err != nil {
 				return creditpurchase.CreditGrantResult{}, err
 			}
@@ -87,13 +87,13 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 			}
 			// Deliberately pass newest-first: FIFO must be owned by the ledger.
 			slices.Reverse(roots)
-			inputOrder := lo.Map(roots, func(root lineage.Lineage, _ int) string { return root.ID })
+			inputOrder := lo.Map(roots, func(root legacylineage.Lineage, _ int) string { return root.ID })
 			result, err := handler.OnCreditPurchaseInitiated(ctx, creditpurchase.CreditGrantInput{Charge: purchase, AdvanceLineages: roots})
-			require.Equal(t, inputOrder, lo.Map(roots, func(root lineage.Lineage, _ int) string { return root.ID }), "caller order must remain unchanged")
+			require.Equal(t, inputOrder, lo.Map(roots, func(root legacylineage.Lineage, _ int) string { return root.ID }), "caller order must remain unchanged")
 			if err != nil {
 				return result, err
 			}
-			err = env.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+			err = env.legacylineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 				Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency,
 				Amount: purchase.Intent.CreditAmount, BackingTransactionGroupID: result.TransactionGroupID,
 				Allocations: result.BackfillAllocations,
@@ -151,7 +151,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		for _, correction := range correctionInputs {
 			corrected = append(corrected, creditrealization.Realization{CreateInput: correction})
 		}
-		require.NoError(t, env.lineage.PersistCorrectionLineageSegments(t.Context(), lineage.PersistCorrectionLineageSegmentsInput{Namespace: env.Namespace, Realizations: corrected}))
+		require.NoError(t, env.legacylineage.PersistCorrectionLineageSegments(t.Context(), legacylineage.PersistCorrectionLineageSegmentsInput{Namespace: env.Namespace, Realizations: corrected}))
 		require.Len(t, corrections, 1)
 	}
 	require.Empty(t, env.activeSegmentsByRealization(t, runs[1].CreditsAllocated)[runs[1].CreditsAllocated[0].ID])
@@ -183,7 +183,7 @@ func TestPartialBackfillKeepsOlderAdvanceAheadOfNewerAdvance(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 	ctx := t.Context()
 	start := env.Now()
-	adapter, err := lineageadapter.New(lineageadapter.Config{Client: env.DB})
+	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: env.DB})
 	require.NoError(t, err)
 
 	// Given A=20 was collected before B=20.
@@ -192,7 +192,7 @@ func TestPartialBackfillKeepsOlderAdvanceAheadOfNewerAdvance(t *testing.T) {
 	clock.FreezeTime(start.Add(time.Hour))
 	defer clock.UnFreeze()
 	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(20), nil, &chargeB)
-	roots, err := env.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	roots, err := env.legacylineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency.Reference(),
 	})
 	require.NoError(t, err)
@@ -212,7 +212,7 @@ func TestPartialBackfillKeepsOlderAdvanceAheadOfNewerAdvance(t *testing.T) {
 
 	// Then A's remaining 10 still precedes B's 20, even with reversed input IDs.
 	uncovered := creditrealization.LineageSegmentStateAdvanceUncovered
-	segments, err := adapter.ListActiveSegments(ctx, lineage.ListActiveSegmentsInput{
+	segments, err := adapter.ListActiveSegments(ctx, legacylineage.ListActiveSegmentsInput{
 		LineageIDs: []string{roots[1].ID, roots[0].ID}, State: &uncovered,
 	})
 	require.NoError(t, err)
@@ -271,12 +271,12 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 			clock.FreezeTime(start)
 			defer clock.UnFreeze()
 			env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(20), nil, &chargeA)
-			roots, err := env.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+			roots, err := env.legacylineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 				Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency.Reference(),
 			})
 			require.NoError(t, err)
 			require.Len(t, roots, 2)
-			byCharge := lo.KeyBy(roots, func(root lineage.Lineage) string { return root.ChargeID })
+			byCharge := lo.KeyBy(roots, func(root legacylineage.Lineage) string { return root.ChargeID })
 			require.Less(t, byCharge[chargeB].ID, byCharge[chargeA].ID)
 			require.True(t, byCharge[chargeA].CreatedAt.Equal(start))
 			require.True(t, byCharge[chargeB].CreatedAt.Equal(bTime))
@@ -284,7 +284,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 				roots[i].OriginalTransactionGroupID = env.originalAdvanceGroups[roots[i].RootRealizationID]
 			}
 			slices.Reverse(roots)
-			originalOrder := lo.Map(roots, func(root lineage.Lineage, _ int) string { return root.ID })
+			originalOrder := lo.Map(roots, func(root legacylineage.Lineage, _ int) string { return root.ID })
 
 			// When the ledger receives reverse-ordered roots for a purchase of 25.
 			clock.FreezeTime(start.Add(2 * time.Hour))
@@ -296,7 +296,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 				if err != nil {
 					return result, err
 				}
-				err = env.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+				err = env.legacylineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 					Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency,
 					Amount: purchase.Intent.CreditAmount, BackingTransactionGroupID: result.TransactionGroupID,
 					Allocations: result.BackfillAllocations,
@@ -316,7 +316,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 			require.Equal(t, float64(20), result.BackfillAllocations[0].Amount.InexactFloat64())
 			require.Equal(t, byCharge[second].Segments[0].ID, result.BackfillAllocations[1].SegmentID)
 			require.Equal(t, float64(5), result.BackfillAllocations[1].Amount.InexactFloat64())
-			require.Equal(t, originalOrder, lo.Map(roots, func(root lineage.Lineage, _ int) string { return root.ID }))
+			require.Equal(t, originalOrder, lo.Map(roots, func(root legacylineage.Lineage, _ int) string { return root.ID }))
 			env.requireAccountSourceSpendBucketAmounts(t, env.CustomerAccounts.AccruedAccount.ID().ID, map[string]float64{
 				sourceSpendChargeKey(&purchase.ID, &first):  20,
 				sourceSpendChargeKey(&purchase.ID, &second): 5,
@@ -333,7 +333,7 @@ func TestAdvanceBackfillStaleSelectionRollsBackPurchase(t *testing.T) {
 	// Given both purchases read the same uncovered 20, then the first backs 10.
 	spendID := ulid.Make().String()
 	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(20), nil, &spendID)
-	staleRoots, err := env.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+	staleRoots, err := env.legacylineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency.Reference(),
 	})
 	require.NoError(t, err)
@@ -356,7 +356,7 @@ func TestAdvanceBackfillStaleSelectionRollsBackPurchase(t *testing.T) {
 			return err
 		}
 		rejectedGroupID = result.TransactionGroupID
-		return env.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+		return env.legacylineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 			Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency,
 			Amount: second.Intent.CreditAmount, BackingTransactionGroupID: result.TransactionGroupID,
 			Allocations: result.BackfillAllocations,
@@ -385,13 +385,13 @@ func TestAdvanceBackfillStaleSelectionRollsBackPurchase(t *testing.T) {
 func TestCreditPurchaseAttributesReceivableWithoutLineage(t *testing.T) {
 	for _, scenario := range []struct {
 		name  string
-		roots []lineage.Lineage
+		roots []legacylineage.Lineage
 	}{
 		{name: "nil"},
-		{name: "empty", roots: []lineage.Lineage{}},
+		{name: "empty", roots: []legacylineage.Lineage{}},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
-			// Given 40 of journal-only receivable, with no accrued or lineage.
+			// Given 40 of journal-only receivable, with no accrued or legacylineage.
 			env := newCreditPurchaseHandlerTestEnv(t)
 			env.createReceivableOnlyExposure(t, advanceExposureInput{Currency: env.currency, Amount: alpacadecimal.NewFromInt(40)})
 			costBasis := alpacadecimal.NewFromFloat(0.5)
@@ -418,7 +418,7 @@ func TestCreditPurchaseAttributesRemainingReceivableAfterAccruedBackfill(t *test
 	env := newCreditPurchaseHandlerTestEnv(t)
 	spendChargeID := ulid.Make().String()
 	taxCode := ulid.Make().String()
-	// Given 20 of receivable but only 5 of accrued with uncovered lineage.
+	// Given 20 of receivable but only 5 of accrued with uncovered legacylineage.
 	// The additional receivable is a standalone journal posting, not a normal collection.
 	env.createAdvance(t, advanceExposureInput{
 		Currency: env.currency, Amount: alpacadecimal.NewFromInt(5), SpendChargeID: &spendChargeID, TaxCode: &taxCode,
@@ -461,7 +461,7 @@ func TestCreditPurchaseAttributesRemainingReceivableAfterAccruedBackfill(t *test
 		sourceSpendChargeKey(&secondPurchase.ID, &spendChargeID): -5,
 		sourceSpendChargeKey(&secondPurchase.ID, nil):            -5,
 	})
-	roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+	roots, err := env.legacylineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency.Reference(),
 	})
 	require.NoError(t, err)
@@ -490,7 +490,7 @@ func TestCreditPurchaseReceivableOnlyAttributionPreservesLegacyFeatureRoutes(t *
 		})
 	}
 
-	// When 25 of API-restricted credit arrives without any accrued or lineage.
+	// When 25 of API-restricted credit arrives without any accrued or legacylineage.
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 	purchase := env.newExternalCharge(alpacadecimal.NewFromInt(25), costBasis)
 	purchase.Intent.FeatureFilters = creditpurchase.FeatureFilters{"api-calls"}

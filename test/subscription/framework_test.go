@@ -17,9 +17,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
@@ -63,7 +63,7 @@ type testDeps struct {
 	billingService              billing.Service
 	chargesService              charges.Service
 	ledgerDeps                  ledgertestutils.Deps
-	lineageService              lineage.Service
+	lineageService              legacylineage.Service
 	sandboxApp                  app.App
 	cleanup                     func(t *testing.T) // Cleanup function
 }
@@ -178,7 +178,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 
 	var chargesService charges.Service
 	var ledgerDeps ledgertestutils.Deps
-	var lineageService lineage.Service
+	var lineageService legacylineage.Service
 	if config.enableCharges {
 		logger := testutils.NewLogger(t)
 		ledgerDeps, err = ledgertestutils.InitDeps(deps.DBDeps.DBClient, logger)

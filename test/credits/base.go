@@ -15,9 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -62,7 +62,7 @@ type BaseSuite struct {
 	BreakageService      ledgerbreakage.Service
 	CreditVoidService    creditvoid.Service
 	FlatFeeHandler       flatfee.Handler
-	LineageService       lineage.Service
+	LineageService       legacylineage.Service
 	RevenueRecognizer    recognizer.Service
 	CurrencyService      currencies.Service
 	CurrencyResolver     currencies.CurrencyResolver
@@ -81,12 +81,12 @@ func (s *BaseSuite) SetupSuite() {
 	s.LedgerAccountService = deps.AccountService
 	s.LedgerResolver = deps.ResolversService
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.NoError(err)
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	s.NoError(err)

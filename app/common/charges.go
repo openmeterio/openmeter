@@ -15,9 +15,9 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
@@ -182,8 +182,8 @@ func NewChargesFlatFeeAdapter(
 
 func NewChargesLineageAdapter(
 	db *entdb.Client,
-) (lineage.Adapter, error) {
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+) (legacylineage.Adapter, error) {
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: db,
 	})
 	if err != nil {
@@ -194,9 +194,9 @@ func NewChargesLineageAdapter(
 }
 
 func NewChargesLineageService(
-	lineageAdapter lineage.Adapter,
-) (lineage.Service, error) {
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	lineageAdapter legacylineage.Adapter,
+) (legacylineage.Service, error) {
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	if err != nil {
@@ -209,7 +209,7 @@ func NewChargesLineageService(
 func NewChargesFlatFeeService(
 	flatFeeAdapter flatfee.Adapter,
 	flatFeeHandler flatfee.Handler,
-	lineageService lineage.Service,
+	lineageService legacylineage.Service,
 	metaAdapter meta.Adapter,
 	locker *lockr.Locker,
 	featureMeterResolver *billingfeaturemeterservice.Resolver,
@@ -257,7 +257,7 @@ func NewChargesUsageBasedAdapter(
 func NewChargesUsageBasedService(
 	usageBasedAdapter usagebased.Adapter,
 	usageBasedHandler usagebased.Handler,
-	lineageService lineage.Service,
+	lineageService legacylineage.Service,
 	locker *lockr.Locker,
 	metaAdapter meta.Adapter,
 	invoiceUpdater invoiceupdater.Updater,
@@ -324,7 +324,7 @@ func NewChargesCreditPurchaseAdapter(
 func NewChargesCreditPurchaseService(
 	creditPurchaseAdapter creditpurchase.Adapter,
 	creditPurchaseHandler creditpurchase.Handler,
-	lineageService lineage.Service,
+	lineageService legacylineage.Service,
 	metaAdapter meta.Adapter,
 	currenciesService currencies.Service,
 ) (creditpurchase.Service, error) {
@@ -402,7 +402,7 @@ func NewRecognizerService(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
-	lineageService lineage.Service,
+	lineageService legacylineage.Service,
 ) (recognizer.Service, error) {
 	return recognizer.NewService(recognizer.Config{
 		Ledger: ledgerService,

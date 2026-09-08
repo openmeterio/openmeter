@@ -62,7 +62,8 @@ facts stored independently from the journal.
   recognition, breakage release, and correction preserve it alongside source and
   spend attribution. Core validators require each origin to balance independently.
 - Corrections reference both original legs; the journal supplies their remaining
-  reversible amounts. Only pre-cutover collections retain lineage state. See
+  reversible amounts. Only pre-cutover collections retain
+  [deprecated lineage state](../billing/charges/legacylineage/README.md). See
   [provenance design and migration](provenance-design.md) for the compatibility
   boundary and writer cutover requirements.
 - Credit-backed earnings recognition consumes only accrued buckets whose

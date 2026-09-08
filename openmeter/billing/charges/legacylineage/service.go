@@ -1,4 +1,4 @@
-package lineage
+package legacylineage
 
 import (
 	"context"
