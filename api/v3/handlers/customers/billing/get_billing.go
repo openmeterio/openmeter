@@ -64,23 +64,33 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 				CustomerID: request.CustomerID,
 			})
 			if err != nil {
-				return resp, err
+				if app.IsAppCustomerPreConditionError(err) {
+					// The profile names this app as payment app, but the customer has no
+					// data for it yet. This is a supported state; show it as unconfigured.
+					data = nil
+				} else {
+					return resp, err
+				}
 			}
 
 			switch application.GetType() {
 			case app.AppTypeStripe:
-				if data, ok := data.(appstripe.CustomerData); ok {
+				if stripeData, ok := data.(appstripe.CustomerData); ok {
 					// TODO: we don't have metadata on the stripe customer data yet
 					appData.Stripe = nullable.NewNullableWithValue(api.BillingAppCustomerDataStripe{
-						CustomerId:             &data.StripeCustomerID,
-						DefaultPaymentMethodId: data.StripeDefaultPaymentMethodID,
+						CustomerId:             &stripeData.StripeCustomerID,
+						DefaultPaymentMethodId: stripeData.StripeDefaultPaymentMethodID,
 					})
+				} else {
+					appData.Stripe = nullable.NewNullNullable[api.BillingAppCustomerDataStripe]()
 				}
 			case app.AppTypeCustomInvoicing:
-				if data, ok := data.(appcustominvoicing.CustomerData); ok {
+				if invoicingData, ok := data.(appcustominvoicing.CustomerData); ok {
 					appData.ExternalInvoicing = nullable.NewNullableWithValue(api.BillingAppCustomerDataExternalInvoicing{
-						Labels: (*api.Labels)(lo.ToPtr(data.Metadata.ToMap())),
+						Labels: (*api.Labels)(lo.ToPtr(invoicingData.Metadata.ToMap())),
 					})
+				} else {
+					appData.ExternalInvoicing = nullable.NewNullNullable[api.BillingAppCustomerDataExternalInvoicing]()
 				}
 			case app.AppTypeSandbox:
 				// No app data

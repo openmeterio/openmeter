@@ -195,6 +195,41 @@ func TestCustomerBillingV3(t *testing.T) {
 		_, err = getStripeData(cus)
 		require.Error(t, err, "stripe customer data should have been wiped")
 	})
+
+	t.Run("Should return stripe app data on get", func(t *testing.T) {
+		// given a customer with existing stripe app data
+		cus, err := env.Fixture().setupCustomer(ctx, namespace)
+		require.NoError(t, err)
+
+		seedStripeData(t, cus, "cus_get_billing")
+
+		// when reading the customer billing
+		rec := doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
+
+		// then the response returns the stripe customer id
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+		require.Contains(t, rec.Body.String(), `"customer_id":"cus_get_billing"`)
+	})
+
+	t.Run("Should return null stripe app data on get after a wipe", func(t *testing.T) {
+		// given a customer whose stripe app data was wiped while the profile
+		// still names stripe as the payment app
+		cus, err := env.Fixture().setupCustomer(ctx, namespace)
+		require.NoError(t, err)
+
+		seedStripeData(t, cus, "cus_get_after_wipe")
+
+		rec := doJSONRequest(router, http.MethodPut, "/openmeter/customers/"+cus.ID+"/billing",
+			`{"app_data":{"stripe":null}}`)
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+		// when reading the customer billing
+		rec = doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
+
+		// then the read succeeds and reports the stripe app data as explicit null
+		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+		require.Contains(t, rec.Body.String(), `"stripe":null`)
+	})
 }
 
 func newCustomerBillingRouter(t *testing.T, env TestEnv, namespace string) http.Handler {
@@ -231,6 +266,9 @@ func newCustomerBillingRouter(t *testing.T, env TestEnv, namespace string) http.
 	})
 	router.Put("/openmeter/customers/{customerId}/billing/app-data", func(w http.ResponseWriter, r *http.Request) {
 		handler.UpdateCustomerBillingAppData().With(chi.URLParam(r, "customerId")).ServeHTTP(w, r)
+	})
+	router.Get("/openmeter/customers/{customerId}/billing", func(w http.ResponseWriter, r *http.Request) {
+		handler.GetCustomerBilling().With(chi.URLParam(r, "customerId")).ServeHTTP(w, r)
 	})
 
 	return router
