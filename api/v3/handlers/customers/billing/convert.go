@@ -2,10 +2,18 @@
 package customersbilling
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/oapi-codegen/nullable"
 	apilegacy "github.com/openmeterio/openmeter/api"
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/samber/lo"
 )
 
 // goverter:variables
@@ -61,4 +69,40 @@ var (
 
 func ResolveIDFromCustomerId(namespacedID customer.CustomerID) string {
 	return namespacedID.ID
+}
+
+func fromAPIBillingAppCustomerData(ctx context.Context, application app.App, data app.CustomerData) (*api.BillingAppCustomerData, error) {
+	if data == nil {
+		return nil, nil
+	}
+
+	switch application.GetType() {
+	case app.AppTypeStripe:
+		if stripeData, ok := data.(appstripe.CustomerData); ok {
+			// TODO: we don't have metadata on the stripe customer data yet
+			return &api.BillingAppCustomerData{
+				Stripe: nullable.NewNullableWithValue(api.BillingAppCustomerDataStripe{
+					CustomerId:             &stripeData.StripeCustomerID,
+					DefaultPaymentMethodId: stripeData.StripeDefaultPaymentMethodID,
+				}),
+			}, nil
+		}
+
+		return nil, nil
+	case app.AppTypeCustomInvoicing:
+		if invoicingData, ok := data.(appcustominvoicing.CustomerData); ok {
+			return &api.BillingAppCustomerData{
+				ExternalInvoicing: nullable.NewNullableWithValue(api.BillingAppCustomerDataExternalInvoicing{
+					Labels: (*api.Labels)(lo.ToPtr(invoicingData.Metadata.ToMap())),
+				}),
+			}, nil
+		}
+
+		return nil, nil
+	case app.AppTypeSandbox:
+		// No app data
+		return nil, nil
+	default:
+		return nil, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
+	}
 }

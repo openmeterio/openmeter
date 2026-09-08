@@ -2,17 +2,11 @@ package customersbilling
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-
-	"github.com/oapi-codegen/nullable"
-	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -55,8 +49,6 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 				return resp, err
 			}
 
-			appData := api.BillingAppCustomerData{}
-
 			// TODO: Only one app ID can be in the billing profile right now.
 			// We pick the payment app for now.
 			application := override.MergedProfile.Apps.Payment
@@ -64,48 +56,26 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 				CustomerID: request.CustomerID,
 			})
 			if err != nil {
-				if app.IsAppCustomerPreConditionError(err) {
-					// The profile names this app as payment app, but the customer has no
-					// data for it yet. This is a supported state; show it as unconfigured.
-					data = nil
-				} else {
+				if !app.IsAppCustomerPreConditionError(err) {
 					return resp, err
 				}
+
+				// The profile names this app as payment app, but the customer has no
+				// data for it yet. This is a supported state; show it as unconfigured.
+				data = nil // (untyped nil)
 			}
 
-			switch application.GetType() {
-			case app.AppTypeStripe:
-				if stripeData, ok := data.(appstripe.CustomerData); ok {
-					// TODO: we don't have metadata on the stripe customer data yet
-					appData.Stripe = nullable.NewNullableWithValue(api.BillingAppCustomerDataStripe{
-						CustomerId:             &stripeData.StripeCustomerID,
-						DefaultPaymentMethodId: stripeData.StripeDefaultPaymentMethodID,
-					})
-				} else {
-					appData.Stripe = nullable.NewNullNullable[api.BillingAppCustomerDataStripe]()
-				}
-			case app.AppTypeCustomInvoicing:
-				if invoicingData, ok := data.(appcustominvoicing.CustomerData); ok {
-					appData.ExternalInvoicing = nullable.NewNullableWithValue(api.BillingAppCustomerDataExternalInvoicing{
-						Labels: (*api.Labels)(lo.ToPtr(invoicingData.Metadata.ToMap())),
-					})
-				} else {
-					appData.ExternalInvoicing = nullable.NewNullNullable[api.BillingAppCustomerDataExternalInvoicing]()
-				}
-			case app.AppTypeSandbox:
-				// No app data
-			default:
-				return resp, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
+			apiAppData, err := fromAPIBillingAppCustomerData(ctx, application, data)
+			if err != nil {
+				return resp, err
 			}
 
-			resp = GetCustomerBillingResponse{
+			return GetCustomerBillingResponse{
 				BillingProfile: &api.BillingProfileReference{
 					Id: override.MergedProfile.ID,
 				},
-				AppData: &appData,
-			}
-
-			return resp, nil
+				AppData: apiAppData,
+			}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerBillingResponse](http.StatusOK),
 		httptransport.AppendOptions(
