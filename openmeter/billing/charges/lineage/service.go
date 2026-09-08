@@ -152,6 +152,15 @@ type LoadLineagesByCustomerInput struct {
 	Namespace  string
 	CustomerID string
 	Currency   currencies.CurrencyReference
+	OriginKind *creditrealization.LineageOriginKind
+	// HasActiveSegments excludes roots whose segments have all been consumed.
+	HasActiveSegments bool
+	// SegmentState selects roots with an active segment in this state and loads
+	// only those segments. Without it, all active segment states are loaded.
+	SegmentState *creditrealization.LineageSegmentState
+	// FeatureFilters uses purchase eligibility: empty matches all routes;
+	// otherwise at least one advance feature must match.
+	FeatureFilters []string
 }
 
 func (i LoadLineagesByCustomerInput) Validate() error {
@@ -167,7 +176,17 @@ func (i LoadLineagesByCustomerInput) Validate() error {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
-	return errors.Join(errs...)
+	if i.OriginKind != nil {
+		if err := i.OriginKind.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("origin kind: %w", err))
+		}
+	}
+	if i.SegmentState != nil {
+		if err := i.SegmentState.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("segment state: %w", err))
+		}
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateLineagesInput struct {

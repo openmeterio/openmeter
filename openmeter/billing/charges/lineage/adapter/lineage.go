@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -101,18 +102,29 @@ func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineag
 
 func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {
-		lineages, err := tx.db.CreditRealizationLineage.Query().
-			Where(
-				creditrealizationlineage.Namespace(input.Namespace),
-				creditrealizationlineage.CustomerIDEQ(input.CustomerID),
-				currencyIdentityPredicate(input.Currency),
-			).
-			WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
-				q.Where(creditrealizationlineagesegment.ClosedAtIsNil()).
-					Order(creditrealizationlineagesegment.ByCreatedAt())
-			}).
-			Order(creditrealizationlineage.ByCreatedAt(), creditrealizationlineage.ByID()).
-			All(ctx)
+		activeSegments := []predicate.CreditRealizationLineageSegment{creditrealizationlineagesegment.ClosedAtIsNil()}
+		if input.SegmentState != nil {
+			activeSegments = append(activeSegments, creditrealizationlineagesegment.StateEQ(*input.SegmentState))
+		}
+		query := tx.db.CreditRealizationLineage.Query().Where(
+			creditrealizationlineage.Namespace(input.Namespace),
+			creditrealizationlineage.CustomerIDEQ(input.CustomerID),
+			currencyIdentityPredicate(input.Currency),
+		)
+		if input.OriginKind != nil {
+			query.Where(creditrealizationlineage.OriginKindEQ(*input.OriginKind))
+		}
+		if input.HasActiveSegments || input.SegmentState != nil {
+			// Filtering the eager-loaded children alone would still return every
+			// historical root, including ones with no matching segments.
+			query.Where(creditrealizationlineage.HasSegmentsWith(activeSegments...))
+		}
+		if len(input.FeatureFilters) > 0 {
+			query.Where(advanceFeaturesOverlap(input.FeatureFilters))
+		}
+		lineages, err := query.WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
+			q.Where(activeSegments...).Order(creditrealizationlineagesegment.ByCreatedAt(), creditrealizationlineagesegment.ByID())
+		}).Order(creditrealizationlineage.ByCreatedAt(), creditrealizationlineage.ByID()).All(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -123,6 +135,16 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.Load
 		}
 		return mapped, nil
 	})
+}
+
+// advanceFeaturesOverlap mirrors purchase eligibility, including excluding
+// featureless legacy routes from a feature-restricted purchase.
+func advanceFeaturesOverlap(features []string) predicate.CreditRealizationLineage {
+	return func(s *sql.Selector) {
+		s.Where(sql.P(func(b *sql.Builder) {
+			b.Ident(s.C(creditrealizationlineage.FieldAdvanceFeatures)).WriteString(" && ").Arg(pq.StringArray(features))
+		}))
+	}
 }
 
 // currencyIdentityPredicate matches a lineage's persisted currency identity:

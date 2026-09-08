@@ -1044,6 +1044,10 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 	return transaction.Run(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
 		roots, err := e.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
 			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency.Reference(),
+			OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
+			HasActiveSegments: true,
+			SegmentState:      lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
+			FeatureFilters:    charge.Intent.FeatureFilters.Normalize(),
 		})
 		if err != nil {
 			return chargecreditpurchase.CreditGrantResult{}, err
