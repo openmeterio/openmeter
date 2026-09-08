@@ -35,8 +35,20 @@ func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.
 		return errors.New("active_to is required for canceled events")
 	}
 
+	current, err := s.getSubscription(ctx, event.Subscription.NamespacedID)
+	if err != nil {
+		return err
+	}
+
+	// Continuation or a later cancellation supersedes this event. Its old end
+	// must not truncate charges already provisioned by a newer sync. The newer
+	// lifecycle event and periodic reconciler own synchronization of that state.
+	if current.ActiveTo == nil || !current.ActiveTo.Equal(*event.Spec.ActiveTo) {
+		return nil
+	}
+
 	// Let's sync up to the end of the subscription
-	err := s.synchronizeSubscriptionAndInvoiceCustomer(
+	err = s.synchronizeSubscriptionAndInvoiceCustomer(
 		ctx,
 		newSubscriptionReferenceOrView(event.SubscriptionView),
 		*event.Spec.ActiveTo,

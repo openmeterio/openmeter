@@ -159,6 +159,60 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	assertNoSubscriptionInvoices(t, f.testDeps, f.view.Customer.ID)
 }
 
+func TestSubscriptionCustomCurrencyStaleCancellation(t *testing.T) {
+	for _, cancelAgain := range []bool{false, true} {
+		name := "continued"
+		if cancelAgain {
+			name = "canceled again later"
+		}
+		t.Run(name, func(t *testing.T) {
+			// given: a cancellation event queued before continuation and a newer sync.
+			clock.FreezeTime(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+			defer clock.UnFreeze()
+			f := setupCustomCurrencyFlatFeeSubscription(t)
+			ctx := t.Context()
+			clock.FreezeTime(time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC))
+			_, err := f.subscriptionService.Cancel(ctx, f.view.Subscription.NamespacedID, subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)})
+			require.NoError(t, err)
+			canceled, err := f.subscriptionService.GetView(ctx, f.view.Subscription.NamespacedID)
+			require.NoError(t, err)
+			event := subscription.NewCancelledEvent(ctx, canceled)
+			_, err = f.subscriptionService.Continue(ctx, f.view.Subscription.NamespacedID)
+			require.NoError(t, err)
+			if cancelAgain {
+				clock.FreezeTime(time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC))
+				_, err = f.subscriptionService.Cancel(ctx, f.view.Subscription.NamespacedID, subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)})
+				require.NoError(t, err)
+			}
+			current, err := f.subscriptionService.GetView(ctx, f.view.Subscription.NamespacedID)
+			require.NoError(t, err)
+			horizon := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+			require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, current, horizon))
+			ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
+			require.GreaterOrEqual(t, len(ids), 3)
+			states, err := f.subscriptionSyncService.GetSyncStates(ctx, []models.NamespacedID{f.view.Subscription.NamespacedID})
+			require.NoError(t, err)
+			require.Len(t, states, 1)
+			beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
+			require.NoError(t, err)
+
+			// when: the obsolete cancellation is delivered and retried.
+			for range 2 {
+				require.NoError(t, f.subscriptionSyncService.HandleCancelledEvent(ctx, &event))
+				// then: the newer schedule and its accounting remain intact.
+				require.Equal(t, ids, listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID))
+				afterEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
+				require.NoError(t, err)
+				require.Equal(t, beforeEntries, afterEntries)
+				afterStates, err := f.subscriptionSyncService.GetSyncStates(ctx, []models.NamespacedID{f.view.Subscription.NamespacedID})
+				require.NoError(t, err)
+				require.Len(t, afterStates, 1)
+				require.Equal(t, states[0].NextSyncAfter, afterStates[0].NextSyncAfter)
+			}
+		})
+	}
+}
+
 func TestSubscriptionCustomCurrencyScheduledDeletion(t *testing.T) {
 	// given: future custom charges already exist for a scheduled subscription.
 	clock.FreezeTime(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))

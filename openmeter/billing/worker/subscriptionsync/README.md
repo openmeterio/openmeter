@@ -90,7 +90,9 @@ charge.
 ## Deletion, cancellation, and retries
 
 Cancellation syncs through the subscription end so artifacts are shortened or
-removed according to the final desired periods. A deleted subscription has no
+removed according to the final desired periods. A cancellation event superseded
+by continuation or a different cancellation date is ignored; the newer event
+and periodic reconciler own that schedule. A deleted subscription has no
 view and therefore produces an empty target, asking reconciliation to remove
 its remaining owned artifacts subject to immutable-invoice rules. Cleanup must
 use an ID-based entrypoint because the normal subscription view lookup excludes
