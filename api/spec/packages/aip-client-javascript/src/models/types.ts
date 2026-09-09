@@ -3450,8 +3450,8 @@ export interface CreateSubscriptionAddonRequest {
  */
 export interface SubscriptionAddonUpdate {
   /**
-   * The new quantity of the add-on. Must be at least 0. A quantity of 0 removes
-   * the add-on from the point the timing resolves to.
+   * The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the
+   * add-on from the point the timing resolves to.
    */
   quantity: number
   /**
