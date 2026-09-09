@@ -218,19 +218,15 @@ func TestMultiSubject(t *testing.T) {
 	})
 
 	t.Run("Should aggregate usage across all subjects", func(t *testing.T) {
-		// Let's ingest usage for each subject
-		// Make clickhouse's job easier by sending events within a fix time range
 		now := time.Now()
 
 		for _, subjectKey := range subjectKeys {
-			timestamp := gofakeit.DateRange(now, now.Add(time.Second*2))
-
 			ev := cloudevents.New()
 			ev.SetID(gofakeit.UUID())
 			ev.SetSource("my-app")
 			ev.SetType("multi_subject")
 			ev.SetSubject(subjectKey)
-			ev.SetTime(timestamp)
+			ev.SetTime(now)
 
 			resp, err := client.IngestEventWithResponse(context.Background(), ev)
 			require.NoError(t, err)
