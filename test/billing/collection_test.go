@@ -131,6 +131,84 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 	s.Len(invoices, 0)
 }
 
+func (s *CollectionTestSuite) TestCollectionWaitsForInvoiceAtAfterServicePeriodEnd() {
+	namespace := "ns-collection-waits-for-invoice-at"
+	ctx := s.T().Context()
+
+	appSandbox := s.InstallSandboxApp(s.T(), namespace)
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+	s.Require().NotNil(customer)
+	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
+
+	testFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	defer testFeature.Cleanup()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
+	}
+	invoiceAt := lo.Must(time.Parse(time.RFC3339, "2025-02-01T00:00:00Z"))
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	testFeatureKey := testFeature.Feature.Key
+	s.MockStreamingConnector.AddSimpleEvent(testFeatureKey, 1, servicePeriod.From.Add(time.Hour))
+
+	// Given a non-progressively billed line whose service period ends before its invoice time.
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: []billing.GatheringLine{
+			{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Name: "UBP - unit",
+				}),
+				ServicePeriod: servicePeriod,
+				InvoiceAt:     invoiceAt,
+				ManagedBy:     billing.ManuallyManagedLine,
+				FeatureKey:    testFeatureKey,
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				})),
+			},
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(pendingLines.Lines, 1)
+
+	// When collection is attempted after service completion but before InvoiceAt.
+	clock.FreezeTime(servicePeriod.To)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.GetID(),
+		AsOf:     lo.ToPtr(servicePeriod.To),
+	})
+
+	// Then the line remains on the gathering invoice and no standard invoice is created.
+	s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+	s.Empty(invoices)
+
+	gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: pendingLines.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	// When collection reaches InvoiceAt, the complete service period becomes billable.
+	clock.FreezeTime(invoiceAt)
+	invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customer.GetID(),
+		AsOf:     lo.ToPtr(invoiceAt),
+	})
+
+	// Then one standard invoice contains the full line.
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+	s.True(servicePeriod.Equal(invoices[0].Lines.OrEmpty()[0].Period))
+}
+
 func (s *CollectionTestSuite) TestGatheringLineUnitConfigSnapshotRoundTrip() {
 	// given:
 	// - a legacy (non-charges) usage-based gathering line whose rate card carries a unit_config

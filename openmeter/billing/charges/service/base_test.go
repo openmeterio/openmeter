@@ -193,13 +193,14 @@ func (s *BaseSuite) SetupSuite() {
 	}
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:       flatFeeAdapter,
-		Handler:       flatFeeHandler,
-		Lineage:       lineageService,
-		MetaAdapter:   metaAdapter,
-		Locker:        locker,
-		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:    currencyService,
+		Adapter:              flatFeeAdapter,
+		Handler:              flatFeeHandler,
+		Lineage:              lineageService,
+		MetaAdapter:          metaAdapter,
+		Locker:               locker,
+		FeatureMeterResolver: s.FeatureMeterResolver,
+		RatingService:        billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:           currencyService,
 	})
 	s.NoError(err)
 

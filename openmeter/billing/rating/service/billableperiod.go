@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (billing.IsLineBillableAsOfResult, error) {
@@ -24,26 +25,30 @@ func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (b
 		return billing.IsLineBillableAsOfResult{}, fmt.Errorf("price is nil")
 	}
 
-	meterTypeAllowsProgressiveBilling := false
-	if linePrice.Type() != productcatalog.FlatPriceType && in.ProgressiveBilling {
-		isDependingOnIncreaseOnlyMeters, err := isDependingOnIncreaseOnlyMeters(in)
-		if err != nil {
-			return billing.IsLineBillableAsOfResult{}, err
-		}
-
-		meterTypeAllowsProgressiveBilling = isDependingOnIncreaseOnlyMeters
+	progressiveBillingAllowed := false
+	// We can allow progressive billing only if:
+	// - the line is not flat price (=> usage based)
+	// - the usage based line's features can be resolved
+	//
+	// As any usage-based line is billable in arrears, thus we are safe to continue with non-progressive billing.
+	//
+	// By allowing empty feature/meter for usage-based lines we can create a standard invoice which immediately
+	// enters into failed state, thus we are communicating the issue to the user.
+	if linePrice.Type() != productcatalog.FlatPriceType && in.ProgressiveBilling && in.Feature != nil && in.Meter != nil {
+		progressiveBillingAllowed = isDependingOnIncreaseOnlyMeters(in)
 	}
 
-	// Force disable progressive billing if the meter type does not allow it
-	if !meterTypeAllowsProgressiveBilling {
-		in.ProgressiveBilling = false
+	in.ProgressiveBilling = progressiveBillingAllowed
+	if !in.ProgressiveBilling && in.AsOf.Truncate(streaming.MinimumWindowSizeDuration).Before(in.Line.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration)) {
+		return billing.IsLineBillableAsOfResult{}, nil
 	}
 
 	result, err := linePricer.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 		AsOf:               in.AsOf,
 		ProgressiveBilling: in.ProgressiveBilling,
 		Line:               in.Line,
-		FeatureMeters:      in.FeatureMeters,
+		Feature:            in.Feature,
+		Meter:              in.Meter,
 	})
 	if err != nil {
 		return billing.IsLineBillableAsOfResult{}, err
@@ -58,30 +63,13 @@ func (s *service) ResolveBillablePeriod(in rating.ResolveBillablePeriodInput) (b
 
 // isDependingOnIncreaseOnlyMeters checks if the line is depending on meters that can decrease the totals over time
 // (note: this is somewhat of a lie, as we can input negative values in events, which will have the same effect)
-func isDependingOnIncreaseOnlyMeters(in rating.ResolveBillablePeriodInput) (bool, error) {
-	featureKey := in.Line.GetFeatureKey()
-	if featureKey == "" {
-		return false, fmt.Errorf("feature key is required")
-	}
-
-	// Let's check if the underlying meter can be billed in a progressive manner
-	featureMeter, err := in.FeatureMeters.Get(in.Line)
-	if err != nil {
-		return false, err
-	}
-
-	if featureMeter.Meter == nil {
-		return false, fmt.Errorf("meter is nil for feature[%s]", featureKey)
-	}
-
-	meterEntity := *featureMeter.Meter
-
-	switch meterEntity.Aggregation {
+func isDependingOnIncreaseOnlyMeters(in rating.ResolveBillablePeriodInput) bool {
+	switch in.Meter.Aggregation {
 	case meter.MeterAggregationSum, meter.MeterAggregationCount,
 		meter.MeterAggregationMax, meter.MeterAggregationUniqueCount:
-		return true, nil
+		return true
 	default:
 		// Other types need to be billed in arrears truncated by window size
-		return false, nil
+		return false
 	}
 }

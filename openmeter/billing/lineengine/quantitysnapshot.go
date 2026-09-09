@@ -53,12 +53,7 @@ func (e *Engine) SnapshotLineQuantity(ctx context.Context, input SnapshotLineQua
 func (e *Engine) SnapshotLineQuantities(ctx context.Context, invoice billing.StandardInvoice, lines billing.StandardLines) error {
 	featureMeters, err := e.featureMeterResolver.Resolve(ctx, invoice.Namespace, lines...)
 	if err != nil {
-		// Per-line snapshotting below surfaces validation issues with line identity,
-		// so only system errors abort the batch here.
-		_, systemErr := billing.ToValidationIssues(err)
-		if systemErr != nil {
-			return fmt.Errorf("resolving feature meters: %w", systemErr)
-		}
+		return fmt.Errorf("resolving feature meters: %w", err)
 	}
 
 	if err := e.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, lines, featureMeters); err != nil {

@@ -41,6 +41,7 @@ type mockCollectionCompletedLineEngine struct {
 	engineType ombilling.LineEngineType
 
 	gateInvoiceAssignment                 func(ctx context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error)
+	areLinesBillableAsOf                  func(ctx context.Context, input ombilling.AreLinesBillableAsOfInput) ([]ombilling.IsLineBillableAsOfResult, error)
 	buildStandardInvoiceLines             func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
 	buildStandardLinesForGatheringPreview func(ctx context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error)
 	onStandardInvoiceCreated              func(ctx context.Context, input ombilling.OnStandardInvoiceCreatedInput) (ombilling.StandardLines, error)
@@ -75,8 +76,21 @@ func (m *mockCollectionCompletedLineEngine) GetLineEngineType() ombilling.LineEn
 	return m.engineType
 }
 
-func (m *mockCollectionCompletedLineEngine) IsLineBillableAsOf(_ context.Context, input ombilling.IsLineBillableAsOfInput) (bool, error) {
-	return !lo.IsEmpty(input.ResolvedBillablePeriod), nil
+func (m *mockCollectionCompletedLineEngine) AreLinesBillableAsOf(ctx context.Context, batch ombilling.AreLinesBillableAsOfInput) ([]ombilling.IsLineBillableAsOfResult, error) {
+	if m.areLinesBillableAsOf != nil {
+		return m.areLinesBillableAsOf(ctx, batch)
+	}
+
+	return lo.Map(batch.Lines, func(line ombilling.GatheringLine, _ int) ombilling.IsLineBillableAsOfResult {
+		if batch.AsOf.Before(line.InvoiceAt) {
+			return ombilling.IsLineBillableAsOfResult{}
+		}
+
+		return ombilling.IsLineBillableAsOfResult{
+			Billable:       true,
+			BillablePeriod: line.ServicePeriod,
+		}
+	}), nil
 }
 
 func (m *mockCollectionCompletedLineEngine) GateInvoiceAssignment(ctx context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
@@ -85,6 +99,70 @@ func (m *mockCollectionCompletedLineEngine) GateInvoiceAssignment(ctx context.Co
 	}
 
 	return m.gateInvoiceAssignment(ctx, input)
+}
+
+func (s *LineEngineTestSuite) TestBillabilityValidationIssuesPreventInvoiceAdvancement() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-engine-billability-validation")
+	mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeFlatFee}
+	s.registerMockLineEngine(s.T(), mockEngine)
+	defer s.unregisterLineEngine(s.T(), mockEngine)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.FreezeTime(servicePeriod.To)
+	defer clock.UnFreeze()
+
+	mockEngine.areLinesBillableAsOf = func(_ context.Context, input ombilling.AreLinesBillableAsOfInput) ([]ombilling.IsLineBillableAsOfResult, error) {
+		return lo.Map(input.Lines, func(ombilling.GatheringLine, int) ombilling.IsLineBillableAsOfResult {
+			return ombilling.IsLineBillableAsOfResult{
+				Billable:       true,
+				BillablePeriod: servicePeriod,
+			}
+		}), ombilling.ValidationWithFieldPrefix("charges/charge-id", ombilling.ErrInvoiceLineFeatureNotFound)
+	}
+	mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+		return mustAsNewStandardLines(input), nil
+	}
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "test-subject")
+
+	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: ombilling.GatheringLines{{
+			GatheringLineBase: ombilling.GatheringLineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: namespace,
+					Name:      "line with missing feature",
+				}),
+				ManagedBy:     ombilling.ManuallyManagedLine,
+				Engine:        mockEngine.GetLineEngineType(),
+				Currency:      currencyx.FiatCode(currency.USD),
+				ServicePeriod: servicePeriod,
+				InvoiceAt:     servicePeriod.To,
+				Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount: alpacadecimal.NewFromInt(10),
+				}),
+			},
+		}},
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, ombilling.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Equal(ombilling.StandardInvoiceStatusDraftInvalidCreated, invoices[0].Status)
+	s.Require().Len(invoices[0].ValidationIssues, 1)
+	s.Equal(ombilling.ErrInvoiceLineFeatureNotFound.Code, invoices[0].ValidationIssues[0].Code)
+	s.Equal("/charges/charge-id", invoices[0].ValidationIssues[0].Path)
+	s.Equal(ombilling.LineEngineValidationComponent(mockEngine.GetLineEngineType()), invoices[0].ValidationIssues[0].Component)
 }
 
 func (m *mockCollectionCompletedLineEngine) SplitGatheringLine(_ context.Context, _ ombilling.SplitGatheringLineInput) (ombilling.SplitGatheringLineResult, error) {
