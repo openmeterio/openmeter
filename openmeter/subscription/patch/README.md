@@ -46,6 +46,11 @@ silently replace an existing item.
 Phase stretch and removal can shift later phase offsets. They must preserve
 phase ordering and cannot erase a phase by collapsing its duration.
 
+[Migration](../workflow/README.md) generates internal item-schedule patches.
+They preserve historical versions and unchanged prefixes while replacing an
+affected suffix, including future addon quantity segments. They are not exposed
+as public edit operations.
+
 ## Error meaning
 
 - validation errors mean the patch or resulting spec is structurally invalid

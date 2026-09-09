@@ -64,6 +64,25 @@ type SubscriptionRepository interface {
 	UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*Subscription, error)
 
 	CreateCostBasisPins(ctx context.Context, inputs []CreateCostBasisPinEntityInput) error
+	MigratePlan(ctx context.Context, input MigratePlanInput) error
+}
+
+type MigratePlanInput struct {
+	SubscriptionID models.NamespacedID
+	CurrentPlan    PlanRef
+	TargetPlan     PlanRef
+}
+
+func (i MigratePlanInput) Validate() error {
+	var errs []error
+	if i.SubscriptionID.Namespace == "" || i.SubscriptionID.ID == "" {
+		errs = append(errs, errors.New("subscription namespace and ID are required"))
+	}
+	if i.CurrentPlan.Id == "" || i.TargetPlan.Id == "" || i.CurrentPlan.Key == "" ||
+		i.CurrentPlan.Key != i.TargetPlan.Key || i.TargetPlan.Version <= i.CurrentPlan.Version {
+		errs = append(errs, errors.New("migration requires a later version of the same plan"))
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateCostBasisPinEntityInput struct {

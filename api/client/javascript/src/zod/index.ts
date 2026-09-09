@@ -18540,9 +18540,13 @@ export const ChangeSubscriptionBody = zod
   .describe('Change a subscription.')
 
 /**
- * Migrates the subscripiton to the provided version of the current plan.
- * If possible, the migration will be done immediately.
- * If not, the migration will be scheduled to the end of the current billing period.
+ * Amends a running subscription to a later version of its current plan in place.
+ * Unchanged items retain their service periods. Changed or removed items end at
+ * the effective time; replacements and additions start from that time.
+ * Existing addons must be compatible with the target plan version.
+ * The phase timeline, billing anchor, and subscription-level billing settings
+ * are preserved. Both response entries refer to the same subscription:
+ * current is the before snapshot and next is the amended view.
  * @summary Migrate subscription
  */
 export const migrateSubscriptionPathSubscriptionIdRegExp =
@@ -18561,14 +18565,14 @@ export const MigrateSubscriptionBody = zod.object({
     .date()
     .optional()
     .describe(
-      'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.',
+      'Must match the existing billing anchor if provided. Use subscription change to reset it.',
     ),
   startingPhase: zod.coerce
     .string()
     .min(1)
     .optional()
     .describe(
-      'The key of the phase to start the subscription in.\nIf not provided, the subscription will start in the first phase of the plan.',
+      'Not supported for in-place migrations. Omit this field; use subscription change to reset the phase timeline.',
     ),
   targetVersion: zod.coerce
     .number()
@@ -18576,7 +18580,7 @@ export const MigrateSubscriptionBody = zod.object({
     .min(1)
     .optional()
     .describe(
-      'The version of the plan to migrate to.\nIf not provided, the subscription will migrate to the latest version of the current plan.',
+      'A strictly later version of the current plan to migrate to.\nIf not provided, the subscription will migrate to the latest version of the current plan.',
     ),
   timing: zod
     .union([

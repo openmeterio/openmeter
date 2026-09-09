@@ -120,6 +120,7 @@ func NewSubscriptionServices(
 		FeatureResolver:    featureResolver,
 		TransactionManager: subscriptionRepo,
 		AddonService:       subAddSvc,
+		PlanAddonService:   planAddonService,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
 		Lockr:              lockr,
 		FeatureFlags:       featureFlags,
