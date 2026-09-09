@@ -90,10 +90,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 				return nil, fmt.Errorf("get customer override: %w", err)
 			}
 
-			featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Customer.Namespace, chargesByType.usageBased...)
-			if err != nil {
-				return nil, fmt.Errorf("resolve feature meters: %w", err)
-			}
+			featureMeters := s.featureMeterResolver.ResolveLazy(ctx, input.Customer.Namespace, chargesByType.usageBased...)
 
 			for _, charge := range chargesByType.usageBased {
 				result, err := s.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{

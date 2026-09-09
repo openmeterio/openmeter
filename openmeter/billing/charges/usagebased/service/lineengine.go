@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -303,13 +304,15 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		return nil, err
 	}
 
+	featureMeters := e.service.featureMeterResolver.ResolveLazy(ctx, input.Invoice.Namespace, lo.Values(chargesByID)...)
+
 	for _, stdLine := range stdLines {
 		charge, ok := chargesByID[*stdLine.ChargeID]
 		if !ok {
 			return nil, fmt.Errorf("usage based charge[%s] not found for gathering preview line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
-		previewResult, err := e.buildGatheringPreviewRun(ctx, charge, stdLine)
+		previewResult, err := e.buildGatheringPreviewRun(ctx, charge, featureMeters, stdLine)
 		if err != nil {
 			return nil, fmt.Errorf("building gathering preview run for line[%s]: %w", stdLine.ID, err)
 		}
@@ -330,7 +333,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 	return stdLines, nil
 }
 
-func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usagebased.Charge, stdLine *billing.StandardLine) (usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult, error) {
+func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usagebased.Charge, featureMeters billingfeaturemeter.FeatureMeters, stdLine *billing.StandardLine) (usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult, error) {
 	if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf(
 			"usage based standard line[%s]: unsupported settlement mode for gathering preview: %s",
@@ -353,10 +356,15 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 		servicePeriodTo = meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To)
 	}
 
+	featureMeter, err := featureMeters.Get(charge)
+	if err != nil {
+		return usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
+	}
+
 	return e.service.runs.BuildCreditThenInvoiceGatheringPreviewRun(ctx, usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunInput{
 		Charge:             charge,
 		CustomerOverride:   stateMachineConfig.CustomerOverride,
-		FeatureMeter:       stateMachineConfig.FeatureMeter,
+		FeatureMeter:       featureMeter,
 		Type:               runType,
 		StoredAtLT:         storedAtLT,
 		ServicePeriodTo:    servicePeriodTo,

@@ -409,10 +409,15 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		return fmt.Errorf("get stored at lt: %w", err)
 	}
 
+	featureMeter, err := s.FeatureMeters.Get(s.Charge)
+	if err != nil {
+		return err
+	}
+
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
 		Charge:             s.Charge,
 		CustomerOverride:   s.CustomerOverride,
-		FeatureMeter:       s.FeatureMeter,
+		FeatureMeter:       featureMeter,
 		Type:               usagebased.RealizationRunTypeFinalRealization,
 		StoredAtLT:         storedAtLT,
 		ServicePeriodTo:    meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To),
@@ -438,12 +443,17 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 
 	storedAtLT := meta.NormalizeTimestamp(currentRun.StoredAtLT)
 
+	featureMeter, err := s.FeatureMeters.Get(s.Charge)
+	if err != nil {
+		return err
+	}
+
 	ratingResult, err := s.Rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
 		Charge:          s.Charge,
 		StoredAtLT:      storedAtLT,
 		ServicePeriodTo: currentRun.ServicePeriodTo,
 		Customer:        s.CustomerOverride,
-		FeatureMeter:    s.FeatureMeter,
+		FeatureMeter:    featureMeter,
 	})
 	if err != nil {
 		return fmt.Errorf("get detailed rating for usage: %w", err)
