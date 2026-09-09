@@ -192,11 +192,16 @@ func NewSink(
 		NamespaceTopicRegexp:    conf.NamespaceTopicRegexp,
 		FlushEventHandler:       flushHandler,
 		FlushSuccessTimeout:     conf.FlushSuccessTimeout,
-		DrainTimeout:            conf.DrainTimeout,
-		TopicResolver:           topicResolver,
-		MeterRefetchInterval:    conf.MeterRefetchInterval,
-		MeterService:            meterService,
-		LogDroppedEvents:        conf.LogDroppedEvents,
+		DedupeWriteTimeout:      conf.DedupeWriteTimeout,
+		DedupeWriteRetry: sink.DedupeWriteRetryConfig{
+			InitialInterval: conf.DedupeWriteRetry.InitialInterval,
+			MaxInterval:     conf.DedupeWriteRetry.MaxInterval,
+		},
+		DrainTimeout:         conf.DrainTimeout,
+		TopicResolver:        topicResolver,
+		MeterRefetchInterval: conf.MeterRefetchInterval,
+		MeterService:         meterService,
+		LogDroppedEvents:     conf.LogDroppedEvents,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize sink: %w", err)
