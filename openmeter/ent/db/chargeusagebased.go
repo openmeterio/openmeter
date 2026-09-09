@@ -101,7 +101,7 @@ type ChargeUsageBased struct {
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
-	FeatureID string `json:"feature_id,omitempty"`
+	FeatureID *string `json:"feature_id,omitempty"`
 	// RatingEngine holds the value of the "rating_engine" field.
 	RatingEngine usagebased.RatingEngine `json:"rating_engine,omitempty"`
 	// Price holds the value of the "price" field.
@@ -543,7 +543,8 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
-				_m.FeatureID = value.String
+				_m.FeatureID = new(string)
+				*_m.FeatureID = value.String
 			}
 		case chargeusagebased.FieldRatingEngine:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -804,8 +805,10 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString("feature_key=")
 	builder.WriteString(_m.FeatureKey)
 	builder.WriteString(", ")
-	builder.WriteString("feature_id=")
-	builder.WriteString(_m.FeatureID)
+	if v := _m.FeatureID; v != nil {
+		builder.WriteString("feature_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("rating_engine=")
 	builder.WriteString(fmt.Sprintf("%v", _m.RatingEngine))

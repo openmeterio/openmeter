@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 
 	"github.com/samber/lo"
@@ -16,12 +17,10 @@ import (
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 func (s *service) CreateCustomerCharge(ctx context.Context, input charges.CreateCustomerChargeInput) (charges.CustomerCharge, error) {
@@ -83,7 +82,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 	// The API response includes the realization view (the whole service period
 	// is outstanding on a fresh charge), so it is built here just like on the
 	// list path. No expands apply on the create path.
-	return buildCustomerCharge(created[0], customerChargeEntities{})
+	return s.buildCustomerCharge(ctx, created[0], customerChargeEntities{}, meta.ExpandNone)
 }
 
 func (s *service) DeleteCustomerCharge(ctx context.Context, input charges.DeleteCustomerChargeInput) error {
@@ -284,7 +283,7 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 	}
 
 	customerCharges, err := lo.MapErr(listed.Items, func(charge charges.Charge, _ int) (charges.CustomerCharge, error) {
-		return buildCustomerCharge(charge, entities)
+		return s.buildCustomerCharge(ctx, charge, entities, listInput.Expands)
 	})
 	if err != nil {
 		return charges.ListCustomerChargesResult{}, err
@@ -304,7 +303,7 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 // domain charge, the entities loaded for the applied expands, and the
 // resolved realization history of its type. Credit purchase charges only
 // receive the customer.
-func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities) (charges.CustomerCharge, error) {
+func (s *service) buildCustomerCharge(ctx context.Context, charge charges.Charge, entities customerChargeEntities, expands meta.Expands) (charges.CustomerCharge, error) {
 	out := charges.CustomerCharge{
 		Charge: charge,
 		// The listing is scoped to a single customer, so every charge on the
@@ -326,9 +325,23 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 
 		out.UsageBasedRealizations = resolved
 
-		if featureRef := ub.GetFeatureMeterRef(); featureRef != nil {
-			if feat, ok := entities.featuresByRef[featureRef.IDOrKey]; ok {
-				out.Feature = &feat
+		if entities.featureMeters != nil {
+			featureMeter, err := entities.featureMeters.Get(billingfeaturemeter.WithoutMeters(ub))
+			if err == nil {
+				if ub.State.FeatureID == "" {
+					ub.State.FeatureID = featureMeter.Feature.ID
+					out.Charge = charges.NewCharge(ub)
+				}
+
+				if expands.Has(meta.ExpandFeature) {
+					out.Feature = &featureMeter.Feature
+				}
+			} else {
+				s.logger.WarnContext(ctx, "failed to resolve customer charge feature",
+					slog.String("namespace", ub.Namespace),
+					slog.String("charge_id", ub.ID),
+					slog.String("error", err.Error()),
+				)
 			}
 		}
 
@@ -350,9 +363,10 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 
 		out.FlatFeeRealizations = resolved
 
-		if featureRef := ff.GetFeatureRef(); featureRef != nil {
-			if feat, ok := entities.featuresByRef[*featureRef]; ok {
-				out.Feature = &feat
+		if expands.Has(meta.ExpandFeature) && entities.featureMeters != nil && ff.GetFeatureMeterRef() != nil {
+			featureMeter, err := entities.featureMeters.Get(billingfeaturemeter.WithoutMeters(ff))
+			if err == nil {
+				out.Feature = &featureMeter.Feature
 			}
 		}
 
@@ -369,9 +383,10 @@ func buildCustomerCharge(charge charges.Charge, entities customerChargeEntities)
 // customerChargeReferences collects the entity references a page of charges
 // points at, so the facade bulk-loads each kind once.
 type customerChargeReferences struct {
-	featureReferences []billingfeaturemeter.FeatureReferenceGetter
-	subscriptionIDs   []string
-	invoiceIDs        []string
+	featureReferences   []billingfeaturemeter.FeatureReferenceGetter
+	hasMissingFeatureID bool
+	subscriptionIDs     []string
+	invoiceIDs          []string
 }
 
 func collectCustomerChargeReferences(items charges.Charges) (customerChargeReferences, error) {
@@ -379,7 +394,7 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 
 	for _, item := range items {
 		if item.GetFeatureMeterRef() != nil {
-			out.featureReferences = append(out.featureReferences, item)
+			out.featureReferences = append(out.featureReferences, billingfeaturemeter.WithoutMeters(item))
 		}
 
 		switch item.Type() {
@@ -391,6 +406,11 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 
 			if sub := ub.Intent.GetSubscription(); sub != nil {
 				out.subscriptionIDs = append(out.subscriptionIDs, sub.SubscriptionID)
+			}
+
+			// When the charge is created with feature key only, we need to resolve the feature ID.
+			if ub.State.FeatureID == "" {
+				out.hasMissingFeatureID = true
 			}
 
 			for _, run := range ub.Realizations {
@@ -431,7 +451,7 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 // one customer, so the customer is a single entity rather than a map.
 type customerChargeEntities struct {
 	customer          *customer.Customer
-	featuresByRef     map[ref.IDOrKey]feature.Feature
+	featureMeters     billingfeaturemeter.FeatureMeters
 	subscriptionsByID map[string]subscription.Subscription
 	invoiceLinesByID  map[string]billing.StandardInvoice
 }
@@ -447,8 +467,8 @@ func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace stri
 		}
 	}
 
-	if expands.Has(meta.ExpandFeature) {
-		entities.featuresByRef, err = s.listCustomerChargeFeatures(ctx, namespace, refs.featureReferences)
+	if expands.Has(meta.ExpandFeature) || refs.hasMissingFeatureID {
+		entities.featureMeters, err = s.featureMeterResolver.Resolve(ctx, namespace, refs.featureReferences...)
 		if err != nil {
 			return customerChargeEntities{}, fmt.Errorf("loading features: %w", err)
 		}
@@ -491,44 +511,6 @@ func (s *service) getCustomerChargeCustomer(ctx context.Context, namespace strin
 	}
 
 	return lo.ToPtr(listed.Items[0]), nil
-}
-
-// listCustomerChargeFeatures bulk-loads the referenced features for the
-// feature expand. Refs mix resolved IDs (active charges) and keys (created
-// charges), which feature meter resolution handles natively.
-func (s *service) listCustomerChargeFeatures(ctx context.Context, namespace string, featureReferences []billingfeaturemeter.FeatureReferenceGetter) (map[ref.IDOrKey]feature.Feature, error) {
-	out := make(map[ref.IDOrKey]feature.Feature, len(featureReferences))
-	if len(featureReferences) == 0 {
-		return out, nil
-	}
-
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, featureReferences...)
-	if err != nil {
-		return nil, fmt.Errorf("resolving features: %w", err)
-	}
-
-	for _, featureReference := range featureReferences {
-		featureRef := featureReference.GetFeatureMeterRef()
-		if featureRef == nil {
-			continue
-		}
-
-		featureMeter, err := featureMeters.Get(featureReference)
-		if err != nil && !billing.IsValidationIssueOnly(err) {
-			return nil, fmt.Errorf("resolving feature %v: %w", featureRef.IDOrKey, err)
-		}
-
-		// Feature expansion is best-effort. A missing feature is omitted so
-		// the API retains its ID/key fallback, while other validation issues
-		// can still return a usable feature below.
-		if featureMeter.Feature.ID == "" {
-			continue
-		}
-
-		out[featureRef.IDOrKey] = featureMeter.Feature
-	}
-
-	return out, nil
 }
 
 // listCustomerChargeSubscriptions bulk-loads the referenced subscriptions for

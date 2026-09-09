@@ -187,7 +187,7 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 	createdCharge, err := createdCharges[0].AsUsageBasedCharge()
 	s.NoError(err)
 	s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(createdCharge.Status))
-	s.Equal(featureV1.ID, createdCharge.State.FeatureID)
+	s.Empty(createdCharge.State.FeatureID)
 
 	s.archiveFeature(ctx, ns, featureV1.ID)
 	featureV2 := s.createFeature(ctx, ns, featureKey, meterV2.ID)

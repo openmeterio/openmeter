@@ -22,6 +22,7 @@ import (
 )
 
 type service struct {
+	logger  *slog.Logger
 	adapter charges.Adapter
 	// Note: if meta has a service layer, we should use it here instead of the adapter
 	metaAdapter          meta.Adapter
@@ -141,6 +142,7 @@ func New(config Config) (*service, error) {
 	}
 
 	svc := &service{
+		logger:                config.Logger,
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
 		invoiceUpdater:        invoiceUpdater,

@@ -62,7 +62,9 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			NotEmpty().
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
-			}),
+			}).
+			Optional().
+			Nillable(),
 
 		field.Enum("rating_engine").
 			GoType(usagebased.RatingEngine("")),
@@ -152,8 +154,7 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 		edge.From("feature", Feature.Type).
 			Field("feature_id").
 			Ref("usage_based_charges").
-			Unique().
-			Required(),
+			Unique(),
 		edge.From("tax_code", TaxCode.Type).
 			Ref("charge_usage_based").
 			Field("tax_code_id").

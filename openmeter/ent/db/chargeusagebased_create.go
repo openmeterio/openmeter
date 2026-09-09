@@ -344,6 +344,14 @@ func (_c *ChargeUsageBasedCreate) SetFeatureID(v string) *ChargeUsageBasedCreate
 	return _c
 }
 
+// SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableFeatureID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetFeatureID(*v)
+	}
+	return _c
+}
+
 // SetRatingEngine sets the "rating_engine" field.
 func (_c *ChargeUsageBasedCreate) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedCreate {
 	_c.mutation.SetRatingEngine(v)
@@ -694,9 +702,6 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_key": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.FeatureID(); !ok {
-		return &ValidationError{Name: "feature_id", err: errors.New(`db: missing required field "ChargeUsageBased.feature_id"`)}
-	}
 	if v, ok := _c.mutation.FeatureID(); ok {
 		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
@@ -733,9 +738,6 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeUsageBased.customer"`)}
-	}
-	if len(_c.mutation.FeatureIDs()) == 0 {
-		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "ChargeUsageBased.feature"`)}
 	}
 	if len(_c.mutation.TaxCodeIDs()) == 0 {
 		return &ValidationError{Name: "tax_code", err: errors.New(`db: missing required edge "ChargeUsageBased.tax_code"`)}
@@ -1091,7 +1093,7 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.FeatureID = nodes[0]
+		_node.FeatureID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
@@ -1471,6 +1473,12 @@ func (u *ChargeUsageBasedUpsert) SetFeatureID(v string) *ChargeUsageBasedUpsert 
 // UpdateFeatureID sets the "feature_id" field to the value that was provided on create.
 func (u *ChargeUsageBasedUpsert) UpdateFeatureID() *ChargeUsageBasedUpsert {
 	u.SetExcluded(chargeusagebased.FieldFeatureID)
+	return u
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (u *ChargeUsageBasedUpsert) ClearFeatureID() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldFeatureID)
 	return u
 }
 
@@ -1976,6 +1984,13 @@ func (u *ChargeUsageBasedUpsertOne) SetFeatureID(v string) *ChargeUsageBasedUpse
 func (u *ChargeUsageBasedUpsertOne) UpdateFeatureID() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateFeatureID()
+	})
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (u *ChargeUsageBasedUpsertOne) ClearFeatureID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearFeatureID()
 	})
 }
 
@@ -2663,6 +2678,13 @@ func (u *ChargeUsageBasedUpsertBulk) SetFeatureID(v string) *ChargeUsageBasedUps
 func (u *ChargeUsageBasedUpsertBulk) UpdateFeatureID() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateFeatureID()
+	})
+}
+
+// ClearFeatureID clears the value of the "feature_id" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearFeatureID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearFeatureID()
 	})
 }
 
