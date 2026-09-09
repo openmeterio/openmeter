@@ -69,9 +69,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 	if request.StartingPhase != nil {
 		return def, models.NewGenericValidationError(fmt.Errorf("migration preserves the phase timeline; use subscription change to select a starting phase"))
 	}
-	if request.BillingAnchor != nil && !request.BillingAnchor.Equal(sub.BillingAnchor) {
-		return def, models.NewGenericValidationError(fmt.Errorf("migration preserves the billing anchor; use subscription change to reset it"))
-	}
+	// BillingAnchor is deprecated and ignored for compatibility with existing clients.
 
 	if request.RejectUnitConfig && p.HasUnitConfig() {
 		return def, productcatalog.ErrUnitConfigNotRepresentable

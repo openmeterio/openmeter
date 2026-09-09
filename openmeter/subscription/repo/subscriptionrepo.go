@@ -42,7 +42,7 @@ func withSubscriptionReferences(q *db.SubscriptionQuery) *db.SubscriptionQuery {
 		})
 }
 
-func (r *subscriptionRepo) MigratePlan(ctx context.Context, input subscription.MigratePlanInput) error {
+func (r *subscriptionRepo) AdvancePlanReference(ctx context.Context, input subscription.AdvancePlanReferenceInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}

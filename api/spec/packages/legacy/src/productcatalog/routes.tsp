@@ -578,8 +578,11 @@ interface SubscriptionsEndpoints {
       startingPhase?: string;
 
       /**
-       * Must match the existing billing anchor if provided. Use subscription change to reset it.
+       * Ignored. Migration preserves the existing billing anchor.
+       *
+       * @deprecated This field is a no-op. Use subscription change to reset the billing anchor.
        */
+      #deprecated "Ignored; migration preserves the existing billing anchor"
       billingAnchor?: DateTime;
     },
   ): SubscriptionChangeResponseBody | NotFoundError | CommonSubscriptionErrors;

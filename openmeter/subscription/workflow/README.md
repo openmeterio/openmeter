@@ -30,7 +30,13 @@ difference at or after the effective time:
 
 The generated schedule patch is internal; it does not add a public edit API.
 Unlike the single-version add/remove patches, it handles future addon quantity
-segments and gaps without rewriting historical version indexes. Persistence,
+segments and gaps without rewriting historical version indexes. For example,
+with a current version ending January 20 and a future version starting then,
+`PatchRemoveItem` on January 10 would end the **last (future)** version on
+January 10; it would not truncate the active version or remove the future one.
+Repeating remove does not help because it keeps targeting that last version.
+The [schedule patch](../patch/itemschedule.go) retains the historical prefix
+and replaces the affected suffix as one operation. Persistence,
 entitlement scheduling, hooks, cost-basis resolution, and event publication
 use the existing subscription update path.
 
@@ -38,8 +44,10 @@ The customer lock covers the migration read, diff, and update. The plan
 reference advances in the same transaction as item materialization, with a
 comparison against the previous plan ID. Updates recheck that reference after
 acquiring the customer lock so an edit read before migration cannot overwrite
-the new terms. Only a later version of the same plan
-in the subscription namespace can be persisted.
+the new terms. `AdvancePlanReferenceInput.Validate` enforces a later version of
+the same plan in both `validateSyncTarget` and the repository operation, even
+when called outside the migration workflow. The repository also verifies the
+target reference in the subscription namespace before advancing it.
 
 ## Addons
 
@@ -82,7 +90,7 @@ customer edits that differ from the target are replaced from the effective time.
 It preserves phase metadata and rejects changes to phase keys/start times,
 billing cadence, settlement mode, and proration configuration. Invoice-currency
 and item-currency restrictions from ordinary updates still apply. `startingPhase`
-is rejected; an explicit `billingAnchor` must equal the existing anchor. Use
+is rejected; `billingAnchor` is deprecated and ignored for client compatibility. Use
 subscription change for schedule resets or a different plan.
 
 No database backfill or new schema is required. Existing subscriptions can use

@@ -8,11 +8,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -33,9 +30,9 @@ func (i DiffItemsInput) Validate() error {
 	if err := i.Target.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("target spec: %w", err))
 	}
-	if !(models.CadencedModel{ActiveFrom: i.Current.ActiveFrom, ActiveTo: i.Current.ActiveTo}).Equal(models.CadencedModel{
-		ActiveFrom: i.Target.ActiveFrom, ActiveTo: i.Target.ActiveTo,
-	}) || len(i.Current.Phases) != len(i.Target.Phases) {
+	currentCadence := models.CadencedModel{ActiveFrom: i.Current.ActiveFrom, ActiveTo: i.Current.ActiveTo}
+	targetCadence := models.CadencedModel{ActiveFrom: i.Target.ActiveFrom, ActiveTo: i.Target.ActiveTo}
+	if !currentCadence.Equal(targetCadence) || len(i.Current.Phases) != len(i.Target.Phases) {
 		errs = append(errs, errors.New("item diff requires the same phase timeline"))
 	}
 	for key, phase := range i.Current.Phases {
@@ -62,6 +59,8 @@ func DiffItems(input DiffItemsInput) ([]subscription.Patch, error) {
 	}
 	var patches []subscription.Patch
 	for _, phase := range input.Current.GetSortedPhases() {
+		// Historical phases are immutable; future phases start comparison at
+		// their own start rather than at the migration time.
 		cadence, err := input.Current.GetPhaseCadence(phase.PhaseKey)
 		if err != nil {
 			return nil, err
@@ -74,38 +73,60 @@ func DiffItems(input DiffItemsInput) ([]subscription.Patch, error) {
 			at = cadence.ActiveFrom
 		}
 		targetPhase := input.Target.Phases[phase.PhaseKey]
+		// Compare the union of keys so additions and removals are included.
 		keys := slices.Collect(maps.Keys(phase.ItemsByKey))
 		keys = append(keys, slices.Collect(maps.Keys(targetPhase.ItemsByKey))...)
 		slices.Sort(keys)
 		for _, key := range slices.Compact(keys) {
 			current := phase.ItemsByKey[key]
 			target := targetPhase.ItemsByKey[key]
-			boundaries := []time.Time{at}
-			for _, items := range [][]*subscription.SubscriptionItemSpec{current, target} {
-				for _, item := range items {
-					c := item.GetCadence(cadence)
-					if c.ActiveFrom.After(at) {
-						boundaries = append(boundaries, c.ActiveFrom)
-					}
-					if c.ActiveTo != nil && c.ActiveTo.After(at) {
-						boundaries = append(boundaries, *c.ActiveTo)
-					}
-				}
-			}
-			slices.SortFunc(boundaries, time.Time.Compare)
-			for _, boundary := range boundaries {
-				if cadence.ActiveTo != nil && !boundary.Before(*cadence.ActiveTo) {
-					break
-				}
-				if itemShapeEqual(itemAt(current, cadence, boundary), itemAt(target, cadence, boundary)) {
-					continue
-				}
+			diff := itemScheduleDiff{current: current, target: target, cadence: cadence, from: at}
+			if boundary, changed := diff.firstDifference(); changed {
 				patches = append(patches, patchItemSchedule{phaseKey: phase.PhaseKey, itemKey: key, at: boundary, target: target})
-				break
 			}
 		}
 	}
 	return patches, nil
+}
+
+// itemScheduleDiff compares the piecewise-constant shapes on one item key.
+// Only starts and ends can change the active shape, so checking those boundaries
+// is sufficient even when either schedule contains gaps.
+type itemScheduleDiff struct {
+	current, target []*subscription.SubscriptionItemSpec
+	cadence         models.CadencedModel
+	from            time.Time
+}
+
+func (d itemScheduleDiff) firstDifference() (time.Time, bool) {
+	for _, boundary := range d.boundaries() {
+		if d.cadence.ActiveTo != nil && !boundary.Before(*d.cadence.ActiveTo) {
+			break
+		}
+		current := itemAt(d.current, d.cadence, boundary)
+		target := itemAt(d.target, d.cadence, boundary)
+		if !itemShapeEqual(current, target) {
+			return boundary, true
+		}
+	}
+	return time.Time{}, false
+}
+
+func (d itemScheduleDiff) boundaries() []time.Time {
+	boundaries := []time.Time{d.from}
+	for _, items := range [][]*subscription.SubscriptionItemSpec{d.current, d.target} {
+		for _, item := range items {
+			cadence := item.GetCadence(d.cadence)
+			if cadence.ActiveFrom.After(d.from) {
+				boundaries = append(boundaries, cadence.ActiveFrom)
+			}
+			if cadence.ActiveTo != nil && cadence.ActiveTo.After(d.from) {
+				boundaries = append(boundaries, *cadence.ActiveTo)
+			}
+		}
+	}
+	slices.SortFunc(boundaries, time.Time.Compare)
+	return slices.CompactFunc(boundaries, time.Time.Equal)
 }
 
 func itemAt(items []*subscription.SubscriptionItemSpec, phase models.CadencedModel, at time.Time) *subscription.SubscriptionItemSpec {
@@ -146,66 +167,4 @@ func isSubscriptionOwned(annotations models.Annotations) bool {
 		return slices.Contains(owners, subscription.OwnerSubscriptionSubSystem)
 	}
 	return slices.Contains(subscription.AnnotationParser.ListOwnerSubSystems(annotations), subscription.OwnerSubscriptionSubSystem)
-}
-
-// patchItemSchedule replaces only the affected suffix. Unlike add/remove-item,
-// it can address a schedule containing future addon quantity changes and gaps.
-// It is internal to generated diffs, not an additional public edit operation.
-type patchItemSchedule struct {
-	phaseKey string
-	itemKey  string
-	at       time.Time
-	target   []*subscription.SubscriptionItemSpec
-}
-
-func (p patchItemSchedule) Op() subscription.PatchOperation { return subscription.PatchOperationAdd }
-
-func (p patchItemSchedule) Path() subscription.SpecPath {
-	return subscription.NewItemPath(p.phaseKey, p.itemKey)
-}
-func (p patchItemSchedule) Validate() error { return p.Path().Validate() }
-
-func (p patchItemSchedule) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {
-	if p.at.Before(actx.CurrentTime) {
-		return &subscription.PatchForbiddenError{Msg: "cannot replace an item schedule in the past"}
-	}
-	phase, ok := spec.Phases[p.phaseKey]
-	if !ok {
-		return &subscription.PatchValidationError{Msg: "phase not found"}
-	}
-	cadence, err := spec.GetPhaseCadence(p.phaseKey)
-	if err != nil {
-		return err
-	}
-	var items []*subscription.SubscriptionItemSpec
-	for _, item := range phase.ItemsByKey[p.itemKey] {
-		c := item.GetCadence(cadence)
-		if !c.ActiveFrom.Before(p.at) {
-			break
-		}
-		kept := *item
-		if c.ActiveTo == nil || c.ActiveTo.After(p.at) {
-			kept.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.ISODurationBetween(cadence.ActiveFrom, p.at))
-		}
-		items = append(items, &kept)
-	}
-	for _, item := range p.target {
-		c := item.GetCadence(cadence)
-		if c.ActiveTo != nil && !c.ActiveTo.After(p.at) {
-			continue
-		}
-		next := *item
-		next.RateCard = item.RateCard.Clone()
-		next.Annotations = maps.Clone(item.Annotations)
-		if c.ActiveFrom.Before(p.at) {
-			next.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.ISODurationBetween(cadence.ActiveFrom, p.at))
-		}
-		items = append(items, &next)
-	}
-	if len(items) == 0 {
-		delete(phase.ItemsByKey, p.itemKey)
-	} else {
-		phase.ItemsByKey[p.itemKey] = items
-	}
-	return nil
 }
