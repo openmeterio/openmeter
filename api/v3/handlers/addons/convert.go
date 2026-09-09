@@ -231,7 +231,7 @@ func FromAPIUpsertAddonRequest(namespace string, addonID string, body apiv3.Upse
 // ToAPIBillingRateCards converts domain RateCards to v3 BillingRateCard slice.
 func ToAPIBillingRateCards(rcs productcatalog.RateCards) ([]apiv3.BillingRateCard, error) {
 	if len(rcs) == 0 {
-		return nil, nil
+		return make([]apiv3.BillingRateCard, 0), nil
 	}
 
 	result := make([]apiv3.BillingRateCard, 0, len(rcs))
