@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
 	subjecthttphandler "github.com/openmeterio/openmeter/openmeter/subject/httphandler"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -67,8 +68,10 @@ func (b *EntitlementSnapshotHandler) handleResetRule(ctx context.Context, event 
 		},
 		Namespaces: []string{event.Namespace.ID},
 
-		From: event.Entitlement.CurrentUsagePeriod.From,
-		To:   event.Entitlement.CurrentUsagePeriod.To,
+		CreatedAt: filter.NewFilterTime(
+			&event.Entitlement.CurrentUsagePeriod.From,
+			&event.Entitlement.CurrentUsagePeriod.To,
+		),
 
 		OrderBy: notification.OrderByCreatedAt,
 		Order:   sortx.OrderDesc,

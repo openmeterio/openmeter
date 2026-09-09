@@ -12,8 +12,10 @@ import (
 	eventdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -44,26 +46,35 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Where(eventdb.NamespaceIn(params.Namespaces...))
 		}
 
-		if len(params.Events) > 0 {
-			query = query.Where(eventdb.IDIn(params.Events...))
+		query = filter.ApplyToQuery(query, params.ID, eventdb.FieldID)
+		query = filter.ApplyToQuery(query, params.Type, eventdb.FieldType)
+		query = filter.ApplyToQuery(query, params.CreatedAt, eventdb.FieldCreatedAt)
+		query = filter.ApplyToQuery(query, params.RuleID, eventdb.FieldRuleID)
+
+		// Both edge filters are existential: they match events that have at least one
+		// matching delivery status / channel. Negation would silently invert to "has some
+		// other status/channel", so the API layer rejects it before we get here.
+		var statusPreds []predicate.NotificationEventDeliveryStatus
+		statusPreds = filter.ApplyToPredicate(statusPreds, params.DeliveryStatus, statusdb.FieldState)
+		if len(statusPreds) > 0 {
+			query = query.Where(eventdb.HasDeliveryStatusesWith(statusPreds...))
 		}
 
-		if !params.From.IsZero() {
-			query = query.Where(eventdb.CreatedAtGTE(params.From.UTC()))
+		var channelPreds []predicate.NotificationChannel
+		channelPreds = filter.ApplyToPredicate(channelPreds, params.ChannelID, channeldb.FieldID)
+		if len(channelPreds) > 0 {
+			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channelPreds...)))
 		}
 
-		if !params.To.IsZero() {
-			query = query.Where(eventdb.CreatedAtLTE(params.To.UTC()))
-		}
+		query = filter.ApplyToQueryJSONB(query, params.SubjectKey, eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey)
+		query = filter.ApplyToQueryJSONB(query, params.SubjectID, eventdb.FieldAnnotations, notification.AnnotationEventSubjectID)
+		query = filter.ApplyToQueryJSONB(query, params.FeatureKey, eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey)
+		query = filter.ApplyToQueryJSONB(query, params.FeatureID, eventdb.FieldAnnotations, notification.AnnotationEventFeatureID)
 
 		if len(params.DeduplicationHashes) > 0 {
 			query = query.Where(
 				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationBalanceEventDedupeHash, params.DeduplicationHashes),
 			)
-		}
-
-		if len(params.DeliveryStatusStates) > 0 {
-			query = query.Where(eventdb.HasDeliveryStatusesWith(statusdb.StateIn(params.DeliveryStatusStates...)))
 		}
 
 		if !params.NextAttemptBefore.IsZero() {
@@ -76,32 +87,6 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			))
 		}
 
-		if len(params.Features) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, params.Features),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, params.Features),
-				),
-			)
-		}
-
-		if len(params.Subjects) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, params.Subjects),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, params.Subjects),
-				),
-			)
-		}
-
-		if len(params.Rules) > 0 {
-			query = query.Where(eventdb.RuleIDIn(params.Rules...))
-		}
-
-		if len(params.Channels) > 0 {
-			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...))))
-		}
-
 		order := entutils.GetOrdering(sortx.OrderDesc)
 		if !params.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(params.Order)
@@ -110,6 +95,8 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		switch params.OrderBy {
 		case notification.OrderByCreatedAt:
 			query = query.Order(eventdb.ByCreatedAt(order...))
+		case notification.OrderByType:
+			query = query.Order(eventdb.ByType(order...))
 		case notification.OrderByID:
 			fallthrough
 		default:
