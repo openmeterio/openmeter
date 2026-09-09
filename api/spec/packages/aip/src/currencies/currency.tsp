@@ -84,7 +84,7 @@ model CurrencyBase<T extends CurrencyType> {
    * The name of the currency. It should be a human-readable string that represents
    * the name of the currency, such as "US Dollar" or "Euro".
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   @maxLength(256)
   name: string;
@@ -93,7 +93,7 @@ model CurrencyBase<T extends CurrencyType> {
    * The symbol of the currency. It should be a string that represents the symbol of
    * the currency, such as "$" for US Dollar or "€" for Euro.
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   symbol?: string;
 
@@ -108,7 +108,7 @@ model CurrencyBase<T extends CurrencyType> {
    * The decimal mark for the currency. It should be a string that represents the
    * decimal mark of the currency, such as "." for US Dollar or "," for Euro.
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   @maxLength(1)
   decimal_mark: string;
@@ -118,7 +118,7 @@ model CurrencyBase<T extends CurrencyType> {
    * the thousand separator of the currency, such as "," for US Dollar or "." for
    * Euro.
    */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read, Lifecycle.Update)
   @minLength(1)
   @maxLength(1)
   thousand_separator: string;
