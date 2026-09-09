@@ -32,9 +32,15 @@ func NewStreamingConnector(
 	var err error
 
 	connector, err = clickhouseconnector.New(ctx, clickhouseconnector.Config{
-		ClickHouse:             clickHouse,
-		Database:               conf.ClickHouse.Database,
-		EventsTableName:        conf.EventsTableName,
+		ClickHouse:      clickHouse,
+		Database:        conf.ClickHouse.Database,
+		EventsTableName: conf.EventsTableName,
+		EventsTableEngine: clickhouseconnector.EventsTableEngine{
+			Type:          clickhouseconnector.EventsTableEngineType(conf.ClickHouse.EventsTableEngine.ResolvedType()),
+			ZooKeeperPath: conf.ClickHouse.EventsTableEngine.ZooKeeperPath,
+			ReplicaName:   conf.ClickHouse.EventsTableEngine.ReplicaName,
+			Cluster:       conf.ClickHouse.EventsTableEngine.Cluster,
+		},
 		Logger:                 logger,
 		AsyncInsert:            conf.AsyncInsert,
 		AsyncInsertWait:        conf.AsyncInsertWait,

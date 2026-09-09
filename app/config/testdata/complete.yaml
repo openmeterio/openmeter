@@ -66,6 +66,12 @@ aggregation:
     retry:
       enabled: true
 
+    eventsTableEngine:
+      type: ReplicatedMergeTree
+      zooKeeperPath: "/clickhouse/tables/{shard}/{database}/{table}"
+      replicaName: "{replica}"
+      cluster: openmeter_cluster
+
 sink:
   groupId: openmeter-sink-worker
   minCommitCount: 500
