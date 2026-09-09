@@ -10630,8 +10630,9 @@ paths:
                 billingAnchor:
                   type: string
                   format: date-time
-                  description: Must match the existing billing anchor if provided. Use subscription change to reset it.
+                  description: Ignored. Migration preserves the existing billing anchor.
                   example: '2023-01-01T01:01:01.001Z'
+                  deprecated: true
   /api/v1/subscriptions/{subscriptionId}/restore:
     post:
       operationId: restoreSubscription

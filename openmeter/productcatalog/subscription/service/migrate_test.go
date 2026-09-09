@@ -362,7 +362,7 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestMigratePreservesUnaffectedItems(t *testing.T) {
-	for _, scenario := range []string{"add item", "change price", "remove item", "metadata only", "next cycle"} {
+	for _, scenario := range []string{"add item", "change price", "remove item", "metadata only", "next cycle", "deprecated anchor"} {
 		t.Run(scenario, func(t *testing.T) {
 			// given an active subscription with two independent rate cards
 			start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -405,6 +405,9 @@ func TestMigratePreservesUnaffectedItems(t *testing.T) {
 			clock.FreezeTime(at)
 			svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
 			request := plansubscription.MigrateSubscriptionRequest{ID: before.Subscription.NamespacedID}
+			if scenario == "deprecated anchor" {
+				request.BillingAnchor = lo.ToPtr(start.Add(3 * 24 * time.Hour))
+			}
 			if scenario == "next cycle" {
 				request.Timing = &subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}
 				at = time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)

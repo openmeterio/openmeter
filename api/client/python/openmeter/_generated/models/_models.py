@@ -10186,8 +10186,7 @@ class MigrateRequest(_Model):  # pylint: disable=docstring-keyword-should-match-
     :ivar starting_phase: Not supported for in-place migrations. Omit this field; use subscription
      change to reset the phase timeline.
     :vartype starting_phase: str
-    :ivar billing_anchor: Must match the existing billing anchor if provided. Use subscription
-     change to reset it.
+    :ivar billing_anchor: Ignored. Migration preserves the existing billing anchor.
     :vartype billing_anchor: ~datetime.datetime
     """
 
@@ -10210,7 +10209,7 @@ class MigrateRequest(_Model):  # pylint: disable=docstring-keyword-should-match-
     billing_anchor: Optional[datetime.datetime] = rest_field(
         name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
-    """Must match the existing billing anchor if provided. Use subscription change to reset it."""
+    """Ignored. Migration preserves the existing billing anchor."""
 
     @overload
     def __init__(

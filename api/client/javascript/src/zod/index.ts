@@ -18564,9 +18564,7 @@ export const MigrateSubscriptionBody = zod.object({
   billingAnchor: zod.coerce
     .date()
     .optional()
-    .describe(
-      'Must match the existing billing anchor if provided. Use subscription change to reset it.',
-    ),
+    .describe('Ignored. Migration preserves the existing billing anchor.'),
   startingPhase: zod.coerce
     .string()
     .min(1)

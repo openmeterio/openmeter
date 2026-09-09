@@ -26773,7 +26773,8 @@ export interface operations {
           startingPhase?: string
           /**
            * Format: date-time
-           * @description Must match the existing billing anchor if provided. Use subscription change to reset it.
+           * @deprecated
+           * @description Ignored. Migration preserves the existing billing anchor.
            * @example 2023-01-01T01:01:01.001Z
            */
           billingAnchor?: Date

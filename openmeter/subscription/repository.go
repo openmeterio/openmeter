@@ -64,16 +64,20 @@ type SubscriptionRepository interface {
 	UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*Subscription, error)
 
 	CreateCostBasisPins(ctx context.Context, inputs []CreateCostBasisPinEntityInput) error
-	MigratePlan(ctx context.Context, input MigratePlanInput) error
+	// AdvancePlanReference only persists a later version of the same plan. It
+	// checks the expected current reference; it does not amend subscription items.
+	AdvancePlanReference(ctx context.Context, input AdvancePlanReferenceInput) error
 }
 
-type MigratePlanInput struct {
+type AdvancePlanReferenceInput struct {
 	SubscriptionID models.NamespacedID
 	CurrentPlan    PlanRef
 	TargetPlan     PlanRef
 }
 
-func (i MigratePlanInput) Validate() error {
+// Validate enforces forward movement within one plan, independently of the
+// calling workflow. Sync and the repository both enforce this contract.
+func (i AdvancePlanReferenceInput) Validate() error {
 	var errs []error
 	if i.SubscriptionID.Namespace == "" || i.SubscriptionID.ID == "" {
 		errs = append(errs, errors.New("subscription namespace and ID are required"))
