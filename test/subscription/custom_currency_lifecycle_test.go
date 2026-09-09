@@ -147,7 +147,22 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 5)
 	beforeLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
 	require.NoError(t, err)
-	require.NotEmpty(t, beforeLineage)
+	require.Empty(t, beforeLineage)
+	query := ledger.BalanceBucketQuery{
+		Namespace: f.view.Subscription.Namespace,
+		Filters: ledger.Filters{
+			AccountID:     lo.ToPtr(f.business.EarningsAccount.ID().ID),
+			SpendChargeID: mo.Some(&remaining[0]),
+			Route:         ledger.RouteFilter{Currency: f.currency.Reference()},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID, ledger.BalanceBucketGroupBySourceChargeID},
+	}
+	beforeBuckets, err := f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, query)
+	require.NoError(t, err)
+	require.Len(t, beforeBuckets, 1)
+	require.NotEmpty(t, lo.FromPtr(beforeBuckets[0].GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
+	require.NotEmpty(t, lo.FromPtr(beforeBuckets[0].GroupByValues[ledger.BalanceBucketGroupBySourceChargeID]))
+	require.Equal(t, float64(5), beforeBuckets[0].SettledAmount.InexactFloat64())
 	beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
 	require.NoError(t, err)
 	require.NoError(t, f.subscriptionSyncService.HandleCancelledEvent(ctx, &event))
@@ -159,6 +174,9 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	afterLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
 	require.NoError(t, err)
 	require.Equal(t, beforeLineage, afterLineage)
+	afterBuckets, err := f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, query)
+	require.NoError(t, err)
+	require.Equal(t, beforeBuckets, afterBuckets)
 	assertNoSubscriptionInvoices(t, f.testDeps, f.view.Customer.ID)
 }
 
