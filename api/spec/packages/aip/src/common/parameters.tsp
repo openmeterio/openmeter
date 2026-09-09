@@ -47,6 +47,35 @@ union BooleanFieldFilter {
 }
 
 /**
+ * Filter by whether a field is present or null.
+ *
+ * A bare filter key, represented by an empty value, requires the field to be
+ * present. The `null` literal requires the field to be null.
+ */
+@friendlyName("PresenceFieldFilter")
+@extension("x-go-type", "filters.FilterPresence")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/api/v3/filters" }
+)
+@summary("Presence Field Filter")
+union PresenceFieldFilter {
+  present: "",
+  null_value: "null",
+  object: {
+    /**
+     * The field must be null.
+     */
+    eq?: "null",
+
+    /**
+     * The field must be present and non-null.
+     */
+    neq?: "null",
+  },
+}
+
+/**
  * Filter by a numeric value. All properties are optional; provide exactly one to
  * specify the comparison.
  */

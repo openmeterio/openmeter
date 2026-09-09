@@ -385,3 +385,29 @@ func TestConvertFilterBoolean(t *testing.T) {
 		assert.Nil(t, out)
 	})
 }
+
+func TestConvertFilterPresence(t *testing.T) {
+	t.Run("present", func(t *testing.T) {
+		out, err := FromAPIFilterPresence(&FilterPresence{Exists: lo.ToPtr(true)})
+		require.NoError(t, err)
+		assert.Equal(t, &filter.FilterBoolean{Eq: lo.ToPtr(true)}, out)
+	})
+
+	t.Run("null", func(t *testing.T) {
+		out, err := FromAPIFilterPresence(&FilterPresence{Exists: lo.ToPtr(false)})
+		require.NoError(t, err)
+		assert.Equal(t, &filter.FilterBoolean{Eq: lo.ToPtr(false)}, out)
+	})
+
+	t.Run("empty returns nil", func(t *testing.T) {
+		out, err := FromAPIFilterPresence(&FilterPresence{})
+		require.NoError(t, err)
+		assert.Nil(t, out)
+	})
+
+	t.Run("nil returns nil", func(t *testing.T) {
+		out, err := FromAPIFilterPresence(nil)
+		require.NoError(t, err)
+		assert.Nil(t, out)
+	})
+}

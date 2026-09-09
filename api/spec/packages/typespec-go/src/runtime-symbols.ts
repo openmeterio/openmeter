@@ -28,6 +28,7 @@ export const RESERVED_GO_SYMBOL_NAMES = new Set([
   'PageMeta',
   'PageParams',
   'PaginatedMeta',
+  'PresenceFilter',
   'Ptr',
   'Sort',
   'SortOrder',

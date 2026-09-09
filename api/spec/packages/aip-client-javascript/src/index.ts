@@ -381,6 +381,7 @@ export type {
   MeterAggregation,
   MeterQueryGranularity,
   StringFieldFilterExact,
+  PresenceFieldFilter,
   PricePaymentTerm,
   BillingCurrencyCode,
   CreateCurrencyCode,

@@ -208,6 +208,9 @@ export interface ListCustomerChargesQuery {
    *
    * See the `service_period_from` filter field for expressing a service-period
    * window query.
+   *
+   * To filter by validation issue presence, use `filter[validation_issues]` or
+   * `filter[validation_issues]=null`.
    */
   filter?: ListChargesParamsFilter
   /**

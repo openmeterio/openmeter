@@ -51,6 +51,15 @@ model ListCustomerChargesParamsFilter {
    * Filter charges by the end of their service period.
    */
   service_period_to?: Common.DateTimeFieldFilter;
+
+  /**
+   * Filter charges by whether they have validation issues.
+   *
+   * Use a bare `filter[validation_issues]` parameter to return charges with
+   * validation issues, or `filter[validation_issues]=null` to return charges without
+   * validation issues.
+   */
+  validation_issues?: Common.PresenceFieldFilter;
 }
 
 namespace Charges {
@@ -95,6 +104,9 @@ namespace Charges {
        *
        * See the `service_period_from` filter field for expressing a service-period
        * window query.
+       *
+       * To filter by validation issue presence, use `filter[validation_issues]` or
+       * `filter[validation_issues]=null`.
        */
       @query(#{ style: "deepObject", explode: true })
       filter?: ListCustomerChargesParamsFilter,

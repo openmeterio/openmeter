@@ -35,6 +35,12 @@ type ChargeFilter struct {
 	ServicePeriodFrom *DateTimeFilter
 	// Filter charges by the end of their service period.
 	ServicePeriodTo *DateTimeFilter
+	// Filter charges by whether they have validation issues.
+	//
+	// Use a bare `filter[validation_issues]` parameter to return charges with
+	// validation issues, or `filter[validation_issues]=null` to return charges without
+	// validation issues.
+	ValidationIssues *PresenceFilter
 }
 
 type ChargeListParams struct {
@@ -57,6 +63,7 @@ func (p ChargeListParams) values() url.Values {
 		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
 		addDateTimeFilter(q, "filter[service_period_from]", p.Filter.ServicePeriodFrom)
 		addDateTimeFilter(q, "filter[service_period_to]", p.Filter.ServicePeriodTo)
+		addPresenceFilter(q, "filter[validation_issues]", p.Filter.ValidationIssues)
 	}
 
 	if len(p.Expand) > 0 {

@@ -26,6 +26,7 @@ Use the filter types from `api/spec/packages/aip/common/parameters.tsp` (backed 
 | `Common.UuidFieldFilter`         | UUID/ID columns, exact match only       | `filter[id]=3bbfd3a-...`                       | `filters.FilterStringExact`  |
 | `Common.ULIDFieldFilter`         | ULID/ID columns, partial or exact match | `filter[id]=01KPDB8K...`                       | `filters.FilterULID`         |
 | `Common.BooleanFieldFilter`      | boolean (bare `true`/`false` scalar)    | `filter[active]=true`                          | `filters.FilterBoolean`      |
+| `Common.PresenceFieldFilter`     | field null state only                    | `filter[field]`, `filter[field]=null`           | `filters.FilterPresence`     |
 | `Common.NumericFieldFilter`      | numeric comparisons                     | `filter[amount][gte]=10`                       | `filters.FilterNumeric`      |
 | `Common.DateTimeFieldFilter`     | RFC-3339 datetime comparisons           | `filter[created_at][gte]=2024-01-01T00:00:00Z` | `filters.FilterDateTime`     |
 | `Common.LabelsFieldFilter`       | `labels` map, dot-notation key          | `filter[labels.env]=prod`                      | `filters.FilterString` (dot) |
@@ -42,6 +43,7 @@ The authoritative operator surface for each Common type is defined in `api/spec/
 - `NumericFieldFilter`: implicit-eq, `eq`, `lt`, `lte`, `gt`, `gte` — **no `neq` or `oeq`** in the OAS
 - `DateTimeFieldFilter`: implicit-eq, `eq`, `lt`, `lte`, `gt`, `gte` — **no `neq`**
 - `BooleanFieldFilter`: bare scalar only (`true` / `false`)
+- `PresenceFieldFilter`: bare presence, implicit/explicit `eq=null`, and `neq=null`
 - `LabelsFieldFilter` / `PublicLabelsFieldFilter` / `AttributesFieldFilter`: spread of `StringFieldFilter`, addressed via first-dot delimiter
 
 ### Go-side operator superset (implementation-only)

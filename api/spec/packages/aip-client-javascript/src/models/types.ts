@@ -2995,6 +2995,14 @@ export interface ListChargesParamsFilter {
   servicePeriodFrom?: DateTimeFieldFilter
   /** Filter charges by the end of their service period. */
   servicePeriodTo?: DateTimeFieldFilter
+  /**
+   * Filter charges by whether they have validation issues.
+   *
+   * Use a bare `filter[validation_issues]` parameter to return charges with
+   * validation issues, or `filter[validation_issues]=null` to return charges without
+   * validation issues.
+   */
+  validationIssues?: PresenceFieldFilter
 }
 
 /** Filter options for listing invoices. */
@@ -3040,6 +3048,7 @@ export interface FieldFilters {
   ulid?: UlidFieldFilter
   datetime?: DateTimeFieldFilter
   labels?: LabelsFieldFilter
+  presence?: PresenceFieldFilter
 }
 
 /** An ingested metering event with ingestion metadata. */
@@ -6482,6 +6491,14 @@ export type MeterQueryGranularity = 'PT1M' | 'PT1H' | 'P1D' | 'P1M'
  */
 export type StringFieldFilterExact =
   string | { eq?: string; oeq?: string[]; neq?: string }
+
+/**
+ * Filter by whether a field is present or null.
+ *
+ * A bare filter key, represented by an empty value, requires the field to be
+ * present. The `null` literal requires the field to be null.
+ */
+export type PresenceFieldFilter = '' | 'null' | { eq?: 'null'; neq?: 'null' }
 
 /** The payment term of a flat price. */
 export type PricePaymentTerm = 'in_advance' | 'in_arrears'

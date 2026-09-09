@@ -39,6 +39,7 @@ describe('Go type mapping', () => {
       union DateTimeFieldFilter { equals: utcDateTime }
       union NumericFieldFilter { equals: float64 }
       union BooleanFieldFilter { equals: boolean }
+      union PresenceFieldFilter { present: "", nullValue: "null" }
     `)
 
     const unions = program.getGlobalNamespaceType().unions
@@ -50,6 +51,7 @@ describe('Go type mapping', () => {
     expect(unionType('DateTimeFieldFilter')).toBe('DateTimeFilter')
     expect(unionType('NumericFieldFilter')).toBe('NumericFilter')
     expect(unionType('BooleanFieldFilter')).toBe('BooleanFilter')
+    expect(unionType('PresenceFieldFilter')).toBe('PresenceFilter')
   })
 
   it('rejects field filter unions without a runtime filter mapping', async () => {

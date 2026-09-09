@@ -147,3 +147,14 @@ func addBooleanFilter(q url.Values, prefix string, f *BooleanFilter) {
 		setDeepObjectString(q, prefix, "eq", strconv.FormatBool(*f.Eq))
 	}
 }
+
+func addPresenceFilter(q url.Values, prefix string, f *PresenceFilter) {
+	if f == nil || f.Exists == nil {
+		return
+	}
+	if *f.Exists {
+		q.Set(prefix, "")
+		return
+	}
+	q.Set(prefix, "null")
+}

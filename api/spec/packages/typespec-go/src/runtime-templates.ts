@@ -150,6 +150,11 @@ type NumericFilter struct {
 type BooleanFilter struct {
 	Eq *bool
 }
+
+// PresenceFilter expresses whether a field must be present or null.
+type PresenceFilter struct {
+	Exists *bool
+}
 `,
   // {{MODULE_PATH}} is interpolated from the required module-path option.
   // {{GO_VERSION}} comes from the go-version option, defaulting to 1.23 (the
@@ -632,6 +637,17 @@ func addBooleanFilter(q url.Values, prefix string, f *BooleanFilter) {
 	if f != nil && f.Eq != nil {
 		setDeepObjectString(q, prefix, "eq", strconv.FormatBool(*f.Eq))
 	}
+}
+
+func addPresenceFilter(q url.Values, prefix string, f *PresenceFilter) {
+	if f == nil || f.Exists == nil {
+		return
+	}
+	if *f.Exists {
+		q.Set(prefix, "")
+		return
+	}
+	q.Set(prefix, "null")
 }
 `,
   'request_content_type.go': `package openmeter

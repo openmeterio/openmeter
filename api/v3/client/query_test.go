@@ -34,6 +34,42 @@ func TestFilterQuerySerialization(t *testing.T) {
 	}
 }
 
+func TestPresenceFilterQuerySerialization(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		exists bool
+		want   string
+	}{
+		{name: "present", exists: true, want: ""},
+		{name: "null", exists: false, want: "null"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rec := &requestRecorder{}
+			om := newTestClient(t, rec.handler(http.StatusOK, emptyPageBody))
+			params := openmeter.ChargeListParams{Filter: &openmeter.ChargeFilter{
+				ValidationIssues: &openmeter.PresenceFilter{Exists: openmeter.Bool(tt.exists)},
+			}}
+			if _, err := om.Customers.Charges.List(t.Context(), "customer-id", params); err != nil {
+				t.Fatalf("Customers.Charges.List: %v", err)
+			}
+
+			q := rec.last(t).query
+			if !q.Has("filter[validation_issues]") {
+				t.Fatal("filter[validation_issues] is missing")
+			}
+			if got := q.Get("filter[validation_issues]"); got != tt.want {
+				t.Errorf("filter[validation_issues] = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestScalarQueryParamSerialization(t *testing.T) {
 	t.Parallel()
 

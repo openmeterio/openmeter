@@ -1411,6 +1411,9 @@ paths:
 
             See the `service_period_from` filter field for expressing a service-period
             window query.
+
+            To filter by validation issue presence, use `filter[validation_issues]` or
+            `filter[validation_issues]=null`.
           schema:
             $ref: '#/components/schemas/ListChargesParamsFilter'
           style: deepObject
@@ -13020,6 +13023,15 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: Filter charges by the end of their service period.
+        validation_issues:
+          allOf:
+            - $ref: '#/components/schemas/PresenceFieldFilter'
+          description: |-
+            Filter charges by whether they have validation issues.
+
+            Use a bare `filter[validation_issues]` parameter to return charges with
+            validation issues, or `filter[validation_issues]=null` to return charges without
+            validation issues.
       additionalProperties: false
       description: Filter options for listing charges.
     ListCostBasesParamsFilter:
@@ -13817,6 +13829,34 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    PresenceFieldFilter:
+      anyOf:
+        - type: string
+          enum:
+            - ''
+            - 'null'
+        - type: object
+          properties:
+            eq:
+              type: string
+              enum:
+                - 'null'
+              description: The field must be null.
+            neq:
+              type: string
+              enum:
+                - 'null'
+              description: The field must be present and non-null.
+          additionalProperties: false
+      description: |-
+        Filter by whether a field is present or null.
+
+        A bare filter key, represented by an empty value, requires the field to be
+        present. The `null` literal requires the field to be null.
+      title: Presence Field Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterPresence
     PricePagePaginatedResponse:
       type: object
       required:

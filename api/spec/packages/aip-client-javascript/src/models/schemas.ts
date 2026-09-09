@@ -598,6 +598,23 @@ export const creditTransactionType = z
     'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
   )
 
+export const presenceFieldFilter = z
+  .union([
+    z.literal(''),
+    z.literal('null'),
+    z.object({
+      eq: z.literal('null').optional().describe('The field must be null.'),
+      neq: z
+        .literal('null')
+        .optional()
+        .describe('The field must be present and non-null.'),
+    }),
+  ])
+
+  .describe(
+    'Filter by whether a field is present or null. A bare filter key, represented by an empty value, requires the field to be present. The `null` literal requires the field to be null.',
+  )
+
 export const chargesExpand = z
   .enum([
     'real_time_usage',
@@ -3981,6 +3998,7 @@ export const listChargesParamsFilter = z
     featureKey: stringFieldFilterExact.optional(),
     servicePeriodFrom: dateTimeFieldFilter.optional(),
     servicePeriodTo: dateTimeFieldFilter.optional(),
+    validationIssues: presenceFieldFilter.optional(),
   })
   .describe('Filter options for listing charges.')
 
@@ -4014,6 +4032,7 @@ export const fieldFilters = z
     ulid: ulidFieldFilter.optional(),
     datetime: dateTimeFieldFilter.optional(),
     labels: labelsFieldFilter.optional(),
+    presence: presenceFieldFilter.optional(),
   })
   .describe('Field filters with all supported types.')
 
@@ -8395,6 +8414,23 @@ export const creditTransactionTypeWire = z
     'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
   )
 
+export const presenceFieldFilterWire = z
+  .union([
+    z.literal(''),
+    z.literal('null'),
+    z.strictObject({
+      eq: z.literal('null').optional().describe('The field must be null.'),
+      neq: z
+        .literal('null')
+        .optional()
+        .describe('The field must be present and non-null.'),
+    }),
+  ])
+
+  .describe(
+    'Filter by whether a field is present or null. A bare filter key, represented by an empty value, requires the field to be present. The `null` literal requires the field to be null.',
+  )
+
 export const chargesExpandWire = z
   .enum([
     'real_time_usage',
@@ -11758,6 +11794,7 @@ export const listChargesParamsFilterWire = z
     feature_key: stringFieldFilterExactWire.optional(),
     service_period_from: dateTimeFieldFilterWire.optional(),
     service_period_to: dateTimeFieldFilterWire.optional(),
+    validation_issues: presenceFieldFilterWire.optional(),
   })
   .describe('Filter options for listing charges.')
 
@@ -11791,6 +11828,7 @@ export const fieldFiltersWire = z
     ulid: ulidFieldFilterWire.optional(),
     datetime: dateTimeFieldFilterWire.optional(),
     labels: labelsFieldFilterWire.optional(),
+    presence: presenceFieldFilterWire.optional(),
   })
   .describe('Field filters with all supported types.')
 

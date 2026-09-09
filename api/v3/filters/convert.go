@@ -257,6 +257,17 @@ func FromAPIFilterBoolean(f *FilterBoolean) (*filter.FilterBoolean, error) {
 	}, nil
 }
 
+// FromAPIFilterPresence converts an API FilterPresence to a boolean predicate.
+func FromAPIFilterPresence(f *FilterPresence) (*filter.FilterBoolean, error) {
+	if f == nil || f.Exists == nil {
+		return nil, nil
+	}
+
+	return &filter.FilterBoolean{
+		Eq: f.Exists,
+	}, nil
+}
+
 type validator[T ~string] interface {
 	~string
 	expand.Expandable[T]
