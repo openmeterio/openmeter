@@ -270,15 +270,22 @@ func (c Charge) GetCustomerID() customer.CustomerID {
 }
 
 func (c Charge) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
-	// TODO: consolidate intent and persisted-charge feature reference handling once
-	// their creation-time and lifecycle-specific resolution semantics share one model.
-	// State.FeatureID is the persisted resolved feature snapshot used by active
-	// charges; created/deleted fallbacks resolve by key.
 	var featureRef ref.IDOrKey
 	switch c.Status {
 	case StatusCreated:
 		featureRef = ref.IDOrKey{
 			Key: c.Intent.GetBaseIntent().FeatureKey,
+		}
+	case StatusActive:
+		// Activation resolves by key before persisting the resolved feature ID.
+		if c.State.FeatureID != "" {
+			featureRef = ref.IDOrKey{
+				ID: c.State.FeatureID,
+			}
+		} else {
+			featureRef = ref.IDOrKey{
+				Key: c.Intent.GetBaseIntent().FeatureKey,
+			}
 		}
 	case StatusDeleted:
 		if c.State.FeatureID != "" {

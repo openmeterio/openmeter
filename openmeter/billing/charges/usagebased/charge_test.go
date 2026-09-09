@@ -61,6 +61,14 @@ func TestChargeGetFeatureMeterRef(t *testing.T) {
 			},
 		},
 		{
+			name:   "active charge without a snapshot falls back to key",
+			status: StatusActive,
+			want: featuremeter.FeatureMeterRef{
+				IDOrKey:      ref.IDOrKey{Key: "feature-key"},
+				RequireMeter: true,
+			},
+		},
+		{
 			name:      "deleted charge resolves by snapshotted ID",
 			status:    StatusDeleted,
 			featureID: "feature-id",

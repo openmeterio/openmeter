@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	pcfeature "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -253,6 +254,184 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
 		s.Require().Len(persistedInvoice.ValidationIssues, 1)
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, persistedInvoice.ValidationIssues[0].Code)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCollectionMissingMeterIsRetryable() {
+	// given:
+	// - a charge-backed usage invoice and its realization run are waiting for collection
+	// when:
+	// - the feature's required meter disappears before collection
+	// then:
+	// - the invoice fails with a persisted validation issue and succeeds when retried after meter restoration
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credits-usagebased-waiting-for-collection-missing-meter")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+
+	meters, err := s.MeterAdapter.ListMeters(ctx, meter.ListMetersParams{Namespace: ns})
+	s.NoError(err)
+	s.Require().Len(meters.Items, 1)
+	apiRequestsTotalMeter := meters.Items[0]
+
+	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	var (
+		usageBasedChargeID meta.ChargeID
+		invoice            billing.StandardInvoice
+		runID              usagebased.RealizationRunID
+		lineID             billing.LineID
+	)
+
+	s.Run("given the charge invoice is waiting for collection", func() {
+		// given:
+		// - a metered credit-then-invoice usage charge has usage in its final service period
+		// when:
+		// - billing creates the invoice before its collection time
+		// then:
+		// - the invoice and its charge realization wait for collection
+		s.MockStreamingConnector.AddSimpleEvent(
+			apiRequestsTotal.Feature.Key,
+			10,
+			datetime.MustParseTimeInLocation(t, "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+					Name:              "usage-based-waiting-for-collection-missing-meter",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "usage-based-waiting-for-collection-missing-meter",
+					FeatureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Require().Len(created, 1)
+
+		usageBasedCharge, err := created[0].AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		clock.FreezeTime(servicePeriod.To)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.NoError(err)
+		s.Require().Len(invoices, 1)
+		invoice = invoices[0]
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.False(invoice.StatusDetails.Failed)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		lineID = invoice.Lines.OrEmpty()[0].GetLineID()
+
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
+		currentRun, err := charge.GetCurrentRealizationRun()
+		s.NoError(err)
+		runID = currentRun.ID
+		s.Equal(lineID.ID, lo.FromPtr(currentRun.LineID))
+		s.Equal(invoice.ID, lo.FromPtr(currentRun.InvoiceID))
+	})
+
+	s.Run("when the required meter disappears during the wait", func() {
+		// given:
+		// - the persisted invoice and charge realization are waiting for collection
+		// when:
+		// - the feature's required meter disappears before collection
+		// then:
+		// - collection persists a retryable failed invoice and rolls the charge back to waiting
+		err := s.MeterAdapter.ReplaceMeters(ctx, nil)
+		s.NoError(err)
+
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+		s.True(invoice.StatusDetails.Failed)
+		s.Require().NotNil(invoice.StatusDetails.AvailableActions.Retry)
+		s.Require().Len(invoice.ValidationIssues, 1)
+
+		issue := invoice.ValidationIssues[0]
+		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
+		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
+		s.Equal("/charges/"+usageBasedChargeID.ID, issue.Path)
+		s.Equal(
+			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
+			issue.Message,
+		)
+
+		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
+		s.True(persistedInvoice.StatusDetails.Failed)
+		s.Require().NotNil(persistedInvoice.StatusDetails.AvailableActions.Retry)
+		s.Require().Len(persistedInvoice.ValidationIssues, 1)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, persistedInvoice.ValidationIssues[0].Code)
+
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
+		currentRun, err := charge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(runID.ID, currentRun.ID.ID)
+		s.Equal(lineID.ID, lo.FromPtr(currentRun.LineID))
+		s.Equal(invoice.ID, lo.FromPtr(currentRun.InvoiceID))
+	})
+
+	s.Run("then restoring the meter allows the same invoice to retry", func() {
+		// given:
+		// - the failed invoice remains associated with the charge's waiting realization run
+		// when:
+		// - the meter is restored and the invoice is retried
+		// then:
+		// - collection succeeds without replacing the run or duplicating its invoice association
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{apiRequestsTotalMeter})
+		s.NoError(err)
+
+		invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+		s.False(invoice.StatusDetails.Failed)
+		s.Nil(invoice.StatusDetails.AvailableActions.Retry)
+		s.Empty(invoice.ValidationIssues)
+		s.NotNil(invoice.QuantitySnapshotedAt)
+
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
+		currentRun, err := charge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(runID.ID, currentRun.ID.ID)
+		s.Equal(lineID.ID, lo.FromPtr(currentRun.LineID))
+		s.Equal(invoice.ID, lo.FromPtr(currentRun.InvoiceID))
+		s.Equal(alpacadecimal.NewFromInt(10), currentRun.MeteredQuantity)
 	})
 }
 

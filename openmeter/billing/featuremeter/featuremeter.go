@@ -4,6 +4,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/ref"
+	"github.com/samber/lo"
 )
 
 type FeatureMeter struct {
@@ -44,4 +45,12 @@ type FeatureMeters interface {
 type FeatureMeterRef struct {
 	IDOrKey      ref.IDOrKey
 	RequireMeter bool
+}
+
+func (r *FeatureMeterRef) CloneIfPresent() *FeatureMeterRef {
+	if r == nil {
+		return nil
+	}
+
+	return lo.ToPtr(*r)
 }

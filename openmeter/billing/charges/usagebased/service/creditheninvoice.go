@@ -1094,10 +1094,15 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 		servicePeriodTo = meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To)
 	}
 
+	featureMeter, err := s.FeatureMeters.Get(s.Charge)
+	if err != nil {
+		return err
+	}
+
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
 		Charge:             s.Charge,
 		CustomerOverride:   s.CustomerOverride,
-		FeatureMeter:       s.FeatureMeter,
+		FeatureMeter:       featureMeter,
 		Type:               runType,
 		StoredAtLT:         storedAtLT,
 		ServicePeriodTo:    servicePeriodTo,
@@ -1148,12 +1153,17 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 
 	storedAtLT := meta.NormalizeTimestamp(currentRun.StoredAtLT)
 
+	featureMeter, err := s.FeatureMeters.Get(s.Charge)
+	if err != nil {
+		return err
+	}
+
 	ratingResult, err := s.Rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
 		Charge:          s.Charge,
 		StoredAtLT:      storedAtLT,
 		ServicePeriodTo: currentRun.ServicePeriodTo,
 		Customer:        s.CustomerOverride,
-		FeatureMeter:    s.FeatureMeter,
+		FeatureMeter:    featureMeter,
 	})
 	if err != nil {
 		return fmt.Errorf("get detailed rating for usage: %w", err)
