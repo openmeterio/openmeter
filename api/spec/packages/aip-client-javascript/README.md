@@ -36,7 +36,6 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Defaults](#defaults)
 - [Internal Operations](#internal-operations)
   - [Internal Customers](#internal-customers)
-  - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Apps](#internal-apps)
   - [Internal Invoices](#internal-invoices)
   - [Internal Currencies](#internal-currencies)
@@ -319,6 +318,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `client.subscriptions.unscheduleCancelation` | `POST /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation`      | Unschedules the subscription cancelation.                                                                                                                                                                                                                                                               |
 | `client.subscriptions.change`                | `POST /openmeter/subscriptions/{subscriptionId}/change`                      | Closes a running subscription and starts a new one according to the specification. Can be used for upgrades, downgrades, and plan changes.                                                                                                                                                              |
 | `client.subscriptions.edit`                  | `POST /openmeter/subscriptions/{subscriptionId}/edit`                        | Edits a running subscription by applying an ordered batch of customizations (adding or removing items, adding, removing, or stretching phases, or unscheduling a pending edit). The changes may take effect immediately or at the next billing cycle. Subscriptions that have add-ons cannot be edited. |
+| `client.subscriptions.createAddon`           | `POST /openmeter/subscriptions/{subscriptionId}/addons`                      | Add add-on to a subscription.                                                                                                                                                                                                                                                                           |
 | `client.subscriptions.listAddons`            | `GET /openmeter/subscriptions/{subscriptionId}/addons`                       | List the add-ons of a subscription.                                                                                                                                                                                                                                                                     |
 | `client.subscriptions.getAddon`              | `GET /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}` | Get an add-on association for a subscription.                                                                                                                                                                                                                                                           |
 
@@ -423,12 +423,6 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.customers.credits.grants.void` | `POST /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void` | Void a credit grant, forfeiting the remaining unused balance. Voiding is a forward-looking, irreversible operation. Credits already consumed by usage remain unaffected — only the remaining balance is forfeited. The grant reads as `voided` status afterwards. Payment state is not adjusted when `payment_adjustment` is `none`, so invoice-backed or externally collected payments may still collect the original amount. Only `active` grants can be voided; voiding a pending, expired, or fully consumed grant returns a conflict. Retrying a successful void is an idempotent success. |
 | `client.internal.customers.charges.list`        | `GET /openmeter/customers/{customerId}/charges`                              | List customer charges. Returns the customer's charges that are represented as either flat fee or usage-based charges.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `client.internal.customers.charges.create`      | `POST /openmeter/customers/{customerId}/charges`                             | Create customer charge.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-
-### Internal Subscriptions
-
-| Method                                      | HTTP                                                    | Description                   |
-| ------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
-| `client.internal.subscriptions.createAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons` | Add add-on to a subscription. |
 
 ### Internal Apps
 

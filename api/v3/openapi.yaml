@@ -3320,7 +3320,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
-      x-internal: true
       x-unstable: true
     get:
       operationId: list-subscription-addons

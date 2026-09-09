@@ -8,7 +8,6 @@ import {
   listCustomerCharges,
   createCustomerCharges,
 } from '../funcs/customers.js'
-import { createSubscriptionAddon } from '../funcs/subscriptions.js'
 import {
   listApps,
   uninstallApp,
@@ -44,10 +43,6 @@ import type {
   CreateCustomerChargesRequest,
   CreateCustomerChargesResponse,
 } from '../models/operations/customers.js'
-import type {
-  CreateSubscriptionAddonRequest,
-  CreateSubscriptionAddonResponse,
-} from '../models/operations/subscriptions.js'
 import type {
   ListAppsRequest,
   ListAppsResponse,
@@ -121,11 +116,6 @@ export class Internal {
   private _customers?: InternalCustomers
   get customers(): InternalCustomers {
     return (this._customers ??= new InternalCustomers(this._client))
-  }
-
-  private _subscriptions?: InternalSubscriptions
-  get subscriptions(): InternalSubscriptions {
-    return (this._subscriptions ??= new InternalSubscriptions(this._client))
   }
 
   private _apps?: InternalApps
@@ -260,24 +250,6 @@ export class InternalCustomersCharges {
     options?: RequestOptions,
   ): Promise<CreateCustomerChargesResponse> {
     return unwrap(await createCustomerCharges(this._client, request, options))
-  }
-}
-
-export class InternalSubscriptions {
-  constructor(private readonly _client: Client) {}
-
-  /**
-   * Create a new subscription add-on
-   *
-   * Add add-on to a subscription.
-   *
-   * POST /openmeter/subscriptions/{subscriptionId}/addons
-   */
-  async createAddon(
-    request: CreateSubscriptionAddonRequest,
-    options?: RequestOptions,
-  ): Promise<CreateSubscriptionAddonResponse> {
-    return unwrap(await createSubscriptionAddon(this._client, request, options))
   }
 }
 
