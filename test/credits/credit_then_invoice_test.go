@@ -223,6 +223,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.NoError(err)
 
 		clock.FreezeTime(servicePeriod.To.Add(time.Second))
+		defer clock.UnFreeze()
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.To),
@@ -340,6 +341,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 		usageBasedChargeID = usageBasedCharge.GetChargeID()
 
 		clock.FreezeTime(servicePeriod.To)
+		defer clock.UnFreeze()
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.To),
@@ -371,6 +373,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 		s.NoError(err)
 
 		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		defer clock.UnFreeze()
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
@@ -414,6 +417,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 		// - the meter is restored and the invoice is retried
 		// then:
 		// - collection succeeds without replacing the run or duplicating its invoice association
+		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+		defer clock.UnFreeze()
+		
 		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{apiRequestsTotalMeter})
 		s.NoError(err)
 
@@ -768,6 +774,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 			datetime.MustParseTimeInLocation(t, "2026-01-15T00:00:00Z", time.UTC).AsTime(),
 		)
 		clock.FreezeTime(midPeriodInvoiceAt)
+		defer clock.UnFreeze()
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
@@ -809,6 +816,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		// then:
 		// - the assignment gate leaves the line gathering and records the blocking run on the charge
 		clock.FreezeTime(servicePeriod.To)
+		defer clock.UnFreeze()
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
