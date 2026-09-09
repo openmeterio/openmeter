@@ -42,6 +42,32 @@ func withSubscriptionReferences(q *db.SubscriptionQuery) *db.SubscriptionQuery {
 		})
 }
 
+func (r *subscriptionRepo) MigratePlan(ctx context.Context, input subscription.MigratePlanInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+	_, err := entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (struct{}, error) {
+		exists, err := repo.db.Plan.Query().Where(
+			dbplan.Namespace(input.SubscriptionID.Namespace), dbplan.ID(input.TargetPlan.Id),
+			dbplan.Key(input.TargetPlan.Key), dbplan.Version(input.TargetPlan.Version),
+		).Exist(ctx)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if !exists {
+			return struct{}{}, models.NewGenericValidationError(errors.New("target plan reference does not exist in the subscription namespace"))
+		}
+		_, err = repo.db.Subscription.UpdateOneID(input.SubscriptionID.ID).
+			Where(dbsubscription.Namespace(input.SubscriptionID.Namespace), dbsubscription.PlanID(input.CurrentPlan.Id)).
+			SetPlanID(input.TargetPlan.Id).Save(ctx)
+		if db.IsNotFound(err) {
+			return struct{}{}, models.NewGenericConflictError(errors.New("subscription plan changed during migration"))
+		}
+		return struct{}{}, err
+	})
+	return err
+}
+
 func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.NamespacedID, at *time.Time) (*subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
 		_, err := repo.db.Subscription.UpdateOneID(id.ID).SetOrClearActiveTo(at).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
