@@ -184,6 +184,27 @@ interface SubscriptionsOperations {
     | Common.ErrorResponses;
 }
 
+/**
+ * Request for updating a subscription add-on. Only the quantity can be changed;
+ * the timing controls when the new quantity takes effect.
+ */
+@friendlyName("BillingSubscriptionAddonUpdate")
+model SubscriptionAddonUpdate {
+  /**
+   * The new quantity of the add-on. Must be at least 1.
+   */
+  @summary("Quantity")
+  @minValue(1)
+  quantity: integer;
+
+  /**
+   * The timing of the update. A new entry is appended to the add-on's timeline at
+   * this point.
+   */
+  @summary("Timing")
+  timing: SubscriptionEditTiming;
+}
+
 interface SubscriptionAddonOperations {
   /**
    * Add add-on to a subscription.
@@ -245,4 +266,24 @@ interface SubscriptionAddonOperations {
     | Shared.GetResponse<SubscriptionAddon>
     | Common.ErrorResponses
     | Common.NotFound;
+
+  /**
+   * Update a subscription add-on. Only the quantity is mutable; the timing controls
+   * when the new quantity takes effect. A new entry is appended to the add-on's
+   * timeline.
+   */
+  @patch
+  @route("/{subscriptionAddonId}")
+  @operationId("update-subscription-addon")
+  @summary("Update subscription addon")
+  @extension(Shared.UnstableExtension, true)
+  update(
+    @path subscriptionId: Shared.ULID,
+    @path subscriptionAddonId: Shared.ULID,
+    @body request: SubscriptionAddonUpdate,
+  ):
+    | Shared.UpdateResponse<SubscriptionAddon>
+    | Common.ErrorResponses
+    | Common.NotFound
+    | Common.Conflict;
 }

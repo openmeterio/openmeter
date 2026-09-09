@@ -316,3 +316,34 @@ func (s *SubscriptionsService) GetAddon(ctx context.Context, subscriptionID stri
 
 	return &out, nil
 }
+
+// Update a subscription add-on. Only the quantity is mutable; the timing controls
+// when the new quantity takes effect. A new entry is appended to the add-on's
+// timeline.
+func (s *SubscriptionsService) UpdateAddon(ctx context.Context, subscriptionID string, subscriptionAddonID string, request SubscriptionAddonUpdate) (*SubscriptionAddon, error) {
+	if subscriptionID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "subscriptionID", ErrEmptyID)
+	}
+
+	if subscriptionAddonID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "subscriptionAddonID", ErrEmptyID)
+	}
+
+	path := "/openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}"
+
+	path = replacePathParam(path, "subscriptionId", subscriptionID)
+
+	path = replacePathParam(path, "subscriptionAddonId", subscriptionAddonID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPatch, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out SubscriptionAddon
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}

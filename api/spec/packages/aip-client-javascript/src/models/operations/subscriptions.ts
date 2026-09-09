@@ -10,6 +10,7 @@ import type {
   Subscription,
   SubscriptionAddon,
   SubscriptionAddonPagePaginatedResponse,
+  SubscriptionAddonUpdate,
   SubscriptionCancelInput,
   SubscriptionChangeInput,
   SubscriptionChangeResponse,
@@ -105,3 +106,10 @@ export type GetSubscriptionAddonRequest = {
   subscriptionAddonId: string
 }
 export type GetSubscriptionAddonResponse = SubscriptionAddon
+
+export type UpdateSubscriptionAddonRequest = AcceptDateStrings<{
+  subscriptionId: string
+  subscriptionAddonId: string
+  body: SubscriptionAddonUpdate
+}>
+export type UpdateSubscriptionAddonResponse = SubscriptionAddon

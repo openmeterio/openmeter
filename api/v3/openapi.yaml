@@ -3401,6 +3401,50 @@ paths:
       tags:
         - OpenMeter Subscriptions
       x-unstable: true
+    patch:
+      operationId: update-subscription-addon
+      summary: Update subscription addon
+      description: |-
+        Update a subscription add-on. Only the quantity is mutable; the timing controls
+        when the new quantity takes effect. A new entry is appended to the add-on's
+        timeline.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: subscriptionAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: SubscriptionAddon updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionAddonUpdate'
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancel-subscription
@@ -9592,6 +9636,28 @@ components:
           readOnly: true
       additionalProperties: false
       description: Subscription.
+    BillingSubscriptionAddonUpdate:
+      type: object
+      required:
+        - quantity
+        - timing
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+          description: The new quantity of the add-on. Must be at least 1.
+          title: Quantity
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            The timing of the update. A new entry is appended to the add-on's timeline at
+            this point.
+          title: Timing
+      additionalProperties: false
+      description: |-
+        Request for updating a subscription add-on. Only the quantity can be changed;
+        the timing controls when the new quantity takes effect.
     BillingSubscriptionCancel:
       type: object
       properties:

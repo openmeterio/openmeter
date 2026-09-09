@@ -33,6 +33,8 @@ import type {
   ListSubscriptionAddonsResponse,
   GetSubscriptionAddonRequest,
   GetSubscriptionAddonResponse,
+  UpdateSubscriptionAddonRequest,
+  UpdateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
 
 /**
@@ -458,6 +460,58 @@ export function getSubscriptionAddon(
           assertValid(schemas.getSubscriptionAddonResponseWire, data)
         }
         return fromWire(data, schemas.getSubscriptionAddonResponse)
+      })
+  })
+}
+
+/**
+ * Update subscription addon
+ *
+ * Update a subscription add-on. Only the quantity is mutable; the timing controls
+ * when the new quantity takes effect. A new entry is appended to the add-on's
+ * timeline.
+ *
+ * PATCH /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}
+ */
+export function updateSubscriptionAddon(
+  client: Client,
+  req: UpdateSubscriptionAddonRequest,
+  options?: RequestOptions,
+): Promise<Result<UpdateSubscriptionAddonResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      subscriptionId: req.subscriptionId,
+      subscriptionAddonId: req.subscriptionAddonId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.updateSubscriptionAddonPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.updateSubscriptionAddonPathParamsWire, pathParams)
+    }
+    const path = `openmeter/subscriptions/${(() => {
+      if (pathParams.subscriptionId === undefined) {
+        throw new Error('missing path parameter: subscriptionId')
+      }
+      return encodeURIComponent(String(pathParams.subscriptionId))
+    })()}/addons/${(() => {
+      if (pathParams.subscriptionAddonId === undefined) {
+        throw new Error('missing path parameter: subscriptionAddonId')
+      }
+      return encodeURIComponent(String(pathParams.subscriptionAddonId))
+    })()}`
+    const body = toWire(req.body, schemas.updateSubscriptionAddonBody)
+    if (client._options.validate) {
+      assertValid(schemas.updateSubscriptionAddonBodyWire, body)
+    }
+    return http(client)
+      .patch(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.updateSubscriptionAddonResponseWire, data)
+        }
+        return fromWire(data, schemas.updateSubscriptionAddonResponse)
       })
   })
 }

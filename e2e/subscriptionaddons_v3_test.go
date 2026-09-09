@@ -239,3 +239,87 @@ func TestV3SubscriptionAddonNextBillingCycle(t *testing.T) {
 		assert.True(t, subAddon.Timeline[0].ActiveFrom.After(time.Now()), "next_billing_cycle timing must produce a future active_from")
 	})
 }
+
+// TestV3SubscriptionAddonUpdate exercises PATCH /subscriptions/{id}/addons/{addonId}:
+// attach a multiple-instance addon at quantity 1, then change its quantity and
+// verify the new quantity and a fresh timeline segment. Uses a multiple-instance
+// addon because single-instance addons are fixed at quantity 1.
+func TestV3SubscriptionAddonUpdate(t *testing.T) {
+	c := newV3Client(t)
+
+	// --- Fixture: customer ---
+
+	customerKey := uniqueKey("sub_addon_update_customer")
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:          customerKey,
+		Name:         "Subscription Addon Update Test Customer",
+		Currency:     lo.ToPtr("USD"),
+		PrimaryEmail: lo.ToPtr("test-" + customerKey + "@test.com"),
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
+			SubjectKeys: []string{customerKey},
+		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	// --- Fixture: draft plan + published multiple-instance addon, attach, publish plan ---
+
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest("sub_addon_update_plan"))
+	c.requireStatus(http.StatusCreated, err)
+	require.NotEmpty(t, plan.Phases)
+
+	addonBody := validAddonRequest("sub_addon_update")
+	addonBody.InstanceType = v3sdk.AddonInstanceTypeMultiple
+	addon, err := c.Addons.Create(t.Context(), addonBody)
+	c.requireStatus(http.StatusCreated, err)
+
+	_, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
+
+	_, err = c.PlanAddons.Create(t.Context(), plan.ID, validPlanAddonRequest(plan.Phases[0].Key, addon.ID))
+	c.requireStatus(http.StatusCreated, err)
+
+	_, err = c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
+
+	sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
+		Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
+		Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumImmediate))
+
+	subAddon, err := c.Subscriptions.CreateAddon(t.Context(), sub.ID, v3sdk.CreateSubscriptionAddonRequest{
+		Addon:    v3sdk.AddonReference{ID: addon.ID},
+		Quantity: 1,
+		Timing:   timing,
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, subAddon)
+	subAddonID := subAddon.ID
+
+	t.Run("Should change the addon quantity and return 200", func(t *testing.T) {
+		updated, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
+			Quantity: 2,
+			Timing:   timing,
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, updated)
+
+		assert.Equal(t, subAddonID, updated.ID)
+		assert.EqualValues(t, 2, updated.Quantity, "quantity should reflect the update")
+		assert.NotNil(t, updated.RateCards, "rate_cards must not be null")
+		require.NotEmpty(t, updated.Timeline)
+	})
+
+	t.Run("Should reject a quantity of 0 with 4xx", func(t *testing.T) {
+		_, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
+			Quantity: 0,
+			Timing:   timing,
+		})
+		apiErr, ok := v3sdk.AsAPIError(err)
+		require.True(t, ok, "expected APIError, got %T: %v", err, err)
+		assert.GreaterOrEqual(t, apiErr.StatusCode, http.StatusBadRequest, "expected 4xx for quantity=0, got %d", apiErr.StatusCode)
+		assert.Less(t, apiErr.StatusCode, http.StatusInternalServerError, "expected 4xx not 5xx for quantity=0")
+	})
+}

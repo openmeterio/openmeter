@@ -4447,6 +4447,20 @@ export const createSubscriptionAddonRequest = z
   })
   .describe('SubscriptionAddon create request.')
 
+export const subscriptionAddonUpdate = z
+  .object({
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+      .describe('The new quantity of the add-on. Must be at least 1.'),
+    timing: subscriptionEditTiming,
+  })
+
+  .describe(
+    'Request for updating a subscription add-on. Only the quantity can be changed; the timing controls when the new quantity takes effect.',
+  )
+
 export const createTaxCodeRequest = z
   .object({
     name: z
@@ -7238,6 +7252,15 @@ export const getSubscriptionAddonPathParams = z.object({
 })
 
 export const getSubscriptionAddonResponse = subscriptionAddon
+
+export const updateSubscriptionAddonPathParams = z.object({
+  subscriptionId: ulid,
+  subscriptionAddonId: ulid,
+})
+
+export const updateSubscriptionAddonBody = subscriptionAddonUpdate
+
+export const updateSubscriptionAddonResponse = subscriptionAddon
 
 export const listAppsQueryParams = z.object({
   page: z
@@ -12240,6 +12263,20 @@ export const createSubscriptionAddonRequestWire = z
   })
   .describe('SubscriptionAddon create request.')
 
+export const subscriptionAddonUpdateWire = z
+  .strictObject({
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+      .describe('The new quantity of the add-on. Must be at least 1.'),
+    timing: subscriptionEditTimingWire,
+  })
+
+  .describe(
+    'Request for updating a subscription add-on. Only the quantity can be changed; the timing controls when the new quantity takes effect.',
+  )
+
 export const createTaxCodeRequestWire = z
   .strictObject({
     name: z
@@ -15070,6 +15107,15 @@ export const getSubscriptionAddonPathParamsWire = z.object({
 })
 
 export const getSubscriptionAddonResponseWire = subscriptionAddonWire
+
+export const updateSubscriptionAddonPathParamsWire = z.object({
+  subscriptionId: ulidWire,
+  subscriptionAddonId: ulidWire,
+})
+
+export const updateSubscriptionAddonBodyWire = subscriptionAddonUpdateWire
+
+export const updateSubscriptionAddonResponseWire = subscriptionAddonWire
 
 export const listAppsQueryParamsWire = z.object({
   page: z

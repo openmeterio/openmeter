@@ -14,6 +14,7 @@ import {
   createSubscriptionAddon,
   listSubscriptionAddons,
   getSubscriptionAddon,
+  updateSubscriptionAddon,
 } from '../funcs/subscriptions.js'
 import type {
   CreateSubscriptionRequest,
@@ -36,6 +37,8 @@ import type {
   ListSubscriptionAddonsResponse,
   GetSubscriptionAddonRequest,
   GetSubscriptionAddonResponse,
+  UpdateSubscriptionAddonRequest,
+  UpdateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
 import type { Subscription, SubscriptionAddon } from '../models/types.js'
 
@@ -217,5 +220,21 @@ export class Subscriptions {
     options?: RequestOptions,
   ): Promise<GetSubscriptionAddonResponse> {
     return unwrap(await getSubscriptionAddon(this._client, request, options))
+  }
+
+  /**
+   * Update subscription addon
+   *
+   * Update a subscription add-on. Only the quantity is mutable; the timing controls
+   * when the new quantity takes effect. A new entry is appended to the add-on's
+   * timeline.
+   *
+   * PATCH /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}
+   */
+  async updateAddon(
+    request: UpdateSubscriptionAddonRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateSubscriptionAddonResponse> {
+    return unwrap(await updateSubscriptionAddon(this._client, request, options))
   }
 }

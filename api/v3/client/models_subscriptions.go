@@ -79,6 +79,16 @@ type SubscriptionAddonTimelineSegment struct {
 	Quantity int64 `json:"quantity"`
 }
 
+// Request for updating a subscription add-on. Only the quantity can be changed;
+// the timing controls when the new quantity takes effect.
+type SubscriptionAddonUpdate struct {
+	// The new quantity of the add-on. Must be at least 1.
+	Quantity int64 `json:"quantity"`
+	// The timing of the update. A new entry is appended to the add-on's timeline at
+	// this point.
+	Timing SubscriptionEditTiming `json:"timing"`
+}
+
 // Request for canceling a subscription.
 type SubscriptionCancel struct {
 	// If not provided the subscription is canceled immediately.

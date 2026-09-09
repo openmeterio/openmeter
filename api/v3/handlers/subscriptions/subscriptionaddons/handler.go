@@ -13,6 +13,7 @@ type Handler interface {
 	CreateSubscriptionAddon() CreateSubscriptionAddonHandler
 	ListSubscriptionAddons() ListSubscriptionAddonsHandler
 	GetSubscriptionAddon() GetSubscriptionAddonHandler
+	UpdateSubscriptionAddon() UpdateSubscriptionAddonHandler
 }
 
 type handler struct {

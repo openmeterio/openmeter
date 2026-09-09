@@ -286,6 +286,7 @@ export type {
   InvoiceStatusDetails,
   InvoiceWorkflow,
   SubscriptionCancel,
+  SubscriptionAddonUpdate,
   TaxCode,
   AppCatalogItem,
   InvoiceLineDiscounts,

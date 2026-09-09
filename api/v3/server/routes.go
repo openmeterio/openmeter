@@ -144,6 +144,13 @@ func (s *Server) GetSubscriptionAddon(w http.ResponseWriter, r *http.Request, su
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) UpdateSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, subscriptionAddonId api.ULID) {
+	s.subscriptionAddonsHandler.UpdateSubscriptionAddon().With(subscriptionaddonshandler.UpdateSubscriptionAddonParams{
+		SubscriptionID:      subscriptionId,
+		SubscriptionAddonID: subscriptionAddonId,
+	}).ServeHTTP(w, r)
+}
+
 // Apps
 
 func (s *Server) ListApps(w http.ResponseWriter, r *http.Request, params api.ListAppsParams) {

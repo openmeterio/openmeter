@@ -3444,6 +3444,20 @@ export interface CreateSubscriptionAddonRequest {
   timing: SubscriptionEditTiming
 }
 
+/**
+ * Request for updating a subscription add-on. Only the quantity can be changed;
+ * the timing controls when the new quantity takes effect.
+ */
+export interface SubscriptionAddonUpdate {
+  /** The new quantity of the add-on. Must be at least 1. */
+  quantity: number
+  /**
+   * The timing of the update. A new entry is appended to the add-on's timeline at
+   * this point.
+   */
+  timing: SubscriptionEditTiming
+}
+
 /** TaxCode create request. */
 export interface CreateTaxCodeRequest {
   /**
