@@ -11,7 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -79,19 +79,38 @@ type resolvedCorrectionInputs struct {
 }
 
 func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAccruedInput) (creditrealization.CreateCorrectionInputs, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
 	run := func(ctx context.Context) (creditrealization.CreateCorrectionInputs, error) {
 		if len(input.Corrections) == 0 {
 			return nil, nil
 		}
-
-		used, err := c.correctedSourceAmounts(ctx, input)
+		accounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID})
 		if err != nil {
 			return nil, err
 		}
+		if err := accounts.LockForPosting(ctx, c.deps.AccountCatalog); err != nil {
+			return nil, err
+		}
+
+		// Legacy selection reserves entry amounts across the batch. Origin
+		// corrections reconstruct only their indexed origin histories below.
+		used := make(map[string]alpacadecimal.Decimal)
+		for _, correction := range input.Corrections {
+			if correction.Allocation.Annotations[ledger.AnnotationOriginTracked] != true {
+				used, err = c.correctedSourceAmounts(ctx, input)
+				if err != nil {
+					return nil, err
+				}
+				break
+			}
+		}
 		// Reserve source capacity across the batch before committing any postings.
 		actions := make([]plannedAction, 0, len(input.Corrections))
+		selectedSegments := make(map[string]map[string]alpacadecimal.Decimal)
 		for _, correction := range input.Corrections {
-			correctionActions, err := c.planCorrection(ctx, input, correction, used)
+			correctionActions, err := c.planCorrection(ctx, input, correction, used, selectedSegments)
 			if err != nil {
 				return nil, err
 			}
@@ -139,7 +158,18 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 
 		out := make(creditrealization.CreateCorrectionInputs, 0, len(input.Corrections))
 		for _, correction := range input.Corrections {
+			var annotations models.Annotations
+			if selected := selectedSegments[correction.Allocation.ID]; selected != nil {
+				annotations, err = legacylineage.CorrectionAnnotations(selected)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if correction.Allocation.Annotations[ledger.AnnotationOriginTracked] == true {
+				annotations = models.Annotations{ledger.AnnotationOriginTracked: true}
+			}
 			out = append(out, creditrealization.CreateCorrectionInput{
+				Annotations: annotations,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: transactionGroup.ID().ID,
 				},
@@ -154,7 +184,7 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 	return transaction.Run(ctx, c.transactionManager, run)
 }
 
-func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectCollectedAccruedInput, correction creditrealization.CorrectionRequestItem, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectCollectedAccruedInput, correction creditrealization.CorrectionRequestItem, used map[string]alpacadecimal.Decimal, selectedSegments map[string]map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	originalGroup, err := c.originalGroup(ctx, input, correction)
 	if err != nil {
 		return nil, err
@@ -165,40 +195,28 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	if err != nil {
 		return nil, err
 	}
+	for _, entry := range source.transaction.Entries() {
+		if entry.CollectionOriginID() != nil {
+			return c.planOriginCorrection(ctx, input, source, correction.Amount.Abs())
+		}
+	}
 
 	// Older data may not have lineage yet, so fall back to first-order source correction.
 	segments := input.LineageSegmentsByRealization[correction.Allocation.ID]
 	if len(segments) == 0 {
-		return plannedSourceCorrectionActions(source, correction.Amount.Abs(), source.advanceReceivableIssueTransaction != nil, used)
+		return c.planUntrackedCorrection(source, correction.Amount.Abs(), used)
 	}
 
-	// Lineage tells us what this value looks like now, so consume that state first.
-	remaining := correction.Amount.Abs()
-	actions := make([]plannedAction, 0, len(segments)+2)
-	for _, segment := range sortCorrectionSegments(segments) {
-		if !remaining.IsPositive() {
-			break
-		}
-
-		segmentAmount := minDecimal(segment.Amount, remaining)
-		if !segmentAmount.IsPositive() {
-			continue
-		}
-
-		segmentActions, err := c.planSegmentCorrection(ctx, input, source, segment, segmentAmount, used)
-		if err != nil {
-			return nil, err
-		}
-		actions = append(actions, segmentActions...)
-
-		remaining = remaining.Sub(segmentAmount)
+	positions, evidence, err := c.readLegacyPositions(ctx, input, source, segments, used)
+	if err != nil {
+		return nil, err
 	}
-
-	if remaining.IsPositive() {
-		return nil, fmt.Errorf("correction amount %s exceeds active lineage coverage for realization %s", correction.Amount.Abs().String(), correction.Allocation.ID)
+	selected, err := planCollectionCorrection(collectionCorrectionInput{amount: correction.Amount.Abs(), positions: positions})
+	if err != nil {
+		return nil, err
 	}
-
-	return actions, nil
+	selectedSegments[correction.Allocation.ID] = make(map[string]alpacadecimal.Decimal)
+	return c.writeLegacyCorrection(ctx, input, selected, evidence, used, selectedSegments[correction.Allocation.ID])
 }
 
 func (c *accrualCorrector) originalGroup(ctx context.Context, input CorrectCollectedAccruedInput, correction creditrealization.CorrectionRequestItem) (ledger.TransactionGroup, error) {
@@ -213,8 +231,9 @@ func (c *accrualCorrector) originalGroup(ctx context.Context, input CorrectColle
 	return group, nil
 }
 
-func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
-	// Each current segment state needs a slightly different unwind.
+func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment legacylineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+	// Legacy segment state chooses posting mechanics only. The shared planner
+	// has already selected the funding source and amount.
 	switch segment.State {
 	case creditrealization.LineageSegmentStateRealCredit,
 		creditrealization.LineageSegmentStateReceivableCoverage:
@@ -230,7 +249,7 @@ func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input Corr
 	}
 }
 
-func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment legacylineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
 		return nil, fmt.Errorf("earnings_recognized segment missing backing transaction group id")
 	}
@@ -284,7 +303,7 @@ func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, in
 	return actions, nil
 }
 
-func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment lineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment legacylineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
 		return nil, fmt.Errorf("advance_backfilled segment missing backing transaction group id")
 	}
@@ -646,11 +665,12 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 			}
 
 			reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-				Release:        release,
-				Amount:         amount,
-				SourceKind:     breakage.SourceKindUsageCorrection,
-				SourceChargeID: correctedEntry.entry.SourceChargeID(),
-				SpendChargeID:  correctedEntry.entry.SpendChargeID(),
+				Release:            release,
+				Amount:             amount,
+				SourceKind:         breakage.SourceKindUsageCorrection,
+				SourceChargeID:     correctedEntry.entry.SourceChargeID(),
+				SpendChargeID:      correctedEntry.entry.SpendChargeID(),
+				CollectionOriginID: correctedEntry.entry.CollectionOriginID(),
 			})
 			if err != nil {
 				return nil, nil, fmt.Errorf("resolve breakage reopen: %w", err)
@@ -858,33 +878,6 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	}
 
 	return backfilledCreditReissueRouteResult{}, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
-}
-
-func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {
-	sorted := slices.Clone(segments)
-	sort.SliceStable(sorted, func(i, j int) bool {
-		// Go from most downstream representation back outward.
-		precedence := func(state creditrealization.LineageSegmentState) int {
-			switch state {
-			case creditrealization.LineageSegmentStateEarningsRecognized:
-				return 0
-			case creditrealization.LineageSegmentStateAdvanceBackfilled:
-				return 1
-			case creditrealization.LineageSegmentStateAdvanceUncovered:
-				return 2
-			case creditrealization.LineageSegmentStateRealCredit:
-				return 3
-			case creditrealization.LineageSegmentStateReceivableCoverage:
-				return 4
-			default:
-				return 5
-			}
-		}
-
-		return precedence(sorted[i].State) < precedence(sorted[j].State)
-	})
-
-	return sorted
 }
 
 func minDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {

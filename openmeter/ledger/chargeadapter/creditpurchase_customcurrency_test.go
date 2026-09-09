@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -176,7 +176,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 		sourceSpendChargeKey(nil, &spendChargeIDs[2]):        1,
 		sourceSpendChargeKey(&charge.ID, &spendChargeIDs[0]): 0.05,
 	})
-	roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+	roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: customCurrencyIdentity,
 	})
 	require.NoError(t, err)

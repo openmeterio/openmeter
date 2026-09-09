@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -22,8 +24,8 @@ var recognizableSegmentStates = map[creditrealization.LineageSegmentState]bool{
 
 // lineageEligible holds a lineage and its recognizable segment amounts.
 type lineageEligible struct {
-	lineage  lineage.Lineage
-	segments []lineage.Segment
+	lineage  legacylineage.Lineage
+	segments []legacylineage.Segment
 }
 
 func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInput) (RecognizeEarningsResult, error) {
@@ -32,8 +34,19 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 	}
 
 	return transaction.Run(ctx, s.transactionManager, func(ctx context.Context) (RecognizeEarningsResult, error) {
+		accounts, err := s.deps.AccountService.GetCustomerAccounts(ctx, in.CustomerID)
+		if err != nil {
+			return RecognizeEarningsResult{}, err
+		}
+		if err := accounts.LockForPosting(ctx, s.deps.AccountCatalog); err != nil {
+			return RecognizeEarningsResult{}, err
+		}
+		originInputs, err := s.resolveOriginRecognition(ctx, in, accounts)
+		if err != nil {
+			return RecognizeEarningsResult{}, err
+		}
 		// Load all lineages for this customer+currency with their active segments.
-		lineages, err := s.lnge.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+		lineages, err := s.lnge.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 			Namespace:  in.CustomerID.Namespace,
 			CustomerID: in.CustomerID.ID,
 			Currency:   in.Currency.Reference(),
@@ -44,7 +57,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 
 		// Identify segments eligible for recognition, ordered deterministically by lineage ID.
 		eligible := collectEligibleLineages(lineages)
-		if len(eligible) == 0 {
+		if len(eligible) == 0 && len(originInputs) == 0 {
 			return RecognizeEarningsResult{}, nil
 		}
 
@@ -56,27 +69,39 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 		for _, allocation := range allocations {
 			actualAmount = actualAmount.Add(allocation.amount)
 		}
-		if !actualAmount.IsPositive() {
+		if !actualAmount.IsPositive() && len(originInputs) == 0 {
 			return RecognizeEarningsResult{}, nil
 		}
 
-		// Resolve postings for the exact accrued slices selected for these segments.
-		resolved, err := transactions.ResolveTransactions(
-			ctx,
-			s.deps,
-			transactions.ResolutionScope{
-				CustomerID: in.CustomerID,
-				Namespace:  in.CustomerID.Namespace,
-			},
-			transactions.RecognizeEarningsFromAttributableAccruedTemplate{
-				At:       in.At,
-				Amount:   actualAmount,
-				Sources:  sources,
-				Currency: in.Currency.Reference(),
-			},
-		)
-		if err != nil {
-			return RecognizeEarningsResult{}, fmt.Errorf("resolve recognition: %w", err)
+		var resolved []ledger.TransactionInput
+		if actualAmount.IsPositive() {
+			// Resolve postings for the exact accrued slices selected for these segments.
+			resolved, err = transactions.ResolveTransactions(
+				ctx,
+				s.deps,
+				transactions.ResolutionScope{
+					CustomerID: in.CustomerID,
+					Namespace:  in.CustomerID.Namespace,
+				},
+				transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+					At:       in.At,
+					Amount:   actualAmount,
+					Sources:  sources,
+					Currency: in.Currency.Reference(),
+				},
+			)
+			if err != nil {
+				return RecognizeEarningsResult{}, fmt.Errorf("resolve recognition: %w", err)
+			}
+		}
+
+		resolved = append(resolved, originInputs...)
+		for _, tx := range originInputs {
+			for _, entry := range tx.EntryInputs() {
+				if entry.Amount().IsPositive() {
+					actualAmount = actualAmount.Add(entry.Amount())
+				}
+			}
 		}
 		if len(resolved) == 0 {
 			return RecognizeEarningsResult{}, nil
@@ -109,11 +134,11 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 
 // collectEligibleLineages extracts lineages with recognizable active segments,
 // sorted by lineage ID for deterministic ordering.
-func collectEligibleLineages(lineages []lineage.Lineage) []lineageEligible {
+func collectEligibleLineages(lineages []legacylineage.Lineage) []lineageEligible {
 	out := make([]lineageEligible, 0, len(lineages))
 
 	for _, l := range lineages {
-		var segments []lineage.Segment
+		var segments []legacylineage.Segment
 
 		for _, seg := range l.Segments {
 			if recognizableSegmentStates[seg.State] && seg.Amount.IsPositive() {
@@ -152,7 +177,7 @@ func (s *service) allocateRecognition(ctx context.Context, allocations []recogni
 		// If partial consumption, create remainder in original state.
 		remainder := seg.Amount.Sub(consumed)
 		if remainder.IsPositive() {
-			if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
+			if err := s.lnge.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 				LineageID:                 seg.LineageID,
 				Amount:                    remainder,
 				State:                     seg.State,
@@ -165,7 +190,7 @@ func (s *service) allocateRecognition(ctx context.Context, allocations []recogni
 		// Create earnings_recognized segment for the consumed portion.
 		// Source fields let correction unwind recognition back to the prior state.
 		sourceState := seg.State
-		if err := s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{
+		if err := s.lnge.CreateSegment(ctx, legacylineage.CreateSegmentInput{
 			LineageID:                       seg.LineageID,
 			Amount:                          consumed,
 			State:                           creditrealization.LineageSegmentStateEarningsRecognized,
@@ -185,4 +210,35 @@ func minDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
 	}
 
 	return a
+}
+
+// resolveOriginRecognition reads exact accrued provenance. No lineage state is
+// created or transitioned for these entries; recognition is its own journal fact.
+func (s *service) resolveOriginRecognition(ctx context.Context, in RecognizeEarningsInput, accounts ledger.CustomerAccounts) ([]ledger.TransactionInput, error) {
+	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: in.CustomerID.Namespace,
+		Filters:   ledger.Filters{AccountID: lo.ToPtr(accounts.AccruedAccount.ID().ID), AsOf: &in.At, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
+		GroupBy:   []string{ledger.BalanceBucketGroupByCollectionOriginID, ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
+	})
+	if err != nil {
+		return nil, err
+	}
+	amount := alpacadecimal.Zero
+	var sources []transactions.PostingAmount
+	for _, bucket := range buckets {
+		source := bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID]
+		spend := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
+		if bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID] == nil || source == nil || spend == nil || *source == *spend || bucket.Address.Route().Route().CostBasis == nil || !bucket.SettledAmount.IsPositive() {
+			continue
+		}
+		amount = amount.Add(bucket.SettledAmount)
+		sources = append(sources, transactions.PostingAmount{Address: bucket.Address, Amount: bucket.SettledAmount, Identity: ledger.EntryIdentityParts{
+			CollectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID], SourceChargeID: source, SpendChargeID: spend,
+		}})
+	}
+	if !amount.IsPositive() {
+		return nil, nil
+	}
+	return transactions.ResolveTransactions(ctx, s.deps, transactions.ResolutionScope{CustomerID: in.CustomerID, Namespace: in.CustomerID.Namespace},
+		transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: in.At, Amount: amount, Currency: in.Currency.Reference(), OriginTracked: true, Sources: sources})
 }

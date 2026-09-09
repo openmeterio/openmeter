@@ -12,7 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditreconciliation"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -46,7 +46,7 @@ func (i CreditReconciliationHandlerInput) Validate() error {
 }
 
 // chargeCurrencyCreditReconciliationHandler reconciles a flat-fee run's
-// allocations in the charge currency and preserves their realization lineage.
+// allocations in the charge currency and preserves their realization legacylineage.
 type chargeCurrencyCreditReconciliationHandler struct {
 	service *Service
 	CreditReconciliationHandlerInput
@@ -136,7 +136,7 @@ func (h *chargeCurrencyCreditReconciliationHandler) Create(
 }
 
 // fiatOverageCreditReconciliationHandler reconciles a custom-currency run's
-// overage allocations in settlement fiat and preserves their separate lineage.
+// overage allocations in settlement fiat and preserves their separate legacylineage.
 type fiatOverageCreditReconciliationHandler struct {
 	service *Service
 	CreditReconciliationHandlerInput
@@ -478,7 +478,11 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 	ctx context.Context,
 	charge flatfee.Charge,
 	realizations creditrealization.Realizations,
-) (lineage.ActiveSegmentsByRealizationID, error) {
+) (legacylineage.ActiveSegmentsByRealizationID, error) {
+	realizations = realizations.LegacyLineageRealizations()
+	if len(realizations) == 0 {
+		return legacylineage.ActiveSegmentsByRealizationID{}, nil
+	}
 	realizationIDs := lo.Map(realizations, func(realization creditrealization.Realization, _ int) string {
 		return realization.ID
 	})

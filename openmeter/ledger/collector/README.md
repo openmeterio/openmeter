@@ -35,6 +35,7 @@ FBO collection order is:
 
 ```text
 credit_priority asc
+feature-restricted before unrestricted
 expires_at asc
 stable cursor asc
 ```
@@ -115,8 +116,8 @@ remaining receivable: RECEIVABLE -2
 
 Coverage preserves the original credit's source charge and records the charge
 whose receivable is covered as the spend charge. Correction restores the exact
-selected FBO sources and reopens their breakage releases. Its lineage records
-that correction provenance but is not eligible for earnings recognition because
+selected FBO sources and reopens their breakage releases. Each source slice has
+a collection origin, but is not eligible for earnings recognition because
 covering a receivable creates no accrued value.
 
 ## Source Entry Identity
@@ -139,6 +140,11 @@ The ledger entries carry source identity/order metadata:
 source #0 -> order 0
 source #1 -> order 1
 ```
+
+Every new source slice also receives an immutable `collection_origin_id`. Its downstream
+backfill, recognition, and correction entries retain that origin. Two runs of
+the same spend charge consuming the same purchase therefore remain independently
+correctable. Reused FBO credit starts a fresh origin.
 
 That identity is not a second source of numeric truth. Amounts come from ledger entries. The identity only records the order in which committed source entries were selected.
 
@@ -215,6 +221,24 @@ If a shared earnings-recognition group contains other spends or cost bases,
 correction reverses only the accrued route and source/spend provenance needed by
 the original collection or backfill unwind. Group membership alone is not
 sufficient to select recognized value.
+
+One planner selects sources and amounts for both storage formats. It selects
+sources in reverse original collection order and backing in reverse original
+backing order, then unwinds recognition within the selected source. Recognition
+batching cannot change which funding is returned. Backed advance remains ahead
+of its uncovered remainder.
+
+The provenance reader derives remaining accrued, earnings and coverage positions
+from ledger balances scoped to `collection_origin_id` and source. It validates
+whole-origin conservation per currency under posting locks. Original entries
+supply immutable ordering, routes and exact correction references; template
+history is not replayed to determine the current state.
+
+The [legacy reader](../../billing/charges/legacylineage/README.md) adapts active
+segments and their original ledger references to the same planner. The legacy
+writer persists its exact selected segment IDs and amounts; stale selections
+abort the enclosing transaction. There is no second amount allocation during
+persistence.
 
 Example:
 

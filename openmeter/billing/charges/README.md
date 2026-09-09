@@ -44,6 +44,9 @@ projection. The type-specific detailed status is the lifecycle state.
   request.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
+- [Legacy lineage](legacylineage/README.md) is deprecated compatibility for
+  pre-cutover credit histories. New collections use ledger origins; remaining
+  lineage reads and writes must stay confined to legacy histories.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles
   subscription-derived source intent, including item currency and subscription
   cost-basis selection. It does not treat API overrides as new subscription
@@ -231,15 +234,16 @@ custom-currency purchases reference durable shared cost-basis state. Resolution
 time and charge creation time are not a validation invariant. The legacy
 settlement JSON column is deprecated and ignored.
 
-Purchases load only advance roots with active uncovered segments eligible for
-that purchase's feature filters; settled history is excluded in the database.
+For legacy collections, purchases load only advance roots with active uncovered
+segments eligible for that purchase's feature filters; settled history is excluded in the database.
 Finalized charges remain eligible while they have uncovered advances.
 Later purchases backfill eligible advances in original collection order. Each
 collection occurrence keeps its place after partial backfill or correction;
 charge IDs and replacement segment creation times do not define that order.
-The ledger returns the amounts actually booked for each uncovered segment, and
-lineage persists that same allocation. The purchase's lifecycle transaction
-rolls back if a selected segment changed before persistence. Ledger account
+For new collections, the ledger selects origin buckets directly, without
+lineage state. For legacy collections, it returns the amounts actually booked
+for each uncovered segment, and lineage persists that same allocation. The
+purchase's lifecycle transaction rolls back if a selected segment changed before persistence. Ledger account
 locks still precede lineage locks.
 
 A credit grant, payment authorization, and payment settlement are separate
@@ -370,8 +374,8 @@ movements and are excluded from the customer-facing
 Settlement-fiat credits then cover part of that gross fiat receivable using the
 [collector's custom-currency CTI coverage rules](../../ledger/collector/README.md#custom-currency-cti-receivable-coverage).
 The invoice records the gross converted amount, credit coverage, and net amount
-due. Receivable-coverage lineage preserves the selected credit sources for
-correction but is excluded from earnings recognition because it represents no
+due. Receivable-coverage origins preserve the selected credit sources for
+correction but are excluded from earnings recognition because they represent no
 accrued value. Authorization and settlement move only the remaining receivable,
 using the invoice currency and the charge's persisted cost-basis route.
 
@@ -380,10 +384,10 @@ Charges persist no cross-run FX remainder, so later runs cannot carry or absorb
 an earlier run's rounding difference. Correction reverses the complete original
 conversion rather than partially recomputing it.
 
-Credit realization lineage identifies a managed currency by code and
-namespace-scoped currency ID, not display code alone. Advance, backfill, and
-earnings-recognized transitions therefore remain isolated when managed
-currencies reuse a code. `AdvanceCharges` recognizes credit-backed lineage in
+New credit realizations use ledger origins; pre-cutover realizations retain
+lineage compatibility. Both use the namespace-scoped managed currency ID in
+addition to code. Advance, backfill, and recognition therefore remain isolated
+when managed currencies reuse a code. `AdvanceCharges` recognizes credit-backed value in
 the charge's native currency only when accrued entries have distinct source-
 credit and spend-charge provenance. Accrued value without that provenance -
 including the same-charge custom overage and an unbackfilled advance - remains

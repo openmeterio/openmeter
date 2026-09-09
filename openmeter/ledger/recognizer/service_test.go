@@ -8,9 +8,9 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -29,7 +29,7 @@ import (
 type recognizerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	recognizer  recognizer.Service
-	lineage     lineage.Service
+	lineage     legacylineage.Service
 	lastGroupID string
 }
 
@@ -43,12 +43,12 @@ func newRecognizerTestEnv(t *testing.T) *recognizerTestEnv {
 		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
 
-	lngeAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lngeAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: base.DB,
 	})
 	require.NoError(t, err)
 
-	dbLineage, err := lineageservice.New(lineageservice.Config{
+	dbLineage, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lngeAdapter,
 	})
 	require.NoError(t, err)
@@ -125,7 +125,7 @@ func (e *recognizerTestEnv) createLineageForRealization(t *testing.T, chargeID, 
 
 	e.ensureCharge(t, chargeID)
 
-	err := e.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
+	err := e.lineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:  e.Namespace,
 		ChargeID:   chargeID,
 		CustomerID: e.CustomerID.ID,
@@ -160,7 +160,7 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 	sourceChargeID := testID()
 	realID := testID()
 
-	// Set up accrued balance and lineage.
+	// Set up accrued balance and legacylineage.
 	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(), CostBasis: &costBasis,
 		SourceChargeID: &sourceChargeID, SpendChargeID: &chargeID,
@@ -226,7 +226,7 @@ func TestRecognizeEarnings_ReceivableCoverageDoesNotRecognizeUnrelatedAccrued(t 
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(5)))
 	require.True(t, env.SumBalance(t, env.EarningsSubAccountWithCostBasis(t, &costBasis)).IsZero())
 
-	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
 		Currency:   env.CurrencyReference(),
@@ -285,7 +285,7 @@ func TestRecognizeEarnings_CustomCurrencyCreditBackedAccrued(t *testing.T) {
 	require.True(t, env.SumBalance(t, accrued).IsZero())
 	require.True(t, env.SumBalance(t, earnings).Equal(amount))
 
-	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
 		Currency:   customCurrencyReference,
@@ -323,7 +323,7 @@ func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testin
 	require.True(t, result.RecognizedAmount.Equal(alpacadecimal.NewFromInt(70)))
 
 	// Verify segments transitioned to earnings_recognized.
-	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
 		Currency:   currencies.NewCurrencyReference(env.Currency),
@@ -390,7 +390,7 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 				require.Equal(t, &spend, entry.SpendChargeID)
 			}
 			require.Equal(t, float64(10), env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
-			roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
+			roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 				Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.CurrencyReference(),
 			})
 			require.NoError(t, err)

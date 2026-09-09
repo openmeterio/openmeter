@@ -18,9 +18,11 @@ import (
 // RecognizeEarningsFromAttributableAccruedTemplate recognizes up to Amount from accrued
 // routes that already have a known cost basis. Unknown-cost accrued balances are skipped.
 type RecognizeEarningsFromAttributableAccruedTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencies.CurrencyReference
+	// OriginTracked selects the provenance pool; false is the legacy pool.
+	OriginTracked bool
+	At            time.Time
+	Amount        alpacadecimal.Decimal
+	Currency      currencies.CurrencyReference
 	// Sources, when provided, are the accrued slices already selected by the
 	// caller within its transaction. Nil selects from attributable balances.
 	Sources []PostingAmount
@@ -113,20 +115,22 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:          route.Currency.IdentityKey(),
-		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
-		taxCode:           lo.FromPtrOr(route.TaxCode, "null"),
-		taxBehavior:       string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		costBasis:         costBasisKey(route.CostBasis),
-		sourceChargeID:    lo.FromPtrOr(identity.SourceChargeID, "null"),
-		spendChargeID:     lo.FromPtrOr(identity.SpendChargeID, "null"),
+		currency:           route.Currency.IdentityKey(),
+		costBasisCurrency:  string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
+		taxCode:            lo.FromPtrOr(route.TaxCode, "null"),
+		taxBehavior:        string(lo.FromPtrOr(route.TaxBehavior, "null")),
+		costBasis:          costBasisKey(route.CostBasis),
+		sourceChargeID:     lo.FromPtrOr(identity.SourceChargeID, "null"),
+		spendChargeID:      lo.FromPtrOr(identity.SpendChargeID, "null"),
+		collectionOriginID: lo.FromPtrOr(identity.CollectionOriginID, "null"),
 	}
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
 	return t.routePairingKey(entry.PostingAddress(), ledger.EntryIdentityParts{
-		SourceChargeID: entry.SourceChargeID(),
-		SpendChargeID:  entry.SpendChargeID(),
+		SourceChargeID:     entry.SourceChargeID(),
+		CollectionOriginID: entry.CollectionOriginID(),
+		SpendChargeID:      entry.SpendChargeID(),
 	})
 }
 
@@ -134,7 +138,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Co
 	var collections []postingAddressAmount
 	if t.Sources == nil {
 		var err error
-		collections, err = collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers)
+		collections, err = collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers, t.OriginTracked, t.At)
 		if err != nil {
 			return nil, fmt.Errorf("collect from attributable accrued: %w", err)
 		}

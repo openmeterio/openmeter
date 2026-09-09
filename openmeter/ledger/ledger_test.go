@@ -151,3 +151,5 @@ func TestBalanceBucketQueryValidateGroupBy(t *testing.T) {
 		},
 	}.Validate())
 }
+
+func (e exampleEntryInput) CollectionOriginID() *string { return nil }

@@ -217,12 +217,13 @@ func TestValidateEntryIdentityKey(t *testing.T) {
 }
 
 type validationEntryInput struct {
-	address        ledger.PostingAddress
-	amount         alpacadecimal.Decimal
-	identityKey    string
-	schemaVersion  ledger.EntrySchemaVersion
-	sourceChargeID *string
-	spendChargeID  *string
+	address            ledger.PostingAddress
+	amount             alpacadecimal.Decimal
+	identityKey        string
+	schemaVersion      ledger.EntrySchemaVersion
+	sourceChargeID     *string
+	spendChargeID      *string
+	collectionOriginID *string
 }
 
 func (e validationEntryInput) PostingAddress() ledger.PostingAddress {
@@ -274,3 +275,5 @@ func testEntryIdentityAddress(t *testing.T, accountType ledger.AccountType, subA
 
 	return addr
 }
+
+func (e validationEntryInput) CollectionOriginID() *string { return e.collectionOriginID }

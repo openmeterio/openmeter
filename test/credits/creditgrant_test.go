@@ -16,8 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
@@ -58,12 +58,12 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err)
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.Require().NoError(err)
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	s.Require().NoError(err)

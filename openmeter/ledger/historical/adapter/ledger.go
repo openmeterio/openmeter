@@ -51,16 +51,17 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 		}
 
 		return ledgerhistorical.EntryData{
-			ID:             entry.ID,
-			Namespace:      entry.Namespace,
-			Annotations:    entry.Annotations,
-			CreatedAt:      entry.CreatedAt,
-			IdentityKey:    entry.IdentityKey,
-			SchemaVersion:  ledger.EntrySchemaVersion(entry.SchemaVersion),
-			SourceChargeID: entry.SourceChargeID,
-			SpendChargeID:  entry.SpendChargeID,
-			SubAccountID:   entry.SubAccountID,
-			AccountType:    account.AccountType,
+			ID:                 entry.ID,
+			Namespace:          entry.Namespace,
+			Annotations:        entry.Annotations,
+			CreatedAt:          entry.CreatedAt,
+			IdentityKey:        entry.IdentityKey,
+			SchemaVersion:      ledger.EntrySchemaVersion(entry.SchemaVersion),
+			SourceChargeID:     entry.SourceChargeID,
+			SpendChargeID:      entry.SpendChargeID,
+			CollectionOriginID: entry.CollectionOriginID,
+			SubAccountID:       entry.SubAccountID,
+			AccountType:        account.AccountType,
 			Route: ledger.Route{
 				Currency:                       currency,
 				CostBasisCurrency:              route.CostBasisCurrency,
@@ -85,6 +86,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 	reconstructed, err := ledgerhistorical.NewTransactionFromData(
 		ledgerhistorical.TransactionData{
 			ID:          tx.ID,
+			GroupID:     tx.GroupID,
 			Namespace:   tx.Namespace,
 			Annotations: tx.Annotations,
 			CreatedAt:   tx.CreatedAt,
@@ -138,6 +140,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				SetSchemaVersion(int(entryInput.SchemaVersion())).
 				SetNillableSourceChargeID(entryInput.SourceChargeID()).
 				SetNillableSpendChargeID(entryInput.SpendChargeID()).
+				SetNillableCollectionOriginID(entryInput.CollectionOriginID()).
 				SetAnnotations(entryInput.Annotations()).
 				SetAmount(entryInput.Amount()).
 				SetTransactionID(entity.ID))
@@ -154,6 +157,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 		transaction, err := ledgerhistorical.NewTransactionFromData(
 			ledgerhistorical.TransactionData{
 				ID:          entity.ID,
+				GroupID:     entity.GroupID,
 				Namespace:   entity.Namespace,
 				Annotations: entity.Annotations,
 				CreatedAt:   entity.CreatedAt,
@@ -161,22 +165,23 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 			},
 			lo.Map(createdEntries, func(e *db.LedgerEntry, _ int) ledgerhistorical.EntryData {
 				return ledgerhistorical.EntryData{
-					ID:             e.ID,
-					Namespace:      e.Namespace,
-					Annotations:    e.Annotations,
-					CreatedAt:      e.CreatedAt,
-					IdentityKey:    e.IdentityKey,
-					SchemaVersion:  ledger.EntrySchemaVersion(e.SchemaVersion),
-					SourceChargeID: e.SourceChargeID,
-					SpendChargeID:  e.SpendChargeID,
-					SubAccountID:   e.SubAccountID,
-					AccountType:    accountTypesBySubAccountID[e.SubAccountID],
-					Route:          routeBySubAccountID[e.SubAccountID],
-					RouteID:        routeIDBySubAccountID[e.SubAccountID],
-					RouteKey:       routeKeyBySubAccountID[e.SubAccountID],
-					RouteKeyVer:    routeKeyVersionBySubAccountID[e.SubAccountID],
-					Amount:         e.Amount,
-					TransactionID:  e.TransactionID,
+					ID:                 e.ID,
+					Namespace:          e.Namespace,
+					Annotations:        e.Annotations,
+					CreatedAt:          e.CreatedAt,
+					IdentityKey:        e.IdentityKey,
+					SchemaVersion:      ledger.EntrySchemaVersion(e.SchemaVersion),
+					SourceChargeID:     e.SourceChargeID,
+					SpendChargeID:      e.SpendChargeID,
+					CollectionOriginID: e.CollectionOriginID,
+					SubAccountID:       e.SubAccountID,
+					AccountType:        accountTypesBySubAccountID[e.SubAccountID],
+					Route:              routeBySubAccountID[e.SubAccountID],
+					RouteID:            routeIDBySubAccountID[e.SubAccountID],
+					RouteKey:           routeKeyBySubAccountID[e.SubAccountID],
+					RouteKeyVer:        routeKeyVersionBySubAccountID[e.SubAccountID],
+					Amount:             e.Amount,
+					TransactionID:      e.TransactionID,
 				}
 			}),
 		)
@@ -298,6 +303,10 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		if err != nil {
 			return ledger.ListTransactionsResult{}, err
 		}
+		if input.CollectionOriginID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.Namespace(input.Namespace), ledgerentrydb.CollectionOriginID(*input.CollectionOriginID))
+		}
+
 		subAccountPredicates, err := listTransactionsSubAccountPredicates(input.AccountIDs, input.Currency, input.Route)
 		if err != nil {
 			return ledger.ListTransactionsResult{}, err
@@ -321,6 +330,9 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 
 		if input.TransactionID != nil {
 			query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
+		}
+		if input.CollectionOriginID != nil {
+			query = query.Where(ledgertransactiondb.HasEntriesWith(ledgerentrydb.Namespace(input.Namespace), ledgerentrydb.CollectionOriginID(*input.CollectionOriginID)))
 		}
 
 		if input.AsOf != nil {

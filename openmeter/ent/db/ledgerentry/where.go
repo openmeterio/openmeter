@@ -101,6 +101,11 @@ func SchemaVersion(v int) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldSchemaVersion, v))
 }
 
+// CollectionOriginID applies equality check predicate on the "collection_origin_id" field. It's identical to CollectionOriginIDEQ.
+func CollectionOriginID(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldCollectionOriginID, v))
+}
+
 // SourceChargeID applies equality check predicate on the "source_charge_id" field. It's identical to SourceChargeIDEQ.
 func SourceChargeID(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldSourceChargeID, v))
@@ -494,6 +499,81 @@ func SchemaVersionLT(v int) predicate.LedgerEntry {
 // SchemaVersionLTE applies the LTE predicate on the "schema_version" field.
 func SchemaVersionLTE(v int) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldLTE(FieldSchemaVersion, v))
+}
+
+// CollectionOriginIDEQ applies the EQ predicate on the "collection_origin_id" field.
+func CollectionOriginIDEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDNEQ applies the NEQ predicate on the "collection_origin_id" field.
+func CollectionOriginIDNEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNEQ(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDIn applies the In predicate on the "collection_origin_id" field.
+func CollectionOriginIDIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIn(FieldCollectionOriginID, vs...))
+}
+
+// CollectionOriginIDNotIn applies the NotIn predicate on the "collection_origin_id" field.
+func CollectionOriginIDNotIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotIn(FieldCollectionOriginID, vs...))
+}
+
+// CollectionOriginIDGT applies the GT predicate on the "collection_origin_id" field.
+func CollectionOriginIDGT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGT(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDGTE applies the GTE predicate on the "collection_origin_id" field.
+func CollectionOriginIDGTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGTE(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDLT applies the LT predicate on the "collection_origin_id" field.
+func CollectionOriginIDLT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLT(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDLTE applies the LTE predicate on the "collection_origin_id" field.
+func CollectionOriginIDLTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLTE(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDContains applies the Contains predicate on the "collection_origin_id" field.
+func CollectionOriginIDContains(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContains(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDHasPrefix applies the HasPrefix predicate on the "collection_origin_id" field.
+func CollectionOriginIDHasPrefix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasPrefix(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDHasSuffix applies the HasSuffix predicate on the "collection_origin_id" field.
+func CollectionOriginIDHasSuffix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasSuffix(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDIsNil applies the IsNil predicate on the "collection_origin_id" field.
+func CollectionOriginIDIsNil() predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIsNull(FieldCollectionOriginID))
+}
+
+// CollectionOriginIDNotNil applies the NotNil predicate on the "collection_origin_id" field.
+func CollectionOriginIDNotNil() predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotNull(FieldCollectionOriginID))
+}
+
+// CollectionOriginIDEqualFold applies the EqualFold predicate on the "collection_origin_id" field.
+func CollectionOriginIDEqualFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEqualFold(FieldCollectionOriginID, v))
+}
+
+// CollectionOriginIDContainsFold applies the ContainsFold predicate on the "collection_origin_id" field.
+func CollectionOriginIDContainsFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContainsFold(FieldCollectionOriginID, v))
 }
 
 // SourceChargeIDEQ applies the EQ predicate on the "source_charge_id" field.

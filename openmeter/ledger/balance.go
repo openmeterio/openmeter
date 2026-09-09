@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	BalanceBucketGroupBySourceChargeID = "source_charge_id"
-	BalanceBucketGroupBySpendChargeID  = "spend_charge_id"
+	BalanceBucketGroupByCollectionOriginID = "collection_origin_id"
+	BalanceBucketGroupBySourceChargeID     = "source_charge_id"
+	BalanceBucketGroupBySpendChargeID      = "spend_charge_id"
 )
 
 type BalanceQuery struct {
@@ -42,7 +43,7 @@ func (q BalanceBucketQuery) Validate() error {
 
 	for _, groupBy := range q.GroupBy {
 		switch groupBy {
-		case BalanceBucketGroupBySourceChargeID, BalanceBucketGroupBySpendChargeID:
+		case BalanceBucketGroupBySourceChargeID, BalanceBucketGroupBySpendChargeID, BalanceBucketGroupByCollectionOriginID:
 		default:
 			return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
 				"reason":   "group_by_invalid",
@@ -63,10 +64,13 @@ func (q BalanceBucketQuery) Validate() error {
 }
 
 type BalanceBucket struct {
-	Address       PostingAddress
-	GroupByValues map[string]*string
-	SettledAmount alpacadecimal.Decimal
-	PendingAmount alpacadecimal.Decimal
+	// FirstRecordedAt is the earliest recording time among entries included in
+	// this bucket, independent of their economic effective time or current sum.
+	FirstRecordedAt time.Time
+	Address         PostingAddress
+	GroupByValues   map[string]*string
+	SettledAmount   alpacadecimal.Decimal
+	PendingAmount   alpacadecimal.Decimal
 }
 
 // GetBalancesAtBoundariesInput describes independent persisted balance boundaries.

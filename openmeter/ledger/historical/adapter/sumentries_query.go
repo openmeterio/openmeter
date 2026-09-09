@@ -80,6 +80,15 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 		}
 	}
 
+	if b.query.Filters.CollectionOriginID.IsPresent() {
+		collectionOriginID, _ := b.query.Filters.CollectionOriginID.Get()
+		if collectionOriginID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.CollectionOriginID(*collectionOriginID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.CollectionOriginIDIsNil())
+		}
+	}
+
 	if b.query.Filters.BookedAtPeriod != nil {
 		transactionPredicates := make([]predicate.LedgerTransaction, 0, 2)
 		if b.query.Filters.BookedAtPeriod.From != nil {

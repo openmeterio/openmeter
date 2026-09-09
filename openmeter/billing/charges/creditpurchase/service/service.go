@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -16,7 +16,7 @@ import (
 type Config struct {
 	Adapter     creditpurchase.Adapter
 	Handler     creditpurchase.Handler
-	Lineage     lineage.Service
+	Lineage     legacylineage.Service
 	MetaAdapter meta.Adapter
 	Currencies  currencies.Service
 }

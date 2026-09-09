@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -133,7 +133,7 @@ func newExternalStateMachineRealizations(
 	t *testing.T,
 	adapter creditpurchase.Adapter,
 	handler creditpurchase.Handler,
-	lineageService lineage.Service,
+	lineageService legacylineage.Service,
 ) *creditpurchaserealizations.Service {
 	t.Helper()
 
@@ -320,20 +320,20 @@ func (h *externalStateMachineHandler) OnCreditPurchasePaymentSettled(ctx context
 }
 
 type externalStateMachineLineage struct {
-	lineage.Service
+	legacylineage.Service
 	mock.Mock
 }
 
-func (l *externalStateMachineLineage) BackfillAdvanceLineageSegments(ctx context.Context, input lineage.BackfillAdvanceLineageSegmentsInput) error {
+func (l *externalStateMachineLineage) BackfillAdvanceLineageSegments(ctx context.Context, input legacylineage.BackfillAdvanceLineageSegmentsInput) error {
 	args := l.Called(ctx, input)
 	return args.Error(0)
 }
 
 var (
 	_ creditpurchase.Handler = (*externalStateMachineHandler)(nil)
-	_ lineage.Service        = (*externalStateMachineLineage)(nil)
+	_ legacylineage.Service  = (*externalStateMachineLineage)(nil)
 )
 
-func (*externalStateMachineLineage) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+func (*externalStateMachineLineage) LoadLineagesByCustomer(context.Context, legacylineage.LoadLineagesByCustomerInput) ([]legacylineage.Lineage, error) {
 	return nil, nil
 }

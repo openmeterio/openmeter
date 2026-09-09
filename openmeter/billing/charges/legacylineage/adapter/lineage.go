@@ -10,7 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -27,12 +27,12 @@ func LoadActiveSegmentsByRealizationID(
 	db *entdb.Client,
 	namespace string,
 	realizationIDs []string,
-) (lineage.ActiveSegmentsByRealizationID, error) {
+) (legacylineage.ActiveSegmentsByRealizationID, error) {
 	repo := &adapter{db: db}
 
-	return entutils.TransactingRepo(ctx, repo, func(ctx context.Context, tx *adapter) (lineage.ActiveSegmentsByRealizationID, error) {
+	return entutils.TransactingRepo(ctx, repo, func(ctx context.Context, tx *adapter) (legacylineage.ActiveSegmentsByRealizationID, error) {
 		if len(realizationIDs) == 0 {
-			return lineage.ActiveSegmentsByRealizationID{}, nil
+			return legacylineage.ActiveSegmentsByRealizationID{}, nil
 		}
 
 		lineages, err := tx.db.CreditRealizationLineage.Query().
@@ -49,8 +49,8 @@ func LoadActiveSegmentsByRealizationID(
 			return nil, err
 		}
 
-		return lo.SliceToMap(lineages, func(entry *entdb.CreditRealizationLineage) (string, []lineage.Segment) {
-			return entry.RootRealizationID, lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) lineage.Segment {
+		return lo.SliceToMap(lineages, func(entry *entdb.CreditRealizationLineage) (string, []legacylineage.Segment) {
+			return entry.RootRealizationID, lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) legacylineage.Segment {
 				return mapSegment(segment)
 			})
 		}), nil
@@ -61,11 +61,11 @@ func (a *adapter) LoadActiveSegmentsByRealizationID(
 	ctx context.Context,
 	namespace string,
 	realizationIDs []string,
-) (lineage.ActiveSegmentsByRealizationID, error) {
+) (legacylineage.ActiveSegmentsByRealizationID, error) {
 	return LoadActiveSegmentsByRealizationID(ctx, a.db, namespace, realizationIDs)
 }
 
-func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineagesInput) error {
+func (a *adapter) CreateLineages(ctx context.Context, input legacylineage.CreateLineagesInput) error {
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		rootCreates := make([]*entdb.CreditRealizationLineageCreate, 0, len(input.Specs))
 		segmentCreates := make([]*entdb.CreditRealizationLineageSegmentCreate, 0, len(input.Specs))
@@ -100,8 +100,8 @@ func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineag
 	})
 }
 
-func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {
+func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input legacylineage.LoadLineagesByCustomerInput) ([]legacylineage.Lineage, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]legacylineage.Lineage, error) {
 		activeSegments := []predicate.CreditRealizationLineageSegment{creditrealizationlineagesegment.ClosedAtIsNil()}
 		if input.SegmentState != nil {
 			activeSegments = append(activeSegments, creditrealizationlineagesegment.StateEQ(*input.SegmentState))
@@ -165,8 +165,8 @@ func currencyIdentityPredicate(ref currencies.CurrencyReference) predicate.Credi
 	)
 }
 
-func (a *adapter) LockCorrectionLineages(ctx context.Context, namespace string, realizationIDs []string) ([]lineage.Lineage, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {
+func (a *adapter) LockCorrectionLineages(ctx context.Context, namespace string, realizationIDs []string) ([]legacylineage.Lineage, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]legacylineage.Lineage, error) {
 		if _, err := entutils.GetDriverFromContext(ctx); err != nil {
 			return nil, fmt.Errorf("lock correction lineages must be called in a transaction: %w", err)
 		}
@@ -191,8 +191,8 @@ func (a *adapter) LockCorrectionLineages(ctx context.Context, namespace string, 
 	})
 }
 
-func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace string, customerID string, currency currencies.CurrencyReference) ([]lineage.Lineage, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {
+func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace string, customerID string, currency currencies.CurrencyReference) ([]legacylineage.Lineage, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]legacylineage.Lineage, error) {
 		if _, err := entutils.GetDriverFromContext(ctx); err != nil {
 			return nil, fmt.Errorf("lock advance lineages for backfill must be called in a transaction: %w", err)
 		}
@@ -222,8 +222,8 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 	})
 }
 
-func (a *adapter) ListActiveSegments(ctx context.Context, input lineage.ListActiveSegmentsInput) ([]lineage.Segment, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Segment, error) {
+func (a *adapter) ListActiveSegments(ctx context.Context, input legacylineage.ListActiveSegmentsInput) ([]legacylineage.Segment, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]legacylineage.Segment, error) {
 		query := tx.db.CreditRealizationLineageSegment.Query().
 			Where(
 				creditrealizationlineagesegment.ClosedAtIsNil(),
@@ -245,7 +245,7 @@ func (a *adapter) ListActiveSegments(ctx context.Context, input lineage.ListActi
 			return nil, err
 		}
 
-		return lo.Map(segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) lineage.Segment {
+		return lo.Map(segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) legacylineage.Segment {
 			return mapSegment(segment)
 		}), nil
 	})
@@ -263,7 +263,7 @@ func (a *adapter) CloseSegment(ctx context.Context, segmentID string, closedAt t
 	})
 }
 
-func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegmentInput) error {
+func (a *adapter) CreateSegment(ctx context.Context, input legacylineage.CreateSegmentInput) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("create lineage segment: %w", err)
 	}
@@ -283,8 +283,8 @@ func (a *adapter) CreateSegment(ctx context.Context, input lineage.CreateSegment
 	})
 }
 
-func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
-	return lineage.Lineage{
+func mapLineage(entry *entdb.CreditRealizationLineage, _ int) legacylineage.Lineage {
+	return legacylineage.Lineage{
 		CreatedAt:         entry.CreatedAt,
 		ID:                entry.ID,
 		ChargeID:          entry.ChargeID,
@@ -293,14 +293,14 @@ func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 		Currency:          currencies.CurrencyReference{Code: entry.Currency, CustomCurrencyID: entry.CustomCurrencyID},
 		OriginKind:        entry.OriginKind,
 		AdvanceFeatures:   []string(entry.AdvanceFeatures),
-		Segments: lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) lineage.Segment {
+		Segments: lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) legacylineage.Segment {
 			return mapSegment(segment)
 		}),
 	}
 }
 
-func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment {
-	return lineage.Segment{
+func mapSegment(segment *entdb.CreditRealizationLineageSegment) legacylineage.Segment {
+	return legacylineage.Segment{
 		CreatedAt:                       segment.CreatedAt,
 		ID:                              segment.ID,
 		LineageID:                       segment.LineageID,
@@ -314,7 +314,7 @@ func mapSegment(segment *entdb.CreditRealizationLineageSegment) lineage.Segment 
 
 // Original allocation references identify the collected source bucket within a
 // group, including legacy collections without spend provenance.
-func (a *adapter) loadOriginalAllocations(ctx context.Context, namespace string, roots []lineage.Lineage) error {
+func (a *adapter) loadOriginalAllocations(ctx context.Context, namespace string, roots []legacylineage.Lineage) error {
 	var ids []string
 	for _, root := range roots {
 		ids = append(ids, root.RootRealizationID)

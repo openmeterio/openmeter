@@ -4,6 +4,7 @@ import (
 	"context"
 	stdsql "database/sql"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/lib/pq"
@@ -17,9 +18,11 @@ import (
 )
 
 type balanceBucketRow struct {
+	FirstRecordedAt                time.Time
 	SubAccountID                   string
 	SourceChargeID                 stdsql.NullString
 	SpendChargeID                  stdsql.NullString
+	CollectionOriginID             stdsql.NullString
 	SumAmount                      stdsql.NullString
 	RouteID                        string
 	AccountType                    string
@@ -74,7 +77,9 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.SubAccountID,
 		&r.SourceChargeID,
 		&r.SpendChargeID,
+		&r.CollectionOriginID,
 		&r.SumAmount,
+		&r.FirstRecordedAt,
 		&r.RouteID,
 		&r.AccountType,
 		&r.RoutingKeyVersion,
@@ -132,10 +137,11 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 	}
 
 	return ledger.BalanceBucket{
-		Address:       address,
-		GroupByValues: balanceBucketGroupByValues(groupBy, r),
-		SettledAmount: amount,
-		PendingAmount: amount,
+		Address:         address,
+		FirstRecordedAt: r.FirstRecordedAt,
+		GroupByValues:   balanceBucketGroupByValues(groupBy, r),
+		SettledAmount:   amount,
+		PendingAmount:   amount,
 	}, nil
 }
 
@@ -146,6 +152,8 @@ func balanceBucketGroupByValues(groupBy []string, row balanceBucketRow) map[stri
 		switch dimension {
 		case ledger.BalanceBucketGroupBySourceChargeID:
 			values[dimension] = nullableStringValue(row.SourceChargeID)
+		case ledger.BalanceBucketGroupByCollectionOriginID:
+			values[dimension] = nullableStringValue(row.CollectionOriginID)
 		case ledger.BalanceBucketGroupBySpendChargeID:
 			values[dimension] = nullableStringValue(row.SpendChargeID)
 		}

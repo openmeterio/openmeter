@@ -5,8 +5,13 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
+
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
+// InitialLineageSpec initializes the compatibility state for a legacy allocation.
+//
+// Deprecated: Origin-tracked collections must not create lineage roots or segments.
 type InitialLineageSpec struct {
 	LineageID         string
 	RootRealizationID string
@@ -16,10 +21,16 @@ type InitialLineageSpec struct {
 	AdvanceFeatures   []string
 }
 
+// InitialLineageSpecs excludes origin-tracked collections from legacy persistence.
+//
+// Deprecated: Retained only for processing pre-cutover realizations.
 func InitialLineageSpecs(realizations Realizations) ([]InitialLineageSpec, error) {
 	out := make([]InitialLineageSpec, 0, len(realizations))
 
 	for _, realization := range realizations {
+		if realization.Annotations[ledger.AnnotationOriginTracked] == true {
+			continue
+		}
 		if realization.Type != TypeAllocation {
 			continue
 		}
@@ -44,4 +55,17 @@ func InitialLineageSpecs(realizations Realizations) ([]InitialLineageSpec, error
 	}
 
 	return out, nil
+}
+
+// LegacyLineageRealizations selects histories whose amounts still depend on the
+// pre-origin compatibility system. Tracked allocations and their corrections
+// are represented entirely by ledger entries.
+func (r Realizations) LegacyLineageRealizations() Realizations {
+	var out Realizations
+	for _, realization := range r {
+		if realization.Annotations[ledger.AnnotationOriginTracked] != true {
+			out = append(out, realization)
+		}
+	}
+	return out
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditreconciliation"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -27,7 +27,11 @@ func (s *Service) createCreditRealizationLineages(
 	currency currencies.Currency,
 	realizations creditrealization.Realizations,
 ) error {
-	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
+	realizations = realizations.LegacyLineageRealizations()
+	if len(realizations) == 0 {
+		return nil
+	}
+	if err := s.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.GetCustomerID(),
@@ -38,7 +42,7 @@ func (s *Service) createCreditRealizationLineages(
 		return fmt.Errorf("create initial credit realization lineages: %w", err)
 	}
 
-	if err := s.lineage.PersistCorrectionLineageSegments(ctx, lineage.PersistCorrectionLineageSegmentsInput{
+	if err := s.lineage.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{
 		Namespace:    charge.Namespace,
 		Realizations: realizations,
 	}); err != nil {
@@ -81,7 +85,7 @@ func (i CreditReconciliationHandlerInput) Validate() error {
 }
 
 // chargeCurrencyCreditReconciliationHandler reconciles a usage-based run's
-// allocations in the charge currency and preserves their realization lineage.
+// allocations in the charge currency and preserves their realization legacylineage.
 type chargeCurrencyCreditReconciliationHandler struct {
 	service *Service
 	CreditReconciliationHandlerInput
@@ -169,7 +173,7 @@ func (h *chargeCurrencyCreditReconciliationHandler) Create(
 }
 
 // fiatOverageCreditReconciliationHandler reconciles a custom-currency run's
-// overage allocations in settlement fiat and preserves their separate lineage.
+// overage allocations in settlement fiat and preserves their separate legacylineage.
 type fiatOverageCreditReconciliationHandler struct {
 	service *Service
 	CreditReconciliationHandlerInput
@@ -512,7 +516,11 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 	ctx context.Context,
 	charge usagebased.Charge,
 	realizations creditrealization.Realizations,
-) (lineage.ActiveSegmentsByRealizationID, error) {
+) (legacylineage.ActiveSegmentsByRealizationID, error) {
+	realizations = realizations.LegacyLineageRealizations()
+	if len(realizations) == 0 {
+		return legacylineage.ActiveSegmentsByRealizationID{}, nil
+	}
 	realizationIDs := lo.Map(realizations, func(realization creditrealization.Realization, _ int) string {
 		return realization.ID
 	})

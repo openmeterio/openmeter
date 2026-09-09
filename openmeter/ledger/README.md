@@ -58,9 +58,14 @@ facts stored independently from the journal.
   preserves charge provenance and route pairing, links replacement postings to
   their source entries, and uses deterministic source order rather than
   recomputing an idealized replacement from current balances.
-- Entry identity records collection or correction linkage and source and spend
-  charge provenance when present. Template codes and transaction annotations
-  describe accounting meaning.
+- New credit collections mint a `collection_origin_id` per original source slice. Backfill,
+  recognition, breakage release, and correction preserve it alongside source and
+  spend attribution. Core validators require each origin to balance independently.
+- Correction selection uses scoped account positions and original collection or
+  backing order. Exact original-entry references bound the resulting reversals.
+  A shared planner serves provenance and legacy readers/writers; only pre-cutover
+  collections retain [deprecated lineage state](../billing/charges/legacylineage/README.md).
+  The compatibility boundary requires a coordinated writer cutover.
 - Credit-backed earnings recognition consumes only accrued buckets whose
   source credit and spend charge are both present and distinct. Buckets without
   that provenance - including invoice-backed accrued value and unbackfilled
@@ -70,8 +75,9 @@ facts stored independently from the journal.
   The same selected slices drive journal postings and lineage transitions;
   customer-wide recognized totals cannot be redistributed across lineages.
 
-Credit-purchase backfill uses the charge domain's original advance occurrences
-in order, bounded by their matching receivable and accrued routes. The ledger
+Credit-purchase backfill orders new origins by their original journal recording
+time and ID, together with legacy advance roots in collection order. Capacity
+comes from matching receivable and accrued routes. The ledger
 sorts its inputs by original collection time and ID independently of query order,
 and stops reading journals when the purchase amount is allocated. A partial
 purchase exhausts an older eligible occurrence before funding a newer one;

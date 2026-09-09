@@ -81,6 +81,7 @@ type EntryInput interface {
 	Amount() alpacadecimal.Decimal
 	IdentityKey() string
 	SchemaVersion() EntrySchemaVersion
+	CollectionOriginID() *string
 	SourceChargeID() *string
 	SpendChargeID() *string
 	Annotations() models.Annotations
@@ -91,6 +92,7 @@ type EntrySchemaVersion int
 const (
 	EntrySchemaVersionLegacy  EntrySchemaVersion = 1
 	EntrySchemaVersionCurrent EntrySchemaVersion = 2
+	EntrySchemaVersionOrigin  EntrySchemaVersion = 3
 )
 
 type Entry interface {
@@ -113,6 +115,7 @@ type ImpactFilter struct {
 
 // Transaction represents a list of entries booked at the same time
 type Transaction interface {
+	GroupID() models.NamespacedID
 	Cursor() TransactionCursor
 	BookedAt() time.Time
 	Entries() []Entry
@@ -196,9 +199,12 @@ type Ledger interface {
 
 type ListTransactionsInput struct {
 	Namespace string
-	Cursor    *TransactionCursor
-	Before    *TransactionCursor
-	Limit     int
+	// CollectionOriginID selects transactions and entries belonging to this collection
+	// origin, like the account/route filters. Each origin balances independently.
+	CollectionOriginID *string
+	Cursor             *TransactionCursor
+	Before             *TransactionCursor
+	Limit              int
 
 	TransactionID *models.NamespacedID
 
@@ -223,6 +229,9 @@ type ListTransactionsResult struct {
 }
 
 func (i ListTransactionsInput) Validate() error {
+	if i.CollectionOriginID != nil && *i.CollectionOriginID == "" {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{"reason": "collection_origin_id_invalid"})
+	}
 	if i.Limit < 1 {
 		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 			"reason": "limit_invalid",

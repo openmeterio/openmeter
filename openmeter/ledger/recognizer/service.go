@@ -8,7 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -16,15 +16,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-// Service recognizes customer accrued value as earnings.
-//
-// Important current scope limitation:
-// this recognizer only recognizes credit-backed accrued value. Eligibility is currently
-// derived from charge credit-realization lineage segments, currently
-// `real_credit` and `advance_backfilled`. Though Invoice backed values should be recognizable
-// (as they have cb, tax, etc...) it is not yet supported.
-//
-// A later, provenance based recognition rewrite will solve this.
+// Service recognizes credit-backed accrued value as earnings. New collections
+// derive eligibility and amounts from origin/source/spend ledger balances;
+// pre-cutover collections retain lineage compatibility. Invoice-backed and
+// source-less accrued value remain deferred.
 type Service interface {
 	RecognizeEarnings(ctx context.Context, in RecognizeEarningsInput) (RecognizeEarningsResult, error)
 }
@@ -32,7 +27,7 @@ type Service interface {
 type Config struct {
 	Ledger             ledger.Ledger
 	Dependencies       transactions.ResolverDependencies
-	Lineage            lineage.Service
+	Lineage            legacylineage.Service
 	TransactionManager transaction.Creator
 }
 
@@ -77,7 +72,7 @@ func NewService(config Config) (Service, error) {
 type service struct {
 	ledger             ledger.Ledger
 	deps               transactions.ResolverDependencies
-	lnge               lineage.Service
+	lnge               legacylineage.Service
 	transactionManager transaction.Creator
 }
 

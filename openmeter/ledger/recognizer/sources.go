@@ -6,8 +6,9 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -25,7 +26,7 @@ func entryAccruedKey(entry ledger.EntryInput) accruedKey {
 }
 
 type recognitionAllocation struct {
-	segment lineage.Segment
+	segment legacylineage.Segment
 	amount  alpacadecimal.Decimal
 }
 
@@ -40,7 +41,7 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 	accountID := accounts.AccruedAccount.ID().ID
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: in.CustomerID.Namespace,
-		Filters:   ledger.Filters{AccountID: &accountID, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
+		Filters:   ledger.Filters{CollectionOriginID: mo.Some[*string](nil), AccountID: &accountID, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
 		GroupBy:   []string{ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	if err != nil {

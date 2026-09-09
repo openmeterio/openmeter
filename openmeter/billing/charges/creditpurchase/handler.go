@@ -8,7 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -75,13 +75,13 @@ func (i PaymentEventInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// CreditGrantInput supplies advance occurrences. The ledger sorts them by
-// immutable collection time and ID before allocating eligible posting routes.
-// Accrued backfill is restricted to these roots; nil and empty both skip it.
+// CreditGrantInput supplies legacy advance occurrences. The ledger merges them
+// with origin-tracked occurrences in immutable collection-time and ID order.
+// Nil and empty AdvanceLineages skip legacy accrued backfill only.
 // Remaining eligible receivable may still be attributed without accrued backfill.
 type CreditGrantInput struct {
 	Charge          Charge
-	AdvanceLineages []lineage.Lineage
+	AdvanceLineages []legacylineage.Lineage
 }
 
 func (i CreditGrantInput) Validate() error {
@@ -96,6 +96,7 @@ var _ models.Validator = CreditGrantInput{}
 
 type CreditGrantResult struct {
 	ledgertransaction.GroupReference
-	// BackfillAllocations excludes receivable-only attribution without accrued translation.
-	BackfillAllocations []lineage.AdvanceBackfillAllocation
+	// BackfillAllocations updates deprecated lineage state for legacy histories only.
+	// It excludes origin-tracked backfill and receivable-only attribution.
+	BackfillAllocations []legacylineage.AdvanceBackfillAllocation
 }

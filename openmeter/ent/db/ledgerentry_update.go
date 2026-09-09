@@ -183,6 +183,9 @@ func (_u *LedgerEntryUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgerentry.FieldDeletedAt, field.TypeTime)
 	}
+	if _u.mutation.CollectionOriginIDCleared() {
+		_spec.ClearField(ledgerentry.FieldCollectionOriginID, field.TypeString)
+	}
 	if _u.mutation.SourceChargeIDCleared() {
 		_spec.ClearField(ledgerentry.FieldSourceChargeID, field.TypeString)
 	}
@@ -436,6 +439,9 @@ func (_u *LedgerEntryUpdateOne) sqlSave(ctx context.Context) (_node *LedgerEntry
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgerentry.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.CollectionOriginIDCleared() {
+		_spec.ClearField(ledgerentry.FieldCollectionOriginID, field.TypeString)
 	}
 	if _u.mutation.SourceChargeIDCleared() {
 		_spec.ClearField(ledgerentry.FieldSourceChargeID, field.TypeString)

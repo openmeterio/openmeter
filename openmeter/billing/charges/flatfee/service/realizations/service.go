@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -19,14 +19,14 @@ import (
 type Service struct {
 	adapter       flatfee.Adapter
 	handler       flatfee.Handler
-	lineage       lineage.Service
+	lineage       legacylineage.Service
 	ratingService rating.Service
 }
 
 type Config struct {
 	Adapter       flatfee.Adapter
 	Handler       flatfee.Handler
-	Lineage       lineage.Service
+	Lineage       legacylineage.Service
 	RatingService rating.Service
 }
 
@@ -71,8 +71,12 @@ func (s *Service) createCreditRealizationLineages(
 	currency currencies.Currency,
 	realizations creditrealization.Realizations,
 ) error {
+	realizations = realizations.LegacyLineageRealizations()
+	if len(realizations) == 0 {
+		return nil
+	}
 	featureKey := charge.Intent.GetFeatureKey()
-	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
+	if err := s.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.GetCustomerID(),
@@ -83,7 +87,7 @@ func (s *Service) createCreditRealizationLineages(
 		return fmt.Errorf("create initial credit realization lineages: %w", err)
 	}
 
-	if err := s.lineage.PersistCorrectionLineageSegments(ctx, lineage.PersistCorrectionLineageSegmentsInput{
+	if err := s.lineage.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{
 		Namespace:    charge.Namespace,
 		Realizations: realizations,
 	}); err != nil {

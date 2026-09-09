@@ -1,15 +1,17 @@
 package credits
 
 import (
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -25,9 +27,12 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 	for _, tc := range []struct {
 		name    string
 		amounts []int64
+		legacy  bool
 	}{
 		{name: "full backfill", amounts: []int64{8}},
 		{name: "partial backfills", amounts: []int64{3, 5}},
+		{name: "legacy full backfill", amounts: []int64{8}, legacy: true},
+		{name: "legacy partial backfills", amounts: []int64{3, 5}, legacy: true},
 	} {
 		s.Run(tc.name, func() {
 			t := s.T()
@@ -64,6 +69,42 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 				Name: "Credit-only usage", TaxConfig: productcatalog.TaxCodeConfig{TaxCodeID: defaults.InvoicingTaxCodeID},
 			})
 
+			if tc.legacy {
+				// Seed the pre-cutover storage shape. Amounts/routes remain exactly as
+				// posted; only the new collection identity and tracking metadata differ.
+				page, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: ns, AnnotationFilters: map[string]string{ledger.AnnotationChargeID: usage.ID}, Limit: 100})
+				s.Require().NoError(err)
+				s.Require().Nil(page.NextCursor)
+				for _, tx := range page.Items {
+					for _, entry := range tx.Entries() {
+						if entry.CollectionOriginID() == nil {
+							continue
+						}
+						_, identity, err := ledger.EntryIdentityKeyText(entry.IdentityKey()).Parse()
+						s.Require().NoError(err)
+						identity.CollectionOriginID = nil
+						key, _ := identity.Text()
+						_, err = s.DBClient.ExecContext(ctx, `UPDATE ledger_entries SET collection_origin_id = NULL, schema_version = $1, identity_key = $2 WHERE namespace = $3 AND id = $4`, ledger.EntrySchemaVersionCurrent, string(key), ns, entry.ID().ID)
+						s.Require().NoError(err)
+					}
+				}
+				s.Require().Len(usage.Realizations, 1)
+				realizations := usage.Realizations[0].CreditsAllocated
+				s.Require().Len(realizations, 2)
+				for i := range realizations {
+					kind := creditrealization.LineageOriginKindRealCredit
+					if realizations[i].Amount.Equal(alpacadecimal.NewFromInt(8)) {
+						kind = creditrealization.LineageOriginKindAdvance
+					} else {
+						s.Equal(float64(2), realizations[i].Amount.InexactFloat64())
+					}
+					realizations[i].Annotations = creditrealization.LineageAnnotations(kind)
+					err = s.DBClient.ChargeUsageBasedRunCreditAllocations.UpdateOneID(realizations[i].ID).SetAnnotations(realizations[i].Annotations).Exec(ctx)
+					s.Require().NoError(err)
+				}
+				s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{Namespace: ns, CustomerID: customer.ID, ChargeID: usage.ID, Currency: tokens, Features: []string{feature.Feature.Key}, Realizations: realizations}))
+			}
+
 			// when: paid purchases at USD 0.5 backfill the advance, with recognition
 			// and an unchanged retry after every purchase.
 			amountByBacking := make(map[string]float64)
@@ -96,8 +137,8 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 				s.Empty(retry.LedgerGroupID)
 			}
 
-			// then: journal and lineage agree on the paid source, leaving the entire
-			// promotional allocation deferred. Retain the exact 2/8 segment assertion.
+			// then: actual postings leave promotional 2 deferred and recognize paid 8.
+			// Legacy segments or provenance positions must describe those exact amounts.
 			accounts := s.mustCustomerAccounts(customer.GetID())
 			business, err := s.LedgerResolver.GetBusinessAccounts(ctx, ns)
 			s.Require().NoError(err)
@@ -107,11 +148,31 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			s.requireCustomerAccruedSourceSpendBalanceBuckets(customer.GetID(), ledger.RouteFilter{Currency: tokens.Reference()}, map[string]float64{
 				sourceSpendChargeBucketKey(&promo.ID, &usage.ID): 2,
 			})
-			roots, err := s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
+			roots, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 				Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference(),
 			})
 			s.Require().NoError(err)
-			s.Require().Len(roots, 2)
+			if tc.legacy {
+				s.Require().Len(roots, 2)
+			} else {
+				s.Empty(roots)
+				positions := make(map[string]alpacadecimal.Decimal)
+				for _, account := range []ledger.Account{accounts.AccruedAccount, business.EarningsAccount} {
+					buckets, err := s.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{Namespace: ns, Filters: ledger.Filters{AccountID: lo.ToPtr(account.ID().ID), SpendChargeID: mo.Some(&usage.ID)}, GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID}})
+					s.Require().NoError(err)
+					for _, bucket := range buckets {
+						if bucket.SettledAmount.IsZero() {
+							continue
+						}
+						origin := bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]
+						s.Require().NotNil(origin)
+						positions[*origin] = positions[*origin].Add(bucket.SettledAmount)
+					}
+				}
+				amounts := lo.Map(lo.Values(positions), func(amount alpacadecimal.Decimal, _ int) float64 { return amount.InexactFloat64() })
+				slices.Sort(amounts)
+				s.Equal([]float64{2, 8}, amounts)
+			}
 			for _, root := range roots {
 				switch root.OriginKind {
 				case creditrealization.LineageOriginKindRealCredit:
@@ -146,7 +207,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			s.requireAccountBalance(business.EarningsAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 0, "refunded earnings")
 			s.requireAccountBalance(accounts.AccruedAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 0, "refunded accrued")
 			s.requireAccountBalance(accounts.FBOAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 10, "refunded credit")
-			roots, err = s.LineageService.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference()})
+			roots, err = s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference()})
 			s.Require().NoError(err)
 			for _, root := range roots {
 				s.Empty(root.Segments)

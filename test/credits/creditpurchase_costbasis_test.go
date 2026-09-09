@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
@@ -575,13 +575,13 @@ func (s *CreditPurchaseCostBasisSuite) mustAccountBalance(account ledger.Account
 // TODO: Use the production lineage service once advance lineage supports the
 // full identity of custom currencies instead of rejecting them.
 type creditPurchaseCostBasisLineage struct {
-	lineage.Service
+	legacylineage.Service
 }
 
-func (creditPurchaseCostBasisLineage) BackfillAdvanceLineageSegments(context.Context, lineage.BackfillAdvanceLineageSegmentsInput) error {
+func (creditPurchaseCostBasisLineage) BackfillAdvanceLineageSegments(context.Context, legacylineage.BackfillAdvanceLineageSegmentsInput) error {
 	return nil
 }
 
-func (creditPurchaseCostBasisLineage) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+func (creditPurchaseCostBasisLineage) LoadLineagesByCustomer(context.Context, legacylineage.LoadLineagesByCustomerInput) ([]legacylineage.Lineage, error) {
 	return nil, nil
 }

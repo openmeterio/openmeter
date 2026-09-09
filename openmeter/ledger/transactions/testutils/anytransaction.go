@@ -11,13 +11,14 @@ import (
 )
 
 type AnyEntryInput struct {
-	Address             ledger.PostingAddress
-	AmountValue         alpacadecimal.Decimal
-	IdentityKeyValue    string
-	SchemaVersionValue  ledger.EntrySchemaVersion
-	SourceChargeIDValue *string
-	SpendChargeIDValue  *string
-	AnnotationsValue    models.Annotations
+	Address                 ledger.PostingAddress
+	AmountValue             alpacadecimal.Decimal
+	IdentityKeyValue        string
+	SchemaVersionValue      ledger.EntrySchemaVersion
+	SourceChargeIDValue     *string
+	SpendChargeIDValue      *string
+	CollectionOriginIDValue *string
+	AnnotationsValue        models.Annotations
 }
 
 var _ ledger.EntryInput = (*AnyEntryInput)(nil)
@@ -101,3 +102,5 @@ func (a *AnyTransactionGroupInput) Transactions() []ledger.TransactionInput {
 func (a *AnyTransactionGroupInput) Annotations() models.Annotations {
 	return a.AnnotationsValue
 }
+
+func (a *AnyEntryInput) CollectionOriginID() *string { return a.CollectionOriginIDValue }
