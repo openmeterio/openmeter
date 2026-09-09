@@ -1,0 +1,49 @@
+name: Urgent production fix
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [labeled, unlabeled, synchronize, converted_to_draft, closed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: urgent-prod-fix-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    if: >-
+      github.repository == 'openmeterio/openmeter' &&
+      (github.event.label.name == 'urgent-prod-fix' ||
+       github.event.action == 'synchronize' ||
+       github.event.action == 'converted_to_draft' ||
+       (github.event.action == 'closed' && github.event.pull_request.merged))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted workflow revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: .github/tools/urgent-prod-fix
+
+      - name: Create reviewer token
+        id: reviewer
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.URGENT_FIX_APP_CLIENT_ID }}
+          private-key: ${{ secrets.URGENT_FIX_APP_PRIVATE_KEY }}
+          owner: openmeterio
+          repositories: openmeter
+          permission-pull-requests: write
+          permission-members: read
+
+      - name: Process emergency review
+        run: python3 .github/tools/urgent-prod-fix/review.py
+        env:
+          URGENT_FIX_TOKEN: ${{ steps.reviewer.outputs.token }}
+          URGENT_FIX_BOT: ${{ steps.reviewer.outputs.app-slug }}[bot]
+          URGENT_FIX_SLACK_WEBHOOK_URL: ${{ secrets.URGENT_FIX_SLACK_WEBHOOK_URL }}
