@@ -191,10 +191,11 @@ interface SubscriptionsOperations {
 @friendlyName("BillingSubscriptionAddonUpdate")
 model SubscriptionAddonUpdate {
   /**
-   * The new quantity of the add-on. Must be at least 1.
+   * The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the
+   * add-on from the point the timing resolves to.
    */
   @summary("Quantity")
-  @minValue(1)
+  @minValue(0)
   quantity: integer;
 
   /**

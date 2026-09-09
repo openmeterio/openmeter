@@ -9644,8 +9644,10 @@ components:
       properties:
         quantity:
           type: integer
-          minimum: 1
-          description: The new quantity of the add-on. Must be at least 1.
+          minimum: 0
+          description: |-
+            The new quantity of the add-on. Must be at least 0. A quantity of 0 removes
+            the add-on from the point the timing resolves to.
           title: Quantity
         timing:
           allOf:

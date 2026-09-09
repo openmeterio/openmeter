@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -312,14 +313,27 @@ func TestV3SubscriptionAddonUpdate(t *testing.T) {
 		require.NotEmpty(t, updated.Timeline)
 	})
 
-	t.Run("Should reject a quantity of 0 with 4xx", func(t *testing.T) {
-		_, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
+	t.Run("Should remove the addon when quantity is 0 and return 200", func(t *testing.T) {
+		// v1 parity: quantity 0 is a valid removal on the update endpoint (the create
+		// path still forbids 0). Immediate timing drops the current quantity to 0.
+		updated, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
 			Quantity: 0,
 			Timing:   timing,
 		})
-		apiErr, ok := v3sdk.AsAPIError(err)
-		require.True(t, ok, "expected APIError, got %T: %v", err, err)
-		assert.GreaterOrEqual(t, apiErr.StatusCode, http.StatusBadRequest, "expected 4xx for quantity=0, got %d", apiErr.StatusCode)
-		assert.Less(t, apiErr.StatusCode, http.StatusInternalServerError, "expected 4xx not 5xx for quantity=0")
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, updated)
+		assert.EqualValues(t, 0, updated.Quantity, "current quantity must be 0 after removal")
+		require.NotEmpty(t, updated.Timeline)
+	})
+
+	t.Run("Should return 404 for an unknown subscription addon", func(t *testing.T) {
+		// The workflow surfaces a wrapped models.GenericNotFoundError for an unknown
+		// association; without the addon error encoder this ordinary client mistake
+		// would fall through to a 500 instead of the declared 404.
+		_, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, ulid.Make().String(), v3sdk.SubscriptionAddonUpdate{
+			Quantity: 2,
+			Timing:   timing,
+		})
+		requireProblem(t, err, http.StatusNotFound)
 	})
 }

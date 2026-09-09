@@ -4452,8 +4452,11 @@ export const subscriptionAddonUpdate = z
     quantity: z
       .number()
       .int()
-      .gte(1)
-      .describe('The new quantity of the add-on. Must be at least 1.'),
+      .nonnegative()
+
+      .describe(
+        'The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the add-on from the point the timing resolves to.',
+      ),
     timing: subscriptionEditTiming,
   })
 
@@ -12268,8 +12271,11 @@ export const subscriptionAddonUpdateWire = z
     quantity: z
       .number()
       .int()
-      .gte(1)
-      .describe('The new quantity of the add-on. Must be at least 1.'),
+      .nonnegative()
+
+      .describe(
+        'The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the add-on from the point the timing resolves to.',
+      ),
     timing: subscriptionEditTimingWire,
   })
 

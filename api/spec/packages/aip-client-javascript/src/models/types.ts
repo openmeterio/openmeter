@@ -3449,7 +3449,10 @@ export interface CreateSubscriptionAddonRequest {
  * the timing controls when the new quantity takes effect.
  */
 export interface SubscriptionAddonUpdate {
-  /** The new quantity of the add-on. Must be at least 1. */
+  /**
+   * The new quantity of the add-on. Must be at least 0. A quantity of 0 removes
+   * the add-on from the point the timing resolves to.
+   */
   quantity: number
   /**
    * The timing of the update. A new entry is appended to the add-on's timeline at
