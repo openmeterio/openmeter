@@ -516,7 +516,7 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 	t.Helper()
 
 	createdCharges, err := e.usageBasedService.Create(t.Context(), usagebased.CreateInput{
-		Namespace:     e.Namespace,
+		Namespace: e.Namespace,
 		Intents: []usagebased.Intent{
 			{
 				Intent: chargemeta.Intent{
@@ -563,7 +563,7 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 	}
 
 	createdCharges, err := e.flatFeeService.Create(t.Context(), flatfee.CreateInput{
-		Namespace:     e.Namespace,
+		Namespace: e.Namespace,
 		Intents: []flatfee.Intent{
 			{
 				Intent: chargemeta.Intent{
