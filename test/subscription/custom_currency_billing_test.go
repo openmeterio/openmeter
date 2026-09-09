@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
@@ -286,12 +285,24 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 
 			lineages, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{Namespace: namespace, CustomerID: customer.ID, Currency: customCurrency.Reference()})
 			require.NoError(t, err)
-			require.NotEmpty(t, lineages)
+			require.Empty(t, lineages)
+			query := ledger.BalanceBucketQuery{
+				Namespace: namespace,
+				Filters: ledger.Filters{
+					AccountID: lo.ToPtr(accounts.AccruedAccount.ID().ID),
+					Route:     ledger.RouteFilter{Currency: customCurrency.Reference()},
+				},
+				GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID, ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
+			}
+			buckets, err := deps.ledgerDeps.HistoricalLedger.GetBalanceBuckets(t.Context(), query)
+			require.NoError(t, err)
 			allocated := decimal.Zero
-			for _, entry := range lineages {
-				for _, segment := range entry.Segments {
-					allocated = allocated.Add(segment.Amount)
-				}
+			collectionOrigins := map[string]bool{}
+			for _, bucket := range buckets {
+				require.NotEmpty(t, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
+				require.Contains(t, chargeIDsBeforeRetry, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]))
+				collectionOrigins[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])] = true
+				allocated = allocated.Add(bucket.SettledAmount)
 			}
 			require.Equal(t, expectedAllocated, allocated.InexactFloat64())
 			// Retrying synchronization and advancement must preserve the journal,
@@ -347,22 +358,31 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				require.Equal(t, float64(2), accrued.InexactFloat64())
 
 				// Nil-cost-basis promotional credits remain deferred. Recognition
-				// must belong entirely to the paid backfill, matching the journal.
-				require.Len(t, backfilled, 2)
-				for _, entry := range backfilled {
-					require.Len(t, entry.Segments, 1)
-					segment := entry.Segments[0]
-					switch entry.OriginKind {
-					case creditrealization.LineageOriginKindRealCredit:
-						require.Equal(t, float64(2), segment.Amount.InexactFloat64())
-						require.Equal(t, creditrealization.LineageSegmentStateRealCredit, segment.State)
-					case creditrealization.LineageOriginKindAdvance:
-						require.Equal(t, float64(8), segment.Amount.InexactFloat64())
-						require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segment.State)
-						require.Equal(t, creditrealization.LineageSegmentStateAdvanceBackfilled, lo.FromPtr(segment.SourceState))
-					default:
-						t.Fatalf("unexpected lineage origin %q", entry.OriginKind)
+				// belongs entirely to the paid source, within its original collection.
+				require.Empty(t, backfilled)
+				grantID, err := grants[0].GetChargeID()
+				require.NoError(t, err)
+				for _, expected := range []struct {
+					account  ledger.Account
+					sourceID string
+					amount   float64
+				}{
+					{accounts.AccruedAccount, grantID.ID, 2},
+					{business.EarningsAccount, purchaseID.ID, 8},
+				} {
+					query.Filters.AccountID = lo.ToPtr(expected.account.ID().ID)
+					buckets, err := deps.ledgerDeps.HistoricalLedger.GetBalanceBuckets(t.Context(), query)
+					require.NoError(t, err)
+					bySource := map[string]float64{}
+					for _, bucket := range buckets {
+						if bucket.SettledAmount.IsZero() {
+							continue
+						}
+						require.Contains(t, collectionOrigins, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
+						require.Contains(t, chargeIDsBeforeRetry, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]))
+						bySource[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])] += bucket.SettledAmount.InexactFloat64()
 					}
+					require.Equal(t, map[string]float64{expected.sourceID: expected.amount}, bySource)
 				}
 				beforeEntries, err = deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())
 				require.NoError(t, err)

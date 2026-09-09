@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -75,7 +74,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// then: ledger and lineage agree per period, not just in the customer total.
+	// then: provenance preserves each period and its remaining uncovered amount.
 	expected := map[string]float64{chargeByMonth[time.April]: 10, chargeByMonth[time.May]: 5}
 	buckets, err := f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: f.view.Subscription.Namespace,
@@ -83,35 +82,36 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 			AccountID: lo.ToPtr(f.business.EarningsAccount.ID().ID), SourceChargeID: mo.Some(&purchaseID.ID),
 			Route: ledger.RouteFilter{Currency: f.currency.Reference(), CostBasis: mo.Some(lo.ToPtr(decimal.NewFromFloat(0.5))), CostBasisCurrency: mo.Some(lo.ToPtr(currencyx.Code("USD")))},
 		},
-		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
+		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByCollectionOriginID},
 	})
 	require.NoError(t, err)
 	booked := map[string]float64{}
 	for _, bucket := range buckets {
+		require.NotEmpty(t, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
 		booked[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] += bucket.SettledAmount.InexactFloat64()
 	}
 	require.Equal(t, expected, booked)
 	roots, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
 	require.NoError(t, err)
-	recognized := map[string]float64{}
+	require.Empty(t, roots)
+	buckets, err = f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: f.view.Subscription.Namespace,
+		Filters: ledger.Filters{
+			AccountID:      lo.ToPtr(f.accounts.ReceivableAccount.ID().ID),
+			SourceChargeID: mo.Some[*string](nil),
+			Route:          ledger.RouteFilter{Currency: f.currency.Reference(), CostBasis: mo.Some[*decimal.Decimal](nil), TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen)},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByCollectionOriginID},
+	})
+	require.NoError(t, err)
 	uncovered := map[string]float64{}
-	for _, root := range roots {
-		if root.OriginKind != creditrealization.LineageOriginKindAdvance {
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
 			continue
 		}
-		for _, segment := range root.Segments {
-			switch segment.State {
-			case creditrealization.LineageSegmentStateEarningsRecognized:
-				require.Equal(t, creditrealization.LineageSegmentStateAdvanceBackfilled, lo.FromPtr(segment.SourceState))
-				recognized[root.ChargeID] += segment.Amount.InexactFloat64()
-			case creditrealization.LineageSegmentStateAdvanceUncovered:
-				uncovered[root.ChargeID] += segment.Amount.InexactFloat64()
-			default:
-				t.Fatalf("unexpected advance state %q", segment.State)
-			}
-		}
+		require.NotEmpty(t, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
+		uncovered[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] -= bucket.SettledAmount.InexactFloat64()
 	}
-	require.Equal(t, expected, recognized)
 	require.Equal(t, map[string]float64{chargeByMonth[time.May]: 5}, uncovered)
 	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 35)
 	beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
