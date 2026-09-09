@@ -35,9 +35,9 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 		// given:
 		// - Advancement receives an authoritative feature-meter collection containing the charge feature.
 		// when:
-		// - The state-machine configuration resolves the charge feature.
+		// - The state-machine configuration is assembled.
 		// then:
-		// - It uses the supplied snapshot without consulting the feature service.
+		// - It retains the supplied snapshot without consulting the feature service.
 		featureMeter := billingfeaturemeter.FeatureMeter{
 			Feature: feature.Feature{
 				ID:  "feature-id",
@@ -56,24 +56,62 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 			FeatureMeters:    mo.Some[billingfeaturemeter.FeatureMeters](featureMeters),
 		})
 		require.NoError(t, err)
-		require.Equal(t, featureMeter, config.FeatureMeter)
+
+		resolved, err := config.FeatureMeters.Get(charge)
+		require.NoError(t, err)
+		require.Equal(t, featureMeter, resolved)
 	})
 
 	t.Run("when the supplied collection omits the charge feature", func(t *testing.T) {
 		// given:
 		// - Advancement receives an authoritative feature-meter collection without the charge feature.
 		// when:
-		// - The state-machine configuration resolves the charge feature.
+		// - The state-machine configuration is assembled.
 		// then:
-		// - It returns the snapshot lookup error instead of falling back to the feature service.
-		_, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
+		// - It retains the supplied snapshot, and its lookup error does not fall back to the feature service.
+		config, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
 			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
 			FeatureMeters: mo.Some[billingfeaturemeter.FeatureMeters](featuremeterservice.FeatureMeterCollection{
 				ByKey: map[string]billingfeaturemeter.FeatureMeter{},
 			}),
 		})
+		require.NoError(t, err)
+
+		_, err = config.FeatureMeters.Get(charge)
 		require.ErrorContains(t, err, "feature[feature-key]: invoice line: feature not found")
 	})
+}
+
+func newFeatureMetersForChargeTest(charge usagebased.Charge) billingfeaturemeter.FeatureMeters {
+	reference := charge.GetFeatureMeterRef()
+	if reference == nil {
+		return featuremeterservice.FeatureMeterCollection{
+			ByKey: map[string]billingfeaturemeter.FeatureMeter{},
+			ByID:  map[string]billingfeaturemeter.FeatureMeter{},
+		}
+	}
+
+	featureID := reference.IDOrKey.ID
+	if featureID == "" {
+		featureID = "feature-id"
+	}
+
+	featureMeter := billingfeaturemeter.FeatureMeter{
+		Feature: feature.Feature{
+			ID:  featureID,
+			Key: reference.IDOrKey.Key,
+		},
+		Meter: &meter.Meter{},
+	}
+	collection := featuremeterservice.FeatureMeterCollection{
+		ByKey: map[string]billingfeaturemeter.FeatureMeter{},
+		ByID:  map[string]billingfeaturemeter.FeatureMeter{featureID: featureMeter},
+	}
+	if reference.IDOrKey.Key != "" {
+		collection.ByKey[reference.IDOrKey.Key] = featureMeter
+	}
+
+	return collection
 }
 
 func TestApplyBaseIntentPatchForOverriddenChargeShrinksDeletedEffectiveCharge(t *testing.T) {

@@ -253,16 +253,7 @@ func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, c
 
 	featureMeters, hasFeatureMetersHint := hints.FeatureMeters.Get()
 	if !hasFeatureMetersHint {
-		var err error
-		featureMeters, err = s.featureMeterResolver.Resolve(ctx, charge.Namespace, charge)
-		if err != nil {
-			return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
-		}
-	}
-
-	featureMeter, err := featureMeters.Get(charge)
-	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("resolve feature meter: %w", err)
+		featureMeters = s.featureMeterResolver.ResolveLazy(ctx, charge.Namespace, charge)
 	}
 
 	currency := charge.Intent.GetCurrency()
@@ -273,7 +264,7 @@ func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, c
 		Rater:              s.rater,
 		Runs:               s.runs,
 		CustomerOverride:   customerOverride,
-		FeatureMeter:       featureMeter,
+		FeatureMeters:      featureMeters,
 		CurrencyCalculator: currency,
 		CostBasisResolver:  s.costbasisResolver,
 	}, nil

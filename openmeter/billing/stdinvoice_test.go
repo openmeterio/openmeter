@@ -24,6 +24,12 @@ func TestListStandardInvoicesInputValidateRequiresNamespace(t *testing.T) {
 	require.ErrorContains(t, err, "namespace is required")
 }
 
+func TestStandardInvoiceStatusIsFailedIncludesValidationFailures(t *testing.T) {
+	require.True(t, StandardInvoiceStatusDraftInvalidCreated.IsFailed())
+	require.True(t, StandardInvoiceStatusDraftInvalid.IsFailed())
+	require.False(t, StandardInvoiceStatusDraftWaitingForCollection.IsFailed())
+}
+
 func TestSortLines(t *testing.T) {
 	lines := StandardLines{
 		{

@@ -66,3 +66,18 @@ The service subpackage constructs billing validation issues directly. Higher
 level billing services own the validation component and remain responsible for
 deciding whether a workflow can continue with the returned collection and
 validation issues.
+
+## Why resolution is lazy
+
+Charge advancement also acts as reconciliation and can inspect charges that
+are not due. Determining that no transition can fire does not require their
+feature or meter, so eager catalog resolution would let an unused missing meter
+or catalog outage block otherwise independent work.
+
+The lazy collection snapshots feature references and usable owner identities
+when it is created, then resolves the snapshot once on the first `Get` or
+`Has`. This preserves a consistent view for the operation without repeating
+catalog queries. `Get` returns resolution failures when the dependency is
+actually consumed, while `Has` reports false after a failed resolution. Missing
+features and meters therefore remain validation failures on paths that need
+them, and catalog system errors remain fatal.

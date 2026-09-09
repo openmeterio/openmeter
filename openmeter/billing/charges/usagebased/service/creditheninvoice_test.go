@@ -692,7 +692,8 @@ func newCreditThenInvoiceStateMachineWithChargeForTest(t *testing.T, charge usag
 
 	out := &CreditThenInvoiceStateMachine{
 		stateMachine: &stateMachine{
-			Machine: machine,
+			Machine:       machine,
+			FeatureMeters: newFeatureMetersForChargeTest(charge),
 		},
 	}
 	out.configureStates()

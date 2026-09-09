@@ -337,6 +337,7 @@ func newCreditsOnlyStateMachineWithChargeForTest(t *testing.T, charge usagebased
 			Machine:            machine,
 			Adapter:            adapter,
 			Runs:               runService,
+			FeatureMeters:      newFeatureMetersForChargeTest(charge),
 			CurrencyCalculator: cur,
 		},
 	}

@@ -181,6 +181,8 @@ func (s StandardInvoiceStatus) MatchesInvoiceStatus(status StandardInvoiceStatus
 }
 
 var failedStatuses = []StandardInvoiceStatus{
+	StandardInvoiceStatusDraftInvalidCreated,
+	StandardInvoiceStatusDraftInvalid,
 	StandardInvoiceStatusDraftSyncFailed,
 	StandardInvoiceStatusIssuingLineFinalizationFailed,
 	StandardInvoiceStatusIssuingSyncFailed,
