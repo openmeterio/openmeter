@@ -66,7 +66,7 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 		return creditpurchase.Charge{}, fmt.Errorf("promotional credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
 	}
 
-	advanceLineages, err := s.legacylineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+	advanceLineages, err := s.lineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace: charge.Namespace, CustomerID: charge.Intent.CustomerID, Currency: charge.Intent.Currency.Reference(),
 		OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
 		HasActiveSegments: true,
@@ -92,7 +92,7 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 	charge.Realizations.CreditGrantRealization = &grantRealization
 
 	if ledgerTransactionGroupReference.TransactionGroupID != "" {
-		if err := s.legacylineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
+		if err := s.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 			Namespace:                 charge.Namespace,
 			CustomerID:                charge.Intent.CustomerID,
 			Currency:                  charge.Intent.Currency,
@@ -125,7 +125,7 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 		return creditpurchase.Charge{}, fmt.Errorf("credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
 	}
 
-	advanceLineages, err := s.legacylineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+	advanceLineages, err := s.lineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 		Namespace: charge.Namespace, CustomerID: charge.Intent.CustomerID, Currency: charge.Intent.Currency.Reference(),
 		OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
 		HasActiveSegments: true,
@@ -151,7 +151,7 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 	charge.Realizations.CreditGrantRealization = &grantRealization
 
 	if ledgerTransactionGroupReference.TransactionGroupID != "" {
-		if err := s.legacylineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
+		if err := s.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 			Namespace:                 charge.Namespace,
 			CustomerID:                charge.Intent.CustomerID,
 			Currency:                  charge.Intent.Currency,

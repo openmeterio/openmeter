@@ -336,7 +336,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, in
 	advanceAttributionAmount := alpacadecimal.Zero
 	for _, attribution := range advanceAttributions {
 		advanceAttributionAmount = advanceAttributionAmount.Add(attribution.advanceAmount)
-		if attribution.originID != nil {
+		if attribution.collectionOriginID != nil {
 			annotations[ledger.AnnotationBackfillCreditPriority] = lo.FromPtrOr(charge.Intent.Priority, ledger.DefaultCustomerFBOPriority)
 		}
 	}
@@ -359,22 +359,22 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, in
 			AttributedFeatures: featureFilters,
 			SourceChargeID:     &charge.ID,
 			SpendChargeID:      attribution.spendChargeID,
-			OriginID:           attribution.originID,
+			CollectionOriginID: attribution.collectionOriginID,
 		})
 
 		if attribution.accruedAmount.IsPositive() {
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-				At:                advanceAttributionEffectiveAt,
-				Amount:            attribution.accruedAmount,
-				Currency:          charge.Intent.Currency.Reference(),
-				TaxCode:           attribution.taxCode,
-				TaxBehavior:       attribution.taxBehavior,
-				FromCostBasis:     nil,
-				ToCostBasis:       costBasisPtr,
-				CostBasisCurrency: costBasisCurrency,
-				SourceChargeID:    &charge.ID,
-				SpendChargeID:     attribution.spendChargeID,
-				OriginID:          attribution.originID,
+				At:                 advanceAttributionEffectiveAt,
+				Amount:             attribution.accruedAmount,
+				Currency:           charge.Intent.Currency.Reference(),
+				TaxCode:            attribution.taxCode,
+				TaxBehavior:        attribution.taxBehavior,
+				FromCostBasis:      nil,
+				ToCostBasis:        costBasisPtr,
+				CostBasisCurrency:  costBasisCurrency,
+				SourceChargeID:     &charge.ID,
+				SpendChargeID:      attribution.spendChargeID,
+				CollectionOriginID: attribution.collectionOriginID,
 			})
 		}
 	}
@@ -442,9 +442,9 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, in
 			}
 
 			immediateReleases = append(immediateReleases, breakage.PlanIssuanceImmediateRelease{
-				Amount:        attribution.advanceAmount,
-				SpendChargeID: attribution.spendChargeID,
-				OriginID:      attribution.originID,
+				Amount:             attribution.advanceAmount,
+				SpendChargeID:      attribution.spendChargeID,
+				CollectionOriginID: attribution.collectionOriginID,
 			})
 		}
 
@@ -510,25 +510,25 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 // charge so receivable and accrued translations preserve downstream revenue
 // provenance after source charge attribution.
 type advanceAttribution struct {
-	originID        *string
-	taxCode         *string
-	taxBehavior     *ledger.TaxBehavior
-	advanceFeatures []string
-	spendChargeID   *string
-	advanceAmount   alpacadecimal.Decimal
-	accruedAmount   alpacadecimal.Decimal
+	collectionOriginID *string
+	taxCode            *string
+	taxBehavior        *ledger.TaxBehavior
+	advanceFeatures    []string
+	spendChargeID      *string
+	advanceAmount      alpacadecimal.Decimal
+	accruedAmount      alpacadecimal.Decimal
 }
 
 // unattributedAccruedBalance is source-less accrued value available for
 // creditpurchase backfill. It is keyed by the dimensions that must be preserved
 // during cost-basis translation: tax treatment and spend charge provenance.
 type unattributedAccruedBalance struct {
-	originID        *string
-	firstRecordedAt time.Time
-	key             accruedBackfillBucketKey
-	taxCode         *string
-	taxBehavior     *ledger.TaxBehavior
-	amount          alpacadecimal.Decimal
+	collectionOriginID *string
+	firstRecordedAt    time.Time
+	key                accruedBackfillBucketKey
+	taxCode            *string
+	taxBehavior        *ledger.TaxBehavior
+	amount             alpacadecimal.Decimal
 }
 
 // taxDimensionKey keeps tax-bearing accrued balances separate because
@@ -740,13 +740,13 @@ func allocateAccruedBackedAdvanceAttributions(
 
 			allocated, consumed := receivableBuckets.consume(allocation.Key.spendChargeID, allocation.Amount, func(advanceReceivable advanceReceivableBalance, amount alpacadecimal.Decimal) advanceAttribution {
 				return advanceAttribution{
-					taxCode:         unattributedAccrued[i].taxCode,
-					taxBehavior:     unattributedAccrued[i].taxBehavior,
-					advanceFeatures: advanceReceivable.address.Route().Route().Features,
-					spendChargeID:   advanceReceivable.spendChargeID,
-					originID:        advanceReceivable.originID,
-					advanceAmount:   amount,
-					accruedAmount:   amount,
+					taxCode:            unattributedAccrued[i].taxCode,
+					taxBehavior:        unattributedAccrued[i].taxBehavior,
+					advanceFeatures:    advanceReceivable.address.Route().Route().Features,
+					spendChargeID:      advanceReceivable.spendChargeID,
+					collectionOriginID: advanceReceivable.collectionOriginID,
+					advanceAmount:      amount,
+					accruedAmount:      amount,
 				}
 			})
 			if allocation.Amount.Sub(consumed).IsPositive() {
@@ -830,10 +830,10 @@ func (b *advanceReceivableBuckets) attributeRemaining(amount alpacadecimal.Decim
 			}
 			attributed := legacylineage.MinDecimal(amount, balance.remaining)
 			attributions = append(attributions, advanceAttribution{
-				advanceFeatures: balance.address.Route().Route().Features,
-				spendChargeID:   balance.spendChargeID,
-				originID:        balance.originID,
-				advanceAmount:   attributed,
+				advanceFeatures:    balance.address.Route().Route().Features,
+				spendChargeID:      balance.spendChargeID,
+				collectionOriginID: balance.collectionOriginID,
+				advanceAmount:      attributed,
 			})
 			balance.remaining = balance.remaining.Sub(attributed)
 			amount = amount.Sub(attributed)
@@ -846,9 +846,9 @@ func (b *advanceReceivableBuckets) attributeRemaining(amount alpacadecimal.Decim
 // attributed to a later creditpurchase. The posting address preserves route
 // dimensions, while spendChargeKey identifies which spend created the advance.
 type advanceReceivableBalance struct {
-	originID      *string
-	address       ledger.PostingAddress
-	spendChargeID *string
+	collectionOriginID *string
+	address            ledger.PostingAddress
+	spendChargeID      *string
 	// spendChargeKey is the map key form of spendChargeID. Nil means legacy or
 	// otherwise unknowable spend provenance, not a deliberate concrete charge.
 	spendChargeKey string
@@ -874,7 +874,7 @@ func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, r
 				TransactionAuthorizationStatus: &openStatus,
 			},
 		},
-		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByOriginID},
+		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByCollectionOriginID},
 	})
 	if err != nil {
 		return nil, err
@@ -888,11 +888,11 @@ func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, r
 
 		spendChargeID := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
 		out = append(out, advanceReceivableBalance{
-			address:        bucket.Address,
-			spendChargeID:  spendChargeID,
-			spendChargeKey: advanceSpendKey(spendChargeID, bucket.GroupByValues[ledger.BalanceBucketGroupByOriginID]),
-			originID:       bucket.GroupByValues[ledger.BalanceBucketGroupByOriginID],
-			amount:         bucket.SettledAmount,
+			address:            bucket.Address,
+			spendChargeID:      spendChargeID,
+			spendChargeKey:     advanceSpendKey(spendChargeID, bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]),
+			collectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID],
+			amount:             bucket.SettledAmount,
 		})
 	}
 
@@ -914,7 +914,7 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 				CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 			},
 		},
-		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByOriginID},
+		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByCollectionOriginID},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list unattributed accrued balances: %w", err)
@@ -931,17 +931,17 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 		route := bucket.Address.Route().Route()
 		spendChargeID := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
 		key := accruedBackfillBucketKey{
-			spendChargeID:   advanceSpendKey(spendChargeID, bucket.GroupByValues[ledger.BalanceBucketGroupByOriginID]),
+			spendChargeID:   advanceSpendKey(spendChargeID, bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]),
 			taxDimensionKey: taxDimensionRouteKey(route),
 		}
 		if _, ok := balancesByKey[key]; !ok {
 			keys = append(keys, key)
 			balancesByKey[key] = unattributedAccruedBalance{
-				key:             key,
-				originID:        bucket.GroupByValues[ledger.BalanceBucketGroupByOriginID],
-				firstRecordedAt: bucket.FirstRecordedAt,
-				taxCode:         route.TaxCode,
-				taxBehavior:     route.TaxBehavior,
+				key:                key,
+				collectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID],
+				firstRecordedAt:    bucket.FirstRecordedAt,
+				taxCode:            route.TaxCode,
+				taxBehavior:        route.TaxBehavior,
 			}
 		}
 
@@ -1100,7 +1100,7 @@ func mergeAdvanceAttributions(attributions []advanceAttribution) []advanceAttrib
 // can join an existing leg regardless of tax, since it adds no accrued value.
 // The remainder must not add a duplicate receivable leg that makes corrections ambiguous.
 func (a advanceAttribution) canMergeInto(other advanceAttribution) bool {
-	if lo.FromPtr(a.originID) != lo.FromPtr(other.originID) {
+	if lo.FromPtr(a.collectionOriginID) != lo.FromPtr(other.collectionOriginID) {
 		return false
 	}
 	if lo.FromPtr(a.spendChargeID) != lo.FromPtr(other.spendChargeID) || !slices.Equal(a.advanceFeatures, other.advanceFeatures) {
@@ -1178,10 +1178,10 @@ func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattri
 		candidates = append(candidates, advanceBackfillCandidate{recordedAt: root.CreatedAt, id: root.ID, legacy: &root})
 	}
 	for _, balance := range balances {
-		if balance.originID == nil || !balance.amount.IsPositive() {
+		if balance.collectionOriginID == nil || !balance.amount.IsPositive() {
 			continue
 		}
-		candidates = append(candidates, advanceBackfillCandidate{recordedAt: balance.firstRecordedAt, id: *balance.originID, key: balance.key})
+		candidates = append(candidates, advanceBackfillCandidate{recordedAt: balance.firstRecordedAt, id: *balance.collectionOriginID, key: balance.key})
 	}
 	slices.SortFunc(candidates, func(a, b advanceBackfillCandidate) int {
 		return cmp.Or(a.recordedAt.Compare(b.recordedAt), cmp.Compare(a.id, b.id), cmpx.Compare(a.key, b.key))

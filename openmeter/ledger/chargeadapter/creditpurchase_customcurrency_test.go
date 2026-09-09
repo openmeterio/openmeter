@@ -176,7 +176,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 		sourceSpendChargeKey(nil, &spendChargeIDs[2]):        1,
 		sourceSpendChargeKey(&charge.ID, &spendChargeIDs[0]): 0.05,
 	})
-	roots, err := env.legacylineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
+	roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: customCurrencyIdentity,
 	})
 	require.NoError(t, err)

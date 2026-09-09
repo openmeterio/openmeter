@@ -585,7 +585,7 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	})
 	require.NoError(t, err)
 
-	dbLineage, err := lineageservice.New(lineageservice.Config{
+	dbLineage, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	require.NoError(t, err)
@@ -960,7 +960,7 @@ func (e *usageBasedHandlerTestEnv) createInitialLineages(t *testing.T, chargeID 
 
 	e.ensureCharge(t, chargeID)
 
-	err := e.legacylineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
+	err := e.lineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
@@ -978,7 +978,7 @@ func (e *usageBasedHandlerTestEnv) activeSegmentsByRealization(t *testing.T, rea
 		ids = append(ids, realization.ID)
 	}
 
-	segments, err := e.legacylineage.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, ids)
+	segments, err := e.lineage.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, ids)
 	require.NoError(t, err)
 
 	return segments

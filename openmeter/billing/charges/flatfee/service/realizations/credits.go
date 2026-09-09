@@ -487,5 +487,5 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 		return realization.ID
 	})
 
-	return s.legacylineage.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, realizationIDs)
+	return s.lineage.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, realizationIDs)
 }

@@ -98,6 +98,7 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input le
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		correctionAmountsByRealizationID := make(map[string]alpacadecimal.Decimal, len(input.Realizations))
 		correctionOrder := make([]string, 0)
+		selectedByRealization := make(map[string]map[string]alpacadecimal.Decimal)
 
 		for _, realization := range input.Realizations {
 			if realization.Type != creditrealization.TypeCorrection || realization.CorrectsRealizationID == nil {
@@ -105,6 +106,18 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input le
 			}
 
 			correctsRealizationID := *realization.CorrectsRealizationID
+			selected, err := legacylineage.CorrectionSelections(realization.Annotations)
+			if err != nil {
+				return err
+			}
+			if selected != nil {
+				if selectedByRealization[correctsRealizationID] == nil {
+					selectedByRealization[correctsRealizationID] = make(map[string]alpacadecimal.Decimal)
+				}
+				for id, amount := range selected {
+					selectedByRealization[correctsRealizationID][id] = selectedByRealization[correctsRealizationID][id].Add(amount)
+				}
+			}
 			if _, ok := correctionAmountsByRealizationID[correctsRealizationID]; !ok {
 				correctionOrder = append(correctionOrder, correctsRealizationID)
 			}
@@ -131,16 +144,37 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input le
 		for _, realizationID := range correctionOrder {
 			entry, ok := lineagesByRealizationID[realizationID]
 			if !ok {
+				if selectedByRealization[realizationID] != nil {
+					return fmt.Errorf("selected correction lineage no longer exists")
+				}
 				continue
 			}
 
+			selected := selectedByRealization[realizationID]
 			remaining := correctionAmountsByRealizationID[realizationID]
-			for _, segment := range legacylineage.SortCorrectionPersistSegments(entry.Segments) {
+			if selected == nil {
+				return fmt.Errorf("legacy correction requires exact ledger segment selections")
+			}
+			total := alpacadecimal.Zero
+			active := make(map[string]alpacadecimal.Decimal)
+			for _, segment := range entry.Segments {
+				active[segment.ID] = segment.Amount
+			}
+			for id, amount := range selected {
+				if amount.GreaterThan(active[id]) {
+					return fmt.Errorf("stale correction segment selection %s", id)
+				}
+				total = total.Add(amount)
+			}
+			if !total.Equal(remaining) {
+				return fmt.Errorf("selected correction segments do not match correction amount")
+			}
+			for _, segment := range entry.Segments {
 				if !remaining.IsPositive() {
 					break
 				}
 
-				consumedAmount := legacylineage.MinDecimal(segment.Amount, remaining)
+				consumedAmount := selected[segment.ID]
 				if !consumedAmount.IsPositive() {
 					continue
 				}

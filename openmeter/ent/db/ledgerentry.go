@@ -38,8 +38,8 @@ type LedgerEntry struct {
 	IdentityKey string `json:"identity_key,omitempty"`
 	// SchemaVersion holds the value of the "schema_version" field.
 	SchemaVersion int `json:"schema_version,omitempty"`
-	// OriginID holds the value of the "origin_id" field.
-	OriginID *string `json:"origin_id,omitempty"`
+	// CollectionOriginID holds the value of the "collection_origin_id" field.
+	CollectionOriginID *string `json:"collection_origin_id,omitempty"`
 	// SourceChargeID holds the value of the "source_charge_id" field.
 	SourceChargeID *string `json:"source_charge_id,omitempty"`
 	// SpendChargeID holds the value of the "spend_charge_id" field.
@@ -109,7 +109,7 @@ func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case ledgerentry.FieldSchemaVersion:
 			values[i] = new(sql.NullInt64)
-		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldOriginID, ledgerentry.FieldSourceChargeID, ledgerentry.FieldSpendChargeID, ledgerentry.FieldTransactionID:
+		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldCollectionOriginID, ledgerentry.FieldSourceChargeID, ledgerentry.FieldSpendChargeID, ledgerentry.FieldTransactionID:
 			values[i] = new(sql.NullString)
 		case ledgerentry.FieldCreatedAt, ledgerentry.FieldUpdatedAt, ledgerentry.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -185,12 +185,12 @@ func (_m *LedgerEntry) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SchemaVersion = int(value.Int64)
 			}
-		case ledgerentry.FieldOriginID:
+		case ledgerentry.FieldCollectionOriginID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field origin_id", values[i])
+				return fmt.Errorf("unexpected type %T for field collection_origin_id", values[i])
 			} else if value.Valid {
-				_m.OriginID = new(string)
-				*_m.OriginID = value.String
+				_m.CollectionOriginID = new(string)
+				*_m.CollectionOriginID = value.String
 			}
 		case ledgerentry.FieldSourceChargeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -295,8 +295,8 @@ func (_m *LedgerEntry) String() string {
 	builder.WriteString("schema_version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SchemaVersion))
 	builder.WriteString(", ")
-	if v := _m.OriginID; v != nil {
-		builder.WriteString("origin_id=")
+	if v := _m.CollectionOriginID; v != nil {
+		builder.WriteString("collection_origin_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
