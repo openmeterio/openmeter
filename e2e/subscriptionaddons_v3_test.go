@@ -300,6 +300,10 @@ func TestV3SubscriptionAddonUpdate(t *testing.T) {
 	subAddonID := subAddon.ID
 
 	t.Run("Should change the addon quantity and return 200", func(t *testing.T) {
+		before, err := c.Subscriptions.GetAddon(t.Context(), sub.ID, subAddonID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, before)
+
 		updated, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
 			Quantity: 2,
 			Timing:   timing,
@@ -310,20 +314,34 @@ func TestV3SubscriptionAddonUpdate(t *testing.T) {
 		assert.Equal(t, subAddonID, updated.ID)
 		assert.EqualValues(t, 2, updated.Quantity, "quantity should reflect the update")
 		assert.NotNil(t, updated.RateCards, "rate_cards must not be null")
-		require.NotEmpty(t, updated.Timeline)
+		// The change closes the current open segment and appends exactly one new
+		// segment carrying the updated quantity.
+		require.Len(t, updated.Timeline, len(before.Timeline)+1, "quantity change must append exactly one timeline segment")
+		last := updated.Timeline[len(updated.Timeline)-1]
+		assert.EqualValues(t, 2, last.Quantity, "the appended timeline segment must carry the new quantity")
 	})
 
 	t.Run("Should remove the addon when quantity is 0 and return 200", func(t *testing.T) {
 		// v1 parity: quantity 0 is a valid removal on the update endpoint (the create
-		// path still forbids 0). Immediate timing drops the current quantity to 0.
+		// path still forbids 0). Immediate timing closes the current open segment and
+		// appends one new segment that drops the quantity to 0.
+		before, err := c.Subscriptions.GetAddon(t.Context(), sub.ID, subAddonID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, before)
+
 		updated, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
 			Quantity: 0,
 			Timing:   timing,
 		})
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, updated)
+
 		assert.EqualValues(t, 0, updated.Quantity, "current quantity must be 0 after removal")
-		require.NotEmpty(t, updated.Timeline)
+		// Removal appends exactly one timeline segment, and that newly appended
+		// (latest) segment carries the quantity 0.
+		require.Len(t, updated.Timeline, len(before.Timeline)+1, "removal must append exactly one timeline segment")
+		last := updated.Timeline[len(updated.Timeline)-1]
+		assert.EqualValues(t, 0, last.Quantity, "the appended timeline segment must be quantity 0")
 	})
 
 	t.Run("Should return 404 for an unknown subscription addon", func(t *testing.T) {
