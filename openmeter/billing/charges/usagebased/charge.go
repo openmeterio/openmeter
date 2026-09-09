@@ -270,37 +270,9 @@ func (c Charge) GetCustomerID() customer.CustomerID {
 }
 
 func (c Charge) GetFeatureMeterRef() *billingfeaturemeter.FeatureMeterRef {
-	var featureRef ref.IDOrKey
-	switch c.Status {
-	case StatusCreated:
-		featureRef = ref.IDOrKey{
-			Key: c.Intent.GetBaseIntent().FeatureKey,
-		}
-	case StatusActive:
-		// Activation resolves by key before persisting the resolved feature ID.
-		if c.State.FeatureID != "" {
-			featureRef = ref.IDOrKey{
-				ID: c.State.FeatureID,
-			}
-		} else {
-			featureRef = ref.IDOrKey{
-				Key: c.Intent.GetBaseIntent().FeatureKey,
-			}
-		}
-	case StatusDeleted:
-		if c.State.FeatureID != "" {
-			featureRef = ref.IDOrKey{
-				ID: c.State.FeatureID,
-			}
-		} else {
-			featureRef = ref.IDOrKey{
-				Key: c.Intent.GetBaseIntent().FeatureKey,
-			}
-		}
-	default:
-		featureRef = ref.IDOrKey{
-			ID: c.State.FeatureID,
-		}
+	featureRef := ref.IDOrKey{ID: c.State.FeatureID}
+	if featureRef.ID == "" {
+		featureRef = ref.IDOrKey{Key: c.Intent.GetBaseIntent().FeatureKey}
 	}
 
 	if lo.IsEmpty(featureRef) {
@@ -814,10 +786,6 @@ func (s State) Validate() error {
 
 	if s.CurrentRealizationRunID != nil && *s.CurrentRealizationRunID == "" {
 		errs = append(errs, fmt.Errorf("current realization run ID must be non-empty"))
-	}
-
-	if s.FeatureID == "" {
-		errs = append(errs, fmt.Errorf("feature id must be set"))
 	}
 
 	if err := s.RatingEngine.Validate(); err != nil {

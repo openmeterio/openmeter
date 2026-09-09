@@ -292,6 +292,10 @@ func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
 }
 
 func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error {
+	if s.Charge.State.FeatureID != "" {
+		return nil
+	}
+
 	featureMeter, err := s.FeatureMeters.Get(s.Charge)
 	if err != nil {
 		return err

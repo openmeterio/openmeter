@@ -47,7 +47,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynami
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-modes")
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	featureMeters := s.createFeatureMeters(ctx, namespace, "modes-feature")
+	s.createFeatureMeters(ctx, namespace, "modes-feature")
 	fiatCurrency := s.newFiatCurrency("USD")
 	pinnedCostBasis, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
 		Namespace:  namespace,
@@ -76,7 +76,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynami
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "pinned", "modes-feature", productcatalog.CreditThenInvoiceSettlementMode, &pinnedIntent),
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic", "modes-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
 		},
-		FeatureMeters: featureMeters,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 3)
@@ -141,7 +140,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetryS
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-retry")
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	featureMeters := s.createFeatureMeters(ctx, namespace, "retry-feature")
+	s.createFeatureMeters(ctx, namespace, "retry-feature")
 	currencyCostBasis, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
 		Namespace:  namespace,
 		CurrencyID: currency.ID,
@@ -158,7 +157,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetryS
 		Intents: []usagebased.Intent{
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-retry", "retry-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
 		},
-		FeatureMeters: featureMeters,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -218,7 +216,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeB
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	featureMeters := s.createFeatureMeters(ctx, namespace, "active-feature")
+	s.createFeatureMeters(ctx, namespace, "active-feature")
 	first, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
 		Namespace:  namespace,
 		CurrencyID: currency.ID,
@@ -245,7 +243,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeB
 		Intents: []usagebased.Intent{
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-active", "active-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
 		},
-		FeatureMeters: featureMeters,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -275,7 +272,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAnd
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-pinned-mismatch")
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	featureMeters := s.createFeatureMeters(ctx, namespace, "mismatch-feature")
+	s.createFeatureMeters(ctx, namespace, "mismatch-feature")
 	otherCurrency, err := s.CurrencyService.CreateCurrency(ctx, currencies.CreateCurrencyInput{
 		Namespace: namespace,
 		CurrencyDetails: currencyx.CurrencyDetails{
@@ -331,7 +328,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAnd
 				Intents: []usagebased.Intent{
 					s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "mismatch-"+test.name, "mismatch-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent),
 				},
-				FeatureMeters: featureMeters,
 			})
 			s.Require().ErrorContains(err, test.errorText)
 		})
@@ -351,7 +347,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeC
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-rollback")
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	featureMeters := s.createFeatureMeters(ctx, namespace, "rollback-feature")
+	s.createFeatureMeters(ctx, namespace, "rollback-feature")
 	intent := costbasis.NewIntent(costbasis.ManualIntent{
 		FiatCurrency: s.newFiatCurrency("USD"),
 		Rate:         alpacadecimal.NewFromInt(2),
@@ -363,7 +359,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeC
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "duplicate", "rollback-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent),
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "duplicate", "rollback-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent),
 		},
-		FeatureMeters: featureMeters,
 	})
 	s.Require().Error(err)
 	s.Require().Equal(0, s.countCostBases(namespace))
@@ -375,13 +370,12 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeR
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-without-cost-basis")
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	featureMeters := s.createFeatureMeters(ctx, namespace, "credit-only-feature")
+	s.createFeatureMeters(ctx, namespace, "credit-only-feature")
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
 		Intents: []usagebased.Intent{
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "credit-only", "credit-only-feature", productcatalog.CreditOnlySettlementMode, nil),
 		},
-		FeatureMeters: featureMeters,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)

@@ -1810,6 +1810,16 @@ func FeatureIDHasSuffix(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldFeatureID, v))
 }
 
+// FeatureIDIsNil applies the IsNil predicate on the "feature_id" field.
+func FeatureIDIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldFeatureID))
+}
+
+// FeatureIDNotNil applies the NotNil predicate on the "feature_id" field.
+func FeatureIDNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldFeatureID))
+}
+
 // FeatureIDEqualFold applies the EqualFold predicate on the "feature_id" field.
 func FeatureIDEqualFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldFeatureID, v))

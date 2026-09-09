@@ -30,6 +30,32 @@ type FeatureReferenceGetter interface {
 	GetFeatureMeterRef() *FeatureMeterRef
 }
 
+type featureReferenceWithoutMeters struct {
+	reference FeatureReferenceGetter
+}
+
+func (r featureReferenceWithoutMeters) GetFeatureMeterRef() *FeatureMeterRef {
+	if r.reference == nil {
+		return nil
+	}
+
+	reference := r.reference.GetFeatureMeterRef()
+	if reference == nil {
+		return nil
+	}
+
+	withoutMeters := *reference
+	withoutMeters.RequireMeter = false
+
+	return &withoutMeters
+}
+
+// WithoutMeters returns a feature-only copy of a reference. The returned
+// reference deliberately does not retain the owner's identity.
+func WithoutMeters(reference FeatureReferenceGetter) FeatureReferenceGetter {
+	return featureReferenceWithoutMeters{reference: reference}
+}
+
 // FeatureReferenceOwner provides the stable identity of the billing entity that
 // owns a feature reference. Reference types without a stable identity must not
 // implement this interface.

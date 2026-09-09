@@ -1236,7 +1236,10 @@ func (_q *ChargeUsageBasedQuery) loadFeature(ctx context.Context, query *Feature
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*ChargeUsageBased)
 	for i := range nodes {
-		fk := nodes[i].FeatureID
+		if nodes[i].FeatureID == nil {
+			continue
+		}
+		fk := *nodes[i].FeatureID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

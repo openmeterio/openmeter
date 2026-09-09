@@ -149,9 +149,15 @@ invoice validation issue.
   complete, not merely that rating or line creation finished.
 - Lifecycle entry points run in database transactions. Flat-fee and usage-based
   advancement and patching also take charge-scoped locks.
-- Charge creation resolves every supplied feature reference before persistence.
-  Usage-based features require a meter; flat-fee features are optional and may
-  be meterless.
+- Each concrete charge type resolves its supplied feature references before
+  persistence. Usage-based features require a meter; flat-fee features are
+  optional and may be meterless. A usage-based charge created by key persists
+  only the canonical key and snapshots its feature ID when it activates. An
+  explicitly supplied feature ID is pinned at creation and activation preserves
+  it; when both are supplied, the key must match the feature resolved by ID.
+- Customer-charge reads resolve the current feature by key when a preactivation
+  usage charge has no pinned ID. That ID is an API projection rather than
+  persisted state and may change until activation snapshots it.
 - Charge state machines do not expose invoice patches through a separate peek
   or drain operation. A caller must choose an invoice-aware
   `*UntilInvoicePatchesOrStable` operation, which stops at the first invoice

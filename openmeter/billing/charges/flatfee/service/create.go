@@ -29,6 +29,11 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 		return nil, nil
 	}
 
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Namespace, input.Intents...)
+	if err != nil {
+		return nil, err
+	}
+
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]flatfee.ChargeWithGatheringLine, error) {
 		now := clock.Now().UTC()
 		// Let's create all the flat fee charges in bulk
@@ -61,7 +66,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 			var featureID *string
 			if featureRef != nil {
-				featureMeter, err := input.FeatureMeters.Get(chargeIntent)
+				featureMeter, err := featureMeters.Get(chargeIntent)
 				if err != nil {
 					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature %+v: %w", *featureRef, err)
 				}

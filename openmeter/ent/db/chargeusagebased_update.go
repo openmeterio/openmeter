@@ -340,6 +340,12 @@ func (_u *ChargeUsageBasedUpdate) SetNillableFeatureID(v *string) *ChargeUsageBa
 	return _u
 }
 
+// ClearFeatureID clears the value of the "feature_id" field.
+func (_u *ChargeUsageBasedUpdate) ClearFeatureID() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearFeatureID()
+	return _u
+}
+
 // SetRatingEngine sets the "rating_engine" field.
 func (_u *ChargeUsageBasedUpdate) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpdate {
 	_u.mutation.SetRatingEngine(v)
@@ -630,9 +636,6 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.customer"`)
-	}
-	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
 	}
 	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.tax_code"`)
@@ -1297,6 +1300,12 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableFeatureID(v *string) *ChargeUsag
 	return _u
 }
 
+// ClearFeatureID clears the value of the "feature_id" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearFeatureID() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearFeatureID()
+	return _u
+}
+
 // SetRatingEngine sets the "rating_engine" field.
 func (_u *ChargeUsageBasedUpdateOne) SetRatingEngine(v usagebased.RatingEngine) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetRatingEngine(v)
@@ -1600,9 +1609,6 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.customer"`)
-	}
-	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
 	}
 	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.tax_code"`)

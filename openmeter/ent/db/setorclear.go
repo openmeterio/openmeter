@@ -3816,6 +3816,20 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **billing.Discount
 	return u.SetDiscounts(*value)
 }
 
+func (u *ChargeUsageBasedUpdate) SetOrClearFeatureID(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearFeatureID(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearFeatureID()
+	}
+	return u.SetFeatureID(*value)
+}
+
 func (u *ChargeUsageBasedUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
