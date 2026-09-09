@@ -6097,52 +6097,6 @@ func (s *CreditThenInvoiceTestSuite) shrinkCharge(ctx context.Context, customerI
 	})
 }
 
-func (s *CreditThenInvoiceTestSuite) RequireChargeStatus(chargeID meta.ChargeID, status any) charges.Charge {
-	s.T().Helper()
-
-	charge := s.MustGetChargeByID(chargeID)
-
-	var actualStatus string
-	switch charge.Type() {
-	case meta.ChargeTypeUsageBased:
-		usageBasedCharge, err := charge.AsUsageBasedCharge()
-		s.NoError(err)
-		actualStatus = string(usageBasedCharge.Status)
-	case meta.ChargeTypeFlatFee:
-		flatFeeCharge, err := charge.AsFlatFeeCharge()
-		s.NoError(err)
-		actualStatus = string(flatFeeCharge.Status)
-	case meta.ChargeTypeCreditPurchase:
-		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
-		s.NoError(err)
-		actualStatus = string(creditPurchaseCharge.Status)
-	default:
-		s.FailNowf("unsupported charge type", "charge type %s is not supported", charge.Type())
-	}
-
-	s.Equal(fmt.Sprint(status), actualStatus)
-
-	return charge
-}
-
-func (s *CreditThenInvoiceTestSuite) RequireUsageBasedChargeStatus(chargeID meta.ChargeID, status usagebased.Status) usagebased.Charge {
-	s.T().Helper()
-
-	charge, err := s.RequireChargeStatus(chargeID, status).AsUsageBasedCharge()
-	s.NoError(err)
-
-	return charge
-}
-
-func (s *CreditThenInvoiceTestSuite) RequireFlatFeeChargeStatus(chargeID meta.ChargeID, status flatfee.Status) flatfee.Charge {
-	s.T().Helper()
-
-	charge, err := s.RequireChargeStatus(chargeID, status).AsFlatFeeCharge()
-	s.NoError(err)
-
-	return charge
-}
-
 func (s *CreditThenInvoiceTestSuite) mustGetUsageBasedChargeByIDWithExpands(chargeID meta.ChargeID, expands meta.Expands) usagebased.Charge {
 	s.T().Helper()
 
