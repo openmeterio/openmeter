@@ -716,7 +716,7 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 	})
 	require.NoError(t, err)
 
-	dbLineage, err := lineageservice.New(lineageservice.Config{
+	dbLineage, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	require.NoError(t, err)
@@ -1148,7 +1148,7 @@ func (e *flatFeeHandlerTestEnv) createInitialLineages(t *testing.T, chargeID str
 
 	e.ensureCharge(t, chargeID)
 
-	err := e.legacylineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
+	err := e.lineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
@@ -1166,7 +1166,7 @@ func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realiz
 		ids = append(ids, realization.ID)
 	}
 
-	segments, err := e.legacylineage.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, ids)
+	segments, err := e.lineage.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, ids)
 	require.NoError(t, err)
 
 	return segments

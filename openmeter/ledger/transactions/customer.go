@@ -20,16 +20,16 @@ import (
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At                time.Time
-	Amount            alpacadecimal.Decimal
-	Currency          currencies.CurrencyReference
-	CostBasisCurrency *currencyx.Code
-	TaxCode           *string
-	CostBasis         *alpacadecimal.Decimal
-	Features          []string
-	SourceChargeID    *string
-	SpendChargeID     *string
-	OriginID          *string
+	At                 time.Time
+	Amount             alpacadecimal.Decimal
+	Currency           currencies.CurrencyReference
+	CostBasisCurrency  *currencyx.Code
+	TaxCode            *string
+	CostBasis          *alpacadecimal.Decimal
+	Features           []string
+	SourceChargeID     *string
+	SpendChargeID      *string
+	CollectionOriginID *string
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -174,18 +174,18 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 				address: fbo.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					OriginID:       t.OriginID,
-					SpendChargeID:  t.SpendChargeID,
+					SourceChargeID:     t.SourceChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 			{
 				address: rec.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					OriginID:       t.OriginID,
-					SpendChargeID:  t.SpendChargeID,
+					SourceChargeID:     t.SourceChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 		},
@@ -424,7 +424,7 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	AttributedFeatures []string
 	SourceChargeID     *string
 	SpendChargeID      *string
-	OriginID           *string
+	CollectionOriginID *string
 }
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
@@ -555,17 +555,17 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 				address: advanceReceivable.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					OriginID:      t.OriginID,
-					SpendChargeID: t.SpendChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 			{
 				address: attributedReceivable.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					OriginID:       t.OriginID,
-					SpendChargeID:  t.SpendChargeID,
+					SourceChargeID:     t.SourceChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 		},
@@ -759,9 +759,9 @@ func (t CoverCustomerReceivableTemplate) resolvePreselectedSources(ctx context.C
 
 			current.Address = receivable.Address()
 			current.Identity = ledger.EntryIdentityParts{
-				SourceChargeID: source.Identity.SourceChargeID,
-				OriginID:       source.Identity.OriginID,
-				SpendChargeID:  source.Identity.SpendChargeID,
+				SourceChargeID:     source.Identity.SourceChargeID,
+				CollectionOriginID: source.Identity.CollectionOriginID,
+				SpendChargeID:      source.Identity.SpendChargeID,
 			}
 		}
 
@@ -813,7 +813,7 @@ func (t CoverCustomerReceivableTemplate) entryRoutePairingKey(entry ledger.Entry
 	key := t.routePairingKey(entry.PostingAddress())
 	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
 	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
-	key.originID = lo.FromPtrOr(entry.OriginID(), "null")
+	key.collectionOriginID = lo.FromPtrOr(entry.CollectionOriginID(), "null")
 
 	return key
 }
@@ -822,7 +822,7 @@ func (t CoverCustomerReceivableTemplate) sourceRoutePairingKey(source PostingAmo
 	key := t.routePairingKey(source.Address)
 	key.sourceChargeID = lo.FromPtrOr(source.Identity.SourceChargeID, "null")
 	key.spendChargeID = lo.FromPtrOr(source.Identity.SpendChargeID, "null")
-	key.originID = lo.FromPtrOr(source.Identity.OriginID, "null")
+	key.collectionOriginID = lo.FromPtrOr(source.Identity.CollectionOriginID, "null")
 
 	return key
 }

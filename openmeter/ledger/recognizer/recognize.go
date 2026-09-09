@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -74,27 +75,34 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 
 		var resolved []ledger.TransactionInput
 		if actualAmount.IsPositive() {
-		// Resolve postings for the exact accrued slices selected for these segments.
-		resolved, err = transactions.ResolveTransactions(
-			ctx,
-			s.deps,
-			transactions.ResolutionScope{
-				CustomerID: in.CustomerID,
-				Namespace:  in.CustomerID.Namespace,
-			},
-			transactions.RecognizeEarningsFromAttributableAccruedTemplate{
-				At:       in.At,
-				Amount:   actualAmount,
-				Sources:  sources,
-				Currency: in.Currency.Reference(),
-			},
-		)
-		if err != nil {
-			return RecognizeEarningsResult{}, fmt.Errorf("resolve recognition: %w", err)
-		}
+			// Resolve postings for the exact accrued slices selected for these segments.
+			resolved, err = transactions.ResolveTransactions(
+				ctx,
+				s.deps,
+				transactions.ResolutionScope{
+					CustomerID: in.CustomerID,
+					Namespace:  in.CustomerID.Namespace,
+				},
+				transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+					At:       in.At,
+					Amount:   actualAmount,
+					Sources:  sources,
+					Currency: in.Currency.Reference(),
+				},
+			)
+			if err != nil {
+				return RecognizeEarningsResult{}, fmt.Errorf("resolve recognition: %w", err)
+			}
 		}
 
 		resolved = append(resolved, originInputs...)
+		for _, tx := range originInputs {
+			for _, entry := range tx.EntryInputs() {
+				if entry.Amount().IsPositive() {
+					actualAmount = actualAmount.Add(entry.Amount())
+				}
+			}
+		}
 		if len(resolved) == 0 {
 			return RecognizeEarningsResult{}, nil
 		}
@@ -118,7 +126,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 		}
 
 		return RecognizeEarningsResult{
-			RecognizedAmount: sumPositiveEntries(resolved),
+			RecognizedAmount: actualAmount,
 			LedgerGroupID:    groupID,
 		}, nil
 	})
@@ -147,7 +155,7 @@ func collectEligibleLineages(lineages []legacylineage.Lineage) []lineageEligible
 	}
 
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].legacylineage.ID < out[j].legacylineage.ID
+		return out[i].lineage.ID < out[j].lineage.ID
 	})
 
 	return out
@@ -210,23 +218,27 @@ func (s *service) resolveOriginRecognition(ctx context.Context, in RecognizeEarn
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: in.CustomerID.Namespace,
 		Filters:   ledger.Filters{AccountID: lo.ToPtr(accounts.AccruedAccount.ID().ID), AsOf: &in.At, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
-		GroupBy:   []string{ledger.BalanceBucketGroupByOriginID, ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
+		GroupBy:   []string{ledger.BalanceBucketGroupByCollectionOriginID, ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	if err != nil {
 		return nil, err
 	}
 	amount := alpacadecimal.Zero
+	var sources []transactions.PostingAmount
 	for _, bucket := range buckets {
 		source := bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID]
 		spend := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
-		if bucket.GroupByValues[ledger.BalanceBucketGroupByOriginID] == nil || source == nil || spend == nil || *source == *spend || bucket.Address.Route().Route().CostBasis == nil || !bucket.SettledAmount.IsPositive() {
+		if bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID] == nil || source == nil || spend == nil || *source == *spend || bucket.Address.Route().Route().CostBasis == nil || !bucket.SettledAmount.IsPositive() {
 			continue
 		}
 		amount = amount.Add(bucket.SettledAmount)
+		sources = append(sources, transactions.PostingAmount{Address: bucket.Address, Amount: bucket.SettledAmount, Identity: ledger.EntryIdentityParts{
+			CollectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID], SourceChargeID: source, SpendChargeID: spend,
+		}})
 	}
 	if !amount.IsPositive() {
 		return nil, nil
 	}
 	return transactions.ResolveTransactions(ctx, s.deps, transactions.ResolutionScope{CustomerID: in.CustomerID, Namespace: in.CustomerID.Namespace},
-		transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: in.At, Amount: amount, Currency: in.Currency.Reference(), OriginTracked: true})
+		transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: in.At, Amount: amount, Currency: in.Currency.Reference(), OriginTracked: true, Sources: sources})
 }

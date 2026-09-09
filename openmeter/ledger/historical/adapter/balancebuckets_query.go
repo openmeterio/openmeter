@@ -16,12 +16,12 @@ import (
 const (
 	balanceBucketCTEName = "balance_buckets"
 
-	balanceBucketFieldSubAccountID    = "sub_account_id"
-	balanceBucketFieldSourceChargeID  = "source_charge_id"
-	balanceBucketFieldSpendChargeID   = "spend_charge_id"
-	balanceBucketFieldOriginID        = "origin_id"
-	balanceBucketFieldSumAmount       = "sum_amount"
-	balanceBucketFieldFirstRecordedAt = "first_recorded_at"
+	balanceBucketFieldSubAccountID       = "sub_account_id"
+	balanceBucketFieldSourceChargeID     = "source_charge_id"
+	balanceBucketFieldSpendChargeID      = "spend_charge_id"
+	balanceBucketFieldCollectionOriginID = "collection_origin_id"
+	balanceBucketFieldSumAmount          = "sum_amount"
+	balanceBucketFieldFirstRecordedAt    = "first_recorded_at"
 )
 
 type balanceBucketsQuery struct {
@@ -50,7 +50,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		buckets.C(balanceBucketFieldSubAccountID),
 		buckets.C(balanceBucketFieldSourceChargeID),
 		buckets.C(balanceBucketFieldSpendChargeID),
-		buckets.C(balanceBucketFieldOriginID),
+		buckets.C(balanceBucketFieldCollectionOriginID),
 		buckets.C(balanceBucketFieldSumAmount),
 		buckets.C(balanceBucketFieldFirstRecordedAt),
 		subAccounts.C(ledgersubaccountdb.FieldRouteID),
@@ -78,7 +78,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 			buckets.C(balanceBucketFieldSubAccountID),
 			buckets.C(balanceBucketFieldSourceChargeID),
 			buckets.C(balanceBucketFieldSpendChargeID),
-			buckets.C(balanceBucketFieldOriginID),
+			buckets.C(balanceBucketFieldCollectionOriginID),
 		)
 	selector.SetDialect(dialect.Postgres)
 
@@ -108,7 +108,7 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	selector := sql.Select(entries.C(ledgerentrydb.FieldSubAccountID)).From(entries)
 	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupBySourceChargeID, ledgerentrydb.FieldSourceChargeID)
 	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupBySpendChargeID, ledgerentrydb.FieldSpendChargeID)
-	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupByOriginID, ledgerentrydb.FieldOriginID)
+	appendBalanceBucketDimensionSelect(selector, entries, q.query.GroupBy, ledger.BalanceBucketGroupByCollectionOriginID, ledgerentrydb.FieldCollectionOriginID)
 	selector.AppendSelect(sql.As(sql.Sum(entries.C(ledgerentrydb.FieldAmount)), balanceBucketFieldSumAmount))
 	selector.AppendSelect(sql.As(sql.Min(entries.C(ledgerentrydb.FieldCreatedAt)), balanceBucketFieldFirstRecordedAt))
 	selector.SetDialect(dialect.Postgres)
@@ -123,8 +123,8 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupBySpendChargeID) {
 		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldSpendChargeID))
 	}
-	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupByOriginID) {
-		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldOriginID))
+	if slices.Contains(q.query.GroupBy, ledger.BalanceBucketGroupByCollectionOriginID) {
+		groupColumns = append(groupColumns, entries.C(ledgerentrydb.FieldCollectionOriginID))
 	}
 	selector.GroupBy(groupColumns...)
 

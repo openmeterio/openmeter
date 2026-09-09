@@ -748,7 +748,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	s.Equal(true, input.FiatCreditRealization.Annotations[ledger.AnnotationOriginTracked])
 	for _, tx := range coverageGroup.Transactions() {
 		for _, entry := range tx.Entries() {
-			s.NotNil(entry.OriginID())
+			s.NotNil(entry.CollectionOriginID())
 		}
 	}
 

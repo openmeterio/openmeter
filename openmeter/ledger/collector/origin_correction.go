@@ -20,17 +20,20 @@ func (c *accrualCorrector) planOriginCorrection(ctx context.Context, input Corre
 		if lo.FromPtr(entry.SpendChargeID()) != input.ChargeID {
 			return nil, fmt.Errorf("collection origin belongs to a different spend charge")
 		}
-		if entry.OriginID() == nil {
+		if entry.CollectionOriginID() == nil {
 			return nil, fmt.Errorf("collection mixes tracked and legacy source entries")
 		}
 		entries = append(entries, entry)
 	}
 
 	slices.SortStableFunc(entries, compareCollectedFBOCorrectionSourceEntries)
-	remaining := amount
-	var actions []plannedAction
-	for idx := len(entries) - 1; idx >= 0 && remaining.IsPositive(); idx-- {
-		history, err := c.loadOriginHistory(ctx, input.Namespace, *entries[idx].OriginID())
+	histories := make(map[string]originReferences)
+	positionsByOrigin := make(map[string][]correctionPosition)
+	originals := make(map[string]*originPair)
+	var origins []correctionPosition
+	for idx, entry := range entries {
+		id := *entry.CollectionOriginID()
+		history, err := c.loadOriginReferences(ctx, input.Namespace, id)
 		if err != nil {
 			return nil, err
 		}
@@ -38,99 +41,83 @@ func (c *accrualCorrector) planOriginCorrection(ctx context.Context, input Corre
 		if err != nil {
 			return nil, err
 		}
-		take := minDecimal(remaining, original.remaining)
-		if !take.IsPositive() {
-			continue
+		positions, err := c.readOriginPositions(ctx, input, id, history, original)
+		if err != nil {
+			return nil, err
 		}
-		resolved, err := c.unwindOrigin(ctx, input, source, history, original, take)
+		position := correctionPosition{id: id, order: idx}
+		for _, p := range positions {
+			position.accrued = position.accrued.Add(p.amount())
+		}
+		origins = append(origins, position)
+		histories[id], positionsByOrigin[id], originals[id] = history, positions, original
+	}
+	selected, err := planCollectionCorrection(collectionCorrectionInput{amount: amount, positions: origins})
+	if err != nil {
+		return nil, fmt.Errorf("exceeds remaining origin balance: %w", err)
+	}
+	var actions []plannedAction
+	for _, selection := range selected {
+		resolved, err := c.unwindOrigin(ctx, input, source, histories[selection.id], originals[selection.id], positionsByOrigin[selection.id], selection.amount)
 		if err != nil {
 			return nil, err
 		}
 		actions = append(actions, plannedDirectInputs(resolved))
-		remaining = remaining.Sub(take)
-	}
-	if remaining.IsPositive() {
-		return nil, fmt.Errorf("correction exceeds remaining origin balance by %s", remaining)
 	}
 	return actions, nil
 }
 
-func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, history originHistory, original *originPair, amount alpacadecimal.Decimal) (resolvedCorrectionInputs, error) {
+func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, history originReferences, original *originPair, positions []correctionPosition, amount alpacadecimal.Decimal) (resolvedCorrectionInputs, error) {
 	var out resolvedCorrectionInputs
-	backingBySource := make(map[string]*originPair)
-	backingOrder := make([]string, 0)
-	recognizedBySource := make(map[string]alpacadecimal.Decimal)
-	for _, pair := range history.pairs {
-		switch pair.code {
-		case transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}):
-			key := lo.FromPtr(pair.credit.SourceChargeID())
-			if backingBySource[key] != nil {
-				return out, fmt.Errorf("ambiguous backfill source for collection origin")
-			}
-			backingBySource[key] = pair
-			backingOrder = append(backingOrder, key)
-		case transactions.TemplateCode(transactions.RecognizeEarningsFromAttributableAccruedTemplate{}):
-			key := lo.FromPtr(pair.credit.SourceChargeID())
-			recognizedBySource[key] = recognizedBySource[key].Add(pair.remaining)
-		}
+	selections, err := planCollectionCorrection(collectionCorrectionInput{amount: amount, positions: positions})
+	if err != nil {
+		return out, err
 	}
-	backingAmounts := make(map[string]alpacadecimal.Decimal)
-	remaining := amount
-	for _, pair := range history.pairs {
-		if pair.code != transactions.TemplateCode(transactions.RecognizeEarningsFromAttributableAccruedTemplate{}) || !remaining.IsPositive() {
-			continue
-		}
-		take := minDecimal(pair.remaining, remaining)
-		if !take.IsPositive() {
-			continue
-		}
-		key := lo.FromPtr(pair.credit.SourceChargeID())
-		if source.advanceReceivableIssueTransaction != nil {
-			if backingBySource[key] == nil {
-				return out, fmt.Errorf("recognized advance has no matching backfill")
+	for _, selection := range selections {
+		remainingRecognition := selection.earnings
+		for _, pair := range history.pairs {
+			if pair.role != originRoleRecognition || lo.FromPtr(pair.credit.SourceChargeID()) != selection.id {
+				continue
 			}
-			backingAmounts[key] = backingAmounts[key].Add(take)
-		} else if key != lo.FromPtr(original.debit.SourceChargeID()) {
-			return out, fmt.Errorf("recognition source does not match original collection")
-		}
-		reversal, err := reverseOriginPair(input, pair, take)
-		if err != nil {
-			return out, err
-		}
-		out.inputs = append(out.inputs, reversal)
-		remaining = remaining.Sub(take)
-	}
-	if source.advanceReceivableIssueTransaction != nil {
-		for _, key := range backingOrder {
-			pair := backingBySource[key]
-			unrecognized := pair.remaining.Sub(recognizedBySource[key])
-			if unrecognized.IsNegative() {
-				return out, fmt.Errorf("recognition exceeds its matching backfill")
-			}
-			take := minDecimal(unrecognized, remaining)
-			backingAmounts[key] = backingAmounts[key].Add(take)
-			remaining = remaining.Sub(take)
-		}
-		backfilled := alpacadecimal.Zero
-		for _, pair := range backingBySource {
-			backfilled = backfilled.Add(pair.remaining)
-		}
-		if remaining.GreaterThan(original.remaining.Sub(backfilled)) {
-			return out, fmt.Errorf("correction exceeds uncovered advance balance")
-		}
-		for _, key := range backingOrder {
-			take := backingAmounts[key]
+			take := minDecimal(remainingRecognition, pair.remaining)
 			if !take.IsPositive() {
 				continue
 			}
-			resolved, err := c.unwindOriginBackfill(ctx, input, history, backingBySource[key], take)
+			reversal, err := reverseOriginPair(input, pair, take)
+			if err != nil {
+				return out, err
+			}
+			out.inputs = append(out.inputs, reversal)
+			remainingRecognition = remainingRecognition.Sub(take)
+		}
+		if remainingRecognition.IsPositive() {
+			return out, fmt.Errorf("earnings position lacks original recognition references")
+		}
+		if source.advanceReceivableIssueTransaction == nil || selection.id == unknownOriginSource {
+			continue
+		}
+		remainingBacking := selection.amount
+		for _, pair := range history.pairs {
+			if pair.role != originRoleBacking || lo.FromPtr(pair.credit.SourceChargeID()) != selection.id {
+				continue
+			}
+			take := minDecimal(remainingBacking, pair.remaining)
+			if !take.IsPositive() {
+				continue
+			}
+			resolved, err := c.unwindOriginBackfill(ctx, input, history, pair, take)
 			if err != nil {
 				return out, err
 			}
 			out.inputs = append(out.inputs, resolved.inputs...)
 			out.breakagePending = append(out.breakagePending, resolved.breakagePending...)
+			remainingBacking = remainingBacking.Sub(take)
+		}
+		if remainingBacking.IsPositive() {
+			return out, fmt.Errorf("funded position lacks original backing references")
 		}
 	}
+
 	reversal, err := reverseOriginPair(input, original, amount)
 	if err != nil {
 		return out, err
@@ -168,11 +155,11 @@ func reverseOriginPair(input CorrectCollectedAccruedInput, pair *originPair, amo
 	})
 }
 
-func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input CorrectCollectedAccruedInput, history originHistory, backfill *originPair, amount alpacadecimal.Decimal) (resolvedCorrectionInputs, error) {
+func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input CorrectCollectedAccruedInput, history originReferences, backfill *originPair, amount alpacadecimal.Decimal) (resolvedCorrectionInputs, error) {
 	var out resolvedCorrectionInputs
 	var attribution *originPair
 	for _, pair := range history.pairs {
-		if pair.code == transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}) &&
+		if pair.role == originRoleAttribution &&
 			pair.transaction.GroupID() == backfill.transaction.GroupID() &&
 			lo.FromPtr(pair.debit.SourceChargeID()) == lo.FromPtr(backfill.credit.SourceChargeID()) {
 			if attribution != nil {
@@ -207,7 +194,7 @@ func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input Corre
 		for _, tx := range history.transactions {
 			for _, entry := range tx.Entries() {
 				if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO &&
-					lo.FromPtr(entry.OriginID()) == lo.FromPtr(backfill.credit.OriginID()) &&
+					lo.FromPtr(entry.CollectionOriginID()) == lo.FromPtr(backfill.credit.CollectionOriginID()) &&
 					lo.FromPtr(entry.SourceChargeID()) == lo.FromPtr(backfill.credit.SourceChargeID()) {
 					matching[tx.ID().ID] = true
 				}
@@ -224,7 +211,7 @@ func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input Corre
 			}
 			reopened, pending, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
 				Release: release, Amount: take, SourceKind: breakage.SourceKindUsageCorrection,
-				SourceChargeID: backfill.credit.SourceChargeID(), SpendChargeID: backfill.credit.SpendChargeID(), OriginID: backfill.credit.OriginID(),
+				SourceChargeID: backfill.credit.SourceChargeID(), SpendChargeID: backfill.credit.SpendChargeID(), CollectionOriginID: backfill.credit.CollectionOriginID(),
 			})
 			if err != nil {
 				return out, err

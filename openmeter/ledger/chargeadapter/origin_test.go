@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -58,6 +59,7 @@ func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 	require.NoError(t, err)
 	legacy, err := legacylineageservice.New(legacylineageservice.Config{Adapter: adapter})
 	require.NoError(t, err)
+	legacy = &ledgertestutils.LineageWithAllocations{Service: legacy}
 	rec, err := recognizer.NewService(recognizer.Config{
 		Ledger: base.Deps.HistoricalLedger, Dependencies: deps,
 		Lineage: legacy, TransactionManager: enttx.NewCreator(base.DB),
@@ -428,10 +430,10 @@ func TestOriginRecognitionRespectsBookingTimeAndManagedCurrencyIdentity(t *testi
 	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &sourceA, &spend))
 	group, err := e.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{Namespace: e.Namespace, ID: first[0].LedgerTransaction.TransactionGroupID})
 	require.NoError(t, err)
-	origin := group.Transactions()[0].Entries()[0].OriginID()
+	origin := group.Transactions()[0].Entries()[0].CollectionOriginID()
 	require.NotNil(t, origin)
 	// Indexed traversal returns complete origin pairs across pages without sibling origins.
-	query := ledger.ListTransactionsInput{Namespace: e.Namespace, OriginID: origin, Limit: 1}
+	query := ledger.ListTransactionsInput{Namespace: e.Namespace, CollectionOriginID: origin, Limit: 1}
 	var ids []string
 	for {
 		page, err := e.Deps.HistoricalLedger.ListTransactions(t.Context(), query)
@@ -440,7 +442,7 @@ func TestOriginRecognitionRespectsBookingTimeAndManagedCurrencyIdentity(t *testi
 			ids = append(ids, tx.ID().ID)
 			require.NotEmpty(t, tx.GroupID().ID)
 			for _, entry := range tx.Entries() {
-				require.Equal(t, origin, entry.OriginID())
+				require.Equal(t, origin, entry.CollectionOriginID())
 			}
 		}
 		if page.NextCursor == nil {
@@ -449,10 +451,10 @@ func TestOriginRecognitionRespectsBookingTimeAndManagedCurrencyIdentity(t *testi
 		query.Cursor = page.NextCursor
 	}
 	require.Len(t, ids, 2)
-	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{Namespace: e.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(e.BusinessAccounts.EarningsAccount.ID().ID), OriginID: mo.Some(origin)}, GroupBy: []string{ledger.BalanceBucketGroupByOriginID}})
+	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{Namespace: e.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(e.BusinessAccounts.EarningsAccount.ID().ID), CollectionOriginID: mo.Some(origin)}, GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID}})
 	require.NoError(t, err)
 	require.Len(t, buckets, 1)
-	require.Equal(t, origin, buckets[0].GroupByValues[ledger.BalanceBucketGroupByOriginID])
+	require.Equal(t, origin, buckets[0].GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])
 	require.Equal(t, float64(20), buckets[0].SettledAmount.InexactFloat64())
 }
 

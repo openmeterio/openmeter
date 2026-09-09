@@ -660,7 +660,7 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	firstRealizationID := env.createAdvanceLineage(t, firstChargeID, firstCurrency, alpacadecimal.NewFromInt(30))
 	secondRealizationID := env.createAdvanceLineage(t, secondChargeID, secondCurrency, alpacadecimal.NewFromInt(50))
 
-	firstLineages, err := env.legacylineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
+	firstLineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
 		Currency:   firstCurrency.Reference(),
@@ -670,7 +670,7 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	require.True(t, firstLineages[0].Currency.Equal(firstCurrency.Reference()))
 	require.Equal(t, firstChargeID, firstLineages[0].ChargeID)
 
-	secondLineages, err := env.legacylineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
+	secondLineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
 		Currency:   secondCurrency.Reference(),
@@ -694,7 +694,7 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	require.NoError(t, err)
 	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
-	err = env.legacylineage.BackfillAdvanceLineageSegments(t.Context(), legacylineage.BackfillAdvanceLineageSegmentsInput{
+	err = env.lineage.BackfillAdvanceLineageSegments(t.Context(), legacylineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 env.Namespace,
 		Allocations:               []legacylineage.AdvanceBackfillAllocation{{SegmentID: firstLineages[0].Segments[0].ID, Amount: alpacadecimal.NewFromInt(30)}},
 		CustomerID:                env.CustomerID.ID,
@@ -704,12 +704,12 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	firstSegments, err := env.legacylineage.LoadActiveSegmentsByRealizationID(t.Context(), env.Namespace, []string{firstRealizationID})
+	firstSegments, err := env.lineage.LoadActiveSegmentsByRealizationID(t.Context(), env.Namespace, []string{firstRealizationID})
 	require.NoError(t, err)
 	require.Len(t, firstSegments[firstRealizationID], 1)
 	require.Equal(t, creditrealization.LineageSegmentStateAdvanceBackfilled, firstSegments[firstRealizationID][0].State)
 
-	secondSegments, err := env.legacylineage.LoadActiveSegmentsByRealizationID(t.Context(), env.Namespace, []string{secondRealizationID})
+	secondSegments, err := env.lineage.LoadActiveSegmentsByRealizationID(t.Context(), env.Namespace, []string{secondRealizationID})
 	require.NoError(t, err)
 	require.Len(t, secondSegments[secondRealizationID], 1)
 	require.Equal(t, creditrealization.LineageSegmentStateAdvanceUncovered, secondSegments[secondRealizationID][0].State,
@@ -736,7 +736,7 @@ func (e *usageBasedHandlerTestEnv) createAdvanceLineage(t *testing.T, chargeID s
 		},
 	}
 
-	err := e.legacylineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
+	err := e.lineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,

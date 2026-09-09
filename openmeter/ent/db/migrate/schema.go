@@ -4553,7 +4553,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "identity_key", Type: field.TypeString, Default: ""},
 		{Name: "schema_version", Type: field.TypeInt, Default: 1},
-		{Name: "origin_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "collection_origin_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "spend_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -4626,7 +4626,7 @@ var (
 				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[10]},
 			},
 			{
-				Name:    "ledgerentry_namespace_origin_id",
+				Name:    "ledgerentry_namespace_collection_origin_id",
 				Unique:  false,
 				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[8]},
 			},

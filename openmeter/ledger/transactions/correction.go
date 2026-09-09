@@ -77,7 +77,7 @@ func CorrectTransaction(
 		return nil, fmt.Errorf("validate correction input: %w", err)
 	}
 	for _, entry := range scope.OriginalTransaction.Entries() {
-		if entry.OriginID() != nil {
+		if entry.CollectionOriginID() != nil {
 			return nil, fmt.Errorf("origin-tracked transactions require provenance-aware correction")
 		}
 	}

@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	BalanceBucketGroupByOriginID       = "origin_id"
-	BalanceBucketGroupBySourceChargeID = "source_charge_id"
-	BalanceBucketGroupBySpendChargeID  = "spend_charge_id"
+	BalanceBucketGroupByCollectionOriginID = "collection_origin_id"
+	BalanceBucketGroupBySourceChargeID     = "source_charge_id"
+	BalanceBucketGroupBySpendChargeID      = "spend_charge_id"
 )
 
 type BalanceQuery struct {
@@ -43,7 +43,7 @@ func (q BalanceBucketQuery) Validate() error {
 
 	for _, groupBy := range q.GroupBy {
 		switch groupBy {
-		case BalanceBucketGroupBySourceChargeID, BalanceBucketGroupBySpendChargeID, BalanceBucketGroupByOriginID:
+		case BalanceBucketGroupBySourceChargeID, BalanceBucketGroupBySpendChargeID, BalanceBucketGroupByCollectionOriginID:
 		default:
 			return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
 				"reason":   "group_by_invalid",

@@ -31,7 +31,7 @@ func (s *Service) createCreditRealizationLineages(
 	if len(realizations) == 0 {
 		return nil
 	}
-	if err := s.legacylineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
+	if err := s.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.GetCustomerID(),
@@ -42,7 +42,7 @@ func (s *Service) createCreditRealizationLineages(
 		return fmt.Errorf("create initial credit realization lineages: %w", err)
 	}
 
-	if err := s.legacylineage.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{
+	if err := s.lineage.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{
 		Namespace:    charge.Namespace,
 		Realizations: realizations,
 	}); err != nil {
@@ -525,5 +525,5 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 		return realization.ID
 	})
 
-	return s.legacylineage.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, realizationIDs)
+	return s.lineage.LoadActiveSegmentsByRealizationID(ctx, charge.Namespace, realizationIDs)
 }

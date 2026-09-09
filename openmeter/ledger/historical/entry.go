@@ -19,9 +19,9 @@ type EntryData struct {
 	IdentityKey   string
 	SchemaVersion ledger.EntrySchemaVersion
 
-	SourceChargeID *string
-	SpendChargeID  *string
-	OriginID       *string
+	SourceChargeID     *string
+	SpendChargeID      *string
+	CollectionOriginID *string
 
 	SubAccountID string
 	AccountType  ledger.AccountType
@@ -85,8 +85,8 @@ func (e *Entry) SourceChargeID() *string {
 	return e.data.SourceChargeID
 }
 
-func (e *Entry) OriginID() *string {
-	return e.data.OriginID
+func (e *Entry) CollectionOriginID() *string {
+	return e.data.CollectionOriginID
 }
 
 func (e *Entry) SpendChargeID() *string {

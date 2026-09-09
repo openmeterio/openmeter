@@ -30,14 +30,14 @@ func ValidateOriginProvenance(entries []EntryInput) error {
 	balances := make(map[string]originBalance)
 	var errs []error
 	for _, entry := range entries {
-		if entry.OriginID() == nil {
+		if entry.CollectionOriginID() == nil {
 			continue
 		}
 		spend := lo.FromPtr(entry.SpendChargeID())
 		if spend == "" {
 			errs = append(errs, errors.New("origin provenance requires spend_charge_id"))
 		}
-		key := *entry.OriginID() + ":" + entry.PostingAddress().Route().Route().Currency.IdentityKey()
+		key := *entry.CollectionOriginID() + ":" + entry.PostingAddress().Route().Route().Currency.IdentityKey()
 		value, exists := balances[key]
 		if !exists {
 			value.spend = spend

@@ -483,6 +483,6 @@ func mustImpactTestEntry(t *testing.T, accountType ledger.AccountType, route led
 	}
 }
 
-func (e impactTestEntry) OriginID() *string { return nil }
+func (e impactTestEntry) CollectionOriginID() *string { return nil }
 
 func (t impactTestTransaction) GroupID() models.NamespacedID { return t.ID() }

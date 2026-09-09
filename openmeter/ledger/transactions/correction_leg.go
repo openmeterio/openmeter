@@ -12,15 +12,15 @@ import (
 // routePairingKey pairs source and counterpart sub-accounts during collection,
 // receivable coverage, and earnings correction.
 type routePairingKey struct {
-	currency          string
-	costBasisCurrency string
-	taxCode           string
-	taxBehavior       string
-	features          string
-	costBasis         string
-	sourceChargeID    string
-	spendChargeID     string
-	originID          string
+	currency           string
+	costBasisCurrency  string
+	taxCode            string
+	taxBehavior        string
+	features           string
+	costBasis          string
+	sourceChargeID     string
+	spendChargeID      string
+	collectionOriginID string
 }
 
 func (k routePairingKey) String() string {
@@ -91,9 +91,9 @@ func allocateCorrectionLegs(
 			counterpartAddress: counterpartAddress,
 			amount:             entryAmount,
 			identity: ledger.EntryIdentityParts{
-				SourceChargeID: entry.SourceChargeID(),
-				OriginID:       entry.OriginID(),
-				SpendChargeID:  entry.SpendChargeID(),
+				SourceChargeID:     entry.SourceChargeID(),
+				CollectionOriginID: entry.CollectionOriginID(),
+				SpendChargeID:      entry.SpendChargeID(),
 			},
 		})
 		available = available.Add(entryAmount)
@@ -137,10 +137,10 @@ func allocateCorrectionLegs(
 			leg.sourceAddress,
 			leg.amount,
 			ledger.EntryIdentityParts{
-				CorrectionSource: &leg.sourceEntryID,
-				SourceChargeID:   leg.identity.SourceChargeID,
-				OriginID:         leg.identity.OriginID,
-				SpendChargeID:    leg.identity.SpendChargeID,
+				CorrectionSource:   &leg.sourceEntryID,
+				SourceChargeID:     leg.identity.SourceChargeID,
+				CollectionOriginID: leg.identity.CollectionOriginID,
+				SpendChargeID:      leg.identity.SpendChargeID,
 			},
 			false,
 		)

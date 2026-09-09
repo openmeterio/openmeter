@@ -399,8 +399,8 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 	s.Empty(lineages)
 }
 
-func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegmentsConsumesBackfilledBeforeUncovered() {
-	ctx := context.Background()
+func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegmentsPersistsExactLedgerSelection() {
+	ctx := s.T().Context()
 	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
@@ -413,6 +413,7 @@ func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegments
 
 	ns := s.GetUniqueNamespace("charges-service-lineage-correction-persist")
 	backingTransactionGroupID := ulid.Make().String()
+	backfilledSegmentID := ulid.Make().String()
 	lineageID := ulid.Make().String()
 	chargeID := ulid.Make().String()
 	rootRealizationID := ulid.Make().String()
@@ -437,7 +438,7 @@ func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegments
 
 	_, err = s.DBClient.CreditRealizationLineageSegment.CreateBulk(
 		s.DBClient.CreditRealizationLineageSegment.Create().
-			SetID(ulid.Make().String()).
+			SetID(backfilledSegmentID).
 			SetLineageID(lineageID).
 			SetAmount(alpacadecimal.NewFromInt(20)).
 			SetState(creditrealization.LineageSegmentStateAdvanceBackfilled).
@@ -450,12 +451,15 @@ func (s *CreditRealizationLineageTestSuite) TestPersistCorrectionLineageSegments
 	).Save(ctx)
 	s.Require().NoError(err)
 
+	annotations, err := legacylineage.CorrectionAnnotations(map[string]alpacadecimal.Decimal{backfilledSegmentID: alpacadecimal.NewFromInt(15)})
+	s.Require().NoError(err)
 	err = service.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{
 		Namespace: ns,
 		Realizations: creditrealization.Realizations{
 			{
 				CreateInput: creditrealization.CreateInput{
 					Type:                  creditrealization.TypeCorrection,
+					Annotations:           annotations,
 					Amount:                alpacadecimal.NewFromInt(-15),
 					CorrectsRealizationID: lo.ToPtr(rootRealizationID),
 				},
@@ -532,7 +536,7 @@ func (s *CreditRealizationLineageTestSuite) mustListLineages(namespace string, r
 
 	out := make(map[string]*entdb.CreditRealizationLineage, len(lineages))
 	for _, lineage := range lineages {
-		out[legacylineage.RootRealizationID] = lineage
+		out[lineage.RootRealizationID] = lineage
 	}
 
 	return out
@@ -593,13 +597,13 @@ func (s *CreditRealizationLineageTestSuite) assertInitialLineage(lineage *entdb.
 	s.T().Helper()
 
 	require.NotNil(s.T(), lineage)
-	s.Equal(chargeID, legacylineage.ChargeID)
-	s.Equal(originKind, legacylineage.OriginKind)
-	s.Require().Len(legacylineage.Edges.Segments, 1)
-	s.Equal(amount, legacylineage.Edges.Segments[0].Amount)
-	s.Equal(state, legacylineage.Edges.Segments[0].State)
-	s.Nil(legacylineage.Edges.Segments[0].ClosedAt)
-	s.Nil(legacylineage.Edges.Segments[0].BackingTransactionGroupID)
+	s.Equal(chargeID, lineage.ChargeID)
+	s.Equal(originKind, lineage.OriginKind)
+	s.Require().Len(lineage.Edges.Segments, 1)
+	s.Equal(amount, lineage.Edges.Segments[0].Amount)
+	s.Equal(state, lineage.Edges.Segments[0].State)
+	s.Nil(lineage.Edges.Segments[0].ClosedAt)
+	s.Nil(lineage.Edges.Segments[0].BackingTransactionGroupID)
 }
 
 func realizationIDs(realizations creditrealization.Realizations) []string {
