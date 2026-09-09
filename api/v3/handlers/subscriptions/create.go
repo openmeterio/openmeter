@@ -119,6 +119,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 			return plansubscription.CreateSubscriptionRequest{
 				WorkflowInput:  workflowInput,
 				PlanInput:      planInput,
+				StartingPhase:  body.StartingPhase,
 				SettlementMode: settlementMode,
 			}, nil
 		},

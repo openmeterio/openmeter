@@ -6517,6 +6517,14 @@ export const subscriptionCreate = z.object({
       'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
     ),
   customPlan: subscriptionCustomPlan.optional(),
+  startingPhase: z
+    .string()
+    .min(1)
+    .optional()
+
+    .describe(
+      'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+    ),
   billingAnchor: dateTime.optional(),
   costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
 })
@@ -6550,6 +6558,14 @@ export const subscriptionChange = z
         'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
       ),
     customPlan: subscriptionCustomPlan.optional(),
+    startingPhase: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+      ),
     billingAnchor: dateTime.optional(),
     costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
     timing: subscriptionEditTiming,
@@ -14291,6 +14307,14 @@ export const subscriptionCreateWire = z.strictObject({
       'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
     ),
   custom_plan: subscriptionCustomPlanWire.optional(),
+  starting_phase: z
+    .string()
+    .min(1)
+    .optional()
+
+    .describe(
+      'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+    ),
   billing_anchor: dateTimeWire.optional(),
   cost_basis_mode: subscriptionCostBasisModeWire.optional(),
 })
@@ -14324,6 +14348,14 @@ export const subscriptionChangeWire = z
         'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
       ),
     custom_plan: subscriptionCustomPlanWire.optional(),
+    starting_phase: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+      ),
     billing_anchor: dateTimeWire.optional(),
     cost_basis_mode: subscriptionCostBasisModeWire.optional(),
     timing: subscriptionEditTimingWire,
