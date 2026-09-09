@@ -81,7 +81,7 @@ type EntryInput interface {
 	Amount() alpacadecimal.Decimal
 	IdentityKey() string
 	SchemaVersion() EntrySchemaVersion
-	OriginID() *string
+	CollectionOriginID() *string
 	SourceChargeID() *string
 	SpendChargeID() *string
 	Annotations() models.Annotations
@@ -199,12 +199,12 @@ type Ledger interface {
 
 type ListTransactionsInput struct {
 	Namespace string
-	// OriginID selects transactions and entries belonging to this collection
+	// CollectionOriginID selects transactions and entries belonging to this collection
 	// origin, like the account/route filters. Each origin balances independently.
-	OriginID *string
-	Cursor   *TransactionCursor
-	Before   *TransactionCursor
-	Limit    int
+	CollectionOriginID *string
+	Cursor             *TransactionCursor
+	Before             *TransactionCursor
+	Limit              int
 
 	TransactionID *models.NamespacedID
 
@@ -229,8 +229,8 @@ type ListTransactionsResult struct {
 }
 
 func (i ListTransactionsInput) Validate() error {
-	if i.OriginID != nil && *i.OriginID == "" {
-		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{"reason": "origin_id_invalid"})
+	if i.CollectionOriginID != nil && *i.CollectionOriginID == "" {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{"reason": "collection_origin_id_invalid"})
 	}
 	if i.Limit < 1 {
 		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{

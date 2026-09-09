@@ -6,6 +6,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -40,7 +41,7 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 	accountID := accounts.AccruedAccount.ID().ID
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: in.CustomerID.Namespace,
-		Filters:   ledger.Filters{AccountID: &accountID, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
+		Filters:   ledger.Filters{CollectionOriginID: mo.Some[*string](nil), AccountID: &accountID, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
 		GroupBy:   []string{ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	if err != nil {
@@ -57,11 +58,11 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 	sourceIndexes := make(map[accruedKey]int)
 	var allocations []recognitionAllocation
 	for _, e := range eligible {
-		original, err := s.recognitionGroup(ctx, in.CustomerID.Namespace, e.legacylineage.OriginalTransactionGroupID, groups)
+		original, err := s.recognitionGroup(ctx, in.CustomerID.Namespace, e.lineage.OriginalTransactionGroupID, groups)
 		if err != nil {
 			return nil, nil, err
 		}
-		collected, err := allocationAccruedSources(original, e.legacylineage.OriginalAllocationSortHint)
+		collected, err := allocationAccruedSources(original, e.lineage.OriginalAllocationSortHint)
 		if err != nil {
 			return nil, nil, err
 		}

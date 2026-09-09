@@ -124,7 +124,7 @@ func (t TransferCustomerFBOToAccruedTemplate) entryRoutePairingKey(entry ledger.
 	key := t.routePairingKey(entry.PostingAddress())
 	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
 	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
-	key.originID = lo.FromPtrOr(entry.OriginID(), "null")
+	key.collectionOriginID = lo.FromPtrOr(entry.CollectionOriginID(), "null")
 
 	return key
 }
@@ -133,7 +133,7 @@ func (t TransferCustomerFBOToAccruedTemplate) sourceRoutePairingKey(source Posti
 	key := t.routePairingKey(source.Address)
 	key.sourceChargeID = lo.FromPtrOr(source.Identity.SourceChargeID, "null")
 	key.spendChargeID = lo.FromPtrOr(source.Identity.SpendChargeID, "null")
-	key.originID = lo.FromPtrOr(source.Identity.OriginID, "null")
+	key.collectionOriginID = lo.FromPtrOr(source.Identity.CollectionOriginID, "null")
 
 	return key
 }
@@ -214,9 +214,9 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 			}
 			current.Address = accruedSubAccount.Address()
 			current.Identity = ledger.EntryIdentityParts{
-				SourceChargeID: source.Identity.SourceChargeID,
-				OriginID:       source.Identity.OriginID,
-				SpendChargeID:  source.Identity.SpendChargeID,
+				SourceChargeID:     source.Identity.SourceChargeID,
+				CollectionOriginID: source.Identity.CollectionOriginID,
+				SpendChargeID:      source.Identity.SpendChargeID,
 			}
 		}
 
@@ -281,18 +281,18 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 //     SourceChargeID is set so the accrued leg keeps purchase provenance
 //     alongside the spend that consumed it.
 type TransferCustomerFBOAdvanceToAccruedTemplate struct {
-	At                time.Time
-	Amount            alpacadecimal.Decimal
-	Currency          currencies.CurrencyReference
-	TaxCode           *string
-	TaxBehavior       *ledger.TaxBehavior
-	CostBasisCurrency *currencyx.Code
-	CostBasis         *alpacadecimal.Decimal
-	Features          []string
-	SourceChargeID    *string
-	SpendChargeID     *string
-	OriginID          *string
-	CreditPriority    *int
+	At                 time.Time
+	Amount             alpacadecimal.Decimal
+	Currency           currencies.CurrencyReference
+	TaxCode            *string
+	TaxBehavior        *ledger.TaxBehavior
+	CostBasisCurrency  *currencyx.Code
+	CostBasis          *alpacadecimal.Decimal
+	Features           []string
+	SourceChargeID     *string
+	SpendChargeID      *string
+	CollectionOriginID *string
+	CreditPriority     *int
 }
 
 func (t TransferCustomerFBOAdvanceToAccruedTemplate) Validate() error {
@@ -433,18 +433,18 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 				address: fbo.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					OriginID:       t.OriginID,
-					SpendChargeID:  t.SpendChargeID,
+					SourceChargeID:     t.SourceChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 			{
 				address: accrued.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					OriginID:       t.OriginID,
-					SpendChargeID:  t.SpendChargeID,
+					SourceChargeID:     t.SourceChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 		},
@@ -566,10 +566,10 @@ type TranslateCustomerAccruedCostBasisTemplate struct {
 	ToCostBasis   *alpacadecimal.Decimal
 	// CostBasisCurrency is the fiat currency the ToCostBasis leg was priced
 	// against. Nil when FromCostBasis is also nil (cost basis still unknown).
-	CostBasisCurrency *currencyx.Code
-	SourceChargeID    *string
-	SpendChargeID     *string
-	OriginID          *string
+	CostBasisCurrency  *currencyx.Code
+	SourceChargeID     *string
+	SpendChargeID      *string
+	CollectionOriginID *string
 }
 
 func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
@@ -716,17 +716,17 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 				address: fromAccrued.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					OriginID:      t.OriginID,
-					SpendChargeID: t.SpendChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 			{
 				address: toAccrued.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					OriginID:       t.OriginID,
-					SpendChargeID:  t.SpendChargeID,
+					SourceChargeID:     t.SourceChargeID,
+					CollectionOriginID: t.CollectionOriginID,
+					SpendChargeID:      t.SpendChargeID,
 				},
 			},
 		},

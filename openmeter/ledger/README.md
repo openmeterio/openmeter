@@ -58,13 +58,14 @@ facts stored independently from the journal.
   preserves charge provenance and route pairing, links replacement postings to
   their source entries, and uses deterministic source order rather than
   recomputing an idealized replacement from current balances.
-- New credit collections mint an `origin_id` per original source slice. Backfill,
+- New credit collections mint a `collection_origin_id` per original source slice. Backfill,
   recognition, breakage release, and correction preserve it alongside source and
   spend attribution. Core validators require each origin to balance independently.
-- Corrections reference both original legs; the journal supplies their remaining
-  reversible amounts. Only pre-cutover collections retain
-  [deprecated lineage state](../billing/charges/legacylineage/README.md), whose
-  compatibility boundary requires a coordinated writer cutover.
+- Correction selection uses scoped account positions and original collection or
+  backing order. Exact original-entry references bound the resulting reversals.
+  A shared planner serves provenance and legacy readers/writers; only pre-cutover
+  collections retain [deprecated lineage state](../billing/charges/legacylineage/README.md).
+  The compatibility boundary requires a coordinated writer cutover.
 - Credit-backed earnings recognition consumes only accrued buckets whose
   source credit and spend charge are both present and distinct. Buckets without
   that provenance - including invoice-backed accrued value and unbackfilled

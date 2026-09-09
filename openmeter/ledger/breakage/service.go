@@ -115,9 +115,9 @@ type PlanIssuanceInput struct {
 }
 
 type PlanIssuanceImmediateRelease struct {
-	Amount        alpacadecimal.Decimal
-	SpendChargeID *string
-	OriginID      *string
+	Amount             alpacadecimal.Decimal
+	SpendChargeID      *string
+	CollectionOriginID *string
 }
 
 func (i PlanIssuanceInput) Validate() error {
@@ -183,7 +183,7 @@ type ReleasePlanInput struct {
 	SourceEntryIdentityKey string
 	SourceChargeID         *string
 	SpendChargeID          *string
-	OriginID               *string
+	CollectionOriginID     *string
 }
 
 func (i ReleasePlanInput) Validate() error {
@@ -225,12 +225,12 @@ func (i ReleasePlanInput) Validate() error {
 // ReopenReleaseInput describes how much of one released plan should be reopened
 // and which correction flow caused it.
 type ReopenReleaseInput struct {
-	Release        Release
-	Amount         alpacadecimal.Decimal
-	SourceKind     SourceKind
-	SourceChargeID *string
-	SpendChargeID  *string
-	OriginID       *string
+	Release            Release
+	Amount             alpacadecimal.Decimal
+	SourceKind         SourceKind
+	SourceChargeID     *string
+	SpendChargeID      *string
+	CollectionOriginID *string
 }
 
 func (i ReopenReleaseInput) Validate() error {
@@ -364,11 +364,11 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 				FBOAddress:      fboAddress,
 				BreakageAddress: breakageAddress,
 			},
-			Amount:         immediateRelease.Amount,
-			SourceKind:     SourceKindAdvanceBackfill,
-			SourceChargeID: input.SourceChargeID,
-			SpendChargeID:  immediateRelease.SpendChargeID,
-			OriginID:       immediateRelease.OriginID,
+			Amount:             immediateRelease.Amount,
+			SourceKind:         SourceKindAdvanceBackfill,
+			SourceChargeID:     input.SourceChargeID,
+			SpendChargeID:      immediateRelease.SpendChargeID,
+			CollectionOriginID: immediateRelease.CollectionOriginID,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("resolve immediate breakage release: %w", err)
@@ -413,11 +413,11 @@ func (s *service) ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledg
 		FBOAddress:      input.Plan.FBOAddress,
 		BreakageAddress: input.Plan.BreakageAddress,
 		FBOIdentity: ledger.EntryIdentityParts{
-			SourceChargeID: input.SourceChargeID,
-			SpendChargeID:  input.SpendChargeID,
-			OriginID:       input.OriginID,
+			SourceChargeID:     input.SourceChargeID,
+			SpendChargeID:      input.SpendChargeID,
+			CollectionOriginID: input.CollectionOriginID,
 		},
-		BreakageIdentity: releaseBreakageIdentity(input.SourceChargeID, input.SpendChargeID, input.OriginID),
+		BreakageIdentity: releaseBreakageIdentity(input.SourceChargeID, input.SpendChargeID, input.CollectionOriginID),
 	})
 	if err != nil {
 		return nil, PendingRecord{}, fmt.Errorf("resolve breakage release: %w", err)
@@ -457,11 +457,11 @@ func (s *service) ReopenRelease(ctx context.Context, input ReopenReleaseInput) (
 		FBOAddress:      input.Release.FBOAddress,
 		BreakageAddress: input.Release.BreakageAddress,
 		FBOIdentity: ledger.EntryIdentityParts{
-			SourceChargeID: input.SourceChargeID,
-			SpendChargeID:  input.SpendChargeID,
-			OriginID:       input.OriginID,
+			SourceChargeID:     input.SourceChargeID,
+			SpendChargeID:      input.SpendChargeID,
+			CollectionOriginID: input.CollectionOriginID,
 		},
-		BreakageIdentity: releaseBreakageIdentity(input.SourceChargeID, input.SpendChargeID, input.OriginID),
+		BreakageIdentity: releaseBreakageIdentity(input.SourceChargeID, input.SpendChargeID, input.CollectionOriginID),
 	})
 	if err != nil {
 		return nil, PendingRecord{}, fmt.Errorf("resolve breakage reopen: %w", err)
@@ -837,7 +837,7 @@ func newRecordID(namespace string) models.NamespacedID {
 // Legacy releases used source-only breakage provenance. Origin-tracked releases
 // carry the same origin and spend on both legs so the origin balances independently.
 func releaseBreakageIdentity(source, spend, origin *string) ledger.EntryIdentityParts {
-	identity := ledger.EntryIdentityParts{SourceChargeID: source, OriginID: origin}
+	identity := ledger.EntryIdentityParts{SourceChargeID: source, CollectionOriginID: origin}
 	if origin != nil {
 		identity.SpendChargeID = spend
 	}

@@ -37,7 +37,7 @@ func (i ReverseOriginEntryPairInput) Validate() error {
 	if i.Debit.TransactionID() != i.Transaction.ID() || i.Credit.TransactionID() != i.Transaction.ID() {
 		errs = append(errs, errors.New("entries must belong to the original transaction"))
 	}
-	if i.Debit.OriginID() == nil || !equal.ComparablePtrEqual(i.Debit.OriginID(), i.Credit.OriginID()) {
+	if i.Debit.CollectionOriginID() == nil || !equal.ComparablePtrEqual(i.Debit.CollectionOriginID(), i.Credit.CollectionOriginID()) {
 		errs = append(errs, errors.New("entries must share a collection origin"))
 	}
 	if !i.Debit.Amount().IsNegative() || !i.Credit.Amount().IsPositive() || !i.Debit.Amount().Neg().Equal(i.Credit.Amount()) {
@@ -79,7 +79,7 @@ func ReverseOriginEntryPair(input ReverseOriginEntryPairInput) (ledger.Transacti
 		entries = append(entries, &EntryInput{
 			address: original.PostingAddress(), amount: amount,
 			identity: ledger.EntryIdentityParts{
-				OriginID: original.OriginID(), SourceChargeID: original.SourceChargeID(),
+				CollectionOriginID: original.CollectionOriginID(), SourceChargeID: original.SourceChargeID(),
 				SpendChargeID: original.SpendChargeID(), CorrectionSource: &id,
 			},
 		})

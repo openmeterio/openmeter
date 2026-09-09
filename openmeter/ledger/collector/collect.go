@@ -172,7 +172,7 @@ func (c *accrualCollector) resolveCoveredReceivableInputs(ctx context.Context, i
 	}
 
 	for i := range selections {
-		selections[i].originID = lo.ToPtr(ulid.Make().String())
+		selections[i].collectionOriginID = lo.ToPtr(ulid.Make().String())
 	}
 	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
@@ -225,7 +225,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 	}
 
 	for i := range selections {
-		selections[i].originID = lo.ToPtr(ulid.Make().String())
+		selections[i].collectionOriginID = lo.ToPtr(ulid.Make().String())
 	}
 	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
@@ -278,19 +278,19 @@ func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, 
 		releaseRemainingByPlanID[plan.ID.ID] = remaining.Sub(selection.amount)
 
 		releaseInput, releaseRecord, err := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
-			Plan:           plan,
-			Amount:         selection.amount,
-			SourceKind:     breakage.SourceKindUsage,
-			SourceChargeID: selection.source.sourceChargeID,
-			SpendChargeID:  &chargeID,
-			OriginID:       selection.originID,
+			Plan:               plan,
+			Amount:             selection.amount,
+			SourceKind:         breakage.SourceKindUsage,
+			SourceChargeID:     selection.source.sourceChargeID,
+			SpendChargeID:      &chargeID,
+			CollectionOriginID: selection.collectionOriginID,
 			SourceEntryIdentityKey: func() string {
 				collectionSource := strconv.Itoa(idx)
 				identityKey, _ := ledger.EntryIdentityParts{
-					CollectionSource: &collectionSource,
-					OriginID:         selection.originID,
-					SourceChargeID:   selection.source.sourceChargeID,
-					SpendChargeID:    &chargeID,
+					CollectionSource:   &collectionSource,
+					CollectionOriginID: selection.collectionOriginID,
+					SourceChargeID:     selection.source.sourceChargeID,
+					SpendChargeID:      &chargeID,
 				}.Text()
 
 				return string(identityKey)
@@ -308,7 +308,7 @@ func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, 
 }
 
 func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input CollectToAccruedInput, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {
-	originID := ulid.Make().String()
+	collectionOriginID := ulid.Make().String()
 	var features []string
 	if input.FeatureKey != "" {
 		features = []string{input.FeatureKey}
@@ -319,22 +319,22 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 		c.deps,
 		c.resolutionScope(input),
 		transactions.IssueCustomerReceivableTemplate{
-			At:            input.BookedAt,
-			Amount:        amount,
-			Currency:      input.Currency,
-			Features:      features,
-			SpendChargeID: &input.ChargeID,
-			OriginID:      &originID,
+			At:                 input.BookedAt,
+			Amount:             amount,
+			Currency:           input.Currency,
+			Features:           features,
+			SpendChargeID:      &input.ChargeID,
+			CollectionOriginID: &collectionOriginID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:            input.BookedAt,
-			Amount:        amount,
-			Currency:      input.Currency,
-			TaxCode:       input.TaxCode,
-			TaxBehavior:   input.TaxBehavior,
-			Features:      features,
-			SpendChargeID: &input.ChargeID,
-			OriginID:      &originID,
+			At:                 input.BookedAt,
+			Amount:             amount,
+			Currency:           input.Currency,
+			TaxCode:            input.TaxCode,
+			TaxBehavior:        input.TaxBehavior,
+			Features:           features,
+			SpendChargeID:      &input.ChargeID,
+			CollectionOriginID: &collectionOriginID,
 		},
 	)
 	if err != nil {
