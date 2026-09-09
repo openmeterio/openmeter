@@ -96,6 +96,7 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		s.RequireUsageBasedChargeStatus(usageChargeID, usagebased.StatusCreated)
 
 		clock.FreezeTime(servicePeriod.From)
+		defer clock.UnFreeze()
 		_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
 		s.Require().NoError(err)
 
@@ -123,6 +124,7 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		// - advancement fails with a validation error and the charge is left untouched for a retry
 		s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, nil))
 		clock.FreezeTime(servicePeriod.To)
+		defer clock.UnFreeze()
 
 		_, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
 		s.Require().Error(err)
@@ -152,6 +154,9 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		// - the customer is advanced again
 		// then:
 		// - the same advance succeeds and the charge starts its final realization
+		clock.FreezeTime(servicePeriod.To)
+		defer clock.UnFreeze()
+		
 		s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, meters))
 
 		advanced, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
