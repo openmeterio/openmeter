@@ -255,7 +255,7 @@ func withStoredAt(storedAt time.Time) MessageTransformerFunc {
 	}
 }
 
-// flush flushes the 1. buffer to storage, 2. sets dedupe and 3. store the offset
+// flush flushes the 1. buffer to storage, 2. stores Kafka offsets and 3. updates sink dedupe state.
 // called when max wait time or min commit count reached
 func (s *Sink) flush(ctx context.Context) error {
 	logger := s.config.Logger.With("operation", "flush")
@@ -306,29 +306,15 @@ func (s *Sink) flush(ctx context.Context) error {
 	// Dedupe messages so if we have multiple messages in the same batch
 	dedupedMessages := dedupeSinkMessages(messages)
 
-	// If deduplicator is set, let's reexecute the deduplication to decrease the number of messages double persisted
-	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
-		dedupeResults, err := s.config.Deduplicator.CheckUniqueBatch(ctx, lo.Map(dedupedMessages, func(message sinkmodels.SinkMessage, _ int) dedupe.Item {
-			return message.GetDedupeItem()
-		}))
-		if err != nil {
-			return fmt.Errorf("failed to check uniqueness of kafka messages: %w", err)
-		}
-
-		updatedDedupedMessages := make([]sinkmodels.SinkMessage, 0, len(dedupedMessages))
-		for _, message := range dedupedMessages {
-			if _, ok := dedupeResults.UniqueItems[message.GetDedupeItem()]; ok {
-				updatedDedupedMessages = append(updatedDedupedMessages, message)
-			}
-		}
-
-		dedupedMessages = updatedDedupedMessages
+	flushPlan, err := s.planFlushMessages(ctx, dedupedMessages)
+	if err != nil {
+		return fmt.Errorf("failed to plan flush messages: %w", err)
 	}
 
 	// 1. Persist to storage
-	if len(dedupedMessages) > 0 {
+	if len(flushPlan.messagesToInsert) > 0 {
 		// Persist events to permanent storage
-		err := s.persistToStorage(ctx, dedupedMessages)
+		err := s.persistToStorage(ctx, flushPlan.messagesToInsert)
 		if err != nil {
 			return fmt.Errorf("failed to persist: %w", err)
 		}
@@ -348,13 +334,11 @@ func (s *Sink) flush(ctx context.Context) error {
 		}
 	}
 
-	// 3. Sink to Redis
-	// Least once guarantee, if Redis write fails we potenitally accept messages with same idempotency key in future.
-	// Deduplicator is an optional dependency so we check if it's set
-	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
-		err := s.dedupeSet(ctx, dedupedMessages)
+	// 3. Sink dedupe IDs after successful persistence.
+	if s.config.Deduplicator != nil && len(flushPlan.dedupeItemsToSet) > 0 {
+		err := s.dedupeSet(ctx, flushPlan.dedupeItemsToSet)
 		if err != nil {
-			// Try to commit offset if dedupe fails to ensure consistency
+			// Try to commit offset if dedupe fails to ensure consistency.
 			if offsetStoreErr == nil {
 				_, err := s.config.Consumer.Commit()
 				if err != nil {
@@ -362,18 +346,17 @@ func (s *Sink) flush(ctx context.Context) error {
 				}
 			}
 
-			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
+			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs.
 			if offsetStoreErr != nil {
 				logger.ErrorContext(ctx, "consistency failure", "err", err, "messages", messages)
 			}
 
-			// Return error, stop consuming
+			// Return error, stop consuming.
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
 	}
 
-	// Return offset store error if any as above we don't return error
-	// to ensure we set deduplication IDs in Redis
+	// Return offset store error if any.
 	if offsetStoreErr != nil {
 		return fmt.Errorf("failed to store offset: %w", offsetStoreErr)
 	}
@@ -401,6 +384,110 @@ func (s *Sink) flush(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+type flushMessagePlan struct {
+	messagesToInsert []sinkmodels.SinkMessage
+	dedupeItemsToSet []dedupe.Item
+}
+
+func (s *Sink) planFlushMessages(ctx context.Context, messages []sinkmodels.SinkMessage) (flushMessagePlan, error) {
+	plan := flushMessagePlan{
+		messagesToInsert: messages,
+		dedupeItemsToSet: nil,
+	}
+
+	if s.config.Deduplicator == nil || len(messages) == 0 {
+		return plan, nil
+	}
+
+	validMessages := make([]sinkmodels.SinkMessage, 0, len(messages))
+	dedupeItems := make([]dedupe.Item, 0, len(messages))
+
+	for _, message := range messages {
+		item, ok := dedupeItemFromMessage(message)
+		if !ok {
+			continue
+		}
+
+		validMessages = append(validMessages, message)
+		dedupeItems = append(dedupeItems, item)
+	}
+
+	if len(validMessages) == 0 {
+		plan.messagesToInsert = nil
+		return plan, nil
+	}
+
+	dedupeResults, err := s.config.Deduplicator.CheckUniqueBatch(ctx, dedupeItems)
+	if err != nil {
+		return flushMessagePlan{}, fmt.Errorf("failed to check uniqueness of kafka messages: %w", err)
+	}
+
+	// Batch-check potentially unsafe replay windows:
+	// - unique+durable means crash happened after storage and before dedupe set,
+	// - existing+not-durable means crash happened before storage but dedupe key was already set.
+	durableItems, err := s.config.Storage.HasEvents(ctx, dedupeItems)
+	if err != nil {
+		return flushMessagePlan{}, fmt.Errorf("failed to verify durable state for flush messages: %w", err)
+	}
+
+	plan.messagesToInsert = make([]sinkmodels.SinkMessage, 0, len(validMessages))
+	plan.dedupeItemsToSet = make([]dedupe.Item, 0, len(validMessages))
+
+	for _, message := range validMessages {
+		item := message.GetDedupeItem()
+		_, isUnique := dedupeResults.UniqueItems[item]
+		_, isAlreadyProcessed := dedupeResults.AlreadyProcessedItems[item]
+		_, isDurable := durableItems[item]
+
+		switch {
+		case isUnique:
+			// Always set unique keys post-persist, including unique+durable rows,
+			// so future replays do not keep triggering durable storage lookups.
+			plan.dedupeItemsToSet = append(plan.dedupeItemsToSet, item)
+			if !isDurable {
+				plan.messagesToInsert = append(plan.messagesToInsert, message)
+			}
+		case isAlreadyProcessed:
+			if !isDurable {
+				plan.messagesToInsert = append(plan.messagesToInsert, message)
+			}
+		default:
+			return flushMessagePlan{}, fmt.Errorf("dedupe result did not classify item %s", item.Key())
+		}
+	}
+
+	return plan, nil
+}
+
+func dedupeItemFromMessage(message sinkmodels.SinkMessage) (dedupe.Item, bool) {
+	if message.Status.State != sinkmodels.OK {
+		return dedupe.Item{}, false
+	}
+
+	if message.Serialized == nil {
+		return dedupe.Item{}, false
+	}
+
+	item := message.GetDedupeItem()
+	if item.Namespace == "" || item.Source == "" || item.ID == "" {
+		return dedupe.Item{}, false
+	}
+
+	return item, true
+}
+
+func dedupeItemsFromMessages(messages []sinkmodels.SinkMessage) []dedupe.Item {
+	items := make([]dedupe.Item, 0, len(messages))
+	for _, message := range messages {
+		item, ok := dedupeItemFromMessage(message)
+		if ok {
+			items = append(items, item)
+		}
+	}
+
+	return items
 }
 
 // reportFlushMetrics reports metrics to OTel
@@ -475,42 +562,13 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 	return nil
 }
 
-// dedupeSet sets the dedupe keys in Deduplicator with retry
-func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage) error {
+// dedupeSet sets the dedupe keys in Deduplicator with retry.
+func (s *Sink) dedupeSet(ctx context.Context, dedupeItems []dedupe.Item) error {
 	logger := s.config.Logger.With("operation", "dedupeSet")
 	dedupeCtx, dedupeSet := s.config.Tracer.Start(ctx, "dedupe-set")
 	dedupeSet.SetAttributes(
-		attribute.Int("size", len(messages)),
+		attribute.Int("size", len(dedupeItems)),
 	)
-
-	dedupeItems := []dedupe.Item{}
-	for _, message := range messages {
-		switch message.Status.State {
-		case sinkmodels.OK:
-			dedupeItems = append(dedupeItems, dedupe.Item{
-				Namespace: message.Namespace,
-				ID:        message.Serialized.Id,
-				Source:    message.Serialized.Source,
-			})
-		case sinkmodels.DROP:
-			// Let's not insert already dropped messages into the deduplicator as this signals
-			// that we had a problem validating the message, we could redo any validation as needed
-			// later but if any error was transient let's retry the message if it's sent again.
-
-			if s.config.LogDroppedEvents {
-				logger.WarnContext(ctx, "event dropped",
-					slog.String("namespace", message.Namespace),
-					slog.String("event", string(message.KafkaMessage.Value)),
-					slog.Any("error", message.Status.DropError),
-					slog.String("status", message.Status.State.String()),
-				)
-			}
-
-			continue
-		default:
-			logger.ErrorContext(ctx, "unknown state type in dedup set", "state", message.Status.State.String())
-		}
-	}
 
 	if len(dedupeItems) == 0 {
 		logger.Debug("no dedupe items to set")
@@ -549,7 +607,7 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 		return fmt.Errorf("failed to sink to redis: %s", err)
 	}
 	dedupeSet.End()
-	logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
+	logger.Debug("succeeded to sink to redis", "buffer size", len(dedupeItems))
 	return nil
 }
 
@@ -955,25 +1013,6 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.
 
 	sinkMessage.Serialized = &kafkaCloudEvent
 
-	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
-	// Dedupe is an optional dependency, so we check if it's set
-	if s.config.Deduplicator != nil {
-		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, sinkMessage.GetDedupeItem())
-		if err != nil {
-			// Stop processing, non-recoverable error
-			return sinkMessage, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
-		}
-
-		if !isUnique {
-			sinkMessage.Status = sinkmodels.ProcessingStatus{
-				State:     sinkmodels.DROP,
-				DropError: errors.New("skipping non unique message"),
-			}
-
-			return sinkMessage, nil
-		}
-	}
-
 	// Let's resolve affected meters
 	affectedMeters, err := s.meterCache.GetAffectedMeters(ctx, sinkMessage)
 	if err != nil {
@@ -1027,6 +1066,10 @@ func dedupeSinkMessages(events []sinkmodels.SinkMessage) []sinkmodels.SinkMessag
 	for _, event := range events {
 		switch event.Status.State {
 		case sinkmodels.OK:
+			if event.Serialized == nil {
+				continue
+			}
+
 			key := dedupe.Item{
 				Namespace: event.Namespace,
 				ID:        event.Serialized.Id,
