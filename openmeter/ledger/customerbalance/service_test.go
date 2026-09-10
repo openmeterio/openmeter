@@ -362,8 +362,7 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 	requireBalance(t, 100, 100)
 
 	createdCharges, err := env.flatFeeService.Create(t.Context(), flatfee.CreateInput{
-		Namespace:     env.Namespace,
-		FeatureMeters: env.featureMeters,
+		Namespace: env.Namespace,
 		Intents: []flatfee.Intent{
 			{
 				Intent: chargemeta.Intent{

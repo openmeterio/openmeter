@@ -568,15 +568,9 @@ func (e *LineEngine) createManualInvoiceLines(ctx context.Context, input billing
 
 	namespace := input.Invoice.GetInvoiceID().Namespace
 	intents := lo.Map(created, func(line manualCreatedInvoiceLine, _ int) usagebased.Intent { return line.intent })
-	featureMeters, err := e.service.featureMeterResolver.Resolve(ctx, namespace, intents...)
-	if err != nil {
-		return nil, fmt.Errorf("resolving manually created usage-based charge feature meters: %w", err)
-	}
-
 	createdCharges, err := e.service.Create(ctx, usagebased.CreateInput{
-		Namespace:     namespace,
-		Intents:       intents,
-		FeatureMeters: featureMeters,
+		Namespace: namespace,
+		Intents:   intents,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating manually managed usage-based charges: %w", err)

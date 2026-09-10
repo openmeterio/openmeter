@@ -156,11 +156,6 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			return nil, err
 		}
 
-		createFeatureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Namespace, input.Intents...)
-		if err != nil {
-			return nil, fmt.Errorf("resolve create feature meters: %w", err)
-		}
-
 		createdCharges := make([]charges.WithIndex[charges.Charge], 0, len(input.Intents))
 		gatheringLinesToCreate := make([]gatheringLineWithCustomerID, 0, len(input.Intents))
 
@@ -170,7 +165,6 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			Intents: lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent {
 				return intent.Value
 			}),
-			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
 			return nil, err
@@ -201,7 +195,6 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			Intents: lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent {
 				return intent.Value
 			}),
-			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
 			return nil, err

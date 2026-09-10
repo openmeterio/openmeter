@@ -119,7 +119,7 @@ func fromDBBase(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) (usageba
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,
 			AdvanceAfter:            entity.AdvanceAfter,
-			FeatureID:               entity.FeatureID,
+			FeatureID:               lo.FromPtr(entity.FeatureID),
 			RatingEngine:            entity.RatingEngine,
 			CostBasisID:             costBasisID,
 			ResolvedCostBasis:       resolvedCostBasis,

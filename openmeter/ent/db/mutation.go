@@ -65879,7 +65879,7 @@ func (m *ChargeUsageBasedMutation) FeatureID() (r string, exists bool) {
 // OldFeatureID returns the old "feature_id" field's value of the ChargeUsageBased entity.
 // If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldFeatureID(ctx context.Context) (v string, err error) {
+func (m *ChargeUsageBasedMutation) OldFeatureID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
 	}
@@ -65893,9 +65893,22 @@ func (m *ChargeUsageBasedMutation) OldFeatureID(ctx context.Context) (v string, 
 	return oldValue.FeatureID, nil
 }
 
+// ClearFeatureID clears the value of the "feature_id" field.
+func (m *ChargeUsageBasedMutation) ClearFeatureID() {
+	m.feature = nil
+	m.clearedFields[chargeusagebased.FieldFeatureID] = struct{}{}
+}
+
+// FeatureIDCleared returns if the "feature_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedMutation) FeatureIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebased.FieldFeatureID]
+	return ok
+}
+
 // ResetFeatureID resets all changes to the "feature_id" field.
 func (m *ChargeUsageBasedMutation) ResetFeatureID() {
 	m.feature = nil
+	delete(m.clearedFields, chargeusagebased.FieldFeatureID)
 }
 
 // SetRatingEngine sets the "rating_engine" field.
@@ -66522,7 +66535,7 @@ func (m *ChargeUsageBasedMutation) ClearFeature() {
 
 // FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
 func (m *ChargeUsageBasedMutation) FeatureCleared() bool {
-	return m.clearedfeature
+	return m.FeatureIDCleared() || m.clearedfeature
 }
 
 // FeatureIDs returns the "feature" edge IDs in the mutation.
@@ -67277,6 +67290,9 @@ func (m *ChargeUsageBasedMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebased.FieldDiscounts) {
 		fields = append(fields, chargeusagebased.FieldDiscounts)
 	}
+	if m.FieldCleared(chargeusagebased.FieldFeatureID) {
+		fields = append(fields, chargeusagebased.FieldFeatureID)
+	}
 	if m.FieldCleared(chargeusagebased.FieldUnitConfig) {
 		fields = append(fields, chargeusagebased.FieldUnitConfig)
 	}
@@ -67344,6 +67360,9 @@ func (m *ChargeUsageBasedMutation) ClearField(name string) error {
 		return nil
 	case chargeusagebased.FieldDiscounts:
 		m.ClearDiscounts()
+		return nil
+	case chargeusagebased.FieldFeatureID:
+		m.ClearFeatureID()
 		return nil
 	case chargeusagebased.FieldUnitConfig:
 		m.ClearUnitConfig()

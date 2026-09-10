@@ -46,19 +46,14 @@ type UsageBasedService interface {
 }
 
 type CreateInput struct {
-	Namespace     string
-	Intents       []Intent
-	FeatureMeters billingfeaturemeter.FeatureMeters
+	Namespace string
+	Intents   []Intent
 }
 
 func (i CreateInput) Validate() error {
 	var errs []error
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	if len(i.Intents) > 0 && i.FeatureMeters == nil {
-		errs = append(errs, errors.New("feature meters are required"))
 	}
 
 	for idx, intent := range i.Intents {
@@ -89,10 +84,6 @@ func (i CreateIntent) Validate() error {
 
 	if err := i.Intent.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if i.FeatureID == "" {
-		errs = append(errs, errors.New("feature id is required"))
 	}
 
 	if err := i.RatingEngine.Validate(); err != nil {

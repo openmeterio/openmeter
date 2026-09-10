@@ -1,6 +1,7 @@
 package service
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
@@ -12,17 +13,18 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
+	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// TestBuildCustomerCharge exercises the pure assembly step against an
+// TestBuildCustomerCharge exercises the assembly step against an
 // in-memory charge: the DB-backed facade suite cannot create a charge with a
 // subscription reference (FK to real subscription rows), so the
 // subscription/invoice attach wiring is covered here instead.
@@ -84,14 +86,24 @@ func TestBuildCustomerCharge(t *testing.T) {
 	}
 
 	entities := customerChargeEntities{
-		customer:          &customer.Customer{ManagedResource: models.ManagedResource{ID: "cust-1", Name: "Attach Customer"}},
-		featuresByRef:     map[ref.IDOrKey]feature.Feature{{ID: "feat-1"}: {ID: "feat-1", Name: "Attach Feature"}},
+		customer: &customer.Customer{ManagedResource: models.ManagedResource{ID: "cust-1", Name: "Attach Customer"}},
+		featureMeters: billingfeaturemeterservice.FeatureMeterCollection{
+			ByID: map[string]billingfeaturemeter.FeatureMeter{
+				"feat-1": {Feature: feature.Feature{ID: "feat-1", Name: "Attach Feature"}},
+			},
+		},
 		subscriptionsByID: map[string]subscription.Subscription{"sub-1": {NamespacedID: models.NamespacedID{Namespace: "ns", ID: "sub-1"}, Name: "Attach Subscription"}},
 		invoiceLinesByID:  map[string]billing.StandardInvoice{"line-1": {}},
 	}
+	service := &service{logger: slog.New(slog.DiscardHandler)}
 
 	// when attaching the loaded entities
-	out, err := buildCustomerCharge(charges.NewCharge(charge), entities)
+	out, err := service.buildCustomerCharge(t.Context(), charges.NewCharge(charge), entities, meta.Expands{
+		meta.ExpandCustomer,
+		meta.ExpandFeature,
+		meta.ExpandSubscription,
+		meta.ExpandRealizationInvoice,
+	})
 	require.NoError(t, err)
 
 	// then every expanded member resolves from its loaded entity, and the
@@ -110,7 +122,7 @@ func TestBuildCustomerCharge(t *testing.T) {
 	require.Nil(t, out.UsageBasedRealizations[1].Invoice, "the outstanding projection never has an invoice")
 
 	// and without loaded entities every expanded member stays nil
-	bare, err := buildCustomerCharge(charges.NewCharge(charge), customerChargeEntities{})
+	bare, err := service.buildCustomerCharge(t.Context(), charges.NewCharge(charge), customerChargeEntities{}, meta.ExpandNone)
 	require.NoError(t, err)
 	require.Nil(t, bare.Customer)
 	require.Nil(t, bare.Feature)

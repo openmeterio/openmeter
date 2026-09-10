@@ -44,7 +44,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&baseIntent.Discounts).
-			SetFeatureID(charge.State.FeatureID).
+			SetOrClearFeatureID(lo.EmptyableToPtr(charge.State.FeatureID)).
 			SetOrClearIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
 			SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
 			SetPrice(&baseIntent.Price).
@@ -438,13 +438,16 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 		SetNillableDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
 		SetNillableIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
 		SetDiscounts(&baseIntent.Discounts).
-		SetFeatureID(intent.FeatureID).
 		SetRatingEngine(intent.RatingEngine).
 		SetPrice(&baseIntent.Price).
 		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
 		SetFeatureKey(baseIntent.FeatureKey).
 		SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
 		SetSettlementMode(baseIntent.SettlementMode)
+
+	if intent.FeatureID != "" {
+		create = create.SetFeatureID(intent.FeatureID)
+	}
 
 	if baseIntent.UnitConfig != nil {
 		create = create.SetUnitConfig(baseIntent.UnitConfig)

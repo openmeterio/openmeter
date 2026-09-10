@@ -264,7 +264,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvo
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	customCurrency := s.createTestCustomCurrency(ctx, ns)
-	featureMeters := s.createFeatureMeters(ctx, ns, "custom-cti-feature")
+	s.createFeatureMeters(ctx, ns, "custom-cti-feature")
 
 	clock.FreezeTime(usageBasedIntentServicePeriod.From)
 	defer clock.UnFreeze()
@@ -279,7 +279,6 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvo
 		Intents: []usagebased.Intent{
 			s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-cti", "custom-cti-feature", productcatalog.CreditThenInvoiceSettlementMode, &costBasisIntent),
 		},
-		FeatureMeters: featureMeters,
 	})
 	s.Require().NoError(err)
 
@@ -303,7 +302,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyReco
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	customCurrency := s.createTestCustomCurrency(ctx, ns)
-	featureMeters := s.createFeatureMeters(ctx, ns, "custom-credit-only-feature")
+	s.createFeatureMeters(ctx, ns, "custom-credit-only-feature")
 
 	clock.FreezeTime(usageBasedIntentServicePeriod.From)
 	defer clock.UnFreeze()
@@ -313,7 +312,6 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyReco
 		Intents: []usagebased.Intent{
 			s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-credit-only", "custom-credit-only-feature", productcatalog.CreditOnlySettlementMode, nil),
 		},
-		FeatureMeters: featureMeters,
 	})
 	s.Require().NoError(err)
 

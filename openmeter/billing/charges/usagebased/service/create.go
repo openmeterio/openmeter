@@ -27,6 +27,11 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 		return nil, nil
 	}
 
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Namespace, input.Intents...)
+	if err != nil {
+		return nil, err
+	}
+
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
 		now := clock.Now().UTC()
 		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
@@ -47,19 +52,30 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				}
 			}
 
-			featureMeter, err := input.FeatureMeters.Get(chargeIntent)
+			featureMeter, err := featureMeters.Get(chargeIntent)
 			if err != nil {
-				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature for key %+v: %w", chargeIntent.GetFeatureRef(), err)
+				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature %+v: %w", chargeIntent.GetFeatureRef(), err)
 			}
 
-			// note: we must set the feature key on the intent, because no other place is setting it
-			// and we want to persist it
+			if chargeIntent.FeatureID != "" && chargeIntent.FeatureKey != "" && chargeIntent.FeatureKey != featureMeter.Feature.Key {
+				return usagebased.CreateIntent{}, models.NewGenericValidationError(fmt.Errorf(
+					"feature key %q does not match key %q resolved from feature id %q",
+					chargeIntent.FeatureKey,
+					featureMeter.Feature.Key,
+					chargeIntent.FeatureID,
+				))
+			}
+
+			featureID := ""
+			if chargeIntent.FeatureID != "" {
+				featureID = featureMeter.Feature.ID
+			}
 			chargeIntent.FeatureKey = featureMeter.Feature.Key
 
 			return usagebased.CreateIntent{
 				Intent:            chargeIntent.AsOverridableIntent(),
 				Annotations:       chargeIntent.Annotations,
-				FeatureID:         featureMeter.Feature.ID,
+				FeatureID:         featureID,
 				RatingEngine:      s.rater.GetPreferredRatingEngineFor(chargeIntent),
 				ResolvedCostBasis: resolvedCostBasis,
 			}, nil

@@ -75,16 +75,22 @@ func (s *CustomerChargeAPIListTestSuite) TestFeatureExpansionValidationPolicy() 
 
 		// when:
 		// - the customer charge facade expands the feature
-		featuresByRef, err := service.listCustomerChargeFeatures(
+		references, err := collectCustomerChargeReferences(charges.Charges{reference})
+		require.NoError(s.T(), err)
+		entities, err := service.loadCustomerChargeEntities(
 			s.T().Context(),
 			namespace,
-			[]billingfeaturemeter.FeatureReferenceGetter{reference},
+			"",
+			references,
+			meta.Expands{meta.ExpandFeature},
 		)
 
 		// then:
-		// - the resolver's validation issue does not discard its usable feature
+		// - feature-only resolution does not require a meter
 		require.NoError(s.T(), err)
-		require.Equal(s.T(), featureEntity, featuresByRef[reference.GetFeatureMeterRef().IDOrKey])
+		featureMeter, err := entities.featureMeters.Get(billingfeaturemeter.WithoutMeters(reference))
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), featureEntity, featureMeter.Feature)
 	})
 
 	s.Run("catalog system error aborts expansion", func() {
@@ -100,10 +106,14 @@ func (s *CustomerChargeAPIListTestSuite) TestFeatureExpansionValidationPolicy() 
 
 		// when:
 		// - the customer charge facade expands the feature
-		_, err := service.listCustomerChargeFeatures(
+		references, err := collectCustomerChargeReferences(charges.Charges{reference})
+		require.NoError(s.T(), err)
+		_, err = service.loadCustomerChargeEntities(
 			s.T().Context(),
 			namespace,
-			[]billingfeaturemeter.FeatureReferenceGetter{reference},
+			"",
+			references,
+			meta.Expands{meta.ExpandFeature},
 		)
 
 		// then:
@@ -131,7 +141,10 @@ func newCustomerChargeFeatureTestService(t *testing.T, features []feature.Featur
 	})
 	require.NoError(t, err)
 
-	return &service{featureMeterResolver: resolver}
+	return &service{
+		logger:               slog.New(slog.DiscardHandler),
+		featureMeterResolver: resolver,
+	}
 }
 
 func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
@@ -299,12 +312,17 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		// - feature expansion resolves that charge
 		references, err := collectCustomerChargeReferences(charges.Charges{staleCharge})
 		require.NoError(s.T(), err)
-		featuresByRef, err := s.Charges.listCustomerChargeFeatures(ctx, namespace, references.featureReferences)
+		entities, err := s.Charges.loadCustomerChargeEntities(ctx, namespace, cust.ID, references, meta.Expands{meta.ExpandFeature})
+		require.NoError(s.T(), err)
+		customerCharge, err := s.Charges.buildCustomerCharge(ctx, staleCharge, entities, meta.Expands{meta.ExpandFeature})
 
 		// then:
 		// - the missing feature is omitted so the facade can retain its ID-only fallback
 		require.NoError(s.T(), err)
-		require.Empty(s.T(), featuresByRef)
+		require.Nil(s.T(), customerCharge.Feature)
+		resolvedCharge, err := customerCharge.AsUsageBasedCharge()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), usageCharge.State.FeatureID, resolvedCharge.State.FeatureID)
 	})
 
 	s.Run("the subscription side-loader serves the facade's bulk lookup", func() {
@@ -407,18 +425,17 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 
 	s.Run("feature filters scope the listing", func() {
 		// given:
-		// - both charges reference the api-requests feature, created by key
-		//   (Create resolves and persists the feature ID)
+		// - both charges reference the api-requests feature by key without a pinned ID
 		// when:
 		// - listing filtered by feature id and by feature key
 		// then:
-		// - the matching feature returns every charge, a foreign one none
+		// - the ID does not match before activation, while the key returns every charge
 		byID := newListInput(meta.ExpandNone)
 		byID.FeatureID = &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(feat.Feature.ID)}}
 
 		result, err := s.Charges.ListCustomerCharges(ctx, byID)
 		require.NoError(s.T(), err)
-		s.Len(result.Charges.Items, 2)
+		s.Empty(result.Charges.Items)
 
 		byKey := newListInput(meta.ExpandNone)
 		byKey.FeatureKey = &filter.FilterString{In: lo.ToPtr([]string{feat.Feature.Key, "another-feature"})}
