@@ -46,6 +46,36 @@ func GetMockConnector(t *testing.T, opts ...MockConnectorOption) (*Connector, *M
 	return connector, mockClickhouse
 }
 
+func TestConnectorCreateEventsTable(t *testing.T) {
+	table := createEventsTable{Database: "testdb", EventsTableName: "events"}
+
+	t.Run("executes migration", func(t *testing.T) {
+		mockCH := NewMockClickHouse()
+		mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once()
+		mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once()
+		mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(nil).Once()
+
+		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
+
+		require.NoError(t, connector.createEventsTable(context.Background()))
+		mockCH.AssertExpectations(t)
+	})
+
+	t.Run("returns backfill error", func(t *testing.T) {
+		mockCH := NewMockClickHouse()
+		mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once()
+		mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once()
+		expectedErr := errors.New("backfill failed")
+		mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(expectedErr).Once()
+
+		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
+
+		err := connector.createEventsTable(context.Background())
+		require.ErrorIs(t, err, expectedErr)
+		mockCH.AssertExpectations(t)
+	})
+}
+
 // TestConnector_QueryMeter tests the queryMeter function
 func TestConnector_QueryMeter(t *testing.T) {
 	mockCH := NewMockClickHouse()
