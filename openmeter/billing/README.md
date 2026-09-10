@@ -58,7 +58,9 @@ subscription intent.
 - a gathering invoice's next collection time is when the collector should
   reconsider its pending lines
 - a standard invoice's collection time is the cutoff used while snapshotting
-  quantities and completing collection
+  quantities and completing collection. Unless a line provides an explicit
+  collection deadline, metered standard lines use their service-period end plus
+  the configured collection interval
 
 Collection alignment may move the effective collection cutoff to an anchor.
 Do not use one of these timestamps as a substitute for another.

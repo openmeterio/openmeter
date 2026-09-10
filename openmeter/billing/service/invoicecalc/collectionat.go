@@ -107,7 +107,7 @@ func resolveStandardLineCollectionAt(collectionConfig billing.CollectionConfig, 
 		return *line.OverrideCollectionPeriodEnd
 	}
 
-	collectionAt := line.InvoiceAt
+	collectionAt := line.Period.To
 
 	// If we have an intended collection period, we should try to honor that
 	if collectionConfig.Interval.IsPositive() {

@@ -46,7 +46,7 @@ type StandardLineBase struct {
 	// InvoiceAt is retained only to display the original invoice-at timestamp
 	// when a gathering line is rendered into a standard invoice line. Standard
 	// line business logic must not treat it as the line's scheduling source; use
-	// the line's creation timestamp when a standard-line fallback is needed.
+	// the line's service period end when resolving its collection deadline.
 	InvoiceAt                   time.Time  `json:"invoiceAt"`
 	OverrideCollectionPeriodEnd *time.Time `json:"overrideCollectionPeriodEnd,omitempty"`
 
