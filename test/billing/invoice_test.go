@@ -4721,6 +4721,121 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	s.Nil(pendingLines)
 }
 
+func (s *InvoicingTestSuite) TestSnapshotQuantityMissingFeature() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-snapshot-quantity-missing-feature")
+	now := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	servicePeriod := timeutil.ClosedPeriod{
+		From: now.Add(-time.Hour),
+		To:   now,
+	}
+
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	testFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	defer testFeature.Cleanup()
+
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+
+	// given:
+	// - a valid metered gathering line whose persisted feature reference becomes orphaned
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: billing.GatheringLines{{
+			GatheringLineBase: billing.GatheringLineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: namespace,
+					Name:      "metered line with missing feature",
+				}),
+				ManagedBy:     billing.ManuallyManagedLine,
+				ServicePeriod: servicePeriod,
+				InvoiceAt:     servicePeriod.To,
+				FeatureKey:    testFeature.Feature.Key,
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				})),
+			},
+		}},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(pendingLines.Lines, 1)
+	pendingLineID := pendingLines.Lines[0].ID
+	usageBasedConfigID := pendingLines.Lines[0].UBPConfigID
+
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_invoice_usage_based_line_configs SET feature_key = $1 WHERE id = $2`,
+		"missing-feature",
+		usageBasedConfigID,
+	)
+	s.Require().NoError(err)
+
+	// when:
+	// - billing collects the line after the feature can no longer be resolved
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:          customerEntity.GetID(),
+		ForceAsyncAdvance: true,
+	})
+
+	// then:
+	// - calculation is skipped and the incomplete line is persisted for retry
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
+	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+	s.Nil(invoice.QuantitySnapshotedAt)
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.Nil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
+	standardUsageBasedConfigID := invoice.Lines.OrEmpty()[0].UsageBased.ConfigID
+	s.Require().Len(invoice.ValidationIssues, 1)
+	issue := invoice.ValidationIssues[0]
+	s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
+	s.Equal(billing.ErrInvoiceLineFeatureNotFound.Code, issue.Code)
+	s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
+	s.Equal(fmt.Sprintf("/lines/%s", pendingLineID), issue.Path)
+
+	// when:
+	// - collection is retried while the feature is still missing
+	clock.SetTime(invoice.DefaultCollectionAtForStandardInvoice().Add(time.Minute))
+	queuedBillingService := s.BillingService.WithAdvancementStrategy(billing.QueuedAdvancementStrategy)
+	invoice, err = queuedBillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftCreated, invoice.Status)
+	s.Require().Len(invoice.ValidationIssues, 1)
+	s.Equal(billing.ValidationIssueSeverityWarning, invoice.ValidationIssues[0].Severity)
+
+	invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
+	s.Require().Len(invoice.ValidationIssues, 1)
+	s.Equal(billing.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+	s.Nil(invoice.QuantitySnapshotedAt)
+
+	// when:
+	// - the feature reference is repaired and collection is retried
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_invoice_usage_based_line_configs SET feature_key = $1 WHERE id = $2`,
+		testFeature.Feature.Key,
+		standardUsageBasedConfigID,
+	)
+	s.Require().NoError(err)
+
+	invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+
+	// then:
+	// - quantity snapshotting and detailed-line calculation complete normally
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.Empty(invoice.ValidationIssues)
+	s.NotNil(invoice.QuantitySnapshotedAt)
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.NotNil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
+}
+
 func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 	// given:
 	// - a metered feature and gathering usage line ready for collection

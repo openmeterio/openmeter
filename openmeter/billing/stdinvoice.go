@@ -481,7 +481,8 @@ func (i *StandardInvoice) HasLineSnapshotValidationIssueForComponent(component C
 			return false
 		}
 
-		return issue.Code == ErrInvoiceLineFeatureHasNoMeters.Code ||
+		return issue.Code == ErrInvoiceLineFeatureNotFound.Code ||
+			issue.Code == ErrInvoiceLineFeatureHasNoMeters.Code ||
 			issue.Code == ErrInvoiceLineSnapshotFailed.Code
 	})
 

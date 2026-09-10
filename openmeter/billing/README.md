@@ -120,13 +120,14 @@ Simulation is read-only but still validates its lines' feature and meter
 dependencies. Critical validation issues are returned on the simulated invoice
 and mark it invalid instead of failing the simulation request.
 
-If quantity snapshotting discovers that a persisted feature no longer has its
-required meter association, collection still materializes the standard invoice
-in `draft.invalid_created` with the critical validation code
+If quantity snapshotting cannot resolve a persisted feature or discovers that
+the feature no longer has its required meter association, collection still
+materializes the standard invoice in `draft.invalid_created` with the critical
+validation code `invoice_line_feature_not_found` or
 `invoice_line_feature_has_no_meters`. The affected quantities stay
 unsnapshotted. Retry from this state re-enters `draft.created` for calculation
-and validation before returning through collection, so the repaired meter is
-queried again; repeated collection failures return to the same state.
+and validation before returning through collection, so the repaired dependency
+is resolved again; repeated collection failures return to the same state.
 Post-collection validation failures use `draft.invalid` and retry validation
 instead. Operational snapshot failures abort collection instead of persisting
 an incomplete invoice.

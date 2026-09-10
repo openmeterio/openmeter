@@ -43,46 +43,56 @@ func TestRecalculateDetailedLinesAndTotalsSkipsEnginesWithoutCalculator(t *testi
 }
 
 func TestRecalculateDetailedLinesAndTotalsSkipsEngineWithSnapshotValidationIssue(t *testing.T) {
-	for _, tc := range []struct {
-		name     string
-		severity billing.ValidationIssueSeverity
+	for _, issue := range []struct {
+		name string
+		code string
 	}{
-		{name: "critical issue from creation", severity: billing.ValidationIssueSeverityCritical},
-		{name: "warning issue downgraded for retry", severity: billing.ValidationIssueSeverityWarning},
+		{name: "feature not found", code: billing.ErrInvoiceLineFeatureNotFound.Code},
+		{name: "feature has no meters", code: billing.ErrInvoiceLineFeatureHasNoMeters.Code},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			// given: a line engine has incomplete output after quantity snapshotting failed
-			engineType := billing.LineEngineTypeInvoice
-			invoice := billing.StandardInvoice{
-				ValidationIssues: billing.ValidationIssues{
-					{
-						Severity:  tc.severity,
-						Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-						Component: billing.LineEngineValidationComponent(engineType),
-					},
-				},
-				Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{
-					{
-						StandardLineBase: billing.StandardLineBase{
-							Engine: engineType,
-							Totals: totals.Totals{
-								Amount: alpacadecimal.NewFromInt(12),
-								Total:  alpacadecimal.NewFromInt(12),
+		t.Run(issue.name, func(t *testing.T) {
+			for _, severity := range []struct {
+				name  string
+				value billing.ValidationIssueSeverity
+			}{
+				{name: "critical issue from creation", value: billing.ValidationIssueSeverityCritical},
+				{name: "warning issue downgraded for retry", value: billing.ValidationIssueSeverityWarning},
+			} {
+				t.Run(severity.name, func(t *testing.T) {
+					// given: a line engine has incomplete output after quantity snapshotting failed
+					engineType := billing.LineEngineTypeInvoice
+					invoice := billing.StandardInvoice{
+						ValidationIssues: billing.ValidationIssues{
+							{
+								Severity:  severity.value,
+								Code:      issue.code,
+								Component: billing.LineEngineValidationComponent(engineType),
 							},
 						},
-					},
-				}),
+						Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{
+							{
+								StandardLineBase: billing.StandardLineBase{
+									Engine: engineType,
+									Totals: totals.Totals{
+										Amount: alpacadecimal.NewFromInt(12),
+										Total:  alpacadecimal.NewFromInt(12),
+									},
+								},
+							},
+						}),
+					}
+
+					// when: invoice calculation runs before collection has repaired the line
+					err := RecalculateDetailedLinesAndTotals(&invoice, StandardInvoiceCalculatorDependencies{
+						LineEngines: staticLineEngineResolver{},
+					})
+
+					// then: the incomplete engine output is preserved without invoking its calculator
+					require.NoError(t, err)
+					require.Equal(t, float64(12), invoice.Totals.Amount.InexactFloat64())
+					require.Equal(t, float64(12), invoice.Totals.Total.InexactFloat64())
+				})
 			}
-
-			// when: invoice calculation runs before collection has repaired the line
-			err := RecalculateDetailedLinesAndTotals(&invoice, StandardInvoiceCalculatorDependencies{
-				LineEngines: staticLineEngineResolver{},
-			})
-
-			// then: the incomplete engine output is preserved without invoking its calculator
-			require.NoError(t, err)
-			require.Equal(t, float64(12), invoice.Totals.Amount.InexactFloat64())
-			require.Equal(t, float64(12), invoice.Totals.Total.InexactFloat64())
 		})
 	}
 }

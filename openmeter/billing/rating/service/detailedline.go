@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -72,10 +73,16 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 		if err != nil {
 			return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting metered usage: %w", err)
 		}
+		if meteredQuantity == nil {
+			return rating.GenerateDetailedLinesResult{}, errors.New("metered quantity is required")
+		}
 
 		preLinePeriodMeteredQuantity, err := in.GetMeteredPreLinePeriodQuantity()
 		if err != nil {
 			return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting pre line period metered usage: %w", err)
+		}
+		if preLinePeriodMeteredQuantity == nil {
+			return rating.GenerateDetailedLinesResult{}, errors.New("pre-line period metered quantity is required")
 		}
 
 		input.Usage = &rating.Usage{
