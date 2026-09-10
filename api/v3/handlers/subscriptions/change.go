@@ -23,6 +23,7 @@ type (
 		ID             models.NamespacedID
 		PlanInput      plansubscription.PlanInput
 		WorkflowInput  subscriptionworkflow.ChangeSubscriptionWorkflowInput
+		StartingPhase  *string
 		SettlementMode *productcatalog.SettlementMode
 	}
 	ChangeSubscriptionResponse = api.BillingSubscriptionChangeResponse
@@ -112,6 +113,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				ID:             id,
 				PlanInput:      planInput,
 				WorkflowInput:  workflowInput,
+				StartingPhase:  body.StartingPhase,
 				SettlementMode: settlementMode,
 			}, nil
 		},
@@ -120,6 +122,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 				ID:             req.ID,
 				WorkflowInput:  req.WorkflowInput,
 				PlanInput:      req.PlanInput,
+				StartingPhase:  req.StartingPhase,
 				SettlementMode: req.SettlementMode,
 			})
 			if err != nil {

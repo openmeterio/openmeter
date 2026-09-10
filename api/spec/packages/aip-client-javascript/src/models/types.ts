@@ -3444,6 +3444,23 @@ export interface CreateSubscriptionAddonRequest {
   timing: SubscriptionEditTiming
 }
 
+/**
+ * Request for updating a subscription add-on. Only the quantity can be changed;
+ * the timing controls when the new quantity takes effect.
+ */
+export interface SubscriptionAddonUpdate {
+  /**
+   * The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the
+   * add-on from the point the timing resolves to.
+   */
+  quantity: number
+  /**
+   * The timing of the update. A new entry is appended to the add-on's timeline at
+   * this point.
+   */
+  timing: SubscriptionEditTiming
+}
+
 /** TaxCode create request. */
 export interface CreateTaxCodeRequest {
   /**
@@ -5980,6 +5997,14 @@ export interface SubscriptionCreate {
    */
   customPlan?: SubscriptionCustomPlan
   /**
+   * The key of the phase to start the subscription in. If not provided, the
+   * subscription starts in the first phase of the plan.
+   *
+   * Only applies when creating from a published `plan`; custom plans define their
+   * own phases inline.
+   */
+  startingPhase?: string
+  /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are
    * calculated. Common anchors:
@@ -6027,6 +6052,14 @@ export interface SubscriptionChange {
    * linked to a persisted plan, so the response omits the `plan` reference.
    */
   customPlan?: SubscriptionCustomPlan
+  /**
+   * The key of the phase to start the subscription in. If not provided, the
+   * subscription starts in the first phase of the plan.
+   *
+   * Only applies when creating from a published `plan`; custom plans define their
+   * own phases inline.
+   */
+  startingPhase?: string
   /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are
@@ -8635,6 +8668,14 @@ export interface SubscriptionCreateInput {
    */
   customPlan?: SubscriptionCustomPlanInput
   /**
+   * The key of the phase to start the subscription in. If not provided, the
+   * subscription starts in the first phase of the plan.
+   *
+   * Only applies when creating from a published `plan`; custom plans define their
+   * own phases inline.
+   */
+  startingPhase?: string
+  /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are
    * calculated. Common anchors:
@@ -8682,6 +8723,14 @@ export interface SubscriptionChangeInput {
    * linked to a persisted plan, so the response omits the `plan` reference.
    */
   customPlan?: SubscriptionCustomPlanInput
+  /**
+   * The key of the phase to start the subscription in. If not provided, the
+   * subscription starts in the first phase of the plan.
+   *
+   * Only applies when creating from a published `plan`; custom plans define their
+   * own phases inline.
+   */
+  startingPhase?: string
   /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are

@@ -196,6 +196,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Subscriptions.CreateAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons` | Add add-on to a subscription. |
 | `om.Subscriptions.ListAddons` | `GET /openmeter/subscriptions/{subscriptionId}/addons` | List the add-ons of a subscription. |
 | `om.Subscriptions.GetAddon` | `GET /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}` | Get an add-on association for a subscription. |
+| `om.Subscriptions.UpdateAddon` | `PATCH /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}` | Update a subscription add-on. Only the quantity is mutable; the timing controls when the new quantity takes effect. A new entry is appended to the add-on's timeline. |
 
 ### Apps
 

@@ -11,8 +11,10 @@ import {
   unscheduleCancelation,
   changeSubscription,
   editSubscription,
+  createSubscriptionAddon,
   listSubscriptionAddons,
   getSubscriptionAddon,
+  updateSubscriptionAddon,
 } from '../funcs/subscriptions.js'
 import type {
   CreateSubscriptionRequest,
@@ -29,10 +31,14 @@ import type {
   ChangeSubscriptionResponse,
   EditSubscriptionRequest,
   EditSubscriptionResponse,
+  CreateSubscriptionAddonRequest,
+  CreateSubscriptionAddonResponse,
   ListSubscriptionAddonsRequest,
   ListSubscriptionAddonsResponse,
   GetSubscriptionAddonRequest,
   GetSubscriptionAddonResponse,
+  UpdateSubscriptionAddonRequest,
+  UpdateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
 import type { Subscription, SubscriptionAddon } from '../models/types.js'
 
@@ -155,6 +161,20 @@ export class Subscriptions {
   }
 
   /**
+   * Create a new subscription add-on
+   *
+   * Add add-on to a subscription.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/addons
+   */
+  async createAddon(
+    request: CreateSubscriptionAddonRequest,
+    options?: RequestOptions,
+  ): Promise<CreateSubscriptionAddonResponse> {
+    return unwrap(await createSubscriptionAddon(this._client, request, options))
+  }
+
+  /**
    * List subscription addons
    *
    * List the add-ons of a subscription.
@@ -200,5 +220,21 @@ export class Subscriptions {
     options?: RequestOptions,
   ): Promise<GetSubscriptionAddonResponse> {
     return unwrap(await getSubscriptionAddon(this._client, request, options))
+  }
+
+  /**
+   * Update subscription addon
+   *
+   * Update a subscription add-on. Only the quantity is mutable; the timing controls
+   * when the new quantity takes effect. A new entry is appended to the add-on's
+   * timeline.
+   *
+   * PATCH /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}
+   */
+  async updateAddon(
+    request: UpdateSubscriptionAddonRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateSubscriptionAddonResponse> {
+    return unwrap(await updateSubscriptionAddon(this._client, request, options))
   }
 }

@@ -174,6 +174,18 @@ model SubscriptionCreate {
   custom_plan?: SubscriptionCustomPlan;
 
   /**
+   * The key of the phase to start the subscription in. If not provided, the
+   * subscription starts in the first phase of the plan.
+   *
+   * Only applies when creating from a published `plan`; custom plans define their
+   * own phases inline.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Starting phase")
+  @minLength(1)
+  starting_phase?: string;
+
+  /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are
    * calculated. Common anchors:

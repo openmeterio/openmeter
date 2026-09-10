@@ -4447,6 +4447,23 @@ export const createSubscriptionAddonRequest = z
   })
   .describe('SubscriptionAddon create request.')
 
+export const subscriptionAddonUpdate = z
+  .object({
+    quantity: z
+      .number()
+      .int()
+      .nonnegative()
+
+      .describe(
+        'The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the add-on from the point the timing resolves to.',
+      ),
+    timing: subscriptionEditTiming,
+  })
+
+  .describe(
+    'Request for updating a subscription add-on. Only the quantity can be changed; the timing controls when the new quantity takes effect.',
+  )
+
 export const createTaxCodeRequest = z
   .object({
     name: z
@@ -6517,6 +6534,14 @@ export const subscriptionCreate = z.object({
       'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
     ),
   customPlan: subscriptionCustomPlan.optional(),
+  startingPhase: z
+    .string()
+    .min(1)
+    .optional()
+
+    .describe(
+      'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+    ),
   billingAnchor: dateTime.optional(),
   costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
 })
@@ -6550,6 +6575,14 @@ export const subscriptionChange = z
         'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
       ),
     customPlan: subscriptionCustomPlan.optional(),
+    startingPhase: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+      ),
     billingAnchor: dateTime.optional(),
     costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
     timing: subscriptionEditTiming,
@@ -7222,6 +7255,15 @@ export const getSubscriptionAddonPathParams = z.object({
 })
 
 export const getSubscriptionAddonResponse = subscriptionAddon
+
+export const updateSubscriptionAddonPathParams = z.object({
+  subscriptionId: ulid,
+  subscriptionAddonId: ulid,
+})
+
+export const updateSubscriptionAddonBody = subscriptionAddonUpdate
+
+export const updateSubscriptionAddonResponse = subscriptionAddon
 
 export const listAppsQueryParams = z.object({
   page: z
@@ -12224,6 +12266,23 @@ export const createSubscriptionAddonRequestWire = z
   })
   .describe('SubscriptionAddon create request.')
 
+export const subscriptionAddonUpdateWire = z
+  .strictObject({
+    quantity: z
+      .number()
+      .int()
+      .nonnegative()
+
+      .describe(
+        'The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the add-on from the point the timing resolves to.',
+      ),
+    timing: subscriptionEditTimingWire,
+  })
+
+  .describe(
+    'Request for updating a subscription add-on. Only the quantity can be changed; the timing controls when the new quantity takes effect.',
+  )
+
 export const createTaxCodeRequestWire = z
   .strictObject({
     name: z
@@ -14291,6 +14350,14 @@ export const subscriptionCreateWire = z.strictObject({
       'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
     ),
   custom_plan: subscriptionCustomPlanWire.optional(),
+  starting_phase: z
+    .string()
+    .min(1)
+    .optional()
+
+    .describe(
+      'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+    ),
   billing_anchor: dateTimeWire.optional(),
   cost_basis_mode: subscriptionCostBasisModeWire.optional(),
 })
@@ -14324,6 +14391,14 @@ export const subscriptionChangeWire = z
         'A reference to a published plan the subscription is created from. Exactly one of `plan` or `custom_plan` must be provided. Use `plan` to base the subscription on an existing published plan; use `custom_plan` to define the plan inline.',
       ),
     custom_plan: subscriptionCustomPlanWire.optional(),
+    starting_phase: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
+      ),
     billing_anchor: dateTimeWire.optional(),
     cost_basis_mode: subscriptionCostBasisModeWire.optional(),
     timing: subscriptionEditTimingWire,
@@ -15038,6 +15113,15 @@ export const getSubscriptionAddonPathParamsWire = z.object({
 })
 
 export const getSubscriptionAddonResponseWire = subscriptionAddonWire
+
+export const updateSubscriptionAddonPathParamsWire = z.object({
+  subscriptionId: ulidWire,
+  subscriptionAddonId: ulidWire,
+})
+
+export const updateSubscriptionAddonBodyWire = subscriptionAddonUpdateWire
+
+export const updateSubscriptionAddonResponseWire = subscriptionAddonWire
 
 export const listAppsQueryParamsWire = z.object({
   page: z

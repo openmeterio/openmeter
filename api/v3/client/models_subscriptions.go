@@ -79,6 +79,17 @@ type SubscriptionAddonTimelineSegment struct {
 	Quantity int64 `json:"quantity"`
 }
 
+// Request for updating a subscription add-on. Only the quantity can be changed;
+// the timing controls when the new quantity takes effect.
+type SubscriptionAddonUpdate struct {
+	// The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the
+	// add-on from the point the timing resolves to.
+	Quantity int64 `json:"quantity"`
+	// The timing of the update. A new entry is appended to the add-on's timeline at
+	// this point.
+	Timing SubscriptionEditTiming `json:"timing"`
+}
+
 // Request for canceling a subscription.
 type SubscriptionCancel struct {
 	// If not provided the subscription is canceled immediately.
@@ -110,6 +121,12 @@ type SubscriptionChange struct {
 	// Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
 	// linked to a persisted plan, so the response omits the `plan` reference.
 	CustomPlan *SubscriptionCustomPlan `json:"custom_plan,omitempty"`
+	// The key of the phase to start the subscription in. If not provided, the
+	// subscription starts in the first phase of the plan.
+	//
+	// Only applies when creating from a published `plan`; custom plans define their
+	// own phases inline.
+	StartingPhase *string `json:"starting_phase,omitempty"`
 	// A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:
@@ -191,6 +208,12 @@ type SubscriptionCreate struct {
 	// Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
 	// linked to a persisted plan, so the response omits the `plan` reference.
 	CustomPlan *SubscriptionCustomPlan `json:"custom_plan,omitempty"`
+	// The key of the phase to start the subscription in. If not provided, the
+	// subscription starts in the first phase of the plan.
+	//
+	// Only applies when creating from a published `plan`; custom plans define their
+	// own phases inline.
+	StartingPhase *string `json:"starting_phase,omitempty"`
 	// A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:

@@ -3320,7 +3320,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
-      x-internal: true
       x-unstable: true
     get:
       operationId: list-subscription-addons
@@ -3401,6 +3400,50 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+      x-unstable: true
+    patch:
+      operationId: update-subscription-addon
+      summary: Update subscription addon
+      description: |-
+        Update a subscription add-on. Only the quantity is mutable; the timing controls
+        when the new quantity takes effect. A new entry is appended to the add-on's
+        timeline.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: subscriptionAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: SubscriptionAddon updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionAddonUpdate'
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
@@ -9593,6 +9636,30 @@ components:
           readOnly: true
       additionalProperties: false
       description: Subscription.
+    BillingSubscriptionAddonUpdate:
+      type: object
+      required:
+        - quantity
+        - timing
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+          description: |-
+            The new quantity of the add-on. Must be at least 0. A quantity of 0 removes the
+            add-on from the point the timing resolves to.
+          title: Quantity
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            The timing of the update. A new entry is appended to the add-on's timeline at
+            this point.
+          title: Timing
+      additionalProperties: false
+      description: |-
+        Request for updating a subscription add-on. Only the quantity can be changed;
+        the timing controls when the new quantity takes effect.
     BillingSubscriptionCancel:
       type: object
       properties:
@@ -9691,6 +9758,16 @@ components:
             Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
             linked to a persisted plan, so the response omits the `plan` reference.
           title: Custom plan
+        starting_phase:
+          type: string
+          minLength: 1
+          description: |-
+            The key of the phase to start the subscription in. If not provided, the
+            subscription starts in the first phase of the plan.
+
+            Only applies when creating from a published `plan`; custom plans define their
+            own phases inline.
+          title: Starting phase
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -9854,6 +9931,16 @@ components:
             Exactly one of `plan` or `custom_plan` must be provided. The subscription is not
             linked to a persisted plan, so the response omits the `plan` reference.
           title: Custom plan
+        starting_phase:
+          type: string
+          minLength: 1
+          description: |-
+            The key of the phase to start the subscription in. If not provided, the
+            subscription starts in the first phase of the plan.
+
+            Only applies when creating from a published `plan`; custom plans define their
+            own phases inline.
+          title: Starting phase
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'

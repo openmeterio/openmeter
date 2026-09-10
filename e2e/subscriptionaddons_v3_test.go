@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -237,5 +238,120 @@ func TestV3SubscriptionAddonNextBillingCycle(t *testing.T) {
 		require.NotEmpty(t, subAddon.Timeline)
 		assert.EqualValues(t, 1, subAddon.Timeline[0].Quantity)
 		assert.True(t, subAddon.Timeline[0].ActiveFrom.After(time.Now()), "next_billing_cycle timing must produce a future active_from")
+	})
+}
+
+// TestV3SubscriptionAddonUpdate exercises PATCH /subscriptions/{id}/addons/{addonId}:
+// attach a multiple-instance addon at quantity 1, then change its quantity and
+// verify the new quantity and a fresh timeline segment. Uses a multiple-instance
+// addon because single-instance addons are fixed at quantity 1.
+func TestV3SubscriptionAddonUpdate(t *testing.T) {
+	c := newV3Client(t)
+
+	// --- Fixture: customer ---
+
+	customerKey := uniqueKey("sub_addon_update_customer")
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:          customerKey,
+		Name:         "Subscription Addon Update Test Customer",
+		Currency:     lo.ToPtr("USD"),
+		PrimaryEmail: lo.ToPtr("test-" + customerKey + "@test.com"),
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
+			SubjectKeys: []string{customerKey},
+		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	// --- Fixture: draft plan + published multiple-instance addon, attach, publish plan ---
+
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest("sub_addon_update_plan"))
+	c.requireStatus(http.StatusCreated, err)
+	require.NotEmpty(t, plan.Phases)
+
+	addonBody := validAddonRequest("sub_addon_update")
+	addonBody.InstanceType = v3sdk.AddonInstanceTypeMultiple
+	addon, err := c.Addons.Create(t.Context(), addonBody)
+	c.requireStatus(http.StatusCreated, err)
+
+	_, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
+
+	_, err = c.PlanAddons.Create(t.Context(), plan.ID, validPlanAddonRequest(plan.Phases[0].Key, addon.ID))
+	c.requireStatus(http.StatusCreated, err)
+
+	_, err = c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
+
+	sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
+		Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
+		Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumImmediate))
+
+	subAddon, err := c.Subscriptions.CreateAddon(t.Context(), sub.ID, v3sdk.CreateSubscriptionAddonRequest{
+		Addon:    v3sdk.AddonReference{ID: addon.ID},
+		Quantity: 1,
+		Timing:   timing,
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, subAddon)
+	subAddonID := subAddon.ID
+
+	t.Run("Should change the addon quantity and return 200", func(t *testing.T) {
+		before, err := c.Subscriptions.GetAddon(t.Context(), sub.ID, subAddonID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, before)
+
+		updated, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
+			Quantity: 2,
+			Timing:   timing,
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, updated)
+
+		assert.Equal(t, subAddonID, updated.ID)
+		assert.EqualValues(t, 2, updated.Quantity, "quantity should reflect the update")
+		assert.NotNil(t, updated.RateCards, "rate_cards must not be null")
+		// The change closes the current open segment and appends exactly one new
+		// segment carrying the updated quantity.
+		require.Len(t, updated.Timeline, len(before.Timeline)+1, "quantity change must append exactly one timeline segment")
+		last := updated.Timeline[len(updated.Timeline)-1]
+		assert.EqualValues(t, 2, last.Quantity, "the appended timeline segment must carry the new quantity")
+	})
+
+	t.Run("Should remove the addon when quantity is 0 and return 200", func(t *testing.T) {
+		// v1 parity: quantity 0 is a valid removal on the update endpoint (the create
+		// path still forbids 0). Immediate timing closes the current open segment and
+		// appends one new segment that drops the quantity to 0.
+		before, err := c.Subscriptions.GetAddon(t.Context(), sub.ID, subAddonID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, before)
+
+		updated, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, subAddonID, v3sdk.SubscriptionAddonUpdate{
+			Quantity: 0,
+			Timing:   timing,
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, updated)
+
+		assert.EqualValues(t, 0, updated.Quantity, "current quantity must be 0 after removal")
+		// Removal appends exactly one timeline segment, and that newly appended
+		// (latest) segment carries the quantity 0.
+		require.Len(t, updated.Timeline, len(before.Timeline)+1, "removal must append exactly one timeline segment")
+		last := updated.Timeline[len(updated.Timeline)-1]
+		assert.EqualValues(t, 0, last.Quantity, "the appended timeline segment must be quantity 0")
+	})
+
+	t.Run("Should return 404 for an unknown subscription addon", func(t *testing.T) {
+		// The workflow surfaces a wrapped models.GenericNotFoundError for an unknown
+		// association; without the addon error encoder this ordinary client mistake
+		// would fall through to a 500 instead of the declared 404.
+		_, err := c.Subscriptions.UpdateAddon(t.Context(), sub.ID, ulid.Make().String(), v3sdk.SubscriptionAddonUpdate{
+			Quantity: 2,
+			Timing:   timing,
+		})
+		requireProblem(t, err, http.StatusNotFound)
 	})
 }
