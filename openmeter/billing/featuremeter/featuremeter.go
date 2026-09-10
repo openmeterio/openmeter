@@ -1,6 +1,8 @@
 package featuremeter
 
 import (
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/ref"
@@ -70,4 +72,12 @@ type FeatureMeters interface {
 type FeatureMeterRef struct {
 	IDOrKey      ref.IDOrKey
 	RequireMeter bool
+}
+
+func (r *FeatureMeterRef) CloneIfPresent() *FeatureMeterRef {
+	if r == nil {
+		return nil
+	}
+
+	return lo.ToPtr(*r)
 }

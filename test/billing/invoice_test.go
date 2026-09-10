@@ -1246,6 +1246,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Then we should end up in draft_invalid state
 				require.Equal(s.T(), billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
 				require.Equal(s.T(), billing.StandardInvoiceStatusDetails{
+					Failed: true,
 					AvailableActions: billing.StandardInvoiceAvailableActions{
 						Retry: &billing.StandardInvoiceAvailableActionDetails{
 							ResultingState: billing.StandardInvoiceStatusPaymentProcessingPending,
@@ -1305,6 +1306,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Then we should end up in draft_invalid state
 				require.Equal(s.T(), billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
 				require.Equal(s.T(), billing.StandardInvoiceStatusDetails{
+					Failed: true,
 					AvailableActions: billing.StandardInvoiceAvailableActions{
 						Retry: &billing.StandardInvoiceAvailableActionDetails{
 							ResultingState: billing.StandardInvoiceStatusPaymentProcessingPending,
@@ -1405,6 +1407,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Then we should end up in draft_invalid state
 				require.Equal(s.T(), billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
 				require.Equal(s.T(), billing.StandardInvoiceStatusDetails{
+					Failed: true,
 					AvailableActions: billing.StandardInvoiceAvailableActions{
 						Retry: &billing.StandardInvoiceAvailableActionDetails{
 							ResultingState: billing.StandardInvoiceStatusPaymentProcessingPending,

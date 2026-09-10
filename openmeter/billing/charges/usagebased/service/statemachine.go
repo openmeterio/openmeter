@@ -32,7 +32,7 @@ type stateMachine struct {
 	Runs    *usagebasedrun.Service
 
 	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       billingfeaturemeter.FeatureMeter
+	FeatureMeters      billingfeaturemeter.FeatureMeters
 	CurrencyCalculator currencyx.Currency
 	CostBasisResolver  costbasis.Resolver
 }
@@ -46,7 +46,7 @@ type StateMachineConfig struct {
 	Runs               *usagebasedrun.Service
 	Logger             *slog.Logger
 	CustomerOverride   billing.CustomerOverrideWithDetails
-	FeatureMeter       billingfeaturemeter.FeatureMeter
+	FeatureMeters      billingfeaturemeter.FeatureMeters
 	CurrencyCalculator currencyx.Currency
 	CostBasisResolver  costbasis.Resolver
 }
@@ -78,8 +78,8 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, fmt.Errorf("merged profile is required: %w", err))
 	}
 
-	if c.FeatureMeter.Meter == nil {
-		errs = append(errs, errors.New("feature meter is required"))
+	if c.FeatureMeters == nil {
+		errs = append(errs, errors.New("feature meters are required"))
 	}
 
 	if c.CurrencyCalculator == nil {
@@ -113,7 +113,7 @@ func newStateMachineBase(
 		Rater:              config.Rater,
 		Runs:               config.Runs,
 		CustomerOverride:   config.CustomerOverride,
-		FeatureMeter:       config.FeatureMeter,
+		FeatureMeters:      config.FeatureMeters,
 		CurrencyCalculator: config.CurrencyCalculator,
 		CostBasisResolver:  config.CostBasisResolver,
 	}
@@ -296,7 +296,12 @@ func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error 
 		return nil
 	}
 
-	s.Charge.State.FeatureID = s.FeatureMeter.Feature.ID
+	featureMeter, err := s.FeatureMeters.Get(s.Charge)
+	if err != nil {
+		return err
+	}
+
+	s.Charge.State.FeatureID = featureMeter.Feature.ID
 	return nil
 }
 
