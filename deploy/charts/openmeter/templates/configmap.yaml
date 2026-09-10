@@ -23,7 +23,7 @@ aggregation:
 {{- if .Values.postgresql.enabled -}}
 postgres:
   autoMigrate: migration
-  url: postgres://application:application@{{ include "openmeter.fullname" . }}-postgres:5432/application
+  url: postgres://application:application@{{ include "openmeter.fullname" . }}-postgres:5432/application?sslmode=disable
 {{- end }}
 
 {{/* Overwrite svix config if self-hosted svix is used */}}
