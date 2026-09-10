@@ -57,7 +57,7 @@ func TestConnectorCreateEventsTable(t *testing.T) {
 
 		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
 
-		require.NoError(t, connector.createEventsTable(context.Background()))
+		require.NoError(t, connector.createEventsTable(t.Context()))
 		mockCH.AssertExpectations(t)
 	})
 
@@ -70,7 +70,7 @@ func TestConnectorCreateEventsTable(t *testing.T) {
 
 		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
 
-		err := connector.createEventsTable(context.Background())
+		err := connector.createEventsTable(t.Context())
 		require.ErrorIs(t, err, expectedErr)
 		mockCH.AssertExpectations(t)
 	})
