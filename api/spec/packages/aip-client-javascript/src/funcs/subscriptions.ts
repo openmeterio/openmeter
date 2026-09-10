@@ -23,6 +23,10 @@ import type {
   CancelSubscriptionResponse,
   UnscheduleCancelationRequest,
   UnscheduleCancelationResponse,
+  UnscheduleSubscriptionRequest,
+  UnscheduleSubscriptionResponse,
+  RestoreSubscriptionRequest,
+  RestoreSubscriptionResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
   EditSubscriptionRequest,
@@ -221,6 +225,85 @@ export function unscheduleCancelation(
           assertValid(schemas.unscheduleCancelationResponseWire, data)
         }
         return fromWire(data, schemas.unscheduleCancelationResponse)
+      })
+  })
+}
+
+/**
+ * Unschedule subscription
+ *
+ * Deletes a scheduled subscription that has not yet become active, removing it and
+ * resolving any scheduling conflict it was holding. This is distinct from
+ * canceling: cancel ends a running subscription, whereas unscheduling removes a
+ * not-yet-active one. Only scheduled subscriptions can be unscheduled;
+ * unscheduling an active or already-started subscription is rejected.
+ *
+ * POST /openmeter/subscriptions/{subscriptionId}/unschedule
+ */
+export function unscheduleSubscription(
+  client: Client,
+  req: UnscheduleSubscriptionRequest,
+  options?: RequestOptions,
+): Promise<Result<UnscheduleSubscriptionResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      subscriptionId: req.subscriptionId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.unscheduleSubscriptionPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.unscheduleSubscriptionPathParamsWire, pathParams)
+    }
+    const path = `openmeter/subscriptions/${(() => {
+      if (pathParams.subscriptionId === undefined) {
+        throw new Error('missing path parameter: subscriptionId')
+      }
+      return encodeURIComponent(String(pathParams.subscriptionId))
+    })()}/unschedule`
+    await http(client).post(path, options)
+  })
+}
+
+/**
+ * Restore subscription
+ *
+ * Restores the subscription by deleting any later-scheduled successor
+ * subscriptions and continuing this one indefinitely. This is the inverse of a
+ * future-dated change, which schedules a successor. Restore is not available when
+ * multi-subscription is enabled.
+ *
+ * POST /openmeter/subscriptions/{subscriptionId}/restore
+ */
+export function restoreSubscription(
+  client: Client,
+  req: RestoreSubscriptionRequest,
+  options?: RequestOptions,
+): Promise<Result<RestoreSubscriptionResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      subscriptionId: req.subscriptionId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.restoreSubscriptionPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.restoreSubscriptionPathParamsWire, pathParams)
+    }
+    const path = `openmeter/subscriptions/${(() => {
+      if (pathParams.subscriptionId === undefined) {
+        throw new Error('missing path parameter: subscriptionId')
+      }
+      return encodeURIComponent(String(pathParams.subscriptionId))
+    })()}/restore`
+    return http(client)
+      .post(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.restoreSubscriptionResponseWire, data)
+        }
+        return fromWire(data, schemas.restoreSubscriptionResponse)
       })
   })
 }

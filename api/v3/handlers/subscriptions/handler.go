@@ -17,6 +17,8 @@ type Handler interface {
 	CreateSubscription() CreateSubscriptionHandler
 	CancelSubscription() CancelSubscriptionHandler
 	UnscheduleCancelation() UnscheduleCancelationHandler
+	UnscheduleSubscription() UnscheduleSubscriptionHandler
+	RestoreSubscription() RestoreSubscriptionHandler
 	ChangeSubscription() ChangeSubscriptionHandler
 	EditSubscription() EditSubscriptionHandler
 }

@@ -3561,6 +3561,69 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionEdit'
+  /openmeter/subscriptions/{subscriptionId}/restore:
+    post:
+      operationId: restore-subscription
+      summary: Restore subscription
+      description: |-
+        Restores the subscription by deleting any later-scheduled successor
+        subscriptions and continuing this one indefinitely. This is the inverse of a
+        future-dated change, which schedules a successor. Restore is not available when
+        multi-subscription is enabled.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Subscription updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Subscriptions
+  /openmeter/subscriptions/{subscriptionId}/unschedule:
+    post:
+      operationId: unschedule-subscription
+      summary: Unschedule subscription
+      description: |-
+        Deletes a scheduled subscription that has not yet become active, removing it and
+        resolving any scheduling conflict it was holding. This is distinct from
+        canceling: cancel ends a running subscription, whereas unscheduling removes a
+        not-yet-active one. Only scheduled subscriptions can be unscheduled;
+        unscheduling an active or already-started subscription is rejected.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Subscriptions
   /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unschedule-cancelation
@@ -9941,6 +10004,15 @@ components:
             Only applies when creating from a published `plan`; custom plans define their
             own phases inline.
           title: Starting phase
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            When the subscription should start. If not provided, the subscription starts
+            immediately. Provide a future timestamp to schedule the subscription to start
+            later — this creates a not-yet-active, scheduled subscription. A timestamp in
+            the past is rejected.
+          title: Timing
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'

@@ -6542,6 +6542,7 @@ export const subscriptionCreate = z.object({
     .describe(
       'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
     ),
+  timing: subscriptionEditTiming.optional(),
   billingAnchor: dateTime.optional(),
   costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
 })
@@ -7200,6 +7201,16 @@ export const unscheduleCancelationPathParams = z.object({
 })
 
 export const unscheduleCancelationResponse = subscription
+
+export const unscheduleSubscriptionPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const restoreSubscriptionPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const restoreSubscriptionResponse = subscription
 
 export const changeSubscriptionPathParams = z.object({
   subscriptionId: ulid,
@@ -14358,6 +14369,7 @@ export const subscriptionCreateWire = z.strictObject({
     .describe(
       'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
     ),
+  timing: subscriptionEditTimingWire.optional(),
   billing_anchor: dateTimeWire.optional(),
   cost_basis_mode: subscriptionCostBasisModeWire.optional(),
 })
@@ -15051,6 +15063,16 @@ export const unscheduleCancelationPathParamsWire = z.object({
 })
 
 export const unscheduleCancelationResponseWire = subscriptionWire
+
+export const unscheduleSubscriptionPathParamsWire = z.object({
+  subscriptionId: ulidWire,
+})
+
+export const restoreSubscriptionPathParamsWire = z.object({
+  subscriptionId: ulidWire,
+})
+
+export const restoreSubscriptionResponseWire = subscriptionWire
 
 export const changeSubscriptionPathParamsWire = z.object({
   subscriptionId: ulidWire,

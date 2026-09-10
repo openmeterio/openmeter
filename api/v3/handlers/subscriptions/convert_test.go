@@ -67,6 +67,55 @@ func TestFromAPIBillingSubscriptionCreateCostBasisMode(t *testing.T) {
 	require.Equal(t, subscription.CostBasisModePinned, result.CostBasisMode)
 }
 
+// TestFromAPIBillingSubscriptionCreateTiming verifies the create request's optional
+// timing maps to the domain scheduling timing: omitted defaults to immediate, the
+// enum values pass through, and a custom timestamp becomes a scheduled start. The
+// domain validates the resolved timing (e.g. rejecting a past instant); the
+// converter only maps.
+func TestFromAPIBillingSubscriptionCreateTiming(t *testing.T) {
+	customerID := customer.CustomerID{ID: "customer_1", Namespace: "default"}
+
+	mapTiming := func(t *testing.T, timing *api.BillingSubscriptionEditTiming) subscription.Timing {
+		t.Helper()
+		result, err := FromAPIBillingSubscriptionCreate(
+			"default",
+			customerID,
+			"Subscription",
+			api.BillingSubscriptionCreate{Timing: timing},
+		)
+		require.NoError(t, err)
+		return result.Timing
+	}
+
+	t.Run("defaults to immediate when omitted", func(t *testing.T) {
+		got := mapTiming(t, nil)
+		require.NotNil(t, got.Enum)
+		require.Equal(t, subscription.TimingImmediate, *got.Enum)
+		require.Nil(t, got.Custom)
+	})
+
+	t.Run("maps the next_billing_cycle enum", func(t *testing.T) {
+		var timing api.BillingSubscriptionEditTiming
+		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(api.BillingSubscriptionEditTimingEnumNextBillingCycle))
+
+		got := mapTiming(t, &timing)
+		require.NotNil(t, got.Enum)
+		require.Equal(t, subscription.TimingNextBillingCycle, *got.Enum)
+		require.Nil(t, got.Custom)
+	})
+
+	t.Run("maps a custom timestamp to a scheduled start", func(t *testing.T) {
+		at := testutils.GetRFC3339Time(t, "2026-01-01T00:00:00Z")
+		var timing api.BillingSubscriptionEditTiming
+		require.NoError(t, timing.FromDateTime(at))
+
+		got := mapTiming(t, &timing)
+		require.Nil(t, got.Enum)
+		require.NotNil(t, got.Custom)
+		require.True(t, got.Custom.Equal(at))
+	})
+}
+
 // TestToAPIBillingSubscriptionViewRoundtrip exercises the full view -> API conversion
 // against a real subscription created through the service. Unlike the scalar-field
 // test above, this asserts the spec-driven parts the converter resolves from the view

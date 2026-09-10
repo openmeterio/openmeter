@@ -214,6 +214,11 @@ type SubscriptionCreate struct {
 	// Only applies when creating from a published `plan`; custom plans define their
 	// own phases inline.
 	StartingPhase *string `json:"starting_phase,omitempty"`
+	// When the subscription should start. If not provided, the subscription starts
+	// immediately. Provide a future timestamp to schedule the subscription to start
+	// later — this creates a not-yet-active, scheduled subscription. A timestamp in
+	// the past is rejected.
+	Timing *SubscriptionEditTiming `json:"timing,omitempty"`
 	// A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:

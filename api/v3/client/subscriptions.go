@@ -177,6 +177,55 @@ func (s *SubscriptionsService) UnscheduleCancelation(ctx context.Context, subscr
 	return &out, nil
 }
 
+// Deletes a scheduled subscription that has not yet become active, removing it and
+// resolving any scheduling conflict it was holding. This is distinct from
+// canceling: cancel ends a running subscription, whereas unscheduling removes a
+// not-yet-active one. Only scheduled subscriptions can be unscheduled;
+// unscheduling an active or already-started subscription is rejected.
+func (s *SubscriptionsService) Unschedule(ctx context.Context, subscriptionID string) error {
+	if subscriptionID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "subscriptionID", ErrEmptyID)
+	}
+
+	path := "/openmeter/subscriptions/{subscriptionId}/unschedule"
+
+	path = replacePathParam(path, "subscriptionId", subscriptionID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "")
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.doRaw(req)
+	return err
+}
+
+// Restores the subscription by deleting any later-scheduled successor
+// subscriptions and continuing this one indefinitely. This is the inverse of a
+// future-dated change, which schedules a successor. Restore is not available when
+// multi-subscription is enabled.
+func (s *SubscriptionsService) Restore(ctx context.Context, subscriptionID string) (*BillingSubscription, error) {
+	if subscriptionID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "subscriptionID", ErrEmptyID)
+	}
+
+	path := "/openmeter/subscriptions/{subscriptionId}/restore"
+
+	path = replacePathParam(path, "subscriptionId", subscriptionID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out BillingSubscription
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // Closes a running subscription and starts a new one according to the
 // specification. Can be used for upgrades, downgrades, and plan changes.
 func (s *SubscriptionsService) Change(ctx context.Context, subscriptionID string, request SubscriptionChange) (*SubscriptionChangeResponse, error) {

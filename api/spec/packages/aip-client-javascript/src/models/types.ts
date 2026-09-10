@@ -6005,6 +6005,13 @@ export interface SubscriptionCreate {
    */
   startingPhase?: string
   /**
+   * When the subscription should start. If not provided, the subscription starts
+   * immediately. Provide a future timestamp to schedule the subscription to start
+   * later — this creates a not-yet-active, scheduled subscription. A timestamp in
+   * the past is rejected.
+   */
+  timing?: SubscriptionEditTiming
+  /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are
    * calculated. Common anchors:
@@ -8675,6 +8682,13 @@ export interface SubscriptionCreateInput {
    * own phases inline.
    */
   startingPhase?: string
+  /**
+   * When the subscription should start. If not provided, the subscription starts
+   * immediately. Provide a future timestamp to schedule the subscription to start
+   * later — this creates a not-yet-active, scheduled subscription. A timestamp in
+   * the past is rejected.
+   */
+  timing?: SubscriptionEditTiming
   /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are

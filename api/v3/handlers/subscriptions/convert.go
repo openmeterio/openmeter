@@ -274,6 +274,17 @@ func FromAPIBillingSubscriptionCreate(
 		return subscriptionworkflow.CreateSubscriptionWorkflowInput{}, err
 	}
 
+	// Timing defaults to immediate when omitted; a future timing schedules the
+	// subscription to start later. The domain validates the resolved timing
+	// (rejecting a past instant), mirroring edit/change.
+	timing := subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}
+	if createSubscriptionRequest.Timing != nil {
+		timing, err = FromAPIBillingSubscriptionEditTiming(*createSubscriptionRequest.Timing)
+		if err != nil {
+			return subscriptionworkflow.CreateSubscriptionWorkflowInput{}, err
+		}
+	}
+
 	workflowInput := subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		Namespace:     namespace,
 		CustomerID:    customerID.ID,
@@ -281,10 +292,7 @@ func FromAPIBillingSubscriptionCreate(
 		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Name:          subscriptionName,
 			CostBasisMode: subscription.CostBasisMode(lo.FromPtr(createSubscriptionRequest.CostBasisMode)),
-			Timing: subscription.Timing{
-				// TODO: accept from request
-				Enum: lo.ToPtr(subscription.TimingImmediate),
-			},
+			Timing:        timing,
 			BillingAnchor: createSubscriptionRequest.BillingAnchor,
 			MetadataModel: models.MetadataModel{
 				Metadata: metadata,
