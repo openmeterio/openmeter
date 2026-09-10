@@ -419,7 +419,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 		// - collection succeeds without replacing the run or duplicating its invoice association
 		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
 		defer clock.UnFreeze()
-		
+
 		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{apiRequestsTotalMeter})
 		s.NoError(err)
 

@@ -156,7 +156,7 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		// - the same advance succeeds and the charge starts its final realization
 		clock.FreezeTime(servicePeriod.To)
 		defer clock.UnFreeze()
-		
+
 		s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, meters))
 
 		advanced, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})

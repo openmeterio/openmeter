@@ -3,9 +3,10 @@ package featuremeterservice
 import (
 	"context"
 
+	"github.com/samber/lo"
+
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/pkg/syncx"
-	"github.com/samber/lo"
 )
 
 type featureMeterReferenceSnapshot struct {

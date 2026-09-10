@@ -35,6 +35,12 @@ func TestResolverResolveLazy(t *testing.T) {
 	const namespace = "namespace"
 
 	t.Run("resolves once when first queried", func(t *testing.T) {
+		// given:
+		// - an unresolved feature reference and concurrent consumers
+		// when:
+		// - the lazy collection is queried for the first time
+		// then:
+		// - the feature is resolved once and reused by every consumer
 		var featureCalls atomic.Int32
 		var featureIDsOrKeys []string
 		resolver, err := New(Config{
@@ -82,6 +88,12 @@ func TestResolverResolveLazy(t *testing.T) {
 	})
 
 	t.Run("passes resolution failures through", func(t *testing.T) {
+		// given:
+		// - feature resolution returns a catalog error
+		// when:
+		// - the lazy collection is queried repeatedly
+		// then:
+		// - the original error is cached without querying meters
 		resolutionFailure := errors.New("catalog unavailable")
 		resolver, err := New(Config{
 			FeatureService: featureServiceStub{
@@ -111,6 +123,12 @@ func TestResolverResolveLazy(t *testing.T) {
 	})
 
 	t.Run("snapshots references and usable identities", func(t *testing.T) {
+		// given:
+		// - a mutable reference with a complete owner identity
+		// when:
+		// - a snapshot is taken and the source reference changes
+		// then:
+		// - the snapshot retains the original reference and owner path
 		target := &mutableIdentifiedFeatureMeterReference{
 			reference: featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "original"}},
 			identity: featuremeter.FeatureReferenceIdentity{
@@ -131,6 +149,12 @@ func TestResolverResolveLazy(t *testing.T) {
 	})
 
 	t.Run("drops incomplete identities", func(t *testing.T) {
+		// given:
+		// - a reference whose owner identity has no ID
+		// when:
+		// - the reference is snapshotted
+		// then:
+		// - the incomplete owner identity is omitted
 		target := &mutableIdentifiedFeatureMeterReference{
 			reference: featuremeter.FeatureMeterRef{IDOrKey: ref.IDOrKey{Key: "tokens"}},
 			identity:  featuremeter.FeatureReferenceIdentity{Kind: featuremeter.FeatureReferenceKindCharges},

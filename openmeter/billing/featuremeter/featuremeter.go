@@ -1,10 +1,11 @@
 package featuremeter
 
 import (
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/ref"
-	"github.com/samber/lo"
 )
 
 type FeatureMeter struct {
