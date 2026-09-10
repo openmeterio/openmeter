@@ -196,6 +196,8 @@ func TestGatheringInvoiceCollectionAt(t *testing.T) {
 func TestStandardInvoiceCollectionAt(t *testing.T) {
 	flatFeeLineWithOverride := newFlatFeeStandardLine(t, "2025-06-20T12:00:00Z")
 	flatFeeLineWithOverride.OverrideCollectionPeriodEnd = lo.ToPtr(mustTime(t, "2025-06-20T12:05:00Z"))
+	lineWithHistoricalInvoiceAt := newStandardLine(t, "2025-06-15T12:00:00Z")
+	lineWithHistoricalInvoiceAt.InvoiceAt = time.Time{}
 
 	tests := []struct {
 		name    string
@@ -204,12 +206,21 @@ func TestStandardInvoiceCollectionAt(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "uses latest non deleted invoice at and adds collection interval",
+			name: "uses latest non deleted period end and adds collection interval",
 			invoice: newStandardInvoice(
 				mustTime(t, "2025-06-10T00:00:00Z"),
 				datetime.MustParseDuration(t, "PT1H"),
 				newStandardLine(t, "2025-06-05T08:00:00Z"),
 				newStandardLine(t, "2025-06-15T12:00:00Z"),
+			),
+			want: mustTime(t, "2025-06-15T13:00:00Z"),
+		},
+		{
+			name: "ignores historical invoice at",
+			invoice: newStandardInvoice(
+				mustTime(t, "2025-06-10T00:00:00Z"),
+				datetime.MustParseDuration(t, "PT1H"),
+				lineWithHistoricalInvoiceAt,
 			),
 			want: mustTime(t, "2025-06-15T13:00:00Z"),
 		},
@@ -233,7 +244,7 @@ func TestStandardInvoiceCollectionAt(t *testing.T) {
 			want: mustTime(t, "2025-06-20T12:05:00Z"),
 		},
 		{
-			name: "ignores deleted lines when resolving latest invoice at",
+			name: "ignores deleted lines when resolving latest period end",
 			invoice: newStandardInvoice(
 				mustTime(t, "2025-06-10T00:00:00Z"),
 				datetime.MustParseDuration(t, "PT1H"),
@@ -252,7 +263,7 @@ func TestStandardInvoiceCollectionAt(t *testing.T) {
 			want: time.Time{},
 		},
 		{
-			name: "uses latest non deleted metered invoice at without interval when interval is zero",
+			name: "uses latest non deleted metered period end without interval when interval is zero",
 			invoice: newStandardInvoice(
 				mustTime(t, "2025-06-10T00:00:00Z"),
 				datetime.ISODuration{},
