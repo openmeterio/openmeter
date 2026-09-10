@@ -12,6 +12,7 @@ import (
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -537,4 +538,43 @@ func TestFromAPIBillingRateCardPriceTypeErrors(t *testing.T) {
 		require.Error(t, err)
 		assert.True(t, models.IsGenericValidationError(err))
 	})
+}
+
+func TestToAPIBillingRateCards_EmptyInput(t *testing.T) {
+	result, err := ToAPIBillingRateCards(nil)
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+
+	// The v3 schema declares rateCards as a required, non-nullable array: an
+	// empty slice must marshal to [] and not null.
+	out, err := json.Marshal(result)
+	require.NoError(t, err)
+	assert.Equal(t, "[]", string(out))
+}
+
+func TestToAPIAddon_EmptyRateCards(t *testing.T) {
+	// A freshly created draft add-on has zero rate cards; the API must report
+	// rateCards as [] so typed clients relying on the required array type (e.g.
+	// rateCards.length) do not crash on null.
+	source := addon.Addon{
+		NamespacedID: models.NamespacedID{ID: "addon-1"},
+		AddonMeta: productcatalog.AddonMeta{
+			Key:          "extra-support",
+			Name:         "Extra Support",
+			Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
+			InstanceType: productcatalog.AddonInstanceTypeSingle,
+		},
+		RateCards: addon.RateCards{},
+	}
+
+	result, err := ToAPIAddon(source)
+	require.NoError(t, err)
+
+	require.NotNil(t, result.RateCards)
+	assert.Empty(t, result.RateCards)
+
+	out, err := json.Marshal(result)
+	require.NoError(t, err)
+	assert.Contains(t, string(out), `"rate_cards":[]`)
 }
