@@ -74,6 +74,33 @@ func TestStandardLineValidateAllowsNonNegativeTotals(t *testing.T) {
 	require.NoError(t, line.Validate())
 }
 
+func TestStandardLineValidateIgnoresInvoiceAt(t *testing.T) {
+	t.Parallel()
+
+	line := validStandardLineForValidation()
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromInt(1),
+	})
+	line.UsageBased.FeatureKey = "feature-key"
+
+	for name, invoiceAt := range map[string]time.Time{
+		"zero":                {},
+		"before period start": line.Period.From.Add(-time.Hour),
+		"inside period":       line.Period.From.Add(30 * time.Minute),
+		"at period end":       line.Period.To,
+		"after period end":    line.Period.To.Add(time.Hour),
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			line := line
+			line.InvoiceAt = invoiceAt
+
+			require.NoError(t, line.Validate())
+		})
+	}
+}
+
 func TestStandardLineValidateRejectsNegativeTotals(t *testing.T) {
 	line := validStandardLineForValidation()
 	line.Totals.Total = alpacadecimal.NewFromInt(-1)

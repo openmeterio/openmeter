@@ -256,7 +256,7 @@ func TestPatchLineUpdateApplyStandardLinePreservesOmittedFields(t *testing.T) {
 	originalDBState := line.DBState
 	originalInvoiceAt := line.InvoiceAt
 	updatedPeriod := line.Period
-	updatedPeriod.To = updatedPeriod.From.AddDate(0, 0, 15)
+	updatedPeriod.To = updatedPeriod.To.AddDate(0, 1, 0)
 	patch, err := NewUpdateLinePatch(NewUpdateLinePatchInput{
 		Line:          line.GetLineID(),
 		InvoiceID:     line.InvoiceID,
@@ -276,6 +276,7 @@ func TestPatchLineUpdateApplyStandardLinePreservesOmittedFields(t *testing.T) {
 	require.Equal(t, models.Metadata{"owner": "preserved"}, updated.Metadata)
 	require.Same(t, originalDBState, updated.DBState)
 	require.NotEqual(t, updatedPeriod, line.Period)
+	require.NoError(t, updated.Validate())
 }
 
 func TestParsePatchesGroupsUpdateByInvoiceID(t *testing.T) {

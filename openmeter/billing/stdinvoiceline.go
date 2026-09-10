@@ -101,10 +101,6 @@ func (i StandardLineBase) Validate() error {
 		errs = append(errs, fmt.Errorf("period: %w", err))
 	}
 
-	if i.InvoiceAt.IsZero() {
-		errs = append(errs, errors.New("invoice at is required"))
-	}
-
 	if i.OverrideCollectionPeriodEnd != nil {
 		if i.OverrideCollectionPeriodEnd.IsZero() {
 			errs = append(errs, errors.New("overrideCollectionPeriodEnd must not be zero when set"))
@@ -744,12 +740,6 @@ func (i StandardLine) Validate() error {
 	}
 
 	if i.UsageBased.Price.Type() != productcatalog.FlatPriceType {
-		if i.InvoiceAt.
-			Truncate(streaming.MinimumWindowSizeDuration).
-			Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).To) {
-			errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).To))
-		}
-
 		if i.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 			errs = append(errs, ValidationError{
 				Err: ErrInvoiceCreateUBPLinePeriodIsEmpty,
@@ -768,9 +758,9 @@ func (i StandardLine) Validate() error {
 	return errors.Join(errs...)
 }
 
-// NormalizeValues normalizes the values of the line to ensure they are matching the expected invariants:
+// NormalizeValues normalizes the values of the line for persistence:
 // - Period is truncated to the minimum window size duration
-// - InvoiceAt is truncated to the minimum window size duration
+// - the historical InvoiceAt value is truncated to the minimum window size duration
 // - UsageBased.Price is normalized to have the default inAdvance payment term for flat prices
 func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
 	out, err := i.Clone()

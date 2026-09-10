@@ -52,7 +52,9 @@ subscription intent.
 ## Time has distinct meanings
 
 - a line's service period is when the service was provided
-- `InvoiceAt` is when the line becomes eligible to be invoiced
+- `InvoiceAt` is when a gathering line becomes eligible to be invoiced. A
+  standard line retains the value only as historical metadata; standard-invoice
+  behavior and validation do not depend on it
 - a gathering invoice's next collection time is when the collector should
   reconsider its pending lines
 - a standard invoice's collection time is the cutoff used while snapshotting
