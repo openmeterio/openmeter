@@ -34,6 +34,15 @@ func TestCreateEventsTable(t *testing.T) {
 	}
 }
 
+func TestCreateEventsTableAddsStoreRowID(t *testing.T) {
+	query := createEventsTable{
+		Database:        "openmeter",
+		EventsTableName: "om_events",
+	}.addStoreRowIDSQL()
+
+	assert.Equal(t, "ALTER TABLE openmeter.om_events ADD COLUMN IF NOT EXISTS store_row_id String", query)
+}
+
 func TestQueryEventsTable(t *testing.T) {
 	subjectFilter := "customer-1"
 	idFilter := "event-id-1"

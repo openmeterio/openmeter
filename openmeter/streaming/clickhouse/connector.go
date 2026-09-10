@@ -298,6 +298,10 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 		return fmt.Errorf("create events table: %w", err)
 	}
 
+	if err := c.config.ClickHouse.Exec(ctx, table.addStoreRowIDSQL()); err != nil {
+		return fmt.Errorf("migrate events table: %w", err)
+	}
+
 	return nil
 }
 

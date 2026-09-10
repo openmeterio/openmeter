@@ -48,6 +48,10 @@ func (d createEventsTable) toSQL() string {
 	return sql
 }
 
+func (d createEventsTable) addStoreRowIDSQL() string {
+	return fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS store_row_id String", getTableName(d.Database, d.EventsTableName))
+}
+
 // Query Events Table
 type queryEventsTable struct {
 	Database        string
