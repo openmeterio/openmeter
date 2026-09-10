@@ -75,7 +75,7 @@ func TestFromAPIBillingSubscriptionCreateCostBasisMode(t *testing.T) {
 func TestFromAPIBillingSubscriptionCreateTiming(t *testing.T) {
 	customerID := customer.CustomerID{ID: "customer_1", Namespace: "default"}
 
-	mapTiming := func(t *testing.T, timing *api.BillingSubscriptionEditTiming) subscription.Timing {
+	mapTiming := func(t *testing.T, timing *api.BillingSubscriptionCreateTiming) subscription.Timing {
 		t.Helper()
 		result, err := FromAPIBillingSubscriptionCreate(
 			"default",
@@ -94,19 +94,19 @@ func TestFromAPIBillingSubscriptionCreateTiming(t *testing.T) {
 		require.Nil(t, got.Custom)
 	})
 
-	t.Run("maps the next_billing_cycle enum", func(t *testing.T) {
-		var timing api.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(api.BillingSubscriptionEditTimingEnumNextBillingCycle))
+	t.Run("maps the immediate enum", func(t *testing.T) {
+		var timing api.BillingSubscriptionCreateTiming
+		require.NoError(t, timing.FromBillingSubscriptionCreateTimingEnum(api.BillingSubscriptionCreateTimingEnumImmediate))
 
 		got := mapTiming(t, &timing)
 		require.NotNil(t, got.Enum)
-		require.Equal(t, subscription.TimingNextBillingCycle, *got.Enum)
+		require.Equal(t, subscription.TimingImmediate, *got.Enum)
 		require.Nil(t, got.Custom)
 	})
 
 	t.Run("maps a custom timestamp to a scheduled start", func(t *testing.T) {
 		at := testutils.GetRFC3339Time(t, "2026-01-01T00:00:00Z")
-		var timing api.BillingSubscriptionEditTiming
+		var timing api.BillingSubscriptionCreateTiming
 		require.NoError(t, timing.FromDateTime(at))
 
 		got := mapTiming(t, &timing)

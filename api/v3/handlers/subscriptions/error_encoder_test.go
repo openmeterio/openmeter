@@ -1,7 +1,6 @@
 package subscriptions
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -48,7 +47,7 @@ func TestSubscriptionGenericErrorEncoder(t *testing.T) {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodPost, "/", nil)
 
-			handled := enc(context.Background(), tt.err, w, r)
+			handled := enc(t.Context(), tt.err, w, r)
 
 			require.True(t, handled, "encoder should classify the error")
 			require.Equal(t, tt.wantStatus, w.Code)
@@ -64,7 +63,7 @@ func TestSubscriptionGenericErrorEncoderDefersUnknown(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/", nil)
 
-	handled := enc(context.Background(), errors.New("some unexpected error"), w, r)
+	handled := enc(t.Context(), errors.New("some unexpected error"), w, r)
 
 	require.False(t, handled, "an unmapped error should not be handled by this encoder")
 }

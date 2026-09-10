@@ -262,6 +262,29 @@ func FromAPIBillingSubscriptionEditTiming(t api.BillingSubscriptionEditTiming) (
 	return FromAPIBillingSubscriptionEditTimingEnum(enum)
 }
 
+// FromAPIBillingSubscriptionCreateTiming maps the create-body timing to the domain
+// timing. Create timing is deliberately narrower than edit timing: only immediate
+// or a custom timestamp — next_billing_cycle is not a create value (a new
+// subscription has no current billing cycle), so it is not part of the type.
+func FromAPIBillingSubscriptionCreateTiming(t api.BillingSubscriptionCreateTiming) (subscription.Timing, error) {
+	// Try decoding as a custom RFC3339 datetime first, otherwise it would also decode
+	// as a "string enum" and we'd never be able to distinguish enum vs datetime.
+	if custom, err := t.AsDateTime(); err == nil {
+		return subscription.Timing{Custom: &custom}, nil
+	}
+
+	enum, err := t.AsBillingSubscriptionCreateTimingEnum()
+	if err != nil {
+		return subscription.Timing{}, models.NewGenericValidationError(fmt.Errorf("invalid timing"))
+	}
+
+	if enum != api.BillingSubscriptionCreateTimingEnumImmediate {
+		return subscription.Timing{}, models.NewGenericValidationError(fmt.Errorf("invalid timing: %s", enum))
+	}
+
+	return subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}, nil
+}
+
 // FromAPIBillingSubscriptionCreate converts a create subscription request to a create subscription workflow input.
 func FromAPIBillingSubscriptionCreate(
 	namespace string,
@@ -279,7 +302,7 @@ func FromAPIBillingSubscriptionCreate(
 	// (rejecting a past instant), mirroring edit/change.
 	timing := subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}
 	if createSubscriptionRequest.Timing != nil {
-		timing, err = FromAPIBillingSubscriptionEditTiming(*createSubscriptionRequest.Timing)
+		timing, err = FromAPIBillingSubscriptionCreateTiming(*createSubscriptionRequest.Timing)
 		if err != nil {
 			return subscriptionworkflow.CreateSubscriptionWorkflowInput{}, err
 		}

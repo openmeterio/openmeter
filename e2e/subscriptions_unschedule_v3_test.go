@@ -51,7 +51,7 @@ func TestV3SubscriptionUnschedule(t *testing.T) {
 		customer := newCustomer(t, "sub_unschedule_ok")
 		plan := publishedPlan(t, "unschedule_ok")
 
-		future := lo.Must(v3sdk.SubscriptionEditTimingFromCustom(time.Now().Add(48 * time.Hour)))
+		future := lo.Must(v3sdk.SubscriptionCreateTimingFromCustom(time.Now().Add(48 * time.Hour)))
 		sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
 			Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},

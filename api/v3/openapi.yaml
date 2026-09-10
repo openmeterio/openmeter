@@ -10006,7 +10006,7 @@ components:
           title: Starting phase
         timing:
           allOf:
-            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+            - $ref: '#/components/schemas/BillingSubscriptionCreateTiming'
           description: |-
             When the subscription should start. If not provided, the subscription starts
             immediately. Provide a future timestamp to schedule the subscription to start
@@ -10035,6 +10035,22 @@ components:
           title: Cost basis mode
           default: dynamic
       additionalProperties: false
+    BillingSubscriptionCreateTiming:
+      oneOf:
+        - $ref: '#/components/schemas/BillingSubscriptionCreateTimingEnum'
+        - $ref: '#/components/schemas/DateTime'
+      description: |-
+        When a subscription should start: immediate (the default) or a custom timestamp
+        to schedule a future start.
+      example: immediate
+    BillingSubscriptionCreateTimingEnum:
+      type: string
+      enum:
+        - immediate
+      description: |-
+        Subscription create timing. Only immediate is supported as an enum value —
+        unlike edit timing, next_billing_cycle is not accepted on create, since a new
+        subscription has no current billing cycle to schedule against.
     BillingSubscriptionCustomPlan:
       type: object
       required:

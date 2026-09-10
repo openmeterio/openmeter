@@ -6010,7 +6010,7 @@ export interface SubscriptionCreate {
    * later — this creates a not-yet-active, scheduled subscription. A timestamp in
    * the past is rejected.
    */
-  timing?: SubscriptionEditTiming
+  timing?: SubscriptionCreateTiming
   /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are
@@ -6550,6 +6550,12 @@ export type DateTimeFieldFilter =
 export type WorkflowPaymentSettings =
   | WorkflowPaymentChargeAutomaticallySettings
   | WorkflowPaymentSendInvoiceSettings
+
+/**
+ * When a subscription should start: immediate (the default) or a custom timestamp
+ * to schedule a future start.
+ */
+export type SubscriptionCreateTiming = 'immediate' | Date
 
 /**
  * Subscription edit timing defined when the changes should take effect. If the
@@ -8688,7 +8694,7 @@ export interface SubscriptionCreateInput {
    * later — this creates a not-yet-active, scheduled subscription. A timestamp in
    * the past is rejected.
    */
-  timing?: SubscriptionEditTiming
+  timing?: SubscriptionCreateTiming
   /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are

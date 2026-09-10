@@ -79,6 +79,28 @@ union SubscriptionEditTiming {
 }
 
 /**
+ * Subscription create timing. Only immediate is supported as an enum value —
+ * unlike edit timing, next_billing_cycle is not accepted on create, since a new
+ * subscription has no current billing cycle to schedule against.
+ */
+@friendlyName("BillingSubscriptionCreateTimingEnum")
+enum SubscriptionCreateTimingEnum {
+  Immediate: "immediate",
+}
+
+/**
+ * When a subscription should start: immediate (the default) or a custom timestamp
+ * to schedule a future start.
+ */
+@oneOf
+@friendlyName("BillingSubscriptionCreateTiming")
+@example(SubscriptionCreateTimingEnum.Immediate)
+union SubscriptionCreateTiming {
+  Enum: SubscriptionCreateTimingEnum,
+  Custom: Shared.DateTime,
+}
+
+/**
  * An inline (custom) plan definition used to create or change a subscription
  * without referencing a published plan. Mirrors the plan create shape without a
  * key or version, since a custom plan is not persisted or versioned on its own.
@@ -193,7 +215,7 @@ model SubscriptionCreate {
    */
   @visibility(Lifecycle.Create)
   @summary("Timing")
-  timing?: SubscriptionEditTiming;
+  timing?: SubscriptionCreateTiming;
 
   /**
    * A billing anchor is the fixed point in time that determines the subscription's

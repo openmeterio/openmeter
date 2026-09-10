@@ -892,6 +892,13 @@ export const featureLlmTokenType = z
   ])
   .describe('Token type for LLM cost lookup.')
 
+export const subscriptionCreateTimingEnum = z
+  .enum(['immediate'])
+
+  .describe(
+    'Subscription create timing. Only immediate is supported as an enum value — unlike edit timing, next_billing_cycle is not accepted on create, since a new subscription has no current billing cycle to schedule against.',
+  )
+
 export const subscriptionEditTimingEnum = z
   .enum(['immediate', 'next_billing_cycle'])
 
@@ -3220,6 +3227,13 @@ export const chargeRealizationPayment = z
     status: chargeRealizationPaymentStatus,
   })
   .describe('Payment state of a charge realization.')
+
+export const subscriptionCreateTiming = z
+  .union([subscriptionCreateTimingEnum, dateTime])
+
+  .describe(
+    'When a subscription should start: immediate (the default) or a custom timestamp to schedule a future start.',
+  )
 
 export const subscriptionEditTiming = z
   .union([subscriptionEditTimingEnum, dateTime])
@@ -6542,7 +6556,7 @@ export const subscriptionCreate = z.object({
     .describe(
       'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
     ),
-  timing: subscriptionEditTiming.optional(),
+  timing: subscriptionCreateTiming.optional(),
   billingAnchor: dateTime.optional(),
   costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
 })
@@ -8738,6 +8752,13 @@ export const featureLlmTokenTypeWire = z
     'response',
   ])
   .describe('Token type for LLM cost lookup.')
+
+export const subscriptionCreateTimingEnumWire = z
+  .enum(['immediate'])
+
+  .describe(
+    'Subscription create timing. Only immediate is supported as an enum value — unlike edit timing, next_billing_cycle is not accepted on create, since a new subscription has no current billing cycle to schedule against.',
+  )
 
 export const subscriptionEditTimingEnumWire = z
   .enum(['immediate', 'next_billing_cycle'])
@@ -11055,6 +11076,13 @@ export const chargeRealizationPaymentWire = z
     status: chargeRealizationPaymentStatusWire,
   })
   .describe('Payment state of a charge realization.')
+
+export const subscriptionCreateTimingWire = z
+  .union([subscriptionCreateTimingEnumWire, dateTimeWire])
+
+  .describe(
+    'When a subscription should start: immediate (the default) or a custom timestamp to schedule a future start.',
+  )
 
 export const subscriptionEditTimingWire = z
   .union([subscriptionEditTimingEnumWire, dateTimeWire])
@@ -14369,7 +14397,7 @@ export const subscriptionCreateWire = z.strictObject({
     .describe(
       'The key of the phase to start the subscription in. If not provided, the subscription starts in the first phase of the plan. Only applies when creating from a published `plan`; custom plans define their own phases inline.',
     ),
-  timing: subscriptionEditTimingWire.optional(),
+  timing: subscriptionCreateTimingWire.optional(),
   billing_anchor: dateTimeWire.optional(),
   cost_basis_mode: subscriptionCostBasisModeWire.optional(),
 })

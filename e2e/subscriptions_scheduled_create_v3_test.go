@@ -47,10 +47,12 @@ func TestV3SubscriptionScheduledCreate(t *testing.T) {
 	}
 
 	t.Run("Should create a scheduled subscription with a future timing", func(t *testing.T) {
+		// given: a customer and a published plan
 		customer := newCustomer(t, "sub_sched_create")
 		plan := publishedPlan(t, "sched_create")
 
-		futureTiming := lo.Must(v3sdk.SubscriptionEditTimingFromCustom(time.Now().Add(48 * time.Hour)))
+		// when: creating a subscription with a future timing
+		futureTiming := lo.Must(v3sdk.SubscriptionCreateTimingFromCustom(time.Now().Add(48 * time.Hour)))
 		sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
 			Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
@@ -58,33 +60,43 @@ func TestV3SubscriptionScheduledCreate(t *testing.T) {
 		})
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, sub)
+
+		// then: the subscription is scheduled to start in the future
 		assert.Equal(t, v3sdk.SubscriptionStatusScheduled, sub.Status, "future-timed create should be scheduled")
 		assert.True(t, sub.ActiveFrom.After(time.Now()), "scheduled subscription should start in the future")
 	})
 
 	t.Run("Should create immediately when timing is omitted", func(t *testing.T) {
+		// given: a customer and a published plan
 		customer := newCustomer(t, "sub_immediate_create")
 		plan := publishedPlan(t, "immediate_create")
 
+		// when: creating a subscription without a timing
 		sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
 			Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
 		})
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, sub)
+
+		// then: the subscription starts immediately (active)
 		assert.Equal(t, v3sdk.SubscriptionStatusActive, sub.Status, "create without timing should be immediate")
 	})
 
 	t.Run("Should reject a past timing with 400", func(t *testing.T) {
+		// given: a customer and a published plan
 		customer := newCustomer(t, "sub_past_create")
 		plan := publishedPlan(t, "past_create")
 
-		pastTiming := lo.Must(v3sdk.SubscriptionEditTimingFromCustom(time.Now().Add(-48 * time.Hour)))
+		// when: creating a subscription with a timing in the past
+		pastTiming := lo.Must(v3sdk.SubscriptionCreateTimingFromCustom(time.Now().Add(-48 * time.Hour)))
 		_, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
 			Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
 			Plan:     &v3sdk.SubscriptionChangePlan{ID: &plan.ID},
 			Timing:   &pastTiming,
 		})
+
+		// then: the request is rejected
 		requireProblem(t, err, http.StatusBadRequest)
 	})
 }
