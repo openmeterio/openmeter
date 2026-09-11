@@ -327,7 +327,7 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 			Customer: customerID,
 			Currency: currency,
 			Lines:    lines,
-		})
+		}, billing.WithBypassFeatureMeterValidation())
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines: %w", err)
 		}

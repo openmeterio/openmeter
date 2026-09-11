@@ -179,7 +179,11 @@ the lifecycle operation.
   transaction and customer update lock
 - every invoice contains one fiat currency
 - a customer cannot have two active gathering invoices for the same currency
-- pending-line creation resolves every supplied feature; metered prices require the feature's meter
+- pending-line creation resolves every supplied feature, and metered prices
+  require the feature's meter. Legacy invoice-backed subscription reconciliation
+  may preserve an unresolved feature reference so stale subscription state can
+  still converge; collection reports the missing dependency as a critical
+  invoice validation issue
 - gathering-to-standard conversion preserves line IDs
 - line engines cannot silently change the identity or count of callback output
 - immutable invoice drift is recorded as validation issues rather than

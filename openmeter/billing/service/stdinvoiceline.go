@@ -22,7 +22,9 @@ import (
 )
 
 // TODO[later]: Move this to gatheringinvoice.go
-func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
+func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput, opts ...billing.CreatePendingInvoiceLinesOption) (*billing.CreatePendingInvoiceLinesResult, error) {
+	options := billing.NewCreatePendingInvoiceLinesOptions(opts...)
+
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Currency = input.Currency
@@ -53,10 +55,12 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 	}
 
-	err = s.featureMeterResolver.RequireFeatureMeters(ctx, input.Customer.Namespace, input.Lines...)
-	if err != nil {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("resolving pending line feature meters: %w", err),
+	if !options.BypassFeatureMeterValidation {
+		err = s.featureMeterResolver.RequireFeatureMeters(ctx, input.Customer.Namespace, input.Lines...)
+		if err != nil {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("resolving pending line feature meters: %w", err),
+			}
 		}
 	}
 

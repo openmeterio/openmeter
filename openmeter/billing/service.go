@@ -116,7 +116,7 @@ type GatheringInvoiceService interface {
 	// Deleted lines are excluded unless they are manually managed, preserving explicit user intent during reconciliation.
 	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
-	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
+	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput, opts ...CreatePendingInvoiceLinesOption) (*CreatePendingInvoiceLinesResult, error)
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	// ListCustomerIDsPendingCollection lists unique customers with gathering invoices due for automatic collection.
