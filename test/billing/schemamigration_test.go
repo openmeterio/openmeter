@@ -116,7 +116,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -163,7 +163,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 						})),
 					},
 				},
-			},
+			}),
 		})
 		s.NoError(err)
 
@@ -218,7 +218,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -235,7 +235,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 						})),
 					},
 				},
-			},
+			}),
 		})
 		s.Require().NoError(err)
 

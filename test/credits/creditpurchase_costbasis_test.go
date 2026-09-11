@@ -139,7 +139,7 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 		_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: fixture.customerID,
 			Currency: currencyx.FiatCode(fixture.settlementCurrency),
-			Lines:    []billing.GatheringLine{*created.GatheringLineToCreate},
+			Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{*created.GatheringLineToCreate}),
 		})
 		s.Require().NoError(err)
 
@@ -304,7 +304,7 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementResolutionFai
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: fixture.customerID,
 		Currency: currencyx.FiatCode(fixture.settlementCurrency),
-		Lines:    []billing.GatheringLine{*created.GatheringLineToCreate},
+		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{*created.GatheringLineToCreate}),
 	})
 	s.Require().NoError(err)
 

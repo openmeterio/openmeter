@@ -134,7 +134,7 @@ func (s *LineEngineTestSuite) TestBillabilityValidationIssuesPreventInvoiceAdvan
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: ombilling.GatheringLines{{
+		Lines: ombilling.NewCreatePendingInvoiceLines(ombilling.GatheringLines{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Namespace: namespace,
@@ -149,7 +149,7 @@ func (s *LineEngineTestSuite) TestBillabilityValidationIssuesPreventInvoiceAdvan
 					Amount: alpacadecimal.NewFromInt(10),
 				}),
 			},
-		}},
+		}}),
 	})
 	s.Require().NoError(err)
 
@@ -437,7 +437,7 @@ func (s *LineEngineTestSuite) createInvoiceAssignmentGateFixture(
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines:    lines,
+		Lines:    ombilling.NewCreatePendingInvoiceLines(lines),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(pendingLines.Lines, len(lines))
@@ -506,7 +506,7 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 			ID:        customerEntity.ID,
 		},
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []ombilling.GatheringLine{{
+		Lines: ombilling.NewCreatePendingInvoiceLines([]ombilling.GatheringLine{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.ManagedResource{
 					NamespacedModel: models.NamespacedModel{Namespace: namespace},
@@ -521,7 +521,7 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 					Amount: alpacadecimal.NewFromFloat(1),
 				})),
 			},
-		}},
+		}}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(pendingLines.Lines, 1)
@@ -661,7 +661,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 			ID:        customerEntity.ID,
 		},
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []ombilling.GatheringLine{{
+		Lines: ombilling.NewCreatePendingInvoiceLines([]ombilling.GatheringLine{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.ManagedResource{
 					NamespacedModel: models.NamespacedModel{Namespace: namespace},
@@ -676,7 +676,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 					Amount: alpacadecimal.NewFromFloat(1),
 				})),
 			},
-		}},
+		}}),
 	})
 	s.Require().NoError(err)
 

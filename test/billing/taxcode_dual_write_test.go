@@ -525,7 +525,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Namespace:     ns,
 				Period:        timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
@@ -535,7 +535,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 				PerUnitAmount: alpacadecimal.NewFromFloat(100),
 				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 			}),
-		},
+		}),
 	})
 	s.NoError(err)
 
@@ -571,7 +571,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -590,7 +590,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 					})),
 				},
 			},
-		},
+		}),
 	})
 	s.NoError(err)
 
@@ -629,7 +629,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -649,7 +649,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 					})),
 				},
 			},
-		},
+		}),
 	})
 	s.NoError(err)
 

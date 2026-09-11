@@ -1872,7 +1872,7 @@ func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input bil
 }
 
 // InvoiceLineService methods
-func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput, opts ...billing.CreatePendingInvoiceLinesOption) (*billing.CreatePendingInvoiceLinesResult, error) {
+func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	return nil, nil
 }
 

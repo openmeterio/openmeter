@@ -210,7 +210,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -236,7 +236,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 						})),
 					},
 				},
-			},
+			}),
 		},
 	)
 
@@ -297,7 +297,7 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 
@@ -312,7 +312,7 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 					PerUnitAmount: alpacadecimal.NewFromFloat(100),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
-			},
+			}),
 		},
 	)
 

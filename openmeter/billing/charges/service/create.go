@@ -447,9 +447,9 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		result, err := s.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: custAndCurrency.customerID,
 			Currency: custAndCurrency.currency,
-			Lines: lo.Map(lines, func(item gatheringLineWithCustomerID, _ int) billing.GatheringLine {
+			Lines: billing.NewCreatePendingInvoiceLines(lo.Map(lines, func(item gatheringLineWithCustomerID, _ int) billing.GatheringLine {
 				return item.gatheringLine
-			}),
+			})),
 		})
 		if err != nil {
 			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: %w", err)

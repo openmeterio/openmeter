@@ -92,7 +92,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -119,7 +119,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 							})),
 						},
 					},
-				},
+				}),
 			})
 		s.NoError(err)
 		s.Len(res.Lines, 1)
@@ -222,7 +222,7 @@ func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -246,7 +246,7 @@ func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
 					})),
 				},
 			},
-		},
+		}),
 	})
 
 	// then:
@@ -345,7 +345,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -372,7 +372,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 						})),
 					},
 				},
-			},
+			}),
 		})
 	s.NoError(err)
 	s.Len(res.Lines, 1)
