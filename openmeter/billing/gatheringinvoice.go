@@ -947,6 +947,9 @@ func NewCreatePendingInvoiceLinesOptions(opts ...CreatePendingInvoiceLinesOption
 	return out
 }
 
+// WithBypassFeatureMeterValidation preserves unresolved feature references while
+// the legacy subscription reconciler creates gathering lines. Collection still
+// validates those dependencies and records critical issues on the invoice.
 func WithBypassFeatureMeterValidation() CreatePendingInvoiceLinesOption {
 	return func(o *CreatePendingInvoiceLinesOptions) {
 		o.BypassFeatureMeterValidation = true
