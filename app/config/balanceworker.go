@@ -11,6 +11,7 @@ import (
 type BalanceWorkerConfiguration struct {
 	ConsumerConfiguration `mapstructure:",squash"`
 	StateStorage          BalanceWorkerStateStorageConfiguration
+	UseWatermill          bool
 }
 
 func (c BalanceWorkerConfiguration) Validate() error {
@@ -71,4 +72,5 @@ func ConfigureBalanceWorker(v *viper.Viper) {
 	v.SetDefault("balanceWorker.consumerGroupName", "om_balance_worker")
 
 	v.SetDefault("balanceWorker.stateStorage.highWatermarkCache.lruCacheSize", 100_000)
+	v.SetDefault("balanceWorker.useWatermill", true)
 }
