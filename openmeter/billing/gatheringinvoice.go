@@ -931,6 +931,28 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
+type CreatePendingInvoiceLinesOptions struct {
+	BypassFeatureMeterValidation bool
+}
+
+type CreatePendingInvoiceLinesOption func(*CreatePendingInvoiceLinesOptions)
+
+func NewCreatePendingInvoiceLinesOptions(opts ...CreatePendingInvoiceLinesOption) CreatePendingInvoiceLinesOptions {
+	var out CreatePendingInvoiceLinesOptions
+
+	for _, opt := range opts {
+		opt(&out)
+	}
+
+	return out
+}
+
+func WithBypassFeatureMeterValidation() CreatePendingInvoiceLinesOption {
+	return func(o *CreatePendingInvoiceLinesOptions) {
+		o.BypassFeatureMeterValidation = true
+	}
+}
+
 type CreatePendingInvoiceLinesResult struct {
 	Lines        []GatheringLine
 	Invoice      GatheringInvoice
