@@ -22,9 +22,7 @@ import (
 )
 
 // TODO[later]: Move this to gatheringinvoice.go
-func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput, opts ...billing.CreatePendingInvoiceLinesOption) (*billing.CreatePendingInvoiceLinesResult, error) {
-	options := billing.NewCreatePendingInvoiceLinesOptions(opts...)
-
+func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Currency = input.Currency
@@ -37,7 +35,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			}
 		}
 
-		if err := s.lineEngines.populateGatheringLineEngine(&input.Lines[i]); err != nil {
+		if err := s.lineEngines.populateGatheringLineEngine(&input.Lines[i].GatheringLine); err != nil {
 			return nil, fmt.Errorf("line[%d]: populating engine: %w", i, err)
 		}
 	}
@@ -55,12 +53,13 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 	}
 
-	if !options.BypassFeatureMeterValidation {
-		err = s.featureMeterResolver.RequireFeatureMeters(ctx, input.Customer.Namespace, input.Lines...)
-		if err != nil {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("resolving pending line feature meters: %w", err),
-			}
+	linesRequiringFeatureMeterValidation := lo.Filter(input.Lines, func(line billing.CreatePendingInvoiceLine, _ int) bool {
+		return !line.BypassFeatureMeterValidation
+	})
+	err = s.featureMeterResolver.RequireFeatureMeters(ctx, input.Customer.Namespace, linesRequiringFeatureMeterValidation...)
+	if err != nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("resolving pending line feature meters: %w", err),
 		}
 	}
 
@@ -106,7 +105,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		gatheringInvoice := gatheringInvoiceUpsertResult.Invoice
 
-		linesToCreate, err := slicesx.MapWithErr(input.Lines, func(l billing.GatheringLine) (billing.GatheringLine, error) {
+		linesToCreate, err := slicesx.MapWithErr(input.Lines, func(createLine billing.CreatePendingInvoiceLine) (billing.GatheringLine, error) {
+			l := createLine.GatheringLine
+
 			l.Namespace = input.Customer.Namespace
 			l.Currency = input.Currency
 

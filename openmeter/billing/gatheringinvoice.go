@@ -893,11 +893,32 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 	return convertedLine, nil
 }
 
+type CreatePendingInvoiceLine struct {
+	GatheringLine
+
+	// BypassFeatureMeterValidation preserves unresolved feature references while
+	// the legacy subscription reconciler creates gathering lines. Collection still
+	// validates those dependencies and records critical issues on the invoice.
+	BypassFeatureMeterValidation bool `json:"-"`
+}
+
+func NewCreatePendingInvoiceLine(line GatheringLine) CreatePendingInvoiceLine {
+	return CreatePendingInvoiceLine{GatheringLine: line}
+}
+
+type CreatePendingInvoiceLines []CreatePendingInvoiceLine
+
+func NewCreatePendingInvoiceLines(lines []GatheringLine) CreatePendingInvoiceLines {
+	return lo.Map(lines, func(line GatheringLine, _ int) CreatePendingInvoiceLine {
+		return NewCreatePendingInvoiceLine(line)
+	})
+}
+
 type CreatePendingInvoiceLinesInput struct {
 	Customer customer.CustomerID `json:"customer"`
 	Currency currencyx.FiatCode  `json:"currency"`
 
-	Lines []GatheringLine `json:"lines"`
+	Lines CreatePendingInvoiceLines `json:"lines"`
 }
 
 func (c CreatePendingInvoiceLinesInput) Validate() error {
@@ -911,7 +932,9 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
-	for id, line := range c.Lines {
+	for id, createLine := range c.Lines {
+		line := createLine.GatheringLine
+
 		// Note: this is for validation purposes, as Line is copied, we are not altering the struct itself
 		line.Currency = c.Currency
 
@@ -929,31 +952,6 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
-}
-
-type CreatePendingInvoiceLinesOptions struct {
-	BypassFeatureMeterValidation bool
-}
-
-type CreatePendingInvoiceLinesOption func(*CreatePendingInvoiceLinesOptions)
-
-func NewCreatePendingInvoiceLinesOptions(opts ...CreatePendingInvoiceLinesOption) CreatePendingInvoiceLinesOptions {
-	var out CreatePendingInvoiceLinesOptions
-
-	for _, opt := range opts {
-		opt(&out)
-	}
-
-	return out
-}
-
-// WithBypassFeatureMeterValidation preserves unresolved feature references while
-// the legacy subscription reconciler creates gathering lines. Collection still
-// validates those dependencies and records critical issues on the invoice.
-func WithBypassFeatureMeterValidation() CreatePendingInvoiceLinesOption {
-	return func(o *CreatePendingInvoiceLinesOptions) {
-		o.BypassFeatureMeterValidation = true
-	}
 }
 
 type CreatePendingInvoiceLinesResult struct {

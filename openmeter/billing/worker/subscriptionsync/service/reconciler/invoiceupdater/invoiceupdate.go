@@ -326,8 +326,13 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 		_, err := u.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerID,
 			Currency: currency,
-			Lines:    lines,
-		}, billing.WithBypassFeatureMeterValidation())
+			Lines: lo.Map(lines, func(line billing.GatheringLine, _ int) billing.CreatePendingInvoiceLine {
+				return billing.CreatePendingInvoiceLine{
+					GatheringLine:                line,
+					BypassFeatureMeterValidation: true,
+				}
+			}),
+		})
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines: %w", err)
 		}

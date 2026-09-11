@@ -120,7 +120,7 @@ func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLin
 	intents := make(charges.ChargeIntents, 0, len(input.Lines))
 
 	for idx, line := range input.Lines {
-		intent, err := mapPendingInvoiceLineToChargeIntent(input.Customer.ID, resolvedCurrency, line)
+		intent, err := mapPendingInvoiceLineToChargeIntent(input.Customer.ID, resolvedCurrency, line.GatheringLine)
 		if err != nil {
 			return nil, fmt.Errorf("line.%d: %w", idx, err)
 		}

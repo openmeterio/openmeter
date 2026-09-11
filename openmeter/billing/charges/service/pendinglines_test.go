@@ -102,10 +102,10 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			usageLine,
 			flatLine,
-		},
+		}),
 	})
 	s.NoError(err)
 	s.Require().NotNil(result)
@@ -293,7 +293,7 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolve
 			result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 				Customer: cust.GetID(),
 				Currency: currencyx.FiatCode(USD),
-				Lines:    []billing.GatheringLine{line},
+				Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
 			})
 
 			s.Nil(result)
@@ -312,6 +312,92 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolve
 			s.Empty(listed.Items)
 		})
 	}
+}
+
+func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesBypassesFeatureMeterValidationPerLine() {
+	// given:
+	// - a meterless usage line trusted by subscription reconciliation
+	// - an ordinary usage line with a valid feature meter
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("billing-create-pending-line-bypass-feature-meter")
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
+
+	meterlessFeatureKey := "meterless-pending-line-feature"
+	_, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      meterlessFeatureKey,
+		Key:       meterlessFeatureKey,
+	})
+	s.Require().NoError(err)
+	meteredFeature := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	meterlessLine := billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace: ns,
+				Name:      "meterless usage",
+			}),
+			ManagedBy:     billing.ManuallyManagedLine,
+			Currency:      currencyx.FiatCode(USD),
+			ServicePeriod: servicePeriod,
+			InvoiceAt:     servicePeriod.To,
+			Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(2),
+			})),
+			FeatureKey: meterlessFeatureKey,
+		},
+	}
+	meteredLine, err := meterlessLine.CloneForCreate(func(line *billing.GatheringLine) {
+		line.Name = "metered usage"
+		line.FeatureKey = meteredFeature.Feature.Key
+	})
+	s.Require().NoError(err)
+
+	// when:
+	// - both lines are created in one mixed batch and only the meterless line bypasses dependency validation
+	result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(USD),
+		Lines: billing.CreatePendingInvoiceLines{
+			{
+				GatheringLine:                meterlessLine,
+				BypassFeatureMeterValidation: true,
+			},
+			billing.NewCreatePendingInvoiceLine(meteredLine),
+		},
+	})
+
+	// then:
+	// - billing validates the ordinary line and persists both lines
+	s.Require().NoError(err)
+	s.Require().NotNil(result)
+	s.Require().Len(result.Lines, 2)
+	s.Equal(meterlessFeatureKey, result.Lines[0].FeatureKey)
+	s.Equal(meteredFeature.Feature.Key, result.Lines[1].FeatureKey)
+
+	// and:
+	// - bypassing one line does not disable validation for another line in the same batch
+	result, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(USD),
+		Lines: billing.CreatePendingInvoiceLines{
+			{
+				GatheringLine:                meterlessLine,
+				BypassFeatureMeterValidation: true,
+			},
+			billing.NewCreatePendingInvoiceLine(meterlessLine),
+		},
+	})
+	s.Nil(result)
+	s.Require().Error(err)
+	issue := requireFeatureMeterValidationIssue(s.T(), err, billing.ErrInvoiceLineFeatureHasNoMeters.Code)
+	s.Empty(issue.Path)
 }
 
 func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequiresFeatureMeter() {
@@ -359,7 +445,7 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(USD),
-		Lines:    []billing.GatheringLine{line},
+		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
 	})
 
 	s.Nil(result)
@@ -412,9 +498,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreat
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			zeroFlatLine,
-		},
+		}),
 	})
 	s.Nil(result)
 	s.Require().Error(err)
@@ -454,9 +540,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 	_, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			systemLine,
-		},
+		}),
 	})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "managed by must be manual")
@@ -481,9 +567,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 	_, err = s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			subscriptionLine,
-		},
+		}),
 	})
 	s.Require().Error(err)
 	s.Contains(err.Error(), "subscription is not allowed")
@@ -543,10 +629,10 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackParti
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			usageLine,
 			zeroFlatLine,
-		},
+		}),
 	})
 	s.Nil(result)
 	s.Require().Error(err)

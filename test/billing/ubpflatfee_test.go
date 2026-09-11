@@ -60,9 +60,9 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				lineIn,
-			},
+			}),
 		})
 
 		s.NoError(err)
@@ -160,7 +160,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: "USD",
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    period,
 				InvoiceAt: period.To,
@@ -177,7 +177,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 					},
 				},
 			}),
-		},
+		}),
 	})
 	s.NoError(err)
 
@@ -239,7 +239,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:    period,
 					InvoiceAt: period.To,
@@ -256,7 +256,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 						},
 					},
 				}),
-			},
+			}),
 		})
 		s.Error(err)
 	})
@@ -265,7 +265,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{
 						From: period.From,
@@ -277,7 +277,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 					PerUnitAmount: alpacadecimal.NewFromInt(100),
 					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 				}),
-			},
+			}),
 		})
 		s.NoError(err)
 	})

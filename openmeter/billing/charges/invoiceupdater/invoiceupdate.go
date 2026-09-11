@@ -328,7 +328,7 @@ func (u *updater) provisionUpcomingLines(ctx context.Context, customerID custome
 		_, err := u.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerID,
 			Currency: currency,
-			Lines:    lines,
+			Lines:    billing.NewCreatePendingInvoiceLines(lines),
 		})
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines: %w", err)

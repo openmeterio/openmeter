@@ -100,7 +100,7 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -117,7 +117,7 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 					)),
 				},
 			},
-		},
+		}),
 	})
 
 	s.NoError(err)
@@ -159,7 +159,7 @@ func (s *CollectionTestSuite) TestCollectionWaitsForInvoiceAtAfterServicePeriodE
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Name: "UBP - unit",
@@ -172,7 +172,7 @@ func (s *CollectionTestSuite) TestCollectionWaitsForInvoiceAtAfterServicePeriodE
 					Amount: alpacadecimal.NewFromFloat(1),
 				})),
 			},
-		},
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(pendingLines.Lines, 1)
@@ -242,7 +242,7 @@ func (s *CollectionTestSuite) TestGatheringLineUnitConfigSnapshotRoundTrip() {
 	created, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: res.customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -258,7 +258,7 @@ func (s *CollectionTestSuite) TestGatheringLineUnitConfigSnapshotRoundTrip() {
 					UnitConfig: unitConfig,
 				},
 			},
-		},
+		}),
 	})
 	s.Require().NoError(err)
 	s.Len(created.Lines, 1)
@@ -308,7 +308,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -345,7 +345,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 						})),
 					},
 				},
-			},
+			}),
 		})
 		s.NoError(err)
 		s.Len(res.Lines, 2)
@@ -507,7 +507,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 				Customer: customer.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
-				Lines:    []billing.GatheringLine{tc.line},
+				Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{tc.line}),
 			})
 			s.NoError(err)
 			s.Len(pendingLineResult.Lines, 1)
@@ -561,7 +561,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
@@ -572,7 +572,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
-		},
+		}),
 	})
 	s.NoError(err)
 	s.Len(pendingLineResult.Lines, 1)
@@ -677,7 +677,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
@@ -688,7 +688,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
-		},
+		}),
 	})
 	s.NoError(err)
 
@@ -776,7 +776,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_AutomaticCollectionWaitsForA
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
@@ -787,7 +787,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_AutomaticCollectionWaitsForA
 					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
-		},
+		}),
 	})
 	s.NoError(err)
 
@@ -839,7 +839,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
@@ -850,7 +850,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
-		},
+		}),
 	})
 	s.NoError(err)
 
@@ -918,7 +918,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
@@ -929,7 +929,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
-		},
+		}),
 	})
 	s.NoError(err)
 	s.Len(pendingLineResult.Lines, 1)

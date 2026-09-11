@@ -80,7 +80,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 					ID:        params.CustomerID,
 				},
 				Currency: currencyx.FiatCode(req.Currency),
-				Lines:    lineEntities,
+				Lines:    billing.NewCreatePendingInvoiceLines(lineEntities),
 			}, nil
 		},
 		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {

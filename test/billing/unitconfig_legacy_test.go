@@ -73,7 +73,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -89,7 +89,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 					UnitConfig: unitConfig,
 				},
 			},
-		},
+		}),
 	})
 	s.Require().NoError(err)
 
@@ -178,7 +178,7 @@ func (s *legacyUnitConfigRatingSuite) TestSurfacesQuantityDetailOnV3InvoiceAPI()
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.FiatCode(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -194,7 +194,7 @@ func (s *legacyUnitConfigRatingSuite) TestSurfacesQuantityDetailOnV3InvoiceAPI()
 					UnitConfig: unitConfig,
 				},
 			},
-		},
+		}),
 	})
 	s.Require().NoError(err)
 

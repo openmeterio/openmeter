@@ -398,7 +398,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.FiatCode(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						// Covered case: Discount caused by maximum amount
 						GatheringLineBase: billing.GatheringLineBase{
@@ -530,7 +530,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							})),
 						},
 					},
-				},
+				}),
 			},
 		)
 		s.NoError(err)
@@ -1246,7 +1246,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -1261,7 +1261,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 						})),
 					},
 				},
-			},
+			}),
 		},
 	)
 	s.NoError(err)
@@ -1397,7 +1397,7 @@ func (s *StripeInvoiceTestSuite) TestDeletedAppFailsAdvancementButAllowsInvoiceD
 		_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace:     namespace,
 					Period:        timeutil.ClosedPeriod{From: now.Add(-2 * time.Hour), To: now.Add(-time.Hour)},
@@ -1408,7 +1408,7 @@ func (s *StripeInvoiceTestSuite) TestDeletedAppFailsAdvancementButAllowsInvoiceD
 					Currency:      currencyx.FiatCode(currency.USD),
 					PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 				}),
-			},
+			}),
 		})
 		s.Require().NoError(err)
 
@@ -1588,7 +1588,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.FiatCode(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 					InvoiceAt:     periodStart,
@@ -1596,7 +1596,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 					PerUnitAmount: alpacadecimal.NewFromFloat(10),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
-			},
+			}),
 		},
 	)
 	s.NoError(err)
