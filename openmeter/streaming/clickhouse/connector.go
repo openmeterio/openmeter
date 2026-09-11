@@ -302,8 +302,17 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 		return fmt.Errorf("migrate events table: %w", err)
 	}
 
-	if err := c.config.ClickHouse.Exec(ctx, table.backfillStoreRowIDSQL()); err != nil {
-		return fmt.Errorf("backfill events table: %w", err)
+	// The synchronous backfill mutation is expensive, so only submit it when
+	// rows actually need it instead of on every connector startup.
+	var emptyStoreRowID uint64
+	if err := c.config.ClickHouse.QueryRow(ctx, table.countRowsWithEmptyStoreRowIDSQL()).Scan(&emptyStoreRowID); err != nil {
+		return fmt.Errorf("count events with empty store_row_id: %w", err)
+	}
+
+	if emptyStoreRowID > 0 {
+		if err := c.config.ClickHouse.Exec(ctx, table.backfillStoreRowIDSQL()); err != nil {
+			return fmt.Errorf("backfill events table: %w", err)
+		}
 	}
 
 	return nil
