@@ -1713,6 +1713,10 @@ func (n NoopSubscriptionWorkflowService) EditRunning(ctx context.Context, subscr
 	return subscription.SubscriptionView{}, nil
 }
 
+func (n NoopSubscriptionWorkflowService) MigrateToPlan(ctx context.Context, input subscriptionworkflow.MigrateSubscriptionWorkflowInput) (subscription.SubscriptionView, error) {
+	return subscription.SubscriptionView{}, nil
+}
+
 func (n NoopSubscriptionWorkflowService) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error) {
 	return subscription.Subscription{}, subscription.SubscriptionView{}, nil
 }

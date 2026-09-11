@@ -47,8 +47,9 @@ subscriptions leave the normal read path but remain available to cleanup
 consumers that explicitly include deleted records.
 
 Updating a subscription reconciles its current view with a new spec. Customer,
-plan reference, subscription start, and settlement mode are not mutable through
-this path. Changed phases or items may be deleted and recreated, including
+subscription start, and settlement mode are not mutable through this path.
+The plan reference can advance to a later version of the same plan through
+[migration](workflow/README.md). Changed phases or items may be deleted and recreated, including
 their entitlements. Consumers must not treat a persisted phase, item, or
 entitlement ID as the durable identity of a logical spec path.
 

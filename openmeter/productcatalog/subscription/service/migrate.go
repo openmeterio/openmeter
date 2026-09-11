@@ -44,7 +44,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	if p.Version <= sub.PlanRef.Version {
 		return def, models.NewGenericValidationError(
-			fmt.Errorf("subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, request.TargetVersion),
+			fmt.Errorf("subscription %s is already at version %d, cannot migrate to version %d", request.ID.ID, sub.PlanRef.Version, p.Version),
 		)
 	}
 
@@ -66,12 +66,10 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		)
 	}
 
-	// Let's find the starting phase
 	if request.StartingPhase != nil {
-		if err := s.zeroPhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
-			return def, err
-		}
+		return def, models.NewGenericValidationError(fmt.Errorf("migration preserves the phase timeline; use subscription change to select a starting phase"))
 	}
+	// BillingAnchor is deprecated and ignored for compatibility with existing clients.
 
 	if request.RejectUnitConfig && p.HasUnitConfig() {
 		return def, productcatalog.ErrUnitConfigNotRepresentable
@@ -79,41 +77,17 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	pp := PlanFromPlan(*p)
 
-	var timing subscription.Timing
-
-	if request.Timing != nil {
-		timing = *request.Timing
-	} else {
-		currView, err := s.SubscriptionService.GetView(ctx, request.ID)
-		if err != nil {
-			return def, err
-		}
-
-		// If we can, we want to migrate immediately.
-		timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}
-
-		// If we cannot, we want to migrate at the end of the current billing period
-		if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &currView); err != nil {
-			timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}
-		}
-	}
-
-	// Then let's create the subscription from the plan
-	workflowInput := subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-		Timing:        timing,
-		MetadataModel: sub.MetadataModel,
-		Name:          sub.Name,
-		Description:   sub.Description,
-		BillingAnchor: request.BillingAnchor,
-		CostBasisMode: sub.CostBasisMode,
-	}
-	curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, workflowInput, pp)
+	timing := lo.FromPtrOr(request.Timing, subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)})
+	updated, err := s.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+		SubscriptionID: request.ID,
+		Plan:           pp,
+		Timing:         timing,
+	})
 	if err != nil {
 		return def, err
 	}
 
-	return plansubscription.SubscriptionChangeResponse{
-		Current: curr,
-		Next:    new,
-	}, nil
+	// Keep the existing response envelope: current is the pre-amendment snapshot,
+	// next is the updated view of the same subscription.
+	return plansubscription.SubscriptionChangeResponse{Current: sub, Next: updated}, nil
 }

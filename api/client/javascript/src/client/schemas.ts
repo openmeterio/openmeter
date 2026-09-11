@@ -2188,9 +2188,13 @@ export interface paths {
     put?: never
     /**
      * Migrate subscription
-     * @description Migrates the subscripiton to the provided version of the current plan.
-     *     If possible, the migration will be done immediately.
-     *     If not, the migration will be scheduled to the end of the current billing period.
+     * @description Amends a running subscription to a later version of its current plan in place.
+     *     Unchanged items retain their service periods. Changed or removed items end at
+     *     the effective time; replacements and additions start from that time.
+     *     Existing addons must be compatible with the target plan version.
+     *     The phase timeline, billing anchor, and subscription-level billing settings
+     *     are preserved. Both response entries refer to the same subscription:
+     *     current is the before snapshot and next is the amended view.
      */
     post: operations['migrateSubscription']
     delete?: never
@@ -26761,18 +26765,16 @@ export interface operations {
            */
           timing?: components['schemas']['SubscriptionTiming']
           /**
-           * @description The version of the plan to migrate to.
+           * @description A strictly later version of the current plan to migrate to.
            *     If not provided, the subscription will migrate to the latest version of the current plan.
            */
           targetVersion?: number
-          /**
-           * @description The key of the phase to start the subscription in.
-           *     If not provided, the subscription will start in the first phase of the plan.
-           */
+          /** @description Not supported for in-place migrations. Omit this field; use subscription change to reset the phase timeline. */
           startingPhase?: string
           /**
            * Format: date-time
-           * @description The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
+           * @deprecated
+           * @description Ignored. Migration preserves the existing billing anchor.
            * @example 2023-01-01T01:01:01.001Z
            */
           billingAnchor?: Date

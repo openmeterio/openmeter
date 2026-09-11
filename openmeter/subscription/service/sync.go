@@ -46,6 +46,17 @@ func (s *service) syncPrepared(ctx context.Context, view subscription.Subscripti
 		if err := plan.Execute(ctx, s, view.Customer); err != nil {
 			return def, err
 		}
+		if !view.Subscription.PlanRef.NilEqual(newSpec.Plan) {
+			// validateSyncTarget has already checked a later version of the same
+			// plan. Persist its reference atomically with the materialized items.
+			if err := s.SubscriptionRepo.AdvancePlanReference(ctx, subscription.AdvancePlanReferenceInput{
+				SubscriptionID: view.Subscription.NamespacedID,
+				CurrentPlan:    *view.Subscription.PlanRef,
+				TargetPlan:     *newSpec.Plan,
+			}); err != nil {
+				return def, err
+			}
+		}
 
 		return s.Get(ctx, view.Subscription.NamespacedID)
 	})
@@ -56,7 +67,16 @@ func validateSyncTarget(view subscription.SubscriptionView, newSpec subscription
 		return fmt.Errorf("cannot change customer id")
 	}
 	if !view.Subscription.PlanRef.NilEqual(newSpec.Plan) {
-		return fmt.Errorf("cannot change plan")
+		if view.Subscription.PlanRef == nil || newSpec.Plan == nil {
+			return fmt.Errorf("cannot change plan")
+		}
+		if err := (subscription.AdvancePlanReferenceInput{
+			SubscriptionID: view.Subscription.NamespacedID,
+			CurrentPlan:    *view.Subscription.PlanRef,
+			TargetPlan:     *newSpec.Plan,
+		}).Validate(); err != nil {
+			return fmt.Errorf("cannot change plan: %w", err)
+		}
 	}
 	if !view.Subscription.ActiveFrom.Equal(newSpec.ActiveFrom) {
 		return fmt.Errorf("cannot change subscription start")
