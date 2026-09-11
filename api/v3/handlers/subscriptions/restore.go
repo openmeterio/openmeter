@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	models "github.com/openmeterio/openmeter/pkg/models"
@@ -51,7 +52,7 @@ func (h *handler) RestoreSubscription() RestoreSubscriptionHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("restore-subscription"),
-			httptransport.WithErrorEncoder(subscriptionGenericErrorEncoder()),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }

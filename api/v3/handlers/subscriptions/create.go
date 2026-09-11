@@ -143,10 +143,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("create-subscription"),
-			// subscriptionGenericErrorEncoder maps the models.Generic* errors the
-			// create/timing path can surface (e.g. a past scheduled start →
-			// GenericValidationError) to 4xx; the plain generic encoder would 500 them.
-			httptransport.WithErrorEncoder(subscriptionGenericErrorEncoder()),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }

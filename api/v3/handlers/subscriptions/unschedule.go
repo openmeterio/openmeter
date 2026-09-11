@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	models "github.com/openmeterio/openmeter/pkg/models"
@@ -45,7 +46,7 @@ func (h *handler) UnscheduleSubscription() UnscheduleSubscriptionHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("unschedule-subscription"),
-			httptransport.WithErrorEncoder(subscriptionGenericErrorEncoder()),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }
