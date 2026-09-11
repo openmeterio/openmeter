@@ -896,6 +896,9 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 type CreatePendingInvoiceLine struct {
 	GatheringLine
 
+	// BypassFeatureMeterValidation preserves unresolved feature references while
+	// the legacy subscription reconciler creates gathering lines. Collection still
+	// validates those dependencies and records critical issues on the invoice.
 	BypassFeatureMeterValidation bool `json:"-"`
 }
 
