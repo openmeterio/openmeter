@@ -9,6 +9,8 @@ import {
   getSubscription,
   cancelSubscription,
   unscheduleCancelation,
+  unscheduleSubscription,
+  restoreSubscription,
   changeSubscription,
   editSubscription,
   createSubscriptionAddon,
@@ -27,6 +29,10 @@ import type {
   CancelSubscriptionResponse,
   UnscheduleCancelationRequest,
   UnscheduleCancelationResponse,
+  UnscheduleSubscriptionRequest,
+  UnscheduleSubscriptionResponse,
+  RestoreSubscriptionRequest,
+  RestoreSubscriptionResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
   EditSubscriptionRequest,
@@ -126,6 +132,41 @@ export class Subscriptions {
     options?: RequestOptions,
   ): Promise<UnscheduleCancelationResponse> {
     return unwrap(await unscheduleCancelation(this._client, request, options))
+  }
+
+  /**
+   * Unschedule subscription
+   *
+   * Deletes a scheduled subscription that has not yet become active, removing it and
+   * resolving any scheduling conflict it was holding. This is distinct from
+   * canceling: cancel ends a running subscription, whereas unscheduling removes a
+   * not-yet-active one. Only scheduled subscriptions can be unscheduled;
+   * unscheduling an active or already-started subscription is rejected.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/unschedule
+   */
+  async unschedule(
+    request: UnscheduleSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<UnscheduleSubscriptionResponse> {
+    return unwrap(await unscheduleSubscription(this._client, request, options))
+  }
+
+  /**
+   * Restore subscription
+   *
+   * Restores the subscription by deleting any later-scheduled successor
+   * subscriptions and continuing this one indefinitely. This is the inverse of a
+   * future-dated change, which schedules a successor. Restore is not available when
+   * multi-subscription is enabled.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/restore
+   */
+  async restore(
+    request: RestoreSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<RestoreSubscriptionResponse> {
+    return unwrap(await restoreSubscription(this._client, request, options))
   }
 
   /**

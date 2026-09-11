@@ -113,6 +113,14 @@ func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 	s.subscriptionsHandler.UnscheduleCancelation().With(subscriptionId).ServeHTTP(w, r)
 }
 
+func (s *Server) UnscheduleSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.UnscheduleSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
+func (s *Server) RestoreSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.RestoreSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
 func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
 	s.subscriptionsHandler.ChangeSubscription().
 		Chain(featuregate.NewMiddleware[subscriptionhandler.ChangeSubscriptionRequest, subscriptionhandler.ChangeSubscriptionResponse](

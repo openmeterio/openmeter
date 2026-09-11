@@ -60,6 +60,16 @@ export type UnscheduleCancelationRequest = {
 }
 export type UnscheduleCancelationResponse = Subscription
 
+export type UnscheduleSubscriptionRequest = {
+  subscriptionId: string
+}
+export type UnscheduleSubscriptionResponse = void
+
+export type RestoreSubscriptionRequest = {
+  subscriptionId: string
+}
+export type RestoreSubscriptionResponse = Subscription
+
 export type ChangeSubscriptionRequest = AcceptDateStrings<{
   subscriptionId: string
   body: SubscriptionChangeInput

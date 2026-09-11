@@ -30,7 +30,13 @@ model SubscriptionCancel {
  */
 @friendlyName("BillingSubscriptionChange")
 model SubscriptionChange {
-  ...OmitProperties<SubscriptionCreate, "customer_id" | "customer_key">;
+  // `timing` is omitted from the spread and redeclared as required below: on
+  // create it is an optional scheduling hint, but a change must always say when it
+  // takes effect.
+  ...OmitProperties<
+    SubscriptionCreate,
+    "customer_id" | "customer_key" | "timing"
+  >;
 
   /**
    * Timing configuration for the change, when the change should take effect. For
@@ -143,6 +149,38 @@ interface SubscriptionsOperations {
   @summary("Unschedule subscription cancelation")
   @route("/{subscriptionId}/unschedule-cancelation")
   unscheduleCancelation(@path subscriptionId: Shared.ULID):
+    | Shared.UpdateResponse<Subscription>
+    | Common.NotFound
+    | Common.Conflict
+    | Common.ErrorResponses;
+
+  /**
+   * Deletes a scheduled subscription that has not yet become active, removing it and
+   * resolving any scheduling conflict it was holding. This is distinct from
+   * canceling: cancel ends a running subscription, whereas unscheduling removes a
+   * not-yet-active one. Only scheduled subscriptions can be unscheduled;
+   * unscheduling an active or already-started subscription is rejected.
+   */
+  @post
+  @operationId("unschedule-subscription")
+  @summary("Unschedule subscription")
+  @route("/{subscriptionId}/unschedule")
+  unschedule(@path subscriptionId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Restores the subscription by deleting any later-scheduled successor
+   * subscriptions and continuing this one indefinitely. This is the inverse of a
+   * future-dated change, which schedules a successor. Restore is not available when
+   * multi-subscription is enabled.
+   */
+  @post
+  @operationId("restore-subscription")
+  @summary("Restore subscription")
+  @route("/{subscriptionId}/restore")
+  restore(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
     | Common.NotFound
     | Common.Conflict

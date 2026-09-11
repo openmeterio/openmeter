@@ -214,6 +214,11 @@ type SubscriptionCreate struct {
 	// Only applies when creating from a published `plan`; custom plans define their
 	// own phases inline.
 	StartingPhase *string `json:"starting_phase,omitempty"`
+	// When the subscription should start. If not provided, the subscription starts
+	// immediately. Provide a future timestamp to schedule the subscription to start
+	// later — this creates a not-yet-active, scheduled subscription. A timestamp in
+	// the past is rejected.
+	Timing *SubscriptionCreateTiming `json:"timing,omitempty"`
 	// A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:
@@ -227,6 +232,87 @@ type SubscriptionCreate struct {
 	BillingAnchor *time.Time `json:"billing_anchor,omitempty"`
 	// Controls how custom-currency cost bases are selected for the subscription.
 	CostBasisMode *SubscriptionCostBasisMode `json:"cost_basis_mode,omitempty"`
+}
+
+// When a subscription should start: immediate (the default) or a custom timestamp
+// to schedule a future start.
+//
+// SubscriptionCreateTiming is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the SubscriptionCreateTimingFrom* constructors.
+type SubscriptionCreateTiming struct {
+	raw json.RawMessage
+}
+
+func (u *SubscriptionCreateTiming) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	return nil
+}
+
+func (u SubscriptionCreateTiming) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u SubscriptionCreateTiming) AsEnum() (*SubscriptionCreateTimingEnum, error) {
+	var value SubscriptionCreateTimingEnum
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	if !value.Valid() {
+		return nil, fmt.Errorf("SubscriptionCreateTiming: value %q is not Enum", value)
+	}
+	return &value, nil
+}
+
+func SubscriptionCreateTimingFromEnum(value SubscriptionCreateTimingEnum) (SubscriptionCreateTiming, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionCreateTiming{}, err
+	}
+	var result SubscriptionCreateTiming
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionCreateTiming{}, err
+	}
+	return result, nil
+}
+
+func (u SubscriptionCreateTiming) AsCustom() (*time.Time, error) {
+	var value time.Time
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func SubscriptionCreateTimingFromCustom(value time.Time) (SubscriptionCreateTiming, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return SubscriptionCreateTiming{}, err
+	}
+	var result SubscriptionCreateTiming
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return SubscriptionCreateTiming{}, err
+	}
+	return result, nil
+}
+
+// Subscription create timing. Only immediate is supported as an enum value —
+// unlike edit timing, next_billing_cycle is not accepted on create, since a new
+// subscription has no current billing cycle to schedule against.
+type SubscriptionCreateTimingEnum string
+
+const (
+	SubscriptionCreateTimingEnumImmediate SubscriptionCreateTimingEnum = "immediate"
+)
+
+func (value SubscriptionCreateTimingEnum) Valid() bool {
+	switch value {
+	case SubscriptionCreateTimingEnumImmediate:
+		return true
+	default:
+		return false
+	}
 }
 
 // An inline (custom) plan definition used to create or change a subscription

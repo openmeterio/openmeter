@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -60,7 +61,7 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("create-subscription-addon"),
-			httptransport.WithErrorEncoder(subscriptionAddonErrorEncoder()),
+			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
 }
