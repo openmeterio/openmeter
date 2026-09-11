@@ -438,6 +438,24 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					NamespaceId: request.AppID.Namespace,
 					AppId:       request.AppID.ID,
 				}, nil
+			case stripeclient.WebhookEventTypePaymentIntentSucceeded,
+				stripeclient.WebhookEventTypePaymentIntentCanceled,
+				stripeclient.WebhookEventTypePaymentIntentPaymentFailed,
+				stripeclient.WebhookEventTypePaymentIntentRequiresAction,
+				stripeclient.WebhookEventTypeCreditNoteCreated,
+				stripeclient.WebhookEventTypeCreditNoteUpdated,
+				stripeclient.WebhookEventTypeCreditNoteVoided,
+				stripeclient.WebhookEventTypeRefundCreated,
+				stripeclient.WebhookEventTypeRefundUpdated,
+				stripeclient.WebhookEventTypeRefundFailed,
+				stripeclient.WebhookEventTypeInvoiceFinalized:
+				// FIXME: handle schema version 2 events in a follow-up PR.
+				// They must be acknowledged until then, otherwise Stripe disables the endpoint
+				// after repeated non-2xx responses.
+				return AppStripeWebhookResponse{
+					NamespaceId: request.AppID.Namespace,
+					AppId:       request.AppID.ID,
+				}, nil
 			}
 
 			return AppStripeWebhookResponse{}, models.NewGenericValidationError(

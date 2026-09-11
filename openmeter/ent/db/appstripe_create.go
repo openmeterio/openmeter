@@ -125,6 +125,20 @@ func (_c *AppStripeCreate) SetNillableWebhookSecret(v *string) *AppStripeCreate 
 	return _c
 }
 
+// SetWebhookSchemaVersion sets the "webhook_schema_version" field.
+func (_c *AppStripeCreate) SetWebhookSchemaVersion(v int) *AppStripeCreate {
+	_c.mutation.SetWebhookSchemaVersion(v)
+	return _c
+}
+
+// SetNillableWebhookSchemaVersion sets the "webhook_schema_version" field if the given value is not nil.
+func (_c *AppStripeCreate) SetNillableWebhookSchemaVersion(v *int) *AppStripeCreate {
+	if v != nil {
+		_c.SetWebhookSchemaVersion(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *AppStripeCreate) SetID(v string) *AppStripeCreate {
 	_c.mutation.SetID(v)
@@ -216,6 +230,10 @@ func (_c *AppStripeCreate) defaults() {
 		v := appstripe.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.WebhookSchemaVersion(); !ok {
+		v := appstripe.DefaultWebhookSchemaVersion
+		_c.mutation.SetWebhookSchemaVersion(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := appstripe.DefaultID()
 		_c.mutation.SetID(v)
@@ -268,6 +286,14 @@ func (_c *AppStripeCreate) check() error {
 	if v, ok := _c.mutation.WebhookSecret(); ok {
 		if err := appstripe.WebhookSecretValidator(v); err != nil {
 			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.WebhookSchemaVersion(); !ok {
+		return &ValidationError{Name: "webhook_schema_version", err: errors.New(`db: missing required field "AppStripe.webhook_schema_version"`)}
+	}
+	if v, ok := _c.mutation.WebhookSchemaVersion(); ok {
+		if err := appstripe.WebhookSchemaVersionValidator(v); err != nil {
+			return &ValidationError{Name: "webhook_schema_version", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_schema_version": %w`, err)}
 		}
 	}
 	return nil
@@ -345,6 +371,10 @@ func (_c *AppStripeCreate) createSpec() (*AppStripe, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.WebhookSecret(); ok {
 		_spec.SetField(appstripe.FieldWebhookSecret, field.TypeString, value)
 		_node.WebhookSecret = &value
+	}
+	if value, ok := _c.mutation.WebhookSchemaVersion(); ok {
+		_spec.SetField(appstripe.FieldWebhookSchemaVersion, field.TypeInt, value)
+		_node.WebhookSchemaVersion = value
 	}
 	if nodes := _c.mutation.CustomerAppsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -521,6 +551,24 @@ func (u *AppStripeUpsert) ClearWebhookSecret() *AppStripeUpsert {
 	return u
 }
 
+// SetWebhookSchemaVersion sets the "webhook_schema_version" field.
+func (u *AppStripeUpsert) SetWebhookSchemaVersion(v int) *AppStripeUpsert {
+	u.Set(appstripe.FieldWebhookSchemaVersion, v)
+	return u
+}
+
+// UpdateWebhookSchemaVersion sets the "webhook_schema_version" field to the value that was provided on create.
+func (u *AppStripeUpsert) UpdateWebhookSchemaVersion() *AppStripeUpsert {
+	u.SetExcluded(appstripe.FieldWebhookSchemaVersion)
+	return u
+}
+
+// AddWebhookSchemaVersion adds v to the "webhook_schema_version" field.
+func (u *AppStripeUpsert) AddWebhookSchemaVersion(v int) *AppStripeUpsert {
+	u.Add(appstripe.FieldWebhookSchemaVersion, v)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -683,6 +731,27 @@ func (u *AppStripeUpsertOne) UpdateWebhookSecret() *AppStripeUpsertOne {
 func (u *AppStripeUpsertOne) ClearWebhookSecret() *AppStripeUpsertOne {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.ClearWebhookSecret()
+	})
+}
+
+// SetWebhookSchemaVersion sets the "webhook_schema_version" field.
+func (u *AppStripeUpsertOne) SetWebhookSchemaVersion(v int) *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.SetWebhookSchemaVersion(v)
+	})
+}
+
+// AddWebhookSchemaVersion adds v to the "webhook_schema_version" field.
+func (u *AppStripeUpsertOne) AddWebhookSchemaVersion(v int) *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.AddWebhookSchemaVersion(v)
+	})
+}
+
+// UpdateWebhookSchemaVersion sets the "webhook_schema_version" field to the value that was provided on create.
+func (u *AppStripeUpsertOne) UpdateWebhookSchemaVersion() *AppStripeUpsertOne {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.UpdateWebhookSchemaVersion()
 	})
 }
 
@@ -1015,6 +1084,27 @@ func (u *AppStripeUpsertBulk) UpdateWebhookSecret() *AppStripeUpsertBulk {
 func (u *AppStripeUpsertBulk) ClearWebhookSecret() *AppStripeUpsertBulk {
 	return u.Update(func(s *AppStripeUpsert) {
 		s.ClearWebhookSecret()
+	})
+}
+
+// SetWebhookSchemaVersion sets the "webhook_schema_version" field.
+func (u *AppStripeUpsertBulk) SetWebhookSchemaVersion(v int) *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.SetWebhookSchemaVersion(v)
+	})
+}
+
+// AddWebhookSchemaVersion adds v to the "webhook_schema_version" field.
+func (u *AppStripeUpsertBulk) AddWebhookSchemaVersion(v int) *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.AddWebhookSchemaVersion(v)
+	})
+}
+
+// UpdateWebhookSchemaVersion sets the "webhook_schema_version" field to the value that was provided on create.
+func (u *AppStripeUpsertBulk) UpdateWebhookSchemaVersion() *AppStripeUpsertBulk {
+	return u.Update(func(s *AppStripeUpsert) {
+		s.UpdateWebhookSchemaVersion()
 	})
 }
 

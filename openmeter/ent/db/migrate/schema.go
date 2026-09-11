@@ -380,6 +380,7 @@ var (
 		{Name: "masked_api_key", Type: field.TypeString},
 		{Name: "stripe_webhook_id", Type: field.TypeString},
 		{Name: "webhook_secret", Type: field.TypeString, Nullable: true},
+		{Name: "webhook_schema_version", Type: field.TypeInt, Default: 1},
 	}
 	// AppStripesTable holds the schema information for the "app_stripes" table.
 	AppStripesTable = &schema.Table{

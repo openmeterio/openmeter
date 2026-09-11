@@ -402,6 +402,12 @@ func init() {
 	appstripeDescWebhookSecret := appstripeFields[5].Descriptor()
 	// appstripe.WebhookSecretValidator is a validator for the "webhook_secret" field. It is called by the builders before save.
 	appstripe.WebhookSecretValidator = appstripeDescWebhookSecret.Validators[0].(func(string) error)
+	// appstripeDescWebhookSchemaVersion is the schema descriptor for webhook_schema_version field.
+	appstripeDescWebhookSchemaVersion := appstripeFields[6].Descriptor()
+	// appstripe.DefaultWebhookSchemaVersion holds the default value on creation for the webhook_schema_version field.
+	appstripe.DefaultWebhookSchemaVersion = appstripeDescWebhookSchemaVersion.Default.(int)
+	// appstripe.WebhookSchemaVersionValidator is a validator for the "webhook_schema_version" field. It is called by the builders before save.
+	appstripe.WebhookSchemaVersionValidator = appstripeDescWebhookSchemaVersion.Validators[0].(func(int) error)
 	// appstripeDescID is the schema descriptor for id field.
 	appstripeDescID := appstripeMixinFields0[0].Descriptor()
 	// appstripe.DefaultID holds the default value on creation for the id field.

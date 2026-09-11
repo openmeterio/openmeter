@@ -24,12 +24,13 @@ const (
 type CreateAppStripeInput struct {
 	app.CreateAppInput
 
-	StripeAccountID string
-	Livemode        bool
-	APIKey          secretentity.SecretID
-	MaskedAPIKey    string
-	StripeWebhookID string
-	WebhookSecret   secretentity.SecretID
+	StripeAccountID      string
+	Livemode             bool
+	APIKey               secretentity.SecretID
+	MaskedAPIKey         string
+	StripeWebhookID      string
+	WebhookSecret        secretentity.SecretID
+	WebhookSchemaVersion int
 }
 
 func (i CreateAppStripeInput) Validate() error {
@@ -89,6 +90,10 @@ func (i CreateAppStripeInput) Validate() error {
 
 	if i.WebhookSecret.Key != WebhookSecretKey {
 		errs = append(errs, errors.New("webhookSecret has an invalid semantic key"))
+	}
+
+	if i.WebhookSchemaVersion < 1 {
+		errs = append(errs, errors.New("webhookSchemaVersion must be at least 1"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -418,6 +423,9 @@ type AppData struct {
 	MaskedAPIKey    string                `json:"maskedApiKey"`
 	StripeWebhookID string                `json:"stripeWebhookId"`
 	WebhookSecret   secretentity.SecretID `json:"-"`
+	// WebhookSchemaVersion records the event set the Stripe endpoint was registered with.
+	// It is fixed at install time because there is no webhook update path.
+	WebhookSchemaVersion int `json:"webhookSchemaVersion"`
 }
 
 func (d AppData) Validate() error {
