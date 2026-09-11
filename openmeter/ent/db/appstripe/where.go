@@ -115,6 +115,11 @@ func WebhookSecret(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldWebhookSecret, v))
 }
 
+// WebhookSchemaVersion applies equality check predicate on the "webhook_schema_version" field. It's identical to WebhookSchemaVersionEQ.
+func WebhookSchemaVersion(v int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldWebhookSchemaVersion, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldEQ(FieldNamespace, v))
@@ -663,6 +668,46 @@ func WebhookSecretEqualFold(v string) predicate.AppStripe {
 // WebhookSecretContainsFold applies the ContainsFold predicate on the "webhook_secret" field.
 func WebhookSecretContainsFold(v string) predicate.AppStripe {
 	return predicate.AppStripe(sql.FieldContainsFold(FieldWebhookSecret, v))
+}
+
+// WebhookSchemaVersionEQ applies the EQ predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionEQ(v int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldEQ(FieldWebhookSchemaVersion, v))
+}
+
+// WebhookSchemaVersionNEQ applies the NEQ predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionNEQ(v int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNEQ(FieldWebhookSchemaVersion, v))
+}
+
+// WebhookSchemaVersionIn applies the In predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionIn(vs ...int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldIn(FieldWebhookSchemaVersion, vs...))
+}
+
+// WebhookSchemaVersionNotIn applies the NotIn predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionNotIn(vs ...int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldNotIn(FieldWebhookSchemaVersion, vs...))
+}
+
+// WebhookSchemaVersionGT applies the GT predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionGT(v int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGT(FieldWebhookSchemaVersion, v))
+}
+
+// WebhookSchemaVersionGTE applies the GTE predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionGTE(v int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldGTE(FieldWebhookSchemaVersion, v))
+}
+
+// WebhookSchemaVersionLT applies the LT predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionLT(v int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLT(FieldWebhookSchemaVersion, v))
+}
+
+// WebhookSchemaVersionLTE applies the LTE predicate on the "webhook_schema_version" field.
+func WebhookSchemaVersionLTE(v int) predicate.AppStripe {
+	return predicate.AppStripe(sql.FieldLTE(FieldWebhookSchemaVersion, v))
 }
 
 // HasCustomerApps applies the HasEdge predicate on the "customer_apps" edge.

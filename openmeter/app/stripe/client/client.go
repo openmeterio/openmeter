@@ -78,7 +78,8 @@ func NewStripeClient(config StripeClientConfig) (StripeClient, error) {
 	}, nil
 }
 
-// SetupWebhook setups a stripe webhook to handle setup intents and save the payment method
+// SetupWebhook registers the Stripe webhook endpoint for an app. The registered event set is
+// tracked by appservice.LatestWebhookSchemaVersion; bump it whenever this list changes.
 func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error) {
 	if err := input.Validate(); err != nil {
 		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)
@@ -101,6 +102,19 @@ func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput
 			lo.ToPtr(WebhookEventTypeInvoicePaymentSucceeded),
 			lo.ToPtr(WebhookEventTypeInvoiceSent),
 			lo.ToPtr(WebhookEventTypeInvoiceVoided),
+
+			// Schema version 2
+			lo.ToPtr(WebhookEventTypePaymentIntentSucceeded),
+			lo.ToPtr(WebhookEventTypePaymentIntentCanceled),
+			lo.ToPtr(WebhookEventTypePaymentIntentPaymentFailed),
+			lo.ToPtr(WebhookEventTypePaymentIntentRequiresAction),
+			lo.ToPtr(WebhookEventTypeCreditNoteCreated),
+			lo.ToPtr(WebhookEventTypeCreditNoteUpdated),
+			lo.ToPtr(WebhookEventTypeCreditNoteVoided),
+			lo.ToPtr(WebhookEventTypeRefundCreated),
+			lo.ToPtr(WebhookEventTypeRefundUpdated),
+			lo.ToPtr(WebhookEventTypeRefundFailed),
+			lo.ToPtr(WebhookEventTypeInvoiceFinalized),
 		},
 		URL:         lo.ToPtr(input.WebhookURL),
 		Description: lo.ToPtr("OpenMeter Stripe Webhook, do not delete or modify manually"),

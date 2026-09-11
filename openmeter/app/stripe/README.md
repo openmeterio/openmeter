@@ -25,3 +25,14 @@ load the app-owned signing secret.
 The derived namespace becomes trusted request context only after the Stripe signature has been
 verified with that secret. Namespace-free app lookup must not be reused for ordinary authenticated
 app operations, where the caller's namespace is already known and must constrain every query.
+
+## Webhook schema version
+
+Each Stripe app records the webhook event set its Stripe endpoint was registered with. Version 1
+covers setup-intent and invoice events; version 2 adds payment-intent, credit-note, refund, and
+`invoice.finalized` events. New installs persist `appservice.LatestWebhookSchemaVersion` and register
+the full event list. Existing apps stay on version 1 because there is no webhook update path, so any
+new event handling must tolerate apps that never deliver those events.
+
+Version 2 events are currently acknowledged without processing. Stripe disables an endpoint after
+sustained non-2xx responses, so a registered event must never be rejected as unsupported.

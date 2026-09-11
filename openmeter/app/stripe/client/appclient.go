@@ -58,6 +58,31 @@ const (
 	WebhookEventTypeInvoiceSent = "invoice.sent"
 	// Occurs whenever an invoice is voided.
 	WebhookEventTypeInvoiceVoided = "invoice.voided"
+
+	// Webhook schema version 2 events
+
+	// Occurs when a PaymentIntent has successfully completed payment.
+	WebhookEventTypePaymentIntentSucceeded = "payment_intent.succeeded"
+	// Occurs when a PaymentIntent is canceled.
+	WebhookEventTypePaymentIntentCanceled = "payment_intent.canceled"
+	// Occurs when a PaymentIntent has failed the attempt to create a payment method or a payment.
+	WebhookEventTypePaymentIntentPaymentFailed = "payment_intent.payment_failed"
+	// Occurs when a PaymentIntent transitions to requires_action state.
+	WebhookEventTypePaymentIntentRequiresAction = "payment_intent.requires_action"
+	// Occurs whenever a credit note is created.
+	WebhookEventTypeCreditNoteCreated = "credit_note.created"
+	// Occurs whenever a credit note is updated.
+	WebhookEventTypeCreditNoteUpdated = "credit_note.updated"
+	// Occurs whenever a credit note is voided.
+	WebhookEventTypeCreditNoteVoided = "credit_note.voided"
+	// Occurs whenever a refund is created.
+	WebhookEventTypeRefundCreated = "refund.created"
+	// Occurs whenever a refund is updated.
+	WebhookEventTypeRefundUpdated = "refund.updated"
+	// Occurs whenever a refund fails.
+	WebhookEventTypeRefundFailed = "refund.failed"
+	// Occurs whenever a draft invoice is finalized.
+	WebhookEventTypeInvoiceFinalized = "invoice.finalized"
 )
 
 // StripeAppClient is a client for the stripe API for an installed app.

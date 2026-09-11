@@ -7544,28 +7544,30 @@ func (m *AppCustomerMutation) ResetEdge(name string) error {
 // AppStripeMutation represents an operation that mutates the AppStripe nodes in the graph.
 type AppStripeMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	stripe_account_id    *string
-	stripe_livemode      *bool
-	api_key              *string
-	masked_api_key       *string
-	stripe_webhook_id    *string
-	webhook_secret       *string
-	clearedFields        map[string]struct{}
-	customer_apps        map[int]struct{}
-	removedcustomer_apps map[int]struct{}
-	clearedcustomer_apps bool
-	app                  *string
-	clearedapp           bool
-	done                 bool
-	oldValue             func(context.Context) (*AppStripe, error)
-	predicates           []predicate.AppStripe
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	stripe_account_id         *string
+	stripe_livemode           *bool
+	api_key                   *string
+	masked_api_key            *string
+	stripe_webhook_id         *string
+	webhook_secret            *string
+	webhook_schema_version    *int
+	addwebhook_schema_version *int
+	clearedFields             map[string]struct{}
+	customer_apps             map[int]struct{}
+	removedcustomer_apps      map[int]struct{}
+	clearedcustomer_apps      bool
+	app                       *string
+	clearedapp                bool
+	done                      bool
+	oldValue                  func(context.Context) (*AppStripe, error)
+	predicates                []predicate.AppStripe
 }
 
 var _ ent.Mutation = (*AppStripeMutation)(nil)
@@ -8071,6 +8073,62 @@ func (m *AppStripeMutation) ResetWebhookSecret() {
 	delete(m.clearedFields, appstripe.FieldWebhookSecret)
 }
 
+// SetWebhookSchemaVersion sets the "webhook_schema_version" field.
+func (m *AppStripeMutation) SetWebhookSchemaVersion(i int) {
+	m.webhook_schema_version = &i
+	m.addwebhook_schema_version = nil
+}
+
+// WebhookSchemaVersion returns the value of the "webhook_schema_version" field in the mutation.
+func (m *AppStripeMutation) WebhookSchemaVersion() (r int, exists bool) {
+	v := m.webhook_schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWebhookSchemaVersion returns the old "webhook_schema_version" field's value of the AppStripe entity.
+// If the AppStripe object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeMutation) OldWebhookSchemaVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWebhookSchemaVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWebhookSchemaVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWebhookSchemaVersion: %w", err)
+	}
+	return oldValue.WebhookSchemaVersion, nil
+}
+
+// AddWebhookSchemaVersion adds i to the "webhook_schema_version" field.
+func (m *AppStripeMutation) AddWebhookSchemaVersion(i int) {
+	if m.addwebhook_schema_version != nil {
+		*m.addwebhook_schema_version += i
+	} else {
+		m.addwebhook_schema_version = &i
+	}
+}
+
+// AddedWebhookSchemaVersion returns the value that was added to the "webhook_schema_version" field in this mutation.
+func (m *AppStripeMutation) AddedWebhookSchemaVersion() (r int, exists bool) {
+	v := m.addwebhook_schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWebhookSchemaVersion resets all changes to the "webhook_schema_version" field.
+func (m *AppStripeMutation) ResetWebhookSchemaVersion() {
+	m.webhook_schema_version = nil
+	m.addwebhook_schema_version = nil
+}
+
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by ids.
 func (m *AppStripeMutation) AddCustomerAppIDs(ids ...int) {
 	if m.customer_apps == nil {
@@ -8198,7 +8256,7 @@ func (m *AppStripeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppStripeMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.namespace != nil {
 		fields = append(fields, appstripe.FieldNamespace)
 	}
@@ -8229,6 +8287,9 @@ func (m *AppStripeMutation) Fields() []string {
 	if m.webhook_secret != nil {
 		fields = append(fields, appstripe.FieldWebhookSecret)
 	}
+	if m.webhook_schema_version != nil {
+		fields = append(fields, appstripe.FieldWebhookSchemaVersion)
+	}
 	return fields
 }
 
@@ -8257,6 +8318,8 @@ func (m *AppStripeMutation) Field(name string) (ent.Value, bool) {
 		return m.StripeWebhookID()
 	case appstripe.FieldWebhookSecret:
 		return m.WebhookSecret()
+	case appstripe.FieldWebhookSchemaVersion:
+		return m.WebhookSchemaVersion()
 	}
 	return nil, false
 }
@@ -8286,6 +8349,8 @@ func (m *AppStripeMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldStripeWebhookID(ctx)
 	case appstripe.FieldWebhookSecret:
 		return m.OldWebhookSecret(ctx)
+	case appstripe.FieldWebhookSchemaVersion:
+		return m.OldWebhookSchemaVersion(ctx)
 	}
 	return nil, fmt.Errorf("unknown AppStripe field %s", name)
 }
@@ -8365,6 +8430,13 @@ func (m *AppStripeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetWebhookSecret(v)
 		return nil
+	case appstripe.FieldWebhookSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWebhookSchemaVersion(v)
+		return nil
 	}
 	return fmt.Errorf("unknown AppStripe field %s", name)
 }
@@ -8372,13 +8444,21 @@ func (m *AppStripeMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *AppStripeMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addwebhook_schema_version != nil {
+		fields = append(fields, appstripe.FieldWebhookSchemaVersion)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *AppStripeMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case appstripe.FieldWebhookSchemaVersion:
+		return m.AddedWebhookSchemaVersion()
+	}
 	return nil, false
 }
 
@@ -8387,6 +8467,13 @@ func (m *AppStripeMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *AppStripeMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case appstripe.FieldWebhookSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWebhookSchemaVersion(v)
+		return nil
 	}
 	return fmt.Errorf("unknown AppStripe numeric field %s", name)
 }
@@ -8464,6 +8551,9 @@ func (m *AppStripeMutation) ResetField(name string) error {
 		return nil
 	case appstripe.FieldWebhookSecret:
 		m.ResetWebhookSecret()
+		return nil
+	case appstripe.FieldWebhookSchemaVersion:
+		m.ResetWebhookSchemaVersion()
 		return nil
 	}
 	return fmt.Errorf("unknown AppStripe field %s", name)
