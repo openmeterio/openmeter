@@ -91,6 +91,23 @@ func (c KafkaConfiguration) Validate() error {
 		errs = append(errs, errors.New("broker is required"))
 	}
 
+	// When a SASL security protocol is selected, credentials must be provided. Otherwise SASL is
+	// enabled with empty auth fields and the misconfiguration only surfaces later as an opaque
+	// broker connection failure instead of a clear startup validation error.
+	//
+	// The mechanism is intentionally not required: an empty mechanism is a valid, pre-existing
+	// configuration because sarama defaults it to PLAIN. Requiring it here would turn working
+	// SASL_SSL setups that never set the mechanism explicitly into startup failures.
+	if c.SecurityProtocol == "SASL_SSL" || c.SecurityProtocol == "SASL_PLAINTEXT" {
+		if c.SaslUsername == "" {
+			errs = append(errs, errors.New("SASL username is required when using a SASL security protocol"))
+		}
+
+		if c.SaslPassword == "" {
+			errs = append(errs, errors.New("SASL password is required when using a SASL security protocol"))
+		}
+	}
+
 	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
 		errs = append(errs, errors.New("StatsInterval must be >=5s"))
 	}
