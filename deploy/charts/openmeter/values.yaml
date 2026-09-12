@@ -207,9 +207,9 @@ svix:
     # -- Service port.
     port: 80
 
-  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
+  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the Svix component.
   # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#resources) for details.
-  # @default -- No requests or limits.
+  # @default -- The chart-wide `resources` value.
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -221,6 +221,18 @@ svix:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+
+  # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Svix component.
+  # @default -- The chart-wide `nodeSelector` value.
+  nodeSelector: {}
+
+  # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the Svix component.
+  # @default -- The chart-wide `tolerations` value.
+  tolerations: []
+
+  # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the Svix component.
+  # @default -- The chart-wide `affinity` value.
+  affinity: {}
 
 redis:
   # -- Specifies whether Redis (using the [Bitnami Redis](oci://registry-1.docker.io/bitnamicharts/redis) chart) should be installed.
@@ -258,7 +270,7 @@ redis:
 postgresql:
   # -- Specifies whether Postgres (using the [Bitnami Chart](https://github.com/bitnami/charts/tree/main/bitnami/postgresql) should be installed.
   # **Not recommended for production environments.**
-  # All further values can be configured in the `postgres` section.
+  # All further values can be configured in the `postgresql` section.
   enabled: true
 
   nameOverride: postgres
@@ -293,21 +305,101 @@ api:
   # -- Number of API replicas (pods) to launch.
   replicaCount: 1
 
+  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the API.
+  # @default -- The chart-wide `resources` value.
+  resources: {}
+
+  # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the API.
+  # @default -- The chart-wide `nodeSelector` value.
+  nodeSelector: {}
+
+  # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the API.
+  # @default -- The chart-wide `tolerations` value.
+  tolerations: []
+
+  # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the API.
+  # @default -- The chart-wide `affinity` value.
+  affinity: {}
+
 balanceWorker:
   # -- Number of Balance Worker replicas (pods) to launch.
   replicaCount: 1
+
+  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the Balance Worker.
+  # @default -- The chart-wide `resources` value.
+  resources: {}
+
+  # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Balance Worker.
+  # @default -- The chart-wide `nodeSelector` value.
+  nodeSelector: {}
+
+  # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the Balance Worker.
+  # @default -- The chart-wide `tolerations` value.
+  tolerations: []
+
+  # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the Balance Worker.
+  # @default -- The chart-wide `affinity` value.
+  affinity: {}
 
 notificationService:
   # -- Number of Notification Service replicas (pods) to launch.
   replicaCount: 1
 
+  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the Notification Service.
+  # @default -- The chart-wide `resources` value.
+  resources: {}
+
+  # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Notification Service.
+  # @default -- The chart-wide `nodeSelector` value.
+  nodeSelector: {}
+
+  # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the Notification Service.
+  # @default -- The chart-wide `tolerations` value.
+  tolerations: []
+
+  # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the Notification Service.
+  # @default -- The chart-wide `affinity` value.
+  affinity: {}
+
 sinkWorker:
   # -- Number of Sink Worker replicas (pods) to launch.
   replicaCount: 1
 
+  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the Sink Worker.
+  # @default -- The chart-wide `resources` value.
+  resources: {}
+
+  # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Sink Worker.
+  # @default -- The chart-wide `nodeSelector` value.
+  nodeSelector: {}
+
+  # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the Sink Worker.
+  # @default -- The chart-wide `tolerations` value.
+  tolerations: []
+
+  # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the Sink Worker.
+  # @default -- The chart-wide `affinity` value.
+  affinity: {}
+
 billingWorker:
   # -- Number of Billing Worker replicas (pods) to launch.
   replicaCount: 1
+
+  # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the Billing Worker.
+  # @default -- The chart-wide `resources` value.
+  resources: {}
+
+  # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Billing Worker.
+  # @default -- The chart-wide `nodeSelector` value.
+  nodeSelector: {}
+
+  # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the Billing Worker.
+  # @default -- The chart-wide `tolerations` value.
+  tolerations: []
+
+  # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the Billing Worker.
+  # @default -- The chart-wide `affinity` value.
+  affinity: {}
 
 # -- List of CA Root certificates to inject into pods at runtime.
 # See [values.yaml](values.yaml)
@@ -324,15 +416,63 @@ jobs:
     # -- Schedule for the subscription sync job.
     # Default is every hour.
     schedule: "0 * * * *"
+
+    # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the subscription sync job.
+    # @default -- The chart-wide `resources` value.
+    resources: {}
+
+    # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the subscription sync job.
+    # @default -- The chart-wide `nodeSelector` value.
+    nodeSelector: {}
+
+    # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the subscription sync job.
+    # @default -- The chart-wide `tolerations` value.
+    tolerations: []
+
+    # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the subscription sync job.
+    # @default -- The chart-wide `affinity` value.
+    affinity: {}
   # -- Collect invoices job creates invoices based on gathering invoices. The job is only used
-  # for the second invoice and up. The first invoice is issued as part of the subscription start job immidately.
+  # for the second invoice and up. The first invoice is issued as part of the subscription start job immediately.
   billingCollectInvoices:
     # -- Schedule for the collect invoices job.
     # Default is every five minutes.
     schedule: "*/5 * * * *"
+
+    # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the collect invoices job.
+    # @default -- The chart-wide `resources` value.
+    resources: {}
+
+    # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the collect invoices job.
+    # @default -- The chart-wide `nodeSelector` value.
+    nodeSelector: {}
+
+    # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the collect invoices job.
+    # @default -- The chart-wide `tolerations` value.
+    tolerations: []
+
+    # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the collect invoices job.
+    # @default -- The chart-wide `affinity` value.
+    affinity: {}
 
   # -- Advance invoices job advances automatic approval invoices.
   billingAdvanceInvoices:
     # -- Schedule for the advance invoices job.
     # Default is every five minutes.
     schedule: "*/5 * * * *"
+
+    # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the advance invoices job.
+    # @default -- The chart-wide `resources` value.
+    resources: {}
+
+    # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the advance invoices job.
+    # @default -- The chart-wide `nodeSelector` value.
+    nodeSelector: {}
+
+    # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the advance invoices job.
+    # @default -- The chart-wide `tolerations` value.
+    tolerations: []
+
+    # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the advance invoices job.
+    # @default -- The chart-wide `affinity` value.
+    affinity: {}
