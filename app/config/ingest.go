@@ -33,6 +33,7 @@ type KafkaIngestConfiguration struct {
 	TopicProvisioner TopicProvisionerConfig
 
 	Partitions          int
+	EventsTopic         string
 	EventsTopicTemplate string
 
 	// NamespaceDeletionEnabled defines whether deleting namespaces are allowed or not.
@@ -177,6 +178,7 @@ func ConfigureIngestKafkaConfiguration(v *viper.Viper, prefixes ...string) {
 // Configure configures some defaults in the Viper instance.
 func ConfigureIngest(v *viper.Viper) {
 	v.SetDefault("ingest.kafka.partitions", 1)
+	v.SetDefault("ingest.kafka.eventsTopic", "")
 	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
 	v.SetDefault("ingest.kafka.namespaceDeletionEnabled", false)
 

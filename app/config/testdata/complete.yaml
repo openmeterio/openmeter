@@ -40,6 +40,7 @@ ingest:
     saslUsername: user
     saslPassword: pass
     partitions: 1
+    eventsTopic: om_explicit_events
     statsInterval: 5s
     brokerAddressFamily: any
     socketKeepAliveEnabled: true

@@ -23,6 +23,7 @@ var Kafka = wire.NewSet(
 )
 
 var KafkaIngest = wire.NewSet(
+	NewEventTopic,
 	NewKafkaIngestNamespaceHandler,
 )
 
@@ -30,6 +31,21 @@ var KafkaNamespaceResolver = wire.NewSet(
 	NewNamespacedTopicResolver,
 	wire.Bind(new(topicresolver.Resolver), new(*topicresolver.NamespacedTopicResolver)),
 )
+
+type EventTopic string
+
+// NewEventTopic returns the fixed Kafka destination for the ingest pipeline.
+// Existing configurations fall back to the topic assigned to the default namespace.
+func NewEventTopic(
+	ingestConfig config.KafkaIngestConfiguration,
+	namespaceConfig config.NamespaceConfiguration,
+) EventTopic {
+	if ingestConfig.EventsTopic != "" {
+		return EventTopic(ingestConfig.EventsTopic)
+	}
+
+	return EventTopic(fmt.Sprintf(ingestConfig.EventsTopicTemplate, namespaceConfig.Default))
+}
 
 // TODO: add closer function?
 func NewKafkaProducer(conf config.KafkaIngestConfiguration, logger *slog.Logger, meta Metadata) (*kafka.Producer, error) {

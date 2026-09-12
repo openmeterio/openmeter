@@ -15,15 +15,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestadapter"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 func NewKafkaIngestCollector(
-	config config.KafkaIngestConfiguration,
+	ingestConfig config.KafkaIngestConfiguration,
+	eventTopic EventTopic,
 	producer *kafka.Producer,
-	topicResolver topicresolver.Resolver,
 	topicProvisioner pkgkafka.TopicProvisioner,
 	logger *slog.Logger,
 	tracer trace.Tracer,
@@ -31,9 +30,9 @@ func NewKafkaIngestCollector(
 	collector, err := kafkaingest.NewCollector(
 		producer,
 		serializer.NewJSONSerializer(),
-		topicResolver,
+		string(eventTopic),
 		topicProvisioner,
-		config.Partitions,
+		ingestConfig.Partitions,
 		logger,
 		tracer,
 	)

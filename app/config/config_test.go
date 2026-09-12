@@ -122,6 +122,7 @@ func TestComplete(t *testing.T) {
 					},
 				},
 				Partitions:          1,
+				EventsTopic:         "om_explicit_events",
 				EventsTopicTemplate: "om_%s_events",
 				TopicProvisioner: TopicProvisionerConfig{
 					Enabled:   true,
