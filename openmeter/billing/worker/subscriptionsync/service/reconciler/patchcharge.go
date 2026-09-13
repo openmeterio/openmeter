@@ -112,30 +112,6 @@ func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target 
 	return c.unsupportedOperationError(PatchOperationProrate, target.UniqueID, existing)
 }
 
-func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
-	// TODO: Do not add charge override support for credit-only charges while
-	// period changes are modeled as delete+create replacements. A base-target
-	// delete intentionally leaves an active override customer-facing, which does
-	// not compose with creating a replacement charge for the same subscription item.
-	deletePatch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
-		ChangeSource: billing.ChangeSourceSystem,
-		Policy:       chargesmeta.RefundAsCreditsDeletePolicy,
-	})
-	if err != nil {
-		return fmt.Errorf("creating replacement delete patch: %w", err)
-	}
-
-	if err := c.addPatch(existing.ID().ID, deletePatch); err != nil {
-		return fmt.Errorf("adding replacement delete patch: %w", err)
-	}
-
-	if err := c.addCreate(replacement); err != nil {
-		return fmt.Errorf("adding replacement create intent: %w", err)
-	}
-
-	return nil
-}
-
 func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.ApplyPatchesInput) {
 	for chargeID, patch := range patches.PatchesByChargeID {
 		log.InfoContext(ctx, "patching charge", "charge_id", chargeID, "patch", patch)

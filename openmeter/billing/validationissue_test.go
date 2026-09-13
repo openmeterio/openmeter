@@ -54,7 +54,7 @@ func TestValidationIssueAttributes(t *testing.T) {
 	})
 }
 
-func TestValidationIssuesHasWithComponentCode(t *testing.T) {
+func TestValidationIssuesHasComponent(t *testing.T) {
 	existing := ValidationIssue{
 		Severity:  ValidationIssueSeverityWarning,
 		Message:   "existing",
@@ -63,12 +63,11 @@ func TestValidationIssuesHasWithComponentCode(t *testing.T) {
 	}
 	issues := ValidationIssues{existing}
 
-	require.True(t, issues.HasWithComponentCode(existing.Component, existing.Code))
-	require.False(t, issues.HasWithComponentCode("other", existing.Code))
-	require.False(t, issues.HasWithComponentCode(existing.Component, "other"))
+	require.True(t, issues.HasComponent(existing.Component))
+	require.False(t, issues.HasComponent("other"))
 }
 
-func TestValidationIssuesWithout(t *testing.T) {
+func TestValidationIssuesWithoutComponent(t *testing.T) {
 	issue := ValidationIssue{
 		Severity:  ValidationIssueSeverityCritical,
 		Message:   "blocked",
@@ -83,20 +82,22 @@ func TestValidationIssuesWithout(t *testing.T) {
 		Code:      "existing",
 		Component: "component",
 	}
+	sameComponentIssue := existing
+	sameComponentIssue.Code = "other-code"
 
-	t.Run("removes every issue with the code and component", func(t *testing.T) {
-		original := ValidationIssues{issue, existing, otherComponentIssue, issue}
+	t.Run("removes every issue owned by the component", func(t *testing.T) {
+		original := ValidationIssues{issue, existing, otherComponentIssue, sameComponentIssue}
 
-		issues := original.Without(issue.Component, issue.Code)
+		issues := original.WithoutComponent(issue.Component)
 
-		require.Equal(t, ValidationIssues{existing, otherComponentIssue}, issues)
-		require.Equal(t, ValidationIssues{issue, existing, otherComponentIssue, issue}, original)
+		require.Equal(t, ValidationIssues{otherComponentIssue}, issues)
+		require.Equal(t, ValidationIssues{issue, existing, otherComponentIssue, sameComponentIssue}, original)
 	})
 
 	t.Run("keeps the collection unchanged when the issue is absent", func(t *testing.T) {
-		original := ValidationIssues{existing, otherComponentIssue}
+		original := ValidationIssues{otherComponentIssue}
 
-		issues := original.Without(issue.Component, issue.Code)
+		issues := original.WithoutComponent(issue.Component)
 
 		require.Equal(t, original, issues)
 	})

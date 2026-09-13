@@ -292,7 +292,7 @@ func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
 }
 
 func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error {
-	if s.Charge.State.FeatureID != "" {
+	if s.Charge.State.FeatureID != "" && !s.Charge.ValidationIssues.HasComponent(billing.ValidationComponentProductCatalog) {
 		return nil
 	}
 
@@ -301,7 +301,11 @@ func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error 
 		return err
 	}
 
-	s.Charge.State.FeatureID = featureMeter.Feature.ID
+	if s.Charge.State.FeatureID == "" {
+		s.Charge.State.FeatureID = featureMeter.Feature.ID
+	}
+	s.Charge.ValidationIssues = s.Charge.ValidationIssues.WithoutComponent(billing.ValidationComponentProductCatalog)
+
 	return nil
 }
 

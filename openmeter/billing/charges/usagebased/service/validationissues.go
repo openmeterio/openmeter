@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -12,20 +13,67 @@ const (
 	activeRunInvoiceAssignmentIssueMessage = "an ongoing realization run must be completed before this charge can be assigned to another invoice"
 )
 
-// clearInvoiceAssignmentIssueWithoutCurrentRun removes the invoice-assignment issue after the
-// charge releases its current realization run. The issue is valid only while that run blocks assignment.
+// clearInvoiceAssignmentIssueWithoutCurrentRun removes line-engine-owned assignment issues after
+// the charge releases its current realization run. Those issues are valid only while that run blocks assignment.
 func clearInvoiceAssignmentIssueWithoutCurrentRun(base usagebased.ChargeBase) usagebased.ChargeBase {
-	if base.State.CurrentRealizationRunID == nil && base.ValidationIssues.HasWithComponentCode(
-		usagebased.ValidationIssueComponentLineEngine,
-		usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
-	) {
-		base.ValidationIssues = base.ValidationIssues.Without(
-			usagebased.ValidationIssueComponentLineEngine,
-			usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
-		)
+	if base.State.CurrentRealizationRunID == nil {
+		base.ValidationIssues = base.ValidationIssues.WithoutComponent(usagebased.ValidationIssueComponentLineEngine)
 	}
 
 	return base
+}
+
+type invoiceAssignmentGateCheck struct {
+	ValidationIssues   billing.ValidationIssues
+	ExcludeFromInvoice bool
+}
+
+func checkFeatureMeterAvailability(featureMeters billingfeaturemeter.FeatureMeters, charge usagebased.Charge) (invoiceAssignmentGateCheck, error) {
+	_, err := featureMeters.Get(charge)
+	if err == nil {
+		return invoiceAssignmentGateCheck{}, nil
+	}
+
+	err = billing.ValidationWithComponent(billing.ValidationComponentProductCatalog, err)
+	issues, systemErr := billing.ToValidationIssues(err)
+	if systemErr != nil {
+		return invoiceAssignmentGateCheck{}, systemErr
+	}
+
+	return invoiceAssignmentGateCheck{
+		ValidationIssues:   issues,
+		ExcludeFromInvoice: true,
+	}, nil
+}
+
+func checkCurrentRealizationRun(charge usagebased.Charge) (invoiceAssignmentGateCheck, error) {
+	if charge.State.CurrentRealizationRunID == nil {
+		return invoiceAssignmentGateCheck{}, nil
+	}
+
+	currentRun, err := charge.GetCurrentRealizationRun()
+	if err != nil {
+		return invoiceAssignmentGateCheck{}, err
+	}
+
+	issue, err := newActiveRunInvoiceAssignmentIssue(currentRun)
+	if err != nil {
+		return invoiceAssignmentGateCheck{}, err
+	}
+
+	return invoiceAssignmentGateCheck{
+		ValidationIssues:   billing.ValidationIssues{issue},
+		ExcludeFromInvoice: true,
+	}, nil
+}
+
+func replaceValidationIssueComponent(existing billing.ValidationIssues, component billing.ComponentName, replacement billing.ValidationIssues) (billing.ValidationIssues, bool) {
+	hasExisting := existing.HasComponent(component)
+	if !hasExisting && len(replacement) == 0 {
+		return existing, false
+	}
+
+	return append(existing.WithoutComponent(component), replacement...), true
 }
 
 func newActiveRunInvoiceAssignmentIssue(run usagebased.RealizationRun) (billing.ValidationIssue, error) {
