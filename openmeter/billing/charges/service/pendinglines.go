@@ -44,7 +44,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*charges.CreatePendingInvoiceLinesResult, error) {
 		result, err := s.create(ctx, charges.CreateInput{
 			Namespace: input.Customer.Namespace,
-			Intents:   intents,
+			Intents:   charges.NewCreateChargeIntents(intents...),
 		})
 		if err != nil {
 			return nil, err

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -26,6 +27,19 @@ func clearInvoiceAssignmentIssueWithoutCurrentRun(base usagebased.ChargeBase) us
 	}
 
 	return base
+}
+
+func hasFeatureDependencyValidationIssue(issues billing.ValidationIssues) bool {
+	return slices.ContainsFunc(issues, isFeatureDependencyValidationIssue)
+}
+
+func withoutFeatureDependencyValidationIssues(issues billing.ValidationIssues) billing.ValidationIssues {
+	return slices.DeleteFunc(slices.Clone(issues), isFeatureDependencyValidationIssue)
+}
+
+func isFeatureDependencyValidationIssue(issue billing.ValidationIssue) bool {
+	return issue.Code == billing.ErrInvoiceLineFeatureNotFound.Code ||
+		issue.Code == billing.ErrInvoiceLineFeatureHasNoMeters.Code
 }
 
 func newActiveRunInvoiceAssignmentIssue(run usagebased.RealizationRun) (billing.ValidationIssue, error) {

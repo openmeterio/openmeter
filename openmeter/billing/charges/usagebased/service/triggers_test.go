@@ -14,6 +14,7 @@ import (
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -82,6 +83,74 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 	})
 }
 
+func TestSyncFeatureIDFromFeatureMeterReconcilesDependencyValidationIssues(t *testing.T) {
+	t.Run("resolved feature pins its ID and clears only dependency issues", func(t *testing.T) {
+		// given: an unpinned charge persisted with a feature dependency issue
+		charge := newUsageBasedChargeWithFeatureDependencyIssueForTest(t, "")
+		machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+
+		// when: the feature and its meter are available during activation
+		err := machine.SyncFeatureIDFromFeatureMeter(t.Context())
+
+		// then: the feature is pinned and unrelated issues remain
+		require.NoError(t, err)
+		updated := machine.GetCharge()
+		require.Equal(t, "feature-id", updated.State.FeatureID)
+		require.Equal(t, billing.ValidationIssues{{Code: "unrelated"}}, updated.ValidationIssues)
+	})
+
+	t.Run("pinned feature with a dependency issue is revalidated before cleanup", func(t *testing.T) {
+		// given: a pinned feature still has no meter and carries its dependency issue
+		charge := newUsageBasedChargeWithFeatureDependencyIssueForTest(t, "feature-id")
+		machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+		machine.FeatureMeters = featuremeterservice.FeatureMeterCollection{
+			ByID: map[string]billingfeaturemeter.FeatureMeter{
+				"feature-id": {
+					Feature: feature.Feature{ID: "feature-id", Key: "feature-key"},
+				},
+			},
+		}
+
+		// when: activation attempts to synchronize the unresolved dependency
+		err := machine.SyncFeatureIDFromFeatureMeter(t.Context())
+
+		// then: the failure leaves both the pinned ID and validation issues unchanged
+		require.ErrorContains(t, err, "has no meters")
+		unchanged := machine.GetCharge()
+		require.Equal(t, "feature-id", unchanged.State.FeatureID)
+		require.Equal(t, charge.ValidationIssues, unchanged.ValidationIssues)
+
+		// when: the meter becomes available and synchronization is retried
+		machine.FeatureMeters = newFeatureMetersForChargeTest(unchanged)
+		err = machine.SyncFeatureIDFromFeatureMeter(t.Context())
+
+		// then: only the repaired dependency issue is removed
+		require.NoError(t, err)
+		updated := machine.GetCharge()
+		require.Equal(t, "feature-id", updated.State.FeatureID)
+		require.Equal(t, billing.ValidationIssues{{Code: "unrelated"}}, updated.ValidationIssues)
+	})
+}
+
+func TestCreditThenInvoiceActivationStopsAfterFeatureResolutionFailure(t *testing.T) {
+	// given: a due charge whose feature dependency remains unavailable
+	charge := newUsageBasedChargeWithFeatureDependencyIssueForTest(t, "")
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+	machine.FeatureMeters = featuremeterservice.FeatureMeterCollection{
+		ByKey: map[string]billingfeaturemeter.FeatureMeter{},
+		ByID:  map[string]billingfeaturemeter.FeatureMeter{},
+	}
+	clock.FreezeTime(time.Date(2026, 7, 9, 8, 45, 3, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	// when: activation reaches feature synchronization
+	err := machine.AdvanceUntilStable(t.Context())
+
+	// then: the error prevents later activation handlers from updating the schedule
+	require.ErrorContains(t, err, "feature not found")
+	require.Nil(t, machine.GetCharge().State.AdvanceAfter)
+}
+
 func newFeatureMetersForChargeTest(charge usagebased.Charge) billingfeaturemeter.FeatureMeters {
 	reference := charge.GetFeatureMeterRef()
 	if reference == nil {
@@ -112,6 +181,30 @@ func newFeatureMetersForChargeTest(charge usagebased.Charge) billingfeaturemeter
 	}
 
 	return collection
+}
+
+func newUsageBasedChargeWithFeatureDependencyIssueForTest(t testing.TB, featureID string) usagebased.Charge {
+	t.Helper()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 7, 8, 8, 45, 3, 0, time.UTC),
+		To:   time.Date(2026, 8, 8, 8, 45, 3, 0, time.UTC),
+	}
+
+	return usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+			Status:          usagebased.StatusCreated,
+			State: usagebased.State{
+				FeatureID: featureID,
+			},
+			ValidationIssues: billing.ValidationIssues{
+				{Code: billing.ErrInvoiceLineFeatureHasNoMeters.Code},
+				{Code: "unrelated"},
+			},
+		},
+	}
 }
 
 func TestApplyBaseIntentPatchForOverriddenChargeShrinksDeletedEffectiveCharge(t *testing.T) {

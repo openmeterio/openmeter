@@ -31,7 +31,9 @@ func (c *usageBasedChargeCollection) AddCreate(target targetstate.StateItem) err
 		return err
 	}
 
-	return c.addCreate(intent)
+	return c.addCreate(intent, chargesmeta.CreateOptions{
+		BypassFeatureMeterValidation: target.Subscription.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode,
+	})
 }
 
 func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {

@@ -39,7 +39,7 @@ func newChargePatchCollection(engineType billing.LineEngineType, itemType persis
 		itemType:   itemType,
 		patches: charges.ApplyPatchesInput{
 			PatchesByChargeID: make(map[string]charges.Patch, preallocatedCapacity),
-			Creates:           make(charges.ChargeIntents, 0, preallocatedCapacity),
+			Creates:           make(charges.CreateChargeIntents, 0, preallocatedCapacity),
 		},
 	}
 }
@@ -56,7 +56,7 @@ func (c chargePatchCollection) Patches() charges.ApplyPatchesInput {
 	return c.patches
 }
 
-func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
+func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent, options chargesmeta.CreateOptions) error {
 	// Full intent validation is intentionally delayed until charges.Service.ApplyPatches,
 	// after namespace default tax codes are applied to create intents.
 	uniqueReferenceID, err := intent.GetUniqueReferenceID()
@@ -68,7 +68,10 @@ func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
 		return fmt.Errorf("unique reference ID is required")
 	}
 
-	c.patches.Creates = append(c.patches.Creates, intent)
+	c.patches.Creates = append(c.patches.Creates, charges.CreateChargeIntent{
+		ChargeIntent: intent,
+		Options:      options,
+	})
 	return nil
 }
 
@@ -112,37 +115,13 @@ func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target 
 	return c.unsupportedOperationError(PatchOperationProrate, target.UniqueID, existing)
 }
 
-func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
-	// TODO: Do not add charge override support for credit-only charges while
-	// period changes are modeled as delete+create replacements. A base-target
-	// delete intentionally leaves an active override customer-facing, which does
-	// not compose with creating a replacement charge for the same subscription item.
-	deletePatch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
-		ChangeSource: billing.ChangeSourceSystem,
-		Policy:       chargesmeta.RefundAsCreditsDeletePolicy,
-	})
-	if err != nil {
-		return fmt.Errorf("creating replacement delete patch: %w", err)
-	}
-
-	if err := c.addPatch(existing.ID().ID, deletePatch); err != nil {
-		return fmt.Errorf("adding replacement delete patch: %w", err)
-	}
-
-	if err := c.addCreate(replacement); err != nil {
-		return fmt.Errorf("adding replacement create intent: %w", err)
-	}
-
-	return nil
-}
-
 func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.ApplyPatchesInput) {
 	for chargeID, patch := range patches.PatchesByChargeID {
 		log.InfoContext(ctx, "patching charge", "charge_id", chargeID, "patch", patch)
 	}
 
 	for _, intent := range patches.Creates {
-		log.InfoContext(ctx, "creating charge", "intent", intent)
+		log.InfoContext(ctx, "creating charge", "intent", intent.ChargeIntent)
 	}
 }
 

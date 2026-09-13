@@ -65,7 +65,7 @@ func setupCustomCurrencyFlatFeeSubscription(t *testing.T) customCurrencyFlatFeeF
 	require.NoError(t, err)
 	grants, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{charges.NewChargeIntent(creditpurchase.Intent{
+		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: customer.ID, Currency: credits},
 			IntentMutableFields: creditpurchase.IntentMutableFields{
 				IntentMutableFields: chargesmeta.IntentMutableFields{Name: "Paid credits", ServicePeriod: period, FullServicePeriod: period, BillingPeriod: period},
@@ -73,7 +73,7 @@ func setupCustomCurrencyFlatFeeSubscription(t *testing.T) customCurrencyFlatFeeF
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus}),
 			},
 			CostBasis: creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: fiat, Rate: decimal.NewFromFloat(0.5)})),
-		})},
+		}),
 	})
 	require.NoError(t, err)
 	require.Len(t, grants, 1)

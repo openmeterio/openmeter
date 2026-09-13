@@ -781,7 +781,7 @@ func (s *VoidGrantTestSuite) mustConsumeCredits(ctx context.Context, ns string, 
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       customerID,
 				Currency:       USD,
@@ -795,7 +795,7 @@ func (s *VoidGrantTestSuite) mustConsumeCredits(ctx context.Context, ns string, 
 				UniqueReferenceID: "void-test-usage",
 				FeatureKey:        apiRequestsTotal.Feature.Key,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 

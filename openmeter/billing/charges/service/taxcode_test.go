@@ -70,7 +70,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 	s.Run("persists both behavior and tax code id", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -88,7 +88,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 						TaxCodeID: tc.ID,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Require().Len(res, 1)
@@ -109,7 +109,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -123,7 +123,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 					managedBy:         billing.ManuallyManagedLine,
 					uniqueReferenceID: "flat-fee-no-taxcode",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Require().Len(res, 1)
@@ -166,7 +166,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 	s.Run("persists both behavior and tax code id", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -184,7 +184,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 						TaxCodeID: tc.ID,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Require().Len(res, 1)
@@ -205,7 +205,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -219,7 +219,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 					managedBy:         billing.ManuallyManagedLine,
 					uniqueReferenceID: "usage-based-no-taxcode",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Require().Len(res, 1)
@@ -261,29 +261,27 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
-				charges.NewChargeIntent(creditpurchase.Intent{
-					Intent: meta.Intent{
-						ManagedBy:  billing.ManuallyManagedLine,
-						CustomerID: cust.GetID().ID,
-						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
-						TaxConfig: productcatalog.TaxCodeConfig{
-							Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-							TaxCodeID: tc.ID,
-						},
+			Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
+				Intent: meta.Intent{
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.GetID().ID,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+						TaxCodeID: tc.ID,
 					},
-					IntentMutableFields: creditpurchase.IntentMutableFields{
-						IntentMutableFields: meta.IntentMutableFields{
-							Name:              "credit-purchase-taxcode",
-							ServicePeriod:     servicePeriod,
-							BillingPeriod:     servicePeriod,
-							FullServicePeriod: servicePeriod,
-						},
-						CreditAmount: alpacadecimal.NewFromFloat(50),
-						Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				},
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "credit-purchase-taxcode",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
 					},
-				}),
-			},
+					CreditAmount: alpacadecimal.NewFromFloat(50),
+					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				},
+			}),
 		})
 		s.NoError(err)
 		s.Require().Len(res, 1)
@@ -307,25 +305,23 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
-				charges.NewChargeIntent(creditpurchase.Intent{
-					Intent: meta.Intent{
-						ManagedBy:  billing.ManuallyManagedLine,
-						CustomerID: cust.GetID().ID,
-						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+			Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
+				Intent: meta.Intent{
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.GetID().ID,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+				},
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "credit-purchase-no-taxcode",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
 					},
-					IntentMutableFields: creditpurchase.IntentMutableFields{
-						IntentMutableFields: meta.IntentMutableFields{
-							Name:              "credit-purchase-no-taxcode",
-							ServicePeriod:     servicePeriod,
-							BillingPeriod:     servicePeriod,
-							FullServicePeriod: servicePeriod,
-						},
-						CreditAmount: alpacadecimal.NewFromFloat(50),
-						Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-					},
-				}),
-			},
+					CreditAmount: alpacadecimal.NewFromFloat(50),
+					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				},
+			}),
 		})
 		s.NoError(err)
 		s.Require().Len(res, 1)
@@ -378,29 +374,27 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(creditpurchase.Intent{
-				Intent: meta.Intent{
-					ManagedBy:  billing.ManuallyManagedLine,
-					CustomerID: cust.GetID().ID,
-					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
-					TaxConfig:  taxConfig,
+		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
+			Intent: meta.Intent{
+				ManagedBy:  billing.ManuallyManagedLine,
+				CustomerID: cust.GetID().ID,
+				Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+				TaxConfig:  taxConfig,
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "credit-purchase-invoice-taxcode",
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
 				},
-				IntentMutableFields: creditpurchase.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "credit-purchase-invoice-taxcode",
-						ServicePeriod:     servicePeriod,
-						BillingPeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-					},
-					CreditAmount: alpacadecimal.NewFromFloat(100),
-					Settlement:   creditpurchase.NewInvoiceSettlement(),
-				},
-				CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
-					Rate: alpacadecimal.NewFromFloat(0.5),
-				}),
+				CreditAmount: alpacadecimal.NewFromFloat(100),
+				Settlement:   creditpurchase.NewInvoiceSettlement(),
+			},
+			CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+				Rate: alpacadecimal.NewFromFloat(0.5),
 			}),
-		},
+		}),
 	})
 	s.NoError(err)
 	s.Require().Len(res, 1)
@@ -496,28 +490,26 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(creditpurchase.Intent{
-				Intent: meta.Intent{
-					ManagedBy:  billing.ManuallyManagedLine,
-					CustomerID: cust.GetID().ID,
-					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
+			Intent: meta.Intent{
+				ManagedBy:  billing.ManuallyManagedLine,
+				CustomerID: cust.GetID().ID,
+				Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "credit-purchase-invoice-nil-taxcode",
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
 				},
-				IntentMutableFields: creditpurchase.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "credit-purchase-invoice-nil-taxcode",
-						ServicePeriod:     servicePeriod,
-						BillingPeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-					},
-					CreditAmount: alpacadecimal.NewFromFloat(100),
-					Settlement:   creditpurchase.NewInvoiceSettlement(),
-				},
-				CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
-					Rate: alpacadecimal.NewFromFloat(0.5),
-				}),
+				CreditAmount: alpacadecimal.NewFromFloat(100),
+				Settlement:   creditpurchase.NewInvoiceSettlement(),
+			},
+			CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+				Rate: alpacadecimal.NewFromFloat(0.5),
 			}),
-		},
+		}),
 	})
 	s.NoError(err)
 	s.Require().Len(res, 1)
@@ -564,7 +556,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -582,7 +574,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 					TaxCodeID: tc.ID,
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(res, 1)
@@ -639,7 +631,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -657,7 +649,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 					TaxCodeID: tc.ID,
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(res, 1)
@@ -720,7 +712,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -738,7 +730,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 					TaxCodeID: tc.ID,
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -827,7 +819,7 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -856,14 +848,14 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 				uniqueReferenceID: "usage-based-list-taxcode",
 				taxConfig:         taxConfigUsage,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 
 	// Also seed a flat-fee charge without tax config to verify nil round-trips correctly.
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -877,7 +869,7 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "flat-fee-list-no-taxcode",
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 
@@ -951,7 +943,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -969,7 +961,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 					TaxCodeID: tc.ID,
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -1015,7 +1007,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGe
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -1029,7 +1021,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGe
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "flat-fee-gathering-nil-taxcode",
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -1082,7 +1074,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -1100,7 +1092,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 					TaxCodeID: tc.ID,
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -1156,7 +1148,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesSt
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
 				currency:          USD,
@@ -1172,7 +1164,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesSt
 					TaxCodeID: tc.ID,
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -1269,7 +1261,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -1284,7 +1276,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 				uniqueReferenceID: "flat-fee-gathering-behavior-only",
 				taxConfig:         productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -1347,7 +1339,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
 				currency:          USD,
@@ -1360,7 +1352,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 				uniqueReferenceID: "usage-based-gathering-behavior-only",
 				taxConfig:         productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -1407,7 +1399,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeF
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -1424,7 +1416,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeF
 					TaxCodeID: ulid.Make().String(),
 				},
 			}),
-		},
+		),
 	})
 	s.Require().Error(err)
 	s.True(models.IsGenericValidationError(err), "a reference to a non-existent tax code must be a validation error, got: %v", err)
@@ -1470,14 +1462,14 @@ func (s *TaxCodePersistenceTestSuite) TestCreateChargeWithDuplicateReferenceIsCo
 	// given: a charge already persisted with a unique_reference_id.
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents:   charges.ChargeIntents{newIntent()},
+		Intents:   charges.NewCreateChargeIntents(newIntent()),
 	})
 	s.Require().NoError(err)
 
 	// when: creating a second charge with the same reference for the same customer.
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents:   charges.ChargeIntents{newIntent()},
+		Intents:   charges.NewCreateChargeIntents(newIntent()),
 	})
 
 	// then: the uniqueness collision surfaces as a conflict, not a precondition or raw DB error.

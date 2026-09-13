@@ -222,7 +222,7 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 	})
 }
 
-func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateChargesInput) ([]usagebased.Charge, error) {
+func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateChargesAdapterInput) ([]usagebased.Charge, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *
 	)
 }
 
-func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
+func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntentAdapterInput) (*db.ChargeUsageBasedCreate, error) {
 	baseIntent := intent.Intent.GetBaseIntent()
 	baseIntent.Discounts = baseIntent.Discounts.UpsertCorrelationIDs()
 
@@ -458,6 +458,7 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 		Intent:              baseIntent.Intent,
 		IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
 		Status:              meta.ChargeStatusCreated,
+		ValidationIssues:    intent.ValidationIssues,
 	})
 	if err != nil {
 		return nil, err

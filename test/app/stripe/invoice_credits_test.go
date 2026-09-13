@@ -116,7 +116,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 	t.Run("given settled purchased credits and a credit-then-invoice usage charge", func(t *testing.T) {
 		creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
 					customer:      cust.GetID(),
 					currency:      currencyx.Code("USD"),
@@ -129,7 +129,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 						Rate: costBasis,
 					}),
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(creditPurchaseRes, 1)
@@ -140,7 +140,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 
 		usageChargeRes, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       currencyx.Code("USD"),
@@ -154,7 +154,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 					uniqueReferenceID: "usage-based-progressive-credit-then-invoice",
 					featureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(usageChargeRes, 1)

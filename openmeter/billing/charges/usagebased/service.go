@@ -6,11 +6,11 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -47,7 +47,37 @@ type UsageBasedService interface {
 
 type CreateInput struct {
 	Namespace string
-	Intents   []Intent
+	Intents   CreateIntents
+}
+
+type CreateIntent struct {
+	Intent
+	Options meta.CreateOptions
+}
+
+type CreateIntents []CreateIntent
+
+func NewCreateIntents(intents ...Intent) CreateIntents {
+	return lo.Map(intents, func(intent Intent, _ int) CreateIntent {
+		return CreateIntent{Intent: intent}
+	})
+}
+
+func (i CreateIntents) Validate() error {
+	var errs []error
+	for idx, intent := range i {
+		if err := intent.Intent.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("[%d]: %w", idx, err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i CreateIntents) AsIntents() []Intent {
+	return lo.Map(i, func(intent CreateIntent, _ int) Intent {
+		return intent.Intent
+	})
 }
 
 func (i CreateInput) Validate() error {
@@ -56,10 +86,8 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	for idx, intent := range i.Intents {
-		if err := intent.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("intent [%d]: %w", idx, err))
-		}
+	if err := i.Intents.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intents: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -68,50 +96,6 @@ func (i CreateInput) Validate() error {
 type ChargeWithGatheringLine struct {
 	Charge                Charge
 	GatheringLineToCreate *billing.GatheringLine
-}
-
-type CreateIntent struct {
-	Intent      OverridableIntent
-	Annotations models.Annotations `json:"annotations"`
-
-	FeatureID         string
-	RatingEngine      RatingEngine
-	ResolvedCostBasis *costbasis.State
-}
-
-func (i CreateIntent) Validate() error {
-	var errs []error
-
-	if err := i.Intent.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := i.RatingEngine.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("rating engine: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-type CreateChargesInput struct {
-	Namespace string
-	Intents   []CreateIntent
-}
-
-func (i CreateChargesInput) Validate() error {
-	var errs []error
-
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	for idx, intent := range i.Intents {
-		if err := intent.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("intent [%d]: %w", idx, err))
-		}
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetByIDsInput struct {

@@ -18,6 +18,12 @@ import (
 
 type ChargeID models.NamespacedID
 
+type CreateOptions struct {
+	// BypassFeatureMeterValidation lets trusted reconciliation flows persist feature dependency
+	// issues on the charge so invoice collection can surface and retry them later.
+	BypassFeatureMeterValidation bool
+}
+
 func (i ChargeID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }

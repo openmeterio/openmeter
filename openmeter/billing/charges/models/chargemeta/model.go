@@ -27,8 +27,9 @@ type CreateInput struct {
 	Intent              meta.Intent
 	IntentMutableFields meta.IntentMutableFields
 
-	Status       meta.ChargeStatus
-	AdvanceAfter *time.Time
+	Status           meta.ChargeStatus
+	AdvanceAfter     *time.Time
+	ValidationIssues billing.ValidationIssues
 }
 
 func (i CreateInput) Validate() error {
@@ -65,6 +66,7 @@ type Creator[T any] interface {
 	SetNillableSubscriptionID(subscriptionID *string) T
 	SetNillableSubscriptionPhaseID(subscriptionPhaseID *string) T
 	SetNillableSubscriptionItemID(subscriptionItemID *string) T
+	SetValidationIssues(validationIssues billing.ValidationIssues) T
 
 	// Mutable fields
 	SetName(name string) T
@@ -139,6 +141,10 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		creator = creator.SetNillableCustomCurrencyID(lo.ToPtr(in.Intent.Currency.ID))
 	default:
 		return lo.Empty[T](), fmt.Errorf("unsupported currency type: %s", in.Intent.Currency.Type())
+	}
+
+	if len(in.ValidationIssues) > 0 {
+		creator = creator.SetValidationIssues(in.ValidationIssues)
 	}
 
 	return creator.

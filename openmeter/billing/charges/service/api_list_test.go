@@ -227,7 +227,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
 				currency:          USD,
@@ -239,7 +239,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-list-usage-based",
 			}),
-		},
+		),
 	})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), created, 1)
@@ -362,7 +362,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		}
 		mayCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
 					currency:          USD,
@@ -374,7 +374,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-list-usage-based-may",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), mayCharges, 1)

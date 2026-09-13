@@ -37,6 +37,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -162,6 +163,154 @@ func (s *CreditThenInvoiceTestSuite) BeforeTest(suiteName, testName string) {
 
 	_, err = s.LedgerResolver.CreateCustomerAccounts(s.T().Context(), s.Customer.GetID())
 	s.NoError(err)
+}
+
+func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMeterlessUsageChargeWithValidationIssue() {
+	ctx := s.testContext()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	meterlessFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: s.Namespace,
+		Name:      "Meterless usage feature",
+		Key:       "meterless-usage-feature",
+	})
+	s.Require().NoError(err)
+
+	// Given a credit-then-invoice subscription whose usage feature exists but has no meter.
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Meterless usage plan",
+				Key:            "meterless-usage-plan",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:     meterlessFeature.Key,
+								Name:    "Meterless usage",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(meterlessFeature.ID), lo.ToPtr(meterlessFeature.Key)),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromInt(1),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	// When subscription sync provisions its first usage charge.
+	err = s.Service.SyncByView(ctx, subsView, start.Add(time.Minute))
+
+	// Then the invalid dependency does not block reconciliation.
+	s.Require().NoError(err)
+	chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subsView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(chargePage.Items, 1)
+
+	issues, err := chargePage.Items[0].GetValidationIssues()
+	s.Require().NoError(err)
+	s.Require().Len(issues, 1)
+	s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issues[0].Code)
+	s.Equal(billing.ValidationIssueSeverityCritical, issues[0].Severity)
+	s.Contains(issues[0].Message, meterlessFeature.Key)
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	lines := gatheringInvoice.Lines.OrEmpty()
+	s.Require().Len(lines, 1)
+	s.Equal(billing.LineEngineTypeChargeUsageBased, lines[0].Engine)
+	s.Equal(meterlessFeature.Key, lines[0].FeatureKey)
+	chargeID, err := chargePage.Items[0].GetChargeID()
+	s.Require().NoError(err)
+	s.Equal(lo.ToPtr(chargeID.ID), lines[0].ChargeID)
+
+	// And the first invoice surfaces the dependency without starting financial processing.
+	clock.FreezeTime(start.AddDate(0, 1, 0).Add(time.Hour))
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+	}, billing.WithBypassCollectionAlignment())
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoices[0].Status)
+	invoiceIssue, found := lo.Find(invoices[0].ValidationIssues, func(issue billing.ValidationIssue) bool {
+		return issue.Code == billing.ErrInvoiceLineFeatureHasNoMeters.Code
+	})
+	s.Require().True(found)
+	s.Equal(billing.ValidationIssueSeverityCritical, invoiceIssue.Severity)
+	s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), invoiceIssue.Component)
+
+	chargeAfterCollection := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+		chargesmeta.ExpandRealizations,
+	})
+	s.Equal(usagebased.StatusCreated, chargeAfterCollection.Status)
+	s.Nil(chargeAfterCollection.State.CurrentRealizationRunID)
+	s.Empty(chargeAfterCollection.State.FeatureID)
+	s.Empty(chargeAfterCollection.Realizations)
+	s.Require().Len(chargeAfterCollection.ValidationIssues, 1)
+	s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, chargeAfterCollection.ValidationIssues[0].Code)
+
+	// When the feature is repaired and the invalid invoice is retried.
+	s.Require().NotNil(s.APIRequestsTotalFeature.MeterID)
+	_, err = s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Custom: lo.ToPtr(start.AddDate(0, 1, 0)),
+	})
+	s.Require().NoError(err)
+	s.Require().NoError(s.FeatureService.ArchiveFeature(ctx, models.NamespacedID{
+		Namespace: s.Namespace,
+		ID:        meterlessFeature.ID,
+	}))
+	repairedFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: s.Namespace,
+		Name:      meterlessFeature.Name,
+		Key:       meterlessFeature.Key,
+		MeterID:   s.APIRequestsTotalFeature.MeterID,
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(repairedFeature.MeterSlug)
+	s.MockStreamingConnector.AddSimpleEvent(*repairedFeature.MeterSlug, 0, start)
+
+	s.Require().NotNil(invoices[0].CollectionAt)
+	clock.FreezeTime(invoices[0].CollectionAt.Add(time.Minute))
+	retriedInvoice, err := s.BillingService.RetryInvoice(ctx, invoices[0].GetInvoiceID())
+	s.Require().NoError(err)
+	s.False(lo.ContainsBy(retriedInvoice.ValidationIssues, func(issue billing.ValidationIssue) bool {
+		return issue.Code == billing.ErrInvoiceLineFeatureNotFound.Code ||
+			issue.Code == billing.ErrInvoiceLineFeatureHasNoMeters.Code
+	}))
+
+	// Then retry creates exactly one run for the existing invoice line and clears only the repaired dependency issue.
+	chargeAfterRetry := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+		chargesmeta.ExpandRealizations,
+	})
+	s.Equal(repairedFeature.ID, chargeAfterRetry.State.FeatureID)
+	s.False(lo.ContainsBy(chargeAfterRetry.ValidationIssues, func(issue billing.ValidationIssue) bool {
+		return issue.Code == billing.ErrInvoiceLineFeatureNotFound.Code ||
+			issue.Code == billing.ErrInvoiceLineFeatureHasNoMeters.Code
+	}))
+	s.Require().Len(chargeAfterRetry.Realizations, 1)
+	s.Require().NotNil(chargeAfterRetry.Realizations[0].InvoiceID)
+	s.Equal(invoices[0].ID, *chargeAfterRetry.Realizations[0].InvoiceID)
+	s.Require().NotNil(chargeAfterRetry.Realizations[0].LineID)
+	s.Require().Len(retriedInvoice.Lines.OrEmpty(), 1)
+	s.Equal(retriedInvoice.Lines.OrEmpty()[0].ID, *chargeAfterRetry.Realizations[0].LineID)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestCustomCurrencyPinnedCostBasisProvisioning() {
@@ -10840,25 +10989,23 @@ func (s *CreditThenInvoiceTestSuite) createPromotionalCreditFunding(ctx context.
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(creditpurchase.Intent{
-				Intent: chargesmeta.Intent{
-					ManagedBy:  billing.SystemManagedLine,
-					CustomerID: input.Customer.ID,
-					Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
+		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
+			Intent: chargesmeta.Intent{
+				ManagedBy:  billing.SystemManagedLine,
+				CustomerID: input.Customer.ID,
+				Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: chargesmeta.IntentMutableFields{
+					Name:              "Promotional Credit Purchase",
+					ServicePeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
+					FullServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
+					BillingPeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
 				},
-				IntentMutableFields: creditpurchase.IntentMutableFields{
-					IntentMutableFields: chargesmeta.IntentMutableFields{
-						Name:              "Promotional Credit Purchase",
-						ServicePeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
-						FullServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
-						BillingPeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
-					},
-					CreditAmount: input.Amount,
-					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-				},
-			}),
-		},
+				CreditAmount: input.Amount,
+				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			},
+		}),
 	})
 	s.NoError(err)
 	s.Require().Len(res, 1)

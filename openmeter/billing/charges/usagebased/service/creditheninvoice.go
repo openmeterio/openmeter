@@ -106,13 +106,9 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
-		OnActive(
-			statelessx.AllOf(
-				s.ResolveDynamicCostBasis,
-				s.SyncFeatureIDFromFeatureMeter,
-				s.AdvanceAfterServicePeriodTo,
-			),
-		)
+		OnActive(s.ResolveDynamicCostBasis).
+		OnActive(s.SyncFeatureIDFromFeatureMeter).
+		OnActive(s.AdvanceAfterServicePeriodTo)
 
 	// Invoice-backed realizations
 

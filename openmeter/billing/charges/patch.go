@@ -17,7 +17,7 @@ var _ models.Validator = (*ApplyPatchesInput)(nil)
 
 type ApplyPatchesInput struct {
 	CustomerID customer.CustomerID
-	Creates    ChargeIntents
+	Creates    CreateChargeIntents
 
 	// PatchesByChargeID is a map of charge ID to the patches to apply to the charge. This format is used to make sure
 	// there's only a single patch affecting a single charge.
@@ -61,7 +61,7 @@ func ConcatenateApplyPatchesInputs(inputs ...ApplyPatchesInput) (ApplyPatchesInp
 
 	result := ApplyPatchesInput{
 		CustomerID:        inputs[0].CustomerID,
-		Creates:           make(ChargeIntents, 0, lo.SumBy(inputs, func(input ApplyPatchesInput) int { return len(input.Creates) })),
+		Creates:           make(CreateChargeIntents, 0, lo.SumBy(inputs, func(input ApplyPatchesInput) int { return len(input.Creates) })),
 		PatchesByChargeID: make(map[string]Patch, lo.SumBy(inputs, func(input ApplyPatchesInput) int { return len(input.PatchesByChargeID) })),
 	}
 

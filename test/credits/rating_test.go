@@ -55,7 +55,7 @@ func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBas
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
 				Currency:          USD,
@@ -78,7 +78,7 @@ func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBas
 				UniqueReferenceID: doubleRateReference,
 				FeatureKey:        apiRequestsTotal.Feature.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 2)

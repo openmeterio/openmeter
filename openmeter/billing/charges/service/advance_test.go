@@ -62,7 +62,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActive
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -89,7 +89,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActive
 				uniqueReferenceID: "usage-based",
 				featureKey:        apiRequestsTotal.Feature.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 2)
@@ -148,7 +148,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFl
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -162,7 +162,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFl
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "flat-fee-only",
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 
@@ -201,7 +201,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUs
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -215,7 +215,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUs
 				uniqueReferenceID: "usage-based-cti",
 				featureKey:        apiRequestsTotal.Feature.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 1)
@@ -276,9 +276,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvo
 
 	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: ns,
-		Intents: []usagebased.Intent{
-			s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-cti", "custom-cti-feature", productcatalog.CreditThenInvoiceSettlementMode, &costBasisIntent),
-		},
+		Intents:   usagebased.NewCreateIntents(s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-cti", "custom-cti-feature", productcatalog.CreditThenInvoiceSettlementMode, &costBasisIntent)),
 	})
 	s.Require().NoError(err)
 
@@ -309,9 +307,7 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyReco
 
 	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: ns,
-		Intents: []usagebased.Intent{
-			s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-credit-only", "custom-credit-only-feature", productcatalog.CreditOnlySettlementMode, nil),
-		},
+		Intents:   usagebased.NewCreateIntents(s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-credit-only", "custom-credit-only-feature", productcatalog.CreditOnlySettlementMode, nil)),
 	})
 	s.Require().NoError(err)
 

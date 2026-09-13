@@ -27,15 +27,15 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 		return nil, nil
 	}
 
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Namespace, input.Intents...)
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, input.Namespace, input.Intents.AsIntents()...)
 	if err != nil {
 		return nil, err
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
 		now := clock.Now().UTC()
-		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
-			chargeIntent := intent.Normalized()
+		createIntents, err := slicesx.MapWithErr(input.Intents, func(createIntent usagebased.CreateIntent) (usagebased.CreateIntentAdapterInput, error) {
+			chargeIntent := createIntent.Intent.Normalized()
 			chargeIntent.Discounts = chargeIntent.Discounts.UpsertCorrelationIDs()
 
 			var resolvedCostBasis *costbasis.State
@@ -48,17 +48,26 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 					ResolvedAt: now,
 				})
 				if err != nil {
-					return usagebased.CreateIntent{}, fmt.Errorf("resolving cost basis: %w", err)
+					return usagebased.CreateIntentAdapterInput{}, fmt.Errorf("resolving cost basis: %w", err)
 				}
 			}
 
 			featureMeter, err := featureMeters.Get(chargeIntent)
+			var validationIssues billing.ValidationIssues
 			if err != nil {
-				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature %+v: %w", chargeIntent.GetFeatureRef(), err)
+				if !billing.IsValidationIssueOnly(err) {
+					return usagebased.CreateIntentAdapterInput{}, fmt.Errorf("resolve usage based feature %+v: %w", chargeIntent.GetFeatureRef(), err)
+				}
+
+				if !createIntent.Options.BypassFeatureMeterValidation {
+					return usagebased.CreateIntentAdapterInput{}, fmt.Errorf("resolve usage based feature %+v: %w", chargeIntent.GetFeatureRef(), err)
+				}
+
+				validationIssues, _ = billing.ToValidationIssues(err)
 			}
 
-			if chargeIntent.FeatureID != "" && chargeIntent.FeatureKey != "" && chargeIntent.FeatureKey != featureMeter.Feature.Key {
-				return usagebased.CreateIntent{}, models.NewGenericValidationError(fmt.Errorf(
+			if featureMeter.Feature.ID != "" && chargeIntent.FeatureID != "" && chargeIntent.FeatureKey != "" && chargeIntent.FeatureKey != featureMeter.Feature.Key {
+				return usagebased.CreateIntentAdapterInput{}, models.NewGenericValidationError(fmt.Errorf(
 					"feature key %q does not match key %q resolved from feature id %q",
 					chargeIntent.FeatureKey,
 					featureMeter.Feature.Key,
@@ -66,26 +75,28 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				))
 			}
 
-			featureID := ""
-			if chargeIntent.FeatureID != "" {
+			featureID := chargeIntent.FeatureID
+			if featureMeter.Feature.ID != "" {
+				chargeIntent.FeatureKey = featureMeter.Feature.Key
+			}
+			if chargeIntent.FeatureID != "" && featureMeter.Feature.ID != "" {
 				featureID = featureMeter.Feature.ID
 			}
-			chargeIntent.FeatureKey = featureMeter.Feature.Key
 
-			return usagebased.CreateIntent{
+			return usagebased.CreateIntentAdapterInput{
 				Intent:            chargeIntent.AsOverridableIntent(),
 				Annotations:       chargeIntent.Annotations,
 				FeatureID:         featureID,
 				RatingEngine:      s.rater.GetPreferredRatingEngineFor(chargeIntent),
 				ResolvedCostBasis: resolvedCostBasis,
+				ValidationIssues:  validationIssues,
 			}, nil
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		// Let's create all the flat fee charges in bulk
-		charges, err := s.adapter.CreateCharges(ctx, usagebased.CreateChargesInput{
+		charges, err := s.adapter.CreateCharges(ctx, usagebased.CreateChargesAdapterInput{
 			Namespace: input.Namespace,
 			Intents:   createIntents,
 		})
@@ -94,7 +105,6 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 		}
 
 		return slicesx.MapWithErr(charges, func(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
-			// For credit only flat fees we are not relying on the invoicing stack at all, so we can return early.
 			if charge.Intent.GetSettlementMode() == productcatalog.CreditOnlySettlementMode {
 				return usagebased.ChargeWithGatheringLine{
 					Charge: charge,

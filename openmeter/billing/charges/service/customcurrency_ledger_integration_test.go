@@ -213,32 +213,30 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareFlatFeeCustomCurrencyL
 	// given: a 10 TOKENS flat fee with no custom credits and 3 USD of existing credits
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(flatfee.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("flat-fee-real-ledger"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("flat-fee-real-ledger"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: flatfee.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "flat-fee-real-ledger",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt:             servicePeriod.To,
-					PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "flat-fee-real-ledger",
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				CostBasis:      &costBasisIntent,
-			}),
-		},
+				InvoiceAt:             servicePeriod.To,
+				PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+				AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			CostBasis:      &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -307,34 +305,32 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareUsageBasedCustomCurren
 	// given: 5 metered units priced at 2 TOKENS with no custom credits and 3 USD of existing credits
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(usagebased.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("usage-based-real-ledger"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("usage-based-real-ledger"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "usage-based-real-ledger",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt: invoiceAt,
-					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromInt(2),
-					}),
+			},
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "usage-based-real-ledger",
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				FeatureKey:     feature.Feature.Key,
-				CostBasis:      &costBasisIntent,
-			}),
-		},
+				InvoiceAt: invoiceAt,
+				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			FeatureKey:     feature.Feature.Key,
+			CostBasis:      &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)

@@ -177,32 +177,30 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestFlatFeeCustomCurrencyCha
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
-			charges.NewChargeIntent(flatfee.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("custom-currency-list-flatfee"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("custom-currency-list-flatfee"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: flatfee.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "custom-currency-list-flatfee",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt:             servicePeriod.To,
-					PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "custom-currency-list-flatfee",
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				CostBasis:      &costBasisIntent,
-			}),
-		},
+				InvoiceAt:             servicePeriod.To,
+				PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+				AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			CostBasis:      &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -352,32 +350,30 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestUsageBasedCustomCurrency
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
-			charges.NewChargeIntent(usagebased.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("custom-currency-list-usagebased"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("custom-currency-list-usagebased"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "custom-currency-list-usagebased",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt: servicePeriod.To,
-					Price:     *price,
+			},
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "custom-currency-list-usagebased",
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				FeatureKey:     feature.Feature.Key,
-				CostBasis:      &costBasisIntent,
-			}),
-		},
+				InvoiceAt: servicePeriod.To,
+				Price:     *price,
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			FeatureKey:     feature.Feature.Key,
+			CostBasis:      &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
