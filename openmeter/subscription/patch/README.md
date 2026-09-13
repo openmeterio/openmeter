@@ -48,7 +48,7 @@ phase ordering and cannot erase a phase by collapsing its duration.
 
 [Migration](../workflow/README.md) generates internal item-schedule patches.
 They preserve historical versions and unchanged prefixes while replacing an
-affected suffix, including future addon quantity segments. They are not exposed
+affected suffix, including scheduled addon quantity changes. They are not exposed
 as public edit operations.
 
 ## Error meaning

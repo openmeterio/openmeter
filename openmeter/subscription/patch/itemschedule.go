@@ -11,9 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// patchItemSchedule replaces only the affected suffix. Unlike add/remove-item,
-// it can address a schedule containing future addon quantity changes and gaps.
-// It is internal to generated diffs, not an additional public edit operation.
+// patchItemSchedule replaces item versions from the first change onward.
+// It handles scheduled addon quantity changes that add/remove-item cannot.
+// Only migration uses this patch; it is not part of the public edit API.
 type patchItemSchedule struct {
 	phaseKey string
 	itemKey  string
@@ -40,7 +40,7 @@ func (p patchItemSchedule) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 	if err != nil {
 		return err
 	}
-	// Preserve history and the unchanged prefix at their existing indexes.
+	// Keep earlier and unchanged versions at their existing indexes.
 	items := p.preservedPrefix(phase.ItemsByKey[p.itemKey], cadence)
 	items = append(items, p.replacementSuffix(cadence)...)
 	if len(items) == 0 {
@@ -51,8 +51,8 @@ func (p patchItemSchedule) ApplyTo(spec *subscription.SubscriptionSpec, actx sub
 	return nil
 }
 
-// preservedPrefix closes a straddling item at the first difference and retains
-// all earlier versions. Their positions are billing reconciliation identities.
+// preservedPrefix keeps earlier versions and ends the active version at the
+// first change. Their indexes stay the same so billing can match them.
 func (p patchItemSchedule) preservedPrefix(current []*subscription.SubscriptionItemSpec, cadence models.CadencedModel) []*subscription.SubscriptionItemSpec {
 	var items []*subscription.SubscriptionItemSpec
 	for _, item := range current {
@@ -69,8 +69,8 @@ func (p patchItemSchedule) preservedPrefix(current []*subscription.SubscriptionI
 	return items
 }
 
-// replacementSuffix clips the target schedule to the amendment boundary while
-// retaining its future quantity changes and gaps.
+// replacementSuffix adds the target versions from the first change onward.
+// It keeps their scheduled start and end times, including gaps between versions.
 func (p patchItemSchedule) replacementSuffix(cadence models.CadencedModel) []*subscription.SubscriptionItemSpec {
 	var items []*subscription.SubscriptionItemSpec
 	for _, item := range p.target {

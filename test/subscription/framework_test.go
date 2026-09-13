@@ -237,7 +237,9 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     deps.SubscriptionService,
 		FeatureFlags: subscriptionsyncservice.FeatureFlags{
-			EnableCreditThenInvoice: config.enableCreditThenInvoice,
+			EnableFlatFeeInAdvanceProrating: true,
+			EnableFlatFeeInArrearsProrating: true,
+			EnableCreditThenInvoice:         config.enableCreditThenInvoice,
 		},
 		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
 			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),

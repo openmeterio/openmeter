@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"maps"
 	"reflect"
 	"time"
 
@@ -22,8 +23,8 @@ func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.
 	}
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
-		// Subscription updates use a customer-scoped lock. Hold that same lock from
-		// the fresh read through persistence so concurrent updates cannot stale the diff.
+		// Lock the customer before reading the subscription so another update
+		// cannot change it while we calculate and save the migration.
 		sub, err := s.Service.Get(ctx, input.SubscriptionID)
 		if err != nil {
 			return def, err
@@ -36,8 +37,7 @@ func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.
 			return def, err
 		}
 
-		// Resolve edit timing against the existing timeline, then reject target
-		// configurations that would require a subscription-level billing reset.
+		// Use the same timing rules as a running subscription edit.
 		if err := input.Timing.ValidateForAction(subscription.SubscriptionActionUpdate, &current); err != nil {
 			return def, err
 		}
@@ -45,33 +45,21 @@ func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.
 		if err != nil {
 			return def, err
 		}
-		target, err := subscription.NewSpecFromPlan(input.Plan, current.Spec.CreateSubscriptionCustomerInput)
-		if err != nil {
-			return def, subscriptionworkflow.MapSubscriptionErrors(err)
-		}
-		migration := migrationSpecInput{Current: current, Target: target, At: at}
-		if err := migration.Validate(); err != nil {
-			return def, err
-		}
-
-		// Load purchases and validate their future quantities against the target plan.
-		// Apply them to the prospective spec: restoring the live view first could
-		// merge historical item versions and change their billing identities.
+		// Check the addons against the new plan, using their current and future quantities.
 		addons, err := s.AddonService.List(ctx, input.SubscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{SubscriptionID: input.SubscriptionID.ID})
 		if err != nil {
 			return def, err
 		}
-		migration.Addons = addons.Items
-		if err := migration.validateAddons(ctx, s.PlanAddonService); err != nil {
-			return def, err
-		}
-		if err := migration.applyAddons(); err != nil {
+		target, err := s.buildMigrationTarget(ctx, buildMigrationTargetInput{
+			Current: current, Plan: input.Plan, At: at, Addons: addons.Items,
+		})
+		if err != nil {
 			return def, err
 		}
 
-		// Patch only differing schedules. The normal update path materializes items,
-		// entitlements, and the plan reference together in this transaction.
-		spec, err := migration.updatedSpec()
+		// Keep unchanged items and save changed items, entitlements, and the plan
+		// reference together through the existing update path.
+		spec, err := buildMigratedSpec(buildMigratedSpecInput{Current: current, Target: target, At: at})
 		if err != nil {
 			return def, err
 		}
@@ -82,16 +70,13 @@ func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.
 	})
 }
 
-// migrationSpecInput holds the locked current offering and its prospective
-// replacement. Addons are composed onto Target before generating item patches.
-type migrationSpecInput struct {
+type buildMigratedSpecInput struct {
 	Current subscription.SubscriptionView
 	Target  subscription.SubscriptionSpec
 	At      time.Time
-	Addons  []subscriptionaddon.SubscriptionAddon
 }
 
-func (i migrationSpecInput) Validate() error {
+func (i buildMigratedSpecInput) Validate() error {
 	var errs []error
 	if i.Current.Spec.Plan == nil || i.Target.Plan == nil {
 		errs = append(errs, errors.New("custom subscriptions cannot be migrated"))
@@ -112,12 +97,23 @@ func (i migrationSpecInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i migrationSpecInput) updatedSpec() (subscription.SubscriptionSpec, error) {
+func buildMigratedSpec(i buildMigratedSpecInput) (subscription.SubscriptionSpec, error) {
+	if err := i.Validate(); err != nil {
+		return subscription.SubscriptionSpec{}, err
+	}
 	patches, err := patch.DiffItems(patch.DiffItemsInput{Current: i.Current.Spec, Target: i.Target, At: i.At})
 	if err != nil {
 		return subscription.SubscriptionSpec{}, err
 	}
+	// Patches replace entries in phase item maps. Copy those maps so the
+	// caller's view still describes the subscription before migration.
 	spec := i.Current.AsSpec()
+	spec.Phases = maps.Clone(spec.Phases)
+	for key, phase := range spec.Phases {
+		copied := *phase
+		copied.ItemsByKey = maps.Clone(phase.ItemsByKey)
+		spec.Phases[key] = &copied
+	}
 	if err := spec.ApplyMany(lo.Map(patches, subscription.ToApplies), subscription.ApplyContext{CurrentTime: i.At}); err != nil {
 		return subscription.SubscriptionSpec{}, subscriptionworkflow.MapSubscriptionErrors(err)
 	}

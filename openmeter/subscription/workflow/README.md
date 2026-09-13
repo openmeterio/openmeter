@@ -9,9 +9,9 @@ replacement. General subscription edits still reject subscriptions with addons.
 ## Diff and effective time
 
 The workflow builds a spec from the target plan using the subscription's
-existing customer and timing inputs, then applies the existing addon purchases
-and quantity schedule to that prospective spec. It compares this composed
-offering against the current view by phase key and item key.
+existing customer and timing inputs, then applies the existing addons
+and their current and future quantities to that spec. It compares the result
+against the current view by phase key and item key.
 
 The [item diff](../patch/diff.go) compares rate cards, billing overrides, ownership, and
 boolean-entitlement restoration counts over each item's timeline. Feature
@@ -30,7 +30,7 @@ difference at or after the effective time:
 
 The generated schedule patch is internal; it does not add a public edit API.
 Unlike the single-version add/remove patches, it handles future addon quantity
-segments and gaps without rewriting historical version indexes. For example,
+changes and gaps without rewriting historical version indexes. For example,
 with a current version ending January 20 and a future version starting then,
 `PatchRemoveItem` on January 10 would end the **last (future)** version on
 January 10; it would not truncate the active version or remove the future one.
@@ -51,15 +51,15 @@ target reference in the subscription namespace before advancing it.
 
 ## Addons
 
-Purchases and their quantity histories remain attached to the same subscription.
-Every nonzero quantity segment overlapping the post-migration subscription must
-have a target-plan assignment, satisfy its phase restriction, and stay within
-its quantity limit. Overlay incompatibilities also reject the operation.
+Addons and their quantity histories stay on the same subscription. Current and
+future nonzero quantities must be allowed by the new plan, including its phase
+and quantity limits. Quantities that ended before migration do not restrict
+changes to the new plan. Applying the addon rate cards must also succeed.
 
-The workflow diffs the composed target rather than restoring and rematerializing
-the live subscription. This avoids merging or renumbering unaffected historical
-addon versions. Changed versions carry the target base terms so a later addon
-quantity change restores the migrated offering.
+The workflow builds a new spec with addons before comparing it to the current
+subscription. Removing and reapplying addons on the current spec could merge
+old item versions and change the indexes billing uses to identify them. When
+an addon is removed later, the remaining item uses the new plan price.
 
 ## Billing consequences
 

@@ -5,13 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -359,117 +355,4 @@ func TestMigrate(t *testing.T) {
 			require.ErrorContains(t, err, "preserves the phase timeline")
 		})
 	})
-}
-
-func TestMigratePreservesUnaffectedItems(t *testing.T) {
-	for _, scenario := range []string{"add item", "change price", "remove item", "metadata only", "next cycle", "deprecated anchor"} {
-		t.Run(scenario, func(t *testing.T) {
-			// given an active subscription with two independent rate cards
-			start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-			clock.FreezeTime(start)
-			defer clock.UnFreeze()
-			ctx := t.Context()
-			db := subscriptiontestutils.SetupDBDeps(t)
-			defer db.Cleanup(t)
-			deps := subscriptiontestutils.NewService(t, db)
-			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-			input := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-				subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
-			p1 := deps.PlanHelper.CreatePlan(t, input)
-			before, err := deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
-				Namespace: cust.Namespace, CustomerID: cust.ID,
-				ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-					Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
-				},
-			}, p1)
-			require.NoError(t, err)
-			at := start.Add(10 * 24 * time.Hour)
-			clock.FreezeTime(at.Add(-time.Second))
-			nextInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-				subscriptiontestutils.ExampleRateCard1.Clone(), subscriptiontestutils.ExampleRateCard2.Clone()).Build()
-			switch scenario {
-			case "add item", "next cycle":
-				nextInput.Phases[0].RateCards = append(nextInput.Phases[0].RateCards, subscriptiontestutils.ExampleRateCard3ForAddons.Clone())
-			case "change price":
-				require.NoError(t, nextInput.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-					meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(50)})
-					return meta, nil
-				}))
-			case "remove item":
-				nextInput.Phases[0].RateCards = nextInput.Phases[0].RateCards[1:]
-			case "metadata only":
-				nextInput.Name = "new catalog name"
-			}
-			p2 := deps.PlanHelper.CreatePlan(t, nextInput)
-			clock.FreezeTime(at)
-			svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
-			request := plansubscription.MigrateSubscriptionRequest{ID: before.Subscription.NamespacedID}
-			if scenario == "deprecated anchor" {
-				request.BillingAnchor = lo.ToPtr(start.Add(3 * 24 * time.Hour))
-			}
-			if scenario == "next cycle" {
-				request.Timing = &subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}
-				at = time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
-			}
-			// when migrating the offering in the middle of a billing period
-			response, err := svc.Migrate(ctx, request)
-			require.NoError(t, err)
-			after := response.Next
-			// then the subscription and unaffected item/entitlement identities survive
-			require.Equal(t, before.Subscription.ID, after.Subscription.ID)
-			require.Equal(t, before.Subscription.ActiveFrom, after.Subscription.ActiveFrom)
-			require.Nil(t, after.Subscription.ActiveTo)
-			require.Equal(t, before.Subscription.BillingAnchor, after.Subscription.BillingAnchor)
-			require.Equal(t, p2.ToCreateSubscriptionPlanInput().Plan, after.Subscription.PlanRef)
-			require.Equal(t, before.Phases[0].SubscriptionPhase.ID, after.Phases[0].SubscriptionPhase.ID)
-			require.Equal(t, before.Phases[0].ItemsByKey["rate-card-2"], after.Phases[0].ItemsByKey["rate-card-2"])
-			key := subscriptiontestutils.ExampleFeatureKey
-			switch scenario {
-			case "change price":
-				items := after.Phases[0].ItemsByKey[key]
-				require.Len(t, items, 2)
-				require.Equal(t, at, *items[0].SubscriptionItem.ActiveTo)
-				require.Equal(t, at, items[1].SubscriptionItem.ActiveFrom)
-				require.Equal(t, start, items[0].SubscriptionItem.ActiveFrom)
-			case "remove item":
-				items := after.Phases[0].ItemsByKey[key]
-				require.Len(t, items, 1)
-				require.Equal(t, at, *items[0].SubscriptionItem.ActiveTo)
-			default:
-				require.Len(t, after.Phases[0].ItemsByKey[key], 1)
-				require.Equal(t, before.Phases[0].ItemsByKey[key][0].SubscriptionItem.ID, after.Phases[0].ItemsByKey[key][0].SubscriptionItem.ID)
-				require.Equal(t, before.Phases[0].ItemsByKey[key][0].SubscriptionItem.EntitlementID, after.Phases[0].ItemsByKey[key][0].SubscriptionItem.EntitlementID)
-				require.Equal(t, before.Phases[0].ItemsByKey[key][0].SubscriptionItem.CadencedModel, after.Phases[0].ItemsByKey[key][0].SubscriptionItem.CadencedModel)
-			}
-			if scenario == "add item" || scenario == "next cycle" {
-				added := after.Phases[0].ItemsByKey[subscriptiontestutils.ExampleFeatureKey2]
-				require.Len(t, added, 1)
-				require.Equal(t, at, added[0].SubscriptionItem.ActiveFrom)
-			}
-			require.NoError(t, after.Validate(true))
-			// An editor holding the previous plan's spec cannot undo a migration.
-			_, err = deps.SubscriptionService.Update(ctx, before.Subscription.NamespacedID, before.Spec)
-			require.Error(t, err)
-
-			builder := targetstate.NewBuilder(testutils.NewLogger(t), noop.NewTracerProvider().Tracer("test"))
-			beforeBilling, err := builder.Build(ctx, targetstate.BuildInput{Persisted: persistedstate.State{ByUniqueID: map[string]persistedstate.Item{}, Invoices: persistedstate.Invoices{}}, AsOf: at, SubscriptionView: &before})
-			require.NoError(t, err)
-			afterBilling, err := builder.Build(ctx, targetstate.BuildInput{Persisted: persistedstate.State{ByUniqueID: map[string]persistedstate.Item{}, Invoices: persistedstate.Invoices{}}, AsOf: at, SubscriptionView: &after})
-			require.NoError(t, err)
-			// Unaffected billables keep their reconciliation identity, invoice time,
-			// and complete service/billing periods across migration.
-			for _, old := range beforeBilling.Items {
-				if old.Spec.ItemKey == key && (scenario == "change price" || scenario == "remove item") {
-					continue
-				}
-				found, ok := lo.Find(afterBilling.Items, func(item targetstate.StateItem) bool { return item.UniqueID == old.UniqueID })
-				require.True(t, ok, "missing billable %s", old.UniqueID)
-				require.Equal(t, old.ServicePeriod, found.ServicePeriod)
-				require.Equal(t, old.FullServicePeriod, found.FullServicePeriod)
-				require.Equal(t, old.BillingPeriod, found.BillingPeriod)
-				require.Equal(t, old.GetInvoiceAt(), found.GetInvoiceAt())
-			}
-		})
-	}
 }

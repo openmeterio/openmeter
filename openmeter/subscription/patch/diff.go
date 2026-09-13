@@ -50,17 +50,16 @@ func (i DiffItemsInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// DiffItems compares commercial schedules from At onward. Historical versions
-// and the unchanged prefix of each item schedule retain their slice positions,
-// which are the identities used by billing reconciliation.
+// DiffItems compares item versions from At onward. It keeps earlier and
+// unchanged versions at the same indexes because billing uses those indexes
+// to match subscription items to invoice lines.
 func DiffItems(input DiffItemsInput) ([]subscription.Patch, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 	var patches []subscription.Patch
 	for _, phase := range input.Current.GetSortedPhases() {
-		// Historical phases are immutable; future phases start comparison at
-		// their own start rather than at the migration time.
+		// Skip past phases. Compare future phases from their start time.
 		cadence, err := input.Current.GetPhaseCadence(phase.PhaseKey)
 		if err != nil {
 			return nil, err
@@ -73,7 +72,7 @@ func DiffItems(input DiffItemsInput) ([]subscription.Patch, error) {
 			at = cadence.ActiveFrom
 		}
 		targetPhase := input.Target.Phases[phase.PhaseKey]
-		// Compare the union of keys so additions and removals are included.
+		// Include keys from both plans to find added and removed items.
 		keys := slices.Collect(maps.Keys(phase.ItemsByKey))
 		keys = append(keys, slices.Collect(maps.Keys(targetPhase.ItemsByKey))...)
 		slices.Sort(keys)
@@ -89,9 +88,8 @@ func DiffItems(input DiffItemsInput) ([]subscription.Patch, error) {
 	return patches, nil
 }
 
-// itemScheduleDiff compares the piecewise-constant shapes on one item key.
-// Only starts and ends can change the active shape, so checking those boundaries
-// is sufficient even when either schedule contains gaps.
+// An item can differ only when one of its versions starts or ends. Check
+// those times in both specs, including times when neither has an active item.
 type itemScheduleDiff struct {
 	current, target []*subscription.SubscriptionItemSpec
 	cadence         models.CadencedModel
@@ -142,9 +140,8 @@ func itemShapeEqual(a, b *subscription.SubscriptionItemSpec) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
-	// Stored items can carry key-only feature references, while catalog rate cards
-	// include both identifiers. Compare the shared identity without treating that
-	// representational difference as an amendment.
+	// Stored items may identify a feature by key while the plan also has its ID.
+	// That alone does not mean the feature changed.
 	left, right := a.RateCard.Clone(), b.RateCard.Clone()
 	lFeature, rFeature := left.AsMeta().Feature, right.AsMeta().Feature
 	if lFeature != nil && rFeature != nil && lFeature.Compatible(*rFeature) &&
