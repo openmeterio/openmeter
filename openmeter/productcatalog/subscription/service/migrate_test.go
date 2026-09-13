@@ -356,3 +356,76 @@ func TestMigrate(t *testing.T) {
 		})
 	})
 }
+
+// Commit another migration after the catalog service reads the subscription,
+// before its migration workflow acquires the customer lock.
+type migrateAfterSubscriptionRead struct {
+	subscription.Service
+	workflow subscriptionworkflow.Service
+	plan     subscription.Plan
+	migrated subscription.SubscriptionView
+}
+
+func (s *migrateAfterSubscriptionRead) Get(ctx context.Context, id models.NamespacedID) (subscription.Subscription, error) {
+	before, err := s.Service.Get(ctx, id)
+	if err != nil {
+		return subscription.Subscription{}, err
+	}
+
+	_, s.migrated, err = s.workflow.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+		SubscriptionID: id,
+		Plan:           s.plan,
+		Timing:         subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+	})
+
+	return before, err
+}
+
+func TestMigrateReturnsCurrentSnapshotFromUnderLock(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given a subscription on version 1 and two later plan versions
+	db := subscriptiontestutils.SetupDBDeps(t)
+	defer db.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, db)
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
+		subscriptiontestutils.ExampleRateCard1.Clone(),
+	).Build()
+	p1 := deps.PlanHelper.CreatePlan(t, planInput)
+	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)
+
+	clock.FreezeTime(start.Add(24 * time.Hour))
+	defer clock.UnFreeze()
+	p2 := deps.PlanHelper.CreatePlan(t, planInput)
+
+	clock.FreezeTime(start.Add(48 * time.Hour))
+	defer clock.UnFreeze()
+	p3 := deps.PlanHelper.CreatePlan(t, planInput)
+
+	// when version 2 commits between the initial read and migration to version 3
+	interleaved := &migrateAfterSubscriptionRead{
+		Service:  deps.SubscriptionService,
+		workflow: deps.WorkflowService,
+		plan:     p2,
+	}
+	deps.SubscriptionService = interleaved
+	svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
+
+	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
+	defer clock.UnFreeze()
+	response, err := svc.Migrate(t.Context(), plansubscription.MigrateSubscriptionRequest{
+		ID:            before.Subscription.NamespacedID,
+		TargetVersion: lo.ToPtr(p3.ToCreateSubscriptionPlanInput().Plan.Version),
+	})
+	require.NoError(t, err)
+
+	// then current describes version 2, which the workflow actually amended
+	require.Equal(t, p2.ToCreateSubscriptionPlanInput().Plan, response.Current.PlanRef)
+	require.Equal(t, interleaved.migrated.Subscription, response.Current)
+	require.Equal(t, p3.ToCreateSubscriptionPlanInput().Plan, response.Next.Subscription.PlanRef)
+	require.Equal(t, response.Current.ID, response.Next.Subscription.ID)
+}

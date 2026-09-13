@@ -77,7 +77,7 @@ func TestMigrateToPlanAddons(t *testing.T) {
 			})
 			require.NoError(t, err)
 			// when migrating with the existing addon purchases
-			after, err := deps.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+			_, after, err := deps.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
 				SubscriptionID: before.Subscription.NamespacedID,
 				Plan:           &plansubscription.Plan{Plan: p2.AsProductCatalogPlan(), Ref: &p2.NamespacedID},
 				Timing:         subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},

@@ -107,7 +107,7 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		return plansubscription.SubscriptionChangeResponse{Current: current, Next: next}, nil
 	}
 
-	updated, err := s.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+	current, updated, err := s.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
 		SubscriptionID: request.ID,
 		Plan:           pp,
 		Timing:         timing,
@@ -118,5 +118,5 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	// Keep the existing response envelope: current is the pre-amendment snapshot,
 	// next is the updated view of the same subscription.
-	return plansubscription.SubscriptionChangeResponse{Current: sub, Next: updated}, nil
+	return plansubscription.SubscriptionChangeResponse{Current: current, Next: updated}, nil
 }

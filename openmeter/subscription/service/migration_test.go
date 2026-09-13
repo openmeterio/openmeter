@@ -62,7 +62,7 @@ func TestUpdateRejectsMigrationBetweenReadAndLock(t *testing.T) {
 	var migrated subscription.SubscriptionView
 	customerService := &migrateDuringUpdateValidation{Service: deps.CustomerService, migrate: func(ctx context.Context) error {
 		var err error
-		migrated, err = deps.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+		_, migrated, err = deps.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
 			SubscriptionID: before.Subscription.NamespacedID, Plan: p2,
 			Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
 		})

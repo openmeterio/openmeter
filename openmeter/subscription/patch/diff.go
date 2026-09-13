@@ -38,7 +38,7 @@ func (i DiffItemsInput) Validate() error {
 	for key, phase := range i.Current.Phases {
 		target, ok := i.Target.Phases[key]
 		if !ok || phase == nil || target == nil {
-			errs = append(errs, fmt.Errorf("item diff requires the same start for phase %q", key))
+			errs = append(errs, fmt.Errorf("item diff requires phase %q in both specs", key))
 			continue
 		}
 		currentStart, _ := phase.StartAfter.AddTo(i.Current.ActiveFrom)

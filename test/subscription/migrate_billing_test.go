@@ -171,4 +171,11 @@ func assertOnlyAddedComputeNeedsBilling(t *testing.T, deps testDeps, after subsc
 	})
 	require.Len(t, lines, 1)
 	require.Equal(t, "compute-xl", lines[0].Name)
+	require.Equal(t, time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC), lines[0].ServicePeriod.From)
+	require.Equal(t, monthEnd, lines[0].ServicePeriod.To)
+
+	price, err := lines[0].Price.AsFlat()
+	require.NoError(t, err)
+	// January 15 through February 1 is 17 of 31 days: 150 * 17 / 31, rounded to cents.
+	require.Equal(t, 82.26, price.Amount.InexactFloat64())
 }

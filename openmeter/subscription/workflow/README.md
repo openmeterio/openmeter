@@ -41,9 +41,11 @@ and replaces the affected suffix as one operation. Persistence,
 entitlement scheduling, hooks, cost-basis resolution, and event publication
 use the existing subscription update path.
 
-The customer lock covers the migration read, diff, and update. The plan
-reference advances in the same transaction as item materialization, with a
-comparison against the previous plan ID. Updates recheck that reference after
+The customer lock covers the migration read, diff, and update. Both response
+snapshots come from that transaction, so `current` includes any edit or migration
+that committed before the lock was acquired. The plan reference advances in the
+same transaction as item materialization, with a comparison against the previous
+plan ID. Updates recheck that reference after
 acquiring the customer lock so an edit read before migration cannot overwrite
 the new terms. `AdvancePlanReferenceInput.Validate` enforces a later version of
 the same plan in both `validateSyncTarget` and the repository operation, even

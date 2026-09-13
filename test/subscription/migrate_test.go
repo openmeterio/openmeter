@@ -81,6 +81,14 @@ func TestMigrationPriceChangeSplitsOnlyChangedItem(t *testing.T) {
 	require.Equal(t, at, *items[0].SubscriptionItem.ActiveTo)
 	require.Equal(t, at, items[1].SubscriptionItem.ActiveFrom)
 
+	originalPrice, err := items[0].SubscriptionItem.RateCard.AsMeta().Price.AsUnit()
+	require.NoError(t, err)
+	require.Equal(t, 100.0, originalPrice.Amount.InexactFloat64())
+
+	replacementPrice, err := items[1].SubscriptionItem.RateCard.AsMeta().Price.AsUnit()
+	require.NoError(t, err)
+	require.Equal(t, 50.0, replacementPrice.Amount.InexactFloat64())
+
 	fixture.assertStalePlanEditRejected()
 }
 

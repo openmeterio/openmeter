@@ -17,21 +17,30 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.MigrateSubscriptionWorkflowInput) (subscription.SubscriptionView, error) {
+func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.MigrateSubscriptionWorkflowInput) (subscription.Subscription, subscription.SubscriptionView, error) {
 	if err := input.Validate(); err != nil {
-		return subscription.SubscriptionView{}, err
+		return subscription.Subscription{}, subscription.SubscriptionView{}, err
 	}
-	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
-		var def subscription.SubscriptionView
+
+	type result struct {
+		current subscription.Subscription
+		updated subscription.SubscriptionView
+	}
+
+	migrated, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (result, error) {
+		var def result
+
 		// Lock the customer before reading the subscription so another update
 		// cannot change it while we calculate and save the migration.
 		sub, err := s.Service.Get(ctx, input.SubscriptionID)
 		if err != nil {
 			return def, err
 		}
+
 		if err := s.lockCustomer(ctx, sub.CustomerId); err != nil {
 			return def, err
 		}
+
 		current, err := s.Service.GetView(ctx, input.SubscriptionID)
 		if err != nil {
 			return def, err
@@ -41,17 +50,25 @@ func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.
 		if err := input.Timing.ValidateForAction(subscription.SubscriptionActionUpdate, &current); err != nil {
 			return def, err
 		}
+
 		at, err := input.Timing.ResolveForSpec(current.Spec)
 		if err != nil {
 			return def, err
 		}
+
 		// Check the addons against the new plan, using their current and future quantities.
-		addons, err := s.AddonService.List(ctx, input.SubscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{SubscriptionID: input.SubscriptionID.ID})
+		addons, err := s.AddonService.List(ctx, input.SubscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
+			SubscriptionID: input.SubscriptionID.ID,
+		})
 		if err != nil {
 			return def, err
 		}
+
 		target, err := s.buildMigrationTarget(ctx, buildMigrationTargetInput{
-			Current: current, Plan: input.Plan, At: at, Addons: addons.Items,
+			Current: current,
+			Plan:    input.Plan,
+			At:      at,
+			Addons:  addons.Items,
 		})
 		if err != nil {
 			return def, err
@@ -63,11 +80,21 @@ func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.
 		if err != nil {
 			return def, err
 		}
+
 		if _, err := s.Service.Update(ctx, input.SubscriptionID, spec, subscription.WithCostBasisEffectiveAt(at)); err != nil {
 			return def, err
 		}
-		return s.Service.GetView(ctx, input.SubscriptionID)
+
+		updated, err := s.Service.GetView(ctx, input.SubscriptionID)
+		if err != nil {
+			return def, err
+		}
+
+		// Both response snapshots must describe the change made under this lock.
+		return result{current: current.Subscription, updated: updated}, nil
 	})
+
+	return migrated.current, migrated.updated, err
 }
 
 type buildMigratedSpecInput struct {

@@ -13,7 +13,7 @@ import (
 type Service interface {
 	CreateFromPlan(ctx context.Context, inp CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error)
 	EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error)
-	MigrateToPlan(ctx context.Context, input MigrateSubscriptionWorkflowInput) (subscription.SubscriptionView, error)
+	MigrateToPlan(ctx context.Context, input MigrateSubscriptionWorkflowInput) (current subscription.Subscription, updated subscription.SubscriptionView, err error)
 	ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp ChangeSubscriptionWorkflowInput, plan subscription.Plan) (current subscription.Subscription, new subscription.SubscriptionView, err error)
 	Restore(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error)
 
