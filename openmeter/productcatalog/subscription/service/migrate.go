@@ -69,7 +69,6 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 	if request.StartingPhase != nil {
 		return def, models.NewGenericValidationError(fmt.Errorf("migration preserves the phase timeline; use subscription change to select a starting phase"))
 	}
-	// BillingAnchor is deprecated and ignored for compatibility with existing clients.
 
 	if request.RejectUnitConfig && p.HasUnitConfig() {
 		return def, productcatalog.ErrUnitConfigNotRepresentable
@@ -78,6 +77,36 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 	pp := PlanFromPlan(*p)
 
 	timing := lo.FromPtrOr(request.Timing, subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)})
+
+	// An anchor override can change billing periods for the whole subscription.
+	// Keep the original cancel-and-create flow for these requests.
+	if request.BillingAnchor != nil && !request.BillingAnchor.Equal(sub.BillingAnchor) {
+		if request.Timing == nil {
+			current, err := s.SubscriptionService.GetView(ctx, request.ID)
+			if err != nil {
+				return def, err
+			}
+
+			if err := timing.ValidateForAction(subscription.SubscriptionActionCancel, &current); err != nil {
+				timing = subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)}
+			}
+		}
+
+		current, next, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing:        timing,
+			MetadataModel: sub.MetadataModel,
+			Name:          sub.Name,
+			Description:   sub.Description,
+			BillingAnchor: request.BillingAnchor,
+			CostBasisMode: sub.CostBasisMode,
+		}, pp)
+		if err != nil {
+			return def, err
+		}
+
+		return plansubscription.SubscriptionChangeResponse{Current: current, Next: next}, nil
+	}
+
 	updated, err := s.WorkflowService.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
 		SubscriptionID: request.ID,
 		Plan:           pp,

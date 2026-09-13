@@ -171,7 +171,7 @@ func TestMigrationNextCycleAdditionPreservesExistingItems(t *testing.T) {
 	fixture.assertStalePlanEditRejected()
 }
 
-func TestMigrationDeprecatedAnchorIsIgnored(t *testing.T) {
+func TestMigrationSameAnchorPreservesItems(t *testing.T) {
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
@@ -184,10 +184,10 @@ func TestMigrationDeprecatedAnchorIsIgnored(t *testing.T) {
 	clock.FreezeTime(start.Add(24 * time.Hour))
 	target := fixture.deps.PlanHelper.CreatePlan(t, nextPlan)
 
-	// when migration supplies a different billing anchor
+	// when migration supplies the existing anchor in a different time zone
 	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
 	after := fixture.migrate(plansubscription.MigrateSubscriptionRequest{
-		BillingAnchor: lo.ToPtr(start.Add(3 * 24 * time.Hour)),
+		BillingAnchor: lo.ToPtr(start.In(time.FixedZone("UTC+2", 2*60*60))),
 	})
 
 	// then the existing anchor and both items are preserved
@@ -197,6 +197,105 @@ func TestMigrationDeprecatedAnchorIsIgnored(t *testing.T) {
 	fixture.assertItemUnchanged(after, subscriptiontestutils.ExampleFeatureKey, at)
 
 	fixture.assertStalePlanEditRejected()
+}
+
+func TestMigrationChangedAnchorCreatesReplacement(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given a later plan version and a running subscription
+	fixture := newMigrationFixture(t)
+	clock.FreezeTime(start.Add(24 * time.Hour))
+	target := fixture.deps.PlanHelper.CreatePlan(t, fixture.newPlanVersion())
+
+	// when migration moves billing to the fourth day of the month
+	at := start.Add(10 * 24 * time.Hour)
+	anchor := start.Add(3 * 24 * time.Hour)
+	clock.FreezeTime(at)
+	after := fixture.migrate(plansubscription.MigrateSubscriptionRequest{
+		BillingAnchor: &anchor,
+	})
+
+	// then the original subscription ends and the replacement uses the new anchor
+	fixture.assertSubscriptionReplaced(after, target, at)
+	require.Equal(t, anchor, after.Subscription.BillingAnchor)
+	fixture.assertBillingPeriodEndsAt(after, at, time.Date(2026, 2, 4, 0, 0, 0, 0, time.UTC))
+}
+
+func TestMigrationFutureAnchorIsPreserved(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given a later plan version and a running subscription
+	fixture := newMigrationFixture(t)
+	clock.FreezeTime(start.Add(24 * time.Hour))
+	target := fixture.deps.PlanHelper.CreatePlan(t, fixture.newPlanVersion())
+
+	// when the supplied anchor is later than the migration time
+	at := start.Add(10 * 24 * time.Hour)
+	anchor := time.Date(2026, 3, 4, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(at)
+	after := fixture.migrate(plansubscription.MigrateSubscriptionRequest{
+		BillingAnchor: &anchor,
+	})
+
+	// then billing uses the anchor's recurrence without moving the stored anchor
+	fixture.assertSubscriptionReplaced(after, target, at)
+	require.Equal(t, anchor, after.Subscription.BillingAnchor)
+	fixture.assertBillingPeriodEndsAt(after, at, time.Date(2026, 2, 4, 0, 0, 0, 0, time.UTC))
+}
+
+func TestMigrationAnchorChangeAtNextCycle(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given a subscription billed on the first day of each month
+	fixture := newMigrationFixture(t)
+	clock.FreezeTime(start.Add(24 * time.Hour))
+	target := fixture.deps.PlanHelper.CreatePlan(t, fixture.newPlanVersion())
+
+	// when an anchor change is requested for the next billing cycle
+	anchor := start.Add(3 * 24 * time.Hour)
+	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
+	after := fixture.migrate(plansubscription.MigrateSubscriptionRequest{
+		BillingAnchor: &anchor,
+		Timing:        &subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)},
+	})
+
+	// then the old anchor determines the change time and the new one determines billing
+	at := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	fixture.assertSubscriptionReplaced(after, target, at)
+	require.Equal(t, anchor, after.Subscription.BillingAnchor)
+	fixture.assertBillingPeriodEndsAt(after, at, time.Date(2026, 2, 4, 0, 0, 0, 0, time.UTC))
+}
+
+func TestMigrationInvalidAnchorLeavesSubscriptionIntact(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given a later plan version and a running subscription
+	fixture := newMigrationFixture(t)
+	clock.FreezeTime(start.Add(24 * time.Hour))
+	fixture.deps.PlanHelper.CreatePlan(t, fixture.newPlanVersion())
+
+	// when migration supplies an invalid anchor
+	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
+	_, err := fixture.deps.pcSubscriptionService.Migrate(t.Context(), plansubscription.MigrateSubscriptionRequest{
+		ID:            fixture.before.Subscription.NamespacedID,
+		BillingAnchor: lo.ToPtr(time.Time{}),
+	})
+	require.Error(t, err)
+
+	// then cancellation is rolled back along with the failed replacement
+	current, err := fixture.deps.SubscriptionService.Get(t.Context(), fixture.before.Subscription.NamespacedID)
+	require.NoError(t, err)
+	require.Nil(t, current.ActiveTo)
+	require.Equal(t, fixture.before.Subscription.PlanRef, current.PlanRef)
+	require.Equal(t, fixture.before.Subscription.BillingAnchor, current.BillingAnchor)
 }
 
 type migrationFixture struct {
@@ -324,4 +423,34 @@ func (f migrationFixture) billingState(view subscription.SubscriptionView, at ti
 	require.NoError(f.t, err)
 
 	return state
+}
+
+func (f migrationFixture) assertSubscriptionReplaced(after subscription.SubscriptionView, target subscription.Plan, at time.Time) {
+	f.t.Helper()
+
+	current, err := f.deps.SubscriptionService.Get(f.t.Context(), f.before.Subscription.NamespacedID)
+	require.NoError(f.t, err)
+	require.Equal(f.t, &at, current.ActiveTo)
+	require.Equal(f.t, f.before.Subscription.PlanRef, current.PlanRef)
+
+	require.NotEqual(f.t, current.ID, after.Subscription.ID)
+	require.Equal(f.t, at, after.Subscription.ActiveFrom)
+	require.Equal(f.t, target.ToCreateSubscriptionPlanInput().Plan, after.Subscription.PlanRef)
+	require.Equal(f.t, current.CustomerId, after.Subscription.CustomerId)
+	require.Equal(f.t, current.MetadataModel, after.Subscription.MetadataModel)
+	require.Equal(f.t, current.Name, after.Subscription.Name)
+	require.Equal(f.t, current.Description, after.Subscription.Description)
+	require.Equal(f.t, current.CostBasisMode, after.Subscription.CostBasisMode)
+
+	require.Equal(f.t, &current.ID, subscription.AnnotationParser.GetPreviousSubscriptionID(after.Subscription.Annotations))
+	require.Equal(f.t, &after.Subscription.ID, subscription.AnnotationParser.GetSupersedingSubscriptionID(current.Annotations))
+}
+
+func (f migrationFixture) assertBillingPeriodEndsAt(after subscription.SubscriptionView, at, end time.Time) {
+	f.t.Helper()
+
+	period, err := after.Spec.GetAlignedBillingPeriodAt(at)
+	require.NoError(f.t, err)
+	require.Equal(f.t, at, period.From)
+	require.Equal(f.t, end, period.To)
 }

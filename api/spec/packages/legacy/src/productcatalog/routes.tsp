@@ -543,13 +543,17 @@ interface SubscriptionsEndpoints {
   ): SubscriptionChangeResponseBody | NotFoundError | CommonSubscriptionErrors;
 
   /**
-   * Amends a running subscription to a later version of its current plan in place.
+   * Migrates a running subscription to a later version of its current plan.
+   * If billingAnchor is omitted or unchanged, the subscription is amended in place.
    * Unchanged items retain their service periods. Changed or removed items end at
    * the effective time; replacements and additions start from that time.
-   * Existing addons must be compatible with the target plan version.
+   * For in-place migrations, existing addons must be compatible with the target plan version.
    * The phase timeline, billing anchor, and subscription-level billing settings
    * are preserved. Both response entries refer to the same subscription:
    * current is the before snapshot and next is the amended view.
+   * Providing a different billingAnchor uses subscription change: the current subscription
+   * ends and a replacement starts at the effective time. This resets the phase timeline
+   * and can produce billing adjustments. Addons are not transferred to the replacement.
    */
   @post
   @operationId("migrateSubscription")
@@ -578,11 +582,11 @@ interface SubscriptionsEndpoints {
       startingPhase?: string;
 
       /**
-       * Ignored. Migration preserves the existing billing anchor.
-       *
-       * @deprecated This field is a no-op. Use subscription change to reset the billing anchor.
+       * The anchor used with the plan's billing cadence to calculate billing periods.
+       * If omitted or equal to the existing anchor, migration preserves the current subscription.
+       * Providing a different anchor ends the current subscription and creates a replacement.
+       * The supplied anchor is preserved; it may be before or after the replacement's start time.
        */
-      #deprecated "Ignored; migration preserves the existing billing anchor"
       billingAnchor?: DateTime;
     },
   ): SubscriptionChangeResponseBody | NotFoundError | CommonSubscriptionErrors;

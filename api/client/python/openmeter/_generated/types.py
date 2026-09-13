@@ -3015,7 +3015,11 @@ class MigrateRequest(TypedDict, total=False):
     :ivar starting_phase: Not supported for in-place migrations. Omit this field; use subscription
      change to reset the phase timeline.
     :vartype starting_phase: str
-    :ivar billing_anchor: Ignored. Migration preserves the existing billing anchor.
+    :ivar billing_anchor: The anchor used with the plan's billing cadence to calculate billing
+     periods. If omitted or equal to the existing anchor, migration preserves the current
+     subscription. Providing a different anchor ends the current subscription and creates a
+     replacement. The supplied anchor is preserved; it may be before or after the replacement's
+     start time.
     :vartype billing_anchor: str
     """
 
@@ -3030,7 +3034,10 @@ class MigrateRequest(TypedDict, total=False):
     """Not supported for in-place migrations. Omit this field; use subscription change to reset the
      phase timeline."""
     billingAnchor: str
-    """Ignored. Migration preserves the existing billing anchor."""
+    """The anchor used with the plan's billing cadence to calculate billing periods. If omitted or
+     equal to the existing anchor, migration preserves the current subscription. Providing a
+     different anchor ends the current subscription and creates a replacement. The supplied anchor
+     is preserved; it may be before or after the replacement's start time."""
 
 
 class NotificationChannelWebhookCreateRequest(TypedDict, total=False):
