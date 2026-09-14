@@ -15,7 +15,7 @@ require (
 	github.com/IBM/sarama v1.60.2
 	github.com/ThreeDotsLabs/watermill v1.5.3
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.4
-	github.com/XSAM/otelsql v0.43.0
+	github.com/XSAM/otelsql v0.44.0
 	github.com/alpacahq/alpacadecimal v0.0.9
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/bhmj/jsonslice v1.1.3
