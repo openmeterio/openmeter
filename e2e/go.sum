@@ -197,8 +197,8 @@ github.com/qmuntal/stateless v1.8.0 h1:9+Eg/7bWLKxUxs/vysNYAelFAh85kTyueC3ee6v8i
 github.com/qmuntal/stateless v1.8.0/go.mod h1:KWa8KVzIBD/ZS0EdzL5oU79sGq7fKwH9WEFijTC5AWw=
 github.com/rickb777/expect v1.3.4 h1:b51hSqdTDdH8xY2y6DgHRNkxKtsAAKIQFNZ7Lf0PbOA=
 github.com/rickb777/expect v1.3.4/go.mod h1:YQhUXHEeFrxMrH/NNwISBCgt+A82EC4Xvx3E5/2q+DE=
-github.com/rickb777/period v1.0.32 h1:Gus4CbTH3WCzJ+7nLxjV1r9DCYfRIxrYNYL8Nt6sIGQ=
-github.com/rickb777/period v1.0.32/go.mod h1:QkzN/ec7c1vcp0/smCTqHKKmChkm+anFfLe3y0GuiXY=
+github.com/rickb777/period v1.1.0 h1:4P6Ef2YSu8N8YEy/S2W8p3MxW0r/45goYQF59PsgXOE=
+github.com/rickb777/period v1.1.0/go.mod h1:QkzN/ec7c1vcp0/smCTqHKKmChkm+anFfLe3y0GuiXY=
 github.com/rickb777/plural/v2 v2.1.1 h1:PnnkkMn62hxJIfdBWaPKH3jUFJQliqqGEqHAYhnINVs=
 github.com/rickb777/plural/v2 v2.1.1/go.mod h1:VQ7T01f3Xi9EqnIE0vMBw3351Bj2xWVle4TOccdlB7I=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
