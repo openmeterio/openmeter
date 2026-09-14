@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -119,6 +120,372 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() {
 		CreditPurchaseHandler: handlers.CreditPurchase,
 		UsageBasedHandler:     handlers.UsageBased,
 	})
+}
+
+// TODO: Cover this scenario under credit_then_invoice too.
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestUnschedulingAndReplacingFutureItemDoesNotReuseChargeIdentity() {
+	ctx := s.testContext()
+	startAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	firstEditAt := s.mustParseTime("2024-01-15T00:00:00Z")
+	replacementEditAt := s.mustParseTime("2024-01-20T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+
+	clock.SetTime(startAt)
+	defer clock.ResetTime()
+
+	// Customer creates the subscription:
+	//   subscription items:
+	//   - v[0] $100 [Jan 1, infinity) (billed monthly)
+	//   Charges:
+	//   - none until asynchronous subscription sync runs
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Flat Fee Scheduled Replacement",
+				Key:            "credits-only-flat-fee-scheduled-replacement",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("default", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name: "flat-fee",
+								Key:  "flat-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(100),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+
+	// Customer schedules a replacement for the next billing boundary:
+	//   subscription items:
+	//   - v[0] $100 [Jan 1, Feb 1) (billed monthly)
+	//   - v[1] $200 [Feb 1, infinity) (billed monthly)
+	//   Charges:
+	//   - none
+	clock.SetTime(firstEditAt)
+	scheduledView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subscriptionView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemoveItem{
+			PhaseKey: "default",
+			ItemKey:  "flat-fee",
+		},
+		subscriptionAddItem{
+			PhaseKey: "default",
+			ItemKey:  "flat-fee",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(200),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+		}.AsPatch(),
+	}, subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)})
+	s.Require().NoError(err)
+	s.Require().Len(scheduledView.Phases[0].ItemsByKey["flat-fee"], 2)
+	originalFutureItemID := scheduledView.Phases[0].ItemsByKey["flat-fee"][1].SubscriptionItem.ID
+
+	// Subscription sync provisions the current view through the February billing period:
+	//   subscription items:
+	//   - unchanged (billed monthly)
+	//   Charges:
+	//   - v[0]/period[0] $100 [Jan 1, Feb 1)
+	//   - v[1]/period[0] $200 [Feb 1, Mar 1)
+	s.Require().NoError(s.Service.SyncByView(ctx, scheduledView, syncUntil))
+
+	// Customer unschedules the future replacement:
+	//   subscription items:
+	//   - v[0] $100 [Jan 1, infinity) (billed monthly); the original v[1] item row is archived
+	//   Charges:
+	//   - unchanged; v[1]/period[0] still references the archived $200 item
+	clock.SetTime(replacementEditAt)
+	unscheduledView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subscriptionView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchUnscheduleEdit{},
+	}, s.timingImmediate())
+	s.Require().NoError(err)
+	s.Require().Len(unscheduledView.Phases[0].ItemsByKey["flat-fee"], 1)
+
+	// Customer replaces the active item immediately:
+	//   subscription items:
+	//   - v[0] $100 [Jan 1, Jan 20) (billed monthly)
+	//   - v[1] $300 [Jan 20, infinity) (billed monthly); the new item has a new ID but occupies the archived item's v[1] position
+	//   Charges:
+	//   - unchanged; v[1]/period[0] still references the archived $200 item
+	replacedView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subscriptionView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemoveItem{
+			PhaseKey: "default",
+			ItemKey:  "flat-fee",
+		},
+		subscriptionAddItem{
+			PhaseKey: "default",
+			ItemKey:  "flat-fee",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(300),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+		}.AsPatch(),
+	}, s.timingImmediate())
+	s.Require().NoError(err)
+	s.Require().Len(replacedView.Phases[0].ItemsByKey["flat-fee"], 2)
+	replacementItemID := replacedView.Phases[0].ItemsByKey["flat-fee"][1].SubscriptionItem.ID
+	s.NotEqual(originalFutureItemID, replacementItemID)
+
+	// Customer schedules one more replacement for the same Feb 1 boundary:
+	//   subscription items:
+	//   - v[0] $100 [Jan 1, Jan 20) (billed monthly)
+	//   - v[1] $300 [Jan 20, Feb 1) (billed monthly); changing active_to recreates the row with another new ID
+	//   - v[2] $400 [Feb 1, infinity) (billed monthly)
+	//   Charges:
+	//   - unchanged; v[1]/period[0] is still the old $200 charge for [Feb 1, Mar 1)
+	rescheduledView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subscriptionView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemoveItem{
+			PhaseKey: "default",
+			ItemKey:  "flat-fee",
+		},
+		subscriptionAddItem{
+			PhaseKey: "default",
+			ItemKey:  "flat-fee",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(400),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+		}.AsPatch(),
+	}, subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)})
+	s.Require().NoError(err)
+
+	versions := rescheduledView.Phases[0].ItemsByKey["flat-fee"]
+	s.Require().Len(versions, 3)
+	s.NotEqual(originalFutureItemID, versions[1].SubscriptionItem.ID)
+	s.NotEqual(replacementItemID, versions[1].SubscriptionItem.ID)
+
+	// Subscription sync:
+	//   - expected: retire the old charge identity and provision the new subscription item periods
+	//   - actual: match both physical items through v[1], try to shrink [Feb 1, Mar 1) to [Jan 20, Feb 1), and fail
+	s.NoError(s.Service.SyncByView(ctx, rescheduledView, syncUntil))
+}
+
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepairsChargeSubscriptionReferences() {
+	ctx := s.testContext()
+	startAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	editAt := s.mustParseTime("2024-01-15T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+
+	clock.SetTime(startAt)
+	defer clock.ResetTime()
+
+	// Customer creates the subscription:
+	//   subscription phases:
+	//   - first-phase [Jan 1, Feb 1)
+	//   - second-phase [Feb 1, infinity)
+	//   subscription items:
+	//   - first-phase/v[0] $100 [Jan 1, Feb 1) (billed monthly)
+	//   - second-phase/v[0] $200 [Feb 1, infinity) (billed monthly)
+	//   Charges:
+	//   - none until asynchronous subscription sync runs
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Recreated Future Phase",
+				Key:            "credits-only-recreated-future-phase",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", "P1M"),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name: "flat-fee",
+								Key:  "flat-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(100),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+				{
+					PhaseMeta: s.phaseMeta("second-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name: "flat-fee",
+								Key:  "flat-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(200),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+
+	originalSecondPhase := s.getPhaseByKey(s.T(), subscriptionView, "second-phase")
+	s.Require().Len(originalSecondPhase.ItemsByKey["flat-fee"], 1)
+	originalSecondPhaseID := originalSecondPhase.SubscriptionPhase.ID
+	originalSecondItemID := originalSecondPhase.ItemsByKey["flat-fee"][0].SubscriptionItem.ID
+
+	// Subscription sync provisions the current view through the February billing period:
+	//   subscription phases:
+	//   - unchanged
+	//   subscription items:
+	//   - unchanged
+	//   Charges:
+	//   - first-phase/v[0]/period[0] $100 [Jan 1, Feb 1)
+	//   - second-phase/v[0]/period[0] $200 [Feb 1, Mar 1), referencing the original second-phase and item rows
+	s.Require().NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+
+	secondPhaseChildID := recurringLineMatcher{
+		PhaseKey:  "second-phase",
+		ItemKey:   "flat-fee",
+		Version:   0,
+		PeriodMin: 0,
+		PeriodMax: 0,
+	}.ChildIDs(subscriptionView.Subscription.ID)[0]
+
+	provisioned, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.Require().NoError(err)
+
+	var originalCharge flatfee.Charge
+	for _, charge := range provisioned.Items {
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.Require().NoError(err)
+		if lo.FromPtr(flatFeeCharge.Intent.GetUniqueReferenceID()) == secondPhaseChildID {
+			originalCharge = flatFeeCharge
+			break
+		}
+	}
+	s.Require().NotEmpty(originalCharge.ID)
+	s.Require().NotNil(originalCharge.Intent.GetSubscription())
+	s.Equal(originalSecondPhaseID, originalCharge.Intent.GetSubscription().PhaseID)
+	s.Equal(originalSecondItemID, originalCharge.Intent.GetSubscription().ItemID)
+
+	// Customer removes the future phase:
+	//   subscription phases:
+	//   - first-phase [Jan 1, infinity)
+	//   - the original second-phase row is archived
+	//   subscription items:
+	//   - first-phase/v[0] $100 [Jan 1, infinity) (billed monthly)
+	//   - the original second-phase/v[0] item row is archived
+	//   Charges:
+	//   - unchanged; second-phase/v[0]/period[0] still references the archived phase and item rows
+	clock.SetTime(editAt)
+	withoutSecondPhase, err := s.SubscriptionWorkflowService.EditRunning(ctx, subscriptionView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchRemovePhase{
+			PhaseKey: "second-phase",
+			RemoveInput: subscription.RemoveSubscriptionPhaseInput{
+				Shift: subscription.RemoveSubscriptionPhaseShiftPrev,
+			},
+		},
+	}, s.timingImmediate())
+	s.Require().NoError(err)
+	s.Require().Len(withoutSecondPhase.Phases, 1)
+
+	// Customer recreates the same future phase and item before subscription sync runs:
+	//   subscription phases:
+	//   - first-phase [Jan 1, Feb 1)
+	//   - second-phase [Feb 1, infinity); same key and timing, but a new physical phase ID
+	//   subscription items:
+	//   - first-phase/v[0] $100 [Jan 1, Feb 1) (billed monthly)
+	//   - second-phase/v[0] $200 [Feb 1, infinity) (billed monthly); same billing intent, but a new physical item ID
+	//   Charges:
+	//   - unchanged; second-phase/v[0]/period[0] still references the archived phase and item rows
+	recreatedView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subscriptionView.Subscription.NamespacedID, []subscription.Patch{
+		patch.PatchAddPhase{
+			PhaseKey: "second-phase",
+			CreateInput: subscription.CreateSubscriptionPhaseInput{
+				CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+					PhaseKey:   "second-phase",
+					Name:       "second-phase",
+					StartAfter: datetime.MustParseDuration(s.T(), "P1M"),
+				},
+			},
+		},
+		subscriptionAddItem{
+			PhaseKey: "second-phase",
+			ItemKey:  "flat-fee",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(200),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+		}.AsPatch(),
+	}, s.timingImmediate())
+	s.Require().NoError(err)
+
+	recreatedSecondPhase := s.getPhaseByKey(s.T(), recreatedView, "second-phase")
+	s.Require().Len(recreatedSecondPhase.ItemsByKey["flat-fee"], 1)
+	recreatedSecondPhaseID := recreatedSecondPhase.SubscriptionPhase.ID
+	recreatedSecondItemID := recreatedSecondPhase.ItemsByKey["flat-fee"][0].SubscriptionItem.ID
+	s.NotEqual(originalSecondPhaseID, recreatedSecondPhaseID)
+	s.NotEqual(originalSecondItemID, recreatedSecondItemID)
+
+	// Subscription sync:
+	//   subscription phases:
+	//   - expected: recognize second-phase as the same billing intent despite its new physical ID
+	//   subscription items:
+	//   - expected: recognize second-phase/v[0] as the same billing intent despite its new physical ID
+	//   Charges:
+	//   - expected: keep the existing charge and repair both subscription references
+	//   - actual: stop at the phase-ID mismatch before item-reference repair and reconciliation
+	s.Require().NoError(s.Service.SyncByView(ctx, recreatedView, syncUntil))
+
+	reconciled, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.Require().NoError(err)
+
+	var reconciledCharge flatfee.Charge
+	for _, charge := range reconciled.Items {
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.Require().NoError(err)
+		if lo.FromPtr(flatFeeCharge.Intent.GetUniqueReferenceID()) == secondPhaseChildID {
+			reconciledCharge = flatFeeCharge
+			break
+		}
+	}
+	s.Require().NotEmpty(reconciledCharge.ID)
+	s.Equal(originalCharge.ID, reconciledCharge.ID)
+	s.Require().NotNil(reconciledCharge.Intent.GetSubscription())
+	s.Equal(recreatedSecondPhaseID, reconciledCharge.Intent.GetSubscription().PhaseID)
+	s.Equal(recreatedSecondItemID, reconciledCharge.Intent.GetSubscription().ItemID)
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCustomCurrencyFlatFeeProvisioning() {
