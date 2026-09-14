@@ -25,9 +25,9 @@ import type {
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
   GetCreditBalanceParamsFilter,
-  ListChargesParamsFilter,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
+  ListCustomerChargesParamsFilter,
   ListCustomersParamsFilter,
   SortQueryInput,
   UpdateCreditGrantExternalSettlementRequest as UpdateCreditGrantExternalSettlementRequestBody,
@@ -209,7 +209,7 @@ export interface ListCustomerChargesQuery {
    * See the `service_period_from` filter field for expressing a service-period
    * window query.
    */
-  filter?: ListChargesParamsFilter
+  filter?: ListCustomerChargesParamsFilter
   /**
    * Expand full objects for referenced entities.
    *

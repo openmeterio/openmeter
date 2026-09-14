@@ -4,18 +4,17 @@ package openmeter
 
 import (
 	"context"
-	"fmt"
 	"iter"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-type CustomersChargesService struct {
+type ChargesService struct {
 	client *Client
 }
 
-type ListCustomerChargesFilter struct {
+type ListChargesFilter struct {
 	// Filter charges by status.
 	//
 	// Supported statuses are:
@@ -35,16 +34,18 @@ type ListCustomerChargesFilter struct {
 	ServicePeriodFrom *DateTimeFilter
 	// Filter charges by the end of their service period.
 	ServicePeriodTo *DateTimeFilter
+	// Filter charges by the ID of their customer.
+	CustomerID *StringExactFilter
 }
 
-type ListCustomerChargesParams struct {
+type ListChargesParams struct {
 	Page   *PageParams
 	Sort   *Sort
-	Filter *ListCustomerChargesFilter
+	Filter *ListChargesFilter
 	Expand []ChargesExpand
 }
 
-func (p ListCustomerChargesParams) values() url.Values {
+func (p ListChargesParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
@@ -57,6 +58,7 @@ func (p ListCustomerChargesParams) values() url.Values {
 		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
 		addDateTimeFilter(q, "filter[service_period_from]", p.Filter.ServicePeriodFrom)
 		addDateTimeFilter(q, "filter[service_period_to]", p.Filter.ServicePeriodTo)
+		addStringExactFilter(q, "filter[customer_id]", p.Filter.CustomerID)
 	}
 
 	if len(p.Expand) > 0 {
@@ -70,18 +72,12 @@ func (p ListCustomerChargesParams) values() url.Values {
 	return q
 }
 
-// List customer charges.
+// List charges.
 //
-// Returns the customer's charges that are represented as either flat fee or
+// Returns the charges of every customer that are represented as either flat fee or
 // usage-based charges.
-func (s *CustomersChargesService) List(ctx context.Context, customerID string, params ListCustomerChargesParams) (*ChargePagePaginatedResponse, error) {
-	if customerID == "" {
-		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
-	}
-
-	path := "/openmeter/customers/{customerId}/charges"
-
-	path = replacePathParam(path, "customerId", customerID)
+func (s *ChargesService) List(ctx context.Context, params ListChargesParams) (*ChargePagePaginatedResponse, error) {
+	path := "/openmeter/charges"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
 	if err != nil {
@@ -97,39 +93,16 @@ func (s *CustomersChargesService) List(ctx context.Context, customerID string, p
 }
 
 // ListAll returns an iterator over all Charge results, fetching pages of List transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *CustomersChargesService) ListAll(ctx context.Context, customerID string, params ListCustomerChargesParams) iter.Seq2[Charge, error] {
+func (s *ChargesService) ListAll(ctx context.Context, params ListChargesParams) iter.Seq2[Charge, error] {
 	return paginate(params.Page, func(page, size int) ([]Charge, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
 
-		resp, err := s.List(ctx, customerID, pageParams)
+		resp, err := s.List(ctx, pageParams)
 		if err != nil {
 			return nil, 0, err
 		}
 
 		return resp.Data, resp.Meta.Page.Total, nil
 	})
-}
-
-// Create customer charge.
-func (s *CustomersChargesService) Create(ctx context.Context, customerID string, request CreateChargeRequest) (*Charge, error) {
-	if customerID == "" {
-		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
-	}
-
-	path := "/openmeter/customers/{customerId}/charges"
-
-	path = replacePathParam(path, "customerId", customerID)
-
-	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
-	if err != nil {
-		return nil, err
-	}
-
-	var out Charge
-	if err := s.client.doJSON(req, &out); err != nil {
-		return nil, err
-	}
-
-	return &out, nil
 }

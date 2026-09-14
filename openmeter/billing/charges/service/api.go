@@ -277,7 +277,7 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 		return charges.ListCustomerChargesResult{}, err
 	}
 
-	entities, err := s.loadCustomerChargeEntities(ctx, input.Namespace, input.CustomerIDs[0], refs, listInput.Expands)
+	entities, err := s.loadCustomerChargeEntities(ctx, input.Namespace, refs, listInput.Expands)
 	if err != nil {
 		return charges.ListCustomerChargesResult{}, err
 	}
@@ -306,9 +306,15 @@ func (s *service) ListCustomerCharges(ctx context.Context, input charges.ListCus
 func (s *service) buildCustomerCharge(ctx context.Context, charge charges.Charge, entities customerChargeEntities, expands meta.Expands) (charges.CustomerCharge, error) {
 	out := charges.CustomerCharge{
 		Charge: charge,
-		// The listing is scoped to a single customer, so every charge on the
-		// page shares the one loaded customer (nil without the expand).
-		Customer: entities.customer,
+	}
+
+	customerID, err := charge.GetCustomerID()
+	if err != nil {
+		return charges.CustomerCharge{}, fmt.Errorf("getting charge customer: %w", err)
+	}
+
+	if customer, ok := entities.customersByID[customerID.ID]; ok {
+		out.Customer = lo.ToPtr(customer)
 	}
 
 	switch charge.Type() {
@@ -383,6 +389,7 @@ func (s *service) buildCustomerCharge(ctx context.Context, charge charges.Charge
 // customerChargeReferences collects the entity references a page of charges
 // points at, so the facade bulk-loads each kind once.
 type customerChargeReferences struct {
+	customerIDs         []string
 	featureReferences   []billingfeaturemeter.FeatureReferenceGetter
 	hasMissingFeatureID bool
 	subscriptionIDs     []string
@@ -393,6 +400,13 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 	out := customerChargeReferences{}
 
 	for _, item := range items {
+		customerID, err := item.GetCustomerID()
+		if err != nil {
+			return customerChargeReferences{}, err
+		}
+
+		out.customerIDs = append(out.customerIDs, customerID.ID)
+
 		if item.GetFeatureMeterRef() != nil {
 			out.featureReferences = append(out.featureReferences, billingfeaturemeter.WithoutMeters(item))
 		}
@@ -440,6 +454,7 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 		}
 	}
 
+	out.customerIDs = lo.Uniq(out.customerIDs)
 	out.subscriptionIDs = lo.Uniq(out.subscriptionIDs)
 	out.invoiceIDs = lo.Uniq(out.invoiceIDs)
 
@@ -447,23 +462,22 @@ func collectCustomerChargeReferences(items charges.Charges) (customerChargeRefer
 }
 
 // customerChargeEntities holds the entities loaded for the applied expands;
-// members of unapplied expands stay nil or empty. The listing is scoped to
-// one customer, so the customer is a single entity rather than a map.
+// members of unapplied expands stay nil or empty.
 type customerChargeEntities struct {
-	customer          *customer.Customer
+	customersByID     map[string]customer.Customer
 	featureMeters     billingfeaturemeter.FeatureMeters
 	subscriptionsByID map[string]subscription.Subscription
 	invoiceLinesByID  map[string]billing.StandardInvoice
 }
 
-func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace string, customerID string, refs customerChargeReferences, expands meta.Expands) (customerChargeEntities, error) {
+func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace string, refs customerChargeReferences, expands meta.Expands) (customerChargeEntities, error) {
 	entities := customerChargeEntities{}
 	var err error
 
 	if expands.Has(meta.ExpandCustomer) {
-		entities.customer, err = s.getCustomerChargeCustomer(ctx, namespace, customerID)
+		entities.customersByID, err = s.listCustomerChargeCustomers(ctx, namespace, refs.customerIDs)
 		if err != nil {
-			return customerChargeEntities{}, fmt.Errorf("loading customer: %w", err)
+			return customerChargeEntities{}, fmt.Errorf("loading customers: %w", err)
 		}
 	}
 
@@ -475,14 +489,14 @@ func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace stri
 	}
 
 	if expands.Has(meta.ExpandSubscription) {
-		entities.subscriptionsByID, err = s.listCustomerChargeSubscriptions(ctx, namespace, customerID, refs.subscriptionIDs)
+		entities.subscriptionsByID, err = s.listCustomerChargeSubscriptions(ctx, namespace, refs.customerIDs, refs.subscriptionIDs)
 		if err != nil {
 			return customerChargeEntities{}, fmt.Errorf("loading subscriptions: %w", err)
 		}
 	}
 
 	if expands.Has(meta.ExpandRealizationInvoice) {
-		entities.invoiceLinesByID, err = s.listRealizationInvoiceLines(ctx, namespace, customerID, refs.invoiceIDs)
+		entities.invoiceLinesByID, err = s.listRealizationInvoiceLines(ctx, namespace, refs.customerIDs, refs.invoiceIDs)
 		if err != nil {
 			return customerChargeEntities{}, fmt.Errorf("loading realization invoices: %w", err)
 		}
@@ -491,33 +505,33 @@ func (s *service) loadCustomerChargeEntities(ctx context.Context, namespace stri
 	return entities, nil
 }
 
-// getCustomerChargeCustomer loads the listing's customer for the customer
-// expand through ListCustomers rather than GetCustomer: charges outlive their
-// customer, and deleted customers must still expand. A missing customer
-// resolves to nil so the API falls back to the id reference.
-func (s *service) getCustomerChargeCustomer(ctx context.Context, namespace string, id string) (*customer.Customer, error) {
+// Loads through ListCustomers rather than GetCustomer: charges outlive their
+// customer, and deleted customers must still expand. Missing customers are
+// absent from the map so the API falls back to the id reference.
+func (s *service) listCustomerChargeCustomers(ctx context.Context, namespace string, ids []string) (map[string]customer.Customer, error) {
+	if len(ids) == 0 {
+		return map[string]customer.Customer{}, nil
+	}
+
 	listed, err := s.customerService.ListCustomers(ctx, customer.ListCustomersInput{
 		Namespace:      namespace,
-		Page:           pagination.NewPage(1, 1),
+		Page:           pagination.NewPage(1, len(ids)),
 		IncludeDeleted: true,
-		CustomerIDs:    []string{id},
+		CustomerIDs:    ids,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing customers: %w", err)
 	}
 
-	if len(listed.Items) == 0 {
-		return nil, nil
-	}
-
-	return lo.ToPtr(listed.Items[0]), nil
+	return lo.SliceToMap(listed.Items, func(item customer.Customer) (string, customer.Customer) {
+		return item.ID, item
+	}), nil
 }
 
-// listCustomerChargeSubscriptions bulk-loads the referenced subscriptions for
-// the subscription expand. The customer filter is defense-in-depth: the IDs
-// are already customer-scoped, but an integrity bug must not expose another
-// customer's subscription in this listing.
-func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace string, customerID string, ids []string) (map[string]subscription.Subscription, error) {
+// The customer filter is defense-in-depth: an integrity bug must not expose a
+// subscription of a customer that is not on this page. customerIDs is never
+// empty when ids is not: every charge has a customer.
+func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace string, customerIDs, ids []string) (map[string]subscription.Subscription, error) {
 	out := make(map[string]subscription.Subscription, len(ids))
 	if len(ids) == 0 {
 		return out, nil
@@ -528,7 +542,7 @@ func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace
 		Page:           pagination.NewPage(1, len(ids)),
 		IncludeDeleted: true,
 		ID:             &filter.FilterULID{FilterString: filter.FilterString{In: &ids}},
-		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerID}},
+		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{In: &customerIDs}},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing subscriptions: %w", err)
@@ -545,9 +559,9 @@ func (s *service) listCustomerChargeSubscriptions(ctx context.Context, namespace
 // runs and indexes their header (without lines) by the ID of each line they
 // carry, since runs book to a specific line. Without the expand there are no
 // stubs; converters fall back to the run's invoice ID. The customer filter is
-// defense-in-depth against a corrupted run reference exposing another
-// customer's invoice.
-func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace string, customerID string, ids []string) (map[string]billing.StandardInvoice, error) {
+// defense-in-depth against a corrupted run reference exposing an invoice of
+// a customer that is not on this page.
+func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace string, customerIDs, ids []string) (map[string]billing.StandardInvoice, error) {
 	out := make(map[string]billing.StandardInvoice)
 	if len(ids) == 0 {
 		return out, nil
@@ -558,7 +572,7 @@ func (s *service) listRealizationInvoiceLines(ctx context.Context, namespace str
 		Page:           pagination.NewPage(1, len(ids)),
 		IncludeDeleted: true,
 		IDs:            ids,
-		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerID}},
+		CustomerID:     &filter.FilterULID{FilterString: filter.FilterString{In: &customerIDs}},
 		Expand:         billing.InvoiceExpandAll,
 	})
 	if err != nil {

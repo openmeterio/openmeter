@@ -25,6 +25,7 @@ TypeSpec definitions and ships typed request and response models.
   - [Apps](#apps)
   - [Billing](#billing)
   - [Invoices](#invoices)
+  - [Charges](#charges)
   - [Tax](#tax)
   - [Currencies](#currencies)
   - [Features](#features)
@@ -234,6 +235,12 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Invoices.Approve` | `POST /openmeter/billing/invoices/{invoiceId}/approve` | Approve a billing invoice. This call instantly sends the invoice to the customer using the configured billing profile app. This call is valid in two invoice statuses: - draft: the invoice will be sent to the customer, the invoice state becomes issued - manual_approval_needed: the invoice will be sent to the customer, the invoice state becomes issued |
 | `om.Invoices.Retry` | `POST /openmeter/billing/invoices/{invoiceId}/retry` | Retry sending a billing invoice. Retry advancing the invoice after a failed attempt. The action can be called when the invoice's statusDetails' actions field contain the "retry" action. |
 | `om.Invoices.SnapshotQuantities` | `POST /openmeter/billing/invoices/{invoiceId}/snapshot-quantities` | Snapshot quantities for usage-based line items. This call will snapshot the quantities for all usage based line items in the invoice. This call is only valid in draft.waiting_for_collection status, where the collection period can be skipped using this action. |
+
+### Charges
+
+| Method | HTTP | Description |
+| --- | --- | --- |
+| `om.Charges.List` | `GET /openmeter/charges` | List charges. Returns the charges of every customer that are represented as either flat fee or usage-based charges. |
 
 ### Tax
 

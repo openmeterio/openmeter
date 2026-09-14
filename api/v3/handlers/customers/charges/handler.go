@@ -9,6 +9,7 @@ import (
 )
 
 type Handler interface {
+	ListCharges() ListChargesHandler
 	ListCustomerCharges() ListCustomerChargesHandler
 	CreateCustomerCharge() CreateCustomerChargesHandler
 }

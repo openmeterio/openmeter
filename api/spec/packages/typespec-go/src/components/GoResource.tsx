@@ -35,6 +35,7 @@ export interface GoResourceProps {
   operations: Operation[]
   bodyOverrides: Map<string, Type>
   serviceRefkey: Refkey
+  paramsNames: Map<Operation, string>
   children: Array<{ name: string; serviceRefkey: Refkey }>
 }
 
@@ -46,6 +47,7 @@ export function GoResource({
   operations,
   bodyOverrides,
   serviceRefkey,
+  paramsNames,
   children,
 }: GoResourceProps) {
   const described = describeOperations(
@@ -55,7 +57,6 @@ export function GoResource({
     bodyOverrides,
     nestPath,
   )
-  const paramsNames = resolveListParamsNames(program, described)
   const params = listParameterDeclarations(program, described, paramsNames)
 
   return (
@@ -128,7 +129,7 @@ function OperationMethod({
   program: Program
   operation: GoOperation
   serviceRefkey: Refkey
-  paramsNames: Map<GoOperation, string>
+  paramsNames: Map<Operation, string>
 }) {
   // goType resolves the read-side reference name, honoring structural-dedupe
   // aliases; typeName alone would reference a collapsed declaration.
@@ -216,7 +217,7 @@ function ListAllMethod({
   program: Program
   operation: GoOperation
   serviceRefkey: Refkey
-  paramsNames: Map<GoOperation, string>
+  paramsNames: Map<Operation, string>
 }) {
   if (operation.pagination === 'cursor') {
     return (
@@ -270,7 +271,7 @@ function CursorListAllMethod({
   program: Program
   operation: GoOperation
   serviceRefkey: Refkey
-  paramsNames: Map<GoOperation, string>
+  paramsNames: Map<Operation, string>
 }) {
   const element = pageElement(program, operation.response!)
   const listArguments = [
@@ -313,7 +314,7 @@ function StreamMethod({
   program: Program
   operation: GoOperation
   serviceRefkey: Refkey
-  paramsNames: Map<GoOperation, string>
+  paramsNames: Map<Operation, string>
 }) {
   const requestBody = operation.body
     ? operation.bodyOptional
@@ -350,7 +351,7 @@ function StreamMethod({
 function listParameterDeclarations(
   program: Program,
   operations: GoOperation[],
-  paramsNames: Map<GoOperation, string>,
+  paramsNames: Map<Operation, string>,
 ) {
   const emitted = new Set<string>()
 
@@ -364,7 +365,7 @@ function listParameterDeclarations(
         // resolveListParamsNames guarantees operations sharing a params name
         // also share a query shape, so deduping by name emits one identical
         // struct for all of them.
-        const paramsName = paramsNames.get(operation)!
+        const paramsName = paramsNames.get(operation.operation)!
         if (emitted.has(paramsName)) {
           return []
         }
@@ -674,7 +675,7 @@ function isUnsignedType(type: Type): boolean {
 function methodParameters(
   program: Program,
   operation: GoOperation,
-  paramsNames: Map<GoOperation, string>,
+  paramsNames: Map<Operation, string>,
 ): { name: string; type: ay.Children }[] {
   const parameters: { name: string; type: ay.Children }[] = [
     { name: 'ctx', type: context.Context },
@@ -696,7 +697,7 @@ function methodParameters(
     })
   }
   if (operation.queryParams.length > 0) {
-    const paramsName = paramsNames.get(operation)
+    const paramsName = paramsNames.get(operation.operation)
     if (!paramsName) {
       throw new Error(
         `typespec-go: no params struct name resolved for ${operation.operation.name}`,
@@ -780,7 +781,9 @@ function isTextResponse(operation: GoOperation): boolean {
 
 /**
  * Resolves the params struct name for every operation that has query
- * parameters.
+ * parameters. The emitter calls it once over every resource's operations:
+ * the structs share one Go package, so a name must be unique across
+ * resources, not only within the resource that declares it.
  *
  * Params structs are preferably named after the page element
  * (CustomerListParams). Distinct operations can legitimately page over the
@@ -794,7 +797,7 @@ function isTextResponse(operation: GoOperation): boolean {
 export function resolveListParamsNames(
   program: Program,
   operations: GoOperation[],
-): Map<GoOperation, string> {
+): Map<Operation, string> {
   const groups = new Map<string, GoOperation[]>()
   for (const operation of operations) {
     if (operation.queryParams.length === 0) {
@@ -809,7 +812,7 @@ export function resolveListParamsNames(
     }
   }
 
-  const resolved = new Map<GoOperation, string>()
+  const resolved = new Map<Operation, string>()
   const shapes = new Map<string, string>()
   for (const [name, group] of groups) {
     const signatures = new Set(
@@ -826,7 +829,7 @@ export function resolveListParamsNames(
         )
       }
       shapes.set(finalName, signature)
-      resolved.set(operation, finalName)
+      resolved.set(operation.operation, finalName)
     }
   }
 

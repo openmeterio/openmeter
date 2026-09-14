@@ -73,6 +73,7 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 			query = query.Where(dbchargessearchv1.TypeIn(input.ChargeTypes...))
 		}
 
+		query = filter.ApplyToQuery(query, input.CustomerID, dbchargessearchv1.FieldCustomerID)
 		query = filter.ApplyToQuery(query, input.Status, dbchargessearchv1.FieldStatus)
 		query = filter.ApplyToQuery(query, input.FeatureID, dbchargessearchv1.FieldFeatureID)
 		query = filter.ApplyToQuery(query, input.FeatureKey, dbchargessearchv1.FieldFeatureKey)

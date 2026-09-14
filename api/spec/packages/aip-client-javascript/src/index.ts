@@ -47,6 +47,7 @@ export type * from './models/operations/subscriptions.js'
 export type * from './models/operations/apps.js'
 export type * from './models/operations/billing.js'
 export type * from './models/operations/invoices.js'
+export type * from './models/operations/charges.js'
 export type * from './models/operations/tax.js'
 export type * from './models/operations/currencies.js'
 export type * from './models/operations/features.js'
@@ -260,8 +261,9 @@ export type {
   PlanAddon,
   UpdateRateCardTaxConfig,
   ListEventsParamsFilter,
-  ListChargesParamsFilter,
+  ListCustomerChargesParamsFilter,
   ListInvoicesParamsFilter,
+  ListChargesParamsFilter,
   ResourceFilters,
   FieldFilters,
   IngestedEvent,

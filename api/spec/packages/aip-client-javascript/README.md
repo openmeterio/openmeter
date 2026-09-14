@@ -38,6 +38,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Internal Customers](#internal-customers)
   - [Internal Apps](#internal-apps)
   - [Internal Invoices](#internal-invoices)
+  - [Internal Charges](#internal-charges)
   - [Internal Currencies](#internal-currencies)
   - [Internal PlanAddons](#internal-planaddons)
   - [Internal EntitlementAccess](#internal-entitlementaccess)
@@ -450,6 +451,12 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.invoices.approve`            | `POST /openmeter/billing/invoices/{invoiceId}/approve`             | Approve a billing invoice. This call instantly sends the invoice to the customer using the configured billing profile app. This call is valid in two invoice statuses: - draft: the invoice will be sent to the customer, the invoice state becomes issued - manual_approval_needed: the invoice will be sent to the customer, the invoice state becomes issued                                                       |
 | `client.internal.invoices.retry`              | `POST /openmeter/billing/invoices/{invoiceId}/retry`               | Retry sending a billing invoice. Retry advancing the invoice after a failed attempt. The action can be called when the invoice's statusDetails' actions field contain the "retry" action.                                                                                                                                                                                                                             |
 | `client.internal.invoices.snapshotQuantities` | `POST /openmeter/billing/invoices/{invoiceId}/snapshot-quantities` | Snapshot quantities for usage-based line items. This call will snapshot the quantities for all usage based line items in the invoice. This call is only valid in draft.waiting_for_collection status, where the collection period can be skipped using this action.                                                                                                                                                   |
+
+### Internal Charges
+
+| Method                         | HTTP                     | Description                                                                                                         |
+| ------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.charges.list` | `GET /openmeter/charges` | List charges. Returns the charges of every customer that are represented as either flat fee or usage-based charges. |
 
 ### Internal Currencies
 

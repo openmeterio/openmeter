@@ -560,6 +560,15 @@ func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, 
 
 // Charges
 
+func (s *Server) ListCharges(w http.ResponseWriter, r *http.Request, params api.ListChargesParams) {
+	if s.chargesHandler == nil {
+		unimplemented.ListCharges(w, r, params)
+		return
+	}
+
+	s.chargesHandler.ListCharges().With(params).ServeHTTP(w, r)
+}
+
 func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCustomerChargesParams) {
 	if s.chargesHandler == nil {
 		unimplemented.ListCustomerCharges(w, r, customerId, params)

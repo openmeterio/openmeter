@@ -11,6 +11,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
@@ -19,6 +20,8 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/api/v3/request"
+	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -34,6 +37,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -1059,4 +1064,138 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
 	}, nil
+}
+
+// maxListChargesPageSize bounds a single page: every listed charge loads its
+// full run history, and expands add per-row live rating and full invoice
+// hydration on top.
+const maxListChargesPageSize = 1000
+
+func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *api.PagePaginationQuery, sortQuery *api.SortQuery, expand *[]api.BillingChargesExpand) (billingcharges.ListCustomerChargesInput, error) {
+	page := pagination.NewPage(1, 20)
+	if pageQuery != nil {
+		page = pagination.NewPage(
+			lo.FromPtrOr(pageQuery.Number, 1),
+			lo.FromPtrOr(pageQuery.Size, 20),
+		)
+	}
+
+	if err := page.Validate(); err != nil {
+		return billingcharges.ListCustomerChargesInput{}, newInvalidQueryParamError(ctx, "page", err)
+	}
+
+	if page.PageSize > maxListChargesPageSize {
+		return billingcharges.ListCustomerChargesInput{}, newInvalidQueryParamError(ctx, "page[size]",
+			fmt.Errorf("page size must not exceed %d", maxListChargesPageSize))
+	}
+
+	// Realization runs are always required to compute booked totals;
+	// the facade adds that expand itself. The request only carries the
+	// expands the caller asked for.
+	expands := meta.ExpandNone
+	if expand != nil {
+		chargesExpands, err := lo.MapErr(*expand, slicesx.WrapMapFn(convertAPIChargesExpand))
+		if err != nil {
+			return billingcharges.ListCustomerChargesInput{}, newInvalidQueryParamError(ctx, "expand", err)
+		}
+		expands = expands.With(chargesExpands...)
+	}
+
+	req := billingcharges.ListCustomerChargesInput{
+		ListChargesInput: billingcharges.ListChargesInput{
+			Page:      page,
+			Namespace: namespace,
+			// Credit purchases are served by the credit grants API; exclude them here.
+			ChargeTypes: []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased},
+			Expands:     expands,
+		},
+	}
+
+	if sortQuery != nil {
+		sort, err := request.ParseSortBy(*sortQuery)
+		if err != nil {
+			return billingcharges.ListCustomerChargesInput{}, newInvalidQueryParamError(ctx, "sort", err)
+		}
+		orderBy, err := FromAPICustomerChargesSortField(ctx, sort.Field)
+		if err != nil {
+			return billingcharges.ListCustomerChargesInput{}, err
+		}
+		req.OrderBy = orderBy
+		req.Order = sort.Order.ToSortxOrder()
+	}
+
+	return req, nil
+}
+
+func fromAPIListChargesParamsFilter(ctx context.Context, f *api.ListChargesParamsFilter, req *billingcharges.ListCustomerChargesInput) error {
+	customerID, err := filters.FromAPIFilterULID(f.CustomerId)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[customer_id]", err)
+	}
+	req.CustomerID = customerID
+
+	status, err := filters.FromAPIFilterStringExact(f.Status)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[status]", err)
+	}
+	req.Status = status
+
+	// The search adapter hides deleted charges unless the request opts in,
+	// so a status filter positively selecting "deleted" (eq/oeq) must lift
+	// that guard; neq never unhides them.
+	if f.Status != nil {
+		deleted := string(meta.ChargeStatusDeleted)
+		req.IncludeDeleted = lo.FromPtr(f.Status.Eq) == deleted || lo.Contains(f.Status.Oeq, deleted)
+	}
+
+	featureID, err := filters.FromAPIFilterULID(f.FeatureId)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[feature_id]", err)
+	}
+	req.FeatureID = featureID
+
+	featureKey, err := filters.FromAPIFilterStringExact(f.FeatureKey)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[feature_key]", err)
+	}
+	req.FeatureKey = featureKey
+
+	servicePeriodFrom, err := filters.FromAPIFilterDateTime(f.ServicePeriodFrom)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[service_period_from]", err)
+	}
+	req.ServicePeriodFrom = servicePeriodFrom
+
+	servicePeriodTo, err := filters.FromAPIFilterDateTime(f.ServicePeriodTo)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[service_period_to]", err)
+	}
+	req.ServicePeriodTo = servicePeriodTo
+
+	return nil
+}
+
+func newInvalidQueryParamError(ctx context.Context, field string, err error) error {
+	return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+		{
+			Field:  field,
+			Reason: err.Error(),
+			Source: apierrors.InvalidParamSourceQuery,
+		},
+	})
+}
+
+func toAPIListChargesResponse(result billingcharges.ListCustomerChargesResult, page pagination.Page) (ListChargesResponse, error) {
+	charges, err := slicesx.MapWithErr(result.Charges.Items, func(charge billingcharges.CustomerCharge) (api.BillingCharge, error) {
+		return convertChargeToAPI(charge, result.Expands)
+	})
+	if err != nil {
+		return ListChargesResponse{}, fmt.Errorf("converting charge: %w", err)
+	}
+
+	return response.NewPagePaginationResponse(charges, response.PageMetaPage{
+		Size:   page.PageSize,
+		Number: page.PageNumber,
+		Total:  lo.ToPtr(result.Charges.TotalCount),
+	}), nil
 }

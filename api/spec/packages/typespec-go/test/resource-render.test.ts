@@ -102,21 +102,21 @@ describe('list params struct naming', () => {
     `)
 
     const names = resolveListParamsNames(program, operations)
-    expect(names.get(operationNamed(operations, 'listItems'))).toBe(
+    expect(names.get(operationNamed(operations, 'listItems').operation)).toBe(
       'ListItemsParams',
     )
-    expect(names.get(operationNamed(operations, 'listArchived'))).toBe(
-      'ListArchivedItemsParams',
-    )
+    expect(
+      names.get(operationNamed(operations, 'listArchived').operation),
+    ).toBe('ListArchivedItemsParams')
 
     // The outcome must not depend on which operation is discovered first.
     const reversed = resolveListParamsNames(program, [...operations].reverse())
-    expect(reversed.get(operationNamed(operations, 'listItems'))).toBe(
-      'ListItemsParams',
-    )
-    expect(reversed.get(operationNamed(operations, 'listArchived'))).toBe(
-      'ListArchivedItemsParams',
-    )
+    expect(
+      reversed.get(operationNamed(operations, 'listItems').operation),
+    ).toBe('ListItemsParams')
+    expect(
+      reversed.get(operationNamed(operations, 'listArchived').operation),
+    ).toBe('ListArchivedItemsParams')
   })
 
   it('shares one element-named params struct when query shapes match', async () => {
@@ -149,12 +149,73 @@ describe('list params struct naming', () => {
     `)
 
     const names = resolveListParamsNames(program, operations)
-    expect(names.get(operationNamed(operations, 'listItems'))).toBe(
+    expect(names.get(operationNamed(operations, 'listItems').operation)).toBe(
       'ItemListParams',
     )
-    expect(names.get(operationNamed(operations, 'listArchived'))).toBe(
-      'ItemListParams',
+    expect(
+      names.get(operationNamed(operations, 'listArchived').operation),
+    ).toBe('ItemListParams')
+  })
+})
+
+describe('list params struct naming across resources', () => {
+  it('splits shared-element params structs declared by different resources', async () => {
+    const host = await createTestHost({
+      libraries: [HttpTestLibrary, OpenAPITestLibrary],
+    })
+    const runner = await createTestRunner(host)
+    await runner.compile(`
+      using TypeSpec.Http;
+      using TypeSpec.OpenAPI;
+      ${pageFixturePreamble}
+
+      @route("/items")
+      interface ItemOperations {
+        @get
+        @operationId("list-items")
+        op listItems(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+          @query sort?: Common.SortQuery,
+        ): ItemPage;
+      }
+
+      @route("/archive/items")
+      interface ArchiveOperations {
+        @get
+        @operationId("list-archived-items")
+        op listArchived(
+          @query(#{ style: "deepObject", explode: true })
+          page?: {
+            size?: integer;
+            number?: integer;
+          },
+        ): ItemPage;
+      }
+    `)
+    const program = runner.program
+    const collected = collectHttpOperations(program)
+    const byInterface = (name: string) =>
+      collected.filter((operation) => operation.interface?.name === name)
+    const operations = [
+      ...describeOperations(program, 'Items', byInterface('ItemOperations')),
+      ...describeOperations(
+        program,
+        'Archive',
+        byInterface('ArchiveOperations'),
+      ),
+    ]
+
+    const names = resolveListParamsNames(program, operations)
+    expect(names.get(operationNamed(operations, 'listItems').operation)).toBe(
+      'ListItemsParams',
     )
+    expect(
+      names.get(operationNamed(operations, 'listArchived').operation),
+    ).toBe('ListArchivedItemsParams')
   })
 })
 

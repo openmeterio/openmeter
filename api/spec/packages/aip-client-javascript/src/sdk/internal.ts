@@ -26,6 +26,7 @@ import {
   retryInvoice,
   snapshotQuantitiesInvoice,
 } from '../funcs/invoices.js'
+import { listCharges } from '../funcs/charges.js'
 import {
   listCurrencies,
   createCustomCurrency,
@@ -75,6 +76,10 @@ import type {
   SnapshotQuantitiesInvoiceRequest,
   SnapshotQuantitiesInvoiceResponse,
 } from '../models/operations/invoices.js'
+import type {
+  ListChargesRequest,
+  ListChargesResponse,
+} from '../models/operations/charges.js'
 import type {
   ListCurrenciesRequest,
   ListCurrenciesResponse,
@@ -126,6 +131,11 @@ export class Internal {
   private _invoices?: InternalInvoices
   get invoices(): InternalInvoices {
     return (this._invoices ??= new InternalInvoices(this._client))
+  }
+
+  private _charges?: InternalCharges
+  get charges(): InternalCharges {
+    return (this._charges ??= new InternalCharges(this._client))
   }
 
   private _currencies?: InternalCurrencies
@@ -560,6 +570,50 @@ export class InternalInvoices {
   ): Promise<SnapshotQuantitiesInvoiceResponse> {
     return unwrap(
       await snapshotQuantitiesInvoice(this._client, request, options),
+    )
+  }
+}
+
+export class InternalCharges {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List charges
+   *
+   * List charges.
+   *
+   * Returns the charges of every customer that are represented as either flat fee or
+   * usage-based charges.
+   *
+   * GET /openmeter/charges
+   */
+  async list(
+    request?: ListChargesRequest,
+    options?: RequestOptions,
+  ): Promise<ListChargesResponse> {
+    return unwrap(await listCharges(this._client, request, options))
+  }
+
+  /**
+   * List charges
+   *
+   * List charges.
+   *
+   * Returns the charges of every customer that are represented as either flat fee or
+   * usage-based charges.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/charges
+   */
+  listAll(
+    request?: ListChargesRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<Charge> {
+    return paginatePages(
+      (req, opts) => listCharges(this._client, req, opts),
+      request ?? {},
+      options,
     )
   }
 }

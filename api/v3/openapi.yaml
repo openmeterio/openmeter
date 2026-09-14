@@ -829,6 +829,94 @@ paths:
       x-private: true
       x-internal: true
       x-unstable: true
+  /openmeter/charges:
+    get:
+      operationId: list-charges
+      summary: List charges
+      description: |-
+        List charges.
+
+        Returns the charges of every customer that are represented as either flat fee or
+        usage-based charges.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort charges returned in the response.
+
+            Supported sort attributes are:
+
+            - `id`
+            - `created_at`
+            - `service_period.from`
+            - `billing_period.from`
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter charges.
+
+            To filter charges by customer add the following query param:
+            `filter[customer_id][eq]=<id>` or `filter[customer_id][oeq]=<id>,<id>`.
+
+            To filter charges by status add the following query param:
+            `filter[status][oeq]=created,active`
+
+            To filter charges by feature, use `filter[feature_id][oeq]=<id>,<id>` or
+            `filter[feature_key][oeq]=<key>,<key>`.
+
+            See the `service_period_from` filter field for expressing a service-period
+            window query.
+          schema:
+            $ref: '#/components/schemas/ListChargesParamsFilter'
+          style: deepObject
+        - name: expand
+          in: query
+          required: false
+          description: |-
+            Expand full objects for referenced entities.
+
+            Supported values are:
+
+            - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage`
+            and the `totals.realtime` fields.
+            - `customer`: Expand the charge's customer to the complete entity.
+            - `feature`: Expand the charge's feature to the complete entity.
+            - `subscription`: Expand the charge's subscription to the complete entity.
+            - `realization.invoice`: Expand each realization's invoice to the complete
+            entity.
+            - `realization.totals`: Expand each realization run's `totals`.
+            - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingChargesExpand'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargePagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing Settings
+      x-internal: true
+      x-private: true
+      x-unstable: true
   /openmeter/currencies:
     get:
       operationId: list-currencies
@@ -1412,7 +1500,7 @@ paths:
             See the `service_period_from` filter field for expressing a service-period
             window query.
           schema:
-            $ref: '#/components/schemas/ListChargesParamsFilter'
+            $ref: '#/components/schemas/ListCustomerChargesParamsFilter'
           style: deepObject
         - name: expand
           in: query
@@ -13195,8 +13283,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: Filter charges by the end of their service period.
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter charges by the ID of their customer.
       additionalProperties: false
-      description: Filter options for listing charges.
+      description: Filter options for listing charges across customers.
     ListCostBasesParamsFilter:
       type: object
       properties:
@@ -13254,6 +13346,41 @@ components:
           $ref: '#/components/schemas/StringFieldFilter'
       additionalProperties: false
       description: Filter options for listing currencies.
+    ListCustomerChargesParamsFilter:
+      type: object
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: |-
+            Filter charges by status.
+
+            Supported statuses are:
+
+            - `created`
+            - `active`
+            - `final`
+            - `deleted`
+
+            If omitted, all statuses are returned except for `deleted`.
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter charges by the ID of their associated feature.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter charges by the key of their associated feature.
+        service_period_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter charges by the start of their service period.
+        service_period_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTimeFieldFilter'
+          description: Filter charges by the end of their service period.
+      additionalProperties: false
+      description: Filter options for listing charges.
     ListCustomerEntitlementAccessResponseData:
       type: object
       required:

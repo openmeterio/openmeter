@@ -2973,7 +2973,7 @@ export interface ListEventsParamsFilter {
 }
 
 /** Filter options for listing charges. */
-export interface ListChargesParamsFilter {
+export interface ListCustomerChargesParamsFilter {
   /**
    * Filter charges by status.
    *
@@ -3009,6 +3009,33 @@ export interface ListInvoicesParamsFilter {
   servicePeriodStart?: DateTimeFieldFilter
   /** Filter by invoice creation time. */
   createdAt?: DateTimeFieldFilter
+}
+
+/** Filter options for listing charges across customers. */
+export interface ListChargesParamsFilter {
+  /**
+   * Filter charges by status.
+   *
+   * Supported statuses are:
+   *
+   * - `created`
+   * - `active`
+   * - `final`
+   * - `deleted`
+   *
+   * If omitted, all statuses are returned except for `deleted`.
+   */
+  status?: StringFieldFilterExact
+  /** Filter charges by the ID of their associated feature. */
+  featureId?: UlidFieldFilter
+  /** Filter charges by the key of their associated feature. */
+  featureKey?: StringFieldFilterExact
+  /** Filter charges by the start of their service period. */
+  servicePeriodFrom?: DateTimeFieldFilter
+  /** Filter charges by the end of their service period. */
+  servicePeriodTo?: DateTimeFieldFilter
+  /** Filter charges by the ID of their customer. */
+  customerId?: UlidFieldFilter
 }
 
 /** Resource filters. */
