@@ -89,18 +89,19 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 		s.Equal(10.0, invoice.Totals.Amount.InexactFloat64())
 		s.Require().Len(invoice.ValidationIssues, 1)
 		s.Equal(billing.ValidationIssues{{
-			Severity:  billing.ValidationIssueSeverityCritical,
-			Code:      billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:   "feature[missing-feature]: invoice line: feature not found",
-			Component: billing.ValidationComponentOpenMeterMetering,
-			Path:      fmt.Sprintf("/lines/%s", invoice.Lines.OrEmpty()[0].ID),
+			Severity:   billing.ValidationIssueSeverityCritical,
+			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:    "feature[missing-feature]: invoice line: feature not found",
+			Component:  billing.ValidationComponentOpenMeterMetering,
+			Path:       fmt.Sprintf("/lines/%s", invoice.Lines.OrEmpty()[0].ID),
+			Attributes: models.Annotations{"feature_key": "missing-feature"},
 		}}, billing.ValidationIssues{invoice.ValidationIssues[0]}.RemoveMetaForCompare())
 	})
 
 	s.Run("feature without required meter", func() {
 		// given:
 		// - a catalog feature without a meter and a valid unit-price line requiring one
-		_, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		meterlessFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "meterless feature",
 			Key:       "meterless-feature",
@@ -138,6 +139,10 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 			Message:   "feature[meterless-feature]: usage based invoice line: feature has no meters",
 			Component: billing.ValidationComponentOpenMeterMetering,
 			Path:      fmt.Sprintf("/lines/%s", invoice.Lines.OrEmpty()[0].ID),
+			Attributes: models.Annotations{
+				"feature_id":  meterlessFeature.ID,
+				"feature_key": meterlessFeature.Key,
+			},
 		}}, billing.ValidationIssues{invoice.ValidationIssues[0]}.RemoveMetaForCompare())
 	})
 }

@@ -83,7 +83,10 @@ asks each line engine to gate their invoice assignment. Blocked lines remain on
 the gathering invoice and do not consume the invoice line limit. A gate may
 persist engine-owned state explaining its decision; when every candidate is
 blocked, collection succeeds without creating an invoice so those writes can
-commit. Gate errors abort collection and roll back its writes.
+commit. Gate errors abort collection and roll back its writes. Charge-backed
+usage lines whose required feature or meter is unavailable are blocked here;
+the charge records the dependency issue and a later collection attempt
+re-evaluates it.
 
 Billability is also engine-owned. Billing submits each engine's subset of one
 gathering invoice as an ordered batch. The engine resolves any feature or charge
@@ -124,17 +127,15 @@ Simulation is read-only but still validates its lines' feature and meter
 dependencies. Critical validation issues are returned on the simulated invoice
 and mark it invalid instead of failing the simulation request.
 
-If quantity snapshotting cannot resolve a persisted feature or discovers that
-the feature no longer has its required meter association, collection still
-materializes the standard invoice in `draft.invalid_created` with the critical
-validation code `invoice_line_feature_not_found` or
+If quantity snapshotting on an existing standard invoice cannot resolve a
+persisted feature or discovers that the feature no longer has its required
+meter association, collection records the critical validation code
+`invoice_line_feature_not_found` or
 `invoice_line_feature_has_no_meters`. The affected quantities stay
-unsnapshotted. Retry from this state re-enters `draft.created` for calculation
-and validation before returning through collection, so the repaired dependency
-is resolved again; repeated collection failures return to the same state.
-Post-collection validation failures use `draft.invalid` and retry validation
-instead. Operational snapshot failures abort collection instead of persisting
-an incomplete invoice.
+unsnapshotted. Retry re-enters calculation and validation so the repaired
+dependency is resolved again. Post-collection validation failures use
+`draft.invalid` and retry validation instead. Operational snapshot failures
+abort collection instead of persisting an incomplete invoice.
 
 Before external invoice finalization, billing invokes each line engine's line
 finalization callback. Engines return fully calculated lines with unchanged
@@ -182,8 +183,8 @@ the lifecycle operation.
 - pending-line creation resolves every supplied feature, and metered prices
   require the feature's meter. Legacy invoice-backed subscription reconciliation
   may preserve an unresolved feature reference so stale subscription state can
-  still converge; collection reports the missing dependency as a critical
-  invoice validation issue
+  still converge; charge-backed usage collection keeps unresolved work in
+  gathering and records the missing dependency on the charge
 - gathering-to-standard conversion preserves line IDs
 - line engines cannot silently change the identity or count of callback output
 - immutable invoice drift is recorded as validation issues rather than

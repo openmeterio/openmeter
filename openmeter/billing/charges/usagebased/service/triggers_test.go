@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
@@ -112,6 +113,108 @@ func newFeatureMetersForChargeTest(charge usagebased.Charge) billingfeaturemeter
 	}
 
 	return collection
+}
+
+func TestSyncFeatureIDFromFeatureMeterReconcilesProductCatalogIssue(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 7, 8, 8, 45, 3, 0, time.UTC),
+		To:   time.Date(2026, 8, 8, 8, 45, 3, 0, time.UTC),
+	}
+	productCatalogIssue := billing.ValidationIssue{
+		Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+		Component: billing.ValidationComponentProductCatalog,
+	}
+	unrelatedIssue := billing.ValidationIssue{
+		Code:      "unrelated",
+		Component: "unrelated",
+	}
+
+	for _, featureID := range []string{"", "feature-id"} {
+		name := "unpinned feature"
+		if featureID != "" {
+			name = "pinned feature"
+		}
+
+		t.Run(name, func(t *testing.T) {
+			charge := usagebased.Charge{ChargeBase: usagebased.ChargeBase{
+				ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+				Intent:          newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+				Status:          usagebased.StatusActive,
+				ValidationIssues: billing.ValidationIssues{
+					unrelatedIssue,
+					productCatalogIssue,
+				},
+				State: usagebased.State{FeatureID: featureID},
+			}}
+			machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+
+			err := machine.SyncFeatureIDFromFeatureMeter(t.Context())
+
+			require.NoError(t, err)
+			require.Equal(t, "feature-id", machine.Charge.State.FeatureID)
+			require.Equal(t, billing.ValidationIssues{unrelatedIssue}, machine.Charge.ValidationIssues)
+		})
+	}
+
+	t.Run("failed resolution keeps the existing issues", func(t *testing.T) {
+		charge := usagebased.Charge{ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+			Status:          usagebased.StatusActive,
+			ValidationIssues: billing.ValidationIssues{
+				unrelatedIssue,
+				productCatalogIssue,
+			},
+			State: usagebased.State{FeatureID: "feature-id"},
+		}}
+		machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+		machine.FeatureMeters = featuremeterservice.FeatureMeterCollection{
+			ByKey: map[string]billingfeaturemeter.FeatureMeter{},
+			ByID:  map[string]billingfeaturemeter.FeatureMeter{},
+		}
+
+		err := machine.SyncFeatureIDFromFeatureMeter(t.Context())
+
+		require.ErrorIs(t, err, billing.ErrInvoiceLineFeatureNotFound)
+		require.Equal(t, "feature-id", machine.Charge.State.FeatureID)
+		require.Equal(t, billing.ValidationIssues{unrelatedIssue, productCatalogIssue}, machine.Charge.ValidationIssues)
+	})
+}
+
+func TestClearInvoiceAssignmentIssueWithoutCurrentRun(t *testing.T) {
+	lineEngineIssue := billing.ValidationIssue{
+		Code:      usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
+		Component: usagebased.ValidationIssueComponentLineEngine,
+	}
+	productCatalogIssue := billing.ValidationIssue{
+		Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
+		Component: billing.ValidationComponentProductCatalog,
+	}
+	unrelatedIssue := billing.ValidationIssue{
+		Code:      "unrelated",
+		Component: "unrelated",
+	}
+
+	t.Run("without a current run", func(t *testing.T) {
+		base := usagebased.ChargeBase{
+			ValidationIssues: billing.ValidationIssues{productCatalogIssue, lineEngineIssue, unrelatedIssue},
+		}
+
+		base = clearInvoiceAssignmentIssueWithoutCurrentRun(base)
+
+		require.Equal(t, billing.ValidationIssues{productCatalogIssue, unrelatedIssue}, base.ValidationIssues)
+	})
+
+	t.Run("with a current run", func(t *testing.T) {
+		base := usagebased.ChargeBase{
+			ValidationIssues: billing.ValidationIssues{productCatalogIssue, lineEngineIssue, unrelatedIssue},
+			State:            usagebased.State{CurrentRealizationRunID: lo.ToPtr("run-id")},
+		}
+
+		base = clearInvoiceAssignmentIssueWithoutCurrentRun(base)
+
+		require.Equal(t, billing.ValidationIssues{productCatalogIssue, lineEngineIssue, unrelatedIssue}, base.ValidationIssues)
+	})
 }
 
 func TestApplyBaseIntentPatchForOverriddenChargeShrinksDeletedEffectiveCharge(t *testing.T) {

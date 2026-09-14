@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -129,6 +128,11 @@ func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.Ga
 	chargesByID := lo.KeyBy(charges, func(charge usagebased.Charge) string {
 		return charge.ID
 	})
+	featureMeters, err := e.service.featureMeterResolver.Resolve(ctx, namespace, charges...)
+	if err != nil {
+		return nil, fmt.Errorf("resolving feature meters for usage based invoice assignment: %w", err)
+	}
+
 	result := make(billing.GateInvoiceAssignmentResult)
 	for _, chargeID := range chargeIDs {
 		charge, ok := chargesByID[chargeID]
@@ -136,45 +140,51 @@ func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.Ga
 			return nil, fmt.Errorf("usage based charge[%s] not found for invoice assignment", chargeID)
 		}
 
-		if charge.State.CurrentRealizationRunID == nil {
-			if charge.ValidationIssues.HasWithComponentCode(
-				usagebased.ValidationIssueComponentLineEngine,
-				usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
-			) {
-				if err := e.service.adapter.UpdateChargeValidationIssues(ctx, usagebased.UpdateChargeValidationIssuesInput{
-					ChargeID: charge.GetChargeID(),
-					ValidationIssues: charge.ValidationIssues.Without(
-						usagebased.ValidationIssueComponentLineEngine,
-						usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
-					),
-				}); err != nil {
-					return nil, err
-				}
-			}
+		validationIssues := charge.ValidationIssues
+		validationIssuesChanged := false
 
-			continue
-		}
-
-		currentRun, err := charge.GetCurrentRealizationRun()
+		// A missing feature or required meter makes the charge impossible to rate,
+		// so its lines must remain in gathering until the dependency is repaired.
+		featureMeterCheck, err := checkFeatureMeterAvailability(featureMeters, charge)
 		if err != nil {
-			return nil, fmt.Errorf("getting current realization run for usage based charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("checking feature meter availability for usage based charge[%s]: %w", charge.ID, err)
 		}
+		var changed bool
+		validationIssues, changed = replaceValidationIssueComponent(
+			validationIssues,
+			billing.ValidationComponentProductCatalog,
+			featureMeterCheck.ValidationIssues,
+		)
+		validationIssuesChanged = validationIssuesChanged || changed
 
-		validationIssue, err := newActiveRunInvoiceAssignmentIssue(currentRun)
+		// A charge can have only one invoice-backed realization in progress.
+		// Reassignment before it finishes would create parallel billing realities.
+		currentRunCheck, err := checkCurrentRealizationRun(charge)
 		if err != nil {
-			return nil, fmt.Errorf("building invoice assignment validation issue for usage based charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("checking current realization run for usage based charge[%s]: %w", charge.ID, err)
 		}
-		if !charge.ValidationIssues.HasWithComponentCode(validationIssue.Component, validationIssue.Code) {
+		validationIssues, changed = replaceValidationIssueComponent(
+			validationIssues,
+			usagebased.ValidationIssueComponentLineEngine,
+			currentRunCheck.ValidationIssues,
+		)
+		validationIssuesChanged = validationIssuesChanged || changed
+
+		excludeFromInvoice := featureMeterCheck.ExcludeFromInvoice || currentRunCheck.ExcludeFromInvoice
+
+		if validationIssuesChanged {
 			if err := e.service.adapter.UpdateChargeValidationIssues(ctx, usagebased.UpdateChargeValidationIssuesInput{
 				ChargeID:         charge.GetChargeID(),
-				ValidationIssues: append(slices.Clone(charge.ValidationIssues), validationIssue),
+				ValidationIssues: validationIssues,
 			}); err != nil {
 				return nil, err
 			}
 		}
 
-		for _, line := range linesByChargeID[chargeID] {
-			result[line.GetLineID()] = billing.InvoiceAssignmentGateResponse{ExcludeFromInvoice: true}
+		if excludeFromInvoice {
+			for _, line := range linesByChargeID[chargeID] {
+				result[line.GetLineID()] = billing.InvoiceAssignmentGateResponse{ExcludeFromInvoice: true}
+			}
 		}
 	}
 

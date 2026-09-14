@@ -280,6 +280,12 @@ one.
   collection attempts remain idempotent. The issue is removed when lifecycle
   progress releases the current run, and a later collection retry can create
   the next realization normally.
+- Before an invoice-backed usage charge is assigned to a new invoice, its line
+  engine verifies the charge's pinned feature or unresolved feature key and
+  required meter. Missing dependencies keep its lines in gathering and are
+  recorded as charge validation issues. A later collection attempt clears only
+  those dependency issues after repair and proceeds through the normal rated-run
+  lifecycle.
 - Corrections reconcile against persisted allocations in the same realization
   run and monetary domain, preserving lineage to the facts previously billed
   or posted.

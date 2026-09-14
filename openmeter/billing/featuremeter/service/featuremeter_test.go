@@ -44,13 +44,15 @@ var (
 )
 
 func TestFeatureMeterCollectionGet(t *testing.T) {
+	missingMeterID := "missing-meter-id"
+	missingMeterSlug := "missing-meter-slug"
 	featureMeters := FeatureMeterCollection{
 		ByKey: map[string]featuremeter.FeatureMeter{
 			"tokens": {
 				Feature: feature.Feature{ID: "feature-new", Key: "tokens"},
 			},
 			"requests": {
-				Feature: feature.Feature{ID: "feature-other", Key: "requests"},
+				Feature: feature.Feature{ID: "feature-other", Key: "requests", MeterID: &missingMeterID, MeterSlug: &missingMeterSlug},
 			},
 		},
 		ByID: map[string]featuremeter.FeatureMeter{
@@ -61,7 +63,7 @@ func TestFeatureMeterCollectionGet(t *testing.T) {
 				Feature: feature.Feature{ID: "feature-new", Key: "tokens"},
 			},
 			"feature-other": {
-				Feature: feature.Feature{ID: "feature-other", Key: "requests"},
+				Feature: feature.Feature{ID: "feature-other", Key: "requests", MeterID: &missingMeterID, MeterSlug: &missingMeterSlug},
 			},
 		},
 	}
@@ -107,9 +109,10 @@ func TestFeatureMeterCollectionGet(t *testing.T) {
 		issues, systemErr := billing.ToValidationIssues(missingErr)
 		require.NoError(t, systemErr)
 		require.Equal(t, billing.ValidationIssues{{
-			Severity: billing.ValidationIssueSeverityCritical,
-			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:  "feature[missing-feature]: invoice line: feature not found",
+			Severity:   billing.ValidationIssueSeverityCritical,
+			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:    "feature[missing-feature]: invoice line: feature not found",
+			Attributes: models.Annotations{"feature_id": "missing-feature"},
 		}}, issues)
 	})
 
@@ -134,10 +137,11 @@ func TestFeatureMeterCollectionGet(t *testing.T) {
 		issues, systemErr := billing.ToValidationIssues(err)
 		require.NoError(t, systemErr)
 		require.Equal(t, billing.ValidationIssues{{
-			Severity: billing.ValidationIssueSeverityCritical,
-			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:  "feature[missing-feature]: invoice line: feature not found",
-			Path:     "/lines/line-id",
+			Severity:   billing.ValidationIssueSeverityCritical,
+			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:    "feature[missing-feature]: invoice line: feature not found",
+			Path:       "/lines/line-id",
+			Attributes: models.Annotations{"feature_key": "missing-feature"},
 		}}, issues)
 	})
 
@@ -160,6 +164,12 @@ func TestFeatureMeterCollectionGet(t *testing.T) {
 			Severity: billing.ValidationIssueSeverityCritical,
 			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
 			Message:  "feature[requests]: usage based invoice line: feature has no meters",
+			Attributes: models.Annotations{
+				"feature_id":  "feature-other",
+				"feature_key": "requests",
+				"meter_id":    missingMeterID,
+				"meter_slug":  missingMeterSlug,
+			},
 		}}, issues)
 		require.Equal(t, "feature-other", featureMeter.Feature.ID)
 	})
@@ -191,6 +201,12 @@ func TestFeatureMeterCollectionGet(t *testing.T) {
 			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
 			Message:  "feature[requests]: usage based invoice line: feature has no meters",
 			Path:     "/charges/charge-id",
+			Attributes: models.Annotations{
+				"feature_id":  "feature-other",
+				"feature_key": "requests",
+				"meter_id":    missingMeterID,
+				"meter_slug":  missingMeterSlug,
+			},
 		}}, issues)
 	})
 

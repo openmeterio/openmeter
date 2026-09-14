@@ -163,6 +163,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
 	defer apiRequestsTotal.Cleanup()
+	meters, err := s.MeterAdapter.ListMeters(ctx, meter.ListMetersParams{Namespace: ns})
+	s.NoError(err)
+	s.Require().Len(meters.Items, 1)
+	apiRequestsTotalMeter := meters.Items[0]
 
 	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
@@ -173,7 +177,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 	clock.FreezeTime(setupAt)
 	defer clock.UnFreeze()
 
-	var invoice billing.StandardInvoice
+	var usageBasedChargeID meta.ChargeID
 
 	s.Run("Given a charge-backed usage line whose feature initially has a meter", func() {
 		// given:
@@ -205,6 +209,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 
 		usageBasedCharge, err := created[0].AsUsageBasedCharge()
 		s.NoError(err)
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
 		s.RequireChargeStatus(usageBasedCharge.GetChargeID(), usagebased.StatusCreated)
 
 		lines := s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedCharge.ID, false)
@@ -212,13 +217,13 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(billing.LineEngineTypeChargeUsageBased, lines[0].Engine)
 	})
 
-	s.Run("When the meter disappears collection should persist an invalid invoice", func() {
+	s.Run("when the meter disappears collection leaves the line in gathering", func() {
 		// given:
 		// - the persisted charge and gathering line still reference the feature
 		// when:
 		// - the meter backing that feature is removed and the line becomes collectible
 		// then:
-		// - collection returns and persists a draft.invalid_created invoice with a critical validation issue
+		// - collection excludes the line and records the missing dependency on the charge
 		err := s.MeterAdapter.ReplaceMeters(ctx, nil)
 		s.NoError(err)
 
@@ -229,32 +234,58 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 			AsOf:     lo.ToPtr(servicePeriod.To),
 		})
 		s.Require().NoError(err)
-		s.Require().Len(invoices, 1)
-		invoice = invoices[0]
+		s.Empty(invoices)
 
-		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
-		s.Require().Len(invoice.Lines.OrEmpty(), 1)
-		s.Require().NotNil(invoice.Lines.OrEmpty()[0].UsageBased)
-		s.Nil(invoice.Lines.OrEmpty()[0].UsageBased.MeteredQuantity)
-		s.Require().Len(invoice.ValidationIssues, 1)
-
-		issue := invoice.ValidationIssues[0]
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusCreated)
+		s.Empty(charge.Realizations)
+		s.Require().Len(charge.ValidationIssues, 1)
+		issue := charge.ValidationIssues[0]
 		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
-		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
+		s.Equal(billing.ValidationComponentProductCatalog, issue.Component)
+		s.Equal("/charges/"+usageBasedChargeID.ID, issue.Path)
 		s.Equal(
 			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
 			issue.Message,
 		)
+		s.Len(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, false), 1)
 
-		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-			Invoice: invoice.GetInvoiceID(),
-			Expand:  billing.StandardInvoiceExpandAll,
+		invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+			Namespace: ns,
 		})
 		s.NoError(err)
-		s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
-		s.Require().Len(persistedInvoice.ValidationIssues, 1)
-		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, persistedInvoice.ValidationIssues[0].Code)
+		s.Empty(invoicesResult.Items)
+	})
+
+	s.Run("when the meter is restored collection creates the normal realization", func() {
+		// given:
+		// - the blocked gathering line and its charge validation issue remain persisted
+		// when:
+		// - the meter is restored and collection is retried
+		// then:
+		// - the line follows the existing invoice and rated-run lifecycle
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{apiRequestsTotalMeter})
+		s.NoError(err)
+
+		clock.FreezeTime(servicePeriod.To.Add(time.Second))
+		defer clock.UnFreeze()
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoices[0].Status)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
+		s.Empty(charge.ValidationIssues)
+		s.Require().Len(charge.Realizations, 1)
+		currentRun, err := charge.GetCurrentRealizationRun()
+		s.NoError(err)
+		s.Equal(invoices[0].ID, lo.FromPtr(currentRun.InvoiceID))
+		s.Equal(invoices[0].Lines.OrEmpty()[0].ID, lo.FromPtr(currentRun.LineID))
+		s.Empty(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, false))
 	})
 }
 
@@ -524,38 +555,35 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 	})
 
 	// then:
-	// - collection persists one invalid invoice and keeps a distinct critical issue for each feature
+	// - collection excludes both lines and records a distinct critical issue on each charge
 	s.Require().NoError(err)
-	s.Require().Len(invoices, 1)
-	invoice := invoices[0]
-	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
-	s.Require().Len(invoice.Lines.OrEmpty(), 2)
-	s.Require().Len(invoice.ValidationIssues, 2)
+	s.Empty(invoices)
 
-	issueMessages := make([]string, 0, len(invoice.ValidationIssues))
-	for _, issue := range invoice.ValidationIssues {
+	issueMessages := make([]string, 0, len(created))
+	for _, createdCharge := range created {
+		usageBasedCharge, err := createdCharge.AsUsageBasedCharge()
+		s.NoError(err)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedCharge.GetChargeID(), usagebased.StatusCreated)
+		s.Empty(charge.Realizations)
+		s.Require().Len(charge.ValidationIssues, 1)
+		issue := charge.ValidationIssues[0]
 		s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
-		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
+		s.Equal(billing.ValidationComponentProductCatalog, issue.Component)
+		s.Equal("/charges/"+usageBasedCharge.ID, issue.Path)
 		issueMessages = append(issueMessages, issue.Message)
+		s.Len(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedCharge.ID, false), 1)
 	}
 	s.ElementsMatch([]string{
 		fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
 		fmt.Sprintf("feature[%s]: %s", aiTokens.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
 	}, issueMessages)
 
-	for _, line := range invoice.Lines.OrEmpty() {
-		s.Require().NotNil(line.UsageBased)
-		s.Nil(line.UsageBased.MeteredQuantity)
-	}
-
-	persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: invoice.GetInvoiceID(),
-		Expand:  billing.StandardInvoiceExpandAll,
+	invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+		Namespace: ns,
 	})
 	s.NoError(err)
-	s.Equal(billing.StandardInvoiceStatusDraftInvalidCreated, persistedInvoice.Status)
-	s.Require().Len(persistedInvoice.ValidationIssues, 2)
+	s.Empty(invoicesResult.Items)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestAdvanceChargesIgnoresMissingMetersForUsageChargesThatAreNotDue() {

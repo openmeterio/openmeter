@@ -18,8 +18,9 @@ const (
 	ValidationIssueSeverityCritical ValidationIssueSeverity = "critical"
 	ValidationIssueSeverityWarning  ValidationIssueSeverity = "warning"
 
-	ValidationComponentOpenMeter         = "openmeter"
-	ValidationComponentOpenMeterMetering = "openmeter.metering"
+	ValidationComponentOpenMeter         ComponentName = "openmeter"
+	ValidationComponentOpenMeterMetering ComponentName = "openmeter.metering"
+	ValidationComponentProductCatalog    ComponentName = "product_catalog"
 
 	ValidationIssueCodeLineEngineCollectionCompletedFailed = "line_engine_collection_completed_failed"
 )
@@ -228,15 +229,15 @@ func ValidationWithAttributes(attributes models.Annotations, err error) error {
 
 type ValidationIssues []ValidationIssue
 
-func (v ValidationIssues) HasWithComponentCode(component ComponentName, code string) bool {
+func (v ValidationIssues) HasComponent(component ComponentName) bool {
 	return slices.ContainsFunc(v, func(issue ValidationIssue) bool {
-		return issue.Component == component && issue.Code == code
+		return issue.Component == component
 	})
 }
 
-func (v ValidationIssues) Without(component ComponentName, code string) ValidationIssues {
+func (v ValidationIssues) WithoutComponent(component ComponentName) ValidationIssues {
 	issues := slices.DeleteFunc(slices.Clone(v), func(issue ValidationIssue) bool {
-		return issue.Component == component && issue.Code == code
+		return issue.Component == component
 	})
 
 	return issues

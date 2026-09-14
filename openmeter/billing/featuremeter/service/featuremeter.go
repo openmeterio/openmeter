@@ -28,34 +28,17 @@ func (f FeatureMeterCollection) Get(reference billingfeaturemeter.FeatureReferen
 
 	var featureMeter billingfeaturemeter.FeatureMeter
 	var exists bool
-	var referenceValue string
 	if featureRef.IDOrKey.ID != "" {
 		featureMeter, exists = f.ByID[featureRef.IDOrKey.ID]
-		referenceValue = featureRef.IDOrKey.ID
 	} else {
 		featureMeter, exists = f.ByKey[featureRef.IDOrKey.Key]
-		referenceValue = featureRef.IDOrKey.Key
 	}
 	if !exists {
-		return billingfeaturemeter.FeatureMeter{}, newValidationIssueWithIdentity(
-			reference,
-			billing.ValidationWithMessagef(
-				billing.ErrInvoiceLineFeatureNotFound,
-				"feature[%s]",
-				referenceValue,
-			),
-		)
+		return billingfeaturemeter.FeatureMeter{}, newFeatureNotFoundValidationIssue(reference)
 	}
 
 	if featureRef.RequireMeter && featureMeter.Meter == nil {
-		return featureMeter, newValidationIssueWithIdentity(
-			reference,
-			billing.ValidationWithMessagef(
-				billing.ErrInvoiceLineFeatureHasNoMeters,
-				"feature[%s]",
-				featureMeter.Feature.Key,
-			),
-		)
+		return featureMeter, newFeatureHasNoMetersValidationIssue(reference, featureMeter)
 	}
 
 	return featureMeter, nil
@@ -84,6 +67,56 @@ func (f FeatureMeterCollection) Has(reference billingfeaturemeter.FeatureReferen
 	}
 
 	return false
+}
+
+func newFeatureNotFoundValidationIssue(reference billingfeaturemeter.FeatureReferenceGetter) error {
+	attributes := models.Annotations{}
+	featureRef := reference.GetFeatureMeterRef()
+	setStringAttributeIfNotEmpty(attributes, "feature_id", featureRef.IDOrKey.ID)
+	setStringAttributeIfNotEmpty(attributes, "feature_key", featureRef.IDOrKey.Key)
+
+	referenceValue := featureRef.IDOrKey.ID
+	if referenceValue == "" {
+		referenceValue = featureRef.IDOrKey.Key
+	}
+
+	return newValidationIssueWithIdentity(
+		reference,
+		billing.ValidationWithAttributes(
+			attributes,
+			billing.ValidationWithMessagef(
+				billing.ErrInvoiceLineFeatureNotFound,
+				"feature[%s]",
+				referenceValue,
+			),
+		),
+	)
+}
+
+func newFeatureHasNoMetersValidationIssue(reference billingfeaturemeter.FeatureReferenceGetter, featureMeter billingfeaturemeter.FeatureMeter) error {
+	attributes := models.Annotations{}
+	setStringAttributeIfNotEmpty(attributes, "feature_id", featureMeter.Feature.ID)
+	setStringAttributeIfNotEmpty(attributes, "feature_key", featureMeter.Feature.Key)
+	setStringAttributeIfNotEmpty(attributes, "meter_id", lo.FromPtr(featureMeter.Feature.MeterID))
+	setStringAttributeIfNotEmpty(attributes, "meter_slug", lo.FromPtr(featureMeter.Feature.MeterSlug))
+
+	return newValidationIssueWithIdentity(
+		reference,
+		billing.ValidationWithAttributes(
+			attributes,
+			billing.ValidationWithMessagef(
+				billing.ErrInvoiceLineFeatureHasNoMeters,
+				"feature[%s]",
+				featureMeter.Feature.Key,
+			),
+		),
+	)
+}
+
+func setStringAttributeIfNotEmpty(attributes models.Annotations, key, value string) {
+	if value != "" {
+		attributes[key] = value
+	}
 }
 
 func newValidationIssueWithIdentity(reference billingfeaturemeter.FeatureReferenceGetter, err error) error {

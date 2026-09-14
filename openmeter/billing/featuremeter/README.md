@@ -40,6 +40,8 @@ meter is returned as a critical validation issue. Persisted gathering lines
 and charges additionally implement the optional owner contract, which scopes
 the issue to that entity. Pre-persistence intents and static references do not
 claim an owner and therefore produce issues without an entity path.
+Validation issues retain the requested feature ID or key and, when the feature
+resolves, its canonical ID, key, and known meter ID or legacy slug as attributes.
 
 Resolution accepts billing entities that provide an optional feature-meter
 reference. Entities without a feature dependency are skipped. Duplicate ID or
