@@ -173,10 +173,11 @@ func TestAreLinesBillableAsOfFallsBackWhenChargeFeatureIsMissing(t *testing.T) {
 	issues, systemErr := billing.ToValidationIssues(err)
 	require.NoError(t, systemErr)
 	require.Equal(t, billing.ValidationIssues{{
-		Severity: billing.ValidationIssueSeverityCritical,
-		Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
-		Message:  "feature[missing-feature]: invoice line: feature not found",
-		Path:     "/charges/charge",
+		Severity:   billing.ValidationIssueSeverityCritical,
+		Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+		Message:    "feature[missing-feature]: invoice line: feature not found",
+		Path:       "/charges/charge",
+		Attributes: models.Annotations{"feature_id": "missing-feature"},
 	}}, issues)
 	require.Equal(t, []billing.IsLineBillableAsOfResult{{}}, results)
 }
@@ -249,6 +250,11 @@ func TestGateInvoiceAssignmentReconcilesFeatureMeterReadiness(t *testing.T) {
 			Message:   "feature[blocked-feature-key]: usage based invoice line: feature has no meters",
 			Component: billing.ValidationComponentProductCatalog,
 			Path:      "/charges/blocked-charge",
+			Attributes: models.Annotations{
+				"feature_id":  "blocked-feature",
+				"feature_key": "blocked-feature-key",
+				"meter_id":    "blocked-meter",
+			},
 		},
 	}, adapter.charge("blocked-charge").ValidationIssues)
 	require.Equal(t, billing.ValidationIssues{unrelatedIssue}, adapter.charge("ready-charge").ValidationIssues)
@@ -307,6 +313,7 @@ func TestGateInvoiceAssignmentRecordsMissingFeature(t *testing.T) {
 	}, result)
 	require.Equal(t, billing.ErrInvoiceLineFeatureNotFound.Code, adapter.charge("charge").ValidationIssues[0].Code)
 	require.Equal(t, billing.ValidationComponentProductCatalog, adapter.charge("charge").ValidationIssues[0].Component)
+	require.Equal(t, models.Annotations{"feature_id": "missing-feature"}, adapter.charge("charge").ValidationIssues[0].Attributes)
 }
 
 func TestGateInvoiceAssignmentPropagatesFeatureResolverErrors(t *testing.T) {

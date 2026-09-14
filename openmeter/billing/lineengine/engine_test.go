@@ -111,6 +111,10 @@ func TestSnapshotLineQuantitiesContinuesWithPartialFeatureMeters(t *testing.T) {
 			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
 			Message:  "feature[meterless-feature]: usage based invoice line: feature has no meters",
 			Path:     "/lines/line-meterless",
+			Attributes: models.Annotations{
+				"feature_id":  "meterless-feature-id",
+				"feature_key": "meterless-feature",
+			},
 		},
 	}, issues)
 	require.Equal(t, 7.0, validLine.UsageBased.Quantity.InexactFloat64())
@@ -170,16 +174,18 @@ func TestAreLinesBillableAsOfLocalizesFeatureMeterValidationIssues(t *testing.T)
 	require.NoError(t, systemErr)
 	require.ElementsMatch(t, billing.ValidationIssues{
 		{
-			Severity: billing.ValidationIssueSeverityCritical,
-			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:  "feature[missing-feature-1]: invoice line: feature not found",
-			Path:     "/lines/line-1",
+			Severity:   billing.ValidationIssueSeverityCritical,
+			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:    "feature[missing-feature-1]: invoice line: feature not found",
+			Path:       "/lines/line-1",
+			Attributes: models.Annotations{"feature_key": "missing-feature-1"},
 		},
 		{
-			Severity: billing.ValidationIssueSeverityCritical,
-			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:  "feature[missing-feature-2]: invoice line: feature not found",
-			Path:     "/lines/line-2",
+			Severity:   billing.ValidationIssueSeverityCritical,
+			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:    "feature[missing-feature-2]: invoice line: feature not found",
+			Path:       "/lines/line-2",
+			Attributes: models.Annotations{"feature_key": "missing-feature-2"},
 		},
 	}, issues)
 	require.Len(t, results, len(lines))

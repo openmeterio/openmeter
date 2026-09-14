@@ -190,9 +190,10 @@ func TestResolver(t *testing.T) {
 		issues, systemErr := billing.ToValidationIssues(getErr)
 		require.NoError(t, systemErr)
 		require.Equal(t, billing.ValidationIssues{{
-			Severity: billing.ValidationIssueSeverityCritical,
-			Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:  "feature[missing-feature]: invoice line: feature not found",
+			Severity:   billing.ValidationIssueSeverityCritical,
+			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+			Message:    "feature[missing-feature]: invoice line: feature not found",
+			Attributes: models.Annotations{"feature_key": "missing-feature"},
 		}}, issues)
 	})
 
@@ -224,6 +225,10 @@ func TestResolver(t *testing.T) {
 			Severity: billing.ValidationIssueSeverityCritical,
 			Code:     billing.ErrInvoiceLineFeatureHasNoMeters.Code,
 			Message:  "feature[requests]: usage based invoice line: feature has no meters",
+			Attributes: models.Annotations{
+				"feature_id":  "feature-other",
+				"feature_key": "requests",
+			},
 		}}, issues)
 	})
 
@@ -262,6 +267,7 @@ func TestResolver(t *testing.T) {
 		for _, issue := range issues {
 			require.Equal(t, billing.ErrInvoiceLineFeatureNotFound.Code, issue.Code)
 			require.Empty(t, issue.Component)
+			require.Equal(t, models.Annotations{"feature_key": "missing-feature"}, issue.Attributes)
 		}
 	})
 }

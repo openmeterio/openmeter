@@ -138,10 +138,11 @@ func TestAreLinesBillableAsOfValidatesChargeFeature(t *testing.T) {
 	issues, systemErr := billing.ToValidationIssues(err)
 	require.NoError(t, systemErr)
 	require.Equal(t, billing.ValidationIssues{{
-		Severity: billing.ValidationIssueSeverityCritical,
-		Code:     billing.ErrInvoiceLineFeatureNotFound.Code,
-		Message:  "feature[missing-feature]: invoice line: feature not found",
-		Path:     "/charges/charge-id",
+		Severity:   billing.ValidationIssueSeverityCritical,
+		Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
+		Message:    "feature[missing-feature]: invoice line: feature not found",
+		Path:       "/charges/charge-id",
+		Attributes: models.Annotations{"feature_id": "missing-feature"},
 	}}, issues)
 	require.Equal(t, []billing.IsLineBillableAsOfResult{{
 		Billable:       true,
