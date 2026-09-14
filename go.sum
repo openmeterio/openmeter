@@ -401,8 +401,8 @@ github.com/redis/go-redis/v9 v9.22.0 h1:laDvpYXTJtZLloinw1fA5Kqd6HAEH2XKxOkG/PDq
 github.com/redis/go-redis/v9 v9.22.0/go.mod h1:y2g0Wj8rQvuK0ELM+oxSudcLtC09JScs98I/X9gRWY4=
 github.com/rickb777/expect v1.3.4 h1:b51hSqdTDdH8xY2y6DgHRNkxKtsAAKIQFNZ7Lf0PbOA=
 github.com/rickb777/expect v1.3.4/go.mod h1:YQhUXHEeFrxMrH/NNwISBCgt+A82EC4Xvx3E5/2q+DE=
-github.com/rickb777/period v1.0.32 h1:Gus4CbTH3WCzJ+7nLxjV1r9DCYfRIxrYNYL8Nt6sIGQ=
-github.com/rickb777/period v1.0.32/go.mod h1:QkzN/ec7c1vcp0/smCTqHKKmChkm+anFfLe3y0GuiXY=
+github.com/rickb777/period v1.1.0 h1:4P6Ef2YSu8N8YEy/S2W8p3MxW0r/45goYQF59PsgXOE=
+github.com/rickb777/period v1.1.0/go.mod h1:QkzN/ec7c1vcp0/smCTqHKKmChkm+anFfLe3y0GuiXY=
 github.com/rickb777/plural/v2 v2.1.1 h1:PnnkkMn62hxJIfdBWaPKH3jUFJQliqqGEqHAYhnINVs=
 github.com/rickb777/plural/v2 v2.1.1/go.mod h1:VQ7T01f3Xi9EqnIE0vMBw3351Bj2xWVle4TOccdlB7I=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=

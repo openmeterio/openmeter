@@ -75,7 +75,7 @@ require (
 	github.com/peterldowns/pgtestdb v0.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/qmuntal/stateless v1.8.0 // indirect
-	github.com/rickb777/period v1.0.32 // indirect
+	github.com/rickb777/period v1.1.0 // indirect
 	github.com/rickb777/plural/v2 v2.1.1 // indirect
 	github.com/samber/mo v1.17.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
