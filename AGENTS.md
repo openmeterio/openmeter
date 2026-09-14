@@ -42,9 +42,6 @@
   no natural receiver.
 - Do not extract trivial or single-use helpers unless the name captures
   non-obvious domain intent. Inline pass-through wrappers.
-- Do not hide type switching, validation, persistence mapping, or meaningful
-  domain translation inside local closures. Use a named helper; reserve inline
-  callbacks for obvious, tiny logic.
 - For non-trivial operations with multiple related parameters, define a named
   `<Operation>Input` struct that implements `models.Validator` through
   `Validate() error`. Put field and cross-field validation on the input and
