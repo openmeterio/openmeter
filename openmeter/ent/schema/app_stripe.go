@@ -33,6 +33,7 @@ func (AppStripe) Fields() []ent.Field {
 		field.String("masked_api_key").NotEmpty(),
 		field.String("stripe_webhook_id").NotEmpty(),
 		field.String("webhook_secret").Optional().Nillable().NotEmpty().Sensitive(),
+		field.Int("webhook_schema_version").Default(1).Min(1),
 	}
 }
 

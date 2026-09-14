@@ -38,6 +38,8 @@ type AppStripe struct {
 	StripeWebhookID string `json:"stripe_webhook_id,omitempty"`
 	// WebhookSecret holds the value of the "webhook_secret" field.
 	WebhookSecret *string `json:"-"`
+	// WebhookSchemaVersion holds the value of the "webhook_schema_version" field.
+	WebhookSchemaVersion int `json:"webhook_schema_version,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AppStripeQuery when eager-loading is set.
 	Edges        AppStripeEdges `json:"edges"`
@@ -82,6 +84,8 @@ func (*AppStripe) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case appstripe.FieldStripeLivemode:
 			values[i] = new(sql.NullBool)
+		case appstripe.FieldWebhookSchemaVersion:
+			values[i] = new(sql.NullInt64)
 		case appstripe.FieldID, appstripe.FieldNamespace, appstripe.FieldStripeAccountID, appstripe.FieldAPIKey, appstripe.FieldMaskedAPIKey, appstripe.FieldStripeWebhookID, appstripe.FieldWebhookSecret:
 			values[i] = new(sql.NullString)
 		case appstripe.FieldCreatedAt, appstripe.FieldUpdatedAt, appstripe.FieldDeletedAt:
@@ -170,6 +174,12 @@ func (_m *AppStripe) assignValues(columns []string, values []any) error {
 				_m.WebhookSecret = new(string)
 				*_m.WebhookSecret = value.String
 			}
+		case appstripe.FieldWebhookSchemaVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field webhook_schema_version", values[i])
+			} else if value.Valid {
+				_m.WebhookSchemaVersion = int(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -245,6 +255,9 @@ func (_m *AppStripe) String() string {
 	builder.WriteString(_m.StripeWebhookID)
 	builder.WriteString(", ")
 	builder.WriteString("webhook_secret=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("webhook_schema_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.WebhookSchemaVersion))
 	builder.WriteByte(')')
 	return builder.String()
 }

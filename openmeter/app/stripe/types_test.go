@@ -37,6 +37,7 @@ func TestCreateAppStripeInputValidateBindsSecretsToApp(t *testing.T) {
 			"webhook-secret-id",
 			WebhookSecretKey,
 		),
+		WebhookSchemaVersion: 1,
 	}
 
 	for _, testCase := range []struct {
@@ -51,6 +52,13 @@ func TestCreateAppStripeInputValidateBindsSecretsToApp(t *testing.T) {
 			name: "missing app id",
 			mutate: func(input *CreateAppStripeInput) {
 				input.ID = nil
+			},
+			wantErr: true,
+		},
+		{
+			name: "webhook schema version below one",
+			mutate: func(input *CreateAppStripeInput) {
+				input.WebhookSchemaVersion = 0
 			},
 			wantErr: true,
 		},

@@ -22,6 +22,7 @@ func TestDeleteStripeAppDataSoftDeletesAndSanitizesSecrets(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, before.APIKey)
 	require.NotNil(t, before.WebhookSecret)
+	require.Equal(t, 1, before.WebhookSchemaVersion)
 
 	err = env.adapter.DeleteStripeAppData(t.Context(), appstripe.DeleteStripeAppDataInput{AppID: appID})
 	require.NoError(t, err)
@@ -48,6 +49,7 @@ func TestDeleteStripeAppDataSoftDeletesAndSanitizesSecrets(t *testing.T) {
 	require.Equal(t, before.StripeLivemode, deletedData.Livemode)
 	require.Equal(t, before.MaskedAPIKey, deletedData.MaskedAPIKey)
 	require.Equal(t, before.StripeWebhookID, deletedData.StripeWebhookID)
+	require.Equal(t, before.WebhookSchemaVersion, deletedData.WebhookSchemaVersion)
 	require.Empty(t, deletedData.APIKey.ID)
 	require.Empty(t, deletedData.WebhookSecret.ID)
 

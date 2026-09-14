@@ -58,7 +58,8 @@ func (a *adapter) CreateStripeApp(ctx context.Context, input appstripe.CreateApp
 			SetAPIKey(input.APIKey.ID).
 			SetStripeWebhookID(input.StripeWebhookID).
 			SetWebhookSecret(input.WebhookSecret.ID).
-			SetMaskedAPIKey(input.MaskedAPIKey)
+			SetMaskedAPIKey(input.MaskedAPIKey).
+			SetWebhookSchemaVersion(input.WebhookSchemaVersion)
 
 		dbApp, err := appStripeCreateQuery.Save(ctx)
 		if err != nil {
@@ -696,10 +697,11 @@ func (a adapter) getStripeAppClient(ctx context.Context, appID app.AppID, logOpe
 // mapAppStripeData maps stripe app data from the database
 func mapAppStripeData(appID app.AppID, dbApp *entdb.AppStripe) appstripe.AppData {
 	appData := appstripe.AppData{
-		StripeAccountID: dbApp.StripeAccountID,
-		Livemode:        dbApp.StripeLivemode,
-		MaskedAPIKey:    dbApp.MaskedAPIKey,
-		StripeWebhookID: dbApp.StripeWebhookID,
+		StripeAccountID:      dbApp.StripeAccountID,
+		Livemode:             dbApp.StripeLivemode,
+		MaskedAPIKey:         dbApp.MaskedAPIKey,
+		StripeWebhookID:      dbApp.StripeWebhookID,
+		WebhookSchemaVersion: dbApp.WebhookSchemaVersion,
 	}
 
 	if dbApp.APIKey != nil {

@@ -34,6 +34,8 @@ const (
 	FieldStripeWebhookID = "stripe_webhook_id"
 	// FieldWebhookSecret holds the string denoting the webhook_secret field in the database.
 	FieldWebhookSecret = "webhook_secret"
+	// FieldWebhookSchemaVersion holds the string denoting the webhook_schema_version field in the database.
+	FieldWebhookSchemaVersion = "webhook_schema_version"
 	// EdgeCustomerApps holds the string denoting the customer_apps edge name in mutations.
 	EdgeCustomerApps = "customer_apps"
 	// EdgeApp holds the string denoting the app edge name in mutations.
@@ -69,6 +71,7 @@ var Columns = []string{
 	FieldMaskedAPIKey,
 	FieldStripeWebhookID,
 	FieldWebhookSecret,
+	FieldWebhookSchemaVersion,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -98,6 +101,10 @@ var (
 	StripeWebhookIDValidator func(string) error
 	// WebhookSecretValidator is a validator for the "webhook_secret" field. It is called by the builders before save.
 	WebhookSecretValidator func(string) error
+	// DefaultWebhookSchemaVersion holds the default value on creation for the "webhook_schema_version" field.
+	DefaultWebhookSchemaVersion int
+	// WebhookSchemaVersionValidator is a validator for the "webhook_schema_version" field. It is called by the builders before save.
+	WebhookSchemaVersionValidator func(int) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -158,6 +165,11 @@ func ByStripeWebhookID(opts ...sql.OrderTermOption) OrderOption {
 // ByWebhookSecret orders the results by the webhook_secret field.
 func ByWebhookSecret(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWebhookSecret, opts...).ToFunc()
+}
+
+// ByWebhookSchemaVersion orders the results by the webhook_schema_version field.
+func ByWebhookSchemaVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWebhookSchemaVersion, opts...).ToFunc()
 }
 
 // ByCustomerAppsCount orders the results by customer_apps count.

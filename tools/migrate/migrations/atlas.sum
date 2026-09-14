@@ -1,4 +1,4 @@
-h1:dl9qy1YR2XTlBKnZwVNvLwCiIKu2X1wacVJ0zLXP6dM=
+h1:hQL8vrE4Kn/ZEE+oG5XpIU+ZGuYw2OdhM0+0ns0cg+I=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -279,3 +279,4 @@ h1:dl9qy1YR2XTlBKnZwVNvLwCiIKu2X1wacVJ0zLXP6dM=
 20260903102842_add_lineage_custom_currency_identity.up.sql h1:KHYAUoTB7vwPQ/wsLAoRCm5gQGml5L1t3QExsZdwKWE=
 20260906100323_add_charge_and_billing_validation_issues.up.sql h1:nHSiTwJq6s7c3SU1CV103bpnPf2Nsi3zLm6UIIyF8sA=
 20260909104736_make_usage_based_feature_id_optional.up.sql h1:yhB56cUSZHgNXSig3A6VKDt3ktG0E4LXHj1/vo1sz8I=
+20260911165152_add_app_stripe_webhook_schema_version.up.sql h1:/vFLdVkBeP50PF+fApPxTwcFWbSzQwP4efCAuHAim94=

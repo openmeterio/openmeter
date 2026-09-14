@@ -18,6 +18,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v80/webhook"
 	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -2202,6 +2204,38 @@ func (n NoopLLMCostService) DeleteOverride(ctx context.Context, input llmcost.De
 
 func (n NoopLLMCostService) ListOverrides(ctx context.Context, input llmcost.ListOverridesInput) (pagination.Result[llmcost.Price], error) {
 	return pagination.Result[llmcost.Price]{}, nil
+}
+
+func TestAppStripeWebhookAcknowledgesSchemaV2Events(t *testing.T) {
+	const appID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	path := "/api/v1/apps/" + appID + "/stripe/webhook"
+
+	// NoopAppStripeService returns an empty webhook secret, so payloads are signed with an empty key.
+	post := func(t *testing.T, eventType string) (int, string) {
+		testServer, _ := getTestServer(t)
+		payload := []byte(`{"id":"evt_1","type":"` + eventType + `","api_version":"` + stripe.APIVersion + `","livemode":false,"created":1,"data":{"object":{}}}`)
+		signed := webhook.GenerateTestSignedPayload(&webhook.UnsignedPayload{Payload: payload, Secret: ""})
+
+		req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(signed.Payload))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Stripe-Signature", signed.Header)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		return w.Code, w.Body.String()
+	}
+
+	t.Run("registered schema v2 events are acknowledged without processing", func(t *testing.T) {
+		for _, eventType := range []string{"payment_intent.succeeded", "credit_note.voided", "invoice.finalized"} {
+			code, body := post(t, eventType)
+			require.Equal(t, http.StatusCreated, code, body)
+		}
+	})
+
+	t.Run("unregistered events are rejected", func(t *testing.T) {
+		code, body := post(t, "customer.created")
+		require.Equal(t, http.StatusBadRequest, code, body)
+	})
 }
 
 func TestAppStripeWebhookOversizedPayload(t *testing.T) {

@@ -123,6 +123,27 @@ func (_u *AppStripeUpdate) ClearWebhookSecret() *AppStripeUpdate {
 	return _u
 }
 
+// SetWebhookSchemaVersion sets the "webhook_schema_version" field.
+func (_u *AppStripeUpdate) SetWebhookSchemaVersion(v int) *AppStripeUpdate {
+	_u.mutation.ResetWebhookSchemaVersion()
+	_u.mutation.SetWebhookSchemaVersion(v)
+	return _u
+}
+
+// SetNillableWebhookSchemaVersion sets the "webhook_schema_version" field if the given value is not nil.
+func (_u *AppStripeUpdate) SetNillableWebhookSchemaVersion(v *int) *AppStripeUpdate {
+	if v != nil {
+		_u.SetWebhookSchemaVersion(*v)
+	}
+	return _u
+}
+
+// AddWebhookSchemaVersion adds value to the "webhook_schema_version" field.
+func (_u *AppStripeUpdate) AddWebhookSchemaVersion(v int) *AppStripeUpdate {
+	_u.mutation.AddWebhookSchemaVersion(v)
+	return _u
+}
+
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
 func (_u *AppStripeUpdate) AddCustomerAppIDs(ids ...int) *AppStripeUpdate {
 	_u.mutation.AddCustomerAppIDs(ids...)
@@ -222,6 +243,11 @@ func (_u *AppStripeUpdate) check() error {
 			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.WebhookSchemaVersion(); ok {
+		if err := appstripe.WebhookSchemaVersionValidator(v); err != nil {
+			return &ValidationError{Name: "webhook_schema_version", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_schema_version": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -263,6 +289,12 @@ func (_u *AppStripeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.WebhookSecretCleared() {
 		_spec.ClearField(appstripe.FieldWebhookSecret, field.TypeString)
+	}
+	if value, ok := _u.mutation.WebhookSchemaVersion(); ok {
+		_spec.SetField(appstripe.FieldWebhookSchemaVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedWebhookSchemaVersion(); ok {
+		_spec.AddField(appstripe.FieldWebhookSchemaVersion, field.TypeInt, value)
 	}
 	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -423,6 +455,27 @@ func (_u *AppStripeUpdateOne) ClearWebhookSecret() *AppStripeUpdateOne {
 	return _u
 }
 
+// SetWebhookSchemaVersion sets the "webhook_schema_version" field.
+func (_u *AppStripeUpdateOne) SetWebhookSchemaVersion(v int) *AppStripeUpdateOne {
+	_u.mutation.ResetWebhookSchemaVersion()
+	_u.mutation.SetWebhookSchemaVersion(v)
+	return _u
+}
+
+// SetNillableWebhookSchemaVersion sets the "webhook_schema_version" field if the given value is not nil.
+func (_u *AppStripeUpdateOne) SetNillableWebhookSchemaVersion(v *int) *AppStripeUpdateOne {
+	if v != nil {
+		_u.SetWebhookSchemaVersion(*v)
+	}
+	return _u
+}
+
+// AddWebhookSchemaVersion adds value to the "webhook_schema_version" field.
+func (_u *AppStripeUpdateOne) AddWebhookSchemaVersion(v int) *AppStripeUpdateOne {
+	_u.mutation.AddWebhookSchemaVersion(v)
+	return _u
+}
+
 // AddCustomerAppIDs adds the "customer_apps" edge to the AppStripeCustomer entity by IDs.
 func (_u *AppStripeUpdateOne) AddCustomerAppIDs(ids ...int) *AppStripeUpdateOne {
 	_u.mutation.AddCustomerAppIDs(ids...)
@@ -535,6 +588,11 @@ func (_u *AppStripeUpdateOne) check() error {
 			return &ValidationError{Name: "webhook_secret", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_secret": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.WebhookSchemaVersion(); ok {
+		if err := appstripe.WebhookSchemaVersionValidator(v); err != nil {
+			return &ValidationError{Name: "webhook_schema_version", err: fmt.Errorf(`db: validator failed for field "AppStripe.webhook_schema_version": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -593,6 +651,12 @@ func (_u *AppStripeUpdateOne) sqlSave(ctx context.Context) (_node *AppStripe, er
 	}
 	if _u.mutation.WebhookSecretCleared() {
 		_spec.ClearField(appstripe.FieldWebhookSecret, field.TypeString)
+	}
+	if value, ok := _u.mutation.WebhookSchemaVersion(); ok {
+		_spec.SetField(appstripe.FieldWebhookSchemaVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedWebhookSchemaVersion(); ok {
+		_spec.AddField(appstripe.FieldWebhookSchemaVersion, field.TypeInt, value)
 	}
 	if _u.mutation.CustomerAppsCleared() {
 		edge := &sqlgraph.EdgeSpec{
