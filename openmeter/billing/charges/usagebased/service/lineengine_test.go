@@ -201,10 +201,31 @@ func TestGateInvoiceAssignmentReconcilesFeatureMeterReadiness(t *testing.T) {
 		Code:      usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
 		Component: usagebased.ValidationIssueComponentLineEngine,
 	}
+	currentRunIssue := billing.ValidationIssue{
+		Severity:  billing.ValidationIssueSeverityCritical,
+		Code:      usagebased.ValidationIssueCodeInvoiceAssignmentBlockedActiveRun,
+		Message:   activeRunInvoiceAssignmentIssueMessage,
+		Component: usagebased.ValidationIssueComponentLineEngine,
+		Attributes: models.Annotations{
+			"invoice_id": "current-invoice",
+			"line_id":    "current-line",
+		},
+	}
 	blockedCharge := newUsageBasedBillabilityCharge("namespace", "blocked-charge", "blocked-feature")
-	blockedCharge.ValidationIssues = billing.ValidationIssues{unrelatedIssue, staleLineEngineIssue}
+	blockedCharge.ValidationIssues = billing.ValidationIssues{unrelatedIssue}
+	blockedCharge.State.CurrentRealizationRunID = lo.ToPtr("current-run")
+	blockedCharge.Realizations = usagebased.RealizationRuns{{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID: usagebased.RealizationRunID{
+				Namespace: "namespace",
+				ID:        "current-run",
+			},
+			InvoiceID: lo.ToPtr("current-invoice"),
+			LineID:    lo.ToPtr("current-line"),
+		},
+	}}
 	readyCharge := newUsageBasedBillabilityCharge("namespace", "ready-charge", "ready-feature")
-	readyCharge.ValidationIssues = billing.ValidationIssues{unrelatedIssue, staleFeatureIssue}
+	readyCharge.ValidationIssues = billing.ValidationIssues{unrelatedIssue, staleFeatureIssue, staleLineEngineIssue}
 	adapter := &usageBasedBillabilityAdapter{charges: []usagebased.Charge{blockedCharge, readyCharge}}
 
 	newEngine := func(meters []meter.Meter) *LineEngine {
@@ -229,7 +250,8 @@ func TestGateInvoiceAssignmentReconcilesFeatureMeterReadiness(t *testing.T) {
 	ctx, err := transaction.SetDriverOnContext(t.Context(), usageBasedBillabilityTransaction{})
 	require.NoError(t, err)
 
-	// Given one charge without its required meter and another whose dependency recovered.
+	// Given one charge without its required meter and with an active run,
+	// and another charge whose dependency recovered and has no current run.
 	engine := newEngine([]meter.Meter{newUsageBasedBillabilityMeter("namespace", "ready-meter")})
 
 	// When their gathering lines are considered for invoice assignment.
@@ -256,15 +278,16 @@ func TestGateInvoiceAssignmentReconcilesFeatureMeterReadiness(t *testing.T) {
 				"meter_id":    "blocked-meter",
 			},
 		},
+		currentRunIssue,
 	}, adapter.charge("blocked-charge").ValidationIssues)
 	require.Equal(t, billing.ValidationIssues{unrelatedIssue}, adapter.charge("ready-charge").ValidationIssues)
 
 	// When the same blocked lines are evaluated again.
 	_, err = engine.GateInvoiceAssignment(ctx, input)
 
-	// Then the readiness issue is replaced rather than duplicated.
+	// Then both blocking issues are replaced rather than duplicated.
 	require.NoError(t, err)
-	require.Len(t, adapter.charge("blocked-charge").ValidationIssues, 2)
+	require.Len(t, adapter.charge("blocked-charge").ValidationIssues, 3)
 
 	// When the missing meter is restored and assignment is retried.
 	engine = newEngine([]meter.Meter{
@@ -273,10 +296,23 @@ func TestGateInvoiceAssignmentReconcilesFeatureMeterReadiness(t *testing.T) {
 	})
 	result, err = engine.GateInvoiceAssignment(ctx, input)
 
-	// Then both charges are eligible and only the readiness issue is cleared.
+	// Then the recovered charge remains blocked only by its active run.
+	require.NoError(t, err)
+	require.Equal(t, billing.GateInvoiceAssignmentResult{
+		blockedLines[0].GetLineID(): {ExcludeFromInvoice: true},
+		blockedLines[1].GetLineID(): {ExcludeFromInvoice: true},
+	}, result)
+	require.Equal(t, billing.ValidationIssues{unrelatedIssue, currentRunIssue}, adapter.charge("blocked-charge").ValidationIssues)
+
+	// When the current run is completed and assignment is retried.
+	adapter.charges[0].State.CurrentRealizationRunID = nil
+	result, err = engine.GateInvoiceAssignment(ctx, input)
+
+	// Then both charges are eligible and only their unrelated issues remain.
 	require.NoError(t, err)
 	require.Empty(t, result)
 	require.Equal(t, billing.ValidationIssues{unrelatedIssue}, adapter.charge("blocked-charge").ValidationIssues)
+	require.Equal(t, billing.ValidationIssues{unrelatedIssue}, adapter.charge("ready-charge").ValidationIssues)
 }
 
 func TestGateInvoiceAssignmentRecordsMissingFeature(t *testing.T) {

@@ -143,18 +143,6 @@ func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.Ga
 		validationIssues := charge.ValidationIssues
 		validationIssuesChanged := false
 
-		// A charge without a current realization no longer needs a line-engine issue
-		// left by an earlier invoice-assignment attempt.
-		if charge.State.CurrentRealizationRunID == nil {
-			var changed bool
-			validationIssues, changed = replaceValidationIssueComponent(
-				validationIssues,
-				usagebased.ValidationIssueComponentLineEngine,
-				nil,
-			)
-			validationIssuesChanged = validationIssuesChanged || changed
-		}
-
 		// A missing feature or required meter makes the charge impossible to rate,
 		// so its lines must remain in gathering until the dependency is repaired.
 		featureMeterCheck, err := checkFeatureMeterAvailability(featureMeters, charge)
@@ -168,24 +156,21 @@ func (e *LineEngine) GateInvoiceAssignment(ctx context.Context, input billing.Ga
 			featureMeterCheck.ValidationIssues,
 		)
 		validationIssuesChanged = validationIssuesChanged || changed
-		excludeFromInvoice := featureMeterCheck.ExcludeFromInvoice
 
-		if !excludeFromInvoice {
-			// A charge can have only one invoice-backed realization in progress.
-			// Reassignment before it finishes would create parallel billing realities.
-			currentRunCheck, err := checkCurrentRealizationRun(charge)
-			if err != nil {
-				return nil, fmt.Errorf("checking current realization run for usage based charge[%s]: %w", charge.ID, err)
-			}
-
-			validationIssues, changed = replaceValidationIssueComponent(
-				validationIssues,
-				usagebased.ValidationIssueComponentLineEngine,
-				currentRunCheck.ValidationIssues,
-			)
-			validationIssuesChanged = validationIssuesChanged || changed
-			excludeFromInvoice = currentRunCheck.ExcludeFromInvoice
+		// A charge can have only one invoice-backed realization in progress.
+		// Reassignment before it finishes would create parallel billing realities.
+		currentRunCheck, err := checkCurrentRealizationRun(charge)
+		if err != nil {
+			return nil, fmt.Errorf("checking current realization run for usage based charge[%s]: %w", charge.ID, err)
 		}
+		validationIssues, changed = replaceValidationIssueComponent(
+			validationIssues,
+			usagebased.ValidationIssueComponentLineEngine,
+			currentRunCheck.ValidationIssues,
+		)
+		validationIssuesChanged = validationIssuesChanged || changed
+
+		excludeFromInvoice := featureMeterCheck.ExcludeFromInvoice || currentRunCheck.ExcludeFromInvoice
 
 		if validationIssuesChanged {
 			if err := e.service.adapter.UpdateChargeValidationIssues(ctx, usagebased.UpdateChargeValidationIssuesInput{
