@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"slices"
@@ -1068,6 +1069,15 @@ func TestPlan(t *testing.T) {
 		require.Equal(t, http.StatusOK, after.StatusCode(), "%s", after.Body)
 		require.NotNil(t, after.JSON200)
 		require.Equal(t, before.JSON200.Plan, after.JSON200.Plan)
+
+		// The flattened items have no ordering guarantee; item timelines do.
+		for _, phases := range [][]api.SubscriptionPhaseExpanded{before.JSON200.Phases, after.JSON200.Phases} {
+			for _, phase := range phases {
+				slices.SortFunc(phase.Items, func(a, b api.SubscriptionItem) int {
+					return cmp.Compare(a.Id, b.Id)
+				})
+			}
+		}
 		require.Equal(t, before.JSON200.Phases, after.JSON200.Phases)
 		require.Equal(t, before.JSON200.ActiveFrom, after.JSON200.ActiveFrom)
 		require.Equal(t, before.JSON200.ActiveTo, after.JSON200.ActiveTo)
