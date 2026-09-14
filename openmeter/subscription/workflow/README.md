@@ -1,8 +1,9 @@
 # Subscription migration
 
 Migration applies a later version of the same catalog plan. When `billingAnchor`
-is omitted or unchanged, it amends the existing subscription in place. The
-subscription ID, start, billing anchor, cancellation end, phase timeline,
+is omitted or unchanged and `startingPhase` is omitted, it amends the existing
+subscription in place. The subscription ID, start, billing anchor, cancellation
+end, phase timeline,
 settlement mode, and cost-basis policy remain intact. This path publishes an
 update event without creating a replacement. General subscription edits still
 reject subscriptions with addons.
@@ -81,30 +82,35 @@ the provider's responsibility.
 
 ## API and limits
 
-Migration accepts immediate or next-billing-cycle timing under the running-edit
-timing rules, including the restriction on crossing into another phase. With
-next-cycle timing, the amended schedule and target plan reference are committed
-now; affected item cadences take effect at the resolved boundary.
+Migration accepts immediate, next-billing-cycle, or explicit billing-aligned
+timing. The subscription must be active at the effective time, and past times
+are rejected. Unlike general edits, migration can target a later phase because
+it requires matching phase timelines. For scheduled migrations, the amended
+schedule and target plan reference are committed now; affected item cadences
+take effect at the resolved time.
 
 The existing `current` / `next` response envelope contains the before snapshot
 and amended view of the same subscription for in-place migrations.
 
-Providing a different `billingAnchor` uses the original subscription change
-workflow: `current` ends and `next` is a replacement starting at the effective
-time. The supplied anchor is preserved, and billing derives periods from that
+Providing `startingPhase` or a different `billingAnchor` uses the original
+subscription change workflow: `current` ends and `next` is a replacement starting
+at the effective time. The supplied anchor is preserved, and billing derives periods from that
 anchor and the target plan cadence. It may be before or after the new start.
 This path resets the phase timeline, does not transfer addons, and can produce
-billing adjustments. Customer metadata, name, description, and cost-basis mode
-are copied as in subscription change.
+billing adjustments. `startingPhase` selects the target phase to start in and
+always requests replacement, even if it matches the current phase. An omitted
+anchor retains the existing one. Customer metadata, name, description, and
+cost-basis mode are copied as in subscription change.
 
 Migration compares the actual subscription offering against the target plan;
 customer edits that differ from the target are replaced from the effective time.
 It preserves phase metadata and rejects changes to phase keys/start times,
 billing cadence, settlement mode, and proration configuration. Invoice-currency
-and item-currency restrictions from ordinary updates still apply. `startingPhase`
-is rejected. Use subscription change to select a starting phase or a different
-plan. The restrictions above apply to in-place migrations; an anchor override
-uses subscription change validation.
+and item-currency restrictions from ordinary updates still apply. Incompatible
+phase timelines return an error explaining how to explicitly request replacement;
+they never trigger automatic replacement. Use subscription change to select a
+different plan. The restrictions above apply to in-place migrations; explicit
+replacement uses subscription change validation.
 
 No database backfill or new schema is required. Existing subscriptions can use
 this workflow. Public audit-history endpoints and special treatment of

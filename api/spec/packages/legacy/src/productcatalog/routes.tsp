@@ -544,14 +544,14 @@ interface SubscriptionsEndpoints {
 
   /**
    * Migrates a running subscription to a later version of its current plan.
-   * If billingAnchor is omitted or unchanged, the subscription is amended in place.
+   * If startingPhase is omitted and billingAnchor is omitted or unchanged, the subscription is amended in place.
    * Unchanged items retain their service periods. Changed or removed items end at
    * the effective time; replacements and additions start from that time.
    * For in-place migrations, existing addons must be compatible with the target plan version.
    * The phase timeline, billing anchor, and subscription-level billing settings
    * are preserved. Both response entries refer to the same subscription:
    * current is the before snapshot and next is the amended view.
-   * Providing a different billingAnchor uses subscription change: the current subscription
+   * Providing startingPhase or a different billingAnchor uses subscription change: the current subscription
    * ends and a replacement starts at the effective time. This resets the phase timeline
    * and can produce billing adjustments. Addons are not transferred to the replacement.
    */
@@ -563,8 +563,10 @@ interface SubscriptionsEndpoints {
     @path subscriptionId: ULID,
     @body body: {
       /**
-       * Timing configuration for the migration, when the migration should take effect.
-       * If not supported by the subscription, 400 will be returned.
+       * When the migration takes effect: immediately, at the next billing cycle, or at an explicit billing-aligned timestamp.
+       * In-place migrations may be scheduled into a later phase when the current and target phase timelines match.
+       * The target plan reference is saved immediately; changed items take effect at the requested time.
+       * Past or unsupported times return an error.
        */
       timing?: SubscriptionTiming = SubscriptionTimingEnum.Immediate;
 
@@ -576,14 +578,17 @@ interface SubscriptionsEndpoints {
       targetVersion?: integer;
 
       /**
-       * Not supported for in-place migrations. Omit this field; use subscription change to reset the phase timeline.
+       * Explicitly replace the subscription, starting in this target plan phase.
+       * Providing this field always selects replacement, even if the phase matches the current one.
+       * Replacement may produce billing adjustments and does not transfer addons.
+       * Omit it to migrate in place; incompatible phase timelines then return an error.
        */
       @minLength(1)
       startingPhase?: string;
 
       /**
        * The anchor used with the plan's billing cadence to calculate billing periods.
-       * If omitted or equal to the existing anchor, migration preserves the current subscription.
+       * If startingPhase is omitted and this anchor is omitted or equal to the existing one, migration preserves the current subscription.
        * Providing a different anchor ends the current subscription and creates a replacement.
        * The supplied anchor is preserved; it may be before or after the replacement's start time.
        */

@@ -315,16 +315,23 @@ type migrationFixture struct {
 func newMigrationFixture(t *testing.T) migrationFixture {
 	t.Helper()
 
+	input := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
+		subscriptiontestutils.ExampleRateCard1.Clone(),
+		subscriptiontestutils.ExampleRateCard2.Clone(),
+	).Build()
+
+	return newMigrationFixtureWithPlan(t, input)
+}
+
+func newMigrationFixtureWithPlan(t *testing.T, input plan.CreatePlanInput) migrationFixture {
+	t.Helper()
+
 	deps := setup(t, setupConfig{})
 	t.Cleanup(func() { deps.cleanup(t) })
 
 	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-	input := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
-		subscriptiontestutils.ExampleRateCard1.Clone(),
-		subscriptiontestutils.ExampleRateCard2.Clone(),
-	).Build()
 	original := deps.PlanHelper.CreatePlan(t, input)
 
 	before, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{

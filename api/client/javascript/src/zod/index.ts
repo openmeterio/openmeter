@@ -18541,14 +18541,14 @@ export const ChangeSubscriptionBody = zod
 
 /**
  * Migrates a running subscription to a later version of its current plan.
- * If billingAnchor is omitted or unchanged, the subscription is amended in place.
+ * If startingPhase is omitted and billingAnchor is omitted or unchanged, the subscription is amended in place.
  * Unchanged items retain their service periods. Changed or removed items end at
  * the effective time; replacements and additions start from that time.
  * For in-place migrations, existing addons must be compatible with the target plan version.
  * The phase timeline, billing anchor, and subscription-level billing settings
  * are preserved. Both response entries refer to the same subscription:
  * current is the before snapshot and next is the amended view.
- * Providing a different billingAnchor uses subscription change: the current subscription
+ * Providing startingPhase or a different billingAnchor uses subscription change: the current subscription
  * ends and a replacement starts at the effective time. This resets the phase timeline
  * and can produce billing adjustments. Addons are not transferred to the replacement.
  * @summary Migrate subscription
@@ -18569,14 +18569,14 @@ export const MigrateSubscriptionBody = zod.object({
     .date()
     .optional()
     .describe(
-      "The anchor used with the plan's billing cadence to calculate billing periods.\nIf omitted or equal to the existing anchor, migration preserves the current subscription.\nProviding a different anchor ends the current subscription and creates a replacement.\nThe supplied anchor is preserved; it may be before or after the replacement's start time.",
+      "The anchor used with the plan's billing cadence to calculate billing periods.\nIf startingPhase is omitted and this anchor is omitted or equal to the existing one, migration preserves the current subscription.\nProviding a different anchor ends the current subscription and creates a replacement.\nThe supplied anchor is preserved; it may be before or after the replacement's start time.",
     ),
   startingPhase: zod.coerce
     .string()
     .min(1)
     .optional()
     .describe(
-      'Not supported for in-place migrations. Omit this field; use subscription change to reset the phase timeline.',
+      'Explicitly replace the subscription, starting in this target plan phase.\nProviding this field always selects replacement, even if the phase matches the current one.\nReplacement may produce billing adjustments and does not transfer addons.\nOmit it to migrate in place; incompatible phase timelines then return an error.',
     ),
   targetVersion: zod.coerce
     .number()
@@ -18604,7 +18604,7 @@ export const MigrateSubscriptionBody = zod.object({
     )
     .default(migrateSubscriptionBodyTimingDefault)
     .describe(
-      'Timing configuration for the migration, when the migration should take effect.\nIf not supported by the subscription, 400 will be returned.',
+      'When the migration takes effect: immediately, at the next billing cycle, or at an explicit billing-aligned timestamp.\nIn-place migrations may be scheduled into a later phase when the current and target phase timelines match.\nThe target plan reference is saved immediately; changed items take effect at the requested time.\nPast or unsupported times return an error.',
     ),
 })
 

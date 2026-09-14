@@ -1063,6 +1063,7 @@ func TestPlan(t *testing.T) {
 		// then validation rejects the request and leaves the subscription unchanged
 		require.Equal(t, http.StatusBadRequest, response.StatusCode(), "%s", response.Body)
 		require.Contains(t, string(response.Body), "same start for phase")
+		require.Contains(t, string(response.Body), "startingPhase")
 
 		after, err := client.GetSubscriptionWithResponse(t.Context(), migratedSubscriptionId, nil)
 		require.NoError(t, err)
@@ -1251,5 +1252,32 @@ func TestPlan(t *testing.T) {
 		require.NotNil(t, res.JSON200.Entitlements)
 		require.NotNil(t, res.JSON200.Entitlements[PlanFeatureKey])
 		require.True(t, res.JSON200.Entitlements[PlanFeatureKey].HasAccess)
+	})
+
+	t.Run("Should replace an incompatible subscription when startingPhase is supplied", func(t *testing.T) {
+		// given the incompatible latest plan version rejected by in-place migration above
+		require.NotEmpty(t, migratedSubscriptionId)
+
+		// when the caller explicitly selects a target starting phase
+		response, err := client.MigrateSubscriptionWithResponse(t.Context(), migratedSubscriptionId, api.MigrateSubscriptionJSONRequestBody{
+			StartingPhase: lo.ToPtr("test_plan_phase_2"),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
+		require.NotNil(t, response.JSON200)
+
+		// then the old subscription ends where its replacement and selected phase start
+		current, next := response.JSON200.Current, response.JSON200.Next
+		require.Equal(t, migratedSubscriptionId, current.Id)
+		require.NotEqual(t, current.Id, next.Id)
+		require.NotNil(t, current.ActiveTo)
+		require.Equal(t, *current.ActiveTo, next.ActiveFrom)
+		require.Equal(t, current.BillingAnchor, next.BillingAnchor)
+
+		phase, ok := lo.Find(next.Phases, func(phase api.SubscriptionPhaseExpanded) bool {
+			return phase.Key == "test_plan_phase_2"
+		})
+		require.True(t, ok)
+		require.Equal(t, next.ActiveFrom, phase.ActiveFrom)
 	})
 }

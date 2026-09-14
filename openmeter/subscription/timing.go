@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
@@ -84,6 +85,30 @@ func (c Timing) ResolveForSpec(spec SubscriptionSpec) (time.Time, error) {
 	}
 
 	return def, fmt.Errorf("no logical branch entered")
+}
+
+// ValidateForMigration allows scheduling across phases: migration separately
+// requires matching phase timelines. Custom times retain the billing alignment
+// required by the original cancel-and-create migration path.
+func (c Timing) ValidateForMigration(spec SubscriptionSpec) error {
+	now := clock.Now()
+	at, err := c.ResolveForSpec(spec)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	if at.Before(now) {
+		errs = append(errs, errors.New("cannot migrate a subscription in the past"))
+	}
+	if c.Custom != nil && !c.isDateAlignedWithBillingCadence(spec, at) {
+		errs = append(errs, errors.New("custom migration timing must align with the subscription billing cadence"))
+	}
+	if !(models.CadencedModel{ActiveFrom: spec.ActiveFrom, ActiveTo: spec.ActiveTo}).IsActiveAt(at) {
+		errs = append(errs, errors.New("subscription must be active at migration time"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (c Timing) ValidateForAction(action SubscriptionAction, subView *SubscriptionView) error {

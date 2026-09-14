@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"reflect"
 	"time"
@@ -46,8 +47,9 @@ func (s *service) MigrateToPlan(ctx context.Context, input subscriptionworkflow.
 			return def, err
 		}
 
-		// Use the same timing rules as a running subscription edit.
-		if err := input.Timing.ValidateForAction(subscription.SubscriptionActionUpdate, &current); err != nil {
+		// Migration can target a later phase because the target must have the
+		// same timeline. Ordinary edits retain their same-phase restriction.
+		if err := input.Timing.ValidateForMigration(current.Spec); err != nil {
 			return def, err
 		}
 
@@ -119,7 +121,7 @@ func (i buildMigratedSpecInput) Validate() error {
 	if !i.Current.Spec.BillingCadence.Equal(&i.Target.BillingCadence) ||
 		i.Current.Spec.SettlementMode != i.Target.SettlementMode ||
 		!reflect.DeepEqual(i.Current.Spec.ProRatingConfig, i.Target.ProRatingConfig) {
-		errs = append(errs, errors.New("migration cannot change billing cadence, settlement mode, or proration configuration; use subscription change"))
+		errs = append(errs, errors.New("migration cannot change billing cadence, settlement mode, or proration configuration in place; provide startingPhase or use subscription change to replace the subscription, which may produce billing adjustments and does not transfer addons"))
 	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
@@ -130,7 +132,7 @@ func buildMigratedSpec(i buildMigratedSpecInput) (subscription.SubscriptionSpec,
 	}
 	patches, err := patch.DiffItems(patch.DiffItemsInput{Current: i.Current.Spec, Target: i.Target, At: i.At})
 	if err != nil {
-		return subscription.SubscriptionSpec{}, err
+		return subscription.SubscriptionSpec{}, models.NewGenericValidationError(fmt.Errorf("cannot migrate in place: %w; provide startingPhase or use subscription change to replace the subscription, which may produce billing adjustments and does not transfer addons", err))
 	}
 	// Patches replace entries in phase item maps. Copy those maps so the
 	// caller's view still describes the subscription before migration.

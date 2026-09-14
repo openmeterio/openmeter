@@ -67,7 +67,9 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 	}
 
 	if request.StartingPhase != nil {
-		return def, models.NewGenericValidationError(fmt.Errorf("migration preserves the phase timeline; use subscription change to select a starting phase"))
+		if err := s.zeroPhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
+			return def, err
+		}
 	}
 
 	if request.RejectUnitConfig && p.HasUnitConfig() {
@@ -78,9 +80,9 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 
 	timing := lo.FromPtrOr(request.Timing, subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)})
 
-	// An anchor override can change billing periods for the whole subscription.
-	// Keep the original cancel-and-create flow for these requests.
-	if request.BillingAnchor != nil && !request.BillingAnchor.Equal(sub.BillingAnchor) {
+	// Selecting a starting phase explicitly requests a replacement, even when
+	// that phase matches the current one. An anchor change also requires replacement.
+	if request.StartingPhase != nil || (request.BillingAnchor != nil && !request.BillingAnchor.Equal(sub.BillingAnchor)) {
 		if request.Timing == nil {
 			current, err := s.SubscriptionService.GetView(ctx, request.ID)
 			if err != nil {

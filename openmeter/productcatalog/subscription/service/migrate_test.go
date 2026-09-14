@@ -271,7 +271,7 @@ func TestMigrate(t *testing.T) {
 		t.Skip("Should it or should it not? Right now it allows it")
 	})
 
-	t.Run("Should reject phase resets during migration", func(t *testing.T) {
+	t.Run("Should replace the subscription when a starting phase is supplied", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
 			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
 
@@ -347,12 +347,16 @@ func TestMigrate(t *testing.T) {
 				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
 			})
 
-			_, err = svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
+			response, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID:            sub.NamespacedID,
 				TargetVersion: &plan2.PlanMeta.Version,
 				StartingPhase: lo.ToPtr("test_phase_2"),
 			})
-			require.ErrorContains(t, err, "preserves the phase timeline")
+			require.NoError(t, err)
+			require.NotEqual(t, sub.ID, response.Next.Subscription.ID)
+			phase, ok := response.Next.Spec.GetCurrentPhaseAt(response.Next.Subscription.ActiveFrom)
+			require.True(t, ok)
+			require.Equal(t, "test_phase_2", phase.PhaseKey)
 		})
 	})
 }
