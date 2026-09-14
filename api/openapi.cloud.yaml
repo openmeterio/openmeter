@@ -10523,9 +10523,17 @@ paths:
       operationId: migrateSubscription
       summary: Migrate subscription
       description: |-
-        Migrates the subscripiton to the provided version of the current plan.
-        If possible, the migration will be done immediately.
-        If not, the migration will be scheduled to the end of the current billing period.
+        Migrates a running subscription to a later version of its current plan.
+        If startingPhase is omitted and billingAnchor is omitted or unchanged, the subscription is amended in place.
+        Unchanged items retain their service periods. Changed or removed items end at
+        the effective time; replacements and additions start from that time.
+        For in-place migrations, existing addons must be compatible with the target plan version.
+        The phase timeline, billing anchor, and subscription-level billing settings
+        are preserved. Both response entries refer to the same subscription:
+        current is the before snapshot and next is the amended view.
+        Providing startingPhase or a different billingAnchor uses subscription change: the current subscription
+        ends and a replacement starts at the effective time. This resets the phase timeline
+        and can produce billing adjustments. Addons are not transferred to the replacement.
       parameters:
         - name: subscriptionId
           in: path
@@ -10610,25 +10618,33 @@ paths:
                   allOf:
                     - $ref: '#/components/schemas/SubscriptionTiming'
                   description: |-
-                    Timing configuration for the migration, when the migration should take effect.
-                    If not supported by the subscription, 400 will be returned.
+                    When the migration takes effect: immediately, at the next billing cycle, or at an explicit billing-aligned timestamp.
+                    In-place migrations may be scheduled into a later phase when the current and target phase timelines match.
+                    The target plan reference is saved immediately; changed items take effect at the requested time.
+                    Past or unsupported times return an error.
                   default: immediate
                 targetVersion:
                   type: integer
                   minimum: 1
                   description: |-
-                    The version of the plan to migrate to.
+                    A strictly later version of the current plan to migrate to.
                     If not provided, the subscription will migrate to the latest version of the current plan.
                 startingPhase:
                   type: string
                   minLength: 1
                   description: |-
-                    The key of the phase to start the subscription in.
-                    If not provided, the subscription will start in the first phase of the plan.
+                    Explicitly replace the subscription, starting in this target plan phase.
+                    Providing this field always selects replacement, even if the phase matches the current one.
+                    Replacement may produce billing adjustments and does not transfer addons.
+                    Omit it to migrate in place; incompatible phase timelines then return an error.
                 billingAnchor:
                   type: string
                   format: date-time
-                  description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
+                  description: |-
+                    The anchor used with the plan's billing cadence to calculate billing periods.
+                    If startingPhase is omitted and this anchor is omitted or equal to the existing one, migration preserves the current subscription.
+                    Providing a different anchor ends the current subscription and creates a replacement.
+                    The supplied anchor is preserved; it may be before or after the replacement's start time.
                   example: '2023-01-01T01:01:01.001Z'
   /api/v1/subscriptions/{subscriptionId}/restore:
     post:

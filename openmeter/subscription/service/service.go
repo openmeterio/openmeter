@@ -245,6 +245,15 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		if err := s.lockCustomer(ctx, view.Subscription.CustomerId); err != nil {
 			return def, err
 		}
+		// An edit may have read its spec before a concurrent migration acquired
+		// the customer lock. Do not apply those old terms over the migrated plan.
+		lockedSubscription, err := s.SubscriptionRepo.GetByID(ctx, subscriptionID)
+		if err != nil {
+			return def, err
+		}
+		if !lockedSubscription.PlanRef.NilEqual(view.Subscription.PlanRef) {
+			return def, models.NewGenericConflictError(errors.New("subscription plan changed during update; retry with the current subscription"))
+		}
 
 		s.mu.RLock()
 		defer s.mu.RUnlock()
@@ -374,6 +383,13 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 		}
 
 		if err := s.lockCustomer(ctx, view.Subscription.CustomerId); err != nil {
+			return subscription.Subscription{}, err
+		}
+
+		// Include any edits or migrations that committed while cancellation was
+		// waiting for the lock, so their items and entitlements are ended too.
+		view, err = s.GetView(ctx, subscriptionID)
+		if err != nil {
 			return subscription.Subscription{}, err
 		}
 

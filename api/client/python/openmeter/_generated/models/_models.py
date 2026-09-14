@@ -10176,44 +10176,57 @@ class MeterUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-key
 class MigrateRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """MigrateRequest.
 
-    :ivar timing: Timing configuration for the migration, when the migration should take effect. If
-     not supported by the subscription, 400 will be returned. Is either a Union[str,
-     "_models.SubscriptionTimingEnum"] type or a datetime.datetime type.
+    :ivar timing: When the migration takes effect: immediately, at the next billing cycle, or at an
+     explicit billing-aligned timestamp. In-place migrations may be scheduled into a later phase
+     when the current and target phase timelines match. The target plan reference is saved
+     immediately; changed items take effect at the requested time. Past or unsupported times return
+     an error. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a datetime.datetime
+     type.
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
-    :ivar target_version: The version of the plan to migrate to. If not provided, the subscription
-     will migrate to the latest version of the current plan.
+    :ivar target_version: A strictly later version of the current plan to migrate to. If not
+     provided, the subscription will migrate to the latest version of the current plan.
     :vartype target_version: int
-    :ivar starting_phase: The key of the phase to start the subscription in. If not provided, the
-     subscription will start in the first phase of the plan.
+    :ivar starting_phase: Explicitly replace the subscription, starting in this target plan phase.
+     Providing this field always selects replacement, even if the phase matches the current one.
+     Replacement may produce billing adjustments and does not transfer addons. Omit it to migrate in
+     place; incompatible phase timelines then return an error.
     :vartype starting_phase: str
-    :ivar billing_anchor: The billing anchor of the subscription. The provided date will be
-     normalized according to the billing cadence to the nearest recurrence before start time. If not
-     provided, the previous subscription billing anchor will be used.
+    :ivar billing_anchor: The anchor used with the plan's billing cadence to calculate billing
+     periods. If startingPhase is omitted and this anchor is omitted or equal to the existing one,
+     migration preserves the current subscription. Providing a different anchor ends the current
+     subscription and creates a replacement. The supplied anchor is preserved; it may be before or
+     after the replacement's start time.
     :vartype billing_anchor: ~datetime.datetime
     """
 
     timing: Optional["_unions.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Timing configuration for the migration, when the migration should take effect. If not supported
-     by the subscription, 400 will be returned. Is either a Union[str,
-     \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
+    """When the migration takes effect: immediately, at the next billing cycle, or at an explicit
+     billing-aligned timestamp. In-place migrations may be scheduled into a later phase when the
+     current and target phase timelines match. The target plan reference is saved immediately;
+     changed items take effect at the requested time. Past or unsupported times return an error. Is
+     either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
     target_version: Optional[int] = rest_field(
         name="targetVersion", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The version of the plan to migrate to. If not provided, the subscription will migrate to the
-     latest version of the current plan."""
+    """A strictly later version of the current plan to migrate to. If not provided, the subscription
+     will migrate to the latest version of the current plan."""
     starting_phase: Optional[str] = rest_field(
         name="startingPhase", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The key of the phase to start the subscription in. If not provided, the subscription will start
-     in the first phase of the plan."""
+    """Explicitly replace the subscription, starting in this target plan phase. Providing this field
+     always selects replacement, even if the phase matches the current one. Replacement may produce
+     billing adjustments and does not transfer addons. Omit it to migrate in place; incompatible
+     phase timelines then return an error."""
     billing_anchor: Optional[datetime.datetime] = rest_field(
         name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
-    """The billing anchor of the subscription. The provided date will be normalized according to the
-     billing cadence to the nearest recurrence before start time. If not provided, the previous
-     subscription billing anchor will be used."""
+    """The anchor used with the plan's billing cadence to calculate billing periods. If startingPhase
+     is omitted and this anchor is omitted or equal to the existing one, migration preserves the
+     current subscription. Providing a different anchor ends the current subscription and creates a
+     replacement. The supplied anchor is preserved; it may be before or after the replacement's
+     start time."""
 
     @overload
     def __init__(

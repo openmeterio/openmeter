@@ -44,8 +44,10 @@ annotations intended for correlation, not persisted child IDs.
 
 ## Boundaries and invariants
 
-- The target spec must keep the existing customer, plan reference,
-  subscription start, and settlement mode.
+- The target spec must keep the existing customer, subscription start, and
+  settlement mode. Its plan reference may advance to a later version of the
+  same plan in the same namespace; that write shares the materialization
+  transaction. See [migration](../workflow/README.md).
 - Item and entitlement cadence is derived from the target spec and cannot
   escape the owning phase or subscription.
 - Entitlement creation and deletion follows the owning item within the same

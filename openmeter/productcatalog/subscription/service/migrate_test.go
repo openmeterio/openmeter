@@ -81,14 +81,14 @@ func TestMigrate(t *testing.T) {
 					CustomerID: cust.ID,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			pv2Input := examplePlanInput1
 			pv2Input.Plan.PlanMeta.Name = "New Name"
 
 			// Let's create a new version of the plan
 			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, pv2Input)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			eFrom := clock.Now().Add(5 * time.Second)
 
@@ -99,7 +99,7 @@ func TestMigrate(t *testing.T) {
 					EffectiveFrom: &eFrom,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, plan2)
 
 			clock.SetTime(eFrom.Add(time.Second))
@@ -111,7 +111,7 @@ func TestMigrate(t *testing.T) {
 					Enum: lo.ToPtr(subscription.TimingImmediate),
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			require.Equal(t, sub.NamespacedID, resp.Current.NamespacedID)
 			require.Equal(t, plan2.PlanMeta.Version, resp.Next.Subscription.PlanRef.Version)
@@ -157,14 +157,14 @@ func TestMigrate(t *testing.T) {
 					CustomerID: cust.ID,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			pv2Input := examplePlanInput1
 			pv2Input.Plan.PlanMeta.Name = "New Name"
 
 			// Let's create a new version of the plan
 			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, pv2Input)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			eFrom := clock.Now().Add(5 * time.Second)
 
@@ -175,7 +175,7 @@ func TestMigrate(t *testing.T) {
 					EffectiveFrom: &eFrom,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, plan2)
 
 			clock.SetTime(eFrom.Add(time.Second))
@@ -185,7 +185,7 @@ func TestMigrate(t *testing.T) {
 				ID:            sub.NamespacedID,
 				TargetVersion: &plan2.PlanMeta.Version,
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			require.Equal(t, sub.NamespacedID, resp.Current.NamespacedID)
 			require.Equal(t, plan2.PlanMeta.Version, resp.Next.Subscription.PlanRef.Version)
@@ -231,14 +231,14 @@ func TestMigrate(t *testing.T) {
 					CustomerID: cust.ID,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			pv2Input := examplePlanInput1
 			pv2Input.Plan.PlanMeta.Name = "New Name"
 
 			// Let's create a new version of the plan
 			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, pv2Input)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			eFrom := clock.Now().Add(5 * time.Second)
 
@@ -249,7 +249,7 @@ func TestMigrate(t *testing.T) {
 					EffectiveFrom: &eFrom,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, plan2)
 
 			clock.SetTime(eFrom.Add(time.Second))
@@ -271,7 +271,7 @@ func TestMigrate(t *testing.T) {
 		t.Skip("Should it or should it not? Right now it allows it")
 	})
 
-	t.Run("Should migrate to new version of plan starting from specific phase", func(t *testing.T) {
+	t.Run("Should replace the subscription when a starting phase is supplied", func(t *testing.T) {
 		withDeps(t, func(t *testing.T, deps tDeps) {
 			examplePlanInput1 := subscriptiontestutils.GetExamplePlanInput(t)
 
@@ -310,14 +310,14 @@ func TestMigrate(t *testing.T) {
 					CustomerID: cust.ID,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			pv2Input := examplePlanInput1
 			pv2Input.Plan.PlanMeta.Name = "New Name"
 
 			// Let's create a new version of the plan
 			plan2, err := deps.subDeps.PlanService.CreatePlan(ctx, pv2Input)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			eFrom := clock.Now().Add(5 * time.Second)
 
@@ -328,7 +328,7 @@ func TestMigrate(t *testing.T) {
 					EffectiveFrom: &eFrom,
 				},
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, plan2)
 
 			clock.SetTime(eFrom.Add(time.Second))
@@ -347,19 +347,89 @@ func TestMigrate(t *testing.T) {
 				require.ErrorAs(t, err, lo.ToPtr(&models.GenericValidationError{}))
 			})
 
-			// Let's migrate the subscription to the new version starting with the second phase
-			resp, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
+			response, err := svc.Migrate(ctx, plansubscription.MigrateSubscriptionRequest{
 				ID:            sub.NamespacedID,
 				TargetVersion: &plan2.PlanMeta.Version,
 				StartingPhase: lo.ToPtr("test_phase_2"),
-				Timing: &subscription.Timing{
-					Enum: lo.ToPtr(subscription.TimingImmediate),
-				},
 			})
-			require.Nil(t, err)
-
-			require.Len(t, resp.Next.Phases, len(plan2.Phases))
-			require.Equal(t, resp.Next.Phases[0].SubscriptionPhase.ActiveFrom, resp.Next.Phases[1].SubscriptionPhase.ActiveFrom)
+			require.NoError(t, err)
+			require.NotEqual(t, sub.ID, response.Next.Subscription.ID)
+			phase, ok := response.Next.Spec.GetCurrentPhaseAt(response.Next.Subscription.ActiveFrom)
+			require.True(t, ok)
+			require.Equal(t, "test_phase_2", phase.PhaseKey)
 		})
 	})
+}
+
+// Commit another migration after the catalog service reads the subscription,
+// before its migration workflow acquires the customer lock.
+type migrateAfterSubscriptionRead struct {
+	subscription.Service
+	workflow subscriptionworkflow.Service
+	plan     subscription.Plan
+	migrated subscription.SubscriptionView
+}
+
+func (s *migrateAfterSubscriptionRead) Get(ctx context.Context, id models.NamespacedID) (subscription.Subscription, error) {
+	before, err := s.Service.Get(ctx, id)
+	if err != nil {
+		return subscription.Subscription{}, err
+	}
+
+	_, s.migrated, err = s.workflow.MigrateToPlan(ctx, subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+		SubscriptionID: id,
+		Plan:           s.plan,
+		Timing:         subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+	})
+
+	return before, err
+}
+
+func TestMigrateReturnsCurrentSnapshotFromUnderLock(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given a subscription on version 1 and two later plan versions
+	db := subscriptiontestutils.SetupDBDeps(t)
+	defer db.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, db)
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil,
+		subscriptiontestutils.ExampleRateCard1.Clone(),
+	).Build()
+	p1 := deps.PlanHelper.CreatePlan(t, planInput)
+	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)
+
+	clock.FreezeTime(start.Add(24 * time.Hour))
+	defer clock.UnFreeze()
+	p2 := deps.PlanHelper.CreatePlan(t, planInput)
+
+	clock.FreezeTime(start.Add(48 * time.Hour))
+	defer clock.UnFreeze()
+	p3 := deps.PlanHelper.CreatePlan(t, planInput)
+
+	// when version 2 commits between the initial read and migration to version 3
+	interleaved := &migrateAfterSubscriptionRead{
+		Service:  deps.SubscriptionService,
+		workflow: deps.WorkflowService,
+		plan:     p2,
+	}
+	deps.SubscriptionService = interleaved
+	svc := newPlanSubscriptionService(t, deps, testutils.NewLogger(t))
+
+	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
+	defer clock.UnFreeze()
+	response, err := svc.Migrate(t.Context(), plansubscription.MigrateSubscriptionRequest{
+		ID:            before.Subscription.NamespacedID,
+		TargetVersion: lo.ToPtr(p3.ToCreateSubscriptionPlanInput().Plan.Version),
+	})
+	require.NoError(t, err)
+
+	// then current describes version 2, which the workflow actually amended
+	require.Equal(t, p2.ToCreateSubscriptionPlanInput().Plan, response.Current.PlanRef)
+	require.Equal(t, interleaved.migrated.Subscription, response.Current)
+	require.Equal(t, p3.ToCreateSubscriptionPlanInput().Plan, response.Next.Subscription.PlanRef)
+	require.Equal(t, response.Current.ID, response.Next.Subscription.ID)
 }

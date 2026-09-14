@@ -610,6 +610,7 @@ func TestEditRunning(t *testing.T) {
 					FeatureResolver:    featureResolver,
 					TransactionManager: tuDeps.CustomerAdapter,
 					AddonService:       tuDeps.SubscriptionAddonService,
+					PlanAddonService:   tuDeps.PlanAddonService,
 					Logger:             slog.Default(),
 					Lockr:              lockr,
 					FeatureFlags: ffx.NewTestContextService(ffx.AccessConfig{

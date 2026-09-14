@@ -9618,9 +9618,16 @@ class SubscriptionsOperations:  # pylint: disable=docstring-missing-param
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
-        Migrates the subscripiton to the provided version of the current plan. If possible, the
-        migration will be done immediately. If not, the migration will be scheduled to the end of the
-        current billing period.
+        Migrates a running subscription to a later version of its current plan. If startingPhase is
+        omitted and billingAnchor is omitted or unchanged, the subscription is amended in place.
+        Unchanged items retain their service periods. Changed or removed items end at the effective
+        time; replacements and additions start from that time. For in-place migrations, existing addons
+        must be compatible with the target plan version. The phase timeline, billing anchor, and
+        subscription-level billing settings are preserved. Both response entries refer to the same
+        subscription: current is the before snapshot and next is the amended view. Providing
+        startingPhase or a different billingAnchor uses subscription change: the current subscription
+        ends and a replacement starts at the effective time. This resets the phase timeline and can
+        produce billing adjustments. Addons are not transferred to the replacement.
 
         :param subscription_id: Required.
         :type subscription_id: str
@@ -9646,9 +9653,16 @@ class SubscriptionsOperations:  # pylint: disable=docstring-missing-param
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
-        Migrates the subscripiton to the provided version of the current plan. If possible, the
-        migration will be done immediately. If not, the migration will be scheduled to the end of the
-        current billing period.
+        Migrates a running subscription to a later version of its current plan. If startingPhase is
+        omitted and billingAnchor is omitted or unchanged, the subscription is amended in place.
+        Unchanged items retain their service periods. Changed or removed items end at the effective
+        time; replacements and additions start from that time. For in-place migrations, existing addons
+        must be compatible with the target plan version. The phase timeline, billing anchor, and
+        subscription-level billing settings are preserved. Both response entries refer to the same
+        subscription: current is the before snapshot and next is the amended view. Providing
+        startingPhase or a different billingAnchor uses subscription change: the current subscription
+        ends and a replacement starts at the effective time. This resets the phase timeline and can
+        produce billing adjustments. Addons are not transferred to the replacement.
 
         :param subscription_id: Required.
         :type subscription_id: str
@@ -9669,9 +9683,16 @@ class SubscriptionsOperations:  # pylint: disable=docstring-missing-param
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
-        Migrates the subscripiton to the provided version of the current plan. If possible, the
-        migration will be done immediately. If not, the migration will be scheduled to the end of the
-        current billing period.
+        Migrates a running subscription to a later version of its current plan. If startingPhase is
+        omitted and billingAnchor is omitted or unchanged, the subscription is amended in place.
+        Unchanged items retain their service periods. Changed or removed items end at the effective
+        time; replacements and additions start from that time. For in-place migrations, existing addons
+        must be compatible with the target plan version. The phase timeline, billing anchor, and
+        subscription-level billing settings are preserved. Both response entries refer to the same
+        subscription: current is the before snapshot and next is the amended view. Providing
+        startingPhase or a different billingAnchor uses subscription change: the current subscription
+        ends and a replacement starts at the effective time. This resets the phase timeline and can
+        produce billing adjustments. Addons are not transferred to the replacement.
 
         :param subscription_id: Required.
         :type subscription_id: str
@@ -9691,9 +9712,16 @@ class SubscriptionsOperations:  # pylint: disable=docstring-missing-param
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
-        Migrates the subscripiton to the provided version of the current plan. If possible, the
-        migration will be done immediately. If not, the migration will be scheduled to the end of the
-        current billing period.
+        Migrates a running subscription to a later version of its current plan. If startingPhase is
+        omitted and billingAnchor is omitted or unchanged, the subscription is amended in place.
+        Unchanged items retain their service periods. Changed or removed items end at the effective
+        time; replacements and additions start from that time. For in-place migrations, existing addons
+        must be compatible with the target plan version. The phase timeline, billing anchor, and
+        subscription-level billing settings are preserved. Both response entries refer to the same
+        subscription: current is the before snapshot and next is the amended view. Providing
+        startingPhase or a different billingAnchor uses subscription change: the current subscription
+        ends and a replacement starts at the effective time. This resets the phase timeline and can
+        produce billing adjustments. Addons are not transferred to the replacement.
 
         :param subscription_id: Required.
         :type subscription_id: str

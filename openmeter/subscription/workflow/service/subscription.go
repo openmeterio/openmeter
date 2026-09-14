@@ -75,7 +75,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			return def, err
 		}
 
-		// Let's normalize the billing anchor to the closest iteration based on the cadence
+		// Keep the supplied recurrence anchor; billing calculates periods from it.
 		billingAnchor := lo.FromPtrOr(inp.BillingAnchor, activeFrom).UTC()
 
 		// Let's create the new Spec

@@ -239,6 +239,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	s.SubscriptionWorkflowService, err = subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            s.SubscriptionService,
 		AddonService:       s.SubscriptionAddonService,
+		PlanAddonService:   planAddonService,
 		CustomerService:    deps.CustomerService,
 		CurrencyResolver:   currencyResolver,
 		FeatureResolver:    featureResolver,

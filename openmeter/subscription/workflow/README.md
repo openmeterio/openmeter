@@ -1,0 +1,117 @@
+# Subscription migration
+
+Migration applies a later version of the same catalog plan. When `billingAnchor`
+is omitted or unchanged and `startingPhase` is omitted, it amends the existing
+subscription in place. The subscription ID, start, billing anchor, cancellation
+end, phase timeline,
+settlement mode, and cost-basis policy remain intact. This path publishes an
+update event without creating a replacement. General subscription edits still
+reject subscriptions with addons.
+
+## Diff and effective time
+
+The workflow builds a spec from the target plan using the subscription's
+existing customer and timing inputs, then applies the existing addons
+and their current and future quantities to that spec. It compares the result
+against the current view by phase key and item key.
+
+The [item diff](../patch/diff.go) compares rate cards, billing overrides, ownership, and
+boolean-entitlement restoration counts over each item's timeline. Feature
+reference expansion alone is not a change. For each key it finds the first
+difference at or after the effective time:
+
+- An unchanged schedule generates no patch. Existing item and entitlement IDs,
+  item-version indexes, and service periods survive.
+- A changed active item retains its historical version, ending at the first
+  difference. The replacement occupies the next item-version index.
+- An added item starts at the effective time or its later scheduled start.
+- A removed item ends at the effective time; historical versions remain.
+- Future versions on an affected key are replaced by the target schedule.
+  Unchanged prefixes are retained, including an active prefix when only a
+  future quantity segment differs.
+
+The generated schedule patch is internal; it does not add a public edit API.
+Unlike the single-version add/remove patches, it handles future addon quantity
+changes and gaps without rewriting historical version indexes. For example,
+with a current version ending January 20 and a future version starting then,
+`PatchRemoveItem` on January 10 would end the **last (future)** version on
+January 10; it would not truncate the active version or remove the future one.
+Repeating remove does not help because it keeps targeting that last version.
+The [schedule patch](../patch/itemschedule.go) retains the historical prefix
+and replaces the affected suffix as one operation. Persistence,
+entitlement scheduling, hooks, cost-basis resolution, and event publication
+use the existing subscription update path.
+
+The customer lock covers the migration read, diff, and update. Both response
+snapshots come from that transaction, so `current` includes any edit or migration
+that committed before the lock was acquired. The plan reference advances in the
+same transaction as item materialization, with a comparison against the previous
+plan ID. Updates recheck that reference after
+acquiring the customer lock so an edit read before migration cannot overwrite
+the new terms. Cancellation reloads its view under that lock so it also ends
+items and entitlements added by a concurrent migration.
+`AdvancePlanReferenceInput.Validate` enforces a later version of
+the same plan in both `validateSyncTarget` and the repository operation, even
+when called outside the migration workflow. The repository also verifies the
+target reference in the subscription namespace before advancing it.
+
+## Addons
+
+Addons and their quantity histories stay on the same subscription. Current and
+future nonzero quantities must be allowed by the new plan, including its phase
+and quantity limits. Quantities that ended before migration do not restrict
+changes to the new plan. Applying the addon rate cards must also succeed.
+
+The workflow builds a new spec with addons before comparing it to the current
+subscription. Removing and reapplying addons on the current spec could merge
+old item versions and change the indexes billing uses to identify them. When
+an addon is removed later, the remaining item uses the new plan price.
+
+## Billing consequences
+
+[Subscription sync](../../billing/worker/subscriptionsync/README.md) continues
+to own billing artifacts. Retaining an item's logical path and service periods
+preserves its billing reconciliation identity. Adding an XL compute rate card
+therefore does not split the existing S/M/L periods or adjust their invoices.
+The new item can produce its own normal charges or invoice lines.
+
+Changing L's price interrupts L at the effective time even when the provider
+considers the change beneficial or its calculated charge happens to be equal.
+OpenMeter compares structure; deciding whether terms are non-adverse remains
+the provider's responsibility.
+
+## API and limits
+
+Migration accepts immediate, next-billing-cycle, or explicit billing-aligned
+timing. The subscription must be active at the effective time, and past times
+are rejected. Unlike general edits, migration can target a later phase because
+it requires matching phase timelines. For scheduled migrations, the amended
+schedule and target plan reference are committed now; affected item cadences
+take effect at the resolved time.
+
+The existing `current` / `next` response envelope contains the before snapshot
+and amended view of the same subscription for in-place migrations.
+
+Providing `startingPhase` or a different `billingAnchor` uses the original
+subscription change workflow: `current` ends and `next` is a replacement starting
+at the effective time. The supplied anchor is preserved, and billing derives periods from that
+anchor and the target plan cadence. It may be before or after the new start.
+This path resets the phase timeline, does not transfer addons, and can produce
+billing adjustments. `startingPhase` selects the target phase to start in and
+always requests replacement, even if it matches the current phase. An omitted
+anchor retains the existing one. Customer metadata, name, description, and
+cost-basis mode are copied as in subscription change.
+
+Migration compares the actual subscription offering against the target plan;
+customer edits that differ from the target are replaced from the effective time.
+It preserves phase metadata and rejects changes to phase keys/start times,
+billing cadence, settlement mode, and proration configuration. Invoice-currency
+and item-currency restrictions from ordinary updates still apply. Incompatible
+phase timelines return an error explaining how to explicitly request replacement;
+they never trigger automatic replacement. Use subscription change to select a
+different plan. The restrictions above apply to in-place migrations; explicit
+replacement uses subscription change validation.
+
+No database backfill or new schema is required. Existing subscriptions can use
+this workflow. Public audit-history endpoints and special treatment of
+economically beneficial changes are outside its scope.
