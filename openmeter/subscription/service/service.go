@@ -386,6 +386,13 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 			return subscription.Subscription{}, err
 		}
 
+		// Include any edits or migrations that committed while cancellation was
+		// waiting for the lock, so their items and entitlements are ended too.
+		view, err = s.GetView(ctx, subscriptionID)
+		if err != nil {
+			return subscription.Subscription{}, err
+		}
+
 		if err := s.validateCancel(ctx, view, timing); err != nil {
 			return subscription.Subscription{}, err
 		}

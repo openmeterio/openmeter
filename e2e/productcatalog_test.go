@@ -941,32 +941,31 @@ func TestPlan(t *testing.T) {
 		assert.Equal(t, api.SubscriptionStatusActive, apiRes.JSON200.Status)
 	})
 
-	t.Run("Should create and publish a new version of the plan", func(t *testing.T) {
-		require.NotNil(t, planId)
+	// The edited subscription starts phase 3 at P5M: phase 1 is P2M and phase 2 is P3M.
+	migrationPhases := []api.PlanPhase{
+		planCreate.Phases[0],
+		{
+			Name:      planCreate.Phases[1].Name,
+			Key:       planCreate.Phases[1].Key,
+			Duration:  lo.ToPtr("P3M"),
+			RateCards: planCreate.Phases[1].RateCards,
+		},
+		{
+			Name:      "Test Plan Phase 3",
+			Key:       "test_plan_phase_3",
+			RateCards: []api.RateCard{p2RC1},
+		},
+	}
 
-		newPhases := []api.PlanPhase{
-			planCreate.Phases[0],
-			{
-				Name:      planCreate.Phases[1].Name,
-				Key:       planCreate.Phases[1].Key,
-				Duration:  lo.ToPtr("P7M"),
-				RateCards: planCreate.Phases[1].RateCards,
-			},
-			{
-				Name:      "Test Plan Phase 3",
-				Key:       "test_plan_phase_3",
-				Duration:  nil,
-				RateCards: []api.RateCard{p2RC1},
-			},
-		}
+	t.Run("Should create and publish a new version of the plan", func(t *testing.T) {
+		require.NotEmpty(t, planId)
 
 		planAPIRes, err := client.CreatePlanWithResponse(ctx, api.CreatePlanJSONRequestBody{
 			Name:           "Test Plan New Version",
 			Key:            PlanKey,
 			Currency:       api.CurrencyCode("USD"),
 			BillingCadence: "P1M",
-			// Let's add a new phase
-			Phases: newPhases,
+			Phases:         migrationPhases,
 		})
 
 		require.Nil(t, err)
@@ -990,26 +989,89 @@ func TestPlan(t *testing.T) {
 
 	var migratedSubscriptionId string
 
-	t.Run("Should migrate the subscription to a newer version", func(t *testing.T) {
-		require.NotNil(t, subscriptionId)
+	t.Run("Should migrate the subscription to a newer version in place", func(t *testing.T) {
+		// given a later plan version with the same phase timeline
+		require.NotEmpty(t, subscriptionId)
+		before, err := client.GetSubscriptionWithResponse(t.Context(), subscriptionId, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, before.StatusCode(), "%s", before.Body)
+		require.NotNil(t, before.JSON200)
 
-		apiRes, err := client.MigrateSubscriptionWithResponse(ctx, subscriptionId, api.MigrateSubscriptionJSONRequestBody{
+		// when migrating without an anchor override
+		apiRes, err := client.MigrateSubscriptionWithResponse(t.Context(), subscriptionId, api.MigrateSubscriptionJSONRequestBody{
 			TargetVersion: lo.ToPtr(2),
 		})
-		require.Nil(t, err)
-
-		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, apiRes.StatusCode(), "%s", apiRes.Body)
 		require.NotNil(t, apiRes.JSON200)
-		require.NotNil(t, apiRes.JSON200.Next.Id)
-		require.NotNil(t, apiRes.JSON200.Current.Id)
 
-		require.Equal(t, subscriptionId, apiRes.JSON200.Current.Id)
-		require.NotEqual(t, subscriptionId, apiRes.JSON200.Next.Id)
+		// then the subscription and unchanged items retain their identities and timing
+		current, next := apiRes.JSON200.Current, apiRes.JSON200.Next
+		require.Equal(t, subscriptionId, current.Id)
+		require.Equal(t, subscriptionId, next.Id)
+		require.NotNil(t, current.Plan)
+		require.NotNil(t, next.Plan)
+		require.Equal(t, 1, current.Plan.Version)
+		require.Equal(t, 2, next.Plan.Version)
+		require.Equal(t, before.JSON200.ActiveFrom, next.ActiveFrom)
+		require.Equal(t, before.JSON200.BillingAnchor, next.BillingAnchor)
+		require.Nil(t, next.ActiveTo)
+		require.Len(t, next.Phases, 3)
+		for idx, phase := range before.JSON200.Phases {
+			require.Equal(t, phase.Id, next.Phases[idx].Id)
+			require.Equal(t, phase.ActiveFrom, next.Phases[idx].ActiveFrom)
+			require.Equal(t, phase.ActiveTo, next.Phases[idx].ActiveTo)
+		}
+		require.Equal(t, before.JSON200.Phases[0].ItemTimelines, next.Phases[0].ItemTimelines)
+		require.Equal(t, "test_plan_phase_3", next.Phases[2].Key)
 
-		migratedSubscriptionId = apiRes.JSON200.Next.Id
+		migratedSubscriptionId = next.Id
+	})
 
-		require.Equal(t, 3, len(apiRes.JSON200.Next.Phases))
-		require.Equal(t, "test_plan_phase_3", apiRes.JSON200.Next.Phases[2].Key)
+	t.Run("Should reject migration that changes the phase timeline", func(t *testing.T) {
+		// given a later version that moves phase 3 from P5M to P9M
+		require.NotEmpty(t, migratedSubscriptionId)
+		phases := slices.Clone(migrationPhases)
+		phases[1].Duration = lo.ToPtr("P7M")
+		created, err := client.CreatePlanWithResponse(t.Context(), api.CreatePlanJSONRequestBody{
+			Name:           "Plan with changed phase timeline",
+			Key:            PlanKey,
+			Currency:       api.CurrencyCode("USD"),
+			BillingCadence: "P1M",
+			Phases:         phases,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, created.StatusCode(), "%s", created.Body)
+		require.NotNil(t, created.JSON201)
+
+		published, err := client.PublishPlanWithResponse(t.Context(), created.JSON201.Id)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, published.StatusCode(), "%s", published.Body)
+
+		before, err := client.GetSubscriptionWithResponse(t.Context(), migratedSubscriptionId, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, before.StatusCode(), "%s", before.Body)
+		require.NotNil(t, before.JSON200)
+
+		// when migrating to the version with different phase starts
+		response, err := client.MigrateSubscriptionWithResponse(t.Context(), migratedSubscriptionId, api.MigrateSubscriptionJSONRequestBody{
+			TargetVersion: &created.JSON201.Version,
+		})
+		require.NoError(t, err)
+
+		// then validation rejects the request and leaves the subscription unchanged
+		require.Equal(t, http.StatusBadRequest, response.StatusCode(), "%s", response.Body)
+		require.Contains(t, string(response.Body), "same start for phase")
+
+		after, err := client.GetSubscriptionWithResponse(t.Context(), migratedSubscriptionId, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, after.StatusCode(), "%s", after.Body)
+		require.NotNil(t, after.JSON200)
+		require.Equal(t, before.JSON200.Plan, after.JSON200.Plan)
+		require.Equal(t, before.JSON200.Phases, after.JSON200.Phases)
+		require.Equal(t, before.JSON200.ActiveFrom, after.JSON200.ActiveFrom)
+		require.Equal(t, before.JSON200.ActiveTo, after.JSON200.ActiveTo)
+		require.Equal(t, before.JSON200.BillingAnchor, after.JSON200.BillingAnchor)
 	})
 
 	t.Run("Should change the subscription's plan", func(t *testing.T) {

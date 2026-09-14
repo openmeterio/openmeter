@@ -47,7 +47,9 @@ that committed before the lock was acquired. The plan reference advances in the
 same transaction as item materialization, with a comparison against the previous
 plan ID. Updates recheck that reference after
 acquiring the customer lock so an edit read before migration cannot overwrite
-the new terms. `AdvancePlanReferenceInput.Validate` enforces a later version of
+the new terms. Cancellation reloads its view under that lock so it also ends
+items and entitlements added by a concurrent migration.
+`AdvancePlanReferenceInput.Validate` enforces a later version of
 the same plan in both `validateSyncTarget` and the repository operation, even
 when called outside the migration workflow. The repository also verifies the
 target reference in the subscription namespace before advancing it.
