@@ -81,32 +81,30 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		// - the usage-based charge is returned
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
-				charges.NewChargeIntent(usagebased.Intent{
-					Intent: meta.Intent{
-						ManagedBy:         billing.SubscriptionManagedLine,
-						UniqueReferenceID: lo.ToPtr("usage-based-custom-currency"),
-						CustomerID:        customer.ID,
-						Currency:          customCurrency,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: defaults.InvoicingTaxCodeID,
-						},
+			Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+				Intent: meta.Intent{
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: lo.ToPtr("usage-based-custom-currency"),
+					CustomerID:        customer.ID,
+					Currency:          customCurrency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaults.InvoicingTaxCodeID,
 					},
-					IntentMutableFields: usagebased.IntentMutableFields{
-						IntentMutableFields: meta.IntentMutableFields{
-							Name:              "usage-based-custom-currency",
-							ServicePeriod:     servicePeriod,
-							FullServicePeriod: servicePeriod,
-							BillingPeriod:     servicePeriod,
-						},
-						InvoiceAt: servicePeriod.To,
-						Price:     *price,
+				},
+				IntentMutableFields: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "usage-based-custom-currency",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
 					},
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					FeatureKey:     feature.Feature.Key,
-					CostBasis:      &costBasisIntent,
-				}),
-			},
+					InvoiceAt: servicePeriod.To,
+					Price:     *price,
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				FeatureKey:     feature.Feature.Key,
+				CostBasis:      &costBasisIntent,
+			}),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -428,32 +426,30 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 	s.Run("given a collected invoice with gross fiat overage", func() {
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
-				charges.NewChargeIntent(usagebased.Intent{
-					Intent: meta.Intent{
-						ManagedBy:         billing.SubscriptionManagedLine,
-						UniqueReferenceID: lo.ToPtr("usage-based-fiat-overage-sync-retry"),
-						CustomerID:        customer.ID,
-						Currency:          customCurrency,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: defaults.InvoicingTaxCodeID,
-						},
+			Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+				Intent: meta.Intent{
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: lo.ToPtr("usage-based-fiat-overage-sync-retry"),
+					CustomerID:        customer.ID,
+					Currency:          customCurrency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaults.InvoicingTaxCodeID,
 					},
-					IntentMutableFields: usagebased.IntentMutableFields{
-						IntentMutableFields: meta.IntentMutableFields{
-							Name:              "usage-based-fiat-overage-sync-retry",
-							ServicePeriod:     servicePeriod,
-							FullServicePeriod: servicePeriod,
-							BillingPeriod:     servicePeriod,
-						},
-						InvoiceAt: invoiceAt,
-						Price:     *price,
+				},
+				IntentMutableFields: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "usage-based-fiat-overage-sync-retry",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
 					},
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					FeatureKey:     feature.Feature.Key,
-					CostBasis:      &costBasisIntent,
-				}),
-			},
+					InvoiceAt: invoiceAt,
+					Price:     *price,
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				FeatureKey:     feature.Feature.Key,
+				CostBasis:      &costBasisIntent,
+			}),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -842,32 +838,30 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		})
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
-				charges.NewChargeIntent(usagebased.Intent{
-					Intent: meta.Intent{
-						ManagedBy:         billing.SubscriptionManagedLine,
-						UniqueReferenceID: lo.ToPtr("usage-based-custom-currency-deletion"),
-						CustomerID:        customer.ID,
-						Currency:          customCurrency,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: defaults.InvoicingTaxCodeID,
-						},
+			Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+				Intent: meta.Intent{
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: lo.ToPtr("usage-based-custom-currency-deletion"),
+					CustomerID:        customer.ID,
+					Currency:          customCurrency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaults.InvoicingTaxCodeID,
 					},
-					IntentMutableFields: usagebased.IntentMutableFields{
-						IntentMutableFields: meta.IntentMutableFields{
-							Name:              "usage-based-custom-currency-deletion",
-							ServicePeriod:     servicePeriod,
-							FullServicePeriod: servicePeriod,
-							BillingPeriod:     servicePeriod,
-						},
-						InvoiceAt: invoiceAt,
-						Price:     *price,
+				},
+				IntentMutableFields: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "usage-based-custom-currency-deletion",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
 					},
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					FeatureKey:     feature.Feature.Key,
-					CostBasis:      &costBasisIntent,
-				}),
-			},
+					InvoiceAt: invoiceAt,
+					Price:     *price,
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				FeatureKey:     feature.Feature.Key,
+				CostBasis:      &costBasisIntent,
+			}),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -1423,32 +1417,30 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 
 				created, err := s.Charges.Create(ctx, charges.CreateInput{
 					Namespace: ns,
-					Intents: []charges.ChargeIntent{
-						charges.NewChargeIntent(usagebased.Intent{
-							Intent: meta.Intent{
-								ManagedBy:         billing.SubscriptionManagedLine,
-								UniqueReferenceID: lo.ToPtr("usage-based-custom-currency-lifecycle"),
-								CustomerID:        customer.ID,
-								Currency:          customCurrency,
-								TaxConfig: productcatalog.TaxCodeConfig{
-									TaxCodeID: defaults.InvoicingTaxCodeID,
-								},
+					Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+						Intent: meta.Intent{
+							ManagedBy:         billing.SubscriptionManagedLine,
+							UniqueReferenceID: lo.ToPtr("usage-based-custom-currency-lifecycle"),
+							CustomerID:        customer.ID,
+							Currency:          customCurrency,
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: defaults.InvoicingTaxCodeID,
 							},
-							IntentMutableFields: usagebased.IntentMutableFields{
-								IntentMutableFields: meta.IntentMutableFields{
-									Name:              "usage-based-custom-currency",
-									ServicePeriod:     servicePeriod,
-									FullServicePeriod: servicePeriod,
-									BillingPeriod:     servicePeriod,
-								},
-								InvoiceAt: servicePeriod.To,
-								Price:     *price,
+						},
+						IntentMutableFields: usagebased.IntentMutableFields{
+							IntentMutableFields: meta.IntentMutableFields{
+								Name:              "usage-based-custom-currency",
+								ServicePeriod:     servicePeriod,
+								FullServicePeriod: servicePeriod,
+								BillingPeriod:     servicePeriod,
 							},
-							SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-							FeatureKey:     feature.Feature.Key,
-							CostBasis:      &costBasisIntent,
-						}),
-					},
+							InvoiceAt: servicePeriod.To,
+							Price:     *price,
+						},
+						SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+						FeatureKey:     feature.Feature.Key,
+						CostBasis:      &costBasisIntent,
+					}),
 				})
 				s.Require().NoError(err)
 				s.Require().Len(created, 1)
@@ -1893,7 +1885,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		// - it starts in created status without realization runs
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
 					currency:          USD,
@@ -1905,7 +1897,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 					uniqueReferenceID: "usage-based-partial-invoice",
 					featureKey:        meterSlug,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2332,7 +2324,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		// - it starts in created status
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -2346,7 +2338,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 					uniqueReferenceID: "usage-based-partial-invoice-pending-blocks-final",
 					featureKey:        meterSlug,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)

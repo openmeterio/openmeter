@@ -37,6 +37,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -162,6 +163,330 @@ func (s *CreditThenInvoiceTestSuite) BeforeTest(suiteName, testName string) {
 
 	_, err = s.LedgerResolver.CreateCustomerAccounts(s.T().Context(), s.Customer.GetID())
 	s.NoError(err)
+}
+
+func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMeterlessUsageChargeWithValidationIssue() {
+	// given:
+	// - a credit-then-invoice subscription references a usage feature without a meter
+	// when:
+	// - subscription sync provisions the charge, collection is attempted, and the dependency is later repaired
+	// then:
+	// - sync preserves the unresolved charge and gathering line, invoice assignment gates it, and a later collection succeeds
+	ctx := s.testContext()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	meterlessFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: s.Namespace,
+		Name:      "Meterless usage feature",
+		Key:       "meterless-usage-feature",
+	})
+	s.Require().NoError(err)
+
+	// Given a credit-then-invoice subscription whose usage feature exists but has no meter.
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Meterless usage plan",
+				Key:            "meterless-usage-plan",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:     meterlessFeature.Key,
+								Name:    "Meterless usage",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(meterlessFeature.ID), lo.ToPtr(meterlessFeature.Key)),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromInt(1),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var chargeID chargesmeta.ChargeID
+	s.Run("subscription sync persists the unresolved charge", func() {
+		// when:
+		// - subscription sync provisions its first usage charge
+		err := s.Service.SyncByView(ctx, subsView, start.Add(time.Minute))
+
+		// then:
+		// - the invalid dependency does not block reconciliation
+		s.Require().NoError(err)
+		chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{subsView.Subscription.ID},
+			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(chargePage.Items, 1)
+
+		issues, err := chargePage.Items[0].GetValidationIssues()
+		s.Require().NoError(err)
+		s.Require().Len(issues, 1)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issues[0].Code)
+		s.Equal(billing.ValidationIssueSeverityCritical, issues[0].Severity)
+		s.Equal(billing.ValidationComponentProductCatalog, issues[0].Component)
+		s.Contains(issues[0].Message, meterlessFeature.Key)
+
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		lines := gatheringInvoice.Lines.OrEmpty()
+		s.Require().Len(lines, 1)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, lines[0].Engine)
+		s.Equal(meterlessFeature.Key, lines[0].FeatureKey)
+		chargeID, err = chargePage.Items[0].GetChargeID()
+		s.Require().NoError(err)
+		s.Equal(lo.ToPtr(chargeID.ID), lines[0].ChargeID)
+	})
+
+	collectionAt := start.AddDate(0, 1, 0).Add(time.Hour)
+	s.Run("invoice assignment gates the unresolved charge", func() {
+		// when:
+		// - billing attempts to collect the pending line
+		clock.FreezeTime(collectionAt)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+		}, billing.WithBypassCollectionAlignment())
+
+		// then:
+		// - the gathering line remains pending and no financial processing starts
+		s.Require().NoError(err)
+		s.Empty(invoices)
+		s.Require().Len(s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty(), 1)
+
+		chargeAfterCollection := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+		})
+		s.Equal(usagebased.StatusCreated, chargeAfterCollection.Status)
+		s.Nil(chargeAfterCollection.State.CurrentRealizationRunID)
+		s.Empty(chargeAfterCollection.State.FeatureID)
+		s.Empty(chargeAfterCollection.Realizations)
+		s.Require().Len(chargeAfterCollection.ValidationIssues, 1)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, chargeAfterCollection.ValidationIssues[0].Code)
+		s.Equal(billing.ValidationComponentProductCatalog, chargeAfterCollection.ValidationIssues[0].Component)
+	})
+
+	s.Run("repair allows invoice assignment", func() {
+		// when:
+		// - the feature is replaced with a metered feature and pending lines are collected again
+		s.Require().NotNil(s.APIRequestsTotalFeature.MeterID)
+		_, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+			Custom: lo.ToPtr(start.AddDate(0, 1, 0)),
+		})
+		s.Require().NoError(err)
+		s.Require().NoError(s.FeatureService.ArchiveFeature(ctx, models.NamespacedID{
+			Namespace: s.Namespace,
+			ID:        meterlessFeature.ID,
+		}))
+		repairedFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: s.Namespace,
+			Name:      meterlessFeature.Name,
+			Key:       meterlessFeature.Key,
+			MeterID:   s.APIRequestsTotalFeature.MeterID,
+		})
+		s.Require().NoError(err)
+		s.Require().NotNil(repairedFeature.MeterSlug)
+		s.MockStreamingConnector.AddSimpleEvent(*repairedFeature.MeterSlug, 0, start)
+
+		clock.FreezeTime(collectionAt.Add(time.Minute))
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+		}, billing.WithBypassCollectionAlignment())
+
+		// then:
+		// - collection creates one invoice-backed run, pins the repaired feature, and clears its issue
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.False(invoices[0].ValidationIssues.HasComponent(billing.ValidationComponentProductCatalog))
+
+		chargeAfterRepair := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+		})
+		s.Equal(repairedFeature.ID, chargeAfterRepair.State.FeatureID)
+		s.False(chargeAfterRepair.ValidationIssues.HasComponent(billing.ValidationComponentProductCatalog))
+		s.Require().Len(chargeAfterRepair.Realizations, 1)
+		s.Require().NotNil(chargeAfterRepair.Realizations[0].InvoiceID)
+		s.Equal(invoices[0].ID, *chargeAfterRepair.Realizations[0].InvoiceID)
+		s.Require().NotNil(chargeAfterRepair.Realizations[0].LineID)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+		s.Equal(invoices[0].Lines.OrEmpty()[0].ID, *chargeAfterRepair.Realizations[0].LineID)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMissingFeatureUsageChargeWithValidationIssue() {
+	// given:
+	// - a stale credit-then-invoice subscription view references a usage feature that no longer exists
+	// when:
+	// - subscription sync provisions the charge, collection is attempted, and the dependency is later created
+	// then:
+	// - sync preserves the unresolved charge and gathering line, invoice assignment gates it, and a later collection succeeds
+	ctx := s.testContext()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	const missingFeatureKey = "missing-usage-feature"
+	itemKey := s.APIRequestsTotalFeature.Key
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Missing usage feature plan",
+				Key:            "missing-usage-feature-plan",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:     itemKey,
+								Name:    "Missing usage feature",
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromInt(1),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	item := subsView.Phases[0].ItemsByKey[itemKey][0]
+	for _, rateCard := range []productcatalog.RateCard{item.Spec.RateCard, item.SubscriptionItem.RateCard} {
+		s.Require().NoError(rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+			meta.Key = missingFeatureKey
+			meta.Feature = productcatalog.NewFeatureReference(nil, lo.ToPtr(missingFeatureKey))
+
+			return meta, nil
+		}))
+	}
+	item.Feature = nil
+	subsView.Phases[0].ItemsByKey[itemKey][0] = item
+
+	var chargeID chargesmeta.ChargeID
+	s.Run("subscription sync persists the unresolved charge", func() {
+		// when:
+		// - subscription sync provisions its first usage charge from the stale view
+		err := s.Service.SyncByView(ctx, subsView, start.Add(time.Minute))
+
+		// then:
+		// - the missing feature does not block reconciliation
+		s.Require().NoError(err)
+		chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{subsView.Subscription.ID},
+			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(chargePage.Items, 1)
+
+		issues, err := chargePage.Items[0].GetValidationIssues()
+		s.Require().NoError(err)
+		s.Require().Len(issues, 1)
+		s.Equal(billing.ErrInvoiceLineFeatureNotFound.Code, issues[0].Code)
+		s.Equal(billing.ValidationIssueSeverityCritical, issues[0].Severity)
+		s.Equal(billing.ValidationComponentProductCatalog, issues[0].Component)
+		s.Contains(issues[0].Message, missingFeatureKey)
+
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		lines := gatheringInvoice.Lines.OrEmpty()
+		s.Require().Len(lines, 1)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, lines[0].Engine)
+		s.Equal(missingFeatureKey, lines[0].FeatureKey)
+		chargeID, err = chargePage.Items[0].GetChargeID()
+		s.Require().NoError(err)
+		s.Equal(lo.ToPtr(chargeID.ID), lines[0].ChargeID)
+	})
+
+	collectionAt := start.AddDate(0, 1, 0).Add(time.Hour)
+	s.Run("invoice assignment gates the unresolved charge", func() {
+		// when:
+		// - billing attempts to collect the pending line
+		clock.FreezeTime(collectionAt)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+		}, billing.WithBypassCollectionAlignment())
+
+		// then:
+		// - the gathering line remains pending and no financial processing starts
+		s.Require().NoError(err)
+		s.Empty(invoices)
+		s.Require().Len(s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty(), 1)
+
+		chargeAfterCollection := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+		})
+		s.Equal(usagebased.StatusCreated, chargeAfterCollection.Status)
+		s.Nil(chargeAfterCollection.State.CurrentRealizationRunID)
+		s.Empty(chargeAfterCollection.State.FeatureID)
+		s.Empty(chargeAfterCollection.Realizations)
+		s.Require().Len(chargeAfterCollection.ValidationIssues, 1)
+		s.Equal(billing.ErrInvoiceLineFeatureNotFound.Code, chargeAfterCollection.ValidationIssues[0].Code)
+		s.Equal(billing.ValidationComponentProductCatalog, chargeAfterCollection.ValidationIssues[0].Component)
+	})
+
+	s.Run("repair allows invoice assignment", func() {
+		// when:
+		// - the missing feature is created with a meter and pending lines are collected again
+		s.Require().NotNil(s.APIRequestsTotalFeature.MeterID)
+		repairedFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: s.Namespace,
+			Name:      "Repaired usage feature",
+			Key:       missingFeatureKey,
+			MeterID:   s.APIRequestsTotalFeature.MeterID,
+		})
+		s.Require().NoError(err)
+		s.Require().NotNil(repairedFeature.MeterSlug)
+		s.MockStreamingConnector.AddSimpleEvent(*repairedFeature.MeterSlug, 0, start)
+
+		clock.FreezeTime(collectionAt.Add(time.Minute))
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+		}, billing.WithBypassCollectionAlignment())
+
+		// then:
+		// - collection creates one invoice-backed run, pins the repaired feature, and clears its issue
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.False(invoices[0].ValidationIssues.HasComponent(billing.ValidationComponentProductCatalog))
+
+		chargeAfterRepair := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+		})
+		s.Equal(repairedFeature.ID, chargeAfterRepair.State.FeatureID)
+		s.False(chargeAfterRepair.ValidationIssues.HasComponent(billing.ValidationComponentProductCatalog))
+		s.Require().Len(chargeAfterRepair.Realizations, 1)
+		s.Require().NotNil(chargeAfterRepair.Realizations[0].InvoiceID)
+		s.Equal(invoices[0].ID, *chargeAfterRepair.Realizations[0].InvoiceID)
+		s.Require().NotNil(chargeAfterRepair.Realizations[0].LineID)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+		s.Equal(invoices[0].Lines.OrEmpty()[0].ID, *chargeAfterRepair.Realizations[0].LineID)
+	})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestCustomCurrencyPinnedCostBasisProvisioning() {
@@ -10840,25 +11165,23 @@ func (s *CreditThenInvoiceTestSuite) createPromotionalCreditFunding(ctx context.
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(creditpurchase.Intent{
-				Intent: chargesmeta.Intent{
-					ManagedBy:  billing.SystemManagedLine,
-					CustomerID: input.Customer.ID,
-					Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
+		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
+			Intent: chargesmeta.Intent{
+				ManagedBy:  billing.SystemManagedLine,
+				CustomerID: input.Customer.ID,
+				Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: chargesmeta.IntentMutableFields{
+					Name:              "Promotional Credit Purchase",
+					ServicePeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
+					FullServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
+					BillingPeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
 				},
-				IntentMutableFields: creditpurchase.IntentMutableFields{
-					IntentMutableFields: chargesmeta.IntentMutableFields{
-						Name:              "Promotional Credit Purchase",
-						ServicePeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
-						FullServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
-						BillingPeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
-					},
-					CreditAmount: input.Amount,
-					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-				},
-			}),
-		},
+				CreditAmount: input.Amount,
+				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			},
+		}),
 	})
 	s.NoError(err)
 	s.Require().Len(res, 1)

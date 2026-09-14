@@ -158,7 +158,7 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 
 	result, err := s.chargesService.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents:   charges.ChargeIntents{charges.NewChargeIntent(intent)},
+		Intents:   charges.NewCreateChargeIntents(intent),
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("create credit grant charge: %w", err)

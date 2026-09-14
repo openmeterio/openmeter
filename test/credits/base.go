@@ -939,7 +939,7 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer:       input.Customer,
 				Currency:       USD,
@@ -951,7 +951,7 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 				FeatureFilters: input.FeatureFilters,
 				TaxConfig:      input.TaxConfig,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)

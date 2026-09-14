@@ -911,32 +911,30 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyUsageCharge(ctx context
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(usagebased.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr(input.Name),
-					CustomerID:        input.Customer.ID,
-					Currency:          input.Currency,
-					TaxConfig:         input.TaxConfig,
+		Intents: charges.NewCreateChargeIntents(usagebased.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr(input.Name),
+				CustomerID:        input.Customer.ID,
+				Currency:          input.Currency,
+				TaxConfig:         input.TaxConfig,
+			},
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              input.Name,
+					ServicePeriod:     input.ServicePeriod,
+					FullServicePeriod: input.ServicePeriod,
+					BillingPeriod:     input.ServicePeriod,
 				},
-				IntentMutableFields: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              input.Name,
-						ServicePeriod:     input.ServicePeriod,
-						FullServicePeriod: input.ServicePeriod,
-						BillingPeriod:     input.ServicePeriod,
-					},
-					InvoiceAt: input.ServicePeriod.To,
-					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: input.UnitPrice,
-					}),
-				},
-				SettlementMode: input.SettlementMode,
-				FeatureKey:     input.FeatureKey,
-				CostBasis:      input.CostBasis,
-			}),
-		},
+				InvoiceAt: input.ServicePeriod.To,
+				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: input.UnitPrice,
+				}),
+			},
+			SettlementMode: input.SettlementMode,
+			FeatureKey:     input.FeatureKey,
+			CostBasis:      input.CostBasis,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -1010,31 +1008,29 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyFlatFeeCharge(ctx conte
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(flatfee.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr(input.Name),
-					CustomerID:        input.Customer.ID,
-					Currency:          input.Currency,
-					TaxConfig:         input.TaxConfig,
+		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr(input.Name),
+				CustomerID:        input.Customer.ID,
+				Currency:          input.Currency,
+				TaxConfig:         input.TaxConfig,
+			},
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              input.Name,
+					ServicePeriod:     input.ServicePeriod,
+					FullServicePeriod: input.ServicePeriod,
+					BillingPeriod:     input.ServicePeriod,
 				},
-				IntentMutableFields: flatfee.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              input.Name,
-						ServicePeriod:     input.ServicePeriod,
-						FullServicePeriod: input.ServicePeriod,
-						BillingPeriod:     input.ServicePeriod,
-					},
-					InvoiceAt:             input.InvoiceAt,
-					PaymentTerm:           input.PaymentTerm,
-					AmountBeforeProration: input.Amount,
-				},
-				SettlementMode: input.SettlementMode,
-				FeatureKey:     input.FeatureKey,
-				CostBasis:      input.CostBasis,
-			}),
-		},
+				InvoiceAt:             input.InvoiceAt,
+				PaymentTerm:           input.PaymentTerm,
+				AmountBeforeProration: input.Amount,
+			},
+			SettlementMode: input.SettlementMode,
+			FeatureKey:     input.FeatureKey,
+			CostBasis:      input.CostBasis,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -1102,30 +1098,28 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyCreditPurchase(ctx cont
 	servicePeriod := timeutil.ClosedPeriod{From: input.At, To: input.At}
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
-			charges.NewChargeIntent(creditpurchase.Intent{
-				Intent: meta.Intent{
-					ManagedBy:  billing.ManuallyManagedLine,
-					CustomerID: input.Customer.ID,
-					Currency:   input.Currency,
-					TaxConfig:  input.TaxConfig,
+		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
+			Intent: meta.Intent{
+				ManagedBy:  billing.ManuallyManagedLine,
+				CustomerID: input.Customer.ID,
+				Currency:   input.Currency,
+				TaxConfig:  input.TaxConfig,
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              input.Name,
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				IntentMutableFields: creditpurchase.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              input.Name,
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					CreditAmount:   input.Amount,
-					EffectiveAt:    &input.At,
-					Priority:       input.Priority,
-					FeatureFilters: input.FeatureFilters,
-					Settlement:     input.Settlement,
-				},
-				CostBasis: input.CostBasis,
-			}),
-		},
+				CreditAmount:   input.Amount,
+				EffectiveAt:    &input.At,
+				Priority:       input.Priority,
+				FeatureFilters: input.FeatureFilters,
+				Settlement:     input.Settlement,
+			},
+			CostBasis: input.CostBasis,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -1179,7 +1173,7 @@ func (s *CustomCurrencyCreditsSuite) createSettledFiatCreditPurchase(ctx context
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer:      input.Customer,
 				Currency:      USD,
@@ -1194,7 +1188,7 @@ func (s *CustomCurrencyCreditsSuite) createSettledFiatCreditPurchase(ctx context
 				FeatureFilters: input.FeatureFilters,
 				TaxConfig:      input.TaxConfig,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)

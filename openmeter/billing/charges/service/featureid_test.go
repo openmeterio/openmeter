@@ -85,7 +85,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndM
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -113,7 +113,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndM
 				uniqueReferenceID: "usage-based",
 				featureKey:        usageFeature.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 2)
@@ -165,7 +165,7 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -179,7 +179,7 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 				uniqueReferenceID: "usage-based-versioned",
 				featureKey:        featureKey,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 1)
@@ -445,7 +445,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -460,7 +460,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 				uniqueReferenceID: "flat-fee-missing-feature",
 				featureKey:        "this-feature-does-not-exist",
 			}),
-		},
+		),
 	})
 
 	s.Require().Error(err)
@@ -497,7 +497,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -510,7 +510,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 				managedBy:  billing.ManuallyManagedLine,
 				featureKey: "this-usage-feature-does-not-exist",
 			}),
-		},
+		),
 	})
 
 	s.Require().Error(err)
@@ -553,7 +553,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -578,7 +578,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 				managedBy:  billing.ManuallyManagedLine,
 				featureKey: meterlessFeature.Key,
 			}),
-		},
+		),
 	})
 
 	s.Require().Error(err)
@@ -620,7 +620,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidati
 	// - both charges are created in one request
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -645,7 +645,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidati
 				managedBy:  billing.ManuallyManagedLine,
 				featureKey: meterlessFeature.Key,
 			}),
-		},
+		),
 	})
 
 	// then:

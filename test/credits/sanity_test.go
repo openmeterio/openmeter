@@ -333,7 +333,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfi
 	)
 	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
 		Namespace: setup.namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       customerID,
 				Currency:       USD,
@@ -347,7 +347,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfi
 				UniqueReferenceID: "expiring-credit-breakage-advance-usage",
 				FeatureKey:        setup.featureKey,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(chargeRes, 1)
@@ -442,7 +442,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnU
 	)
 	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
 		Namespace: setup.namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       customerID,
 				Currency:       USD,
@@ -456,7 +456,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnU
 				UniqueReferenceID: "expiring-credit-breakage-advance-correction-usage",
 				FeatureKey:        setup.featureKey,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(chargeRes, 1)
@@ -1526,7 +1526,7 @@ func (s *SanitySuite) createAndAdvanceCreditOnlyFlatFeeCharge(input createCredit
 
 	res, err := s.Charges.Create(input.ctx, charges.CreateInput{
 		Namespace: input.namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       input.customer,
 				Currency:       USD,
@@ -1541,7 +1541,7 @@ func (s *SanitySuite) createAndAdvanceCreditOnlyFlatFeeCharge(input createCredit
 				UniqueReferenceID: input.name,
 				FeatureKey:        input.featureKey,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(res, 1)
@@ -1572,7 +1572,7 @@ func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input Cr
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer:       input.Customer,
 				Currency:       USD,
@@ -1583,7 +1583,7 @@ func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input Cr
 				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 				FeatureFilters: input.FeatureFilters,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(res, 1)
@@ -1792,7 +1792,7 @@ func (s *SanitySuite) createFinalizedUsageBasedCreditOnlyCharge(setup creditOnly
 
 	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
 		Namespace: setup.namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       setup.customer.GetID(),
 				Currency:       USD,
@@ -1806,7 +1806,7 @@ func (s *SanitySuite) createFinalizedUsageBasedCreditOnlyCharge(setup creditOnly
 				UniqueReferenceID: setup.namespace,
 				FeatureKey:        setup.featureKey,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -1970,7 +1970,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -1984,7 +1984,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 				UniqueReferenceID: "usage-based-credit-only-delete-partial-backfill",
 				FeatureKey:        apiRequestsTotal.Feature.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -2034,9 +2034,9 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	// When a later external credit purchase backfills part of that earlier advance-backed usage.
 	creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			creditPurchaseIntent,
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(creditPurchaseRes, 1)
@@ -2157,7 +2157,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -2184,7 +2184,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 				UniqueReferenceID: "usage-based-credit-only-delete-mixed-feature-storage",
 				FeatureKey:        storageFeature.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 2)
@@ -2212,7 +2212,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	// When feature-A restricted purchased credit is granted after the advances.
 	creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
 				Currency: USD,
@@ -2227,7 +2227,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 				CostBasis:      newFiatCreditPurchaseCostBasis(costBasis),
 				FeatureFilters: creditpurchase.FeatureFilters{apiRequestsFeature.Key},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(creditPurchaseRes, 1)
@@ -2402,9 +2402,9 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				intent,
-			},
+			),
 		})
 		s.NoError(err)
 
@@ -2500,7 +2500,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 	s.Run("create new upcoming charge for flat fee", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2514,7 +2514,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: flatFeeName,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 
@@ -2886,7 +2886,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2900,7 +2900,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 					UniqueReferenceID: "usage-based-credit-then-invoice-payment-lifecycle",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3177,9 +3177,9 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				intent,
-			},
+			),
 		})
 		s.NoError(err)
 
@@ -3262,7 +3262,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 	s.Run("create new upcoming charge for flat fee", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3276,7 +3276,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: flatFeeName,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 
@@ -3425,9 +3425,9 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				intent,
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3593,7 +3593,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	} {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3611,7 +3611,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 						Behavior:  lo.ToPtr(input.behavior),
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3647,7 +3647,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	clock.FreezeTime(purchaseAt)
 	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
 				Currency: USD,
@@ -3665,7 +3665,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(purchaseRes, 1)
@@ -3773,7 +3773,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 	} {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3788,7 +3788,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: input.name,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3823,7 +3823,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 	clock.FreezeTime(purchaseAt)
 	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
 				Currency: USD,
@@ -3837,7 +3837,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 				}),
 				CostBasis: newFiatCreditPurchaseCostBasis(purchaseCostBasis),
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(purchaseRes, 1)
@@ -3915,7 +3915,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	// - a charge is created before tax-configured credit is available
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -3930,7 +3930,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 				UniqueReferenceID: "flatfee-credit-taxconfig-earnings",
 				TaxConfig:         taxConfig,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 1)
@@ -4041,7 +4041,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsThroughCreditBac
 	// - a tax-configured flat-fee charge has partial promotional-credit coverage
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -4056,7 +4056,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsThroughCreditBac
 				UniqueReferenceID: "flatfee-invoice-taxconfig-earnings",
 				TaxConfig:         taxConfig,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 1)
@@ -4189,7 +4189,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	// - a usage-based charge is created before credit funding and meter realization
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -4204,7 +4204,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 				FeatureKey:        apiRequestsTotal.Feature.Key,
 				TaxConfig:         taxConfig,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 1)
@@ -4337,7 +4337,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsThroughCredit
 	)
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -4352,7 +4352,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsThroughCredit
 				FeatureKey:        apiRequestsTotal.Feature.Key,
 				TaxConfig:         taxConfig,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(createdCharges, 1)
@@ -4556,7 +4556,7 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 	s.Run("create and advance flat fee credit-only charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4574,7 +4574,7 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4683,7 +4683,7 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 	s.Run("create and advance flat-fee credit-only charge with matching TaxConfig on intent", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4701,7 +4701,7 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					}, // tax on the charge intent
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4776,7 +4776,7 @@ func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -4794,7 +4794,7 @@ func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 				},
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -4888,7 +4888,7 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 	s.Run("create and advance flat-fee credit-only charge with TaxConfig=B (different from funding)", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4906,7 +4906,7 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -5003,7 +5003,7 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -5021,7 +5021,7 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)

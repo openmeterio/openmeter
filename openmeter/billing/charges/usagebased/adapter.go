@@ -31,7 +31,7 @@ type ChargeCostBasisAdapter interface {
 }
 
 type ChargeAdapter interface {
-	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
+	CreateCharges(ctx context.Context, charges CreateChargesAdapterInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	UpdateChargeValidationIssues(ctx context.Context, input UpdateChargeValidationIssuesInput) error
 	CreateChargeOverride(ctx context.Context, charge ChargeBase, override IntentMutableFields) (ChargeBase, error)
@@ -40,6 +40,51 @@ type ChargeAdapter interface {
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
+}
+
+type CreateIntentAdapterInput struct {
+	Intent      OverridableIntent
+	Annotations models.Annotations `json:"annotations"`
+
+	FeatureID         string
+	RatingEngine      RatingEngine
+	ResolvedCostBasis *costbasis.State
+	ValidationIssues  billing.ValidationIssues
+}
+
+func (i CreateIntentAdapterInput) Validate() error {
+	var errs []error
+
+	if err := i.Intent.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.RatingEngine.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("rating engine: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type CreateChargesAdapterInput struct {
+	Namespace string
+	Intents   []CreateIntentAdapterInput
+}
+
+func (i CreateChargesAdapterInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	for idx, intent := range i.Intents {
+		if err := intent.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("intent [%d]: %w", idx, err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type UpdateChargeValidationIssuesInput struct {

@@ -84,7 +84,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 		// - billing has one active gathering line for the charge and the ledger remains unchanged
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -98,7 +98,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 					UniqueReferenceID: "usage-based-credit-then-invoice-delete-gathering",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -188,7 +188,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		// - the gathering line is owned by the usage-based charge line engine and is ready for later collection
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -202,7 +202,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 					UniqueReferenceID: "usage-based-missing-meter-collection",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Require().Len(created, 1)
@@ -348,7 +348,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -362,7 +362,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 					UniqueReferenceID: "usage-based-waiting-for-collection-missing-meter",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Require().Len(created, 1)
@@ -511,7 +511,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 	// - both features resolve to a meter when the charges are created
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -538,7 +538,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 				UniqueReferenceID: "missing-meter-ai-tokens",
 				FeatureKey:        aiTokens.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(created, 2)
@@ -626,7 +626,7 @@ func (s *CreditThenInvoiceTestSuite) TestAdvanceChargesIgnoresMissingMetersForUs
 	// - two usage charges are active and are not due until the end of their service period
 	usageCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -653,7 +653,7 @@ func (s *CreditThenInvoiceTestSuite) TestAdvanceChargesIgnoresMissingMetersForUs
 				UniqueReferenceID: "not-due-ai-tokens",
 				FeatureKey:        aiTokens.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(usageCharges, 2)
@@ -671,7 +671,7 @@ func (s *CreditThenInvoiceTestSuite) TestAdvanceChargesIgnoresMissingMetersForUs
 	// - an unrelated credit-then-invoice flat fee for the customer becomes due first
 	flatFeeCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -685,7 +685,7 @@ func (s *CreditThenInvoiceTestSuite) TestAdvanceChargesIgnoresMissingMetersForUs
 				ManagedBy:         billing.SubscriptionManagedLine,
 				UniqueReferenceID: "due-platform-fee",
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(flatFeeCharges, 1)
@@ -763,7 +763,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		// - the charge is ready for a partial realization during its service period
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -777,7 +777,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 					UniqueReferenceID: "usage-based-active-run-collection",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Require().Len(created, 1)
@@ -940,7 +940,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -954,7 +954,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 					UniqueReferenceID: "usage-based-credit-then-invoice-delete-standard",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -1131,7 +1131,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchK
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -1145,7 +1145,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchK
 					UniqueReferenceID: "usage-based-credit-then-invoice-delete-immutable",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -1299,7 +1299,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceCreatePatchCrea
 		// - one created flat fee charge and one pending gathering line are created
 		err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 			CustomerID: cust.GetID(),
-			Creates: charges.ChargeIntents{
+			Creates: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -1313,7 +1313,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceCreatePatchCrea
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-create",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 
@@ -1419,7 +1419,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 		// - billing has one active gathering line for the charge and the ledger remains unchanged
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -1433,7 +1433,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-delete-gathering",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -1536,7 +1536,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -1550,7 +1550,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-delete-standard",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -1716,7 +1716,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -1730,7 +1730,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchDele
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-delete-standard-partial",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -1885,7 +1885,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchKeep
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -1899,7 +1899,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeletePatchKeep
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-delete-immutable",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2066,7 +2066,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2080,7 +2080,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-partial-payment",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2345,7 +2345,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDirectPaidTrigg
 		// - the invoice waits for payment processing
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2359,7 +2359,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDirectPaidTrigg
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-direct-paid",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2471,7 +2471,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedPa
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2485,7 +2485,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedPa
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-no-fiat-payment-callback",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2589,7 +2589,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountFinal
 		// - the persisted amount is zero, no gathering line exists, and no ledger booking exists
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2607,7 +2607,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountFinal
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2714,7 +2714,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// - the charge is created and billing has one active gathering line
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 					Customer: cust.GetID(),
 					Currency: USD,
@@ -2728,7 +2728,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 					}),
 					CostBasis: newFiatCreditPurchaseCostBasis(creditCostBasis),
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2739,7 +2739,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 
 		res, err = s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2757,7 +2757,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -2971,7 +2971,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 		// - the line is immutable and the current run has invoice usage plus authorized payment
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -2985,7 +2985,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteImmutable
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-delete-immutable-payment",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3115,7 +3115,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		// - the current run has accrued invoice usage and no payment
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3133,7 +3133,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3315,7 +3315,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		// - it starts as created and the pending gathering line invoices at service period end
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3329,7 +3329,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-in-arrears",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3467,7 +3467,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 		// - the charge becomes active but no standard invoice exists yet
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3481,7 +3481,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flatfee-credit-then-invoice-delete-active",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3567,7 +3567,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		// - billing has one active gathering line for the charge and the ledger remains unchanged
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3585,7 +3585,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3712,7 +3712,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 		// - the current run is mutable and attached to the draft standard line
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3730,7 +3730,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3877,7 +3877,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchCorr
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -3895,7 +3895,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchCorr
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4049,7 +4049,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4067,7 +4067,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4256,7 +4256,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchU
 		// - billing has one active gathering line for the charge and the ledger remains unchanged
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4270,7 +4270,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchU
 					UniqueReferenceID: "usage-based-credit-then-invoice-extend-gathering",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4371,7 +4371,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchU
 		// - billing has one active gathering line for the charge and the ledger remains unchanged
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4385,7 +4385,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchU
 					UniqueReferenceID: "usage-based-credit-then-invoice-shrink-gathering",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4503,7 +4503,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4517,7 +4517,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 					UniqueReferenceID: "usage-based-credit-then-invoice-extend-mutable-standard",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4689,7 +4689,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4703,7 +4703,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 					UniqueReferenceID: "usage-based-credit-then-invoice-shrink-mutable-standard",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4879,7 +4879,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchA
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -4893,7 +4893,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchA
 					UniqueReferenceID: "usage-based-credit-then-invoice-shrink-immutable",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -5136,7 +5136,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -5150,7 +5150,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 					UniqueReferenceID: "usage-based-credit-then-invoice-extend-final-collection",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -5358,7 +5358,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchA
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -5372,7 +5372,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchA
 					UniqueReferenceID: "usage-based-credit-then-invoice-extend-immutable",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -5574,7 +5574,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -5588,7 +5588,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 					UniqueReferenceID: "usage-based-credit-then-invoice-shrink-extend-shrink",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -5937,7 +5937,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchF
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -5951,7 +5951,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchF
 					UniqueReferenceID: "usage-based-credit-then-invoice-extend-tail",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)

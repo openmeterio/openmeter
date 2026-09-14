@@ -39,7 +39,7 @@ func newChargePatchCollection(engineType billing.LineEngineType, itemType persis
 		itemType:   itemType,
 		patches: charges.ApplyPatchesInput{
 			PatchesByChargeID: make(map[string]charges.Patch, preallocatedCapacity),
-			Creates:           make(charges.ChargeIntents, 0, preallocatedCapacity),
+			Creates:           make(charges.CreateChargeIntents, 0, preallocatedCapacity),
 		},
 	}
 }
@@ -56,7 +56,7 @@ func (c chargePatchCollection) Patches() charges.ApplyPatchesInput {
 	return c.patches
 }
 
-func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
+func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent, options chargesmeta.CreateOptions) error {
 	// Full intent validation is intentionally delayed until charges.Service.ApplyPatches,
 	// after namespace default tax codes are applied to create intents.
 	uniqueReferenceID, err := intent.GetUniqueReferenceID()
@@ -68,7 +68,10 @@ func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
 		return fmt.Errorf("unique reference ID is required")
 	}
 
-	c.patches.Creates = append(c.patches.Creates, intent)
+	c.patches.Creates = append(c.patches.Creates, charges.CreateChargeIntent{
+		ChargeIntent: intent,
+		Options:      options,
+	})
 	return nil
 }
 
@@ -118,7 +121,7 @@ func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.Ap
 	}
 
 	for _, intent := range patches.Creates {
-		log.InfoContext(ctx, "creating charge", "intent", intent)
+		log.InfoContext(ctx, "creating charge", "intent", intent.ChargeIntent)
 	}
 }
 

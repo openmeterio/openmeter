@@ -180,7 +180,7 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       currencyx.Code(currency.USD),
@@ -193,7 +193,7 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 				name:      "flat-fee-lineage",
 				managedBy: billing.ManuallyManagedLine,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -257,7 +257,7 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       currencyx.Code(currency.USD),
@@ -270,7 +270,7 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 				managedBy:  billing.ManuallyManagedLine,
 				featureKey: meterSlug,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)

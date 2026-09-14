@@ -517,8 +517,8 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 
 	createdCharges, err := e.usageBasedService.Create(t.Context(), usagebased.CreateInput{
 		Namespace: e.Namespace,
-		Intents: []usagebased.Intent{
-			{
+		Intents: usagebased.NewCreateIntents(
+			usagebased.Intent{
 				Intent: chargemeta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
@@ -540,7 +540,7 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 				FeatureKey:     testFeatureKey,
 				SettlementMode: settlementMode,
 			},
-		},
+		),
 	})
 	require.NoError(t, err)
 	require.Len(t, createdCharges, 1)

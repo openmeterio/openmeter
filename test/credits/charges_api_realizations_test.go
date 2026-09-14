@@ -153,7 +153,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedRealizationsWireShapeAcrossLi
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -167,7 +167,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedRealizationsWireShapeAcrossLi
 					UniqueReferenceID: "usage-based-api-realizations-wire",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)

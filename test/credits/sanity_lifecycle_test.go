@@ -164,7 +164,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	)
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
 				Currency:          USD,
@@ -176,7 +176,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 				UniqueReferenceID: "usage-based-charge-a",
 				FeatureKey:        meterSlug,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -209,7 +209,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	})
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
 				Currency:          USD,
@@ -221,7 +221,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 				UniqueReferenceID: "usage-based-charge-b",
 				FeatureKey:        meterSlug,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -251,7 +251,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	// When the customer buys 25 credits at cost basis 0.5, it backfills the older uncovered usage first.
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
 				Currency: USD,
@@ -265,7 +265,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 				}),
 				CostBasis: newFiatCreditPurchaseCostBasis(costBasis1),
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -317,7 +317,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	clock.FreezeTime(chargeBFinalizeAt.Add(time.Minute))
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
 				Currency: USD,
@@ -331,7 +331,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 				}),
 				CostBasis: newFiatCreditPurchaseCostBasis(costBasis2),
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -464,7 +464,7 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 	// When creating a credit-only usage-based charge with a tiered price.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
 				Currency:          USD,
@@ -476,7 +476,7 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 				UniqueReferenceID: namespacePrefix,
 				FeatureKey:        meterSlug,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -517,7 +517,7 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 	// Given a later external credit purchase partially backfills that earlier advance-backed usage.
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
 				Currency: USD,
@@ -531,7 +531,7 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 				}),
 				CostBasis: newFiatCreditPurchaseCostBasis(costBasis),
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)

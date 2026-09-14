@@ -183,14 +183,14 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			period := timeutil.ClosedPeriod{From: setupAt, To: setupAt}
 			grants, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
 				Namespace: namespace,
-				Intents: charges.ChargeIntents{charges.NewChargeIntent(creditpurchase.Intent{
+				Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 					Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: customer.ID, Currency: customCurrency},
 					IntentMutableFields: creditpurchase.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{Name: "Initial custom credits", ServicePeriod: period, FullServicePeriod: period, BillingPeriod: period},
 						CreditAmount:        decimal.NewFromInt(2), EffectiveAt: &setupAt,
 						Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 					},
-				})},
+				}),
 			})
 			require.NoError(t, err)
 			require.Len(t, grants, 1)
@@ -314,7 +314,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				require.NoError(t, err)
 				purchases, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
 					Namespace: namespace,
-					Intents: charges.ChargeIntents{charges.NewChargeIntent(creditpurchase.Intent{
+					Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 						Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: customer.ID, Currency: customCurrency},
 						IntentMutableFields: creditpurchase.IntentMutableFields{
 							IntentMutableFields: chargesmeta.IntentMutableFields{Name: "Advance backfill", ServicePeriod: period, FullServicePeriod: period, BillingPeriod: period},
@@ -322,7 +322,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 							Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus}),
 						},
 						CostBasis: creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: fiat, Rate: decimal.NewFromFloat(0.5)})),
-					})},
+					}),
 				})
 				require.NoError(t, err)
 				require.Len(t, purchases, 1)

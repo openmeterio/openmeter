@@ -85,7 +85,9 @@ lines are projections of charge state and are deliberately excluded from the
 subscription-sync invoice read model. A customer-facing charge override also
 does not erase the subscription-owned base intent: later subscription changes
 continue to reconcile that base without resurrecting the overridden effective
-charge.
+charge. Credit-then-invoice usage reconciliation may preserve a missing feature
+or meter as a product-catalog issue on a newly created charge; invoice assignment
+keeps its gathering line pending until the dependency is repaired.
 
 ## Deletion, cancellation, and retries
 

@@ -588,7 +588,7 @@ func (e *LineEngine) createManualInvoiceLines(ctx context.Context, input billing
 	intents := lo.Map(created, func(line manualCreatedInvoiceLine, _ int) usagebased.Intent { return line.intent })
 	createdCharges, err := e.service.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
-		Intents:   intents,
+		Intents:   usagebased.NewCreateIntents(intents...),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating manually managed usage-based charges: %w", err)

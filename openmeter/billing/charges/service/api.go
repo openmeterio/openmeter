@@ -69,7 +69,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 
 	created, err := s.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
-		Intents:   charges.ChargeIntents{chargeIntent},
+		Intents:   charges.NewCreateChargeIntents(chargeIntent),
 	})
 	if err != nil {
 		return charges.CustomerCharge{}, err

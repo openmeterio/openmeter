@@ -511,9 +511,9 @@ func (s *BaseSuite) grantPromotionalCredits(ctx context.Context, customerID cust
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: customerID.Namespace,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			intent,
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)

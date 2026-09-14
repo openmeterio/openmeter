@@ -476,42 +476,6 @@ func (i ChargeIntent) TaxCodeID() (string, error) {
 	return "", fmt.Errorf("unsupported charge type: %s", i.t)
 }
 
-// WithTaxCodeID returns a copy of the intent with TaxCodeID set to id.
-// Existing tax behavior and other intent fields are preserved.
-func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
-	switch i.t {
-	case meta.ChargeTypeFlatFee:
-		if i.flatFee == nil {
-			return ChargeIntent{}, fmt.Errorf("flat fee is nil")
-		}
-
-		intent := *i.flatFee
-		intent.TaxConfig.TaxCodeID = id
-
-		return NewChargeIntent(intent), nil
-	case meta.ChargeTypeUsageBased:
-		if i.usageBased == nil {
-			return ChargeIntent{}, fmt.Errorf("usage based is nil")
-		}
-
-		intent := *i.usageBased
-		intent.TaxConfig.TaxCodeID = id
-
-		return NewChargeIntent(intent), nil
-	case meta.ChargeTypeCreditPurchase:
-		if i.creditPurchase == nil {
-			return ChargeIntent{}, fmt.Errorf("credit purchase is nil")
-		}
-
-		intent := *i.creditPurchase
-		intent.TaxConfig.TaxCodeID = id
-
-		return NewChargeIntent(intent), nil
-	}
-
-	return ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", i.t)
-}
-
 type ChargeIntents []ChargeIntent
 
 func (i ChargeIntents) Validate() error {
