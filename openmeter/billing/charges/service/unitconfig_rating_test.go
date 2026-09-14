@@ -155,7 +155,7 @@ func (s *BaseSuite) invoiceUnitConfigChargesScenario() ([]billing.StandardInvoic
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
 				currency:          USD,
@@ -168,7 +168,7 @@ func (s *BaseSuite) invoiceUnitConfigChargesScenario() ([]billing.StandardInvoic
 				uniqueReferenceID: "usage-based-unit-config",
 				featureKey:        meterSlug,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(res, 1)

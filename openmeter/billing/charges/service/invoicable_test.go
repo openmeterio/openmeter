@@ -136,7 +136,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -150,7 +150,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "flat-fee-gathering-preview",
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(created, 1)
@@ -373,32 +373,30 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 
 				created, err := s.Charges.Create(ctx, charges.CreateInput{
 					Namespace: ns,
-					Intents: []charges.ChargeIntent{
-						charges.NewChargeIntent(flatfee.Intent{
-							Intent: meta.Intent{
-								ManagedBy:         billing.SubscriptionManagedLine,
-								UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-lifecycle"),
-								CustomerID:        customer.ID,
-								Currency:          customCurrency,
-								TaxConfig: productcatalog.TaxCodeConfig{
-									TaxCodeID: defaults.InvoicingTaxCodeID,
-								},
+					Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+						Intent: meta.Intent{
+							ManagedBy:         billing.SubscriptionManagedLine,
+							UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-lifecycle"),
+							CustomerID:        customer.ID,
+							Currency:          customCurrency,
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: defaults.InvoicingTaxCodeID,
 							},
-							IntentMutableFields: flatfee.IntentMutableFields{
-								IntentMutableFields: meta.IntentMutableFields{
-									Name:              chargeName,
-									ServicePeriod:     servicePeriod,
-									FullServicePeriod: servicePeriod,
-									BillingPeriod:     servicePeriod,
-								},
-								InvoiceAt:             servicePeriod.To,
-								PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-								AmountBeforeProration: alpacadecimal.NewFromFloat(test.chargeAmount),
+						},
+						IntentMutableFields: flatfee.IntentMutableFields{
+							IntentMutableFields: meta.IntentMutableFields{
+								Name:              chargeName,
+								ServicePeriod:     servicePeriod,
+								FullServicePeriod: servicePeriod,
+								BillingPeriod:     servicePeriod,
 							},
-							SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-							CostBasis:      &costBasisIntent,
-						}),
-					},
+							InvoiceAt:             servicePeriod.To,
+							PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+							AmountBeforeProration: alpacadecimal.NewFromFloat(test.chargeAmount),
+						},
+						SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+						CostBasis:      &costBasisIntent,
+					}),
 				})
 				s.Require().NoError(err)
 				s.Require().Len(created, 1)
@@ -896,32 +894,30 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 	s.Run("given a draft invoice with gross fiat overage", func() {
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
-				charges.NewChargeIntent(flatfee.Intent{
-					Intent: meta.Intent{
-						ManagedBy:         billing.SubscriptionManagedLine,
-						UniqueReferenceID: lo.ToPtr("flat-fee-fiat-overage-sync-retry"),
-						CustomerID:        customer.ID,
-						Currency:          customCurrency,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: defaults.InvoicingTaxCodeID,
-						},
+			Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+				Intent: meta.Intent{
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: lo.ToPtr("flat-fee-fiat-overage-sync-retry"),
+					CustomerID:        customer.ID,
+					Currency:          customCurrency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaults.InvoicingTaxCodeID,
 					},
-					IntentMutableFields: flatfee.IntentMutableFields{
-						IntentMutableFields: meta.IntentMutableFields{
-							Name:              "flat-fee-fiat-overage-sync-retry",
-							ServicePeriod:     servicePeriod,
-							FullServicePeriod: servicePeriod,
-							BillingPeriod:     servicePeriod,
-						},
-						InvoiceAt:             invoiceAt,
-						PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-						AmountBeforeProration: alpacadecimal.NewFromInt(12),
+				},
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "flat-fee-fiat-overage-sync-retry",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
 					},
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					CostBasis:      &costBasisIntent,
-				}),
-			},
+					InvoiceAt:             invoiceAt,
+					PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+					AmountBeforeProration: alpacadecimal.NewFromInt(12),
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				CostBasis:      &costBasisIntent,
+			}),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -1299,22 +1295,20 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceR
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
-			charges.NewChargeIntent(flatfee.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-rerating"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-rerating"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: mutableFields,
-				SettlementMode:      productcatalog.CreditThenInvoiceSettlementMode,
-				CostBasis:           &costBasisIntent,
-			}),
-		},
+			},
+			IntentMutableFields: mutableFields,
+			SettlementMode:      productcatalog.CreditThenInvoiceSettlementMode,
+			CostBasis:           &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -1510,32 +1504,30 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceM
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
-			charges.NewChargeIntent(flatfee.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-deletion"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-deletion"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: flatfee.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "flat-fee-custom-currency-deletion",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt:             servicePeriod.To,
-					PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "flat-fee-custom-currency-deletion",
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				CostBasis:      &costBasisIntent,
-			}),
-		},
+				InvoiceAt:             servicePeriod.To,
+				PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+				AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			CostBasis:      &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -1730,32 +1722,30 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
-			charges.NewChargeIntent(flatfee.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-managed-lines"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-managed-lines"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: flatfee.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              chargeName,
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt:             servicePeriod.To,
-					PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              chargeName,
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				CostBasis:      &costBasisIntent,
-			}),
-		},
+				InvoiceAt:             servicePeriod.To,
+				PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+				AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			CostBasis:      &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -2075,32 +2065,30 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 			})
 			created, err := s.Charges.Create(ctx, charges.CreateInput{
 				Namespace: ns,
-				Intents: []charges.ChargeIntent{
-					charges.NewChargeIntent(flatfee.Intent{
-						Intent: meta.Intent{
-							ManagedBy:         billing.SubscriptionManagedLine,
-							UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-invalid-accrual"),
-							CustomerID:        customer.ID,
-							Currency:          customCurrency,
-							TaxConfig: productcatalog.TaxCodeConfig{
-								TaxCodeID: defaults.InvoicingTaxCodeID,
-							},
+				Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+					Intent: meta.Intent{
+						ManagedBy:         billing.SubscriptionManagedLine,
+						UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-invalid-accrual"),
+						CustomerID:        customer.ID,
+						Currency:          customCurrency,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: defaults.InvoicingTaxCodeID,
 						},
-						IntentMutableFields: flatfee.IntentMutableFields{
-							IntentMutableFields: meta.IntentMutableFields{
-								Name:              "flat-fee-custom-currency",
-								ServicePeriod:     servicePeriod,
-								FullServicePeriod: servicePeriod,
-								BillingPeriod:     servicePeriod,
-							},
-							InvoiceAt:             servicePeriod.To,
-							PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-							AmountBeforeProration: alpacadecimal.NewFromInt(10),
+					},
+					IntentMutableFields: flatfee.IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "flat-fee-custom-currency",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
 						},
-						SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-						CostBasis:      &costBasisIntent,
-					}),
-				},
+						InvoiceAt:             servicePeriod.To,
+						PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+						AmountBeforeProration: alpacadecimal.NewFromInt(10),
+					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					CostBasis:      &costBasisIntent,
+				}),
 			})
 			s.Require().NoError(err)
 			s.Require().Len(created, 1)
@@ -2264,36 +2252,34 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
-			charges.NewChargeIntent(flatfee.Intent{
-				Intent: meta.Intent{
-					ManagedBy:         billing.SubscriptionManagedLine,
-					UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-shrink-extend"),
-					CustomerID:        customer.ID,
-					Currency:          customCurrency,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: defaults.InvoicingTaxCodeID,
-					},
+		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+			Intent: meta.Intent{
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-shrink-extend"),
+				CustomerID:        customer.ID,
+				Currency:          customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaults.InvoicingTaxCodeID,
 				},
-				IntentMutableFields: flatfee.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						Name:              "flat-fee-custom-currency",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt:   servicePeriod.To,
-					PaymentTerm: productcatalog.InArrearsPaymentTerm,
-					ProRating: productcatalog.ProRatingConfig{
-						Enabled: true,
-						Mode:    productcatalog.ProRatingModeProratePrices,
-					},
-					AmountBeforeProration: alpacadecimal.NewFromInt(31),
+			},
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "flat-fee-custom-currency",
+					ServicePeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					BillingPeriod:     servicePeriod,
 				},
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				CostBasis:      &costBasisIntent,
-			}),
-		},
+				InvoiceAt:   servicePeriod.To,
+				PaymentTerm: productcatalog.InArrearsPaymentTerm,
+				ProRating: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+				AmountBeforeProration: alpacadecimal.NewFromInt(31),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			CostBasis:      &costBasisIntent,
+		}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -2552,7 +2538,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTota
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -2566,7 +2552,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTota
 				uniqueReferenceID: "usage-based-gathering-preview",
 				featureKey:        meterSlug,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(created, 1)
@@ -2677,7 +2663,7 @@ func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectR
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -2695,7 +2681,7 @@ func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectR
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(created, 1)
@@ -2805,7 +2791,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountCreat
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -2819,7 +2805,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountCreat
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "flat-fee-credit-then-invoice-zero-amount",
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Require().Len(created, 1)
@@ -2864,7 +2850,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 	s.Run("create new upcoming charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -2878,7 +2864,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: flatFeeName,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 
@@ -3155,7 +3141,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 		// And a future in-advance flat fee is created for 7 USD.
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -3169,7 +3155,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "flat-fee-credit-then-invoice-in-advance-promotional",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(created, 1)
@@ -3297,32 +3283,30 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInvoiceAtBefore
 		// - the charge waits for invoice_at, not service period start
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
-				charges.NewChargeIntent(flatfee.Intent{
-					Intent: meta.Intent{
-						ManagedBy:         billing.SubscriptionManagedLine,
-						UniqueReferenceID: lo.ToPtr("flat-fee-invoice-at-before-service-period"),
-						CustomerID:        cust.ID,
-						Currency:          currenciestestutils.NewFiatCurrency(s.T(), USD),
+			Intents: charges.NewCreateChargeIntents(flatfee.Intent{
+				Intent: meta.Intent{
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: lo.ToPtr("flat-fee-invoice-at-before-service-period"),
+					CustomerID:        cust.ID,
+					Currency:          currenciestestutils.NewFiatCurrency(s.T(), USD),
+				},
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "flat-fee-invoice-at-before-service-period",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     billingPeriod,
 					},
-					IntentMutableFields: flatfee.IntentMutableFields{
-						IntentMutableFields: meta.IntentMutableFields{
-							Name:              "flat-fee-invoice-at-before-service-period",
-							ServicePeriod:     servicePeriod,
-							FullServicePeriod: servicePeriod,
-							BillingPeriod:     billingPeriod,
-						},
-						InvoiceAt:             invoiceAt,
-						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-						AmountBeforeProration: alpacadecimal.NewFromInt(100),
-						ProRating: productcatalog.ProRatingConfig{
-							Enabled: true,
-							Mode:    productcatalog.ProRatingModeProratePrices,
-						},
+					InvoiceAt:             invoiceAt,
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					AmountBeforeProration: alpacadecimal.NewFromInt(100),
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
-					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				}),
-			},
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			}),
 		})
 		s.NoError(err)
 		s.Len(created, 1)
@@ -3445,7 +3429,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 	s.Run("create charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -3459,7 +3443,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "flat-fee-fully-credited",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3605,7 +3589,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -3619,7 +3603,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "flat-fee-zero-amount-non-zero-charges",
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -3773,7 +3757,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		// When creating a credit-only usage-based charge for 2026-01-01T00:00:00Z...2026-02-01T00:00:00Z at $1/unit.
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -3787,7 +3771,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 					uniqueReferenceID: usageBasedName,
 					featureKey:        meterSlug,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 
@@ -4113,7 +4097,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
 					currency:          USD,
@@ -4125,7 +4109,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 					uniqueReferenceID: "usage-based-volume-tiered",
 					featureKey:        meterSlug,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4358,7 +4342,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 	s.Run("#2 create future credit-then-invoice usage-based charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
 					currency:          USD,
@@ -4370,7 +4354,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 					uniqueReferenceID: "usage-based-credit-then-invoice",
 					featureKey:        meterSlug,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4656,7 +4640,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 	s.Run("#2 create future credit-then-invoice usage-based charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
 					currency:          USD,
@@ -4668,7 +4652,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 					uniqueReferenceID: "usage-based-credit-then-invoice-fully-credited",
 					featureKey:        meterSlug,
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -4875,7 +4859,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyActive() {
 	// When creating a credit-only usage-based charge at service period start.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -4889,7 +4873,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyActive() {
 				uniqueReferenceID: "usage-based",
 				featureKey:        meterSlug,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -4954,7 +4938,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceDirectPaidFl
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -4968,7 +4952,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceDirectPaidFl
 				uniqueReferenceID: "usage-based-direct-paid",
 				featureKey:        apiRequestsTotal.Feature.Key,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -5126,7 +5110,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	// When creating a credit-only usage-based charge well after the service period.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -5140,7 +5124,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 				uniqueReferenceID: "usage-based",
 				featureKey:        meterSlug,
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -5212,7 +5196,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		// When creating a credit-only flat fee charge.
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: []charges.ChargeIntent{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
 					currency:       USD,
@@ -5232,7 +5216,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 						CorrelationID: "flat-fee-credit-only-discount",
 					},
 				}),
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)
@@ -5413,7 +5397,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 	// When creating a credit-only flat fee charge at InvoiceAt.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -5427,7 +5411,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "flat-fee-immediate",
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -5607,7 +5591,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents:   charges.ChargeIntents{intent},
+			Intents:   charges.NewCreateChargeIntents(intent),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -5786,7 +5770,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents:   charges.ChargeIntents{intent},
+			Intents:   charges.NewCreateChargeIntents(intent),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -5870,7 +5854,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsAllocatesAtIn
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: []charges.ChargeIntent{
+		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
 				currency:       USD,
@@ -5884,7 +5868,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsAllocatesAtIn
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "flat-fee-credit-only-in-arrears",
 			}),
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)

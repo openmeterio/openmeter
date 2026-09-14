@@ -71,11 +71,11 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynami
 
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
-		Intents: []usagebased.Intent{
+		Intents: usagebased.NewCreateIntents(
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "manual", "modes-feature", productcatalog.CreditThenInvoiceSettlementMode, &manualIntent),
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "pinned", "modes-feature", productcatalog.CreditThenInvoiceSettlementMode, &pinnedIntent),
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic", "modes-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 3)
@@ -154,9 +154,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetryS
 	})
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
-		Intents: []usagebased.Intent{
-			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-retry", "retry-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
-		},
+		Intents:   usagebased.NewCreateIntents(s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-retry", "retry-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent)),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -240,9 +238,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeB
 	defer clock.UnFreeze()
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
-		Intents: []usagebased.Intent{
-			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-active", "active-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent),
-		},
+		Intents:   usagebased.NewCreateIntents(s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "dynamic-active", "active-feature", productcatalog.CreditThenInvoiceSettlementMode, &dynamicIntent)),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
@@ -325,9 +321,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAnd
 
 			_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 				Namespace: namespace,
-				Intents: []usagebased.Intent{
-					s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "mismatch-"+test.name, "mismatch-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent),
-				},
+				Intents:   usagebased.NewCreateIntents(s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "mismatch-"+test.name, "mismatch-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent)),
 			})
 			s.Require().ErrorContains(err, test.errorText)
 		})
@@ -355,10 +349,10 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeC
 
 	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
-		Intents: []usagebased.Intent{
+		Intents: usagebased.NewCreateIntents(
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "duplicate", "rollback-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent),
 			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "duplicate", "rollback-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent),
-		},
+		),
 	})
 	s.Require().Error(err)
 	s.Require().Equal(0, s.countCostBases(namespace))
@@ -373,9 +367,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeR
 	s.createFeatureMeters(ctx, namespace, "credit-only-feature")
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
-		Intents: []usagebased.Intent{
-			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "credit-only", "credit-only-feature", productcatalog.CreditOnlySettlementMode, nil),
-		},
+		Intents:   usagebased.NewCreateIntents(s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "credit-only", "credit-only-feature", productcatalog.CreditOnlySettlementMode, nil)),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)

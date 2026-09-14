@@ -97,9 +97,9 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 
-	createdCharges, err := s.adapter.CreateCharges(ctx, usagebased.CreateChargesInput{
+	createdCharges, err := s.adapter.CreateCharges(ctx, usagebased.CreateChargesAdapterInput{
 		Namespace: namespace,
-		Intents: []usagebased.CreateIntent{
+		Intents: []usagebased.CreateIntentAdapterInput{
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
@@ -562,9 +562,9 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 
-	createdCharges, err := s.adapter.CreateCharges(s.T().Context(), usagebased.CreateChargesInput{
+	createdCharges, err := s.adapter.CreateCharges(s.T().Context(), usagebased.CreateChargesAdapterInput{
 		Namespace: namespace,
-		Intents: []usagebased.CreateIntent{
+		Intents: []usagebased.CreateIntentAdapterInput{
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{

@@ -29,7 +29,7 @@ func (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error 
 		return err
 	}
 
-	return c.addCreate(intent)
+	return c.addCreate(intent, chargesmeta.CreateOptions{})
 }
 
 func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {

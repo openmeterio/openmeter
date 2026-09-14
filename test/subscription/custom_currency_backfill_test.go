@@ -56,7 +56,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 	require.NoError(t, err)
 	purchases, err := f.chargesService.Create(ctx, charges.CreateInput{
 		Namespace: f.view.Subscription.Namespace,
-		Intents: charges.ChargeIntents{charges.NewChargeIntent(creditpurchase.Intent{
+		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: f.view.Customer.ID, Currency: f.currency},
 			IntentMutableFields: creditpurchase.IntentMutableFields{
 				IntentMutableFields: chargesmeta.IntentMutableFields{Name: "Monthly advance backfill", ServicePeriod: period, FullServicePeriod: period, BillingPeriod: period},
@@ -64,7 +64,7 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus}),
 			},
 			CostBasis: creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: fiat, Rate: decimal.NewFromFloat(0.5)})),
-		})},
+		}),
 	})
 	require.NoError(t, err)
 	require.Len(t, purchases, 1)

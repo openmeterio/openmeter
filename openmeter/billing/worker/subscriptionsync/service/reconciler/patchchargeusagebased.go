@@ -31,7 +31,12 @@ func (c *usageBasedChargeCollection) AddCreate(target targetstate.StateItem) err
 		return err
 	}
 
-	return c.addCreate(intent)
+	return c.addCreate(intent, chargesmeta.CreateOptions{
+		// In case the subscription's feature reference is invalid, we need to surface that to the end-user by having
+		// a validation issue on the charge instead of logging the error inside the billing-worker as these errors are
+		// expected to be resolved by the end-user.
+		BypassFeatureMeterValidation: target.Subscription.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode,
+	})
 }
 
 func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {

@@ -82,7 +82,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteCreatesOverrideForSupported
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
 					currency:       USD,
@@ -107,7 +107,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteCreatesOverrideForSupported
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-delete-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 2)
@@ -186,7 +186,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteEnforcesCustomerOwnership()
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       owner.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
@@ -198,7 +198,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteEnforcesCustomerOwnership()
 				name:              "flat-fee",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-delete-owner-flat-fee",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
@@ -316,7 +316,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
@@ -328,7 +328,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 				name:              "flat-fee",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-delete-flat-fee-credit",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
@@ -401,7 +401,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          customer.GetID(),
 				currency:          USD,
 				servicePeriod:     servicePeriod,
@@ -411,7 +411,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 				name:              "usage-based",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-delete-usage-credit",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
@@ -504,7 +504,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentRemo
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
 					currency:       USD,
@@ -529,7 +529,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentRemo
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-delete-gathering-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 2)
@@ -603,7 +603,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
@@ -615,7 +615,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 				name:              "flat-fee",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-delete-paid-flat-fee",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
@@ -723,7 +723,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetCreatesReplacesAndClearsO
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
 					currency:       USD,
@@ -748,7 +748,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetCreatesReplacesAndClearsO
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-set-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 2)
@@ -931,7 +931,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetDeleteOrdering() {
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
 					currency:       USD,
@@ -956,7 +956,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetDeleteOrdering() {
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-set-delete-ordering-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 2)
@@ -1184,7 +1184,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestClearOverrideAppliesHiddenBa
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customerNamespacedID,
 					currency:       USD,
@@ -1209,7 +1209,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestClearOverrideAppliesHiddenBa
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-clear-hidden-base-delete-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 2)
@@ -1341,7 +1341,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearValidateOwnership
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
 					currency:       USD,
@@ -1366,7 +1366,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearValidateOwnership
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-set-validation-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 2)
@@ -1526,7 +1526,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearReconcileRealized
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
@@ -1538,7 +1538,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearReconcileRealized
 				name:              "flat-fee-base",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-set-flat-fee-credit",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
@@ -1634,7 +1634,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearUpdateInvoiceBack
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
 					currency:       USD,
@@ -1659,7 +1659,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearUpdateInvoiceBack
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-set-gathering-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 2)
@@ -1801,7 +1801,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestClearFlatFeeInvoiceOverrideP
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
 				servicePeriod:  servicePeriod,
@@ -1813,7 +1813,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestClearFlatFeeInvoiceOverrideP
 				name:              "flat-fee-base",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-clear-paid-flat-fee",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
@@ -1931,7 +1931,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRebuildUsageBased
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          customer.GetID(),
 				currency:          USD,
 				servicePeriod:     servicePeriod,
@@ -1941,7 +1941,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRebuildUsageBased
 				name:              "usage-based-base",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-set-usage-credit",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)
@@ -2098,7 +2098,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRejectUsageBasedI
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{s.createMockChargeIntent(createMockChargeIntentInput{
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          customer.GetID(),
 				currency:          USD,
 				servicePeriod:     servicePeriod,
@@ -2108,7 +2108,7 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRejectUsageBasedI
 				name:              "usage-based-base",
 				managedBy:         billing.SubscriptionManagedLine,
 				uniqueReferenceID: "api-set-usage-invoice-realized",
-			})},
+			})),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), created, 1)

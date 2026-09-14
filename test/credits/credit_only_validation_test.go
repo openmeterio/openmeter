@@ -72,7 +72,7 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		// - the charge is active and waits for the end of its service period
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
 					Currency:       USD,
@@ -86,7 +86,7 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 					UniqueReferenceID: "credit-only-missing-meter-api-requests",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
 				}),
-			},
+			),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -202,7 +202,7 @@ func (s *CreditOnlyValidationSuite) TestFlatFeeCreditOnlyAdvancesWhenSiblingUsag
 	// - a credit-only in-advance flat fee for the same customer becomes due first
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -229,7 +229,7 @@ func (s *CreditOnlyValidationSuite) TestFlatFeeCreditOnlyAdvancesWhenSiblingUsag
 				ManagedBy:         billing.SubscriptionManagedLine,
 				UniqueReferenceID: "credit-only-sibling-platform-fee",
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 2)
@@ -295,7 +295,7 @@ func (s *CreditOnlyValidationSuite) TestFlatFeeCreditOnlyIgnoresMissingMeterOnOw
 	// - a credit-only in-advance flat fee references a metered feature and is not yet due
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
 				Currency:       USD,
@@ -310,7 +310,7 @@ func (s *CreditOnlyValidationSuite) TestFlatFeeCreditOnlyIgnoresMissingMeterOnOw
 				UniqueReferenceID: "credit-only-own-feature-platform-fee",
 				FeatureKey:        apiRequestsTotal.Feature.Key,
 			}),
-		},
+		),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)

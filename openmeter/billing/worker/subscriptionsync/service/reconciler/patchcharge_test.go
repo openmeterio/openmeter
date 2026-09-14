@@ -99,6 +99,38 @@ func TestNewChargeCostBasisIntent(t *testing.T) {
 	})
 }
 
+func TestChargeCreatePatchFeatureMeterValidationOptions(t *testing.T) {
+	t.Run("credit then invoice usage bypasses feature meter validation", func(t *testing.T) {
+		collection := newUsageBasedChargeCollection(1)
+		target := newChargePatchTestTarget(t, productcatalog.CreditThenInvoiceSettlementMode, newChargePatchTestUsageRateCard())
+
+		require.NoError(t, collection.AddCreate(target))
+		patches := collection.Patches()
+		require.Len(t, patches.Creates, 1)
+		require.True(t, patches.Creates[0].Options.BypassFeatureMeterValidation)
+	})
+
+	t.Run("credit only usage remains strict", func(t *testing.T) {
+		collection := newUsageBasedChargeCollection(1)
+		target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestUsageRateCard())
+
+		require.NoError(t, collection.AddCreate(target))
+		patches := collection.Patches()
+		require.Len(t, patches.Creates, 1)
+		require.False(t, patches.Creates[0].Options.BypassFeatureMeterValidation)
+	})
+
+	t.Run("flat fee remains strict", func(t *testing.T) {
+		collection := newFlatFeeChargeCollection(1)
+		target := newChargePatchTestTarget(t, productcatalog.CreditThenInvoiceSettlementMode, newChargePatchTestFlatRateCard())
+
+		require.NoError(t, collection.AddCreate(target))
+		patches := collection.Patches()
+		require.Len(t, patches.Creates, 1)
+		require.False(t, patches.Creates[0].Options.BypassFeatureMeterValidation)
+	})
+}
+
 func TestFlatFeeCreditOnlyChargeCollectionShrinkEmitsNativePatch(t *testing.T) {
 	collection := newFlatFeeChargeCollection(1)
 	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestFlatRateCard())

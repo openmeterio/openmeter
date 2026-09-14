@@ -6,8 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -41,7 +46,75 @@ type ChargeService interface {
 
 type CreateInput struct {
 	Namespace string
-	Intents   ChargeIntents
+	Intents   CreateChargeIntents
+}
+
+type CreateChargeIntent struct {
+	ChargeIntent
+	Options meta.CreateOptions
+}
+
+// WithTaxCodeID returns a copy of the create intent with TaxCodeID set to id.
+func (i CreateChargeIntent) WithTaxCodeID(id string) (CreateChargeIntent, error) {
+	switch i.t {
+	case meta.ChargeTypeFlatFee:
+		if i.flatFee == nil {
+			return CreateChargeIntent{}, fmt.Errorf("flat fee is nil")
+		}
+
+		intent := *i.flatFee
+		intent.TaxConfig.TaxCodeID = id
+		i.ChargeIntent = NewChargeIntent(intent)
+	case meta.ChargeTypeUsageBased:
+		if i.usageBased == nil {
+			return CreateChargeIntent{}, fmt.Errorf("usage based is nil")
+		}
+
+		intent := *i.usageBased
+		intent.TaxConfig.TaxCodeID = id
+		i.ChargeIntent = NewChargeIntent(intent)
+	case meta.ChargeTypeCreditPurchase:
+		if i.creditPurchase == nil {
+			return CreateChargeIntent{}, fmt.Errorf("credit purchase is nil")
+		}
+
+		intent := *i.creditPurchase
+		intent.TaxConfig.TaxCodeID = id
+		i.ChargeIntent = NewChargeIntent(intent)
+	default:
+		return CreateChargeIntent{}, fmt.Errorf("unsupported charge type: %s", i.t)
+	}
+
+	return i, nil
+}
+
+type CreateChargeIntents []CreateChargeIntent
+
+func NewCreateChargeIntents[T flatfee.Intent | usagebased.Intent | creditpurchase.Intent | ChargeIntent](intents ...T) CreateChargeIntents {
+	return lo.Map(intents, func(intent T, _ int) CreateChargeIntent {
+		switch intent := any(intent).(type) {
+		case ChargeIntent:
+			return CreateChargeIntent{ChargeIntent: intent}
+		case flatfee.Intent:
+			return CreateChargeIntent{ChargeIntent: NewChargeIntent(intent)}
+		case usagebased.Intent:
+			return CreateChargeIntent{ChargeIntent: NewChargeIntent(intent)}
+		case creditpurchase.Intent:
+			return CreateChargeIntent{ChargeIntent: NewChargeIntent(intent)}
+		default:
+			return CreateChargeIntent{}
+		}
+	})
+}
+
+func (i CreateChargeIntents) Validate() error {
+	return i.AsChargeIntents().Validate()
+}
+
+func (i CreateChargeIntents) AsChargeIntents() ChargeIntents {
+	return lo.Map(i, func(intent CreateChargeIntent, _ int) ChargeIntent {
+		return intent.ChargeIntent
+	})
 }
 
 type (

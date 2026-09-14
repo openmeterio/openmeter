@@ -18,6 +18,12 @@ import (
 
 type ChargeID models.NamespacedID
 
+type CreateOptions struct {
+	// BypassFeatureMeterValidation lets creation continue when feature-meter resolution
+	// returns validation issues, which are persisted on the charge.
+	BypassFeatureMeterValidation bool
+}
+
 func (i ChargeID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }

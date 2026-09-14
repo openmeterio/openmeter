@@ -78,9 +78,9 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			intent,
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -186,7 +186,7 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrenc
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents:   charges.ChargeIntents{intent},
+			Intents:   charges.NewCreateChargeIntents(intent),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -274,9 +274,9 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsFiatCostBasisForCusto
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{
 				Namespace: ns,
-				Intents: charges.ChargeIntents{
+				Intents: charges.NewCreateChargeIntents(
 					intent,
-				},
+				),
 			})
 			s.ErrorContains(err, "custom currency credit purchase requires a custom currency cost basis")
 			s.Empty(res)
@@ -356,9 +356,9 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveCostBasisB
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{
 				Namespace: ns,
-				Intents: charges.ChargeIntents{
+				Intents: charges.NewCreateChargeIntents(
 					intent,
-				},
+				),
 			})
 
 			s.Error(err)
@@ -503,9 +503,9 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	})
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
-		Intents: charges.ChargeIntents{
+		Intents: charges.NewCreateChargeIntents(
 			intent,
-		},
+		),
 	})
 	s.NoError(err)
 	s.Len(res, 1)
@@ -591,9 +591,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 	s.Run("initiated", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				intent,
-			},
+			),
 		})
 		s.NoError(err)
 		s.Len(res, 1)

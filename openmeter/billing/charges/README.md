@@ -152,9 +152,12 @@ invoice validation issue.
   advancement and patching also take charge-scoped locks.
 - Each concrete charge type resolves its supplied feature references before
   persistence. Usage-based features require a meter; flat-fee features are
-  optional and may be meterless. A usage-based charge created by key persists
-  only the canonical key and snapshots its feature ID when it activates. An
-  explicitly supplied feature ID is pinned at creation and activation preserves
+  optional and may be meterless. Trusted subscription reconciliation may persist
+  a credit-then-invoice usage charge whose dependency is unavailable; the charge
+  records a product-catalog validation issue and its gathering line remains gated
+  until collection resolves the dependency. A usage-based charge created by key
+  persists only the canonical key and snapshots its feature ID when it activates.
+  An explicitly supplied feature ID is pinned at creation and activation preserves
   it; when both are supplied, the key must match the feature resolved by ID.
 - Customer-charge reads resolve the current feature by key when a preactivation
   usage charge has no pinned ID. That ID is an API projection rather than
