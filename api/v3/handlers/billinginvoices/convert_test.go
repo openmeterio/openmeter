@@ -292,8 +292,11 @@ func TestMapRateCardRejectsTaxConfigWithoutCode(t *testing.T) {
 	// when: the rate card is mapped onto its domain representations.
 	_, _, _, _, err := mapRateCardFromAPI(rc)
 
-	// then: the missing code surfaces as a validation error instead of silently
+	// then: the missing code surfaces as a billing validation error, which the
+	// update-invoice route's error encoder maps to a 400, instead of silently
 	// dropping the tax code reference.
 	require.Error(t, err)
-	assert.True(t, models.IsGenericValidationError(err), "tax config without a tax code must surface as a validation error")
+	var validationErr billing.ValidationError
+	require.ErrorAs(t, err, &validationErr)
+	assert.True(t, models.IsGenericValidationError(err), "the underlying cause must remain the tax config validation error")
 }
