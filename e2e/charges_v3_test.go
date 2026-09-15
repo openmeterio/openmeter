@@ -19,11 +19,21 @@ func chargeCustomerIDsByChargeID(t *testing.T, items []v3sdk.Charge) map[string]
 
 	out := make(map[string]string, len(items))
 	for _, item := range items {
-		flatFee, err := item.AsChargeFlatFee()
-		require.NoError(t, err)
-		ref, err := flatFee.Customer.AsCustomerReference()
-		require.NoError(t, err)
-		out[flatFee.ID] = ref.ID
+		if item.Type == string(v3sdk.ChargeTypeFlatFee) {
+			flatFee, err := item.AsChargeFlatFee()
+			require.NoError(t, err)
+			ref, err := flatFee.Customer.AsCustomerReference()
+			require.NoError(t, err)
+			out[flatFee.ID] = ref.ID
+		} else if item.Type == string(v3sdk.ChargeTypeUsageBased) {
+			usageBased, err := item.AsChargeUsageBased()
+			require.NoError(t, err)
+			ref, err := usageBased.Customer.AsCustomerReference()
+			require.NoError(t, err)
+			out[usageBased.ID] = ref.ID
+		} else {
+			t.Errorf("invalid charge type %s", item.Type)
+		}
 	}
 
 	return out
