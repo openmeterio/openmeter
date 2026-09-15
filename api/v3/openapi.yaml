@@ -3408,6 +3408,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
+      x-unstable: true
     get:
       operationId: list-subscription-addons
       summary: List subscription addons
@@ -3453,6 +3454,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
     get:
       operationId: get-subscription-addon
@@ -3486,6 +3488,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+      x-unstable: true
     patch:
       operationId: update-subscription-addon
       summary: Update subscription addon
@@ -3726,7 +3729,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Subscriptions
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule:
     post:
       operationId: unschedule-subscription
@@ -3756,7 +3758,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unschedule-cancelation

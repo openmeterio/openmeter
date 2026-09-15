@@ -217,7 +217,6 @@ interface SubscriptionsOperations {
   @post
   @operationId("unschedule-subscription")
   @summary("Unschedule subscription")
-  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/unschedule")
   unschedule(@path subscriptionId: Shared.ULID):
     | Shared.DeleteResponse
@@ -233,7 +232,6 @@ interface SubscriptionsOperations {
   @post
   @operationId("restore-subscription")
   @summary("Restore subscription")
-  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/restore")
   restore(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
@@ -328,6 +326,7 @@ interface SubscriptionAddonOperations {
   @post
   @operationId("create-subscription-addon")
   @summary("Create a new subscription add-on")
+  @extension(Shared.UnstableExtension, true)
   create(
     @path subscriptionId: Shared.ULID,
     @body request: Shared.CreateRequest<SubscriptionAddon>,
@@ -343,6 +342,7 @@ interface SubscriptionAddonOperations {
   @get
   @operationId("list-subscription-addons")
   @summary("List subscription addons")
+  @extension(Shared.UnstableExtension, true)
   list(
     @path subscriptionId: Shared.ULID,
     ...Common.PagePaginationQuery,
@@ -372,6 +372,7 @@ interface SubscriptionAddonOperations {
   @route("/{subscriptionAddonId}")
   @operationId("get-subscription-addon")
   @summary("Get add-on association for subscription")
+  @extension(Shared.UnstableExtension, true)
   getAddon(
     @path subscriptionId: Shared.ULID,
     @path subscriptionAddonId: Shared.ULID,
