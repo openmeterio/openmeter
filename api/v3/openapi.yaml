@@ -3532,6 +3532,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionAddonUpdate'
+      x-private: true
+      x-internal: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
@@ -3729,6 +3731,9 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Subscriptions
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule:
     post:
       operationId: unschedule-subscription
@@ -3758,6 +3763,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unschedule-cancelation
