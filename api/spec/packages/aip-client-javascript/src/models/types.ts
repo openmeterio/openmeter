@@ -2776,35 +2776,45 @@ export interface ListPlanAddonsParamsFilter {
 }
 
 /**
- * Tax configuration for a credit grant.
+ * Tax configuration for a billable resource.
  *
- * Tax configuration should be provided to ensure correct revenue recognition,
- * including for externally funded grants.
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
  */
-export interface CreateCreditGrantTaxConfig {
-  /** Tax behavior applied to the invoice line item. */
+export interface CreateTaxCodeConfig {
+  /**
+   * Tax behavior.
+   *
+   * This enum is used to specify whether tax is included in the price or excluded
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
+   */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
-  taxCode?: CreateResourceReference
+  code?: CreateResourceReference
 }
 
 /**
- * Tax configuration for a credit grant.
+ * Tax configuration for a billable resource.
  *
- * Tax configuration should be provided to ensure correct revenue recognition,
- * including for externally funded grants.
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
  */
-export interface CreditGrantTaxConfig {
-  /** Tax behavior applied to the invoice line item. */
+export interface TaxCodeConfig {
+  /**
+   * Tax behavior.
+   *
+   * This enum is used to specify whether tax is included in the price or excluded
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
+   */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
-  taxCode?: TaxCodeReference
-}
-
-/** The tax config of the rate card. */
-export interface RateCardTaxConfig {
-  behavior?: 'inclusive' | 'exclusive'
-  code: TaxCodeReference
+  code?: TaxCodeReference
 }
 
 /** Set of provider specific tax configs. */
@@ -2946,10 +2956,25 @@ export interface CreatePlanAddonRequest {
   maxQuantity?: number
 }
 
-/** The tax config of the rate card. */
-export interface UpdateRateCardTaxConfig {
+/**
+ * Tax configuration for a billable resource.
+ *
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
+ */
+export interface UpdateTaxCodeConfig {
+  /**
+   * Tax behavior.
+   *
+   * This enum is used to specify whether tax is included in the price or excluded
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
+   */
   behavior?: 'inclusive' | 'exclusive'
-  code: UpdateResourceReference
+  /** Tax code applied to the invoice line item. */
+  code?: UpdateResourceReference
 }
 
 /** Filter options for listing ingested events. */
@@ -4731,7 +4756,7 @@ export interface CreateCreditGrantRequest {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreateCreditGrantTaxConfig
+  taxConfig?: CreateTaxCodeConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority: number
@@ -4805,7 +4830,7 @@ export interface CreditGrant {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreditGrantTaxConfig
+  taxConfig?: TaxCodeConfig
   /** Available when `funding_method` is `invoice`. */
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
@@ -5095,7 +5120,7 @@ export interface RateCard {
   /** The discounts of the rate card. */
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /**
    * The entitlement template granted to subscribers of a plan or addon containing
    * this rate card. Requires `feature` to be set.
@@ -5108,7 +5133,7 @@ export interface InvoiceLineRateCard {
   /** The price definition used to calculate charges for this line. */
   price: Price
   /** Tax configuration snapshot for this line. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /** The feature key associated with this line's rate card. */
   featureKey?: string
   /** Discount configuration from the rate card. */
@@ -5252,7 +5277,7 @@ export interface UpdateInvoiceLineRateCard {
   /** The price definition used to calculate charges for this line. */
   price: UpdatePrice
   /** Tax configuration snapshot for this line. */
-  taxConfig?: UpdateRateCardTaxConfig
+  taxConfig?: UpdateTaxCodeConfig
   /** The feature key associated with this line's rate card. */
   featureKey?: string
   /** Discount configuration from the rate card. */
@@ -7677,7 +7702,7 @@ export interface CreateCreditGrantRequestInput {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreateCreditGrantTaxConfig
+  taxConfig?: CreateTaxCodeConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority?: number
@@ -7751,7 +7776,7 @@ export interface CreditGrantInput {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  taxConfig?: CreditGrantTaxConfig
+  taxConfig?: TaxCodeConfig
   /** Available when `funding_method` is `invoice`. */
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
@@ -7970,7 +7995,7 @@ export interface RateCardInput {
   /** The discounts of the rate card. */
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /**
    * The entitlement template granted to subscribers of a plan or addon containing
    * this rate card. Requires `feature` to be set.
@@ -7983,7 +8008,7 @@ export interface InvoiceLineRateCardInput {
   /** The price definition used to calculate charges for this line. */
   price: Price
   /** Tax configuration snapshot for this line. */
-  taxConfig?: RateCardTaxConfig
+  taxConfig?: TaxCodeConfig
   /** The feature key associated with this line's rate card. */
   featureKey?: string
   /** Discount configuration from the rate card. */
