@@ -814,9 +814,14 @@ func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price
 		discounts = billing.DiscountsFromProductCatalog(pcDiscounts).UpsertCorrelationIDs()
 	}
 
+	// The schema allows tax_config without code; the rate card required-where-set rule
+	// is enforced here. The billing validation error wrap makes the route's error encoder
+	// respond with a 400 instead of the 500 fallback.
 	pcTaxConfig, err := addons.FromAPITaxCodeConfig(fromAPIUpdateTaxCodeConfig(rc.TaxConfig))
 	if err != nil {
-		return nil, nil, "", billing.Discounts{}, fmt.Errorf("mapping tax config: %w", err)
+		return nil, nil, "", billing.Discounts{}, billing.ValidationError{
+			Err: fmt.Errorf("mapping tax config: %w", err),
+		}
 	}
 
 	taxConfig := billing.FromProductCatalog(pcTaxConfig)
