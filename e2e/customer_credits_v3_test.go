@@ -187,8 +187,8 @@ func TestV3CreateCreditGrantMissingTaxCode(t *testing.T) {
 		Amount:        v3sdk.Numeric("10"),
 		Currency:      currency,
 		FundingMethod: v3sdk.CreditFundingMethodNone,
-		TaxConfig: &v3sdk.CreditGrantTaxConfig{
-			TaxCode: &v3sdk.TaxCodeReference{ID: missingTaxCode},
+		TaxConfig: &v3sdk.TaxCodeConfig{
+			Code: &v3sdk.TaxCodeReference{ID: missingTaxCode},
 		},
 	})
 

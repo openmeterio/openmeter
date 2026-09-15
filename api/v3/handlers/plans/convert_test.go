@@ -1039,20 +1039,21 @@ func TestFromBillingCommitments(t *testing.T) {
 
 func TestFromBillingTaxConfig(t *testing.T) {
 	t.Run("nil when tax config is nil", func(t *testing.T) {
-		result := ToAPIBillingRateCardTaxConfig(nil, &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE"}})
+		result := ToAPITaxCodeConfig(nil, &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE"}})
 		assert.Nil(t, result)
 	})
 
 	t.Run("nil when tax code is nil", func(t *testing.T) {
-		result := ToAPIBillingRateCardTaxConfig(&productcatalog.TaxConfig{}, nil)
+		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{}, nil)
 		assert.Nil(t, result)
 	})
 
 	t.Run("maps tax code ID", func(t *testing.T) {
 		tc := &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE000000000000000000"}}
-		result := ToAPIBillingRateCardTaxConfig(&productcatalog.TaxConfig{}, tc)
+		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{}, tc)
 
 		require.NotNil(t, result)
+		require.NotNil(t, result.Code)
 		assert.Equal(t, api.ULID("01TAXCODE000000000000000000"), result.Code.Id)
 		assert.Nil(t, result.Behavior)
 	})
@@ -1063,7 +1064,7 @@ func TestFromBillingTaxConfig(t *testing.T) {
 			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 		}
 
-		result := ToAPIBillingRateCardTaxConfig(cfg, tc)
+		result := ToAPITaxCodeConfig(cfg, tc)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Behavior)
 		assert.Equal(t, api.BillingTaxBehavior("inclusive"), *result.Behavior)
@@ -1610,11 +1611,12 @@ func TestToBillingPriceTiers(t *testing.T) {
 
 func TestToBillingTaxConfig(t *testing.T) {
 	t.Run("maps code ID", func(t *testing.T) {
-		tc := api.BillingRateCardTaxConfig{
-			Code: api.TaxCodeReference{Id: "01TAXCODE000"},
+		tc := api.TaxCodeConfig{
+			Code: &api.TaxCodeReference{Id: "01TAXCODE000"},
 		}
 
-		result := FromAPIBillingRateCardTaxConfig(tc)
+		result, err := FromAPITaxCodeConfig(tc)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.NotNil(t, result.TaxCodeID)
 		assert.Equal(t, "01TAXCODE000", *result.TaxCodeID)
@@ -1622,15 +1624,27 @@ func TestToBillingTaxConfig(t *testing.T) {
 	})
 
 	t.Run("maps behavior", func(t *testing.T) {
-		tc := api.BillingRateCardTaxConfig{
-			Code:     api.TaxCodeReference{Id: "01TAXCODE000"},
+		tc := api.TaxCodeConfig{
+			Code:     &api.TaxCodeReference{Id: "01TAXCODE000"},
 			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
 		}
 
-		result := FromAPIBillingRateCardTaxConfig(tc)
+		result, err := FromAPITaxCodeConfig(tc)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Behavior)
 		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
+	})
+
+	t.Run("rejects missing code", func(t *testing.T) {
+		tc := api.TaxCodeConfig{
+			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
+		}
+
+		result, err := FromAPITaxCodeConfig(tc)
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.True(t, models.IsGenericValidationError(err), "tax config without a tax code must surface as a validation error")
 	})
 }
 

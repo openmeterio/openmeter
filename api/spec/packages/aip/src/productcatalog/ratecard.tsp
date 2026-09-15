@@ -107,7 +107,7 @@ model RateCard {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tax config")
-  tax_config?: RateCardTaxConfig;
+  tax_config?: Tax.TaxCodeConfig;
 
   /**
    * The entitlement template granted to subscribers of a plan or addon containing
@@ -116,17 +116,6 @@ model RateCard {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Entitlement template")
   entitlement?: Entitlements.RateCardEntitlement;
-}
-
-/**
- * The tax config of the rate card.
- */
-@friendlyName("BillingRateCardTaxConfig")
-model RateCardTaxConfig {
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  behavior?: Billing.TaxBehavior;
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  code: Shared.ResourceReference<Tax.TaxCode>;
 }
 
 /**
