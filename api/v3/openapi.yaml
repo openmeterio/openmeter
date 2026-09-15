@@ -3731,6 +3731,7 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Subscriptions
+      x-rpc-endpoint: true
       x-private: true
       x-internal: true
       x-unstable: true
@@ -3763,6 +3764,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
+      x-rpc-endpoint: true
       x-private: true
       x-internal: true
       x-unstable: true

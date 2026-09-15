@@ -221,6 +221,7 @@ interface SubscriptionsOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   unschedule(@path subscriptionId: Shared.ULID):
     | Shared.DeleteResponse
     | Common.NotFound
@@ -239,6 +240,7 @@ interface SubscriptionsOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   restore(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
     | Common.NotFound
