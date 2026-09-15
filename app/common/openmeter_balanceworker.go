@@ -9,6 +9,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/wire"
 	"github.com/oklog/run"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -123,7 +125,7 @@ func NewBalanceWorker(workerOptions balanceworker.WorkerOptions) (*balanceworker
 
 func BalanceWorkerGroup(
 	ctx context.Context,
-	worker *balanceworker.Worker,
+	consumer balanceworker.Consumer,
 	telemetryServer TelemetryServer,
 ) run.Group {
 	var group run.Group
@@ -134,11 +136,60 @@ func BalanceWorkerGroup(
 	)
 
 	group.Add(
-		func() error { return worker.Run(ctx) },
-		func(err error) { _ = worker.Close() },
+		func() error { return consumer.Run(ctx) },
+		func(err error) { _ = consumer.Close() },
 	)
 
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
 	return group
+}
+
+func BalanceWorkerConsumer(
+	cfg config.BalanceWorkerConfiguration,
+	worker *balanceworker.Worker,
+	eventBusConfig config.EventsConfiguration,
+	kafkaConsumerConfig pkgkafka.ConsumerConfig,
+	meta Metadata,
+	metricMeter metric.Meter,
+	tracer trace.Tracer,
+	logger *slog.Logger,
+) (balanceworker.Consumer, func(), error) {
+	if cfg.UseWatermill {
+		consumer, err := balanceworker.NewWatermillConsumer(balanceworker.WatermillConsumerOptions{
+			SystemEventsTopic:        eventBusConfig.SystemEvents.Topic,
+			IngestEventsTopic:        eventBusConfig.IngestEvents.Topic,
+			BalanceWorkerEventsTopic: eventBusConfig.BalanceWorkerEvents.Topic,
+
+			Worker: worker,
+			// Router
+		})
+		return consumer, func() {}, err
+	}
+
+	rdkafkaEnvConfig, cleanup, err := NewEventBusConsumerEnvironmentConfig(
+		cfg.ConsumerConfiguration,
+		kafkaConsumerConfig,
+		meta,
+		metricMeter,
+		tracer,
+		logger)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create event bus consumer environment config: %w", err)
+	}
+
+	// Let's construct a librdkafka consumer
+	consumer, err := balanceworker.NewRDKafkaConsumer(balanceworker.RDKafkaConsumerOptions{
+		SystemEventsTopic:        eventBusConfig.SystemEvents.Topic,
+		IngestEventsTopic:        eventBusConfig.IngestEvents.Topic,
+		BalanceWorkerEventsTopic: eventBusConfig.BalanceWorkerEvents.Topic,
+
+		Worker:              worker,
+		ConsumerEnvironment: rdkafkaEnvConfig,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create rdkafka consumer: %w", err)
+	}
+
+	return consumer, cleanup, nil
 }
