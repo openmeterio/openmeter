@@ -3,6 +3,7 @@ package plans
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -119,7 +120,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 		Name:        meta.Name,
 		Description: meta.Description,
 		Discounts:   ToAPIBillingRateCardDiscount(meta.Discounts),
-		TaxConfig:   ToAPIBillingRateCardTaxConfig(meta.TaxConfig, meta.TaxCode),
+		TaxConfig:   ToAPITaxCodeConfig(meta.TaxConfig, meta.TaxCode),
 	}
 
 	if meta.Currency != nil {
@@ -531,13 +532,13 @@ func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPrice
 	return result
 }
 
-func ToAPIBillingRateCardTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.BillingRateCardTaxConfig {
+func ToAPITaxCodeConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.TaxCodeConfig {
 	if c == nil || tc == nil {
 		return nil
 	}
 
-	result := &api.BillingRateCardTaxConfig{
-		Code: api.TaxCodeReference{
+	result := &api.TaxCodeConfig{
+		Code: &api.TaxCodeReference{
 			Id: tc.ID,
 		},
 	}
@@ -765,7 +766,12 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 	}
 
 	if rc.TaxConfig != nil {
-		meta.TaxConfig = FromAPIBillingRateCardTaxConfig(*rc.TaxConfig)
+		taxConfig, err := FromAPITaxCodeConfig(*rc.TaxConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert tax config: %w", err)
+		}
+
+		meta.TaxConfig = taxConfig
 	}
 
 	if rc.Discounts != nil {
@@ -1142,7 +1148,11 @@ func FromAPIBillingPriceTiers(tiers []api.BillingPriceTier) ([]productcatalog.Pr
 	return result, nil
 }
 
-func FromAPIBillingRateCardTaxConfig(tc api.BillingRateCardTaxConfig) *productcatalog.TaxConfig {
+func FromAPITaxCodeConfig(tc api.TaxCodeConfig) (*productcatalog.TaxConfig, error) {
+	if tc.Code == nil || tc.Code.Id == "" {
+		return nil, models.NewGenericValidationError(errors.New("tax_config.code must be set when tax_config is present"))
+	}
+
 	result := &productcatalog.TaxConfig{
 		TaxCodeID: &tc.Code.Id,
 	}
@@ -1151,7 +1161,7 @@ func FromAPIBillingRateCardTaxConfig(tc api.BillingRateCardTaxConfig) *productca
 		result.Behavior = lo.ToPtr(productcatalog.TaxBehavior(*tc.Behavior))
 	}
 
-	return result
+	return result, nil
 }
 
 func FromAPIBillingRateCardDiscounts(d api.BillingRateCardDiscounts) (productcatalog.Discounts, error) {

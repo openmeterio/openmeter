@@ -6,6 +6,7 @@ import (
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -271,4 +272,31 @@ func TestMergeInvoiceSupplierFromAPI(t *testing.T) {
 	require.Equal(t, "supplier-id", merged.ID)
 	require.Equal(t, "New Supplier", merged.Name)
 	require.Equal(t, lo.ToPtr("TAX-1"), merged.TaxCode)
+}
+
+func TestMapRateCardRejectsTaxConfigWithoutCode(t *testing.T) {
+	price := api.UpdatePrice{}
+	require.NoError(t, price.FromUpdatePriceFlat(api.UpdatePriceFlat{
+		Amount: "1",
+		Type:   api.UpdatePriceFlatTypeFlat,
+	}))
+
+	// given: an update rate card carrying a tax config without a tax code.
+	rc := api.UpdateInvoiceLineRateCard{
+		Price: price,
+		TaxConfig: &api.UpdateTaxCodeConfig{
+			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
+		},
+	}
+
+	// when: the rate card is mapped onto its domain representations.
+	_, _, _, _, err := mapRateCardFromAPI(rc)
+
+	// then: the missing code surfaces as a billing validation error, which the
+	// update-invoice route's error encoder maps to a 400, instead of silently
+	// dropping the tax code reference.
+	require.Error(t, err)
+	var validationErr billing.ValidationError
+	require.ErrorAs(t, err, &validationErr)
+	assert.True(t, models.IsGenericValidationError(err), "the underlying cause must remain the tax config validation error")
 }
