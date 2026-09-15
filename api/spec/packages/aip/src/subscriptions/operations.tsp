@@ -137,6 +137,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("create-subscription")
   @summary("Create subscription")
+  @extension(Shared.UnstableExtension, true)
   create(@body subscription: SubscriptionCreate):
     | Shared.CreateResponse<Subscription>
     | Common.NotFound
@@ -146,6 +147,7 @@ interface SubscriptionsOperations {
   @get
   @operationId("list-subscriptions")
   @summary("List subscriptions")
+  @extension(Shared.UnstableExtension, true)
   list(
     ...Common.PagePaginationQuery,
 
@@ -175,6 +177,7 @@ interface SubscriptionsOperations {
   @get
   @operationId("get-subscription")
   @summary("Get subscription")
+  @extension(Shared.UnstableExtension, true)
   get(@path subscriptionId: Shared.ULID):
     | Shared.GetResponse<Subscription>
     | Common.NotFound
@@ -187,6 +190,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("cancel-subscription")
   @summary("Cancel subscription")
+  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/cancel")
   cancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel):
     | Shared.UpdateResponse<Subscription>
@@ -200,6 +204,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("unschedule-cancelation")
   @summary("Unschedule subscription cancelation")
+  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/unschedule-cancelation")
   unscheduleCancelation(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
@@ -217,6 +222,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("unschedule-subscription")
   @summary("Unschedule subscription")
+  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/unschedule")
   unschedule(@path subscriptionId: Shared.ULID):
     | Shared.DeleteResponse
@@ -232,6 +238,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("restore-subscription")
   @summary("Restore subscription")
+  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/restore")
   restore(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
@@ -246,6 +253,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("change-subscription")
   @summary("Change subscription")
+  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/change")
   change(
     @path subscriptionId: Shared.ULID,
@@ -271,6 +279,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("migrate-subscription")
   @summary("Migrate subscription")
+  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/migrate")
   migrate(@path subscriptionId: Shared.ULID, @body body: SubscriptionMigrate):
     | SubscriptionMigrateResponse
@@ -287,6 +296,7 @@ interface SubscriptionsOperations {
   @post
   @operationId("edit-subscription")
   @summary("Edit subscription")
+  @extension(Shared.UnstableExtension, true)
   @route("/{subscriptionId}/edit")
   edit(@path subscriptionId: Shared.ULID, @body body: SubscriptionEdit):
     | Shared.UpdateResponse<Subscription>
