@@ -48,6 +48,18 @@ func (d createEventsTable) toSQL() string {
 	return sql
 }
 
+func (d createEventsTable) addStoreRowIDSQL() string {
+	return fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS store_row_id String", getTableName(d.Database, d.EventsTableName))
+}
+
+func (d createEventsTable) countRowsWithEmptyStoreRowIDSQL() string {
+	return fmt.Sprintf("SELECT count() FROM %s WHERE store_row_id = ''", getTableName(d.Database, d.EventsTableName))
+}
+
+func (d createEventsTable) backfillStoreRowIDSQL() string {
+	return fmt.Sprintf("ALTER TABLE %s UPDATE store_row_id = toString(generateUUIDv4()) WHERE store_row_id = '' SETTINGS mutations_sync = 1", getTableName(d.Database, d.EventsTableName))
+}
+
 // Query Events Table
 type queryEventsTable struct {
 	Database        string

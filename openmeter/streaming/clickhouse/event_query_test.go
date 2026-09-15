@@ -34,6 +34,16 @@ func TestCreateEventsTable(t *testing.T) {
 	}
 }
 
+func TestCreateEventsTableAddsStoreRowID(t *testing.T) {
+	table := createEventsTable{
+		Database:        "openmeter",
+		EventsTableName: "om_events",
+	}
+
+	assert.Equal(t, "ALTER TABLE openmeter.om_events ADD COLUMN IF NOT EXISTS store_row_id String", table.addStoreRowIDSQL())
+	assert.Equal(t, "ALTER TABLE openmeter.om_events UPDATE store_row_id = toString(generateUUIDv4()) WHERE store_row_id = '' SETTINGS mutations_sync = 1", table.backfillStoreRowIDSQL())
+}
+
 func TestQueryEventsTable(t *testing.T) {
 	subjectFilter := "customer-1"
 	idFilter := "event-id-1"
