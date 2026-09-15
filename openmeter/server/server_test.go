@@ -838,6 +838,44 @@ func TestListCustomerChargesRoute(t *testing.T) {
 	})
 }
 
+func TestListChargesRoute(t *testing.T) {
+	testServer, _ := getTestServer(t, func(c *router.Config) {
+		c.ChargeService = &NoopChargeService{}
+	})
+
+	t.Run("with charge service configured returns empty list", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/charges", nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t,
+			`{"data":[],"meta":{"page":{"number":1,"size":20,"total":0}}}`,
+			w.Body.String(),
+		)
+	})
+
+	t.Run("accepts the customer filter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/charges?filter[customer_id][eq]=01ARZ3NDEKTSV4RRFFQ69G5FAV&page[size]=5", nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t,
+			`{"data":[],"meta":{"page":{"number":1,"size":5,"total":0}}}`,
+			w.Body.String(),
+		)
+	})
+
+	t.Run("rejects a malformed customer filter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/charges?filter[customer_id][eq]=not-a-ulid", nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
 // NoopChargeService is a no-op implementation of billingcharges.Service for testing.
 type NoopChargeService struct{}
 

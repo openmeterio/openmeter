@@ -132,7 +132,7 @@ func TestV3CustomerChargeFlatFeeRealizations(t *testing.T) {
 		// when:
 		// - the customer's charges are listed; the listing is scoped to this
 		//   fresh customer, so the default page size always covers it
-		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ChargeListParams{})
+		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ListCustomerChargesParams{})
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 
@@ -269,7 +269,7 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 		// when:
 		// - the customer's charges are listed; the listing is scoped to this
 		//   fresh customer, so the default page size always covers it
-		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ChargeListParams{})
+		list, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ListCustomerChargesParams{})
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 

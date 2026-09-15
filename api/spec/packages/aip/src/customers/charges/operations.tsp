@@ -16,7 +16,7 @@ namespace Customers;
  * Filter options for listing charges.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "feature_id and feature_key should not be grouped"
-@friendlyName("ListChargesParamsFilter")
+@friendlyName("ListCustomerChargesParamsFilter")
 model ListCustomerChargesParamsFilter {
   /**
    * Filter charges by status.

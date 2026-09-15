@@ -7,7 +7,7 @@ import { $ } from '@typespec/compiler/typekit'
 import { Output, writeOutput } from '@typespec/emitter-framework'
 import { GoClient } from './components/GoClient.js'
 import { GoModels } from './components/GoModels.js'
-import { GoResource } from './components/GoResource.js'
+import { GoResource, resolveListParamsNames } from './components/GoResource.js'
 import {
   configureGoProjections,
   configureGoTypeNames,
@@ -205,6 +205,22 @@ export async function $onEmit(context: EmitContext<GoEmitterOptions>) {
 
   validateOperationIR(program, resources, bodyOverrides)
 
+  // Params structs share one Go package, so their names are resolved over
+  // every resource's operations at once; per-resource resolution let two
+  // resources emit the same struct name with different query shapes.
+  const paramsNames = resolveListParamsNames(
+    program,
+    resources.flatMap((resource) =>
+      describeOperations(
+        program,
+        resource.root,
+        resource.operations,
+        bodyOverrides,
+        resource.nestPath,
+      ),
+    ),
+  )
+
   await emitFile(program, {
     path: resolvePath(emitterOutputDir, 'README.md'),
     content: readmeFile(
@@ -245,6 +261,7 @@ export async function $onEmit(context: EmitContext<GoEmitterOptions>) {
                 operations={resource.operations}
                 bodyOverrides={bodyOverrides}
                 serviceRefkey={resource.serviceRefkey}
+                paramsNames={paramsNames}
                 children={childrenOf(resource)}
               />
             </go.SourceFile>

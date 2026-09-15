@@ -80,7 +80,6 @@ func (s *CustomerChargeAPIListTestSuite) TestFeatureExpansionValidationPolicy() 
 		entities, err := service.loadCustomerChargeEntities(
 			s.T().Context(),
 			namespace,
-			"",
 			references,
 			meta.Expands{meta.ExpandFeature},
 		)
@@ -111,7 +110,6 @@ func (s *CustomerChargeAPIListTestSuite) TestFeatureExpansionValidationPolicy() 
 		_, err = service.loadCustomerChargeEntities(
 			s.T().Context(),
 			namespace,
-			"",
 			references,
 			meta.Expands{meta.ExpandFeature},
 		)
@@ -312,7 +310,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		// - feature expansion resolves that charge
 		references, err := collectCustomerChargeReferences(charges.Charges{staleCharge})
 		require.NoError(s.T(), err)
-		entities, err := s.Charges.loadCustomerChargeEntities(ctx, namespace, cust.ID, references, meta.Expands{meta.ExpandFeature})
+		entities, err := s.Charges.loadCustomerChargeEntities(ctx, namespace, references, meta.Expands{meta.ExpandFeature})
 		require.NoError(s.T(), err)
 		customerCharge, err := s.Charges.buildCustomerCharge(ctx, staleCharge, entities, meta.Expands{meta.ExpandFeature})
 
@@ -326,18 +324,75 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 	})
 
 	s.Run("the subscription side-loader serves the facade's bulk lookup", func() {
-		full, err := s.Charges.listCustomerChargeSubscriptions(ctx, namespace, cust.ID, []string{subscriptionID})
+		full, err := s.Charges.listCustomerChargeSubscriptions(ctx, namespace, []string{cust.ID}, []string{subscriptionID})
 		require.NoError(s.T(), err)
 		require.Contains(s.T(), full, subscriptionID)
 		s.Equal("api-list-subscription", full[subscriptionID].Name)
 	})
 
-	s.Run("customer scoping is required", func() {
-		input := newListInput(meta.ExpandNone)
-		input.CustomerIDs = nil
+	s.Run("a namespace-wide listing resolves each row's own customer", func() {
+		// given:
+		// - a second customer with its own charge
+		other := s.CreateTestCustomer(namespace, "api-list-other")
+		otherCharges, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: namespace,
+			Intents: charges.NewCreateChargeIntents(
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:          other.GetID(),
+					currency:          USD,
+					servicePeriod:     servicePeriod,
+					settlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+					price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+					featureKey:        feat.Feature.Key,
+					name:              "api-list-other-usage-based",
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: "api-list-other-usage-based",
+				}),
+			),
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), otherCharges, 1)
 
-		_, err := s.Charges.ListCustomerCharges(ctx, input)
-		s.ErrorContains(err, "customer")
+		unscoped := newListInput(meta.Expands{meta.ExpandCustomer})
+		unscoped.CustomerIDs = nil
+
+		bothCustomers := newListInput(meta.Expands{meta.ExpandCustomer})
+		bothCustomers.CustomerIDs = []string{cust.ID, other.ID}
+
+		filtered := newListInput(meta.Expands{meta.ExpandCustomer})
+		filtered.CustomerIDs = nil
+		filtered.CustomerID = &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr(other.ID)}}
+
+		cases := []struct {
+			name      string
+			input     charges.ListCustomerChargesInput
+			customers []string
+		}{
+			{name: "no customer scoping", input: unscoped, customers: []string{cust.ID, other.ID}},
+			{name: "several customer IDs", input: bothCustomers, customers: []string{cust.ID, other.ID}},
+			{name: "customer filter", input: filtered, customers: []string{other.ID}},
+		}
+
+		for _, tc := range cases {
+			// when:
+			// - the facade lists charges across customers with the customer expand
+			result, err := s.Charges.ListCustomerCharges(ctx, tc.input)
+			require.NoError(s.T(), err, tc.name)
+
+			// then:
+			// - every row carries the customer it belongs to
+			require.Len(s.T(), result.Charges.Items, len(tc.customers), tc.name)
+
+			var rowCustomers []string
+			for _, item := range result.Charges.Items {
+				chargeCustomer, err := item.GetCustomerID()
+				require.NoError(s.T(), err)
+				require.NotNil(s.T(), item.Customer, tc.name)
+				s.Equal(chargeCustomer.ID, item.Customer.ID, tc.name)
+				rowCustomers = append(rowCustomers, item.Customer.ID)
+			}
+			s.ElementsMatch(tc.customers, rowCustomers, tc.name)
+		}
 	})
 
 	s.Run("only wire-supported charge types are accepted", func() {

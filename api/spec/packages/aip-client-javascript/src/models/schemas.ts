@@ -3988,7 +3988,7 @@ export const listEventsParamsFilter = z
   })
   .describe('Filter options for listing ingested events.')
 
-export const listChargesParamsFilter = z
+export const listCustomerChargesParamsFilter = z
   .object({
     status: stringFieldFilterExact.optional(),
     featureId: ulidFieldFilter.optional(),
@@ -4007,6 +4007,17 @@ export const listInvoicesParamsFilter = z
     createdAt: dateTimeFieldFilter.optional(),
   })
   .describe('Filter options for listing invoices.')
+
+export const listChargesParamsFilter = z
+  .object({
+    status: stringFieldFilterExact.optional(),
+    featureId: ulidFieldFilter.optional(),
+    featureKey: stringFieldFilterExact.optional(),
+    servicePeriodFrom: dateTimeFieldFilter.optional(),
+    servicePeriodTo: dateTimeFieldFilter.optional(),
+    customerId: ulidFieldFilter.optional(),
+  })
+  .describe('Filter options for listing charges across customers.')
 
 export const resourceFilters = z
   .object({
@@ -7148,7 +7159,7 @@ export const listCustomerChargesQueryParams = z.object({
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
   sort: sortQuery.optional(),
-  filter: listChargesParamsFilter.optional(),
+  filter: listCustomerChargesParamsFilter.optional(),
   expand: z
     .array(chargesExpand)
     .optional()
@@ -7463,6 +7474,34 @@ export const snapshotQuantitiesInvoicePathParams = z.object({
 })
 
 export const snapshotQuantitiesInvoiceResponse = invoice
+
+export const listChargesQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listChargesParamsFilter.optional(),
+  expand: z
+    .array(chargesExpand)
+    .optional()
+
+    .describe(
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
+    ),
+})
+
+export const listChargesResponse = z.object({
+  data: z.array(charge),
+  meta: paginatedMeta,
+})
 
 export const createTaxCodeBody = createTaxCodeRequest
 
@@ -11832,7 +11871,7 @@ export const listEventsParamsFilterWire = z
   })
   .describe('Filter options for listing ingested events.')
 
-export const listChargesParamsFilterWire = z
+export const listCustomerChargesParamsFilterWire = z
   .strictObject({
     status: stringFieldFilterExactWire.optional(),
     feature_id: ulidFieldFilterWire.optional(),
@@ -11851,6 +11890,17 @@ export const listInvoicesParamsFilterWire = z
     created_at: dateTimeFieldFilterWire.optional(),
   })
   .describe('Filter options for listing invoices.')
+
+export const listChargesParamsFilterWire = z
+  .strictObject({
+    status: stringFieldFilterExactWire.optional(),
+    feature_id: ulidFieldFilterWire.optional(),
+    feature_key: stringFieldFilterExactWire.optional(),
+    service_period_from: dateTimeFieldFilterWire.optional(),
+    service_period_to: dateTimeFieldFilterWire.optional(),
+    customer_id: ulidFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing charges across customers.')
 
 export const resourceFiltersWire = z
   .strictObject({
@@ -15018,7 +15068,7 @@ export const listCustomerChargesQueryParamsWire = z.object({
     .describe(
       'Sort charges returned in the response. Supported sort attributes are: - `id` - `created_at` - `service_period.from` - `billing_period.from`',
     ),
-  filter: listChargesParamsFilterWire.optional(),
+  filter: listCustomerChargesParamsFilterWire.optional(),
   expand: z
     .array(chargesExpandWire)
     .optional()
@@ -15364,6 +15414,40 @@ export const snapshotQuantitiesInvoicePathParamsWire = z.object({
 })
 
 export const snapshotQuantitiesInvoiceResponseWire = invoiceWire
+
+export const listChargesQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort charges returned in the response. Supported sort attributes are: - `id` - `created_at` - `service_period.from` - `billing_period.from`',
+    ),
+  filter: listChargesParamsFilterWire.optional(),
+  expand: z
+    .array(chargesExpandWire)
+    .optional()
+
+    .describe(
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
+    ),
+})
+
+export const listChargesResponseWire = z.strictObject({
+  data: z.array(chargeWire),
+  meta: paginatedMetaWire,
+})
 
 export const createTaxCodeBodyWire = createTaxCodeRequestWire
 

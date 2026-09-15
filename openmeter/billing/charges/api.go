@@ -24,9 +24,6 @@ type CustomerChargeAPIService interface {
 	DeleteCustomerCharge(ctx context.Context, input DeleteCustomerChargeInput) error
 	SetCustomerChargeOverride(ctx context.Context, input SetCustomerChargeOverrideInput) (Charge, error)
 	ClearCustomerChargeOverride(ctx context.Context, input ClearCustomerChargeOverrideInput) (Charge, error)
-	// ListCustomerCharges lists charges with API-facing expand resolution: it
-	// attaches the resolved realization view to each charge and side-loads the
-	// referenced entities the applied expands ask for.
 	ListCustomerCharges(ctx context.Context, input ListCustomerChargesInput) (ListCustomerChargesResult, error)
 }
 
@@ -45,10 +42,6 @@ func (i ListCustomerChargesInput) Validate() error {
 
 	if err := i.ListChargesInput.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if len(i.CustomerIDs) != 1 {
-		errs = append(errs, errors.New("exactly one customer ID is required"))
 	}
 
 	// The customer-charge API only serves flat fee and usage based charges;

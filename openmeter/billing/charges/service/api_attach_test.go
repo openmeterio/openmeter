@@ -86,7 +86,7 @@ func TestBuildCustomerCharge(t *testing.T) {
 	}
 
 	entities := customerChargeEntities{
-		customer: &customer.Customer{ManagedResource: models.ManagedResource{ID: "cust-1", Name: "Attach Customer"}},
+		customersByID: map[string]customer.Customer{"cust-1": {ManagedResource: models.ManagedResource{ID: "cust-1", Name: "Attach Customer"}}},
 		featureMeters: billingfeaturemeterservice.FeatureMeterCollection{
 			ByID: map[string]billingfeaturemeter.FeatureMeter{
 				"feat-1": {Feature: feature.Feature{ID: "feat-1", Name: "Attach Feature"}},

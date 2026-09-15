@@ -21,6 +21,7 @@ import (
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -166,6 +167,51 @@ func (s *ListCustomersToAdvanceSuite) TestListChargesDeletedAtFilter() {
 	}))
 	s.ElementsMatch([]string{liveChargeID, overrideDeletedChargeID, baseDeletedChargeID}, listIDs(charges.ListChargesInput{
 		IncludeDeleted: true,
+	}))
+}
+
+func (s *ListCustomersToAdvanceSuite) TestListChargesCustomerIDFilter() {
+	ctx := s.T().Context()
+	ns := "test-list-charges-customer-id-filter"
+
+	firstCustomerID := s.createCustomer(ns)
+	secondCustomerID := s.createCustomer(ns)
+	thirdCustomerID := s.createCustomer(ns)
+
+	firstChargeID := s.insertFlatFeeCharge(ns, firstCustomerID, meta.ChargeStatusActive, nil)
+	secondChargeID := s.insertFlatFeeCharge(ns, secondCustomerID, meta.ChargeStatusActive, nil)
+	thirdChargeID := s.insertFlatFeeCharge(ns, thirdCustomerID, meta.ChargeStatusActive, nil)
+
+	listIDs := func(input charges.ListChargesInput) []string {
+		s.T().Helper()
+
+		input.Namespace = ns
+		input.ChargeTypes = []meta.ChargeType{meta.ChargeTypeFlatFee}
+
+		result, err := s.adapter.ListCharges(ctx, input)
+		s.Require().NoError(err)
+
+		out := make([]string, 0, len(result.Items))
+		for _, item := range result.Items {
+			out = append(out, item.ID.ID)
+		}
+
+		return out
+	}
+
+	s.ElementsMatch([]string{firstChargeID, secondChargeID, thirdChargeID}, listIDs(charges.ListChargesInput{}))
+	s.ElementsMatch([]string{firstChargeID}, listIDs(charges.ListChargesInput{
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &firstCustomerID}},
+	}))
+	s.ElementsMatch([]string{firstChargeID, secondChargeID}, listIDs(charges.ListChargesInput{
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{In: &[]string{firstCustomerID, secondCustomerID}}},
+	}))
+	s.ElementsMatch([]string{secondChargeID, thirdChargeID}, listIDs(charges.ListChargesInput{
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Ne: &firstCustomerID}},
+	}))
+	s.ElementsMatch([]string{secondChargeID}, listIDs(charges.ListChargesInput{
+		CustomerIDs: []string{firstCustomerID, secondCustomerID},
+		CustomerID:  &filter.FilterULID{FilterString: filter.FilterString{Ne: &firstCustomerID}},
 	}))
 }
 

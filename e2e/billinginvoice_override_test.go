@@ -635,8 +635,8 @@ func listChargesByName(t require.TestingT, c *v3Client, customerID string, statu
 	statusValues := lo.Map(statuses, func(status v3sdk.ChargeStatus, _ int) string {
 		return string(status)
 	})
-	charges, err := c.Customers.Charges.List(c.t.Context(), customerID, v3sdk.ChargeListParams{
-		Filter: &v3sdk.ChargeFilter{
+	charges, err := c.Customers.Charges.List(c.t.Context(), customerID, v3sdk.ListCustomerChargesParams{
+		Filter: &v3sdk.ListCustomerChargesFilter{
 			Status: &v3sdk.StringExactFilter{Oeq: statusValues},
 		},
 		Page: &v3sdk.PageParams{Size: lo.ToPtr(100)},

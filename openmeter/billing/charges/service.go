@@ -213,8 +213,11 @@ func (f ListChargesDeletedAtFilter) Validate() error {
 type ListChargesInput struct {
 	pagination.Page
 
-	Namespace       string
+	Namespace string
+	// CustomerIDs and CustomerID both narrow the listing and apply together;
+	// empty lists the whole namespace.
 	CustomerIDs     []string
+	CustomerID      *filter.FilterULID
 	SubscriptionIDs []string
 	ChargeTypes     []meta.ChargeType
 	Status          *filter.FilterString
@@ -263,6 +266,12 @@ func (i ListChargesInput) Validate() error {
 	for _, chargeType := range i.ChargeTypes {
 		if err := chargeType.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("charge type: %w", err))
+		}
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer id filter: %w", err))
 		}
 	}
 

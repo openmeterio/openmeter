@@ -22,6 +22,7 @@ type Client struct {
 	Apps              *AppsService
 	Billing           *BillingService
 	Invoices          *InvoicesService
+	Charges           *ChargesService
 	Tax               *TaxService
 	Currencies        *CurrenciesService
 	Features          *FeaturesService
@@ -68,6 +69,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.Apps = &AppsService{client: c}
 	c.Billing = &BillingService{client: c}
 	c.Invoices = &InvoicesService{client: c}
+	c.Charges = &ChargesService{client: c}
 	c.Tax = &TaxService{client: c}
 	c.Currencies = &CurrenciesService{client: c}
 	c.Features = &FeaturesService{client: c}
