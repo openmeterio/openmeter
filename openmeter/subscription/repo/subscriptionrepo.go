@@ -13,6 +13,8 @@ import (
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -243,6 +245,18 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 
 		if len(in.Namespaces) > 0 {
 			query = query.Where(dbsubscription.NamespaceIn(in.Namespaces...))
+		}
+
+		if in.ExcludeCustomCurrency {
+			// Match the schedule loaded by GetView, including past and future items
+			// but excluding deleted revisions. InvoiceCurrency is always fiat.
+			query = query.Where(dbsubscription.Not(dbsubscription.HasPhasesWith(
+				dbsubscriptionphase.Or(dbsubscriptionphase.DeletedAtIsNil(), dbsubscriptionphase.DeletedAtGT(now)),
+				dbsubscriptionphase.HasItemsWith(
+					dbsubscriptionitem.Or(dbsubscriptionitem.DeletedAtIsNil(), dbsubscriptionitem.DeletedAtGT(now)),
+					dbsubscriptionitem.CustomCurrencyIDNotNil(),
+				),
+			)))
 		}
 
 		if in.PlanKey != nil {

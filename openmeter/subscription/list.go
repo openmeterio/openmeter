@@ -40,6 +40,10 @@ type ListSubscriptionsInput struct {
 	Status         []SubscriptionStatus
 	IncludeDeleted bool
 
+	// ExcludeCustomCurrency limits legacy API reads to subscriptions whose
+	// non-deleted schedule contains no custom-currency priced items.
+	ExcludeCustomCurrency bool
+
 	ID        *filter.FilterULID
 	PlanID    *filter.FilterULID
 	PlanKey   *filter.FilterString
