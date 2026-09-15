@@ -336,7 +336,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		other := s.CreateTestCustomer(namespace, "api-list-other")
 		otherCharges, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: namespace,
-			Intents: charges.ChargeIntents{
+			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          other.GetID(),
 					currency:          USD,
@@ -348,7 +348,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: "api-list-other-usage-based",
 				}),
-			},
+			),
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), otherCharges, 1)

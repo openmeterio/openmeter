@@ -12,6 +12,23 @@ import (
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
+// chargeCustomerIDsByChargeID maps each listed flat fee charge to the customer
+// ID it references.
+func chargeCustomerIDsByChargeID(t *testing.T, items []v3sdk.Charge) map[string]string {
+	t.Helper()
+
+	out := make(map[string]string, len(items))
+	for _, item := range items {
+		flatFee, err := item.AsChargeFlatFee()
+		require.NoError(t, err)
+		ref, err := flatFee.Customer.AsCustomerReference()
+		require.NoError(t, err)
+		out[flatFee.ID] = ref.ID
+	}
+
+	return out
+}
+
 // TestV3ListCharges verifies the namespace-wide charges list: it serves the
 // same charge shape as the customer-scoped list, narrows by the customer
 // filter, and resolves each row's own customer under the customer expand.
@@ -65,19 +82,6 @@ func TestV3ListCharges(t *testing.T) {
 	}
 	first, second := owners[0], owners[1]
 
-	chargeCustomerIDs := func(t *testing.T, items []v3sdk.Charge) map[string]string {
-		t.Helper()
-		out := make(map[string]string, len(items))
-		for _, item := range items {
-			flatFee, err := item.AsChargeFlatFee()
-			require.NoError(t, err)
-			ref, err := flatFee.Customer.AsCustomerReference()
-			require.NoError(t, err)
-			out[flatFee.ID] = ref.ID
-		}
-		return out
-	}
-
 	t.Run("filter by customer_id eq returns only that customer's charges", func(t *testing.T) {
 		list, err := c.Charges.List(t.Context(), v3sdk.ListChargesParams{
 			Filter: &v3sdk.ListChargesFilter{
@@ -89,7 +93,7 @@ func TestV3ListCharges(t *testing.T) {
 
 		assert.Equal(t, 1, list.Meta.Page.Total)
 		require.Len(t, list.Data, 1)
-		assert.Equal(t, map[string]string{first.chargeID: first.customer.ID}, chargeCustomerIDs(t, list.Data))
+		assert.Equal(t, map[string]string{first.chargeID: first.customer.ID}, chargeCustomerIDsByChargeID(t, list.Data))
 
 		// The row is the same wire shape the customer-scoped list serves.
 		flatFee, err := list.Data[0].AsChargeFlatFee()
@@ -112,7 +116,7 @@ func TestV3ListCharges(t *testing.T) {
 		assert.Equal(t, map[string]string{
 			first.chargeID:  first.customer.ID,
 			second.chargeID: second.customer.ID,
-		}, chargeCustomerIDs(t, list.Data))
+		}, chargeCustomerIDsByChargeID(t, list.Data))
 	})
 
 	t.Run("expand=customer resolves each row's own customer", func(t *testing.T) {
@@ -163,7 +167,7 @@ func TestV3ListCharges(t *testing.T) {
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 
-		byCharge := chargeCustomerIDs(t, list.Data)
+		byCharge := chargeCustomerIDsByChargeID(t, list.Data)
 		assert.Equal(t, first.customer.ID, byCharge[first.chargeID])
 		assert.Equal(t, second.customer.ID, byCharge[second.chargeID])
 	})

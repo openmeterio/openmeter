@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -1144,6 +1145,14 @@ func fromAPIListChargesParamsFilter(ctx context.Context, f *api.ListChargesParam
 	// so a status filter positively selecting "deleted" (eq/oeq) must lift
 	// that guard; neq never unhides them.
 	if f.Status != nil {
+		// FIXME: we should create a general solution for this
+		operands := append(slices.Clone(f.Status.Oeq), lo.Compact([]string{lo.FromPtr(f.Status.Eq), lo.FromPtr(f.Status.Neq)})...)
+		for _, operand := range operands {
+			if err := meta.ChargeStatus(operand).Validate(); err != nil {
+				return newInvalidQueryParamError(ctx, "filter[status]", err)
+			}
+		}
+
 		deleted := string(meta.ChargeStatusDeleted)
 		req.IncludeDeleted = lo.FromPtr(f.Status.Eq) == deleted || lo.Contains(f.Status.Oeq, deleted)
 	}

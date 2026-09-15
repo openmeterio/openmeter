@@ -125,6 +125,19 @@ func TestFromAPIListChargesParamsFilter(t *testing.T) {
 		require.NotNil(t, req.Status)
 	})
 
+	t.Run("unknown status values are rejected", func(t *testing.T) {
+		var req billingcharges.ListCustomerChargesInput
+		err := fromAPIListChargesParamsFilter(ctx, &api.ListChargesParamsFilter{
+			Status: &api.StringFieldFilterExact{Oeq: []string{"active", "unknown"}},
+		}, &req)
+		assertBadRequestField(t, err, "filter[status]")
+
+		err = fromAPIListChargesParamsFilter(ctx, &api.ListChargesParamsFilter{
+			Status: &api.StringFieldFilterExact{Neq: lo.ToPtr("bogus")},
+		}, &req)
+		assertBadRequestField(t, err, "filter[status]")
+	})
+
 	t.Run("feature and service period filters map onto the request", func(t *testing.T) {
 		var req billingcharges.ListCustomerChargesInput
 		require.NoError(t, fromAPIListChargesParamsFilter(ctx, &api.ListChargesParamsFilter{
