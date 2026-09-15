@@ -91,6 +91,11 @@ take effect at the resolved time.
 
 The existing `current` / `next` response envelope contains the before snapshot
 and amended view of the same subscription for in-place migrations.
+The v1 endpoint is `POST /api/v1/subscriptions/{subscriptionId}/migrate`;
+v3 uses `POST /api/v3/openmeter/subscriptions/{subscriptionId}/migrate`. The v3
+request uses `target_version`, `starting_phase`, `billing_anchor`, and `timing`.
+Its `current` uses the base subscription type, without `phases` or
+`current_period`; `next` contains the resulting subscription view.
 
 Providing `startingPhase` or a different `billingAnchor` uses the original
 subscription change workflow: `current` ends and `next` is a replacement starting

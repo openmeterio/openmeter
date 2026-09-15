@@ -3649,6 +3649,52 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionEdit'
+  /openmeter/subscriptions/{subscriptionId}/migrate:
+    post:
+      operationId: migrate-subscription
+      summary: Migrate subscription
+      description: |-
+        Migrates to a later version of the current plan. With starting_phase omitted and
+        billing_anchor omitted or unchanged, migration amends the subscription in place:
+        unchanged items retain their service periods and both response entries have the
+        same ID. Existing addons must remain compatible with the target plan.
+        Incompatible phase timelines or billing settings return an error. Providing
+        starting_phase or a different billing_anchor explicitly requests replacement,
+        which resets the phase timeline, may produce billing adjustments, and does not
+        transfer addons. Custom subscriptions cannot be migrated.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscriptionMigrateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionMigrate'
+      x-rpc-endpoint: true
+      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/restore:
     post:
       operationId: restore-subscription
@@ -9811,6 +9857,165 @@ components:
       description: |-
         Request for updating a subscription add-on. Only the quantity can be changed;
         the timing controls when the new quantity takes effect.
+    BillingSubscriptionBase:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - name
+        - active_from
+        - customer_id
+        - invoice_currency
+        - cost_basis_mode
+        - cost_basis_pins
+        - billing_cadence
+        - billing_anchor
+        - status
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the subscription. Defaults to the plan name when the
+            subscription is created from a plan.
+          title: Name
+          readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the subscription.
+          title: Description
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of when the subscription became (or will
+            become) active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of when the subscription stops being
+            active. Open-ended when not set.
+          title: Active to
+          readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer ID of the subscription.
+          title: Customer ID
+          readOnly: true
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The plan ID of the subscription. Set if subscription is created from a plan.
+          title: Plan ID
+          deprecated: true
+          readOnly: true
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionPlanReference'
+          description: |-
+            The plan the subscription was created from, if any. Includes the plan key and
+            version so clients can resolve the exact plan revision.
+          title: Plan
+          readOnly: true
+        invoice_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency in which the subscription is invoiced.
+          title: Invoice currency
+          readOnly: true
+        cost_basis_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionCostBasisMode'
+          description: |-
+            Controls whether custom-currency cost bases are resolved dynamically or pinned
+            when their currency pair is introduced to the subscription.
+          title: Cost basis mode
+          default: dynamic
+          readOnly: true
+        cost_basis_pins:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscriptionCostBasisPin'
+          description: Cost bases pinned to custom-currency pairs for this subscription.
+          title: Pinned cost bases
+          readOnly: true
+        billing_cadence:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The billing cadence of the subscription in ISO-8601 duration format. Defines how
+            often the customer is billed. Examples: `P1M` (monthly), `P3M` (quarterly),
+            `P1Y` (annually).
+          title: Billing cadence
+          readOnly: true
+        pro_rating_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionProRatingConfig'
+          description: The pro-rating configuration of the subscription.
+          title: Pro-rating configuration
+          readOnly: true
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            A billing anchor is the fixed point in time that determines the subscription's
+            recurring billing cycle. It affects when charges occur and how prorations are
+            calculated. Common anchors:
+
+            - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+            - Subscription anniversary (day customer signed up)
+            - Custom date (customer-specified day)
+          title: Billing anchor
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionStatus'
+          description: The status of the subscription.
+          title: Status
+          readOnly: true
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for billing.
+
+            Values:
+
+            - `credit_then_invoice`: Credits are applied first, then any remainder is
+            invoiced.
+            - `credit_only`: Usage is settled exclusively against credits.
+          title: Settlement Mode
+      additionalProperties: false
+      description: Subscription fields without phases or the current billing period.
     BillingSubscriptionCancel:
       type: object
       properties:
@@ -10423,6 +10628,57 @@ components:
           readOnly: true
       additionalProperties: false
       description: A subscription item pins a rate card to a cadence within a subscription phase.
+    BillingSubscriptionMigrate:
+      type: object
+      properties:
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            When the migration takes effect: immediately (default), at the next billing
+            cycle, or at an explicit billing-aligned timestamp. In-place migrations may
+            target a later phase when the phase timelines match. The target plan reference
+            is saved now; changed items take effect at the requested time.
+          default: immediate
+        target_version:
+          type: integer
+          minimum: 1
+          description: A strictly later version of the current plan. Omit to use its latest version.
+        starting_phase:
+          type: string
+          minLength: 1
+          description: |-
+            Explicitly replace the subscription, starting in this target plan phase. Always
+            selects replacement, even when the phase matches the current one. Replacement
+            may produce billing adjustments and does not transfer addons.
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Providing a different billing anchor explicitly replaces the subscription. The
+            supplied anchor is preserved and may be before or after the replacement's start
+            time. Omit to retain the existing anchor.
+      additionalProperties: false
+      description: Request for migrating to a later version of the subscription's current plan.
+    BillingSubscriptionMigrateResponse:
+      type: object
+      required:
+        - current
+        - next
+      properties:
+        current:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionBase'
+          description: |-
+            The original subscription's own fields returned by the migration. For an
+            in-place migration this is the before snapshot; for replacement it includes the
+            cancellation. Does not include phases or the current billing period.
+        next:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscription'
+          description: The resulting subscription, including its phases and items.
+      additionalProperties: false
+      description: Response for migrating a subscription.
     BillingSubscriptionPhase:
       type: object
       required:

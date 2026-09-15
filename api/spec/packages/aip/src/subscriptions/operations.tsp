@@ -63,6 +63,59 @@ model SubscriptionChangeResponse {
 }
 
 /**
+ * Request for migrating to a later version of the subscription's current plan.
+ */
+@friendlyName("BillingSubscriptionMigrate")
+model SubscriptionMigrate {
+  /**
+   * When the migration takes effect: immediately (default), at the next billing
+   * cycle, or at an explicit billing-aligned timestamp. In-place migrations may
+   * target a later phase when the phase timelines match. The target plan reference
+   * is saved now; changed items take effect at the requested time.
+   */
+  timing?: SubscriptionEditTiming = SubscriptionEditTimingEnum.Immediate;
+
+  /**
+   * A strictly later version of the current plan. Omit to use its latest version.
+   */
+  @minValue(1)
+  target_version?: integer;
+
+  /**
+   * Explicitly replace the subscription, starting in this target plan phase. Always
+   * selects replacement, even when the phase matches the current one. Replacement
+   * may produce billing adjustments and does not transfer addons.
+   */
+  @minLength(1)
+  starting_phase?: string;
+
+  /**
+   * Providing a different billing anchor explicitly replaces the subscription. The
+   * supplied anchor is preserved and may be before or after the replacement's start
+   * time. Omit to retain the existing anchor.
+   */
+  billing_anchor?: Shared.DateTime;
+}
+
+/**
+ * Response for migrating a subscription.
+ */
+@friendlyName("BillingSubscriptionMigrateResponse")
+model SubscriptionMigrateResponse {
+  /**
+   * The original subscription's own fields returned by the migration. For an
+   * in-place migration this is the before snapshot; for replacement it includes the
+   * cancellation. Does not include phases or the current billing period.
+   */
+  current: SubscriptionBase;
+
+  /**
+   * The resulting subscription, including its phases and items.
+   */
+  next: Subscription;
+}
+
+/**
  * Filter options for listing subscriptions.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "plan_id and plan_key should not be grouped"
@@ -201,6 +254,28 @@ interface SubscriptionsOperations {
     body: SubscriptionChange,
   ):
     | SubscriptionChangeResponse
+    | Common.NotFound
+    | Common.Conflict
+    | Common.ErrorResponses;
+
+  /**
+   * Migrates to a later version of the current plan. With starting_phase omitted and
+   * billing_anchor omitted or unchanged, migration amends the subscription in place:
+   * unchanged items retain their service periods and both response entries have the
+   * same ID. Existing addons must remain compatible with the target plan.
+   * Incompatible phase timelines or billing settings return an error. Providing
+   * starting_phase or a different billing_anchor explicitly requests replacement,
+   * which resets the phase timeline, may produce billing adjustments, and does not
+   * transfer addons. Custom subscriptions cannot be migrated.
+   */
+  @post
+  @operationId("migrate-subscription")
+  @summary("Migrate subscription")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
+  @route("/{subscriptionId}/migrate")
+  migrate(@path subscriptionId: Shared.ULID, @body body: SubscriptionMigrate):
+    | SubscriptionMigrateResponse
     | Common.NotFound
     | Common.Conflict
     | Common.ErrorResponses;

@@ -12,6 +12,7 @@ import {
   unscheduleSubscription,
   restoreSubscription,
   changeSubscription,
+  migrateSubscription,
   editSubscription,
   createSubscriptionAddon,
   listSubscriptionAddons,
@@ -35,6 +36,8 @@ import type {
   RestoreSubscriptionResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
+  MigrateSubscriptionRequest,
+  MigrateSubscriptionResponse,
   EditSubscriptionRequest,
   EditSubscriptionResponse,
   CreateSubscriptionAddonRequest,
@@ -182,6 +185,27 @@ export class Subscriptions {
     options?: RequestOptions,
   ): Promise<ChangeSubscriptionResponse> {
     return unwrap(await changeSubscription(this._client, request, options))
+  }
+
+  /**
+   * Migrate subscription
+   *
+   * Migrates to a later version of the current plan. With starting_phase omitted and
+   * billing_anchor omitted or unchanged, migration amends the subscription in place:
+   * unchanged items retain their service periods and both response entries have the
+   * same ID. Existing addons must remain compatible with the target plan.
+   * Incompatible phase timelines or billing settings return an error. Providing
+   * starting_phase or a different billing_anchor explicitly requests replacement,
+   * which resets the phase timeline, may produce billing adjustments, and does not
+   * transfer addons. Custom subscriptions cannot be migrated.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/migrate
+   */
+  async migrate(
+    request: MigrateSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<MigrateSubscriptionResponse> {
+    return unwrap(await migrateSubscription(this._client, request, options))
   }
 
   /**

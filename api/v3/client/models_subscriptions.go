@@ -90,6 +90,67 @@ type SubscriptionAddonUpdate struct {
 	Timing SubscriptionEditTiming `json:"timing"`
 }
 
+// Subscription fields without phases or the current billing period.
+type SubscriptionBase struct {
+	ID     string            `json:"id"`
+	Labels map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Display name of the subscription. Defaults to the plan name when the
+	// subscription is created from a plan.
+	Name string `json:"name"`
+	// Optional description of the subscription.
+	Description *string `json:"description,omitempty"`
+	// An ISO-8601 timestamp representation of when the subscription became (or will
+	// become) active.
+	ActiveFrom time.Time `json:"active_from"`
+	// An ISO-8601 timestamp representation of when the subscription stops being
+	// active. Open-ended when not set.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// The customer ID of the subscription.
+	CustomerID string `json:"customer_id"`
+	// The plan ID of the subscription. Set if subscription is created from a plan.
+	PlanID *string `json:"plan_id,omitempty"`
+	// The plan the subscription was created from, if any. Includes the plan key and
+	// version so clients can resolve the exact plan revision.
+	Plan *SubscriptionPlanReference `json:"plan,omitempty"`
+	// The fiat currency in which the subscription is invoiced.
+	InvoiceCurrency string `json:"invoice_currency"`
+	// Controls whether custom-currency cost bases are resolved dynamically or pinned
+	// when their currency pair is introduced to the subscription.
+	CostBasisMode SubscriptionCostBasisMode `json:"cost_basis_mode"`
+	// Cost bases pinned to custom-currency pairs for this subscription.
+	CostBasisPins []SubscriptionCostBasisPin `json:"cost_basis_pins"`
+	// The billing cadence of the subscription in ISO-8601 duration format. Defines how
+	// often the customer is billed. Examples: `P1M` (monthly), `P3M` (quarterly),
+	// `P1Y` (annually).
+	BillingCadence string `json:"billing_cadence"`
+	// The pro-rating configuration of the subscription.
+	ProRatingConfig *SubscriptionProRatingConfig `json:"pro_rating_config,omitempty"`
+	// A billing anchor is the fixed point in time that determines the subscription's
+	// recurring billing cycle. It affects when charges occur and how prorations are
+	// calculated. Common anchors:
+	//
+	// - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+	// - Subscription anniversary (day customer signed up)
+	// - Custom date (customer-specified day)
+	BillingAnchor time.Time `json:"billing_anchor"`
+	// The status of the subscription.
+	Status SubscriptionStatus `json:"status"`
+	// Settlement mode for billing.
+	//
+	// Values:
+	//
+	// - `credit_then_invoice`: Credits are applied first, then any remainder is
+	// invoiced.
+	// - `credit_only`: Usage is settled exclusively against credits.
+	SettlementMode *SettlementMode `json:"settlement_mode,omitempty"`
+}
+
 // Request for canceling a subscription.
 type SubscriptionCancel struct {
 	// If not provided the subscription is canceled immediately.
@@ -693,6 +754,35 @@ func (value SubscriptionEditTimingEnum) Valid() bool {
 type SubscriptionEditUnscheduleEdit struct {
 	// Discriminator for the unschedule-edit operation.
 	Type SubscriptionEditOperationType `json:"type"`
+}
+
+// Request for migrating to a later version of the subscription's current plan.
+type SubscriptionMigrate struct {
+	// When the migration takes effect: immediately (default), at the next billing
+	// cycle, or at an explicit billing-aligned timestamp. In-place migrations may
+	// target a later phase when the phase timelines match. The target plan reference
+	// is saved now; changed items take effect at the requested time.
+	Timing *SubscriptionEditTiming `json:"timing,omitempty"`
+	// A strictly later version of the current plan. Omit to use its latest version.
+	TargetVersion *int64 `json:"target_version,omitempty"`
+	// Explicitly replace the subscription, starting in this target plan phase. Always
+	// selects replacement, even when the phase matches the current one. Replacement
+	// may produce billing adjustments and does not transfer addons.
+	StartingPhase *string `json:"starting_phase,omitempty"`
+	// Providing a different billing anchor explicitly replaces the subscription. The
+	// supplied anchor is preserved and may be before or after the replacement's start
+	// time. Omit to retain the existing anchor.
+	BillingAnchor *time.Time `json:"billing_anchor,omitempty"`
+}
+
+// Response for migrating a subscription.
+type SubscriptionMigrateResponse struct {
+	// The original subscription's own fields returned by the migration. For an
+	// in-place migration this is the before snapshot; for replacement it includes the
+	// cancellation. Does not include phases or the current billing period.
+	Current SubscriptionBase `json:"current"`
+	// The resulting subscription, including its phases and items.
+	Next BillingSubscription `json:"next"`
 }
 
 // Page paginated response.

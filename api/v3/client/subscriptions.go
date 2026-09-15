@@ -250,6 +250,36 @@ func (s *SubscriptionsService) Change(ctx context.Context, subscriptionID string
 	return &out, nil
 }
 
+// Migrates to a later version of the current plan. With starting_phase omitted and
+// billing_anchor omitted or unchanged, migration amends the subscription in place:
+// unchanged items retain their service periods and both response entries have the
+// same ID. Existing addons must remain compatible with the target plan.
+// Incompatible phase timelines or billing settings return an error. Providing
+// starting_phase or a different billing_anchor explicitly requests replacement,
+// which resets the phase timeline, may produce billing adjustments, and does not
+// transfer addons. Custom subscriptions cannot be migrated.
+func (s *SubscriptionsService) Migrate(ctx context.Context, subscriptionID string, request SubscriptionMigrate) (*SubscriptionMigrateResponse, error) {
+	if subscriptionID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "subscriptionID", ErrEmptyID)
+	}
+
+	path := "/openmeter/subscriptions/{subscriptionId}/migrate"
+
+	path = replacePathParam(path, "subscriptionId", subscriptionID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out SubscriptionMigrateResponse
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // Edits a running subscription by applying an ordered batch of customizations
 // (adding or removing items, adding, removing, or stretching phases, or
 // unscheduling a pending edit). The changes may take effect immediately or at the

@@ -352,7 +352,7 @@ func convertChargeSubscriptionToAPI(source *meta.SubscriptionReference, expanded
 	if expanded != nil {
 		var out api.SubscriptionOrReference
 
-		sub := subscriptions.ToAPIBillingSubscriptionBase(*expanded)
+		sub := subscriptions.ToAPIBillingSubscriptionWithoutView(*expanded)
 
 		if err := out.FromBillingSubscription(sub); err != nil {
 			return nil, fmt.Errorf("setting subscription union: %w", err)

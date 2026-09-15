@@ -1,6 +1,7 @@
 package subscriptions
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -181,4 +182,19 @@ func TestToAPIBillingSubscriptionViewRoundtrip(t *testing.T) {
 	// then: the current aligned billing period is populated for the active subscription
 	require.NotNil(t, result.CurrentPeriod, "active subscription should expose a current period")
 	require.True(t, result.CurrentPeriod.To.After(result.CurrentPeriod.From))
+
+	// The base response carries every subscription field, without either view field.
+	baseJSON, err := json.Marshal(ToAPIBillingSubscriptionBase(view.Subscription))
+	require.NoError(t, err)
+	fullJSON, err := json.Marshal(result)
+	require.NoError(t, err)
+
+	var baseFields, fullFields map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(baseJSON, &baseFields))
+	require.NoError(t, json.Unmarshal(fullJSON, &fullFields))
+	require.NotContains(t, baseFields, "phases")
+	require.NotContains(t, baseFields, "current_period")
+	delete(fullFields, "phases")
+	delete(fullFields, "current_period")
+	require.Equal(t, fullFields, baseFields)
 }
