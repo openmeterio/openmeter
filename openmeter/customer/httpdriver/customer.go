@@ -108,9 +108,10 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				})
 
 				subscriptions, err := h.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-					Namespaces: []string{request.Namespace},
-					CustomerID: &filter.FilterULID{FilterString: filter.FilterString{In: &customerIDs}},
-					ActiveAt:   lo.ToPtr(time.Now()),
+					ExcludeCustomCurrency: true,
+					Namespaces:            []string{request.Namespace},
+					CustomerID:            &filter.FilterULID{FilterString: filter.FilterString{In: &customerIDs}},
+					ActiveAt:              lo.ToPtr(time.Now()),
 				})
 				if err != nil {
 					return ListCustomersResponse{}, err
@@ -632,9 +633,10 @@ func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, cust cu
 
 	// Get the customer's subscriptions
 	subscriptions, err := h.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{
-		Namespaces: []string{cust.Namespace},
-		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &cust.ID}},
-		ActiveAt:   lo.ToPtr(time.Now()),
+		ExcludeCustomCurrency: true,
+		Namespaces:            []string{cust.Namespace},
+		CustomerID:            &filter.FilterULID{FilterString: filter.FilterString{Eq: &cust.ID}},
+		ActiveAt:              lo.ToPtr(time.Now()),
 	})
 	if err != nil {
 		return GetCustomerResponse{}, err

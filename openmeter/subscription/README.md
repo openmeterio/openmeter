@@ -122,6 +122,10 @@ and phase; do not persist a derived absolute end as independent source truth.
 - newly materialized priced items snapshot their effective currency code; custom
   currencies also retain their managed currency ID, while legacy items may lack
   this snapshot
+- V1 subscription reads reject custom-currency priced items; customer subscription
+  lists and customer expansions omit those subscriptions before pagination.
+  Visibility follows the non-deleted subscription schedule, including past and
+  future items, rather than its fiat invoice currency or source plan.
 - customer and subscription invoice currencies must match whenever the spec has
   priced items; unpriced items have no materialized currency
 - customer-authored rate cards in inline custom plans and add-item edits must
