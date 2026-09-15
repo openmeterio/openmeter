@@ -3300,7 +3300,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionCreate'
-      x-unstable: true
     get:
       operationId: list-subscriptions
       summary: List subscriptions
@@ -3346,7 +3345,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}:
     get:
       operationId: get-subscription
@@ -3374,7 +3372,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/addons:
     post:
       operationId: create-subscription-addon
@@ -3411,7 +3408,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
-      x-unstable: true
     get:
       operationId: list-subscription-addons
       summary: List subscription addons
@@ -3457,7 +3453,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}:
     get:
       operationId: get-subscription-addon
@@ -3491,7 +3486,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
-      x-unstable: true
     patch:
       operationId: update-subscription-addon
       summary: Update subscription addon
@@ -3574,7 +3568,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionCancel'
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/change:
     post:
       operationId: change-subscription
@@ -3613,7 +3606,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionChange'
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/edit:
     post:
       operationId: edit-subscription
@@ -3654,7 +3646,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionEdit'
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/migrate:
     post:
       operationId: migrate-subscription
@@ -3699,6 +3690,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionMigrate'
+      x-rpc-endpoint: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/restore:
     post:
@@ -3795,7 +3787,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Subscriptions
-      x-unstable: true
   /openmeter/tax-codes:
     post:
       operationId: create-tax-code
