@@ -358,14 +358,14 @@ export function changeSubscription(
 /**
  * Migrate subscription
  *
- * Migrates to a later version of the current plan. With starting_phase omitted
- * and billing_anchor omitted or unchanged, migration amends the subscription
- * in place: unchanged items retain their service periods and both response
- * entries have the same ID. Existing addons must remain compatible with the
- * target plan. Incompatible phase timelines or billing settings return an error.
- * Providing starting_phase or a different billing_anchor explicitly requests
- * replacement, which resets the phase timeline, may produce billing adjustments,
- * and does not transfer addons. Custom subscriptions cannot be migrated.
+ * Migrates to a later version of the current plan. With starting_phase omitted and
+ * billing_anchor omitted or unchanged, migration amends the subscription in place:
+ * unchanged items retain their service periods and both response entries have the
+ * same ID. Existing addons must remain compatible with the target plan.
+ * Incompatible phase timelines or billing settings return an error. Providing
+ * starting_phase or a different billing_anchor explicitly requests replacement,
+ * which resets the phase timeline, may produce billing adjustments, and does not
+ * transfer addons. Custom subscriptions cannot be migrated.
  *
  * POST /openmeter/subscriptions/{subscriptionId}/migrate
  */

@@ -242,11 +242,11 @@ model SubscriptionCreate {
 }
 
 /**
- * Subscription.
+ * Subscription fields without phases or the current billing period.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "cost_basis, active, and billing fields are separate top-level subscription properties, not sub-objects"
-@friendlyName("BillingSubscription")
-model Subscription {
+@friendlyName("BillingSubscriptionBase")
+model SubscriptionBase {
   ...OmitProperties<Shared.Resource, "name" | "description">;
 
   /**
@@ -378,6 +378,15 @@ model Subscription {
   @visibility(Lifecycle.Create, Lifecycle.Read)
   @summary("Settlement Mode")
   settlement_mode?: ProductCatalog.SettlementMode;
+}
+
+/**
+ * Subscription.
+ */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "cost_basis, active, and billing fields are separate top-level subscription properties, not sub-objects"
+@friendlyName("BillingSubscription")
+model Subscription {
+  ...SubscriptionBase;
 
   /**
    * The current aligned billing period. Present only when the subscription is active

@@ -105,9 +105,9 @@ model SubscriptionMigrateResponse {
   /**
    * The original subscription's own fields returned by the migration. For an
    * in-place migration this is the before snapshot; for replacement it includes the
-   * cancellation. Phases is empty and current_period is omitted.
+   * cancellation. Does not include phases or the current billing period.
    */
-  current: Subscription;
+  current: SubscriptionBase;
 
   /**
    * The resulting subscription, including its phases and items.

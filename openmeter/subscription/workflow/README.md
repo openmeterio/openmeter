@@ -93,8 +93,8 @@ The existing `current` / `next` response envelope contains the before snapshot
 and amended view of the same subscription for in-place migrations.
 Both v1 and v3 expose `POST /subscriptions/{subscriptionId}/migrate`. The v3
 request uses `target_version`, `starting_phase`, `billing_anchor`, and `timing`.
-Its `current` contains the original subscription's own fields (empty `phases`,
-no `current_period`); `next` contains the resulting subscription view.
+Its `current` uses the base subscription type, without `phases` or
+`current_period`; `next` contains the resulting subscription view.
 
 Providing `startingPhase` or a different `billingAnchor` uses the original
 subscription change workflow: `current` ends and `next` is a replacement starting

@@ -44,7 +44,7 @@ func FromAPISubscriptionSortField(ctx context.Context, field string) (subscripti
 // subscriptionBaseFields maps the subscription's own fields — everything except the
 // phases and current billing period, which are resolved from the view by
 // ToAPIBillingSubscription.
-func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.BillingSubscription {
+func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.BillingSubscriptionBase {
 	costBasisPins := make([]api.BillingSubscriptionCostBasisPin, 0, len(sub.CostBasisPins))
 	for _, pin := range sub.CostBasisPins {
 		costBasisPins = append(costBasisPins, api.BillingSubscriptionCostBasisPin{
@@ -54,7 +54,7 @@ func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.Bi
 		})
 	}
 
-	result := api.BillingSubscription{
+	result := api.BillingSubscriptionBase{
 		Id:              sub.ID,
 		Name:            sub.Name,
 		Description:     sub.Description,
@@ -92,16 +92,45 @@ func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.Bi
 	return result
 }
 
-// ToAPIBillingSubscriptionBase maps a bare subscription — no view — to the
+// ToAPIBillingSubscriptionWithoutView maps a bare subscription — no view — to the
 // API model: base fields only, an empty phase list, and no current period.
 // It serves callers that side-load subscriptions without their specs (e.g.
 // the customer charges subscription expand); the view-derived fields need
 // ToAPIBillingSubscription.
-func ToAPIBillingSubscriptionBase(sub subscription.Subscription) api.BillingSubscription {
-	result := subscriptionBaseFields(sub, clock.Now())
-	result.Phases = []api.BillingSubscriptionPhase{}
+func ToAPIBillingSubscriptionWithoutView(sub subscription.Subscription) api.BillingSubscription {
+	return mapSubscriptionBaseToFull(subscriptionBaseFields(sub, clock.Now()))
+}
 
-	return result
+// ToAPIBillingSubscriptionBase maps the subscription's own fields without view data.
+func ToAPIBillingSubscriptionBase(sub subscription.Subscription) api.BillingSubscriptionBase {
+	return subscriptionBaseFields(sub, clock.Now())
+}
+
+// The generated full model is flat, so its shared fields need an explicit mapping.
+func mapSubscriptionBaseToFull(fields api.BillingSubscriptionBase) api.BillingSubscription {
+	return api.BillingSubscription{
+		Phases:          []api.BillingSubscriptionPhase{},
+		Id:              fields.Id,
+		Name:            fields.Name,
+		Description:     fields.Description,
+		ActiveFrom:      fields.ActiveFrom,
+		ActiveTo:        fields.ActiveTo,
+		CustomerId:      fields.CustomerId,
+		InvoiceCurrency: fields.InvoiceCurrency,
+		CostBasisMode:   fields.CostBasisMode,
+		CostBasisPins:   fields.CostBasisPins,
+		BillingCadence:  fields.BillingCadence,
+		BillingAnchor:   fields.BillingAnchor,
+		ProRatingConfig: fields.ProRatingConfig,
+		SettlementMode:  fields.SettlementMode,
+		Status:          fields.Status,
+		Labels:          fields.Labels,
+		CreatedAt:       fields.CreatedAt,
+		UpdatedAt:       fields.UpdatedAt,
+		DeletedAt:       fields.DeletedAt,
+		PlanId:          fields.PlanId,
+		Plan:            fields.Plan,
+	}
 }
 
 func ToAPIBillingSubscription(view subscription.SubscriptionView) (api.BillingSubscription, error) {
@@ -109,7 +138,7 @@ func ToAPIBillingSubscription(view subscription.SubscriptionView) (api.BillingSu
 	// phase classification so every time-dependent field reflects the same instant.
 	now := clock.Now()
 
-	result := subscriptionBaseFields(view.Subscription, now)
+	result := mapSubscriptionBaseToFull(subscriptionBaseFields(view.Subscription, now))
 
 	// The current aligned billing period only has a value while the subscription is
 	// active and aligned. Querying it before the subscription starts is expected, not

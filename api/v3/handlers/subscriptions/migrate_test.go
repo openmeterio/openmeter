@@ -104,8 +104,12 @@ func TestMigrateSubscriptionHandler(t *testing.T) {
 	require.Equal(t, result.Current.Id, result.Next.Id)
 	require.Equal(t, 1, result.Current.Plan.Version)
 	require.Equal(t, 2, result.Next.Plan.Version)
-	require.Empty(t, result.Current.Phases)
-	require.Nil(t, result.Current.CurrentPeriod)
+	var wire struct {
+		Current map[string]json.RawMessage `json:"current"`
+	}
+	require.NoError(t, json.Unmarshal(writer.Body.Bytes(), &wire))
+	require.NotContains(t, wire.Current, "phases")
+	require.NotContains(t, wire.Current, "current_period")
 	require.Len(t, result.Next.Phases, 1)
 	require.Len(t, result.Next.Phases[0].Items, 2)
 

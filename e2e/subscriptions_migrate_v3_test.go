@@ -32,8 +32,6 @@ func TestV3SubscriptionMigrateInPlace(t *testing.T) {
 	require.Equal(t, before.ID, result.Next.ID)
 	require.EqualValues(t, 1, result.Current.Plan.Version)
 	require.Equal(t, v2.Version, result.Next.Plan.Version)
-	require.Empty(t, result.Current.Phases)
-	require.Nil(t, result.Current.CurrentPeriod)
 	require.Equal(t, before.BillingAnchor, result.Next.BillingAnchor)
 	require.Equal(t, before.ActiveFrom, result.Next.ActiveFrom)
 	require.True(t, subscriptionHasItem(&result.Next, body.Phases[0].Key, added.Key))

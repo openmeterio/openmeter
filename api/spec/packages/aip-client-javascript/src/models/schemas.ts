@@ -4421,6 +4421,48 @@ export const workflowCollectionAlignmentAnchored = z
     'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
+export const subscriptionBase = z
+  .object({
+    id: ulid,
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'Display name of the subscription. Defaults to the plan name when the subscription is created from a plan.',
+      ),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+      .describe('Optional description of the subscription.'),
+    activeFrom: dateTime,
+    activeTo: dateTime.optional(),
+    customerId: ulid,
+    planId: ulid.optional(),
+    plan: subscriptionPlanReference.optional(),
+    invoiceCurrency: currencyCode,
+    costBasisMode: subscriptionCostBasisMode.default('dynamic'),
+    costBasisPins: z
+      .array(subscriptionCostBasisPin)
+
+      .describe(
+        'Cost bases pinned to custom-currency pairs for this subscription.',
+      ),
+    billingCadence: iso8601Duration,
+    proRatingConfig: subscriptionProRatingConfig.optional(),
+    billingAnchor: dateTime,
+    status: subscriptionStatus,
+    settlementMode: settlementMode.optional(),
+  })
+
+  .describe('Subscription fields without phases or the current billing period.')
+
 export const invoiceStatusDetails = z
   .object({
     immutable: z
@@ -6770,7 +6812,7 @@ export const subscriptionChangeResponse = z
 
 export const subscriptionMigrateResponse = z
   .object({
-    current: subscription,
+    current: subscriptionBase,
     next: subscription,
   })
   .describe('Response for migrating a subscription.')
@@ -12346,6 +12388,48 @@ export const workflowCollectionAlignmentAnchoredWire = z
     'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
+export const subscriptionBaseWire = z
+  .strictObject({
+    id: ulidWire,
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'Display name of the subscription. Defaults to the plan name when the subscription is created from a plan.',
+      ),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+      .describe('Optional description of the subscription.'),
+    active_from: dateTimeWire,
+    active_to: dateTimeWire.optional(),
+    customer_id: ulidWire,
+    plan_id: ulidWire.optional(),
+    plan: subscriptionPlanReferenceWire.optional(),
+    invoice_currency: currencyCodeWire,
+    cost_basis_mode: subscriptionCostBasisModeWire,
+    cost_basis_pins: z
+      .array(subscriptionCostBasisPinWire)
+
+      .describe(
+        'Cost bases pinned to custom-currency pairs for this subscription.',
+      ),
+    billing_cadence: iso8601DurationWire,
+    pro_rating_config: subscriptionProRatingConfigWire.optional(),
+    billing_anchor: dateTimeWire,
+    status: subscriptionStatusWire,
+    settlement_mode: settlementModeWire.optional(),
+  })
+
+  .describe('Subscription fields without phases or the current billing period.')
+
 export const invoiceStatusDetailsWire = z
   .strictObject({
     immutable: z
@@ -14692,7 +14776,7 @@ export const subscriptionChangeResponseWire = z
 
 export const subscriptionMigrateResponseWire = z
   .strictObject({
-    current: subscriptionWire,
+    current: subscriptionBaseWire,
     next: subscriptionWire,
   })
   .describe('Response for migrating a subscription.')
