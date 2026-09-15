@@ -3649,6 +3649,50 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionEdit'
+  /openmeter/subscriptions/{subscriptionId}/migrate:
+    post:
+      operationId: migrate-subscription
+      summary: Migrate subscription
+      description: |-
+        Migrates to a later version of the current plan. With starting_phase omitted
+        and billing_anchor omitted or unchanged, migration amends the subscription
+        in place: unchanged items retain their service periods and both response
+        entries have the same ID. Existing addons must remain compatible with the
+        target plan. Incompatible phase timelines or billing settings return an error.
+        Providing starting_phase or a different billing_anchor explicitly requests
+        replacement, which resets the phase timeline, may produce billing adjustments,
+        and does not transfer addons. Custom subscriptions cannot be migrated.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingSubscriptionMigrateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingSubscriptionMigrate'
   /openmeter/subscriptions/{subscriptionId}/restore:
     post:
       operationId: restore-subscription
@@ -10423,6 +10467,57 @@ components:
           readOnly: true
       additionalProperties: false
       description: A subscription item pins a rate card to a cadence within a subscription phase.
+    BillingSubscriptionMigrate:
+      type: object
+      properties:
+        timing:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
+          description: |-
+            When the migration takes effect: immediately (default), at the next billing
+            cycle, or at an explicit billing-aligned timestamp. In-place migrations may
+            target a later phase when the phase timelines match. The target plan reference
+            is saved now; changed items take effect at the requested time.
+          default: immediate
+        target_version:
+          type: integer
+          minimum: 1
+          description: A strictly later version of the current plan. Omit to use its latest version.
+        starting_phase:
+          type: string
+          minLength: 1
+          description: |-
+            Explicitly replace the subscription, starting in this target plan phase.
+            Always selects replacement, even when the phase matches the current one.
+            Replacement may produce billing adjustments and does not transfer addons.
+        billing_anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Providing a different billing anchor explicitly replaces the subscription.
+            The supplied anchor is preserved and may be before or after the replacement's
+            start time. Omit to retain the existing anchor.
+      additionalProperties: false
+      description: Request for migrating to a later version of the subscription's current plan.
+    BillingSubscriptionMigrateResponse:
+      type: object
+      required:
+        - current
+        - next
+      properties:
+        current:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscription'
+          description: |-
+            The original subscription's own fields returned by the migration. For an
+            in-place migration this is the before snapshot; for replacement it includes
+            the cancellation. Phases is empty and current_period is omitted.
+        next:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscription'
+          description: The resulting subscription, including its phases and items.
+      additionalProperties: false
+      description: Response for migrating a subscription.
     BillingSubscriptionPhase:
       type: object
       required:

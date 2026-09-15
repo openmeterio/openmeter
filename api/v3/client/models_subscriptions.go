@@ -695,6 +695,35 @@ type SubscriptionEditUnscheduleEdit struct {
 	Type SubscriptionEditOperationType `json:"type"`
 }
 
+// Request for migrating to a later version of the subscription's current plan.
+type SubscriptionMigrate struct {
+	// When the migration takes effect: immediately (default), at the next billing
+	// cycle, or at an explicit billing-aligned timestamp. In-place migrations may
+	// target a later phase when the phase timelines match. The target plan reference
+	// is saved now; changed items take effect at the requested time.
+	Timing *SubscriptionEditTiming `json:"timing,omitempty"`
+	// A strictly later version of the current plan. Omit to use its latest version.
+	TargetVersion *int64 `json:"target_version,omitempty"`
+	// Explicitly replace the subscription, starting in this target plan phase.
+	// Always selects replacement, even when the phase matches the current one.
+	// Replacement may produce billing adjustments and does not transfer addons.
+	StartingPhase *string `json:"starting_phase,omitempty"`
+	// Providing a different billing anchor explicitly replaces the subscription.
+	// The supplied anchor is preserved and may be before or after the replacement's
+	// start time. Omit to retain the existing anchor.
+	BillingAnchor *time.Time `json:"billing_anchor,omitempty"`
+}
+
+// Response for migrating a subscription.
+type SubscriptionMigrateResponse struct {
+	// The original subscription's own fields returned by the migration. For an
+	// in-place migration this is the before snapshot; for replacement it includes
+	// the cancellation. Phases is empty and current_period is omitted.
+	Current BillingSubscription `json:"current"`
+	// The resulting subscription, including its phases and items.
+	Next BillingSubscription `json:"next"`
+}
+
 // Page paginated response.
 type SubscriptionPagePaginatedResponse struct {
 	Data []BillingSubscription `json:"data"`

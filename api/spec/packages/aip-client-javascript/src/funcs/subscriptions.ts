@@ -29,6 +29,8 @@ import type {
   RestoreSubscriptionResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
+  MigrateSubscriptionRequest,
+  MigrateSubscriptionResponse,
   EditSubscriptionRequest,
   EditSubscriptionResponse,
   CreateSubscriptionAddonRequest,
@@ -349,6 +351,57 @@ export function changeSubscription(
           assertValid(schemas.changeSubscriptionResponseWire, data)
         }
         return fromWire(data, schemas.changeSubscriptionResponse)
+      })
+  })
+}
+
+/**
+ * Migrate subscription
+ *
+ * Migrates to a later version of the current plan. With starting_phase omitted
+ * and billing_anchor omitted or unchanged, migration amends the subscription
+ * in place: unchanged items retain their service periods and both response
+ * entries have the same ID. Existing addons must remain compatible with the
+ * target plan. Incompatible phase timelines or billing settings return an error.
+ * Providing starting_phase or a different billing_anchor explicitly requests
+ * replacement, which resets the phase timeline, may produce billing adjustments,
+ * and does not transfer addons. Custom subscriptions cannot be migrated.
+ *
+ * POST /openmeter/subscriptions/{subscriptionId}/migrate
+ */
+export function migrateSubscription(
+  client: Client,
+  req: MigrateSubscriptionRequest,
+  options?: RequestOptions,
+): Promise<Result<MigrateSubscriptionResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      subscriptionId: req.subscriptionId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.migrateSubscriptionPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.migrateSubscriptionPathParamsWire, pathParams)
+    }
+    const path = `openmeter/subscriptions/${(() => {
+      if (pathParams.subscriptionId === undefined) {
+        throw new Error('missing path parameter: subscriptionId')
+      }
+      return encodeURIComponent(String(pathParams.subscriptionId))
+    })()}/migrate`
+    const body = toWire(req.body, schemas.migrateSubscriptionBody)
+    if (client._options.validate) {
+      assertValid(schemas.migrateSubscriptionBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.migrateSubscriptionResponseWire, data)
+        }
+        return fromWire(data, schemas.migrateSubscriptionResponse)
       })
   })
 }

@@ -3457,6 +3457,31 @@ export interface SubscriptionCancel {
   timing: SubscriptionEditTiming
 }
 
+/** Request for migrating to a later version of the subscription's current plan. */
+export interface SubscriptionMigrate {
+  /**
+   * When the migration takes effect: immediately (default), at the next billing
+   * cycle, or at an explicit billing-aligned timestamp. In-place migrations may
+   * target a later phase when the phase timelines match. The target plan reference
+   * is saved now; changed items take effect at the requested time.
+   */
+  timing: SubscriptionEditTiming
+  /** A strictly later version of the current plan. Omit to use its latest version. */
+  targetVersion?: number
+  /**
+   * Explicitly replace the subscription, starting in this target plan phase.
+   * Always selects replacement, even when the phase matches the current one.
+   * Replacement may produce billing adjustments and does not transfer addons.
+   */
+  startingPhase?: string
+  /**
+   * Providing a different billing anchor explicitly replaces the subscription.
+   * The supplied anchor is preserved and may be before or after the replacement's
+   * start time. Omit to retain the existing anchor.
+   */
+  billingAnchor?: Date
+}
+
 /** SubscriptionAddon create request. */
 export interface CreateSubscriptionAddonRequest {
   labels?: Labels
@@ -6277,6 +6302,18 @@ export interface SubscriptionChangeResponse {
   next: Subscription
 }
 
+/** Response for migrating a subscription. */
+export interface SubscriptionMigrateResponse {
+  /**
+   * The original subscription's own fields returned by the migration. For an
+   * in-place migration this is the before snapshot; for replacement it includes
+   * the cancellation. Phases is empty and current_period is omitted.
+   */
+  current: Subscription
+  /** The resulting subscription, including its phases and items. */
+  next: Subscription
+}
+
 /** A flat fee charge for a customer. */
 export interface ChargeFlatFee {
   id: string
@@ -7104,6 +7141,31 @@ export interface InvoiceWorkflowInput {
 export interface SubscriptionCancelInput {
   /** If not provided the subscription is canceled immediately. */
   timing?: SubscriptionEditTiming
+}
+
+/** Request for migrating to a later version of the subscription's current plan. */
+export interface SubscriptionMigrateInput {
+  /**
+   * When the migration takes effect: immediately (default), at the next billing
+   * cycle, or at an explicit billing-aligned timestamp. In-place migrations may
+   * target a later phase when the phase timelines match. The target plan reference
+   * is saved now; changed items take effect at the requested time.
+   */
+  timing?: SubscriptionEditTiming
+  /** A strictly later version of the current plan. Omit to use its latest version. */
+  targetVersion?: number
+  /**
+   * Explicitly replace the subscription, starting in this target plan phase.
+   * Always selects replacement, even when the phase matches the current one.
+   * Replacement may produce billing adjustments and does not transfer addons.
+   */
+  startingPhase?: string
+  /**
+   * Providing a different billing anchor explicitly replaces the subscription.
+   * The supplied anchor is preserved and may be before or after the replacement's
+   * start time. Omit to retain the existing anchor.
+   */
+  billingAnchor?: Date
 }
 
 /**
@@ -8958,6 +9020,18 @@ export interface SubscriptionChangeResponseInput {
   /** The current subscription before the change. */
   current: SubscriptionInput
   /** The new state of the subscription after the change. */
+  next: SubscriptionInput
+}
+
+/** Response for migrating a subscription. */
+export interface SubscriptionMigrateResponseInput {
+  /**
+   * The original subscription's own fields returned by the migration. For an
+   * in-place migration this is the before snapshot; for replacement it includes
+   * the cancellation. Phases is empty and current_period is omitted.
+   */
+  current: SubscriptionInput
+  /** The resulting subscription, including its phases and items. */
   next: SubscriptionInput
 }
 

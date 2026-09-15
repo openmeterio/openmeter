@@ -129,6 +129,14 @@ func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subs
 		)).With(subscriptionId).ServeHTTP(w, r)
 }
 
+func (s *Server) MigrateSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionsHandler.MigrateSubscription().
+		Chain(featuregate.NewMiddleware[subscriptionhandler.MigrateSubscriptionRequest, subscriptionhandler.MigrateSubscriptionResponse](
+			s.NamespaceDecoder.GetNamespace,
+			s.FeatureGate,
+		)).With(subscriptionId).ServeHTTP(w, r)
+}
+
 func (s *Server) EditSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
 	s.subscriptionsHandler.EditSubscription().With(subscriptionId).ServeHTTP(w, r)
 }

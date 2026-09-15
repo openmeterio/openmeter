@@ -513,3 +513,24 @@ func FromAPIBillingSubscriptionCustomPlan(namespace string, body api.BillingSubs
 
 	return req, nil
 }
+
+func FromAPIBillingSubscriptionMigrate(id models.NamespacedID, body api.BillingSubscriptionMigrate) (plansubscription.MigrateSubscriptionRequest, error) {
+	result := plansubscription.MigrateSubscriptionRequest{
+		ID:            id,
+		TargetVersion: body.TargetVersion,
+		StartingPhase: body.StartingPhase,
+		BillingAnchor: body.BillingAnchor,
+	}
+
+	// Preserve omission so the domain service can choose its default timing.
+	if body.Timing != nil {
+		timing, err := FromAPIBillingSubscriptionEditTiming(*body.Timing)
+		if err != nil {
+			return plansubscription.MigrateSubscriptionRequest{}, err
+		}
+
+		result.Timing = &timing
+	}
+
+	return result, nil
+}

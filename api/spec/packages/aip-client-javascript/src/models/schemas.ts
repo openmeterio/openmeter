@@ -4456,6 +4456,33 @@ export const subscriptionCancel = z
   })
   .describe('Request for canceling a subscription.')
 
+export const subscriptionMigrate = z
+  .object({
+    timing: subscriptionEditTiming.optional().default('immediate'),
+    targetVersion: z
+      .number()
+      .int()
+      .gte(1)
+      .optional()
+
+      .describe(
+        'A strictly later version of the current plan. Omit to use its latest version.',
+      ),
+    startingPhase: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'Explicitly replace the subscription, starting in this target plan phase. Always selects replacement, even when the phase matches the current one. Replacement may produce billing adjustments and does not transfer addons.',
+      ),
+    billingAnchor: dateTime.optional(),
+  })
+
+  .describe(
+    "Request for migrating to a later version of the subscription's current plan.",
+  )
+
 export const createSubscriptionAddonRequest = z
   .object({
     labels: labels.optional(),
@@ -6741,6 +6768,13 @@ export const subscriptionChangeResponse = z
   })
   .describe('Response for changing a subscription.')
 
+export const subscriptionMigrateResponse = z
+  .object({
+    current: subscription,
+    next: subscription,
+  })
+  .describe('Response for migrating a subscription.')
+
 export const invoice = z
   .discriminatedUnion('type', [invoiceStandard])
 
@@ -7244,6 +7278,14 @@ export const changeSubscriptionPathParams = z.object({
 export const changeSubscriptionBody = subscriptionChange
 
 export const changeSubscriptionResponse = subscriptionChangeResponse
+
+export const migrateSubscriptionPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const migrateSubscriptionBody = subscriptionMigrate
+
+export const migrateSubscriptionResponse = subscriptionMigrateResponse
 
 export const editSubscriptionPathParams = z.object({
   subscriptionId: ulid,
@@ -12339,6 +12381,33 @@ export const subscriptionCancelWire = z
   })
   .describe('Request for canceling a subscription.')
 
+export const subscriptionMigrateWire = z
+  .strictObject({
+    timing: subscriptionEditTimingWire.optional(),
+    target_version: z
+      .number()
+      .int()
+      .gte(1)
+      .optional()
+
+      .describe(
+        'A strictly later version of the current plan. Omit to use its latest version.',
+      ),
+    starting_phase: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'Explicitly replace the subscription, starting in this target plan phase. Always selects replacement, even when the phase matches the current one. Replacement may produce billing adjustments and does not transfer addons.',
+      ),
+    billing_anchor: dateTimeWire.optional(),
+  })
+
+  .describe(
+    "Request for migrating to a later version of the subscription's current plan.",
+  )
+
 export const createSubscriptionAddonRequestWire = z
   .strictObject({
     labels: labelsWire.optional(),
@@ -14621,6 +14690,13 @@ export const subscriptionChangeResponseWire = z
   })
   .describe('Response for changing a subscription.')
 
+export const subscriptionMigrateResponseWire = z
+  .strictObject({
+    current: subscriptionWire,
+    next: subscriptionWire,
+  })
+  .describe('Response for migrating a subscription.')
+
 export const invoiceWire = z
   .discriminatedUnion('type', [invoiceStandardWire])
 
@@ -15159,6 +15235,14 @@ export const changeSubscriptionPathParamsWire = z.object({
 export const changeSubscriptionBodyWire = subscriptionChangeWire
 
 export const changeSubscriptionResponseWire = subscriptionChangeResponseWire
+
+export const migrateSubscriptionPathParamsWire = z.object({
+  subscriptionId: ulidWire,
+})
+
+export const migrateSubscriptionBodyWire = subscriptionMigrateWire
+
+export const migrateSubscriptionResponseWire = subscriptionMigrateResponseWire
 
 export const editSubscriptionPathParamsWire = z.object({
   subscriptionId: ulidWire,
