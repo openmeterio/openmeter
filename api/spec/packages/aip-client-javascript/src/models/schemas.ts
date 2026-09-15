@@ -3831,14 +3831,14 @@ export const createChargeCostBasis = z
     'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
   )
 
-export const createCreditGrantTaxConfig = z
+export const createTaxCodeConfig = z
   .object({
     behavior: taxBehavior.optional(),
-    taxCode: createResourceReference.optional(),
+    code: createResourceReference.optional(),
   })
 
   .describe(
-    'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
 export const chargeCostBasis = z
@@ -3852,22 +3852,15 @@ export const chargeCostBasis = z
     'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
   )
 
-export const creditGrantTaxConfig = z
+export const taxCodeConfig = z
   .object({
     behavior: taxBehavior.optional(),
-    taxCode: taxCodeReference.optional(),
+    code: taxCodeReference.optional(),
   })
 
   .describe(
-    'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
-
-export const rateCardTaxConfig = z
-  .object({
-    behavior: taxBehavior.optional(),
-    code: taxCodeReference,
-  })
-  .describe('The tax config of the rate card.')
 
 export const taxConfig = z
   .object({
@@ -3988,12 +3981,15 @@ export const createPlanAddonRequest = z
   })
   .describe('PlanAddon create request.')
 
-export const updateRateCardTaxConfig = z
+export const updateTaxCodeConfig = z
   .object({
     behavior: taxBehavior.optional(),
-    code: updateResourceReference,
+    code: updateResourceReference.optional(),
   })
-  .describe('The tax config of the rate card.')
+
+  .describe(
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
+  )
 
 export const listEventsParamsFilter = z
   .object({
@@ -5557,7 +5553,7 @@ export const createCreditGrantRequest = z
     currency: createCurrencyCode,
     amount: numeric,
     purchase: createCreditGrantPurchase.optional(),
-    taxConfig: createCreditGrantTaxConfig.optional(),
+    taxConfig: createTaxCodeConfig.optional(),
     filters: createCreditGrantFilters.optional(),
     priority: z
       .number()
@@ -5600,7 +5596,7 @@ export const creditGrant = z
     currency: billingCurrencyCode,
     amount: numeric,
     purchase: creditGrantPurchase.optional(),
-    taxConfig: creditGrantTaxConfig.optional(),
+    taxConfig: taxCodeConfig.optional(),
     invoice: creditGrantInvoiceReference.optional(),
     filters: creditGrantFilters.optional(),
     priority: z
@@ -5806,7 +5802,7 @@ export const rateCard = z
     paymentTerm: pricePaymentTerm.optional().default('in_arrears'),
     commitments: spendCommitments.optional(),
     discounts: rateCardDiscounts.optional(),
-    taxConfig: rateCardTaxConfig.optional(),
+    taxConfig: taxCodeConfig.optional(),
     entitlement: rateCardEntitlement.optional(),
   })
 
@@ -5817,7 +5813,7 @@ export const rateCard = z
 export const invoiceLineRateCard = z
   .object({
     price: price,
-    taxConfig: rateCardTaxConfig.optional(),
+    taxConfig: taxCodeConfig.optional(),
     featureKey: resourceKey.optional(),
     discounts: rateCardDiscounts.optional(),
     unitConfig: unitConfig.optional(),
@@ -5906,7 +5902,7 @@ export const featurePagePaginatedResponse = z
 export const updateInvoiceLineRateCard = z
   .object({
     price: updatePrice,
-    taxConfig: updateRateCardTaxConfig.optional(),
+    taxConfig: updateTaxCodeConfig.optional(),
     featureKey: resourceKey.optional(),
     discounts: updateDiscounts.optional(),
   })
@@ -11843,14 +11839,14 @@ export const createChargeCostBasisWire = z
     'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
   )
 
-export const createCreditGrantTaxConfigWire = z
+export const createTaxCodeConfigWire = z
   .strictObject({
     behavior: taxBehaviorWire.optional(),
-    tax_code: createResourceReferenceWire.optional(),
+    code: createResourceReferenceWire.optional(),
   })
 
   .describe(
-    'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
 export const chargeCostBasisWire = z
@@ -11864,22 +11860,15 @@ export const chargeCostBasisWire = z
     'Cost basis selection for a custom-currency charge. The variant chosen fixes when and how the conversion rate is determined.',
   )
 
-export const creditGrantTaxConfigWire = z
+export const taxCodeConfigWire = z
   .strictObject({
     behavior: taxBehaviorWire.optional(),
-    tax_code: taxCodeReferenceWire.optional(),
+    code: taxCodeReferenceWire.optional(),
   })
 
   .describe(
-    'Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants.',
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
-
-export const rateCardTaxConfigWire = z
-  .strictObject({
-    behavior: taxBehaviorWire.optional(),
-    code: taxCodeReferenceWire,
-  })
-  .describe('The tax config of the rate card.')
 
 export const taxConfigWire = z
   .strictObject({
@@ -12000,12 +11989,15 @@ export const createPlanAddonRequestWire = z
   })
   .describe('PlanAddon create request.')
 
-export const updateRateCardTaxConfigWire = z
+export const updateTaxCodeConfigWire = z
   .strictObject({
     behavior: taxBehaviorWire.optional(),
-    code: updateResourceReferenceWire,
+    code: updateResourceReferenceWire.optional(),
   })
-  .describe('The tax config of the rate card.')
+
+  .describe(
+    'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
+  )
 
 export const listEventsParamsFilterWire = z
   .strictObject({
@@ -13573,7 +13565,7 @@ export const createCreditGrantRequestWire = z
     currency: createCurrencyCodeWire,
     amount: numericWire,
     purchase: createCreditGrantPurchaseWire.optional(),
-    tax_config: createCreditGrantTaxConfigWire.optional(),
+    tax_config: createTaxCodeConfigWire.optional(),
     filters: createCreditGrantFiltersWire.optional(),
     priority: z
       .number()
@@ -13615,7 +13607,7 @@ export const creditGrantWire = z
     currency: billingCurrencyCodeWire,
     amount: numericWire,
     purchase: creditGrantPurchaseWire.optional(),
-    tax_config: creditGrantTaxConfigWire.optional(),
+    tax_config: taxCodeConfigWire.optional(),
     invoice: creditGrantInvoiceReferenceWire.optional(),
     filters: creditGrantFiltersWire.optional(),
     priority: z
@@ -13821,7 +13813,7 @@ export const rateCardWire = z
     payment_term: pricePaymentTermWire.optional(),
     commitments: spendCommitmentsWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
-    tax_config: rateCardTaxConfigWire.optional(),
+    tax_config: taxCodeConfigWire.optional(),
     entitlement: rateCardEntitlementWire.optional(),
   })
 
@@ -13832,7 +13824,7 @@ export const rateCardWire = z
 export const invoiceLineRateCardWire = z
   .strictObject({
     price: priceWire,
-    tax_config: rateCardTaxConfigWire.optional(),
+    tax_config: taxCodeConfigWire.optional(),
     feature_key: resourceKeyWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
     unit_config: unitConfigWire.optional(),
@@ -13921,7 +13913,7 @@ export const featurePagePaginatedResponseWire = z
 export const updateInvoiceLineRateCardWire = z
   .strictObject({
     price: updatePriceWire,
-    tax_config: updateRateCardTaxConfigWire.optional(),
+    tax_config: updateTaxCodeConfigWire.optional(),
     feature_key: resourceKeyWire.optional(),
     discounts: updateDiscountsWire.optional(),
   })

@@ -57,7 +57,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		return grant, fmt.Errorf("converting purchase: %w", err)
 	}
 	grant.Purchase = purchase
-	grant.TaxConfig = toAPIBillingCreditGrantTaxConfig(charge)
+	grant.TaxConfig = toAPITaxCodeConfig(charge)
 
 	return grant, nil
 }
@@ -181,13 +181,13 @@ func toAPIBillingCreditAvailabilityPolicy(status creditpurchase.InitialPaymentSe
 	}
 }
 
-func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxConfig {
+func toAPITaxCodeConfig(charge creditpurchase.Charge) *api.TaxCodeConfig {
 	cfg := charge.Intent.TaxConfig
 	if lo.IsEmpty(cfg) {
 		return nil
 	}
 
-	tc := &api.BillingCreditGrantTaxConfig{}
+	tc := &api.TaxCodeConfig{}
 
 	if cfg.Behavior != nil {
 		behavior := api.BillingTaxBehavior(*cfg.Behavior)
@@ -195,7 +195,7 @@ func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.Billing
 	}
 
 	if cfg.TaxCodeID != "" {
-		tc.TaxCode = &api.TaxCodeReference{Id: cfg.TaxCodeID}
+		tc.Code = &api.TaxCodeReference{Id: cfg.TaxCodeID}
 	}
 
 	return tc
@@ -235,7 +235,7 @@ func fromAPIBillingCreditAvailabilityPolicy(policy api.BillingCreditAvailability
 	}
 }
 
-func fromAPIBillingCreditGrantTaxConfig(tc *api.CreateCreditGrantTaxConfig) *productcatalog.TaxConfig {
+func fromAPITaxCodeConfig(tc *api.CreateTaxCodeConfig) *productcatalog.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -247,8 +247,8 @@ func fromAPIBillingCreditGrantTaxConfig(tc *api.CreateCreditGrantTaxConfig) *pro
 		config.Behavior = &behavior
 	}
 
-	if tc.TaxCode != nil {
-		config.TaxCodeID = &tc.TaxCode.Id
+	if tc.Code != nil {
+		config.TaxCodeID = &tc.Code.Id
 	}
 
 	return config
@@ -395,7 +395,7 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 	}
 
 	if body.TaxConfig != nil {
-		req.TaxConfig = fromAPIBillingCreditGrantTaxConfig(body.TaxConfig)
+		req.TaxConfig = fromAPITaxCodeConfig(body.TaxConfig)
 	}
 
 	filters, err := fromAPIBillingCreditGrantFilters(body.Filters)

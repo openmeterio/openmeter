@@ -1,6 +1,7 @@
 import "../../shared/index.tsp";
 import "../../currencies/index.tsp";
 import "../../billing/validationissue.tsp";
+import "../../tax/codes.tsp";
 
 namespace Customers;
 
@@ -107,26 +108,6 @@ enum CreditGrantVoidPaymentAdjustment {
 }
 
 /**
- * Tax configuration for a credit grant.
- *
- * Tax configuration should be provided to ensure correct revenue recognition,
- * including for externally funded grants.
- */
-@friendlyName("BillingCreditGrantTaxConfig")
-@summary("Tax configuration for a credit grant")
-model CreditGrantTaxConfig {
-  /**
-   * Tax behavior applied to the invoice line item.
-   */
-  behavior?: Common.BillingRoot.TaxBehavior;
-
-  /**
-   * Tax code applied to the invoice line item.
-   */
-  tax_code?: Shared.ResourceReference<Tax.TaxCode>;
-}
-
-/**
  * A credit grant allocates credits to a customer.
  *
  * Credits are drawn down against charges according to the settlement mode
@@ -174,7 +155,7 @@ model CreditGrant {
    * is used.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
-  tax_config?: CreditGrantTaxConfig;
+  tax_config?: Tax.TaxCodeConfig;
 
   /**
    * Available when `funding_method` is `invoice`.
