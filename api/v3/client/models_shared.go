@@ -2767,16 +2767,16 @@ func (value TaxBehavior) Valid() bool {
 
 // Tax configuration for a billable resource.
 //
-// Applies a tax code and tax behavior to the resulting invoice line items.
-// When not set, the applicable default is used: the billing profile default
-// tax configuration, then the organization default tax code.
+// Applies a tax code and tax behavior to the resulting invoice line items. When
+// not set, the applicable default is used: the billing profile default tax
+// configuration, then the organization default tax code.
 type TaxCodeConfig struct {
 	// Tax behavior.
 	//
 	// This enum is used to specify whether tax is included in the price or excluded
-	// from the price. If not specified, the billing profile is used to determine
-	// the tax behavior. If not specified in the billing profile, the provider's
-	// default behavior is used.
+	// from the price. If not specified, the billing profile is used to determine the
+	// tax behavior. If not specified in the billing profile, the provider's default
+	// behavior is used.
 	Behavior *TaxBehavior `json:"behavior,omitempty"`
 	// Tax code applied to the invoice line item.
 	Code *TaxCodeReference `json:"code,omitempty"`

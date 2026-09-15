@@ -2778,18 +2778,18 @@ export interface ListPlanAddonsParamsFilter {
 /**
  * Tax configuration for a billable resource.
  *
- * Applies a tax code and tax behavior to the resulting invoice line items.
- * When not set, the applicable default is used: the billing profile default
- * tax configuration, then the organization default tax code.
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
  */
 export interface CreateTaxCodeConfig {
   /**
    * Tax behavior.
    *
    * This enum is used to specify whether tax is included in the price or excluded
-   * from the price. If not specified, the billing profile is used to determine
-   * the tax behavior. If not specified in the billing profile, the provider's
-   * default behavior is used.
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
    */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
@@ -2799,18 +2799,18 @@ export interface CreateTaxCodeConfig {
 /**
  * Tax configuration for a billable resource.
  *
- * Applies a tax code and tax behavior to the resulting invoice line items.
- * When not set, the applicable default is used: the billing profile default
- * tax configuration, then the organization default tax code.
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
  */
 export interface TaxCodeConfig {
   /**
    * Tax behavior.
    *
    * This enum is used to specify whether tax is included in the price or excluded
-   * from the price. If not specified, the billing profile is used to determine
-   * the tax behavior. If not specified in the billing profile, the provider's
-   * default behavior is used.
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
    */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
@@ -2959,18 +2959,18 @@ export interface CreatePlanAddonRequest {
 /**
  * Tax configuration for a billable resource.
  *
- * Applies a tax code and tax behavior to the resulting invoice line items.
- * When not set, the applicable default is used: the billing profile default
- * tax configuration, then the organization default tax code.
+ * Applies a tax code and tax behavior to the resulting invoice line items. When
+ * not set, the applicable default is used: the billing profile default tax
+ * configuration, then the organization default tax code.
  */
 export interface UpdateTaxCodeConfig {
   /**
    * Tax behavior.
    *
    * This enum is used to specify whether tax is included in the price or excluded
-   * from the price. If not specified, the billing profile is used to determine
-   * the tax behavior. If not specified in the billing profile, the provider's
-   * default behavior is used.
+   * from the price. If not specified, the billing profile is used to determine the
+   * tax behavior. If not specified in the billing profile, the provider's default
+   * behavior is used.
    */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
