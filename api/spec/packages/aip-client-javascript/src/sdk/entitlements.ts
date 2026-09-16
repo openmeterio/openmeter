@@ -5,12 +5,15 @@ import { unwrap, type RequestOptions } from '../lib/types.js'
 import {
   listCustomerEntitlementAccess,
   getCustomerEntitlementAccess,
+  getCustomerEntitlementValue,
 } from '../funcs/entitlements.js'
 import type {
   ListCustomerEntitlementAccessRequest,
   ListCustomerEntitlementAccessResponse,
   GetCustomerEntitlementAccessRequest,
   GetCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementValueRequest,
+  GetCustomerEntitlementValueResponse,
 } from '../models/operations/entitlements.js'
 
 export class Entitlements {
@@ -43,6 +46,23 @@ export class Entitlements {
   ): Promise<GetCustomerEntitlementAccessResponse> {
     return unwrap(
       await getCustomerEntitlementAccess(this._client, request, options),
+    )
+  }
+
+  /**
+   * Get customer entitlement value
+   *
+   * Get the customer's access through a single entitlement, optionally evaluated
+   * at a point in time.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value
+   */
+  async getCustomerValue(
+    request: GetCustomerEntitlementValueRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementValueResponse> {
+    return unwrap(
+      await getCustomerEntitlementValue(this._client, request, options),
     )
   }
 }

@@ -11,6 +11,8 @@ import type {
   ListCustomerEntitlementAccessResponse,
   GetCustomerEntitlementAccessRequest,
   GetCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementValueRequest,
+  GetCustomerEntitlementValueResponse,
 } from '../models/operations/entitlements.js'
 
 /**
@@ -115,6 +117,67 @@ export function getCustomerEntitlementAccess(
           assertValid(schemas.getCustomerEntitlementAccessResponseWire, data)
         }
         return fromWire(data, schemas.getCustomerEntitlementAccessResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement value
+ *
+ * Get the customer's access through a single entitlement, optionally evaluated
+ * at a point in time.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value
+ */
+export function getCustomerEntitlementValue(
+  client: Client,
+  req: GetCustomerEntitlementValueRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementValueResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getCustomerEntitlementValuePathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementValuePathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/value`
+    const query = toWire(
+      {
+        expand: req.expand,
+        at: req.at,
+      },
+      schemas.getCustomerEntitlementValueQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementValueQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementValueResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementValueResponse)
       })
   })
 }

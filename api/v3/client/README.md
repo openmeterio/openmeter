@@ -183,6 +183,7 @@ The full call path, HTTP route, and a short description are listed below.
 | --- | --- | --- |
 | `om.Entitlements.ListCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access` |  |
 | `om.Entitlements.GetCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
+| `om.Entitlements.GetCustomerValue` | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value` | Get the customer's access through a single entitlement, optionally evaluated at a point in time. |
 
 ### Subscriptions
 

@@ -1991,6 +1991,67 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/value:
+    get:
+      operationId: get-customer-entitlement-value
+      summary: Get customer entitlement value
+      description: |-
+        Get the customer's access through a single entitlement, optionally evaluated
+        at a point in time.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: expand
+          in: query
+          required: false
+          description: |-
+            Expand computed fields.
+
+            Supported values are:
+
+            - `value`: Expand the balance details of a metered entitlement; it sets the
+            `value` field.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingEntitlementAccessExpand'
+          explode: false
+          style: form
+        - name: at
+          in: query
+          required: false
+          description: |-
+            The point in time to evaluate the entitlement at. Defaults to the current
+            time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: EntitlementAccessResult response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementAccessResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes

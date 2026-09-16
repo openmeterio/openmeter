@@ -7164,6 +7164,24 @@ export const getCustomerEntitlementAccessQueryParams = z.object({
 
 export const getCustomerEntitlementAccessResponse = entitlementAccessResult
 
+export const getCustomerEntitlementValuePathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const getCustomerEntitlementValueQueryParams = z.object({
+  expand: z
+    .array(entitlementAccessExpand)
+    .optional()
+
+    .describe(
+      'Expand computed fields. Supported values are: - `value`: Expand the balance details of a metered entitlement; it sets the `value` field.',
+    ),
+  at: dateTime.optional(),
+})
+
+export const getCustomerEntitlementValueResponse = entitlementAccessResult
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -15187,6 +15205,25 @@ export const getCustomerEntitlementAccessQueryParamsWire = z.object({
 })
 
 export const getCustomerEntitlementAccessResponseWire =
+  entitlementAccessResultWire
+
+export const getCustomerEntitlementValuePathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const getCustomerEntitlementValueQueryParamsWire = z.object({
+  expand: z
+    .array(entitlementAccessExpandWire)
+    .optional()
+
+    .describe(
+      'Expand computed fields. Supported values are: - `value`: Expand the balance details of a metered entitlement; it sets the `value` field.',
+    ),
+  at: dateTimeWire.optional(),
+})
+
+export const getCustomerEntitlementValueResponseWire =
   entitlementAccessResultWire
 
 export const createCreditGrantPathParamsWire = z.object({
