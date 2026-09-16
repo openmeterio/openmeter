@@ -227,7 +227,86 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
 	})
 
-	t.Run("Get and List should reject a deleted customer", func(t *testing.T) {
+	t.Run("Value should reject an incomplete input", func(t *testing.T) {
+		_, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+			CustomerID:    customerID,
+			EntitlementID: meteredEnt.ID,
+		})
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("Value should return the metered entitlement by ID", func(t *testing.T) {
+		access, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+			CustomerID:    customerID,
+			EntitlementID: meteredEnt.ID,
+			At:            clock.Now(),
+		})
+		require.NoError(t, err)
+		require.Equal(t, meteredFeature.Key, access.FeatureKey)
+
+		value, ok := access.Value.(*meteredentitlement.MeteredEntitlementValue)
+		require.True(t, ok, "expected metered value, got %T", access.Value)
+		require.Equal(t, 9.0, value.Balance)
+		require.Equal(t, 1.0, value.UsageInPeriod)
+	})
+
+	t.Run("Value should evaluate the balance at the requested time", func(t *testing.T) {
+		// when evaluated before the usage event was recorded
+		access, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+			CustomerID:    customerID,
+			EntitlementID: meteredEnt.ID,
+			At:            now.Add(30 * time.Second),
+		})
+		require.NoError(t, err)
+
+		// then the balance is untouched
+		value, ok := access.Value.(*meteredentitlement.MeteredEntitlementValue)
+		require.True(t, ok, "expected metered value, got %T", access.Value)
+		require.Equal(t, 10.0, value.Balance)
+		require.Equal(t, 0.0, value.UsageInPeriod)
+	})
+
+	t.Run("Value should return no access before the entitlement became active", func(t *testing.T) {
+		access, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+			CustomerID:    customerID,
+			EntitlementID: meteredEnt.ID,
+			At:            now.Add(-time.Hour),
+		})
+		require.NoError(t, err)
+		require.Equal(t, meteredFeature.Key, access.FeatureKey)
+		require.IsType(t, &entitlement.NoAccessValue{}, access.Value)
+	})
+
+	t.Run("Value should report an unknown entitlement ID as not found", func(t *testing.T) {
+		_, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+			CustomerID:    customerID,
+			EntitlementID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2",
+			At:            clock.Now(),
+		})
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("Value should hide another customer's entitlement", func(t *testing.T) {
+		// given another customer with its own boolean entitlement
+		other := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+		otherEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			UsageAttribution: other.GetUsageAttribution(),
+			FeatureKey:       &boolFeature.Key,
+			EntitlementType:  entitlement.EntitlementTypeBoolean,
+		}, nil)
+		require.NoError(t, err)
+
+		// then it cannot be read through the first customer's scope
+		_, err = conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+			CustomerID:    customerID,
+			EntitlementID: otherEnt.ID,
+			At:            clock.Now(),
+		})
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("Get, List and Value should reject a deleted customer", func(t *testing.T) {
 		// given the customer gets deleted and time moves past the deletion
 		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
 		clock.SetTime(clock.Now().Add(time.Minute))
@@ -241,6 +320,13 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 
 		_, err = conn.ListCustomerEntitlementAccess(t.Context(), entitlement.ListCustomerEntitlementAccessInput{
 			CustomerID: customerID,
+		})
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
+
+		_, err = conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+			CustomerID:    customerID,
+			EntitlementID: meteredEnt.ID,
+			At:            clock.Now(),
 		})
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
