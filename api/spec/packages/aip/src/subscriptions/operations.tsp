@@ -218,6 +218,10 @@ interface SubscriptionsOperations {
   @operationId("unschedule-subscription")
   @summary("Unschedule subscription")
   @route("/{subscriptionId}/unschedule")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   unschedule(@path subscriptionId: Shared.ULID):
     | Shared.DeleteResponse
     | Common.NotFound
@@ -233,6 +237,10 @@ interface SubscriptionsOperations {
   @operationId("restore-subscription")
   @summary("Restore subscription")
   @route("/{subscriptionId}/restore")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   restore(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
     | Common.NotFound
@@ -391,6 +399,8 @@ interface SubscriptionAddonOperations {
   @operationId("update-subscription-addon")
   @summary("Update subscription addon")
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
   update(
     @path subscriptionId: Shared.ULID,
     @path subscriptionAddonId: Shared.ULID,

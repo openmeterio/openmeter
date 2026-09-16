@@ -9,6 +9,11 @@ import {
   createCustomerCharges,
 } from '../funcs/customers.js'
 import {
+  unscheduleSubscription,
+  restoreSubscription,
+  updateSubscriptionAddon,
+} from '../funcs/subscriptions.js'
+import {
   listApps,
   uninstallApp,
   updateApp,
@@ -44,6 +49,14 @@ import type {
   CreateCustomerChargesRequest,
   CreateCustomerChargesResponse,
 } from '../models/operations/customers.js'
+import type {
+  UnscheduleSubscriptionRequest,
+  UnscheduleSubscriptionResponse,
+  RestoreSubscriptionRequest,
+  RestoreSubscriptionResponse,
+  UpdateSubscriptionAddonRequest,
+  UpdateSubscriptionAddonResponse,
+} from '../models/operations/subscriptions.js'
 import type {
   ListAppsRequest,
   ListAppsResponse,
@@ -121,6 +134,11 @@ export class Internal {
   private _customers?: InternalCustomers
   get customers(): InternalCustomers {
     return (this._customers ??= new InternalCustomers(this._client))
+  }
+
+  private _subscriptions?: InternalSubscriptions
+  get subscriptions(): InternalSubscriptions {
+    return (this._subscriptions ??= new InternalSubscriptions(this._client))
   }
 
   private _apps?: InternalApps
@@ -260,6 +278,61 @@ export class InternalCustomersCharges {
     options?: RequestOptions,
   ): Promise<CreateCustomerChargesResponse> {
     return unwrap(await createCustomerCharges(this._client, request, options))
+  }
+}
+
+export class InternalSubscriptions {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Unschedule subscription
+   *
+   * Deletes a scheduled subscription that has not yet become active, removing it and
+   * resolving any scheduling conflict it was holding. This is distinct from
+   * canceling: cancel ends a running subscription, whereas unscheduling removes a
+   * not-yet-active one. Only scheduled subscriptions can be unscheduled;
+   * unscheduling an active or already-started subscription is rejected.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/unschedule
+   */
+  async unschedule(
+    request: UnscheduleSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<UnscheduleSubscriptionResponse> {
+    return unwrap(await unscheduleSubscription(this._client, request, options))
+  }
+
+  /**
+   * Restore subscription
+   *
+   * Restores the subscription by deleting any later-scheduled successor
+   * subscriptions and continuing this one indefinitely. This is the inverse of a
+   * future-dated change, which schedules a successor. Restore is not available when
+   * multi-subscription is enabled.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/restore
+   */
+  async restore(
+    request: RestoreSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<RestoreSubscriptionResponse> {
+    return unwrap(await restoreSubscription(this._client, request, options))
+  }
+
+  /**
+   * Update subscription addon
+   *
+   * Update a subscription add-on. Only the quantity is mutable; the timing controls
+   * when the new quantity takes effect. A new entry is appended to the add-on's
+   * timeline.
+   *
+   * PATCH /openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}
+   */
+  async updateAddon(
+    request: UpdateSubscriptionAddonRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateSubscriptionAddonResponse> {
+    return unwrap(await updateSubscriptionAddon(this._client, request, options))
   }
 }
 
