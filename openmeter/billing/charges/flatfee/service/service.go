@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"sync/atomic"
 	"testing"
@@ -29,6 +30,12 @@ type Config struct {
 	FeatureMeterResolver   *billingfeaturemeterservice.Resolver
 	Currencies             currencies.Service
 	ItemReferenceValidator itemreference.Validator
+	BillingService         billing.Service
+}
+
+type LineSubscriptionReferenceService interface {
+	SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error
+	SetStandardLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error
 }
 
 func (c Config) Validate() error {
@@ -70,6 +77,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("subscription item reference validator cannot be null"))
 	}
 
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -96,15 +107,16 @@ func New(config Config) (flatfee.Service, error) {
 	}
 
 	svc := &service{
-		adapter:                config.Adapter,
-		handler:                config.Handler,
-		metaAdapter:            config.MetaAdapter,
-		locker:                 config.Locker,
-		ratingService:          config.RatingService,
-		featureMeterResolver:   config.FeatureMeterResolver,
-		realizations:           realizations,
-		costbasisResolver:      costbasisResolver,
-		itemReferenceValidator: config.ItemReferenceValidator,
+		adapter:                          config.Adapter,
+		handler:                          config.Handler,
+		metaAdapter:                      config.MetaAdapter,
+		locker:                           config.Locker,
+		ratingService:                    config.RatingService,
+		featureMeterResolver:             config.FeatureMeterResolver,
+		realizations:                     realizations,
+		costbasisResolver:                costbasisResolver,
+		itemReferenceValidator:           config.ItemReferenceValidator,
+		lineSubscriptionReferenceService: config.BillingService,
 	}
 	svc.creditNotesSupported.Store(charges.CreditNotesSupportedByLineUpdater)
 
@@ -112,16 +124,17 @@ func New(config Config) (flatfee.Service, error) {
 }
 
 type service struct {
-	adapter                flatfee.Adapter
-	handler                flatfee.Handler
-	metaAdapter            meta.Adapter
-	locker                 *lockr.Locker
-	ratingService          rating.Service
-	featureMeterResolver   *billingfeaturemeterservice.Resolver
-	realizations           *flatfeerealizations.Service
-	creditNotesSupported   atomic.Bool
-	costbasisResolver      costbasis.Resolver
-	itemReferenceValidator itemreference.Validator
+	adapter                          flatfee.Adapter
+	handler                          flatfee.Handler
+	metaAdapter                      meta.Adapter
+	locker                           *lockr.Locker
+	ratingService                    rating.Service
+	featureMeterResolver             *billingfeaturemeterservice.Resolver
+	realizations                     *flatfeerealizations.Service
+	creditNotesSupported             atomic.Bool
+	costbasisResolver                costbasis.Resolver
+	itemReferenceValidator           itemreference.Validator
+	lineSubscriptionReferenceService LineSubscriptionReferenceService
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {

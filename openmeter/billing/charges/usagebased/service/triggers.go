@@ -206,6 +206,22 @@ func (s *service) updateSubscriptionReference(ctx context.Context, charge *usage
 		return fmt.Errorf("update subscription reference: %w", err)
 	}
 
+	lineReferenceInput := billing.SetLineSubscriptionReferenceByChargeIDInput{
+		Namespace:      charge.Namespace,
+		ChargeID:       charge.ID,
+		SubscriptionID: updated.SubscriptionID,
+		PhaseID:        updated.PhaseID,
+		ItemID:         updated.ItemID,
+	}
+
+	if err := s.lineSubscriptionReferenceService.SetGatheringLineSubscriptionReferenceByChargeID(ctx, lineReferenceInput); err != nil {
+		return fmt.Errorf("set gathering line subscription reference: %w", err)
+	}
+
+	if err := s.lineSubscriptionReferenceService.SetStandardLineSubscriptionReferenceByChargeID(ctx, lineReferenceInput); err != nil {
+		return fmt.Errorf("set standard line subscription reference: %w", err)
+	}
+
 	if *current != updated {
 		baseIntent := charge.Intent.GetBaseIntent()
 		baseIntent.Subscription = &updated

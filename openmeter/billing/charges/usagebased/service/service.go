@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -20,19 +21,24 @@ import (
 )
 
 type Config struct {
-	Adapter                 usagebased.Adapter
-	Handler                 usagebased.Handler
-	Lineage                 lineage.Service
-	Locker                  *lockr.Locker
-	MetaAdapter             meta.Adapter
-	InvoiceUpdater          invoiceupdater.Updater
-	CustomerOverrideService billing.CustomerOverrideService
-	FeatureMeterResolver    *billingfeaturemeterservice.Resolver
-	RatingService           rating.Service
-	Currencies              currencies.Service
-	ItemReferenceValidator  itemreference.Validator
+	Adapter                usagebased.Adapter
+	Handler                usagebased.Handler
+	Lineage                lineage.Service
+	Locker                 *lockr.Locker
+	MetaAdapter            meta.Adapter
+	InvoiceUpdater         invoiceupdater.Updater
+	BillingService         billing.Service
+	FeatureMeterResolver   *billingfeaturemeterservice.Resolver
+	RatingService          rating.Service
+	Currencies             currencies.Service
+	ItemReferenceValidator itemreference.Validator
 
 	StreamingConnector streaming.Connector
+}
+
+type LineSubscriptionReferenceService interface {
+	SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error
+	SetStandardLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error
 }
 
 func (c Config) Validate() error {
@@ -62,8 +68,8 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("invoice updater cannot be null"))
 	}
 
-	if c.CustomerOverrideService == nil {
-		errs = append(errs, errors.New("customer override service cannot be null"))
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service cannot be null"))
 	}
 
 	if c.FeatureMeterResolver == nil {
@@ -121,17 +127,18 @@ func New(config Config) (usagebased.Service, error) {
 	}
 
 	return &service{
-		adapter:                 config.Adapter,
-		locker:                  config.Locker,
-		metaAdapter:             config.MetaAdapter,
-		invoiceUpdater:          config.InvoiceUpdater,
-		customerOverrideService: config.CustomerOverrideService,
-		featureMeterResolver:    config.FeatureMeterResolver,
-		ratingService:           config.RatingService,
-		rater:                   rater,
-		runs:                    runs,
-		costbasisResolver:       costbasisResolver,
-		itemReferenceValidator:  config.ItemReferenceValidator,
+		adapter:                          config.Adapter,
+		locker:                           config.Locker,
+		metaAdapter:                      config.MetaAdapter,
+		invoiceUpdater:                   config.InvoiceUpdater,
+		customerOverrideService:          config.BillingService,
+		featureMeterResolver:             config.FeatureMeterResolver,
+		ratingService:                    config.RatingService,
+		rater:                            rater,
+		runs:                             runs,
+		costbasisResolver:                costbasisResolver,
+		itemReferenceValidator:           config.ItemReferenceValidator,
+		lineSubscriptionReferenceService: config.BillingService,
 	}, nil
 }
 
@@ -147,8 +154,9 @@ type service struct {
 	rater usagebasedrating.Service
 	runs  *usagebasedrun.Service
 
-	costbasisResolver      costbasis.Resolver
-	itemReferenceValidator itemreference.Validator
+	costbasisResolver                costbasis.Resolver
+	itemReferenceValidator           itemreference.Validator
+	lineSubscriptionReferenceService LineSubscriptionReferenceService
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {

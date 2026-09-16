@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
@@ -45,9 +47,17 @@ func TestUpdateSubscriptionReference(t *testing.T) {
 		}}
 		updater := &subscriptionReferenceUpdaterStub{}
 		validator := &itemReferenceValidatorStub{}
+		lineReferenceInput := billing.SetLineSubscriptionReferenceByChargeIDInput{
+			Namespace:      charge.Namespace,
+			ChargeID:       charge.ID,
+			SubscriptionID: updated.SubscriptionID,
+			PhaseID:        updated.PhaseID,
+			ItemID:         updated.ItemID,
+		}
+		lineReferences := newLineReferenceServiceMockWithExpectedInput(t, lineReferenceInput)
 
 		// When the system repairs its subscription ownership reference.
-		err := (&service{adapter: updater, itemReferenceValidator: validator}).updateSubscriptionReference(t.Context(), &charge, patch)
+		err := (&service{adapter: updater, itemReferenceValidator: validator, lineSubscriptionReferenceService: lineReferences}).updateSubscriptionReference(t.Context(), &charge, patch)
 
 		// Then only the base attribution changes and the override remains present.
 		require.NoError(t, err)
@@ -81,14 +91,21 @@ func TestUpdateSubscriptionReference(t *testing.T) {
 			}, nil),
 		}}
 		updater := &subscriptionReferenceUpdaterStub{}
+		expected := current
+		expected.ItemID = updated.ItemID
+		lineReferences := newLineReferenceServiceMockWithExpectedInput(t, billing.SetLineSubscriptionReferenceByChargeIDInput{
+			Namespace:      charge.Namespace,
+			ChargeID:       charge.ID,
+			SubscriptionID: expected.SubscriptionID,
+			PhaseID:        expected.PhaseID,
+			ItemID:         expected.ItemID,
+		})
 
 		// When the item-only repair is applied.
-		err = (&service{adapter: updater, itemReferenceValidator: &itemReferenceValidatorStub{}}).updateSubscriptionReference(t.Context(), &charge, itemPatch)
+		err = (&service{adapter: updater, itemReferenceValidator: &itemReferenceValidatorStub{}, lineSubscriptionReferenceService: lineReferences}).updateSubscriptionReference(t.Context(), &charge, itemPatch)
 
 		// Then the current subscription and phase IDs form the final reference sent for validation.
 		require.NoError(t, err)
-		expected := current
-		expected.ItemID = updated.ItemID
 		require.Equal(t, expected, updater.input.Target)
 		require.Equal(t, expected, *charge.Intent.GetSubscription())
 	})
@@ -105,9 +122,16 @@ func TestUpdateSubscriptionReference(t *testing.T) {
 			}, nil),
 		}}
 		updater := &subscriptionReferenceUpdaterStub{}
+		lineReferences := newLineReferenceServiceMockWithExpectedInput(t, billing.SetLineSubscriptionReferenceByChargeIDInput{
+			Namespace:      charge.Namespace,
+			ChargeID:       charge.ID,
+			SubscriptionID: updated.SubscriptionID,
+			PhaseID:        updated.PhaseID,
+			ItemID:         updated.ItemID,
+		})
 
 		// When the same repair is retried, then it succeeds without changing the reference.
-		require.NoError(t, (&service{adapter: updater, itemReferenceValidator: &itemReferenceValidatorStub{}}).updateSubscriptionReference(t.Context(), &charge, patch))
+		require.NoError(t, (&service{adapter: updater, itemReferenceValidator: &itemReferenceValidatorStub{}, lineSubscriptionReferenceService: lineReferences}).updateSubscriptionReference(t.Context(), &charge, patch))
 		require.Equal(t, updated, updater.input.Target)
 		require.Equal(t, updated, *charge.Intent.GetSubscription())
 	})
@@ -174,6 +198,31 @@ func (s *subscriptionReferenceUpdaterStub) UpdateSubscriptionReference(_ context
 type itemReferenceValidatorStub struct {
 	input itemreference.ValidateInput
 	err   error
+}
+
+type lineReferenceServiceMock struct {
+	mock.Mock
+}
+
+func newLineReferenceServiceMockWithExpectedInput(t *testing.T, input billing.SetLineSubscriptionReferenceByChargeIDInput) *lineReferenceServiceMock {
+	t.Helper()
+
+	service := &lineReferenceServiceMock{}
+	service.On("SetGatheringLineSubscriptionReferenceByChargeID", mock.Anything, input).Return(nil).Once()
+	service.On("SetStandardLineSubscriptionReferenceByChargeID", mock.Anything, input).Return(nil).Once()
+	t.Cleanup(func() {
+		service.AssertExpectations(t)
+	})
+
+	return service
+}
+
+func (s *lineReferenceServiceMock) SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error {
+	return s.Called(ctx, input).Error(0)
+}
+
+func (s *lineReferenceServiceMock) SetStandardLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error {
+	return s.Called(ctx, input).Error(0)
 }
 
 func (s *itemReferenceValidatorStub) ValidateItemReference(_ context.Context, input itemreference.ValidateInput) error {

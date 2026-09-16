@@ -74,6 +74,7 @@ type InvoiceAdapter interface {
 
 type StandardInvoiceAdapter interface {
 	GetStandardLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (StandardLines, error)
+	SetStandardLineSubscriptionReferenceByChargeID(ctx context.Context, input SetLineSubscriptionReferenceByChargeIDInput) error
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceAdapterInput) (StandardInvoice, error)
 	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]InvoiceAdvancementCandidate, error)
@@ -82,6 +83,7 @@ type StandardInvoiceAdapter interface {
 
 type GatheringInvoiceAdapter interface {
 	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
+	SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input SetLineSubscriptionReferenceByChargeIDInput) error
 	CreateGatheringInvoice(ctx context.Context, input CreateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceAdapterInput) error
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error

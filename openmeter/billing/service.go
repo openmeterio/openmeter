@@ -16,6 +16,7 @@ type Service interface {
 	InvoiceService
 	GatheringInvoiceService
 	StandardInvoiceService
+	SubscriptionReferenceService
 	LockableService
 
 	InvoiceAppService
@@ -125,6 +126,11 @@ type GatheringInvoiceService interface {
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) (GatheringInvoice, error)
 	DeleteGatheringInvoice(ctx context.Context, input DeleteInvoiceInput) (GatheringInvoice, error)
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
+}
+
+type SubscriptionReferenceService interface {
+	SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input SetLineSubscriptionReferenceByChargeIDInput) error
+	SetStandardLineSubscriptionReferenceByChargeID(ctx context.Context, input SetLineSubscriptionReferenceByChargeIDInput) error
 }
 
 type InvoiceAppService interface {

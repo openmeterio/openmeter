@@ -1857,6 +1857,14 @@ var _ billing.Service = (*NoopBillingService)(nil)
 // NoopBillingService implements billing.Service with no-op operations
 type NoopBillingService struct{}
 
+func (n NoopBillingService) SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error {
+	return nil
+}
+
+func (n NoopBillingService) SetStandardLineSubscriptionReferenceByChargeID(ctx context.Context, input billing.SetLineSubscriptionReferenceByChargeIDInput) error {
+	return nil
+}
+
 // ProfileService methods
 func (n NoopBillingService) CreateProfile(ctx context.Context, param billing.CreateProfileInput) (*billing.Profile, error) {
 	return &billing.Profile{}, nil

@@ -216,6 +216,7 @@ func NewChargesFlatFeeService(
 	ratingService rating.Service,
 	currenciesService currencies.Service,
 	itemReferenceValidator itemreference.Validator,
+	billingService billing.Service,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:                flatFeeAdapter,
@@ -227,6 +228,7 @@ func NewChargesFlatFeeService(
 		RatingService:          ratingService,
 		Currencies:             currenciesService,
 		ItemReferenceValidator: itemReferenceValidator,
+		BillingService:         billingService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges flat fee service: %w", err)
@@ -267,18 +269,18 @@ func NewChargesUsageBasedService(
 	itemReferenceValidator itemreference.Validator,
 ) (usagebased.Service, error) {
 	usageBasedSvc, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 usageBasedAdapter,
-		Handler:                 usageBasedHandler,
-		Lineage:                 lineageService,
-		Locker:                  locker,
-		MetaAdapter:             metaAdapter,
-		InvoiceUpdater:          invoiceUpdater,
-		CustomerOverrideService: billingService,
-		FeatureMeterResolver:    featureMeterResolver,
-		RatingService:           ratingService,
-		Currencies:              currenciesService,
-		StreamingConnector:      streamingConnector,
-		ItemReferenceValidator:  itemReferenceValidator,
+		Adapter:                usageBasedAdapter,
+		Handler:                usageBasedHandler,
+		Lineage:                lineageService,
+		Locker:                 locker,
+		MetaAdapter:            metaAdapter,
+		InvoiceUpdater:         invoiceUpdater,
+		BillingService:         billingService,
+		FeatureMeterResolver:   featureMeterResolver,
+		RatingService:          ratingService,
+		Currencies:             currenciesService,
+		StreamingConnector:     streamingConnector,
+		ItemReferenceValidator: itemReferenceValidator,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges usage based service: %w", err)
@@ -496,7 +498,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, featureMeterResolver, ratingService, currenciesService, itemReferenceValidator)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, featureMeterResolver, ratingService, currenciesService, itemReferenceValidator, billingService)
 	if err != nil {
 		return nil, err
 	}
