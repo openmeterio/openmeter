@@ -1996,8 +1996,8 @@ paths:
       operationId: get-customer-entitlement-value
       summary: Get customer entitlement value
       description: |-
-        Get the customer's access through a single entitlement, optionally evaluated
-        at a point in time.
+        Get the customer's access through a single entitlement, optionally evaluated at
+        a point in time.
       parameters:
         - name: customerId
           in: path
@@ -2028,9 +2028,7 @@ paths:
         - name: at
           in: query
           required: false
-          description: |-
-            The point in time to evaluate the entitlement at. Defaults to the current
-            time.
+          description: The point in time to evaluate the entitlement at. Defaults to the current time.
           schema:
             $ref: '#/components/schemas/DateTime'
           explode: false

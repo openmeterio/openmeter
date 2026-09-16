@@ -52,8 +52,8 @@ export class Entitlements {
   /**
    * Get customer entitlement value
    *
-   * Get the customer's access through a single entitlement, optionally evaluated
-   * at a point in time.
+   * Get the customer's access through a single entitlement, optionally evaluated at
+   * a point in time.
    *
    * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value
    */

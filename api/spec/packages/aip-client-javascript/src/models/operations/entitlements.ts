@@ -41,10 +41,7 @@ export interface GetCustomerEntitlementValueQuery {
    * `value` field.
    */
   expand?: 'value'[]
-  /**
-   * The point in time to evaluate the entitlement at. Defaults to the current
-   * time.
-   */
+  /** The point in time to evaluate the entitlement at. Defaults to the current time. */
   at?: Date
 }
 

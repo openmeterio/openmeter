@@ -107,8 +107,8 @@ func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID 
 	return &out, nil
 }
 
-// Get the customer's access through a single entitlement, optionally evaluated
-// at a point in time.
+// Get the customer's access through a single entitlement, optionally evaluated at
+// a point in time.
 func (s *EntitlementsService) GetCustomerValue(ctx context.Context, customerID string, entitlementID string, params GetCustomerEntitlementValueParams) (*EntitlementAccessResult, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
