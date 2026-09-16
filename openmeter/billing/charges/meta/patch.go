@@ -16,13 +16,14 @@ import (
 type PatchType string
 
 const (
-	PatchTypeExtend                 PatchType = "extend"
-	PatchTypeShrink                 PatchType = "shrink"
-	PatchTypeDelete                 PatchType = "delete"
-	PatchTypeSetOverride            PatchType = "set_override"
-	PatchTypeClearOverride          PatchType = "clear_override"
-	PatchTypeLineManualEdit         PatchType = "line_manual_edit"
-	PatchTypeShrinkToRealizedPeriod PatchType = "shrink_to_realized_period"
+	PatchTypeExtend                      PatchType = "extend"
+	PatchTypeShrink                      PatchType = "shrink"
+	PatchTypeDelete                      PatchType = "delete"
+	PatchTypeSetOverride                 PatchType = "set_override"
+	PatchTypeClearOverride               PatchType = "clear_override"
+	PatchTypeLineManualEdit              PatchType = "line_manual_edit"
+	PatchTypeShrinkToRealizedPeriod      PatchType = "shrink_to_realized_period"
+	PatchTypeUpdateSubscriptionReference PatchType = "update_subscription_reference"
 )
 
 type ChangeTarget string

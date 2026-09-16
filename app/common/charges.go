@@ -40,6 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -214,16 +215,18 @@ func NewChargesFlatFeeService(
 	featureMeterResolver *billingfeaturemeterservice.Resolver,
 	ratingService rating.Service,
 	currenciesService currencies.Service,
+	itemReferenceValidator itemreference.Validator,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:              flatFeeAdapter,
-		Handler:              flatFeeHandler,
-		Lineage:              lineageService,
-		MetaAdapter:          metaAdapter,
-		Locker:               locker,
-		FeatureMeterResolver: featureMeterResolver,
-		RatingService:        ratingService,
-		Currencies:           currenciesService,
+		Adapter:                flatFeeAdapter,
+		Handler:                flatFeeHandler,
+		Lineage:                lineageService,
+		MetaAdapter:            metaAdapter,
+		Locker:                 locker,
+		FeatureMeterResolver:   featureMeterResolver,
+		RatingService:          ratingService,
+		Currencies:             currenciesService,
+		ItemReferenceValidator: itemReferenceValidator,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges flat fee service: %w", err)
@@ -261,6 +264,7 @@ func NewChargesUsageBasedService(
 	ratingService rating.Service,
 	currenciesService currencies.Service,
 	streamingConnector streaming.Connector,
+	itemReferenceValidator itemreference.Validator,
 ) (usagebased.Service, error) {
 	usageBasedSvc, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
@@ -274,6 +278,7 @@ func NewChargesUsageBasedService(
 		RatingService:           ratingService,
 		Currencies:              currenciesService,
 		StreamingConnector:      streamingConnector,
+		ItemReferenceValidator:  itemReferenceValidator,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges usage based service: %w", err)
@@ -431,6 +436,7 @@ func newChargesRegistry(
 	currenciesService currencies.Service,
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
+	itemReferenceValidator itemreference.Validator,
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
@@ -490,7 +496,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, featureMeterResolver, ratingService, currenciesService)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, featureMeterResolver, ratingService, currenciesService, itemReferenceValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -521,6 +527,7 @@ func newChargesRegistry(
 		ratingService,
 		currenciesService,
 		streamingConnector,
+		itemReferenceValidator,
 	)
 	if err != nil {
 		return nil, err

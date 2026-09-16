@@ -1237,6 +1237,24 @@ func (u *ChargeFlatFeeUpsert) UpdateStatus() *ChargeFlatFeeUpsert {
 	return u
 }
 
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeFlatFeeUpsert) SetSubscriptionPhaseID(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldSubscriptionPhaseID, v)
+	return u
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateSubscriptionPhaseID() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldSubscriptionPhaseID)
+	return u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeFlatFeeUpsert) ClearSubscriptionPhaseID() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldSubscriptionPhaseID)
+	return u
+}
+
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeFlatFeeUpsert) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldSubscriptionItemID, v)
@@ -1566,9 +1584,6 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeflatfee.FieldSubscriptionID)
 		}
-		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
-			s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
-		}
 		if _, exists := u.create.mutation.TaxCodeID(); exists {
 			s.SetIgnore(chargeflatfee.FieldTaxCodeID)
 		}
@@ -1716,6 +1731,27 @@ func (u *ChargeFlatFeeUpsertOne) SetStatus(v meta.ChargeStatus) *ChargeFlatFeeUp
 func (u *ChargeFlatFeeUpsertOne) UpdateStatus() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeFlatFeeUpsertOne) SetSubscriptionPhaseID(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateSubscriptionPhaseID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeFlatFeeUpsertOne) ClearSubscriptionPhaseID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearSubscriptionPhaseID()
 	})
 }
 
@@ -2266,9 +2302,6 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeflatfee.FieldSubscriptionID)
 			}
-			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
-				s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
-			}
 			if _, exists := b.mutation.TaxCodeID(); exists {
 				s.SetIgnore(chargeflatfee.FieldTaxCodeID)
 			}
@@ -2417,6 +2450,27 @@ func (u *ChargeFlatFeeUpsertBulk) SetStatus(v meta.ChargeStatus) *ChargeFlatFeeU
 func (u *ChargeFlatFeeUpsertBulk) UpdateStatus() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeFlatFeeUpsertBulk) SetSubscriptionPhaseID(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateSubscriptionPhaseID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearSubscriptionPhaseID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearSubscriptionPhaseID()
 	})
 }
 

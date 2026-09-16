@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -29,6 +30,7 @@ type Config struct {
 	FeatureMeterResolver    *billingfeaturemeterservice.Resolver
 	RatingService           rating.Service
 	Currencies              currencies.Service
+	ItemReferenceValidator  itemreference.Validator
 
 	StreamingConnector streaming.Connector
 }
@@ -74,6 +76,10 @@ func (c Config) Validate() error {
 
 	if c.Currencies == nil {
 		errs = append(errs, errors.New("currencies service cannot be null"))
+	}
+
+	if c.ItemReferenceValidator == nil {
+		errs = append(errs, errors.New("subscription item reference validator cannot be null"))
 	}
 
 	if c.StreamingConnector == nil {
@@ -125,6 +131,7 @@ func New(config Config) (usagebased.Service, error) {
 		rater:                   rater,
 		runs:                    runs,
 		costbasisResolver:       costbasisResolver,
+		itemReferenceValidator:  config.ItemReferenceValidator,
 	}, nil
 }
 
@@ -140,7 +147,8 @@ type service struct {
 	rater usagebasedrating.Service
 	runs  *usagebasedrun.Service
 
-	costbasisResolver costbasis.Resolver
+	costbasisResolver      costbasis.Resolver
+	itemReferenceValidator itemreference.Validator
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {

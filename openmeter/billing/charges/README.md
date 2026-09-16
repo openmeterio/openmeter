@@ -68,6 +68,13 @@ and an optional mutable override layer.
   override unit config explicitly clears conversion rather than inheriting it
   from the base layer.
 - Subscription sync, repair, and adapter base persistence read the base layer.
+- Routine charge persistence treats subscription references as immutable.
+  Flat-fee and usage-based subscription-reference repair use a dedicated
+  base-intent update that may replace physical phase and item references while
+  preserving the subscription ID. The subscription domain validates the
+  resulting namespace-scoped subscription-to-phase-to-item chain. Repair runs
+  under the charge lock at the service boundary and bypasses lifecycle state
+  machines because it changes attribution rather than lifecycle state.
 - Immutable attribution such as customer, currency, subscription identity,
   feature identity, settlement mode, cost-basis intent, and tax configuration
   cannot silently move into an override.

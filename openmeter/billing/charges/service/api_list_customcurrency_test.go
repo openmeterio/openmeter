@@ -64,14 +64,15 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) enableFlatFeeCustomCurrencyS
 	lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	customCurrencyFlatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:              s.FlatFeeAdapter,
-		Handler:              s.FlatFeeTestHandler,
-		Lineage:              lineageMock,
-		MetaAdapter:          s.MetaAdapter,
-		Locker:               s.Locker,
-		FeatureMeterResolver: s.FeatureMeterResolver,
-		RatingService:        billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:           s.CurrencyService,
+		Adapter:                s.FlatFeeAdapter,
+		Handler:                s.FlatFeeTestHandler,
+		Lineage:                lineageMock,
+		MetaAdapter:            s.MetaAdapter,
+		Locker:                 s.Locker,
+		FeatureMeterResolver:   s.FeatureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:             s.CurrencyService,
+		ItemReferenceValidator: s.ItemReferenceValidator,
 	})
 	s.Require().NoError(err)
 
@@ -110,6 +111,7 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) enableUsageBasedCustomCurren
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 		Currencies:              s.CurrencyService,
 		StreamingConnector:      s.MockStreamingConnector,
+		ItemReferenceValidator:  s.ItemReferenceValidator,
 	})
 	s.Require().NoError(err)
 

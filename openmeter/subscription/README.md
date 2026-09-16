@@ -119,6 +119,9 @@ and phase; do not persist a derived absolute end as independent source truth.
   you its end
 - item slice position is version identity, not quantity
 - subscription, spec, and expanded view must agree on shared top-level facts
+- structural item references are validated as a namespace-scoped
+  subscription-to-phase-to-item chain; archived materializations remain valid
+  references because lifecycle visibility is a separate concern
 - newly materialized priced items snapshot their effective currency code; custom
   currencies also retain their managed currency ID, while legacy items may lack
   this snapshot

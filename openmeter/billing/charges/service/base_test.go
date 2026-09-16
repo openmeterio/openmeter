@@ -49,6 +49,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -90,6 +92,7 @@ type BaseSuite struct {
 	FlatFeeAdapter            flatfee.Adapter
 	CreditPurchaseAdapter     creditpurchase.Adapter
 	UsageBasedAdapter         usagebased.Adapter
+	ItemReferenceValidator    itemreference.Validator
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
@@ -162,6 +165,10 @@ func (s *BaseSuite) SetupSuite() {
 		s.NoError(err)
 	}
 
+	subscriptionItemReferenceValidator, err := itemreference.NewValidator(subscriptionrepo.NewSubscriptionItemRepo(s.DBClient))
+	s.Require().NoError(err)
+	s.ItemReferenceValidator = subscriptionItemReferenceValidator
+
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
@@ -193,14 +200,15 @@ func (s *BaseSuite) SetupSuite() {
 	}
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:              flatFeeAdapter,
-		Handler:              flatFeeHandler,
-		Lineage:              lineageService,
-		MetaAdapter:          metaAdapter,
-		Locker:               locker,
-		FeatureMeterResolver: s.FeatureMeterResolver,
-		RatingService:        billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:           currencyService,
+		Adapter:                flatFeeAdapter,
+		Handler:                flatFeeHandler,
+		Lineage:                lineageService,
+		MetaAdapter:            metaAdapter,
+		Locker:                 locker,
+		FeatureMeterResolver:   s.FeatureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:             currencyService,
+		ItemReferenceValidator: subscriptionItemReferenceValidator,
 	})
 	s.NoError(err)
 
@@ -234,6 +242,7 @@ func (s *BaseSuite) SetupSuite() {
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 		Currencies:              currencyService,
 		StreamingConnector:      s.MockStreamingConnector,
+		ItemReferenceValidator:  subscriptionItemReferenceValidator,
 	})
 	s.NoError(err)
 	s.UsageBasedService = usageBasedService

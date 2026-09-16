@@ -1255,6 +1255,24 @@ func (u *ChargeCreditPurchaseUpsert) UpdateStatus() *ChargeCreditPurchaseUpsert 
 	return u
 }
 
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeCreditPurchaseUpsert) SetSubscriptionPhaseID(v string) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldSubscriptionPhaseID, v)
+	return u
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateSubscriptionPhaseID() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldSubscriptionPhaseID)
+	return u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeCreditPurchaseUpsert) ClearSubscriptionPhaseID() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldSubscriptionPhaseID)
+	return u
+}
+
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeCreditPurchaseUpsert) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpsert {
 	u.Set(chargecreditpurchase.FieldSubscriptionItemID, v)
@@ -1572,9 +1590,6 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
 		}
-		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
-			s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
-		}
 		if _, exists := u.create.mutation.TaxCodeID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldTaxCodeID)
 		}
@@ -1731,6 +1746,27 @@ func (u *ChargeCreditPurchaseUpsertOne) SetStatus(v meta.ChargeStatus) *ChargeCr
 func (u *ChargeCreditPurchaseUpsertOne) UpdateStatus() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetSubscriptionPhaseID(v string) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateSubscriptionPhaseID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearSubscriptionPhaseID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearSubscriptionPhaseID()
 	})
 }
 
@@ -2264,9 +2300,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
 			}
-			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
-				s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
-			}
 			if _, exists := b.mutation.TaxCodeID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldTaxCodeID)
 			}
@@ -2424,6 +2457,27 @@ func (u *ChargeCreditPurchaseUpsertBulk) SetStatus(v meta.ChargeStatus) *ChargeC
 func (u *ChargeCreditPurchaseUpsertBulk) UpdateStatus() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetSubscriptionPhaseID(v string) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateSubscriptionPhaseID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearSubscriptionPhaseID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearSubscriptionPhaseID()
 	})
 }
 

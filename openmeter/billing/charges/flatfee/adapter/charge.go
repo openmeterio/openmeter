@@ -109,6 +109,16 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 	})
 }
 
+func (a *adapter) UpdateSubscriptionReference(ctx context.Context, input meta.UpdateSubscriptionReferenceInput) error {
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		return chargemeta.UpdateSubscriptionReference(
+			ctx,
+			tx.db.ChargeFlatFee.Update(),
+			input,
+		)
+	})
+}
+
 func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.Charge, newSubscriptionItemID string) (flatfee.Charge, error) {
 	if err := charge.ManagedModel.Validate(); err != nil {
 		return flatfee.Charge{}, err

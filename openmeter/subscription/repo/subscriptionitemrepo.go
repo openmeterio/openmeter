@@ -10,8 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -23,12 +26,6 @@ type subscriptionItemRepo struct {
 }
 
 var _ subscription.SubscriptionItemRepository = (*subscriptionItemRepo)(nil)
-
-func NewSubscriptionItemRepo(db *db.Client) *subscriptionItemRepo {
-	return &subscriptionItemRepo{
-		db: db,
-	}
-}
 
 // validateCurrencyReferenceForPersistence enforces the repository contract
 // that custom currency references have already been resolved by the service.
@@ -254,4 +251,37 @@ func (r *subscriptionItemRepo) Delete(ctx context.Context, input models.Namespac
 	})
 
 	return err
+}
+
+var _ itemreference.Repository = (*subscriptionItemRepo)(nil)
+
+func NewSubscriptionItemRepo(db *db.Client) *subscriptionItemRepo {
+	return &subscriptionItemRepo{
+		db: db,
+	}
+}
+
+func (r *subscriptionItemRepo) IsValidItemReference(ctx context.Context, input itemreference.ValidateInput) (bool, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) (bool, error) {
+		valid, err := repo.db.SubscriptionItem.Query().
+			Where(
+				dbsubscriptionitem.ID(input.ItemID),
+				dbsubscriptionitem.Namespace(input.Namespace),
+				dbsubscriptionitem.HasPhaseWith(
+					dbsubscriptionphase.ID(input.PhaseID),
+					dbsubscriptionphase.Namespace(input.Namespace),
+					dbsubscriptionphase.SubscriptionID(input.SubscriptionID),
+					dbsubscriptionphase.HasSubscriptionWith(
+						dbsubscription.ID(input.SubscriptionID),
+						dbsubscription.Namespace(input.Namespace),
+					),
+				),
+			).
+			Exist(ctx)
+		if err != nil {
+			return false, fmt.Errorf("query subscription item reference: %w", err)
+		}
+
+		return valid, nil
+	})
 }

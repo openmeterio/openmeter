@@ -9,10 +9,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
@@ -193,4 +196,97 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	require.NotNil(t, reloadedCurrency.CustomCurrencyID)
 	require.Equal(t, managedCurrency.ID, *reloadedCurrency.CustomCurrencyID)
 	require.True(t, reloadedCurrency.IsResolved())
+}
+
+func TestValidateSubscriptionItemReference(t *testing.T) {
+	// given:
+	// - two materialized subscription item chains in the same namespace
+	// when:
+	// - structural references are validated across subscription, phase, and item boundaries
+	// then:
+	// - only one internally consistent chain is accepted, including after archival
+	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	require.NotNil(t, dbDeps)
+	defer dbDeps.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	validator, err := itemreference.NewValidator(subscriptionrepo.NewSubscriptionItemRepo(dbDeps.DBClient))
+	require.NoError(t, err)
+	planInput := subscriptiontestutils.BuildTestPlanInput(t).
+		AddPhase(nil, subscriptiontestutils.ExampleRateCard2.Clone()).
+		Build()
+	planInput.Key = "subscription-item-reference-validation"
+	plan := deps.PlanHelper.CreatePlan(t, planInput)
+
+	firstCustomer := deps.CustomerAdapter.CreateExampleCustomer(t)
+	firstView, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Custom: &now},
+		},
+		CustomerID: firstCustomer.ID,
+		Namespace:  subscriptiontestutils.ExampleNamespace,
+	}, plan)
+	require.NoError(t, err)
+
+	secondCustomer := deps.CustomerAdapter.CreateExampleCustomerWithSubject(t, "Jane Doe", "jane-doe")
+	secondView, err := deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Custom: &now},
+		},
+		CustomerID: secondCustomer.ID,
+		Namespace:  subscriptiontestutils.ExampleNamespace,
+	}, plan)
+	require.NoError(t, err)
+
+	firstItem := firstView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard2.Key()][0].SubscriptionItem
+	secondItem := secondView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard2.Key()][0].SubscriptionItem
+	validInput := itemreference.ValidateInput{
+		Namespace:      subscriptiontestutils.ExampleNamespace,
+		SubscriptionID: firstView.Subscription.ID,
+		PhaseID:        firstView.Phases[0].SubscriptionPhase.ID,
+		ItemID:         firstItem.ID,
+	}
+
+	require.NoError(t, validator.ValidateItemReference(t.Context(), validInput))
+
+	invalidInputs := []itemreference.ValidateInput{
+		{
+			Namespace:      "other-namespace",
+			SubscriptionID: validInput.SubscriptionID,
+			PhaseID:        validInput.PhaseID,
+			ItemID:         validInput.ItemID,
+		},
+		{
+			Namespace:      validInput.Namespace,
+			SubscriptionID: secondView.Subscription.ID,
+			PhaseID:        validInput.PhaseID,
+			ItemID:         validInput.ItemID,
+		},
+		{
+			Namespace:      validInput.Namespace,
+			SubscriptionID: validInput.SubscriptionID,
+			PhaseID:        secondView.Phases[0].SubscriptionPhase.ID,
+			ItemID:         validInput.ItemID,
+		},
+		{
+			Namespace:      validInput.Namespace,
+			SubscriptionID: validInput.SubscriptionID,
+			PhaseID:        validInput.PhaseID,
+			ItemID:         secondItem.ID,
+		},
+	}
+
+	for _, input := range invalidInputs {
+		err := validator.ValidateItemReference(t.Context(), input)
+		require.Error(t, err)
+		require.True(t, models.IsGenericPreConditionFailedError(err))
+	}
+
+	require.NoError(t, deps.ItemRepo.Delete(t.Context(), firstItem.NamespacedID))
+	require.NoError(t, dbDeps.DBClient.SubscriptionPhase.UpdateOneID(validInput.PhaseID).SetDeletedAt(now).Exec(t.Context()))
+	require.NoError(t, validator.ValidateItemReference(t.Context(), validInput))
 }
