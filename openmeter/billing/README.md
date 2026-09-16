@@ -71,6 +71,12 @@ the portions materialized on individual invoices. Already immutable invoice
 history is not rewritten to make a later subscription change look as if it had
 always existed.
 
+Physical subscription attribution is the narrow exception: when a
+subscription-managed charge is rematerialized without changing its intent,
+reference repair updates the subscription, phase, and item IDs on every
+charge-linked gathering and standard line. This does not change the line's
+economic, lifecycle, or customer-authored state.
+
 ## Line ownership
 
 Billing owns the invoice aggregate, line IDs, and persistence. A line's engine

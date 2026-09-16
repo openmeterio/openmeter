@@ -64,6 +64,40 @@ func (i GetLinesForSubscriptionInput) Validate() error {
 	return nil
 }
 
+type SetLineSubscriptionReferenceByChargeIDInput struct {
+	Namespace      string
+	ChargeID       string
+	SubscriptionID string
+	PhaseID        string
+	ItemID         string
+}
+
+func (i SetLineSubscriptionReferenceByChargeIDInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ChargeID == "" {
+		errs = append(errs, errors.New("charge ID is required"))
+	}
+
+	if i.SubscriptionID == "" {
+		errs = append(errs, errors.New("subscription ID is required"))
+	}
+
+	if i.PhaseID == "" {
+		errs = append(errs, errors.New("phase ID is required"))
+	}
+
+	if i.ItemID == "" {
+		errs = append(errs, errors.New("item ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type GenericInvoiceLine interface {
 	GenericInvoiceLineReader
 

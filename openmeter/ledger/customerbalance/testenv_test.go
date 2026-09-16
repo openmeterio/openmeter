@@ -302,6 +302,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		Currencies:             currencyService,
 		ItemReferenceValidator: subscriptionItemReferenceValidator,
+		BillingService:         billingService,
 	})
 	require.NoError(t, err)
 
@@ -316,16 +317,16 @@ func newTestEnv(t *testing.T) *testEnv {
 			},
 			collectorService,
 		),
-		Lineage:                 lineageService,
-		Locker:                  locker,
-		MetaAdapter:             metaAdapter,
-		InvoiceUpdater:          invoiceupdater.NewUnimplementedUpdater(t),
-		CustomerOverrideService: billingService,
-		FeatureMeterResolver:    featureMeterResolver,
-		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		Currencies:              currencyService,
-		StreamingConnector:      streaming,
-		ItemReferenceValidator:  subscriptionItemReferenceValidator,
+		Lineage:                lineageService,
+		Locker:                 locker,
+		MetaAdapter:            metaAdapter,
+		InvoiceUpdater:         invoiceupdater.NewUnimplementedUpdater(t),
+		BillingService:         billingService,
+		FeatureMeterResolver:   featureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:             currencyService,
+		StreamingConnector:     streaming,
+		ItemReferenceValidator: subscriptionItemReferenceValidator,
 	})
 	require.NoError(t, err)
 
@@ -867,6 +868,8 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 }
 
 type mockCustomerOverrideService struct {
+	billing.Service
+
 	customer customer.Customer
 }
 
@@ -890,4 +893,12 @@ func (s mockCustomerOverrideService) GetCustomerApp(context.Context, billing.Get
 
 func (s mockCustomerOverrideService) ListCustomerOverrides(context.Context, billing.ListCustomerOverridesInput) (billing.ListCustomerOverridesResult, error) {
 	return billing.ListCustomerOverridesResult{}, nil
+}
+
+func (s mockCustomerOverrideService) SetGatheringLineSubscriptionReferenceByChargeID(context.Context, billing.SetLineSubscriptionReferenceByChargeIDInput) error {
+	return nil
+}
+
+func (s mockCustomerOverrideService) SetStandardLineSubscriptionReferenceByChargeID(context.Context, billing.SetLineSubscriptionReferenceByChargeIDInput) error {
+	return nil
 }

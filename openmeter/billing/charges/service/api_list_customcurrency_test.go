@@ -73,6 +73,7 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) enableFlatFeeCustomCurrencyS
 		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 		Currencies:             s.CurrencyService,
 		ItemReferenceValidator: s.ItemReferenceValidator,
+		BillingService:         s.BillingService,
 	})
 	s.Require().NoError(err)
 
@@ -100,18 +101,18 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) enableUsageBasedCustomCurren
 	lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	customCurrencyUsageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 s.UsageBasedAdapter,
-		Handler:                 s.UsageBasedTestHandler,
-		Lineage:                 lineageMock,
-		Locker:                  s.Locker,
-		MetaAdapter:             s.MetaAdapter,
-		InvoiceUpdater:          s.InvoiceUpdater,
-		CustomerOverrideService: s.BillingService,
-		FeatureMeterResolver:    s.FeatureMeterResolver,
-		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:              s.CurrencyService,
-		StreamingConnector:      s.MockStreamingConnector,
-		ItemReferenceValidator:  s.ItemReferenceValidator,
+		Adapter:                s.UsageBasedAdapter,
+		Handler:                s.UsageBasedTestHandler,
+		Lineage:                lineageMock,
+		Locker:                 s.Locker,
+		MetaAdapter:            s.MetaAdapter,
+		InvoiceUpdater:         s.InvoiceUpdater,
+		BillingService:         s.BillingService,
+		FeatureMeterResolver:   s.FeatureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:             s.CurrencyService,
+		StreamingConnector:     s.MockStreamingConnector,
+		ItemReferenceValidator: s.ItemReferenceValidator,
 	})
 	s.Require().NoError(err)
 

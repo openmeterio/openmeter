@@ -209,6 +209,7 @@ func (s *BaseSuite) SetupSuite() {
 		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 		Currencies:             currencyService,
 		ItemReferenceValidator: subscriptionItemReferenceValidator,
+		BillingService:         s.BillingService,
 	})
 	s.NoError(err)
 
@@ -231,18 +232,18 @@ func (s *BaseSuite) SetupSuite() {
 	s.InvoiceUpdater = invoiceUpdater
 
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 usageBasedAdapter,
-		Handler:                 usageBasedHandler,
-		Lineage:                 lineageService,
-		Locker:                  locker,
-		MetaAdapter:             metaAdapter,
-		InvoiceUpdater:          invoiceUpdater,
-		CustomerOverrideService: s.BillingService,
-		FeatureMeterResolver:    s.FeatureMeterResolver,
-		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-		Currencies:              currencyService,
-		StreamingConnector:      s.MockStreamingConnector,
-		ItemReferenceValidator:  subscriptionItemReferenceValidator,
+		Adapter:                usageBasedAdapter,
+		Handler:                usageBasedHandler,
+		Lineage:                lineageService,
+		Locker:                 locker,
+		MetaAdapter:            metaAdapter,
+		InvoiceUpdater:         invoiceUpdater,
+		BillingService:         s.BillingService,
+		FeatureMeterResolver:   s.FeatureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:             currencyService,
+		StreamingConnector:     s.MockStreamingConnector,
+		ItemReferenceValidator: subscriptionItemReferenceValidator,
 	})
 	s.NoError(err)
 	s.UsageBasedService = usageBasedService

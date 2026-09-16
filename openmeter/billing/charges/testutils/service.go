@@ -202,6 +202,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		Currencies:             currencyService,
 		ItemReferenceValidator: subscriptionItemReferenceValidator,
+		BillingService:         config.BillingService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating flat fee service: %w", err)
@@ -229,18 +230,18 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	}
 
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 usageBasedAdapter,
-		Handler:                 config.UsageBasedHandler,
-		Lineage:                 lineageService,
-		Locker:                  locker,
-		MetaAdapter:             metaAdapter,
-		InvoiceUpdater:          invoiceUpdater,
-		CustomerOverrideService: config.BillingService,
-		FeatureMeterResolver:    config.FeatureMeterResolver,
-		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		Currencies:              currencyService,
-		StreamingConnector:      config.StreamingConnector,
-		ItemReferenceValidator:  subscriptionItemReferenceValidator,
+		Adapter:                usageBasedAdapter,
+		Handler:                config.UsageBasedHandler,
+		Lineage:                lineageService,
+		Locker:                 locker,
+		MetaAdapter:            metaAdapter,
+		InvoiceUpdater:         invoiceUpdater,
+		BillingService:         config.BillingService,
+		FeatureMeterResolver:   config.FeatureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:             currencyService,
+		StreamingConnector:     config.StreamingConnector,
+		ItemReferenceValidator: subscriptionItemReferenceValidator,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating usage based service: %w", err)
