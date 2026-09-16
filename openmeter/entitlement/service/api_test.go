@@ -115,16 +115,21 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 	clock.SetTime(now.Add(time.Hour))
 
 	t.Run("Get should reject an incomplete input", func(t *testing.T) {
-		_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
-			CustomerID: customerID,
-		})
-		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+		for name, input := range map[string]entitlement.GetCustomerEntitlementAccessInput{
+			"no identifier":    {CustomerID: customerID, At: clock.Now()},
+			"both identifiers": {CustomerID: customerID, FeatureKey: boolFeature.Key, EntitlementID: meteredEnt.ID, At: clock.Now()},
+			"no time":          {CustomerID: customerID, FeatureKey: boolFeature.Key},
+		} {
+			_, err := conn.GetCustomerEntitlementAccess(t.Context(), input)
+			require.True(t, models.IsGenericValidationError(err), "%s: expected validation error, got: %v", name, err)
+		}
 	})
 
 	t.Run("Get should report a missing customer as not found", func(t *testing.T) {
 		_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customer.CustomerID{Namespace: namespace, ID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2"},
 			FeatureKey: boolFeature.Key,
+			At:         clock.Now(),
 		})
 		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
 	})
@@ -133,6 +138,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: boolFeature.Key,
+			At:         clock.Now(),
 		})
 		require.NoError(t, err)
 		require.Equal(t, boolFeature.Key, access.FeatureKey)
@@ -144,6 +150,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: staticFeature.Key,
+			At:         clock.Now(),
 		})
 		require.NoError(t, err)
 
@@ -156,6 +163,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: meteredFeature.Key,
+			At:         clock.Now(),
 		})
 		require.NoError(t, err)
 		require.Equal(t, meteredFeature.Key, access.FeatureKey)
@@ -169,19 +177,21 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.Len(t, value.GrantBalances, 1)
 	})
 
-	t.Run("Get should resolve the entitlement by ID as well", func(t *testing.T) {
+	t.Run("Get by feature key should not resolve an entitlement ID", func(t *testing.T) {
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: meteredEnt.ID,
+			At:         clock.Now(),
 		})
 		require.NoError(t, err)
-		require.IsType(t, &meteredentitlement.MeteredEntitlementValue{}, access.Value)
+		require.IsType(t, &entitlement.NoAccessValue{}, access.Value)
 	})
 
 	t.Run("Get should return no access for a feature without an entitlement", func(t *testing.T) {
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: "unknown-feature",
+			At:         clock.Now(),
 		})
 		require.NoError(t, err)
 		require.Equal(t, "unknown-feature", access.FeatureKey)
@@ -193,6 +203,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: expiredFeature.Key,
+			At:         clock.Now(),
 		})
 		require.NoError(t, err)
 		require.Equal(t, expiredFeature.Key, access.FeatureKey)
@@ -227,16 +238,8 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
 	})
 
-	t.Run("Value should reject an incomplete input", func(t *testing.T) {
-		_, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
-			CustomerID:    customerID,
-			EntitlementID: meteredEnt.ID,
-		})
-		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
-	})
-
-	t.Run("Value should return the metered entitlement by ID", func(t *testing.T) {
-		access, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+	t.Run("Get by ID should return the metered entitlement by ID", func(t *testing.T) {
+		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: meteredEnt.ID,
 			At:            clock.Now(),
@@ -250,9 +253,9 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.Equal(t, 1.0, value.UsageInPeriod)
 	})
 
-	t.Run("Value should evaluate the balance at the requested time", func(t *testing.T) {
+	t.Run("Get by ID should evaluate the balance at the requested time", func(t *testing.T) {
 		// when evaluated before the usage event was recorded
-		access, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: meteredEnt.ID,
 			At:            now.Add(30 * time.Second),
@@ -266,8 +269,8 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.Equal(t, 0.0, value.UsageInPeriod)
 	})
 
-	t.Run("Value should return no access before the entitlement became active", func(t *testing.T) {
-		access, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+	t.Run("Get by ID should return no access before the entitlement became active", func(t *testing.T) {
+		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: meteredEnt.ID,
 			At:            now.Add(-time.Hour),
@@ -277,8 +280,8 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.IsType(t, &entitlement.NoAccessValue{}, access.Value)
 	})
 
-	t.Run("Value should report an unknown entitlement ID as not found", func(t *testing.T) {
-		_, err := conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+	t.Run("Get by ID should report an unknown entitlement ID as not found", func(t *testing.T) {
+		_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2",
 			At:            clock.Now(),
@@ -286,7 +289,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
 	})
 
-	t.Run("Value should hide another customer's entitlement", func(t *testing.T) {
+	t.Run("Get by ID should hide another customer's entitlement", func(t *testing.T) {
 		// given another customer with its own boolean entitlement
 		other := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
 		otherEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
@@ -298,7 +301,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.NoError(t, err)
 
 		// then it cannot be read through the first customer's scope
-		_, err = conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+		_, err = conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: otherEnt.ID,
 			At:            clock.Now(),
@@ -306,7 +309,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
 	})
 
-	t.Run("Get, List and Value should reject a deleted customer", func(t *testing.T) {
+	t.Run("Get and List should reject a deleted customer", func(t *testing.T) {
 		// given the customer gets deleted and time moves past the deletion
 		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
 		clock.SetTime(clock.Now().Add(time.Minute))
@@ -315,6 +318,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: boolFeature.Key,
+			At:         clock.Now(),
 		})
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 
@@ -323,7 +327,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		})
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 
-		_, err = conn.GetCustomerEntitlementValue(t.Context(), entitlement.GetCustomerEntitlementValueInput{
+		_, err = conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: meteredEnt.ID,
 			At:            clock.Now(),
@@ -809,6 +813,7 @@ func TestCustomerEntitlementResetAPI(t *testing.T) {
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: meteredFeature.Key,
+			At:         clock.Now(),
 		})
 		require.NoError(t, err)
 
