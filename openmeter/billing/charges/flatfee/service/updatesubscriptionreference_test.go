@@ -54,7 +54,7 @@ func TestUpdateSubscriptionReference(t *testing.T) {
 			PhaseID:        updated.PhaseID,
 			ItemID:         updated.ItemID,
 		}
-		lineReferences := newLineReferenceServiceMock(t, lineReferenceInput)
+		lineReferences := newLineReferenceServiceMockWithExpectedInput(t, lineReferenceInput)
 
 		// When the system repairs its subscription ownership reference.
 		err := (&service{adapter: updater, itemReferenceValidator: validator, lineSubscriptionReferenceService: lineReferences}).updateSubscriptionReference(t.Context(), &charge, patch)
@@ -93,7 +93,7 @@ func TestUpdateSubscriptionReference(t *testing.T) {
 		updater := &subscriptionReferenceUpdaterStub{}
 		expected := current
 		expected.ItemID = updated.ItemID
-		lineReferences := newLineReferenceServiceMock(t, billing.SetLineSubscriptionReferenceByChargeIDInput{
+		lineReferences := newLineReferenceServiceMockWithExpectedInput(t, billing.SetLineSubscriptionReferenceByChargeIDInput{
 			Namespace:      charge.Namespace,
 			ChargeID:       charge.ID,
 			SubscriptionID: expected.SubscriptionID,
@@ -122,7 +122,7 @@ func TestUpdateSubscriptionReference(t *testing.T) {
 			}, nil),
 		}}
 		updater := &subscriptionReferenceUpdaterStub{}
-		lineReferences := newLineReferenceServiceMock(t, billing.SetLineSubscriptionReferenceByChargeIDInput{
+		lineReferences := newLineReferenceServiceMockWithExpectedInput(t, billing.SetLineSubscriptionReferenceByChargeIDInput{
 			Namespace:      charge.Namespace,
 			ChargeID:       charge.ID,
 			SubscriptionID: updated.SubscriptionID,
@@ -205,7 +205,7 @@ type lineReferenceServiceMock struct {
 	mock.Mock
 }
 
-func newLineReferenceServiceMock(t *testing.T, input billing.SetLineSubscriptionReferenceByChargeIDInput) *lineReferenceServiceMock {
+func newLineReferenceServiceMockWithExpectedInput(t *testing.T, input billing.SetLineSubscriptionReferenceByChargeIDInput) *lineReferenceServiceMock {
 	t.Helper()
 
 	service := &lineReferenceServiceMock{}
