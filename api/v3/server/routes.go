@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
@@ -89,18 +91,19 @@ func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Re
 }
 
 func (s *Server) GetCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID, featureKey api.ResourceKey, params api.GetCustomerEntitlementAccessParams) {
-	s.customersEntitlementHandler.GetCustomerEntitlementAccess().With(customersentitlementhandler.GetCustomerEntitlementAccessParams{
+	s.customersEntitlementHandler.GetCustomerEntitlementAccess(customersentitlementhandler.OperationGetCustomerEntitlementAccess).With(customersentitlementhandler.GetCustomerEntitlementAccessParams{
 		CustomerID: customerId,
 		FeatureKey: featureKey,
-		Params:     params,
+		Expand:     lo.FromPtr(params.Expand),
 	}).ServeHTTP(w, r)
 }
 
 func (s *Server) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID, params api.GetCustomerEntitlementValueParams) {
-	s.customersEntitlementHandler.GetCustomerEntitlementValue().With(customersentitlementhandler.GetCustomerEntitlementValueParams{
+	s.customersEntitlementHandler.GetCustomerEntitlementAccess(customersentitlementhandler.OperationGetCustomerEntitlementValue).With(customersentitlementhandler.GetCustomerEntitlementAccessParams{
 		CustomerID:    customerId,
 		EntitlementID: entitlementId,
-		Params:        params,
+		Expand:        lo.FromPtr(params.Expand),
+		At:            params.At,
 	}).ServeHTTP(w, r)
 }
 

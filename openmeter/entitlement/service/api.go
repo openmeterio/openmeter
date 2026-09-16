@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -24,47 +23,16 @@ func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitl
 		return entitlement.CustomerEntitlementAccess{}, err
 	}
 
-	value, err := c.GetEntitlementValue(ctx, cus.Namespace, cus.ID, input.FeatureKey, clock.Now())
-	if err != nil {
-		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-			return entitlement.CustomerEntitlementAccess{
-				FeatureKey: input.FeatureKey,
-				Value:      &entitlement.NoAccessValue{},
-			}, nil
-		}
-
-		return entitlement.CustomerEntitlementAccess{}, err
-	}
-
-	return entitlement.CustomerEntitlementAccess{
-		FeatureKey: input.FeatureKey,
-		Value:      value,
-	}, nil
-}
-
-func (c *service) GetCustomerEntitlementValue(ctx context.Context, input entitlement.GetCustomerEntitlementValueInput) (entitlement.CustomerEntitlementAccess, error) {
-	if err := input.Validate(); err != nil {
-		return entitlement.CustomerEntitlementAccess{}, err
-	}
-
-	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	ent, err := c.getCustomerEntitlement(ctx, cus, input)
 	if err != nil {
 		return entitlement.CustomerEntitlementAccess{}, err
 	}
 
-	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: cus.Namespace, ID: input.EntitlementID})
-	if err != nil {
-		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
-			return entitlement.CustomerEntitlementAccess{}, models.NewGenericNotFoundError(err)
-		}
-
-		return entitlement.CustomerEntitlementAccess{}, err
-	}
-
-	if ent.CustomerID != cus.ID {
-		return entitlement.CustomerEntitlementAccess{}, models.NewGenericNotFoundError(
-			fmt.Errorf("entitlement not found %s for customer %s in namespace %s", input.EntitlementID, cus.ID, cus.Namespace),
-		)
+	if ent == nil {
+		return entitlement.CustomerEntitlementAccess{
+			FeatureKey: input.FeatureKey,
+			Value:      &entitlement.NoAccessValue{},
+		}, nil
 	}
 
 	value, err := c.getEntitlementValueAt(ctx, ent, input.At)
@@ -76,6 +44,37 @@ func (c *service) GetCustomerEntitlementValue(ctx context.Context, input entitle
 		FeatureKey: ent.FeatureKey,
 		Value:      value,
 	}, nil
+}
+
+// getCustomerEntitlement returns nil without an error when the feature key has no
+// active entitlement, since missing access is a valid answer for a feature lookup
+// but not for an entitlement ID.
+func (c *service) getCustomerEntitlement(ctx context.Context, cus *customer.Customer, input entitlement.GetCustomerEntitlementAccessInput) (*entitlement.Entitlement, error) {
+	if input.EntitlementID == "" {
+		ent, err := c.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, cus.Namespace, cus.ID, input.FeatureKey, input.At)
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return nil, nil
+		}
+
+		return ent, err
+	}
+
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: cus.Namespace, ID: input.EntitlementID})
+	if err != nil {
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return nil, models.NewGenericNotFoundError(err)
+		}
+
+		return nil, err
+	}
+
+	if ent.CustomerID != cus.ID {
+		return nil, models.NewGenericNotFoundError(
+			fmt.Errorf("entitlement not found %s for customer %s in namespace %s", input.EntitlementID, cus.ID, cus.Namespace),
+		)
+	}
+
+	return ent, nil
 }
 
 func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entitlement.ListCustomerEntitlementAccessInput) ([]entitlement.CustomerEntitlementAccess, error) {

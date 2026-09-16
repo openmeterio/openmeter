@@ -1195,10 +1195,6 @@ func (n NoopEntitlementConnector) GetCustomerEntitlementAccess(ctx context.Conte
 	return entitlement.CustomerEntitlementAccess{}, nil
 }
 
-func (n NoopEntitlementConnector) GetCustomerEntitlementValue(ctx context.Context, input entitlement.GetCustomerEntitlementValueInput) (entitlement.CustomerEntitlementAccess, error) {
-	return entitlement.CustomerEntitlementAccess{}, nil
-}
-
 func (n NoopEntitlementConnector) ListCustomerEntitlementAccess(ctx context.Context, input entitlement.ListCustomerEntitlementAccessInput) ([]entitlement.CustomerEntitlementAccess, error) {
 	return nil, nil
 }
