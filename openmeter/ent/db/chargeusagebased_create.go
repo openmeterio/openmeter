@@ -1266,6 +1266,24 @@ func (u *ChargeUsageBasedUpsert) UpdateStatus() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeUsageBasedUpsert) SetSubscriptionPhaseID(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldSubscriptionPhaseID, v)
+	return u
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateSubscriptionPhaseID() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldSubscriptionPhaseID)
+	return u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeUsageBasedUpsert) ClearSubscriptionPhaseID() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldSubscriptionPhaseID)
+	return u
+}
+
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeUsageBasedUpsert) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldSubscriptionItemID, v)
@@ -1589,9 +1607,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionID)
 		}
-		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
-			s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
-		}
 		if _, exists := u.create.mutation.TaxCodeID(); exists {
 			s.SetIgnore(chargeusagebased.FieldTaxCodeID)
 		}
@@ -1739,6 +1754,27 @@ func (u *ChargeUsageBasedUpsertOne) SetStatus(v meta.ChargeStatus) *ChargeUsageB
 func (u *ChargeUsageBasedUpsertOne) UpdateStatus() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeUsageBasedUpsertOne) SetSubscriptionPhaseID(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateSubscriptionPhaseID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeUsageBasedUpsertOne) ClearSubscriptionPhaseID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearSubscriptionPhaseID()
 	})
 }
 
@@ -2282,9 +2318,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionID)
 			}
-			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
-				s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
-			}
 			if _, exists := b.mutation.TaxCodeID(); exists {
 				s.SetIgnore(chargeusagebased.FieldTaxCodeID)
 			}
@@ -2433,6 +2466,27 @@ func (u *ChargeUsageBasedUpsertBulk) SetStatus(v meta.ChargeStatus) *ChargeUsage
 func (u *ChargeUsageBasedUpsertBulk) UpdateStatus() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (u *ChargeUsageBasedUpsertBulk) SetSubscriptionPhaseID(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetSubscriptionPhaseID(v)
+	})
+}
+
+// UpdateSubscriptionPhaseID sets the "subscription_phase_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateSubscriptionPhaseID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateSubscriptionPhaseID()
+	})
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearSubscriptionPhaseID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearSubscriptionPhaseID()
 	})
 }
 

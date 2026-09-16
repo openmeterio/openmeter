@@ -291,8 +291,7 @@ func (chargesMetaMixin) Fields() []ent.Field {
 
 		field.String("subscription_phase_id").
 			Optional().
-			Nillable().
-			Immutable(),
+			Nillable(),
 
 		field.String("subscription_item_id").
 			Optional().

@@ -44,6 +44,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -185,6 +186,7 @@ func NewBillingRegistry(
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
 	subscriptionServices SubscriptionServiceWithWorkflow,
+	itemReferenceValidator itemreference.Validator,
 	db *entdb.Client,
 	fsConfig config.BillingFeatureSwitchesConfiguration,
 	creditsConfig config.CreditsConfiguration,
@@ -267,6 +269,7 @@ func NewBillingRegistry(
 			currenciesService,
 			customerService,
 			subscriptionServices.Service,
+			itemReferenceValidator,
 			fsConfig.NamespaceLockdown,
 			creditsConfig,
 			featureGate,

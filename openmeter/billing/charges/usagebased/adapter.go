@@ -21,9 +21,14 @@ type Adapter interface {
 	RealizationRunInvoiceUsageAdapter
 	RealizationRunPaymentAdapter
 	ChargeAdapter
+	SubscriptionReferenceAdapter
 	ChargeCostBasisAdapter
 
 	entutils.TxCreator
+}
+
+type SubscriptionReferenceAdapter interface {
+	UpdateSubscriptionReference(ctx context.Context, input meta.UpdateSubscriptionReferenceInput) error
 }
 
 type ChargeCostBasisAdapter interface {

@@ -22,6 +22,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -135,6 +136,26 @@ func (_u *ChargeUsageBasedUpdate) SetNillableStatus(v *meta.ChargeStatus) *Charg
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_u *ChargeUsageBasedUpdate) SetSubscriptionPhaseID(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetSubscriptionPhaseID(v)
+	return _u
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableSubscriptionPhaseID(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetSubscriptionPhaseID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (_u *ChargeUsageBasedUpdate) ClearSubscriptionPhaseID() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearSubscriptionPhaseID()
 	return _u
 }
 
@@ -480,6 +501,11 @@ func (_u *ChargeUsageBasedUpdate) SetIntentOverride(v *ChargeUsageBasedOverride)
 	return _u.SetIntentOverrideID(v.ID)
 }
 
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeUsageBasedUpdate) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeUsageBasedUpdate {
+	return _u.SetSubscriptionPhaseID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdate {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -546,6 +572,12 @@ func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 // ClearIntentOverride clears the "intent_override" edge to the ChargeUsageBasedOverride entity.
 func (_u *ChargeUsageBasedUpdate) ClearIntentOverride() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearIntentOverride()
+	return _u
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeUsageBasedUpdate) ClearSubscriptionPhase() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearSubscriptionPhase()
 	return _u
 }
 
@@ -922,6 +954,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionPhaseTable,
+			Columns: []string{chargeusagebased.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionPhaseTable,
+			Columns: []string{chargeusagebased.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -1095,6 +1156,26 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableStatus(v *meta.ChargeStatus) *Ch
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionPhaseID(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetSubscriptionPhaseID(v)
+	return _u
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableSubscriptionPhaseID(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionPhaseID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionPhaseID() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearSubscriptionPhaseID()
 	return _u
 }
 
@@ -1440,6 +1521,11 @@ func (_u *ChargeUsageBasedUpdateOne) SetIntentOverride(v *ChargeUsageBasedOverri
 	return _u.SetIntentOverrideID(v.ID)
 }
 
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeUsageBasedUpdateOne {
+	return _u.SetSubscriptionPhaseID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdateOne {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -1506,6 +1592,12 @@ func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOn
 // ClearIntentOverride clears the "intent_override" edge to the ChargeUsageBasedOverride entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearIntentOverride() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearIntentOverride()
+	return _u
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionPhase() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearSubscriptionPhase()
 	return _u
 }
 
@@ -1905,6 +1997,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionPhaseTable,
+			Columns: []string{chargeusagebased.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionPhaseTable,
+			Columns: []string{chargeusagebased.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

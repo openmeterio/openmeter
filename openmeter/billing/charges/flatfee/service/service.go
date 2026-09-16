@@ -15,18 +15,20 @@ import (
 	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 type Config struct {
-	Adapter              flatfee.Adapter
-	Handler              flatfee.Handler
-	Lineage              lineage.Service
-	MetaAdapter          meta.Adapter
-	Locker               *lockr.Locker
-	RatingService        rating.Service
-	FeatureMeterResolver *billingfeaturemeterservice.Resolver
-	Currencies           currencies.Service
+	Adapter                flatfee.Adapter
+	Handler                flatfee.Handler
+	Lineage                lineage.Service
+	MetaAdapter            meta.Adapter
+	Locker                 *lockr.Locker
+	RatingService          rating.Service
+	FeatureMeterResolver   *billingfeaturemeterservice.Resolver
+	Currencies             currencies.Service
+	ItemReferenceValidator itemreference.Validator
 }
 
 func (c Config) Validate() error {
@@ -64,6 +66,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("currencies service cannot be null"))
 	}
 
+	if c.ItemReferenceValidator == nil {
+		errs = append(errs, errors.New("subscription item reference validator cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -90,14 +96,15 @@ func New(config Config) (flatfee.Service, error) {
 	}
 
 	svc := &service{
-		adapter:              config.Adapter,
-		handler:              config.Handler,
-		metaAdapter:          config.MetaAdapter,
-		locker:               config.Locker,
-		ratingService:        config.RatingService,
-		featureMeterResolver: config.FeatureMeterResolver,
-		realizations:         realizations,
-		costbasisResolver:    costbasisResolver,
+		adapter:                config.Adapter,
+		handler:                config.Handler,
+		metaAdapter:            config.MetaAdapter,
+		locker:                 config.Locker,
+		ratingService:          config.RatingService,
+		featureMeterResolver:   config.FeatureMeterResolver,
+		realizations:           realizations,
+		costbasisResolver:      costbasisResolver,
+		itemReferenceValidator: config.ItemReferenceValidator,
 	}
 	svc.creditNotesSupported.Store(charges.CreditNotesSupportedByLineUpdater)
 
@@ -105,15 +112,16 @@ func New(config Config) (flatfee.Service, error) {
 }
 
 type service struct {
-	adapter              flatfee.Adapter
-	handler              flatfee.Handler
-	metaAdapter          meta.Adapter
-	locker               *lockr.Locker
-	ratingService        rating.Service
-	featureMeterResolver *billingfeaturemeterservice.Resolver
-	realizations         *flatfeerealizations.Service
-	creditNotesSupported atomic.Bool
-	costbasisResolver    costbasis.Resolver
+	adapter                flatfee.Adapter
+	handler                flatfee.Handler
+	metaAdapter            meta.Adapter
+	locker                 *lockr.Locker
+	ratingService          rating.Service
+	featureMeterResolver   *billingfeaturemeterservice.Resolver
+	realizations           *flatfeerealizations.Service
+	creditNotesSupported   atomic.Bool
+	costbasisResolver      costbasis.Resolver
+	itemReferenceValidator itemreference.Validator
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {

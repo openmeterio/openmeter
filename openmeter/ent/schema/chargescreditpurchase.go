@@ -145,7 +145,6 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 		edge.From("subscription_phase", SubscriptionPhase.Type).
 			Ref("charges_credit_purchase").
 			Field("subscription_phase_id").
-			Immutable().
 			Unique(),
 		edge.From("subscription_item", SubscriptionItem.Type).
 			Ref("charges_credit_purchase").

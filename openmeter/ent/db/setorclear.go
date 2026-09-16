@@ -2542,6 +2542,20 @@ func (u *ChargeUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUpdateOne
 	return u.SetDeletedAt(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearSubscriptionPhaseID(value *string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
 func (u *ChargeCreditPurchaseUpdate) SetOrClearSubscriptionItemID(value *string) *ChargeCreditPurchaseUpdate {
 	if value == nil {
 		return u.ClearSubscriptionItemID()
@@ -2960,6 +2974,20 @@ func (u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetOrClearAnnotations(val
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearSubscriptionPhaseID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
 }
 
 func (u *ChargeFlatFeeUpdate) SetOrClearSubscriptionItemID(value *string) *ChargeFlatFeeUpdate {
@@ -3688,6 +3716,20 @@ func (u *ChargeFlatFeeRunPaymentUpdateOne) SetOrClearAnnotations(value *models.A
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearSubscriptionPhaseID(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearSubscriptionItemID(value *string) *ChargeUsageBasedUpdate {

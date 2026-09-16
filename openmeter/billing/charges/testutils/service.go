@@ -35,6 +35,8 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
@@ -176,6 +178,11 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		}
 	}
 
+	subscriptionItemReferenceValidator, err := itemreference.NewValidator(subscriptionrepo.NewSubscriptionItemRepo(config.Client))
+	if err != nil {
+		return nil, fmt.Errorf("creating subscription item reference validator: %w", err)
+	}
+
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      config.Client,
 		Logger:      logger,
@@ -186,14 +193,15 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	}
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:              flatFeeAdapter,
-		Handler:              config.FlatFeeHandler,
-		Lineage:              lineageService,
-		MetaAdapter:          metaAdapter,
-		Locker:               locker,
-		FeatureMeterResolver: config.FeatureMeterResolver,
-		RatingService:        billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		Currencies:           currencyService,
+		Adapter:                flatFeeAdapter,
+		Handler:                config.FlatFeeHandler,
+		Lineage:                lineageService,
+		MetaAdapter:            metaAdapter,
+		Locker:                 locker,
+		FeatureMeterResolver:   config.FeatureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:             currencyService,
+		ItemReferenceValidator: subscriptionItemReferenceValidator,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating flat fee service: %w", err)
@@ -232,6 +240,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		Currencies:              currencyService,
 		StreamingConnector:      config.StreamingConnector,
+		ItemReferenceValidator:  subscriptionItemReferenceValidator,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating usage based service: %w", err)

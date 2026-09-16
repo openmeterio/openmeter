@@ -95,6 +95,16 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 	})
 }
 
+func (a *adapter) UpdateSubscriptionReference(ctx context.Context, input meta.UpdateSubscriptionReferenceInput) error {
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		return chargemeta.UpdateSubscriptionReference(
+			ctx,
+			tx.db.ChargeUsageBased.Update(),
+			input,
+		)
+	})
+}
+
 func (a *adapter) UpdateChargeValidationIssues(ctx context.Context, input usagebased.UpdateChargeValidationIssuesInput) error {
 	if err := input.Validate(); err != nil {
 		return err

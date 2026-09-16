@@ -21,6 +21,8 @@ import (
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -347,6 +349,124 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUnitConfigRoundTrip() {
 	s.Nil(fetched.Intent.GetOverrideLayerMutableFields().UnitConfig)
 }
 
+func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateSubscriptionReference() {
+	// Given a usage-based charge associated with one materialized phase and item.
+	ctx := s.T().Context()
+	namespace := "usagebased-subscription-reference-adapter"
+	customerID := s.createCustomer(namespace)
+	activeFrom := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	subscription, err := s.dbClient.Subscription.Create().
+		SetNamespace(namespace).
+		SetCustomerID(customerID).
+		SetInvoiceCurrency(currencyx.Code("USD")).
+		SetBillingAnchor(activeFrom).
+		SetBillingCadence(datetime.ISODurationString("P1M")).
+		SetActiveFrom(activeFrom).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	createPhaseAndItem := func(phaseKey, itemKey string) (string, string) {
+		phase, err := s.dbClient.SubscriptionPhase.Create().
+			SetNamespace(namespace).
+			SetSubscriptionID(subscription.ID).
+			SetKey(phaseKey).
+			SetName(phaseKey).
+			SetActiveFrom(activeFrom).
+			Save(ctx)
+		s.Require().NoError(err)
+
+		item, err := s.dbClient.SubscriptionItem.Create().
+			SetNamespace(namespace).
+			SetPhaseID(phase.ID).
+			SetKey(itemKey).
+			SetName(itemKey).
+			SetActiveFrom(activeFrom).
+			Save(ctx)
+		s.Require().NoError(err)
+
+		return phase.ID, item.ID
+	}
+	originalPhaseID, originalItemID := createPhaseAndItem("original-phase", "original-item")
+	updatedPhaseID, updatedItemID := createPhaseAndItem("updated-phase", "updated-item")
+	originalReference := &chargesmeta.SubscriptionReference{
+		SubscriptionID: subscription.ID,
+		PhaseID:        originalPhaseID,
+		ItemID:         originalItemID,
+	}
+	charge := s.createChargeForCustomer(namespace, customerID, originalReference)
+
+	// When the dedicated updater receives a valid subscription/phase/item ownership chain.
+	err = s.adapter.UpdateSubscriptionReference(ctx, chargesmeta.UpdateSubscriptionReferenceInput{
+		ChargeID: charge.GetChargeID(),
+		Target: chargesmeta.SubscriptionReference{
+			SubscriptionID: subscription.ID,
+			PhaseID:        updatedPhaseID,
+			ItemID:         updatedItemID,
+		},
+	})
+
+	// Then the physical references are updated independently from ordinary charge updates.
+	s.Require().NoError(err)
+
+	otherSubscription, err := s.dbClient.Subscription.Create().
+		SetNamespace(namespace).
+		SetCustomerID(customerID).
+		SetInvoiceCurrency(currencyx.Code("USD")).
+		SetBillingAnchor(activeFrom).
+		SetBillingCadence(datetime.ISODurationString("P1M")).
+		SetActiveFrom(activeFrom).
+		Save(ctx)
+	s.Require().NoError(err)
+	otherPhase, err := s.dbClient.SubscriptionPhase.Create().
+		SetNamespace(namespace).
+		SetSubscriptionID(otherSubscription.ID).
+		SetKey("other-phase").
+		SetName("other-phase").
+		SetActiveFrom(activeFrom).
+		Save(ctx)
+	s.Require().NoError(err)
+	otherItem, err := s.dbClient.SubscriptionItem.Create().
+		SetNamespace(namespace).
+		SetPhaseID(otherPhase.ID).
+		SetKey("other-item").
+		SetName("other-item").
+		SetActiveFrom(activeFrom).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	// When the target graph is valid but belongs to a different subscription than the charge.
+	err = s.adapter.UpdateSubscriptionReference(ctx, chargesmeta.UpdateSubscriptionReferenceInput{
+		ChargeID: charge.GetChargeID(),
+		Target: chargesmeta.SubscriptionReference{
+			SubscriptionID: otherSubscription.ID,
+			PhaseID:        otherPhase.ID,
+			ItemID:         otherItem.ID,
+		},
+	})
+
+	// Then the charge's immutable subscription identity prevents the update.
+	s.Require().Error(err)
+	s.True(models.IsGenericPreConditionFailedError(err))
+
+	// When ordinary UpdateCharge receives stale physical references.
+	baseIntent := charge.Intent.GetBaseIntent()
+	baseIntent.Subscription = originalReference
+	charge.Intent = usagebased.NewOverridableIntent(baseIntent, nil)
+	updatedBase, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	s.Require().NoError(err)
+
+	// Then the dedicated update remains authoritative because routine aggregate
+	// persistence treats the references as immutable.
+	s.Require().NotNil(updatedBase.Intent.GetSubscription())
+	s.Equal(updatedPhaseID, updatedBase.Intent.GetSubscription().PhaseID)
+	s.Equal(updatedItemID, updatedBase.Intent.GetSubscription().ItemID)
+	fetched, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: charge.GetChargeID()})
+	s.Require().NoError(err)
+	s.Require().NotNil(fetched.Intent.GetSubscription())
+	s.Equal(updatedPhaseID, fetched.Intent.GetSubscription().PhaseID)
+	s.Equal(updatedItemID, fetched.Intent.GetSubscription().ItemID)
+}
+
 func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	override *usagebased.IntentMutableFields,
 	servicePeriod timeutil.ClosedPeriod,
@@ -373,7 +493,12 @@ func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) usagebased.Charge {
 	s.T().Helper()
 
-	customerID := s.createCustomer(namespace)
+	return s.createChargeForCustomer(namespace, s.createCustomer(namespace), nil)
+}
+
+func (s *UsageBasedIntentOverrideAdapterSuite) createChargeForCustomer(namespace, customerID string, subscription *chargesmeta.SubscriptionReference) usagebased.Charge {
+	s.T().Helper()
+
 	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 	featureID := ulid.Make().String()
 	featureKey := namespace + "-feature"
@@ -389,9 +514,10 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
-						ManagedBy:  billing.SubscriptionManagedLine,
-						CustomerID: customerID,
-						Currency:   currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						ManagedBy:    billing.SubscriptionManagedLine,
+						CustomerID:   customerID,
+						Currency:     currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						Subscription: subscription,
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},

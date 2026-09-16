@@ -53,6 +53,8 @@ import (
 	pcadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
+	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -257,6 +259,9 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	subscriptionItemReferenceValidator, err := itemreference.NewValidator(subscriptionrepo.NewSubscriptionItemRepo(base.DB))
+	require.NoError(t, err)
+
 	usageAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
 		Client:      base.DB,
 		Logger:      logger,
@@ -290,12 +295,13 @@ func newTestEnv(t *testing.T) *testEnv {
 			},
 			collectorService,
 		),
-		Lineage:              lineageService,
-		MetaAdapter:          metaAdapter,
-		Locker:               locker,
-		FeatureMeterResolver: featureMeterResolver,
-		RatingService:        billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		Currencies:           currencyService,
+		Lineage:                lineageService,
+		MetaAdapter:            metaAdapter,
+		Locker:                 locker,
+		FeatureMeterResolver:   featureMeterResolver,
+		RatingService:          billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:             currencyService,
+		ItemReferenceValidator: subscriptionItemReferenceValidator,
 	})
 	require.NoError(t, err)
 
@@ -319,6 +325,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		Currencies:              currencyService,
 		StreamingConnector:      streaming,
+		ItemReferenceValidator:  subscriptionItemReferenceValidator,
 	})
 	require.NoError(t, err)
 

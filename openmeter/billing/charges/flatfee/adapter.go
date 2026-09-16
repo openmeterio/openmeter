@@ -20,6 +20,7 @@ import (
 
 type Adapter interface {
 	ChargeAdapter
+	SubscriptionReferenceAdapter
 	ChargeDetailedLineAdapter
 	ChargeCreditAllocationAdapter
 	ChargeRunAdapter
@@ -44,6 +45,10 @@ type ChargeAdapter interface {
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
+}
+
+type SubscriptionReferenceAdapter interface {
+	UpdateSubscriptionReference(ctx context.Context, input meta.UpdateSubscriptionReferenceInput) error
 }
 
 type ChargeDetailedLineAdapter interface {

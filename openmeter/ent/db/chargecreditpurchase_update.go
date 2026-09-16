@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -134,6 +135,26 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableStatus(v *meta.ChargeStatus) *C
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionPhaseID(v string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetSubscriptionPhaseID(v)
+	return _u
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableSubscriptionPhaseID(v *string) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetSubscriptionPhaseID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearSubscriptionPhaseID() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearSubscriptionPhaseID()
 	return _u
 }
 
@@ -490,6 +511,11 @@ func (_u *ChargeCreditPurchaseUpdate) SetCostBasis(v *ChargeCreditPurchaseCostBa
 	return _u.SetCostBasisID(v.ID)
 }
 
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeCreditPurchaseUpdate {
+	return _u.SetSubscriptionPhaseID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeCreditPurchaseUpdate {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -521,6 +547,12 @@ func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrant() *ChargeCreditPurchaseUp
 // ClearCostBasis clears the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
 func (_u *ChargeCreditPurchaseUpdate) ClearCostBasis() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearCostBasis()
+	return _u
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeCreditPurchaseUpdate) ClearSubscriptionPhase() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearSubscriptionPhase()
 	return _u
 }
 
@@ -856,6 +888,35 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionPhaseTable,
+			Columns: []string{chargecreditpurchase.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionPhaseTable,
+			Columns: []string{chargecreditpurchase.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -1000,6 +1061,26 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableStatus(v *meta.ChargeStatus)
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionPhaseID(v string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetSubscriptionPhaseID(v)
+	return _u
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSubscriptionPhaseID(v *string) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionPhaseID(*v)
+	}
+	return _u
+}
+
+// ClearSubscriptionPhaseID clears the value of the "subscription_phase_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearSubscriptionPhaseID() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearSubscriptionPhaseID()
 	return _u
 }
 
@@ -1356,6 +1437,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetCostBasis(v *ChargeCreditPurchaseCos
 	return _u.SetCostBasisID(v.ID)
 }
 
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeCreditPurchaseUpdateOne {
+	return _u.SetSubscriptionPhaseID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeCreditPurchaseUpdateOne {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -1387,6 +1473,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrant() *ChargeCreditPurchas
 // ClearCostBasis clears the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearCostBasis() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearCostBasis()
+	return _u
+}
+
+// ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearSubscriptionPhase() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearSubscriptionPhase()
 	return _u
 }
 
@@ -1745,6 +1837,35 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionPhaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionPhaseTable,
+			Columns: []string{chargecreditpurchase.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionPhaseTable,
+			Columns: []string{chargecreditpurchase.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
