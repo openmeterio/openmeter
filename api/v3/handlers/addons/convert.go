@@ -1120,12 +1120,18 @@ func FromAPITaxCodeConfig(tc *apiv3.TaxCodeConfig) (*productcatalog.TaxConfig, e
 		return nil, nil
 	}
 
-	if tc.Code == nil || tc.Code.Id == "" {
-		return nil, models.NewGenericValidationError(errors.New("tax_config.code must be set when tax_config is present"))
+	if tc.Code != nil && tc.Code.Id == "" {
+		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id must be set when tax_config.code is present"))
 	}
 
-	result := &productcatalog.TaxConfig{
-		TaxCodeID: &tc.Code.Id,
+	if tc.Code == nil && tc.Behavior == nil {
+		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id or tax_config.behavior must be set"))
+	}
+
+	result := &productcatalog.TaxConfig{}
+
+	if tc.Code != nil {
+		result.TaxCodeID = &tc.Code.Id
 	}
 
 	if tc.Behavior != nil {

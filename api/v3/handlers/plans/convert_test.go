@@ -1660,7 +1660,7 @@ func TestToBillingPriceTiers(t *testing.T) {
 	})
 }
 
-func TestToBillingTaxConfig(t *testing.T) {
+func TestFromAPITaxCodeConfig(t *testing.T) {
 	t.Run("maps code ID", func(t *testing.T) {
 		tc := api.TaxCodeConfig{
 			Code: &api.TaxCodeReference{Id: "01TAXCODE000"},
@@ -1687,15 +1687,47 @@ func TestToBillingTaxConfig(t *testing.T) {
 		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
 	})
 
-	t.Run("rejects missing code", func(t *testing.T) {
+	t.Run("maps behavior-only config", func(t *testing.T) {
 		tc := api.TaxCodeConfig{
+			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
+		}
+
+		result, err := FromAPITaxCodeConfig(tc)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Nil(t, result.TaxCodeID)
+		require.NotNil(t, result.Behavior)
+		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
+	})
+
+	t.Run("rejects empty code ID", func(t *testing.T) {
+		tc := api.TaxCodeConfig{
+			Code: &api.TaxCodeReference{Id: ""},
+		}
+
+		result, err := FromAPITaxCodeConfig(tc)
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.True(t, models.IsGenericValidationError(err), "an explicit code reference without an id must surface as a validation error")
+	})
+
+	t.Run("rejects empty code ID even with behavior", func(t *testing.T) {
+		tc := api.TaxCodeConfig{
+			Code:     &api.TaxCodeReference{Id: ""},
 			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
 		}
 
 		result, err := FromAPITaxCodeConfig(tc)
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.True(t, models.IsGenericValidationError(err), "tax config without a tax code must surface as a validation error")
+		assert.True(t, models.IsGenericValidationError(err), "an explicit code reference without an id must surface as a validation error")
+	})
+
+	t.Run("rejects empty tax config", func(t *testing.T) {
+		result, err := FromAPITaxCodeConfig(api.TaxCodeConfig{})
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.True(t, models.IsGenericValidationError(err), "tax config without code or behavior must surface as a validation error")
 	})
 }
 
