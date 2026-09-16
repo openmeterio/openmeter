@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type EntitlementsService struct {
@@ -62,6 +63,29 @@ func (p ListEntitlementsParams) values() url.Values {
 		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
 		addStringExactFilter(q, "filter[type]", p.Filter.Type)
 		addStringExactFilter(q, "filter[customer_id]", p.Filter.CustomerID)
+	}
+
+	return q
+}
+
+type GetCustomerEntitlementValueParams struct {
+	Expand []EntitlementAccessExpand
+	At     *time.Time
+}
+
+func (p GetCustomerEntitlementValueParams) values() url.Values {
+	q := url.Values{}
+
+	if len(p.Expand) > 0 {
+		expandValues := make([]string, 0, len(p.Expand))
+		for _, value := range p.Expand {
+			expandValues = append(expandValues, string(value))
+		}
+		q.Set("expand", strings.Join(expandValues, ","))
+	}
+
+	if p.At != nil {
+		q.Set("at", (*p.At).Format(time.RFC3339Nano))
 	}
 
 	return q
@@ -169,6 +193,36 @@ func (s *EntitlementsService) Get(ctx context.Context, entitlementID string) (*E
 	}
 
 	var out Entitlement
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Get the customer's access through a single entitlement, optionally evaluated at
+// a point in time.
+func (s *EntitlementsService) GetCustomerValue(ctx context.Context, customerID string, entitlementID string, params GetCustomerEntitlementValueParams) (*EntitlementAccessResult, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if entitlementID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "entitlementID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlements/{entitlementId}/value"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "entitlementId", entitlementID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out EntitlementAccessResult
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

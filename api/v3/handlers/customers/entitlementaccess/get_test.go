@@ -25,11 +25,16 @@ const (
 
 type fakeEntitlementService struct {
 	entitlement.Service
-	get func(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error)
+	get      func(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error)
+	getValue func(ctx context.Context, input entitlement.GetCustomerEntitlementValueInput) (entitlement.CustomerEntitlementAccess, error)
 }
 
 func (f fakeEntitlementService) GetCustomerEntitlementAccess(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
 	return f.get(ctx, input)
+}
+
+func (f fakeEntitlementService) GetCustomerEntitlementValue(ctx context.Context, input entitlement.GetCustomerEntitlementValueInput) (entitlement.CustomerEntitlementAccess, error) {
+	return f.getValue(ctx, input)
 }
 
 func serveGetCustomerEntitlementAccess(t *testing.T, svc fakeEntitlementService, expand ...api.BillingEntitlementAccessExpand) *httptest.ResponseRecorder {

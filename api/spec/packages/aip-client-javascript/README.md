@@ -307,9 +307,10 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Entitlements
 
-| Method                                   | HTTP                                                       | Description                      |
-| ---------------------------------------- | ---------------------------------------------------------- | -------------------------------- |
-| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access` | List customer entitlement access |
+| Method                                   | HTTP                                                                       | Description                                                                                      |
+| ---------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access`                 | List customer entitlement access                                                                 |
+| `client.entitlements.getCustomerValue`   | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value` | Get the customer's access through a single entitlement, optionally evaluated at a point in time. |
 
 ### Subscriptions
 

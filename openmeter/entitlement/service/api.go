@@ -46,6 +46,42 @@ func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitl
 	}, nil
 }
 
+func (c *service) GetCustomerEntitlementValue(ctx context.Context, input entitlement.GetCustomerEntitlementValueInput) (entitlement.CustomerEntitlementAccess, error) {
+	if err := input.Validate(); err != nil {
+		return entitlement.CustomerEntitlementAccess{}, err
+	}
+
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return entitlement.CustomerEntitlementAccess{}, err
+	}
+
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: cus.Namespace, ID: input.EntitlementID})
+	if err != nil {
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return entitlement.CustomerEntitlementAccess{}, models.NewGenericNotFoundError(err)
+		}
+
+		return entitlement.CustomerEntitlementAccess{}, err
+	}
+
+	if ent.CustomerID != cus.ID {
+		return entitlement.CustomerEntitlementAccess{}, models.NewGenericNotFoundError(
+			fmt.Errorf("entitlement not found %s for customer %s in namespace %s", input.EntitlementID, cus.ID, cus.Namespace),
+		)
+	}
+
+	value, err := c.getEntitlementValueAt(ctx, ent, input.At)
+	if err != nil {
+		return entitlement.CustomerEntitlementAccess{}, err
+	}
+
+	return entitlement.CustomerEntitlementAccess{
+		FeatureKey: ent.FeatureKey,
+		Value:      value,
+	}, nil
+}
+
 func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entitlement.ListCustomerEntitlementAccessInput) ([]entitlement.CustomerEntitlementAccess, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
