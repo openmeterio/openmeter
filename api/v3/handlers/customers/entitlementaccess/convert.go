@@ -46,6 +46,8 @@ func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, exp
 		return api.BillingEntitlementAccessResult{
 			HasAccess:  false,
 			FeatureKey: featureKey,
+			// using a constant value to satisfy the API contract
+			Type: api.BillingEntitlementTypeStatic,
 		}, nil
 	default:
 		return api.BillingEntitlementAccessResult{}, errors.New("unknown entitlement type")
