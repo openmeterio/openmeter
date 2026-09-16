@@ -533,14 +533,18 @@ func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPrice
 }
 
 func ToAPITaxCodeConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.TaxCodeConfig {
-	if c == nil || tc == nil {
+	if c == nil {
 		return nil
 	}
 
-	result := &api.TaxCodeConfig{
-		Code: &api.TaxCodeReference{
-			Id: tc.ID,
-		},
+	result := &api.TaxCodeConfig{}
+
+	// The tax code entity is the authoritative reference when resolved; legacy rows
+	// without a resolvable entity still carry the code on the config itself.
+	if tc != nil {
+		result.Code = &api.TaxCodeReference{Id: tc.ID}
+	} else if c.TaxCodeID != nil {
+		result.Code = &api.TaxCodeReference{Id: *c.TaxCodeID}
 	}
 
 	if c.Behavior != nil {
