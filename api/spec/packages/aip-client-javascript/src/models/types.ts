@@ -652,6 +652,20 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
+/** Balance details of a metered entitlement. */
+export interface EntitlementAccessValue {
+  /** The remaining balance of the entitlement in the current usage period. */
+  balance: string
+  /** The usage recorded in the current usage period. */
+  usage: string
+  /** The usage exceeding the available balance in the current usage period. */
+  overage: string
+  /** The total amount granted and currently available to the entitlement. */
+  totalAvailableGrantAmount: string
+  /** The remaining balance of each grant, keyed by grant ID. */
+  grantBalances: Record<string, string>
+}
+
 /** Cost basis with an explicit conversion rate supplied with the charge. */
 export interface CreateChargeCostBasisManual {
   /** Discriminator selecting the cost basis mode. */
@@ -1909,24 +1923,6 @@ export interface CustomerStripeCreateCustomerPortalSessionRequest {
   stripeOptions: AppStripeCreateCustomerPortalSessionOptions
 }
 
-/** Entitlement access result. */
-export interface EntitlementAccessResult {
-  /** The type of the entitlement. */
-  type: 'metered' | 'static' | 'boolean'
-  /** The feature key of the entitlement. */
-  featureKey: string
-  /**
-   * Whether the customer has access to the feature. Always true for `boolean` and
-   * `static` entitlements. Depends on balance for `metered` entitlements.
-   */
-  hasAccess: boolean
-  /**
-   * Only available for static entitlements. Config is the JSON parsable
-   * configuration of the entitlement. Useful to describe per customer configuration.
-   */
-  config?: string
-}
-
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlement {
   /** The type of the entitlement template. */
@@ -2554,6 +2550,29 @@ export interface CurrencyAmount {
   amount: string
   /** The fiat or custom currency code of the amount. */
   currency: BillingCurrencyCode
+}
+
+/** Entitlement access result. */
+export interface EntitlementAccessResult {
+  /** The type of the entitlement. */
+  type: 'metered' | 'static' | 'boolean'
+  /** The feature key of the entitlement. */
+  featureKey: string
+  /**
+   * Whether the customer has access to the feature. Always true for `boolean` and
+   * `static` entitlements. Depends on balance for `metered` entitlements.
+   */
+  hasAccess: boolean
+  /**
+   * Only available for static entitlements. Config is the JSON parsable
+   * configuration of the entitlement. Useful to describe per customer configuration.
+   */
+  config?: string
+  /**
+   * Only available for metered entitlements. The current balance details of the
+   * entitlement. Requires the `value` expand.
+   */
+  value?: EntitlementAccessValue
 }
 
 /**
@@ -3394,12 +3413,6 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
   termsOfService?: 'none' | 'required'
 }
 
-/** List customer entitlement access response data. */
-export interface ListCustomerEntitlementAccessResponseData {
-  /** The list of entitlement access results. */
-  data: EntitlementAccessResult[]
-}
-
 /**
  * Add a new phase to the subscription. The phase is created without items; use
  * add-item operations to populate it.
@@ -3792,6 +3805,12 @@ export interface ChargeFlatFeeSystemIntent {
    * effective charge can remain visible while a manual override is active.
    */
   deletedAt?: Date
+}
+
+/** List customer entitlement access response data. */
+export interface ListCustomerEntitlementAccessResponseData {
+  /** The list of entitlement access results. */
+  data: EntitlementAccessResult[]
 }
 
 /**

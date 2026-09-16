@@ -1191,6 +1191,14 @@ func (n NoopEntitlementConnector) GetAccess(ctx context.Context, namespace strin
 	return entitlement.Access{}, nil
 }
 
+func (n NoopEntitlementConnector) GetCustomerEntitlementAccess(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+	return entitlement.CustomerEntitlementAccess{}, nil
+}
+
+func (n NoopEntitlementConnector) ListCustomerEntitlementAccess(ctx context.Context, input entitlement.ListCustomerEntitlementAccessInput) ([]entitlement.CustomerEntitlementAccess, error) {
+	return nil, nil
+}
+
 // NoopEntitlementBalanceConnector
 
 var _ meteredentitlement.Connector = (*NoopEntitlementBalanceConnector)(nil)

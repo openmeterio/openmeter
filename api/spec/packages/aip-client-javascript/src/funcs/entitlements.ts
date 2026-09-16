@@ -3,11 +3,14 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { toPathWire, fromWire, assertValid } from '../lib/wire.js'
+import { toURLSearchParams } from '../lib/encodings.js'
+import { toWire, toPathWire, fromWire, assertValid } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListCustomerEntitlementAccessRequest,
   ListCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementAccessRequest,
+  GetCustomerEntitlementAccessResponse,
 } from '../models/operations/entitlements.js'
 
 /**
@@ -50,6 +53,68 @@ export function listCustomerEntitlementAccess(
           assertValid(schemas.listCustomerEntitlementAccessResponseWire, data)
         }
         return fromWire(data, schemas.listCustomerEntitlementAccessResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement access
+ *
+ * Get the customer's access to a single feature.
+ *
+ * GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}
+ */
+export function getCustomerEntitlementAccess(
+  client: Client,
+  req: GetCustomerEntitlementAccessRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementAccessResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      featureKey: req.featureKey,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getCustomerEntitlementAccessPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.getCustomerEntitlementAccessPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlement-access/features/${(() => {
+      if (pathParams.featureKey === undefined) {
+        throw new Error('missing path parameter: featureKey')
+      }
+      return encodeURIComponent(String(pathParams.featureKey))
+    })()}`
+    const query = toWire(
+      {
+        expand: req.expand,
+      },
+      schemas.getCustomerEntitlementAccessQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementAccessQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementAccessResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementAccessResponse)
       })
   })
 }
