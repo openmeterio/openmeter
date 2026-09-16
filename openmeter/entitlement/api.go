@@ -25,7 +25,6 @@ import (
 // hides inactive entitlements so handlers only map the result.
 type CustomerEntitlementAccessAPIService interface {
 	GetCustomerEntitlementAccess(ctx context.Context, input GetCustomerEntitlementAccessInput) (CustomerEntitlementAccess, error)
-	GetCustomerEntitlementValue(ctx context.Context, input GetCustomerEntitlementValueInput) (CustomerEntitlementAccess, error)
 	ListCustomerEntitlementAccess(ctx context.Context, input ListCustomerEntitlementAccessInput) ([]CustomerEntitlementAccess, error)
 }
 
@@ -34,9 +33,13 @@ type CustomerEntitlementAccess struct {
 	Value      EntitlementValue
 }
 
+// GetCustomerEntitlementAccessInput addresses the entitlement by exactly one of
+// FeatureKey or EntitlementID.
 type GetCustomerEntitlementAccessInput struct {
-	CustomerID customer.CustomerID
-	FeatureKey string
+	CustomerID    customer.CustomerID
+	FeatureKey    string
+	EntitlementID string
+	At            time.Time
 }
 
 func (i GetCustomerEntitlementAccessInput) Validate() error {
@@ -46,31 +49,8 @@ func (i GetCustomerEntitlementAccessInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	if i.FeatureKey == "" {
-		errs = append(errs, errors.New("feature key is required"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-// GetCustomerEntitlementValueInput addresses an entitlement by ID within the
-// customer's scope; an entitlement owned by another customer is reported as not
-// found.
-type GetCustomerEntitlementValueInput struct {
-	CustomerID    customer.CustomerID
-	EntitlementID string
-	At            time.Time
-}
-
-func (i GetCustomerEntitlementValueInput) Validate() error {
-	var errs []error
-
-	if err := i.CustomerID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer ID: %w", err))
-	}
-
-	if i.EntitlementID == "" {
-		errs = append(errs, errors.New("entitlement ID is required"))
+	if (i.FeatureKey == "") == (i.EntitlementID == "") {
+		errs = append(errs, errors.New("exactly one of feature key or entitlement ID is required"))
 	}
 
 	if i.At.IsZero() {
