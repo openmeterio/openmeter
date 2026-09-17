@@ -8,6 +8,7 @@ import (
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
+	customersentitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
 	planhandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 	subscriptionhandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
@@ -84,7 +85,15 @@ func (s *Server) DeleteCustomer(w http.ResponseWriter, r *http.Request, customer
 // Customers Entitlement Access
 
 func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	s.customersEntitlementHandler.ListCustomerEntitlementAccess().With(customerId).ServeHTTP(w, r)
+	s.customerEntitlementAccessHandler.ListCustomerEntitlementAccess().With(customerId).ServeHTTP(w, r)
+}
+
+// Customers Entitlements
+
+func (s *Server) CreateCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	s.customersEntitlementsHandler.CreateCustomerEntitlement().With(customersentitlementshandler.CreateCustomerEntitlementParams{
+		CustomerID: customerId,
+	}).ServeHTTP(w, r)
 }
 
 // Subscriptions
