@@ -8,7 +8,9 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -55,6 +57,11 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request UpdatePlanRequest) (UpdatePlanResponse, error) {
+			// credit_only settlement requires the credits feature to be enabled on the deployment.
+			if !featuregate.ContextResolver().Credits(ctx) && request.SettlementMode != nil && *request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				return UpdatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			p, err := h.service.UpdatePlan(ctx, request)
 			if err != nil {
 				return UpdatePlanResponse{}, err

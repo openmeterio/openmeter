@@ -1177,6 +1177,30 @@ func TestToUpdatePlanInput(t *testing.T) {
 		require.Len(t, (*result.Phases)[0].RateCards, 1)
 		assert.Equal(t, productcatalog.UsageBasedRateCardType, (*result.Phases)[0].RateCards[0].Type())
 	})
+
+	t.Run("settlement mode maps correctly", func(t *testing.T) {
+		body := api.UpsertPlanRequest{
+			Name:           "Plan",
+			Phases:         []api.BillingPlanPhase{},
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+		}
+
+		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
+		require.NoError(t, err)
+		require.NotNil(t, result.SettlementMode)
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, *result.SettlementMode)
+	})
+
+	t.Run("nil settlement mode leaves it unchanged", func(t *testing.T) {
+		body := api.UpsertPlanRequest{
+			Name:   "Plan",
+			Phases: []api.BillingPlanPhase{},
+		}
+
+		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
+		require.NoError(t, err)
+		assert.Nil(t, result.SettlementMode)
+	})
 }
 
 func TestToCreatePlanInput(t *testing.T) {
@@ -1300,6 +1324,33 @@ func TestToCreatePlanInput(t *testing.T) {
 		require.Len(t, result.Phases, 2)
 		assert.Equal(t, "p1", result.Phases[0].Key)
 		assert.Equal(t, "p2", result.Phases[1].Key)
+	})
+
+	t.Run("settlement mode maps correctly", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+		}
+
+		result, err := FromAPICreatePlanRequest("ns", body)
+		require.NoError(t, err)
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, result.SettlementMode)
+	})
+
+	t.Run("nil settlement mode maps to empty for service default", func(t *testing.T) {
+		body := api.CreatePlanRequest{
+			Key:            "pro",
+			Name:           "Pro",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+		}
+
+		result, err := FromAPICreatePlanRequest("ns", body)
+		require.NoError(t, err)
+		assert.Equal(t, productcatalog.SettlementMode(""), result.SettlementMode)
 	})
 }
 

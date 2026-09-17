@@ -57,7 +57,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
 		ProRatingEnabled: lo.ToPtr(p.ProRatingConfig.Enabled),
-		SettlementMode:   lo.ToPtr(api.BillingSettlementMode(p.SettlementMode)),
+		SettlementMode:   api.BillingSettlementMode(p.SettlementMode),
 		ValidationErrors: ToAPIProductCatalogValidationErrors(validationIssues),
 	}
 
@@ -614,6 +614,11 @@ func FromAPIUpsertPlanRequest(ns string, planID string, body api.UpsertPlanReque
 		ProRatingConfig: lo.ToPtr(ToProRatingConfig(body.ProRatingEnabled)),
 	}
 
+	// A nil settlement mode leaves the existing value unchanged.
+	if body.SettlementMode != nil {
+		req.SettlementMode = lo.ToPtr(productcatalog.SettlementMode(*body.SettlementMode))
+	}
+
 	meta, err := labels.ToMetadata(body.Labels)
 	if err != nil {
 		return req, fmt.Errorf("failed to convert label metadata: %w", err)
@@ -656,6 +661,7 @@ func FromAPICreatePlanRequest(ns string, body api.CreatePlanRequest) (plan.Creat
 				Description:     body.Description,
 				Metadata:        meta,
 				ProRatingConfig: ToProRatingConfig(body.ProRatingEnabled),
+				SettlementMode:  productcatalog.SettlementMode(lo.FromPtr(body.SettlementMode)),
 			},
 		},
 	}

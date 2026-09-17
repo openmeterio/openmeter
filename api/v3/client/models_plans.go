@@ -4,7 +4,8 @@ package openmeter
 
 import "time"
 
-// Plan create request.
+// Plan create request. `settlement_mode` is re-declared as optional with a
+// `credit_then_invoice` default, applied only on create.
 type CreatePlanRequest struct {
 	// Display name of the resource.
 	//
@@ -28,6 +29,8 @@ type CreatePlanRequest struct {
 	// The plan phases define the pricing ramp for a subscription. A phase switch
 	// occurs only at the end of a billing period. At least one phase is required.
 	Phases []PlanPhaseInput `json:"phases"`
+	// Settlement mode for the plan. Defaults to `credit_then_invoice` when omitted.
+	SettlementMode *SettlementMode `json:"settlement_mode,omitempty"`
 }
 
 // Plans provide a template for subscriptions.
@@ -85,7 +88,7 @@ type Plan struct {
 	// - `credit_then_invoice`: Credits are applied first, then any remainder is
 	// invoiced.
 	// - `credit_only`: Usage is settled exclusively against credits.
-	SettlementMode *SettlementMode `json:"settlement_mode,omitempty"`
+	SettlementMode SettlementMode `json:"settlement_mode"`
 	// List of validation errors in `draft` state that prevent the plan from being
 	// published.
 	ValidationErrors []ProductCatalogValidationError `json:"validation_errors,omitempty"`
@@ -121,7 +124,9 @@ func (value PlanStatus) Valid() bool {
 	}
 }
 
-// Plan upsert request.
+// Plan upsert (update) request. `settlement_mode` is re-declared as optional with
+// no default, so an omitted value leaves the plan's existing settlement mode
+// unchanged.
 type UpsertPlanRequest struct {
 	// Display name of the resource.
 	//
@@ -137,4 +142,7 @@ type UpsertPlanRequest struct {
 	// The plan phases define the pricing ramp for a subscription. A phase switch
 	// occurs only at the end of a billing period. At least one phase is required.
 	Phases []PlanPhaseInput `json:"phases"`
+	// Settlement mode for the plan. When omitted, the existing settlement mode is
+	// preserved.
+	SettlementMode *SettlementMode `json:"settlement_mode,omitempty"`
 }

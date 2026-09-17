@@ -67,7 +67,7 @@ interface PlanOperations {
   @operationId("create-plan")
   @summary("Create plan")
   @extension(Shared.UnstableExtension, true)
-  createPlan(@body plan: Shared.CreateRequest<Plan>):
+  createPlan(@body plan: CreatePlanRequestBody):
     | Shared.CreateResponse<Plan>
     | Common.ErrorResponses;
 
@@ -79,10 +79,7 @@ interface PlanOperations {
   @operationId("update-plan")
   @summary("Update plan")
   @extension(Shared.UnstableExtension, true)
-  updatePlan(
-    @path planId: Shared.ULID,
-    @body plan: Shared.UpsertRequest<Plan>,
-  ):
+  updatePlan(@path planId: Shared.ULID, @body plan: UpsertPlanRequestBody):
     | Shared.UpsertResponse<Plan>
     | Common.ErrorResponses
     | Common.Gone
