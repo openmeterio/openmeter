@@ -88,7 +88,10 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 			return nil, nil
 		}
 
-		accounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID})
+		accounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customer.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +226,10 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 		return nil, err
 	}
 
-	selected, err := planCollectionCorrection(collectionCorrectionInput{amount: correction.Amount.Abs(), positions: positions})
+	selected, err := planCollectionCorrection(collectionCorrectionInput{
+		amount:    correction.Amount.Abs(),
+		positions: positions,
+	})
 	if err != nil {
 		return nil, err
 	}

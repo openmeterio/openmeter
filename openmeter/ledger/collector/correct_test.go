@@ -1090,18 +1090,38 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 	for _, spend := range spends {
 		// Reproduce legacy lineage collection entries: this regression protects the
 		// retained lineage corrector, while origin lifecycles exercise the new path.
-		inputs, err := transactions.ResolveTransactions(t.Context(), corrector.deps, transactions.ResolutionScope{Namespace: env.Namespace, CustomerID: env.CustomerID},
-			transactions.IssueCustomerReceivableTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), SpendChargeID: &spend},
-			transactions.TransferCustomerFBOAdvanceToAccruedTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), SpendChargeID: &spend},
+		inputs, err := transactions.ResolveTransactions(t.Context(), corrector.deps, transactions.ResolutionScope{
+			Namespace:  env.Namespace,
+			CustomerID: env.CustomerID,
+		},
+			transactions.IssueCustomerReceivableTemplate{
+				At:            env.Now(),
+				Amount:        amount,
+				Currency:      env.CurrencyReference(),
+				SpendChargeID: &spend,
+			},
+			transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+				At:            env.Now(),
+				Amount:        amount,
+				Currency:      env.CurrencyReference(),
+				SpendChargeID: &spend,
+			},
 		)
 		require.NoError(t, err)
 		original, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 		require.NoError(t, err)
-		allocations = append(allocations, creditrealization.Realization{NamespacedModel: models.NamespacedModel{Namespace: env.Namespace}, CreateInput: creditrealization.CreateInput{
-			ID: ulid.Make().String(), Type: creditrealization.TypeAllocation, Amount: amount,
-			ServicePeriod: testServicePeriod(env), LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: original.ID().ID},
-			Annotations: creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
-		}})
+
+		allocations = append(allocations, creditrealization.Realization{
+			NamespacedModel: models.NamespacedModel{Namespace: env.Namespace},
+			CreateInput: creditrealization.CreateInput{
+				ID:                ulid.Make().String(),
+				Type:              creditrealization.TypeAllocation,
+				Amount:            amount,
+				ServicePeriod:     testServicePeriod(env),
+				LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: original.ID().ID},
+				Annotations:       creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
+			},
+		})
 		templates = append(templates,
 			transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), CostBasis: &basis, CostBasisCurrency: &fiat, SourceChargeID: &purchase, SpendChargeID: lo.ToPtr(spend)},
 			transactions.TranslateCustomerAccruedCostBasisTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), ToCostBasis: &basis, CostBasisCurrency: &fiat, SourceChargeID: &purchase, SpendChargeID: lo.ToPtr(spend)},
@@ -1120,10 +1140,14 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 	// when: repeatedly correct the second spend, whose backfill transaction is not first.
 	for _, correction := range []int64{10, 20} {
 		_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
-			Namespace: env.Namespace, ChargeID: spends[1], CustomerID: env.CustomerID.ID, AllocateAt: env.Now(),
+			Namespace:   env.Namespace,
+			ChargeID:    spends[1],
+			CustomerID:  env.CustomerID.ID,
+			AllocateAt:  env.Now(),
 			Corrections: creditrealization.CorrectionRequest{{Allocation: allocations[1], Amount: alpacadecimal.NewFromInt(-correction)}},
 			LineageSegmentsByRealization: legacylineage.ActiveSegmentsByRealizationID{allocations[1].ID: {{
-				Amount: amount, State: creditrealization.LineageSegmentStateEarningsRecognized,
+				Amount:                          amount,
+				State:                           creditrealization.LineageSegmentStateEarningsRecognized,
 				BackingTransactionGroupID:       lo.ToPtr(recognition.ID().ID),
 				SourceState:                     lo.ToPtr(creditrealization.LineageSegmentStateAdvanceBackfilled),
 				SourceBackingTransactionGroupID: lo.ToPtr(backing.ID().ID),

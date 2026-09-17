@@ -44,45 +44,66 @@ type originTestEnv struct {
 
 func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 	t.Helper()
+
 	base := newCreditPurchaseHandlerTestEnv(t)
 	if custom {
 		base.currency = currenciestestutils.NewCustomCurrency(t, "TOKENS", 2)
 		base.currency.Namespace = base.Namespace
 	}
 
-	deps := transactions.ResolverDependencies{AccountService: base.Deps.ResolversService, AccountCatalog: base.Deps.AccountService, BalanceQuerier: base.Deps.HistoricalLedger}
+	deps := transactions.ResolverDependencies{
+		AccountService: base.Deps.ResolversService,
+		AccountCatalog: base.Deps.AccountService,
+		BalanceQuerier: base.Deps.HistoricalLedger,
+	}
 	collect, err := collector.NewService(collector.Config{
-		Ledger: base.Deps.HistoricalLedger, Dependencies: deps,
-		Breakage: base.breakage, AccountLocker: base.Deps.AccountService, TransactionManager: enttx.NewCreator(base.DB),
+		Ledger:             base.Deps.HistoricalLedger,
+		Dependencies:       deps,
+		Breakage:           base.breakage,
+		AccountLocker:      base.Deps.AccountService,
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
 	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: base.DB})
 	require.NoError(t, err)
 	legacy, err := legacylineageservice.New(legacylineageservice.Config{Adapter: adapter})
 	require.NoError(t, err)
+
 	legacy = &ledgertestutils.LineageWithAllocations{Service: legacy}
 	rec, err := recognizer.NewService(recognizer.Config{
-		Ledger: base.Deps.HistoricalLedger, Dependencies: deps,
-		Lineage: legacy, TransactionManager: enttx.NewCreator(base.DB),
+		Ledger:             base.Deps.HistoricalLedger,
+		Dependencies:       deps,
+		Lineage:            legacy,
+		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
 
-	return &originTestEnv{creditPurchaseHandlerTestEnv: base, collector: collect, recognizer: rec, legacy: legacy}
+	return &originTestEnv{
+		creditPurchaseHandlerTestEnv: base,
+		collector:                    collect,
+		recognizer:                   rec,
+		legacy:                       legacy,
+	}
 }
 
 func (e *originTestEnv) purchase(t *testing.T, amount int64, basis float64, expires bool) string {
 	t.Helper()
+
 	charge := e.newExternalCharge(alpacadecimal.NewFromInt(amount), alpacadecimal.NewFromFloat(basis))
 	if e.currency.IsCustom() {
 		charge = e.newExternalChargeCustomCurrency(t, e.currency, alpacadecimal.NewFromInt(amount), alpacadecimal.NewFromFloat(basis), "USD")
 	}
 
 	charge.ID = ulid.Make().String()
-	period := timeutil.ClosedPeriod{From: e.Now().Add(-time.Hour), To: e.Now()}
+	period := timeutil.ClosedPeriod{
+		From: e.Now().Add(-time.Hour),
+		To:   e.Now(),
+	}
 	charge.Intent.ServicePeriod = period
 	charge.Intent.FullServicePeriod = period
 	charge.Intent.BillingPeriod = period
 	charge.Intent.Priority = lo.ToPtr(7)
+
 	if expires {
 		charge.Intent.ExpiresAt = lo.ToPtr(e.Now().Add(24 * time.Hour))
 	}
@@ -96,11 +117,21 @@ func (e *originTestEnv) purchase(t *testing.T, amount int64, basis float64, expi
 func (e *originTestEnv) collect(t *testing.T, spend string, amount int64) creditrealization.Realizations {
 	t.Helper()
 	allocations, err := e.collector.CollectToAccrued(t.Context(), collector.CollectToAccruedInput{
-		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: spend, BookedAt: e.Now(), SourceBalanceAsOf: e.Now(),
-		Currency: e.currency.Reference(), SettlementMode: productcatalog.CreditOnlySettlementMode,
-		ServicePeriod: timeutil.ClosedPeriod{From: e.Now().Add(-time.Hour), To: e.Now()}, Amount: alpacadecimal.NewFromInt(amount),
+		Namespace:         e.Namespace,
+		CustomerID:        e.CustomerID.ID,
+		ChargeID:          spend,
+		BookedAt:          e.Now(),
+		SourceBalanceAsOf: e.Now(),
+		Currency:          e.currency.Reference(),
+		SettlementMode:    productcatalog.CreditOnlySettlementMode,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: e.Now().Add(-time.Hour),
+			To:   e.Now(),
+		},
+		Amount: alpacadecimal.NewFromInt(amount),
 	})
 	require.NoError(t, err)
+
 	var out creditrealization.Realizations
 
 	for i, allocation := range allocations.AsCreateInputs() {
@@ -108,7 +139,12 @@ func (e *originTestEnv) collect(t *testing.T, spend string, amount int64) credit
 		require.Equal(t, true, allocation.Annotations[ledger.AnnotationOriginTracked])
 		out = append(out, creditrealization.Realization{
 			NamespacedModel: models.NamespacedModel{Namespace: e.Namespace},
-			ManagedModel:    models.ManagedModel{CreatedAt: e.Now(), UpdatedAt: e.Now()}, CreateInput: allocation, SortHint: i,
+			ManagedModel: models.ManagedModel{
+				CreatedAt: e.Now(),
+				UpdatedAt: e.Now(),
+			},
+			CreateInput: allocation,
+			SortHint:    i,
 		})
 	}
 
@@ -118,15 +154,25 @@ func (e *originTestEnv) collect(t *testing.T, spend string, amount int64) credit
 func (e *originTestEnv) correct(t *testing.T, spend string, allocation creditrealization.Realization, amount int64) {
 	t.Helper()
 	_, err := e.collector.CorrectCollectedAccrued(t.Context(), collector.CorrectCollectedAccruedInput{
-		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: spend, AllocateAt: e.Now(),
-		Corrections: creditrealization.CorrectionRequest{{Allocation: allocation, Amount: alpacadecimal.NewFromInt(-amount)}},
+		Namespace:  e.Namespace,
+		CustomerID: e.CustomerID.ID,
+		ChargeID:   spend,
+		AllocateAt: e.Now(),
+		Corrections: creditrealization.CorrectionRequest{{
+			Allocation: allocation,
+			Amount:     alpacadecimal.NewFromInt(-amount),
+		}},
 	})
 	require.NoError(t, err)
 }
 
 func (e *originTestEnv) recognize(t *testing.T) float64 {
 	t.Helper()
-	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{CustomerID: e.CustomerID, Currency: e.currency, At: e.Now()})
+	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+		CustomerID: e.CustomerID,
+		Currency:   e.currency,
+		At:         e.Now(),
+	})
 	require.NoError(t, err)
 
 	return result.RecognizedAmount.InexactFloat64()
@@ -135,15 +181,19 @@ func (e *originTestEnv) recognize(t *testing.T) float64 {
 func (e *originTestEnv) provenanceBalance(t *testing.T, account ledger.Account, source, spend *string) float64 {
 	t.Helper()
 	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
-		Namespace: e.Namespace, Filters: ledger.Filters{
-			AccountID: lo.ToPtr(account.ID().ID), Provenance: ledger.ProvenanceFilter{
+		Namespace: e.Namespace,
+		Filters: ledger.Filters{
+			AccountID: lo.ToPtr(account.ID().ID),
+			Provenance: ledger.ProvenanceFilter{
 				SourceChargeID: mo.Some(source),
 				SpendChargeID:  mo.Some(spend),
 			},
-			AsOf: lo.ToPtr(e.Now()), Route: ledger.RouteFilter{Currency: e.currency.Reference()},
+			AsOf:  lo.ToPtr(e.Now()),
+			Route: ledger.RouteFilter{Currency: e.currency.Reference()},
 		},
 	})
 	require.NoError(t, err)
+
 	amount := alpacadecimal.Zero
 
 	for _, bucket := range buckets {
@@ -252,21 +302,35 @@ func TestOriginRecognitionAndCorrectionSerializeBalanceReads(t *testing.T) {
 	// when recognition and correction start concurrently.
 	start := make(chan struct{})
 	errs := make(chan error, 2)
+
 	var wg sync.WaitGroup
 
 	wg.Add(2)
+
 	go func() {
 		defer wg.Done()
 		<-start
-		_, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{CustomerID: e.CustomerID, Currency: e.currency, At: e.Now()})
+
+		_, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+			CustomerID: e.CustomerID,
+			Currency:   e.currency,
+			At:         e.Now(),
+		})
 		errs <- err
 	}()
 	go func() {
 		defer wg.Done()
 		<-start
+
 		_, err := e.collector.CorrectCollectedAccrued(t.Context(), collector.CorrectCollectedAccruedInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: spend, AllocateAt: e.Now(),
-			Corrections: creditrealization.CorrectionRequest{{Allocation: allocations[0], Amount: alpacadecimal.NewFromInt(-10)}},
+			Namespace:  e.Namespace,
+			CustomerID: e.CustomerID.ID,
+			ChargeID:   spend,
+			AllocateAt: e.Now(),
+			Corrections: creditrealization.CorrectionRequest{{
+				Allocation: allocations[0],
+				Amount:     alpacadecimal.NewFromInt(-10),
+			}},
 		})
 		errs <- err
 	}()
@@ -289,23 +353,59 @@ func TestOriginAndLegacyHistoriesSharePurchasesWithoutSharingCorrectionState(t *
 	e := newOriginTestEnv(t, true)
 	legacySpend, spend := ulid.Make().String(), ulid.Make().String()
 	amount := alpacadecimal.NewFromInt(20)
-	deps := transactions.ResolverDependencies{AccountService: e.Deps.ResolversService, AccountCatalog: e.Deps.AccountService, BalanceQuerier: e.Deps.HistoricalLedger}
-	inputs, err := transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace},
-		transactions.IssueCustomerReceivableTemplate{At: e.Now(), Amount: amount, Currency: e.currency.Reference(), SpendChargeID: &legacySpend},
-		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{At: e.Now(), Amount: amount, Currency: e.currency.Reference(), SpendChargeID: &legacySpend})
+	deps := transactions.ResolverDependencies{
+		AccountService: e.Deps.ResolversService,
+		AccountCatalog: e.Deps.AccountService,
+		BalanceQuerier: e.Deps.HistoricalLedger,
+	}
+	inputs, err := transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{
+		CustomerID: e.CustomerID,
+		Namespace:  e.Namespace,
+	},
+		transactions.IssueCustomerReceivableTemplate{
+			At:            e.Now(),
+			Amount:        amount,
+			Currency:      e.currency.Reference(),
+			SpendChargeID: &legacySpend,
+		},
+		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+			At:            e.Now(),
+			Amount:        amount,
+			Currency:      e.currency.Reference(),
+			SpendChargeID: &legacySpend,
+		})
 	require.NoError(t, err)
 	group, err := e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
+
 	legacyAllocation := creditrealization.Realization{
-		NamespacedModel: models.NamespacedModel{Namespace: e.Namespace}, ManagedModel: models.ManagedModel{CreatedAt: e.Now(), UpdatedAt: e.Now()},
+		NamespacedModel: models.NamespacedModel{Namespace: e.Namespace},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: e.Now(),
+			UpdatedAt: e.Now(),
+		},
 		CreateInput: creditrealization.CreateInput{
-			ID: ulid.Make().String(), Annotations: creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
-			ServicePeriod: timeutil.ClosedPeriod{From: e.Now().Add(-time.Hour), To: e.Now()}, LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID}, Amount: amount, Type: creditrealization.TypeAllocation,
+			ID:          ulid.Make().String(),
+			Annotations: creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: e.Now().Add(-time.Hour),
+				To:   e.Now(),
+			},
+			LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID},
+			Amount:            amount,
+			Type:              creditrealization.TypeAllocation,
 		},
 	}
 	_, err = e.DB.Charge.Create().SetNamespace(e.Namespace).SetID(legacySpend).SetType(meta.ChargeTypeUsageBased).Save(t.Context())
 	require.NoError(t, err)
-	require.NoError(t, e.legacy.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{Namespace: e.Namespace, ChargeID: legacySpend, CustomerID: e.CustomerID.ID, Currency: e.currency, Realizations: creditrealization.Realizations{legacyAllocation}}))
+	require.NoError(t, e.legacy.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
+		Namespace:    e.Namespace,
+		ChargeID:     legacySpend,
+		CustomerID:   e.CustomerID.ID,
+		Currency:     e.currency,
+		Realizations: creditrealization.Realizations{legacyAllocation},
+	}))
+
 	e.originalAdvanceGroups[legacyAllocation.ID] = group.ID().ID
 	allocated := e.collect(t, spend, 20)
 	// when purchases cross the legacy/new boundary, FIFO exhausts the legacy
@@ -327,8 +427,15 @@ func TestOriginAndLegacyHistoriesSharePurchasesWithoutSharingCorrectionState(t *
 	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &source, &legacySpend))
 	// The compatibility reader can still unwind its legacy lineage allocation.
 	_, err = e.collector.CorrectCollectedAccrued(t.Context(), collector.CorrectCollectedAccruedInput{
-		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: legacySpend, AllocateAt: e.Now(),
-		Corrections: creditrealization.CorrectionRequest{{Allocation: legacyAllocation, Amount: amount.Neg()}}, LineageSegmentsByRealization: segments,
+		Namespace:  e.Namespace,
+		CustomerID: e.CustomerID.ID,
+		ChargeID:   legacySpend,
+		AllocateAt: e.Now(),
+		Corrections: creditrealization.CorrectionRequest{{
+			Allocation: legacyAllocation,
+			Amount:     amount.Neg(),
+		}},
+		LineageSegmentsByRealization: segments,
 	})
 	require.NoError(t, err)
 	require.Zero(t, e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &source, &legacySpend))
@@ -345,7 +452,17 @@ func TestOriginCorrectionRollbackAndOvercorrectionLeaveJournalUnchanged(t *testi
 	require.Equal(t, float64(20), e.recognize(t))
 	count, err := e.DB.LedgerEntry.Query().Count(t.Context())
 	require.NoError(t, err)
-	input := collector.CorrectCollectedAccruedInput{Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: spend, AllocateAt: e.Now(), Corrections: creditrealization.CorrectionRequest{{Allocation: allocated[0], Amount: alpacadecimal.NewFromInt(-10)}}}
+
+	input := collector.CorrectCollectedAccruedInput{
+		Namespace:  e.Namespace,
+		CustomerID: e.CustomerID.ID,
+		ChargeID:   spend,
+		AllocateAt: e.Now(),
+		Corrections: creditrealization.CorrectionRequest{{
+			Allocation: allocated[0],
+			Amount:     alpacadecimal.NewFromInt(-10),
+		}},
+	}
 	// when the owning billing transaction fails after ledger and breakage writes.
 	failed := errors.New("billing persistence failed")
 	err = transaction.RunWithNoValue(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) error {
@@ -367,8 +484,11 @@ func TestOriginCorrectionRollbackAndOvercorrectionLeaveJournalUnchanged(t *testi
 	input.Corrections = append(input.Corrections, duplicate)
 	_, err = e.collector.CorrectCollectedAccrued(t.Context(), input)
 	require.ErrorContains(t, err, "repeat an original collection source")
+
 	input.Corrections = input.Corrections[:1]
+
 	e.correct(t, spend, allocated[0], 10)
+
 	input.Corrections[0].Amount = alpacadecimal.NewFromInt(-11)
 	count, err = e.DB.LedgerEntry.Query().Count(t.Context())
 	require.NoError(t, err)
@@ -389,26 +509,40 @@ func TestOriginBackfillAndCorrectionSerializeBalanceReads(t *testing.T) {
 	charge := e.newExternalChargeCustomCurrency(t, e.currency, alpacadecimal.NewFromInt(30), alpacadecimal.NewFromFloat(.5), "USD")
 	charge.ID = ulid.Make().String()
 	charge.Intent.Priority = lo.ToPtr(7)
-	charge.Intent.ServicePeriod = timeutil.ClosedPeriod{From: e.Now().Add(-time.Hour), To: e.Now()}
+	charge.Intent.ServicePeriod = timeutil.ClosedPeriod{
+		From: e.Now().Add(-time.Hour),
+		To:   e.Now(),
+	}
 	charge.Intent.FullServicePeriod = charge.Intent.ServicePeriod
 	charge.Intent.BillingPeriod = charge.Intent.ServicePeriod
 	// when purchase backfill and correction race.
 	start := make(chan struct{})
 	errs := make(chan error, 2)
+
 	var wg sync.WaitGroup
 
 	wg.Add(2)
+
 	go func() {
 		defer wg.Done()
 		<-start
+
 		_, err := e.handler.OnCreditPurchaseInitiated(t.Context(), creditpurchase.CreditGrantInput{Charge: charge})
 		errs <- err
 	}()
 	go func() {
 		defer wg.Done()
 		<-start
+
 		_, err := e.collector.CorrectCollectedAccrued(t.Context(), collector.CorrectCollectedAccruedInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: spend, AllocateAt: e.Now(), Corrections: creditrealization.CorrectionRequest{{Allocation: allocated[0], Amount: alpacadecimal.NewFromInt(-10)}},
+			Namespace:  e.Namespace,
+			CustomerID: e.CustomerID.ID,
+			ChargeID:   spend,
+			AllocateAt: e.Now(),
+			Corrections: creditrealization.CorrectionRequest{{
+				Allocation: allocated[0],
+				Amount:     alpacadecimal.NewFromInt(-10),
+			}},
 		})
 		errs <- err
 	}()
@@ -440,7 +574,11 @@ func TestOriginRecognitionRespectsBookingTimeAndManagedCurrencyIdentity(t *testi
 	second := e.collect(t, spend, 30)
 	require.NotEqual(t, firstCurrency.ID, e.currency.ID)
 	// when recognition is queried before booking, neither future balance is eligible.
-	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{CustomerID: e.CustomerID, Currency: e.currency, At: e.Now().Add(-time.Minute)})
+	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+		CustomerID: e.CustomerID,
+		Currency:   e.currency,
+		At:         e.Now().Add(-time.Minute),
+	})
 	require.NoError(t, err)
 	require.Zero(t, result.RecognizedAmount.InexactFloat64())
 	// then recognition and correction stay scoped by managed identity, even for the same spend.
@@ -450,17 +588,24 @@ func TestOriginRecognitionRespectsBookingTimeAndManagedCurrencyIdentity(t *testi
 	e.currency = firstCurrency
 	require.Equal(t, float64(20), e.recognize(t))
 	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &sourceA, &spend))
-	group, err := e.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{Namespace: e.Namespace, ID: first[0].LedgerTransaction.TransactionGroupID})
+	group, err := e.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{
+		Namespace: e.Namespace,
+		ID:        first[0].LedgerTransaction.TransactionGroupID,
+	})
 	require.NoError(t, err)
+
 	origin := group.Transactions()[0].Entries()[0].Provenance().CollectionOriginID
 	require.NotNil(t, origin)
 	// Indexed traversal returns complete origin pairs across pages without sibling origins.
 	query := ledger.ListTransactionsInput{
-		Namespace: e.Namespace, EntryFilter: ledger.TransactionEntryFilter{
+		Namespace: e.Namespace,
+		EntryFilter: ledger.TransactionEntryFilter{
 			Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some(origin)},
 		},
-		ReturnOnlyMatchingEntries: true, Limit: 1,
+		ReturnOnlyMatchingEntries: true,
+		Limit:                     1,
 	}
+
 	var ids []string
 
 	for {
@@ -484,9 +629,16 @@ func TestOriginRecognitionRespectsBookingTimeAndManagedCurrencyIdentity(t *testi
 	}
 
 	require.Len(t, ids, 2)
-	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{Namespace: e.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(e.BusinessAccounts.EarningsAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
-		CollectionOriginID: mo.Some(origin),
-	}}, GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID}})
+	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: e.Namespace,
+		Filters: ledger.Filters{
+			AccountID: lo.ToPtr(e.BusinessAccounts.EarningsAccount.ID().ID),
+			Provenance: ledger.ProvenanceFilter{
+				CollectionOriginID: mo.Some(origin),
+			},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID},
+	})
 	require.NoError(t, err)
 	require.Len(t, buckets, 1)
 	require.Equal(t, origin, buckets[0].GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])
@@ -498,14 +650,20 @@ func TestOriginRecognitionDoesNotBorrowPromotionalBacking(t *testing.T) {
 	e := newOriginTestEnv(t, true)
 	now := e.Now()
 	clock.FreezeTime(now)
+
 	defer clock.UnFreeze()
+
 	promo := e.newPromotionalCharge(alpacadecimal.NewFromInt(2))
 	promo.ID = ulid.Make().String()
-	promo.Intent.ServicePeriod = timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now}
+	promo.Intent.ServicePeriod = timeutil.ClosedPeriod{
+		From: now.Add(-time.Hour),
+		To:   now,
+	}
 	promo.Intent.FullServicePeriod = promo.Intent.ServicePeriod
 	promo.Intent.BillingPeriod = promo.Intent.ServicePeriod
 	_, err := e.grantCredits(t, promo)
 	require.NoError(t, err)
+
 	spend := ulid.Make().String()
 	allocations := e.collect(t, spend, 10)
 	require.Len(t, allocations, 2)
@@ -544,7 +702,10 @@ func TestOriginFractionalPurchaseBacksOldestCollection(t *testing.T) {
 	// When a fractional purchase is too small to divide across all three advances.
 	purchase := e.newExternalChargeCustomCurrency(t, e.currency, alpacadecimal.NewFromFloat(.05), alpacadecimal.NewFromFloat(.5), "USD")
 	purchase.ID = ulid.Make().String()
-	purchase.Intent.ServicePeriod = timeutil.ClosedPeriod{From: e.Now().Add(-time.Hour), To: e.Now()}
+	purchase.Intent.ServicePeriod = timeutil.ClosedPeriod{
+		From: e.Now().Add(-time.Hour),
+		To:   e.Now(),
+	}
 	purchase.Intent.FullServicePeriod = purchase.Intent.ServicePeriod
 	purchase.Intent.BillingPeriod = purchase.Intent.ServicePeriod
 	result, err := e.grantCredits(t, purchase)

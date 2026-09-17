@@ -230,7 +230,10 @@ type ListTransactionsInput struct {
 
 func (i ListTransactionsInput) Validate() error {
 	if err := i.EntryFilter.Provenance.Validate(); err != nil {
-		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{"reason": "provenance_invalid", "error": err})
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "provenance_invalid",
+			"error":  err,
+		})
 	}
 
 	if i.Limit < 1 {

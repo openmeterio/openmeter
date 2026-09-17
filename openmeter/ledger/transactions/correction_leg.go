@@ -5,35 +5,38 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // routePairingKey pairs source and counterpart sub-accounts during collection,
 // receivable coverage, and earnings correction.
 type routePairingKey struct {
 	currency           string
-	costBasisCurrency  string
-	taxCode            string
-	taxBehavior        string
+	costBasisCurrency  mo.Option[currencyx.Code]
+	taxCode            mo.Option[string]
+	taxBehavior        mo.Option[ledger.TaxBehavior]
 	features           string
-	costBasis          string
-	sourceChargeID     string
-	spendChargeID      string
-	collectionOriginID string
+	costBasis          mo.Option[string]
+	sourceChargeID     mo.Option[string]
+	spendChargeID      mo.Option[string]
+	collectionOriginID mo.Option[string]
 }
 
 func (k routePairingKey) String() string {
 	return fmt.Sprintf(
-		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,features=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
+		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,features=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s,collection_origin_id=%s",
 		k.currency,
-		k.costBasisCurrency,
-		k.taxCode,
-		k.taxBehavior,
+		k.costBasisCurrency.OrElse("<unset>"),
+		k.taxCode.OrElse("<unset>"),
+		k.taxBehavior.OrElse("<unset>"),
 		k.features,
-		k.costBasis,
-		k.sourceChargeID,
-		k.spendChargeID,
+		k.costBasis.OrElse("<unset>"),
+		k.sourceChargeID.OrElse("<unset>"),
+		k.spendChargeID.OrElse("<unset>"),
+		k.collectionOriginID.OrElse("<unset>"),
 	)
 }
 

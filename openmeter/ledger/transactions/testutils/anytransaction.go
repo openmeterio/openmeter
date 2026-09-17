@@ -44,7 +44,11 @@ func (a *AnyEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
 }
 
 func (a *AnyEntryInput) Provenance() ledger.Provenance {
-	return ledger.Provenance{CollectionOriginID: a.CollectionOriginIDValue, SourceChargeID: a.SourceChargeIDValue, SpendChargeID: a.SpendChargeIDValue}
+	return ledger.Provenance{
+		CollectionOriginID: a.CollectionOriginIDValue,
+		SourceChargeID:     a.SourceChargeIDValue,
+		SpendChargeID:      a.SpendChargeIDValue,
+	}
 }
 
 func (a *AnyEntryInput) Annotations() models.Annotations {

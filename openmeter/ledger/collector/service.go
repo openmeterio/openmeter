@@ -92,11 +92,17 @@ type CorrectCollectedAccruedInput struct {
 func (i CorrectCollectedAccruedInput) Validate() error {
 	var errs []error
 
-	if err := (models.NamespacedID{Namespace: i.Namespace, ID: i.ChargeID}).Validate(); err != nil {
+	if err := (models.NamespacedID{
+		Namespace: i.Namespace,
+		ID:        i.ChargeID,
+	}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
-	if err := (customer.CustomerID{Namespace: i.Namespace, ID: i.CustomerID}).Validate(); err != nil {
+	if err := (customer.CustomerID{
+		Namespace: i.Namespace,
+		ID:        i.CustomerID,
+	}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
@@ -105,6 +111,7 @@ func (i CorrectCollectedAccruedInput) Validate() error {
 	}
 
 	seen := make(map[string]bool)
+
 	type allocationSource struct {
 		groupID  string
 		sortHint int
@@ -126,12 +133,17 @@ func (i CorrectCollectedAccruedInput) Validate() error {
 		}
 
 		seen[correction.Allocation.ID] = true
-		source := allocationSource{groupID: correction.Allocation.LedgerTransaction.TransactionGroupID, sortHint: correction.Allocation.SortHint}
+
+		source := allocationSource{
+			groupID:  correction.Allocation.LedgerTransaction.TransactionGroupID,
+			sortHint: correction.Allocation.SortHint,
+		}
 		if seenSources[source] {
 			errs = append(errs, errors.New("a correction batch cannot repeat an original collection source"))
 		}
 
 		seenSources[source] = true
+
 		if correction.Allocation.Namespace != i.Namespace || correction.Allocation.Type != creditrealization.TypeAllocation {
 			errs = append(errs, fmt.Errorf("corrections[%d]: allocation must belong to the correction namespace", idx))
 		}

@@ -578,8 +578,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 			Currency:   &usd,
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+		CreditMovement:            ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
 	require.Len(t, usdConsumed.Items, 1)
@@ -595,8 +594,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 			Currency:   &usd,
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+		CreditMovement:            ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
 	require.Len(t, usdFunded.Items, 0)
@@ -609,8 +607,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 			Currency:   &eur,
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+		CreditMovement:            ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
 	require.Len(t, eurFunded.Items, 1)
@@ -626,8 +623,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 			Currency:   &eur,
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+		CreditMovement:            ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
 	require.Len(t, eurConsumed.Items, 0)
@@ -672,8 +668,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 			Currency:   &usd,
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+		CreditMovement:            ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
 	require.Len(t, consumed.Items, 0)
@@ -686,8 +681,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 			Currency:   &usd,
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+		CreditMovement:            ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
 	require.Len(t, funded.Items, 0)
@@ -746,8 +740,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 			Route:      ledger.RouteFilter{MatchFeature: "feature-a"},
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+		CreditMovement:            ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
 	require.Len(t, featureAPositive.Items, 1)
@@ -767,8 +760,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 			Route:      ledger.RouteFilter{MatchFeature: "feature-b"},
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+		CreditMovement:            ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
 	require.Len(t, featureBPositive.Items, 0)
@@ -781,8 +773,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 			Route:      ledger.RouteFilter{MatchFeature: "feature-b"},
 		},
 		ReturnOnlyMatchingEntries: true,
-
-		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+		CreditMovement:            ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
 	require.Len(t, featureBNegative.Items, 1)
@@ -1475,8 +1466,16 @@ func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) 
 	source := "01J00000000000000000000003"
 	spendA := "01J00000000000000000000004"
 	spendB := "01J00000000000000000000005"
-	provenanceA := ledger.Provenance{CollectionOriginID: &originA, SourceChargeID: &source, SpendChargeID: &spendA}
-	provenanceB := ledger.Provenance{CollectionOriginID: &originB, SpendChargeID: &spendB}
+	provenanceA := ledger.Provenance{
+		CollectionOriginID: &originA,
+		SourceChargeID:     &source,
+		SpendChargeID:      &spendA,
+	}
+	provenanceB := ledger.Provenance{
+		CollectionOriginID: &originB,
+		SpendChargeID:      &spendB,
+	}
+
 	var entries []*transactionstestutils.AnyEntryInput
 
 	for _, leg := range []struct {
@@ -1503,19 +1502,31 @@ func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) 
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
 	require.NoError(t, err)
-	groupID := models.NamespacedID{Namespace: namespace, ID: group.ID}
+
+	groupID := models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}
 	at := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
 	var transactions []ledger.Transaction
 
 	for i := range 2 {
 		txn, err := env.repo.BookTransaction(ctx, groupID, mustSetUpHistoricalTransactionInput(t, at.Add(time.Duration(i)*time.Hour), entries))
 		require.NoError(t, err)
+
 		transactions = append(transactions, txn)
 	}
 
 	legacy, err := env.repo.BookTransaction(ctx, groupID, mustSetUpHistoricalTransactionInput(t, at.Add(2*time.Hour), []*transactionstestutils.AnyEntryInput{
-		{Address: testAddress(t, fboA), AmountValue: alpacadecimal.NewFromInt(-5)},
-		{Address: testAddress(t, accruedA), AmountValue: alpacadecimal.NewFromInt(5)},
+		{
+			Address:     testAddress(t, fboA),
+			AmountValue: alpacadecimal.NewFromInt(-5),
+		},
+		{
+			Address:     testAddress(t, accruedA),
+			AmountValue: alpacadecimal.NewFromInt(5),
+		},
 	}))
 	require.NoError(t, err)
 
@@ -1535,6 +1546,7 @@ func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) 
 				require.NoError(t, err)
 				require.Len(t, page.Items, 1)
 				require.Equal(t, transactions[i].ID(), page.Items[0].ID())
+
 				wantEntries := 4
 				if matchingOnly {
 					wantEntries = 2
@@ -1545,6 +1557,7 @@ func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) 
 				}
 
 				require.Len(t, page.Items[0].Entries(), wantEntries)
+
 				if i == 0 {
 					require.Nil(t, page.NextCursor)
 				} else {
@@ -1563,22 +1576,38 @@ func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) 
 	}{
 		{"unfiltered", ledger.TransactionEntryFilter{}, ledger.ListTransactionsCreditMovementUnspecified, 3},
 		{"missing origin", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some[*string](nil)}}, ledger.ListTransactionsCreditMovementUnspecified, 1},
-		{"missing source", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some(&originB), SourceChargeID: mo.Some[*string](nil)}}, ledger.ListTransactionsCreditMovementUnspecified, 2},
-		{"origin and account on different entries", ledger.TransactionEntryFilter{AccountIDs: []string{fboB.AccountID}, Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementUnspecified, 0},
-		{"origin and route on different entries", ledger.TransactionEntryFilter{Route: eur.Filter(), Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementUnspecified, 0},
-		{"origin and spend on different entries", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some(&originA), SpendChargeID: mo.Some(&spendB)}}, ledger.ListTransactionsCreditMovementUnspecified, 0},
+		{"missing source", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{
+			CollectionOriginID: mo.Some(&originB),
+			SourceChargeID:     mo.Some[*string](nil),
+		}}, ledger.ListTransactionsCreditMovementUnspecified, 2},
+		{"origin and account on different entries", ledger.TransactionEntryFilter{
+			AccountIDs: []string{fboB.AccountID},
+			Provenance: provenanceA.Filter(),
+		}, ledger.ListTransactionsCreditMovementUnspecified, 0},
+		{"origin and route on different entries", ledger.TransactionEntryFilter{
+			Route:      eur.Filter(),
+			Provenance: provenanceA.Filter(),
+		}, ledger.ListTransactionsCreditMovementUnspecified, 0},
+		{"origin and spend on different entries", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{
+			CollectionOriginID: mo.Some(&originA),
+			SpendChargeID:      mo.Some(&spendB),
+		}}, ledger.ListTransactionsCreditMovementUnspecified, 0},
 		{"positive movement from another origin", ledger.TransactionEntryFilter{Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementPositive, 0},
 		{"negative movement from selected origin", ledger.TransactionEntryFilter{Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementNegative, 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Given the mixed-origin transactions, when combining entry predicates...
 			page, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-				Namespace: namespace, Limit: 10, EntryFilter: tc.filter, CreditMovement: tc.movement,
+				Namespace:      namespace,
+				Limit:          10,
+				EntryFilter:    tc.filter,
+				CreditMovement: tc.movement,
 			})
 
 			// Then every predicate must match the same entry, including movement attribution.
 			require.NoError(t, err)
 			require.Len(t, page.Items, tc.want)
+
 			if tc.name == "missing origin" {
 				require.Equal(t, legacy.ID(), page.Items[0].ID())
 			}

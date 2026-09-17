@@ -255,7 +255,11 @@ func (e validationEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
 }
 
 func (e validationEntryInput) Provenance() ledger.Provenance {
-	return ledger.Provenance{CollectionOriginID: e.collectionOriginID, SourceChargeID: e.sourceChargeID, SpendChargeID: e.spendChargeID}
+	return ledger.Provenance{
+		CollectionOriginID: e.collectionOriginID,
+		SourceChargeID:     e.sourceChargeID,
+		SpendChargeID:      e.spendChargeID,
+	}
 }
 
 func (e validationEntryInput) Annotations() models.Annotations {

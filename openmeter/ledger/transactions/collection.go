@@ -3,6 +3,7 @@ package transactions
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -39,16 +40,49 @@ type accountIdentifier interface {
 	ID() models.NamespacedID
 }
 
+type collectFromAttributableCustomerAccruedInput struct {
+	CustomerID customer.CustomerID
+	Currency   currencies.CurrencyReference
+	// Target caps the amount selected from eligible accrued balances.
+	Target alpacadecimal.Decimal
+	// OriginTracked selects entries with a collection origin; false selects legacy entries without one.
+	OriginTracked bool
+	// AsOf is the accounting-time boundary for the accrued balances being selected.
+	AsOf time.Time
+}
+
+func (i collectFromAttributableCustomerAccruedInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := ledger.ValidateTransactionAmount(i.Target); err != nil {
+		errs = append(errs, fmt.Errorf("target: %w", err))
+	}
+
+	if i.AsOf.IsZero() {
+		errs = append(errs, errors.New("as of is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 func collectFromAttributableCustomerAccrued(
 	ctx context.Context,
-	customerID customer.CustomerID,
-	currency currencies.CurrencyReference,
-	target alpacadecimal.Decimal,
 	deps ResolverDependencies,
-	originTracked bool,
-	at time.Time,
+	input collectFromAttributableCustomerAccruedInput,
 ) ([]postingAddressAmount, error) {
-	customerAccounts, err := deps.AccountService.GetCustomerAccounts(ctx, customerID)
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	customerAccounts, err := deps.AccountService.GetCustomerAccounts(ctx, input.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
@@ -60,12 +94,12 @@ func collectFromAttributableCustomerAccrued(
 
 	accruedAccountID := accruedAccountWithID.ID().ID
 	buckets, err := deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
-		Namespace: customerID.Namespace,
+		Namespace: input.CustomerID.Namespace,
 		Filters: ledger.Filters{
 			AccountID: &accruedAccountID,
-			AsOf:      &at,
+			AsOf:      &input.AsOf,
 			Route: ledger.RouteFilter{
-				Currency: currency,
+				Currency: input.Currency,
 			},
 		},
 		GroupBy: []string{
@@ -81,7 +115,7 @@ func collectFromAttributableCustomerAccrued(
 	sources := make([]postingAddressBalance, 0, len(buckets))
 	for _, bucket := range buckets {
 		route := bucket.Address.Route().Route()
-		if !route.Currency.Equal(currency) || route.CostBasis == nil {
+		if !route.Currency.Equal(input.Currency) || route.CostBasis == nil {
 			continue
 		}
 
@@ -92,7 +126,13 @@ func collectFromAttributableCustomerAccrued(
 				SpendChargeID:      bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
 			},
 		}
-		if (identity.CollectionOriginID != nil) != originTracked || !isCreditBackedAccruedIdentity(identity) {
+
+		hasCollectionOrigin := identity.CollectionOriginID != nil
+		if hasCollectionOrigin != input.OriginTracked {
+			continue
+		}
+
+		if !isCreditBackedAccruedIdentity(identity) {
 			continue
 		}
 
@@ -118,7 +158,7 @@ func collectFromAttributableCustomerAccrued(
 		return cmp.Compare(string(leftIdentity), string(rightIdentity)) < 0
 	})
 
-	return collectFromPostingAddressBalanceSources(sources, target), nil
+	return collectFromPostingAddressBalanceSources(sources, input.Target), nil
 }
 
 // isCreditBackedAccruedIdentity reports whether accrued value has the distinct

@@ -16,11 +16,11 @@ import (
 // originPair retains immutable routes and exact reversal capacity for the writer.
 // Economic source selection uses account positions, not these posting amounts.
 type originPair struct {
-	transaction ledger.Transaction
-	debit       ledger.Entry
-	credit      ledger.Entry
-	remaining   alpacadecimal.Decimal
-	role        originRole
+	transaction   ledger.Transaction
+	negativeEntry ledger.Entry
+	positiveEntry ledger.Entry
+	remaining     alpacadecimal.Decimal
+	role          originRole
 }
 
 // Roles describe account movements, independent of the template implementation.
@@ -35,24 +35,24 @@ const (
 	originRoleRecognition
 )
 
-func originPairRole(debit, credit ledger.Entry) (originRole, error) {
-	d, c := debit.PostingAddress().AccountType(), credit.PostingAddress().AccountType()
+func originPairRole(negativeEntry, positiveEntry ledger.Entry) (originRole, error) {
+	source, destination := negativeEntry.PostingAddress().AccountType(), positiveEntry.PostingAddress().AccountType()
 
 	switch {
-	case d == ledger.AccountTypeCustomerFBO && c == ledger.AccountTypeCustomerAccrued:
+	case source == ledger.AccountTypeCustomerFBO && destination == ledger.AccountTypeCustomerAccrued:
 		return originRoleCollection, nil
-	case d == ledger.AccountTypeCustomerReceivable && c == ledger.AccountTypeCustomerFBO:
+	case source == ledger.AccountTypeCustomerReceivable && destination == ledger.AccountTypeCustomerFBO:
 		return originRoleAdvanceIssue, nil
-	case d == ledger.AccountTypeCustomerFBO && c == ledger.AccountTypeCustomerReceivable:
+	case source == ledger.AccountTypeCustomerFBO && destination == ledger.AccountTypeCustomerReceivable:
 		return originRoleCoverage, nil
-	case d == ledger.AccountTypeCustomerAccrued && c == ledger.AccountTypeCustomerAccrued:
+	case source == ledger.AccountTypeCustomerAccrued && destination == ledger.AccountTypeCustomerAccrued:
 		return originRoleBacking, nil
-	case d == ledger.AccountTypeCustomerReceivable && c == ledger.AccountTypeCustomerReceivable:
+	case source == ledger.AccountTypeCustomerReceivable && destination == ledger.AccountTypeCustomerReceivable:
 		return originRoleAttribution, nil
-	case d == ledger.AccountTypeCustomerAccrued && c == ledger.AccountTypeEarnings:
+	case source == ledger.AccountTypeCustomerAccrued && destination == ledger.AccountTypeEarnings:
 		return originRoleRecognition, nil
 	default:
-		return 0, fmt.Errorf("unsupported collection movement %s -> %s", d, c)
+		return 0, fmt.Errorf("unsupported collection movement %s -> %s", source, destination)
 	}
 }
 
@@ -64,10 +64,12 @@ type originReferences struct {
 func (c *accrualCorrector) loadOriginReferences(ctx context.Context, namespace, collectionOriginID string) (originReferences, error) {
 	history := originReferences{}
 	query := ledger.ListTransactionsInput{
-		Namespace: namespace, EntryFilter: ledger.TransactionEntryFilter{
+		Namespace: namespace,
+		EntryFilter: ledger.TransactionEntryFilter{
 			Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some(&collectionOriginID)},
 		},
-		ReturnOnlyMatchingEntries: true, Limit: 100,
+		ReturnOnlyMatchingEntries: true,
+		Limit:                     100,
 	}
 
 	for {
@@ -77,6 +79,7 @@ func (c *accrualCorrector) loadOriginReferences(ctx context.Context, namespace, 
 		}
 
 		history.transactions = append(history.transactions, page.Items...)
+
 		if page.NextCursor == nil {
 			break
 		}
@@ -93,6 +96,7 @@ func (c *accrualCorrector) loadOriginReferences(ctx context.Context, namespace, 
 
 		return -cmp.Compare(a.ID().ID, b.ID().ID)
 	})
+
 	corrections := make(map[string]alpacadecimal.Decimal)
 
 	for _, tx := range history.transactions {
@@ -162,43 +166,45 @@ func (c *accrualCorrector) loadOriginReferences(ctx context.Context, namespace, 
 			if !ok {
 				pair = &originPair{transaction: tx}
 				pairs[key] = pair
+
 				order = append(order, key)
 			}
 
 			if entry.Amount().IsNegative() {
-				if pair.debit != nil {
-					return originReferences{}, fmt.Errorf("ambiguous debit in origin transaction %s", tx.ID().ID)
+				if pair.negativeEntry != nil {
+					return originReferences{}, fmt.Errorf("ambiguous negative entry in origin transaction %s", tx.ID().ID)
 				}
 
-				pair.debit = entry
+				pair.negativeEntry = entry
 			} else {
-				if pair.credit != nil {
-					return originReferences{}, fmt.Errorf("ambiguous credit in origin transaction %s", tx.ID().ID)
+				if pair.positiveEntry != nil {
+					return originReferences{}, fmt.Errorf("ambiguous positive entry in origin transaction %s", tx.ID().ID)
 				}
 
-				pair.credit = entry
+				pair.positiveEntry = entry
 			}
 		}
 
 		for _, key := range order {
 			pair := pairs[key]
-			if pair.debit == nil || pair.credit == nil || !pair.debit.Amount().Neg().Equal(pair.credit.Amount()) {
+			if pair.negativeEntry == nil || pair.positiveEntry == nil || !pair.negativeEntry.Amount().Neg().Equal(pair.positiveEntry.Amount()) {
 				return originReferences{}, fmt.Errorf("unbalanced origin pair in transaction %s", tx.ID().ID)
 			}
 
-			debitRemaining := pair.debit.Amount().Add(corrections[pair.debit.ID().ID]).Neg()
-			creditRemaining := pair.credit.Amount().Add(corrections[pair.credit.ID().ID])
-			if debitRemaining.IsNegative() || !debitRemaining.Equal(creditRemaining) {
+			negativeRemaining := pair.negativeEntry.Amount().Add(corrections[pair.negativeEntry.ID().ID]).Neg()
+			positiveRemaining := pair.positiveEntry.Amount().Add(corrections[pair.positiveEntry.ID().ID])
+
+			if negativeRemaining.IsNegative() || !negativeRemaining.Equal(positiveRemaining) {
 				return originReferences{}, fmt.Errorf("invalid prior reversals in origin transaction %s", tx.ID().ID)
 			}
 
-			role, err := originPairRole(pair.debit, pair.credit)
+			role, err := originPairRole(pair.negativeEntry, pair.positiveEntry)
 			if err != nil {
 				return originReferences{}, err
 			}
 
 			pair.role = role
-			pair.remaining = debitRemaining
+			pair.remaining = negativeRemaining
 			history.pairs = append(history.pairs, pair)
 		}
 	}

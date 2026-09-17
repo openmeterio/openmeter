@@ -49,6 +49,7 @@ func (e EntryIdentityKeyText) Parse() (EntryIdentityVersion, EntryIdentityParts,
 	version := e.Version()
 	if version == EntryIdentityVersion3 {
 		encoded := strings.TrimPrefix(string(e), version.prefix())
+
 		parts := strings.Split(encoded, "|")
 		if len(parts) != 5 {
 			return version, EntryIdentityParts{}, fmt.Errorf("invalid ledger entry identity key format")

@@ -77,6 +77,7 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 			for _, entry := range entries {
 				if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsNegative() {
 					require.NotNil(t, entry.Provenance().SpendChargeID)
+
 					if !slices.Contains(spends, *entry.Provenance().SpendChargeID) {
 						spends = append(spends, *entry.Provenance().SpendChargeID)
 					}

@@ -30,13 +30,16 @@ func (c *accrualCorrector) planOriginCorrection(ctx context.Context, input Corre
 	}
 
 	slices.SortStableFunc(entries, compareCollectedFBOCorrectionSourceEntries)
+
 	histories := make(map[string]originReferences)
 	positionsByOrigin := make(map[string][]correctionPosition)
 	originals := make(map[string]*originPair)
+
 	var origins []correctionPosition
 
 	for idx, entry := range entries {
 		id := *entry.Provenance().CollectionOriginID
+
 		history, err := c.loadOriginReferences(ctx, input.Namespace, id)
 		if err != nil {
 			return nil, err
@@ -52,7 +55,10 @@ func (c *accrualCorrector) planOriginCorrection(ctx context.Context, input Corre
 			return nil, err
 		}
 
-		position := correctionPosition{id: id, order: idx}
+		position := correctionPosition{
+			id:    id,
+			order: idx,
+		}
 
 		for _, p := range positions {
 			position.accrued = position.accrued.Add(p.amount())
@@ -62,7 +68,10 @@ func (c *accrualCorrector) planOriginCorrection(ctx context.Context, input Corre
 		histories[id], positionsByOrigin[id], originals[id] = history, positions, original
 	}
 
-	selected, err := planCollectionCorrection(collectionCorrectionInput{amount: amount, positions: origins})
+	selected, err := planCollectionCorrection(collectionCorrectionInput{
+		amount:    amount,
+		positions: origins,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("exceeds remaining origin balance: %w", err)
 	}
@@ -84,7 +93,10 @@ func (c *accrualCorrector) planOriginCorrection(ctx context.Context, input Corre
 func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, history originReferences, original *originPair, positions []correctionPosition, amount alpacadecimal.Decimal) (resolvedCorrectionInputs, error) {
 	var out resolvedCorrectionInputs
 
-	selections, err := planCollectionCorrection(collectionCorrectionInput{amount: amount, positions: positions})
+	selections, err := planCollectionCorrection(collectionCorrectionInput{
+		amount:    amount,
+		positions: positions,
+	})
 	if err != nil {
 		return out, err
 	}
@@ -93,7 +105,7 @@ func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollec
 		remainingRecognition := selection.earnings
 
 		for _, pair := range history.pairs {
-			if pair.role != originRoleRecognition || lo.FromPtr(pair.credit.Provenance().SourceChargeID) != selection.id {
+			if pair.role != originRoleRecognition || lo.FromPtr(pair.positiveEntry.Provenance().SourceChargeID) != selection.id {
 				continue
 			}
 
@@ -122,7 +134,7 @@ func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollec
 		remainingBacking := selection.amount
 
 		for _, pair := range history.pairs {
-			if pair.role != originRoleBacking || lo.FromPtr(pair.credit.Provenance().SourceChargeID) != selection.id {
+			if pair.role != originRoleBacking || lo.FromPtr(pair.positiveEntry.Provenance().SourceChargeID) != selection.id {
 				continue
 			}
 
@@ -152,6 +164,7 @@ func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollec
 	}
 
 	out.inputs = append(out.inputs, reversal)
+
 	if source.advanceReceivableIssueTransaction != nil {
 		issue, err := history.pairForTransaction(source.advanceReceivableIssueTransaction.ID().ID)
 		if err != nil {
@@ -166,7 +179,15 @@ func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollec
 		out.inputs = append(out.inputs, reversal)
 	} else {
 		// Restrict breakage reopening to this exact original source entry.
-		plan := transactionCorrectionPlan{transaction: originTransactionView{Transaction: original.transaction, entries: []ledger.Entry{original.debit, original.credit}}, group: source.group, amount: amount}
+		plan := transactionCorrectionPlan{
+			transaction: originTransactionView{
+				Transaction: original.transaction,
+				entries:     []ledger.Entry{original.negativeEntry, original.positiveEntry},
+			},
+			group:  source.group,
+			amount: amount,
+		}
+
 		inputs, pending, err := c.resolveBreakageReopenInputs(ctx, input, plan)
 		if err != nil {
 			return out, err
@@ -185,7 +206,11 @@ func reverseOriginPair(input CorrectCollectedAccruedInput, pair *originPair, amo
 	}
 
 	return transactions.ReverseOriginEntryPair(transactions.ReverseOriginEntryPairInput{
-		At: input.AllocateAt, Amount: amount, Transaction: pair.transaction, Debit: pair.debit, Credit: pair.credit,
+		At:            input.AllocateAt,
+		Amount:        amount,
+		Transaction:   pair.transaction,
+		NegativeEntry: pair.negativeEntry,
+		PositiveEntry: pair.positiveEntry,
 	})
 }
 
@@ -197,7 +222,7 @@ func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input Corre
 	for _, pair := range history.pairs {
 		if pair.role == originRoleAttribution &&
 			pair.transaction.GroupID() == backfill.transaction.GroupID() &&
-			lo.FromPtr(pair.debit.Provenance().SourceChargeID) == lo.FromPtr(backfill.credit.Provenance().SourceChargeID) {
+			lo.FromPtr(pair.negativeEntry.Provenance().SourceChargeID) == lo.FromPtr(backfill.positiveEntry.Provenance().SourceChargeID) {
 			if attribution != nil {
 				return out, fmt.Errorf("ambiguous advance attribution for origin")
 			}
@@ -226,8 +251,12 @@ func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input Corre
 
 	if c.breakage != nil {
 		releases, err := c.breakage.ListReleases(ctx, breakage.ListReleasesInput{
-			CustomerID:               customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
-			SourceTransactionGroupID: []string{group.ID().ID}, ReleaseSourceKind: []breakage.SourceKind{breakage.SourceKindAdvanceBackfill},
+			CustomerID: customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+			SourceTransactionGroupID: []string{group.ID().ID},
+			ReleaseSourceKind:        []breakage.SourceKind{breakage.SourceKindAdvanceBackfill},
 		})
 		if err != nil {
 			return out, err
@@ -238,8 +267,8 @@ func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input Corre
 		for _, tx := range history.transactions {
 			for _, entry := range tx.Entries() {
 				if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO &&
-					lo.FromPtr(entry.Provenance().CollectionOriginID) == lo.FromPtr(backfill.credit.Provenance().CollectionOriginID) &&
-					lo.FromPtr(entry.Provenance().SourceChargeID) == lo.FromPtr(backfill.credit.Provenance().SourceChargeID) {
+					lo.FromPtr(entry.Provenance().CollectionOriginID) == lo.FromPtr(backfill.positiveEntry.Provenance().CollectionOriginID) &&
+					lo.FromPtr(entry.Provenance().SourceChargeID) == lo.FromPtr(backfill.positiveEntry.Provenance().SourceChargeID) {
 					matching[tx.ID().ID] = true
 				}
 			}
@@ -258,8 +287,12 @@ func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input Corre
 			}
 
 			reopened, pending, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-				Release: release, Amount: take, SourceKind: breakage.SourceKindUsageCorrection,
-				SourceChargeID: backfill.credit.Provenance().SourceChargeID, SpendChargeID: backfill.credit.Provenance().SpendChargeID, CollectionOriginID: backfill.credit.Provenance().CollectionOriginID,
+				Release:            release,
+				Amount:             take,
+				SourceKind:         breakage.SourceKindUsageCorrection,
+				SourceChargeID:     backfill.positiveEntry.Provenance().SourceChargeID,
+				SpendChargeID:      backfill.positiveEntry.Provenance().SpendChargeID,
+				CollectionOriginID: backfill.positiveEntry.Provenance().CollectionOriginID,
 			})
 			if err != nil {
 				return out, err
@@ -274,17 +307,28 @@ func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input Corre
 	// The attributed receivable retains the purchase's feature restrictions.
 	// Priority is preserved explicitly even when a purchase was fully backfilled
 	// and therefore never wrote an ordinary FBO issuance entry.
-	route := attribution.debit.PostingAddress().Route().Route()
+	route := attribution.negativeEntry.PostingAddress().Route().Route()
+
 	priority, ok := group.Annotations().GetInt(ledger.AnnotationBackfillCreditPriority)
 	if !ok {
 		return out, fmt.Errorf("origin backfill is missing purchased credit priority")
 	}
 
 	reissued, err := transactions.ResolveTransactions(ctx, c.deps, transactions.ResolutionScope{
-		CustomerID: customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID}, Namespace: input.Namespace,
+		CustomerID: customer.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
+		Namespace: input.Namespace,
 	}, transactions.IssueCustomerReceivableTemplate{
-		At: input.AllocateAt, Amount: amount, Currency: route.Currency, CostBasisCurrency: route.CostBasisCurrency,
-		CostBasis: route.CostBasis, Features: route.Features, CreditPriority: &priority, SourceChargeID: attribution.debit.Provenance().SourceChargeID,
+		At:                input.AllocateAt,
+		Amount:            amount,
+		Currency:          route.Currency,
+		CostBasisCurrency: route.CostBasisCurrency,
+		CostBasis:         route.CostBasis,
+		Features:          route.Features,
+		CreditPriority:    &priority,
+		SourceChargeID:    attribution.negativeEntry.Provenance().SourceChargeID,
 	})
 	if err != nil {
 		return out, err
@@ -303,4 +347,6 @@ type originTransactionView struct {
 	entries []ledger.Entry
 }
 
-func (v originTransactionView) Entries() []ledger.Entry { return v.entries }
+func (v originTransactionView) Entries() []ledger.Entry {
+	return v.entries
+}

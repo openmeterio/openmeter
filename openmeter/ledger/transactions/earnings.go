@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // RecognizeEarningsFromAttributableAccruedTemplate recognizes up to Amount from accrued
@@ -75,8 +74,8 @@ var _ CustomerTransactionTemplate = (RecognizeEarningsFromAttributableAccruedTem
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope CorrectionInput) ([]ledger.TransactionInput, error) {
 	// Collect entries from the original recognition transaction:
-	// - positive earnings entries (credits to earnings)
-	// - negative accrued entries (debits from accrued)
+	// - positive earnings entries
+	// - negative accrued entries
 	positiveEarningsEntries := make([]ledger.Entry, 0)
 	negativeAccruedEntries := make([]ledger.Entry, 0)
 
@@ -116,13 +115,13 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 
 	return routePairingKey{
 		currency:           route.Currency.IdentityKey(),
-		costBasisCurrency:  string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
-		taxCode:            lo.FromPtrOr(route.TaxCode, "null"),
-		taxBehavior:        string(lo.FromPtrOr(route.TaxBehavior, "null")),
+		costBasisCurrency:  mo.PointerToOption(route.CostBasisCurrency),
+		taxCode:            mo.PointerToOption(route.TaxCode),
+		taxBehavior:        mo.PointerToOption(route.TaxBehavior),
 		costBasis:          costBasisKey(route.CostBasis),
-		sourceChargeID:     lo.FromPtrOr(identity.SourceChargeID, "null"),
-		spendChargeID:      lo.FromPtrOr(identity.SpendChargeID, "null"),
-		collectionOriginID: lo.FromPtrOr(identity.CollectionOriginID, "null"),
+		sourceChargeID:     mo.PointerToOption(identity.SourceChargeID),
+		spendChargeID:      mo.PointerToOption(identity.SpendChargeID),
+		collectionOriginID: mo.PointerToOption(identity.CollectionOriginID),
 	}
 }
 
@@ -137,7 +136,13 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Co
 	if t.Sources == nil {
 		var err error
 
-		collections, err = collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers, t.OriginTracked, t.At)
+		collections, err = collectFromAttributableCustomerAccrued(ctx, resolvers, collectFromAttributableCustomerAccruedInput{
+			CustomerID:    customerID,
+			Currency:      t.Currency,
+			Target:        t.Amount,
+			OriginTracked: t.OriginTracked,
+			AsOf:          t.At,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("collect from attributable accrued: %w", err)
 		}

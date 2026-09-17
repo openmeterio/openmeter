@@ -684,19 +684,31 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	// the second managed currency's lineage, even though both share "ACME".
 	// The compatibility transition is bounded by the actual legacy journal posting.
 	inputs, err := transactions.ResolveTransactions(t.Context(), transactions.ResolverDependencies{
-		AccountService: env.Deps.ResolversService, AccountCatalog: env.Deps.AccountService, BalanceQuerier: env.Deps.HistoricalLedger,
-	}, transactions.ResolutionScope{CustomerID: env.CustomerID, Namespace: env.Namespace},
+		AccountService: env.Deps.ResolversService,
+		AccountCatalog: env.Deps.AccountService,
+		BalanceQuerier: env.Deps.HistoricalLedger,
+	}, transactions.ResolutionScope{
+		CustomerID: env.CustomerID,
+		Namespace:  env.Namespace,
+	},
 		transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At: env.Now(), Amount: alpacadecimal.NewFromInt(30), Currency: firstCurrency.Reference(),
-			CostBasis: lo.ToPtr(alpacadecimal.NewFromFloat(.5)), CostBasisCurrency: lo.ToPtr(currencyx.Code("USD")),
-			SpendChargeID: &firstChargeID, SourceChargeID: lo.ToPtr(ulid.Make().String()),
+			At:                env.Now(),
+			Amount:            alpacadecimal.NewFromInt(30),
+			Currency:          firstCurrency.Reference(),
+			CostBasis:         lo.ToPtr(alpacadecimal.NewFromFloat(.5)),
+			CostBasisCurrency: lo.ToPtr(currencyx.Code("USD")),
+			SpendChargeID:     &firstChargeID,
+			SourceChargeID:    lo.ToPtr(ulid.Make().String()),
 		})
 	require.NoError(t, err)
 	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
 	err = env.lineage.BackfillAdvanceLineageSegments(t.Context(), legacylineage.BackfillAdvanceLineageSegmentsInput{
-		Namespace:                 env.Namespace,
-		Allocations:               []legacylineage.AdvanceBackfillAllocation{{SegmentID: firstLineages[0].Segments[0].ID, Amount: alpacadecimal.NewFromInt(30)}},
+		Namespace: env.Namespace,
+		Allocations: []legacylineage.AdvanceBackfillAllocation{{
+			SegmentID: firstLineages[0].Segments[0].ID,
+			Amount:    alpacadecimal.NewFromInt(30),
+		}},
 		CustomerID:                env.CustomerID.ID,
 		Currency:                  firstCurrency,
 		Amount:                    alpacadecimal.NewFromInt(30),
