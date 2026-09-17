@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -17,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -24,6 +26,65 @@ import (
 )
 
 var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
+
+func TestPlanAddonAdapterBackfillsAddonTaxConfigFromTaxCode(t *testing.T) {
+	ctx := t.Context()
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	namespace := pctestutils.NewTestNamespace(t)
+
+	const stripeCode = "txcd_10000000"
+	taxCode, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "stripe-tax-code",
+		Name:      "Stripe tax code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	})
+	require.NoError(t, err)
+
+	createdPlan, err := env.Plan.CreatePlan(ctx, pctestutils.NewTestPlan(t, namespace))
+	require.NoError(t, err)
+
+	addonInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key: "flat-fee",
+			TaxConfig: &productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(taxCode.ID),
+			},
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      decimal.NewFromInt(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+		BillingCadence: &MonthPeriod,
+	})
+	createdAddon, err := env.AddonRepository.CreateAddon(ctx, addonInput)
+	require.NoError(t, err)
+
+	createdPlanAddon, err := env.PlanAddonRepository.CreatePlanAddon(ctx, planaddon.CreatePlanAddonInput{
+		NamespacedModel: models.NamespacedModel{Namespace: namespace},
+		PlanID:          createdPlan.ID,
+		AddonID:         createdAddon.ID,
+		FromPlanPhase:   createdPlan.Phases[0].Key,
+	})
+	require.NoError(t, err)
+
+	got, err := env.PlanAddonRepository.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+		NamespacedModel: models.NamespacedModel{Namespace: namespace},
+		ID:              createdPlanAddon.ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, got.Addon.RateCards, 1)
+
+	config := got.Addon.RateCards[0].AsMeta().TaxConfig
+	require.NotNil(t, config)
+	require.NotNil(t, config.TaxCodeID)
+	assert.Equal(t, taxCode.ID, *config.TaxCodeID)
+	require.NotNil(t, config.Stripe)
+	assert.Equal(t, stripeCode, config.Stripe.Code)
+}
 
 func TestPostgresAdapter(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())

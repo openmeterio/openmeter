@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -20,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -43,9 +45,18 @@ func TestPostgresAdapter(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
 			// Get new namespace ID
 			namespace := pctestutils.NewTestNamespace(t)
+			taxCode, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+				Namespace: namespace,
+				Key:       "stripe_txcd_10000000",
+				Name:      "Stripe txcd_10000000",
+				AppMappings: taxcode.TaxCodeAppMappings{
+					{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+				},
+			})
+			require.NoError(t, err)
 
 			// Setup meter repository
-			err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+			err = env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
 			require.NoError(t, err, "replacing meters must not fail")
 
 			result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
@@ -85,6 +96,7 @@ func TestPostgresAdapter(t *testing.T) {
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
 							},
+							TaxCodeID: lo.ToPtr(taxCode.ID),
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
@@ -282,6 +294,7 @@ func TestPostgresAdapter(t *testing.T) {
 									Stripe: &productcatalog.StripeTaxConfig{
 										Code: "txcd_10000000",
 									},
+									TaxCodeID: lo.ToPtr(taxCode.ID),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      decimal.NewFromInt(0),

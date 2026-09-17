@@ -6277,10 +6277,12 @@ func init() {
 	AddonRateCardsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	AddonRateCardsTable.Annotation = &entsql.Annotation{}
 	AddonRateCardsTable.Annotation.Checks = map[string]string{
-		"addon_rate_card_currency_code_length": "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
-		"addon_rate_card_currency_has_price":   "price IS NOT NULL OR currency IS NULL",
-		"addon_rate_card_currency_reference":   "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
-		"addon_rate_card_feature_reference":    "(feature_key IS NULL AND feature_id IS NULL) OR (feature_key IS NOT NULL AND feature_key <> '' AND feature_id IS NOT NULL AND feature_id <> '')",
+		"addon_rate_card_currency_code_length":     "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
+		"addon_rate_card_currency_has_price":       "price IS NOT NULL OR currency IS NULL",
+		"addon_rate_card_currency_reference":       "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
+		"addon_rate_card_feature_reference":        "(feature_key IS NULL AND feature_id IS NULL) OR (feature_key IS NOT NULL AND feature_key <> '' AND feature_id IS NOT NULL AND feature_id <> '')",
+		"addon_rate_card_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
+		"addon_rate_card_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
 	}
 	AppCustomInvoicingsTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[0].RefTable = AppCustomInvoicingsTable
