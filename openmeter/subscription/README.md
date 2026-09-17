@@ -83,6 +83,10 @@ are clipped to phase and subscription boundaries. The plan workflow defaults
 the anchor to `ActiveFrom`, but the stored anchor is an explicit subscription
 fact and must be carried through replacements and plan changes.
 
+Recurring rate-card billing cadences must be at least one day (`P1D`).
+This validation does not migrate existing shorter cadences. One-time flat fees
+may omit their billing cadence.
+
 `Timing` describes when a command should take effect. It contains exactly one
 of a custom timestamp or a supported enum. `immediate` resolves from the
 subscription clock; `next_billing_cycle` resolves to the end of the aligned

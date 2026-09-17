@@ -415,7 +415,7 @@ const ErrCodeBillingCadenceInvalidValue models.ErrorCode = "billing_cadence_inva
 
 var ErrBillingCadenceInvalidValue = models.NewValidationIssue(
 	ErrCodeBillingCadenceInvalidValue,
-	"billing cadence must be positive and 1 hour long duration at least",
+	"billing cadence must be positive and at least 1 day long",
 	models.WithFieldString("billingCadence"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),

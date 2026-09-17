@@ -145,6 +145,43 @@ func TestValidateRateCardsWithResolvedFeatures(t *testing.T) {
 	}
 }
 
+func TestRateCardMinimumBillingCadence(t *testing.T) {
+	for _, tc := range []struct {
+		cadence string
+		valid   bool
+	}{
+		{cadence: "PT0S"},
+		{cadence: "-P1D"},
+		{cadence: "PT30M"},
+		{cadence: "PT1H"},
+		{cadence: "PT23H59M59S"},
+		{cadence: "P1D", valid: true},
+		{cadence: "PT24H", valid: true},
+		{cadence: "PT1440M", valid: true},
+		{cadence: "PT25H", valid: true},
+		{cadence: "P1W", valid: true},
+		{cadence: "P1M", valid: true},
+		{cadence: "P1Y", valid: true},
+	} {
+		t.Run(tc.cadence, func(t *testing.T) {
+			cadence := datetime.MustParseDuration(t, tc.cadence)
+			for _, card := range []RateCard{
+				&FlatFeeRateCard{BillingCadence: &cadence},
+				&UsageBasedRateCard{BillingCadence: cadence},
+			} {
+				t.Run(string(card.Type()), func(t *testing.T) {
+					err := card.Validate()
+					if tc.valid {
+						require.NoError(t, err)
+					} else {
+						require.ErrorIs(t, err, ErrBillingCadenceInvalidValue)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestFlatFeeRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		tests := []struct {
