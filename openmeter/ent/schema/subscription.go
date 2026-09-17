@@ -205,6 +205,8 @@ func (SubscriptionItem) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		// TODO: Remove the legacy tax_config JSON field after all subscription-item
+		// read and write paths use tax_code_id and tax_behavior as the sole representation.
 		field.String("tax_config").
 			GoType(&productcatalog.TaxConfig{}).
 			ValueScanner(TaxConfigValueScanner).
@@ -298,6 +300,11 @@ func (SubscriptionItem) Annotations() []entschema.Annotation {
 			"subscription_item_currency_code_length": `currency IS NULL OR char_length(currency) BETWEEN 3 AND 24`,
 			"subscription_item_currency_reference":   `(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)`,
 			"subscription_item_currency_has_price":   `((price IS NULL) AND (currency IS NULL) AND (custom_currency_id IS NULL)) OR ((price IS NOT NULL) AND (currency IS NOT NULL))`,
+			// tax_config remains optional. These checks require null-safe equality with
+			// the normalized columns, and a nonblank Stripe code additionally requires a
+			// resolved tax code reference, so that we can enforce dual writes while we disable them.
+			"subscription_item_tax_code_consistency":     `(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)`,
+			"subscription_item_tax_behavior_consistency": `tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'`,
 		}),
 	}
 }
