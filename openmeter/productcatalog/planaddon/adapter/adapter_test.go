@@ -27,7 +27,7 @@ import (
 
 var MonthPeriod = datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0)
 
-func TestPlanAddonAdapterBackfillsAddonTaxConfigFromTaxCode(t *testing.T) {
+func TestPlanAddonAdapterBackfillsTaxConfigFromTaxCode(t *testing.T) {
 	ctx := t.Context()
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
@@ -44,7 +44,17 @@ func TestPlanAddonAdapterBackfillsAddonTaxConfigFromTaxCode(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	createdPlan, err := env.Plan.CreatePlan(ctx, pctestutils.NewTestPlan(t, namespace))
+	planInput := pctestutils.NewTestPlan(t, namespace)
+	err = planInput.Phases[0].RateCards[0].ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.TaxConfig = &productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr(taxCode.ID),
+		}
+
+		return meta, nil
+	})
+	require.NoError(t, err)
+
+	createdPlan, err := env.PlanRepository.CreatePlan(ctx, planInput)
 	require.NoError(t, err)
 
 	addonInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
@@ -79,6 +89,15 @@ func TestPlanAddonAdapterBackfillsAddonTaxConfigFromTaxCode(t *testing.T) {
 	require.Len(t, got.Addon.RateCards, 1)
 
 	config := got.Addon.RateCards[0].AsMeta().TaxConfig
+	require.NotNil(t, config)
+	require.NotNil(t, config.TaxCodeID)
+	assert.Equal(t, taxCode.ID, *config.TaxCodeID)
+	require.NotNil(t, config.Stripe)
+	assert.Equal(t, stripeCode, config.Stripe.Code)
+
+	require.Len(t, got.Plan.Phases, 1)
+	require.Len(t, got.Plan.Phases[0].RateCards, 1)
+	config = got.Plan.Phases[0].RateCards[0].AsMeta().TaxConfig
 	require.NotNil(t, config)
 	require.NotNil(t, config.TaxCodeID)
 	assert.Equal(t, taxCode.ID, *config.TaxCodeID)
