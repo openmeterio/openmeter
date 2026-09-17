@@ -247,6 +247,10 @@ func (c *service) GetEntitlementValue(ctx context.Context, namespace string, cus
 		return nil, err
 	}
 
+	return c.getEntitlementValueAt(ctx, ent, at)
+}
+
+func (c *service) getEntitlementValueAt(ctx context.Context, ent *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	// If the entitlement is not active it cannot provide access
 	if !ent.IsActive(at) {
 		return &entitlement.NoAccessValue{}, nil
@@ -256,6 +260,7 @@ func (c *service) GetEntitlementValue(ctx context.Context, namespace string, cus
 	if err != nil {
 		return nil, err
 	}
+
 	return connector.GetValue(ctx, ent, at)
 }
 

@@ -305,10 +305,11 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Entitlements
 
-| Method                                   | HTTP                                                                             | Description                                    |
-| ---------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access`                       | List customer entitlement access               |
-| `client.entitlements.getCustomerAccess`  | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
+| Method                                   | HTTP                                                                             | Description                                                                                      |
+| ---------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access`                       | List customer entitlement access                                                                 |
+| `client.entitlements.getCustomerAccess`  | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature.                                                   |
+| `client.entitlements.getCustomerValue`   | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value`       | Get the customer's access through a single entitlement, optionally evaluated at a point in time. |
 
 ### Subscriptions
 
