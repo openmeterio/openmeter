@@ -185,6 +185,7 @@ var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) {
 	pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
 		ppq.WithRatecards(func(prq *entdb.PlanRateCardQuery) {
 			prq.WithFeatures()
+			prq.WithTaxCode()
 		})
 	})
 }

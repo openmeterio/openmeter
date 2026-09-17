@@ -666,8 +666,9 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 			},
 		})
 
-		// Insert a PlanRateCard row directly with only dedicated tax columns — no tax_config JSONB.
-		// This simulates the legacy schema where TaxConfig is stored in separate columns rather than JSONB.
+		// Simulate the valid post-migration shape of a normalized-only legacy row.
+		// The Stripe code remains absent so the expanded read must hydrate it from
+		// the referenced tax code entity.
 		behavior := productcatalog.ExclusiveTaxBehavior
 		_, err = env.Client.PlanRateCard.Create().
 			SetPhaseID(phaseID).
@@ -678,6 +679,10 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 			SetMetadata(map[string]string{}).
 			SetEntitlementTemplate(nil).
 			SetDiscounts(nil).
+			SetTaxConfig(&productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(tcEntity.ID),
+				Behavior:  lo.ToPtr(behavior),
+			}).
 			SetTaxCodeID(tcEntity.ID).
 			SetTaxBehavior(behavior).
 			Save(ctx)
@@ -706,12 +711,12 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 		require.NotNil(t, backfillRC, "backfill plan rate card must be present in addon response")
 
 		tc := backfillRC.AsMeta().TaxConfig
-		require.NotNil(t, tc, "TaxConfig must be backfilled from dedicated columns via addon adapter path")
+		require.NotNil(t, tc, "TaxConfig must be present via addon adapter path")
 		require.NotNil(t, tc.Stripe, "Stripe code must be backfilled from TaxCode entity")
 		assert.Equal(t, "txcd_99000020", tc.Stripe.Code)
-		require.NotNil(t, tc.Behavior, "Behavior must be backfilled from tax_behavior column")
+		require.NotNil(t, tc.Behavior, "Behavior must be preserved")
 		assert.Equal(t, productcatalog.ExclusiveTaxBehavior, *tc.Behavior)
-		require.NotNil(t, tc.TaxCodeID, "TaxCodeID must be backfilled from TaxCode entity")
+		require.NotNil(t, tc.TaxCodeID, "TaxCodeID must be preserved")
 		assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
 	})
 }
