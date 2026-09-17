@@ -2,6 +2,27 @@
 
 package openmeter
 
+// Expands for customer entitlement access.
+//
+// Values:
+//
+// - `value`: The balance details of a metered entitlement; it sets the `value`
+// field.
+type EntitlementAccessExpand string
+
+const (
+	EntitlementAccessExpandValue EntitlementAccessExpand = "value"
+)
+
+func (value EntitlementAccessExpand) Valid() bool {
+	switch value {
+	case EntitlementAccessExpandValue:
+		return true
+	default:
+		return false
+	}
+}
+
 // Entitlement access result.
 type EntitlementAccessResult struct {
 	// The type of the entitlement.
@@ -14,6 +35,23 @@ type EntitlementAccessResult struct {
 	// Only available for static entitlements. Config is the JSON parsable
 	// configuration of the entitlement. Useful to describe per customer configuration.
 	Config *string `json:"config,omitempty"`
+	// Only available for metered entitlements. The current balance details of the
+	// entitlement. Requires the `value` expand.
+	Value *EntitlementAccessValue `json:"value,omitempty"`
+}
+
+// Balance details of a metered entitlement.
+type EntitlementAccessValue struct {
+	// The remaining balance of the entitlement in the current usage period.
+	Balance Numeric `json:"balance"`
+	// The usage recorded in the current usage period.
+	Usage Numeric `json:"usage"`
+	// The usage exceeding the available balance in the current usage period.
+	Overage Numeric `json:"overage"`
+	// The total amount granted and currently available to the entitlement.
+	TotalAvailableGrantAmount Numeric `json:"total_available_grant_amount"`
+	// The remaining balance of each grant, keyed by grant ID.
+	GrantBalances map[string]Numeric `json:"grant_balances"`
 }
 
 // List customer entitlement access response data.

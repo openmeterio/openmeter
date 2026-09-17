@@ -323,7 +323,7 @@ func NewServer(config *Config) (*Server, error) {
 		accountResolver = ledgernoop.AccountResolver{}
 	}
 	customersCreditsHandler := customerscreditshandler.New(resolveNamespace, config.CustomerService, customerBalanceFacade, creditGrantService, ledgerService, accountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
-	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
+	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, config.SubscriptionWorkflowService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, config.SubscriptionService, config.SubscriptionWorkflowService, httptransport.WithErrorHandler(config.ErrorHandler))

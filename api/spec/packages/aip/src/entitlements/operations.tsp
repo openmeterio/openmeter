@@ -40,4 +40,30 @@ interface CustomerEntitlementsOperations {
     | ListCustomerEntitlementAccessResponse
     | Common.NotFound
     | Common.ErrorResponses;
+
+  /**
+   * Get the customer's access to a single feature.
+   */
+  @get
+  @route("/features/{featureKey}")
+  @operationId("get-customer-entitlement-access")
+  @summary("Get customer entitlement access")
+  get(
+    @path customerId: Shared.ULID,
+    @path featureKey: Shared.ResourceKey,
+
+    /**
+     * Expand computed fields.
+     *
+     * Supported values are:
+     *
+     * - `value`: Expand the balance details of a metered entitlement; it sets the
+     *   `value` field.
+     */
+    @query(#{ explode: false })
+    expand?: EntitlementAccessExpand[],
+  ):
+    | Shared.GetResponse<EntitlementAccessResult>
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

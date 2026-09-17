@@ -1942,6 +1942,55 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+  /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}:
+    get:
+      operationId: get-customer-entitlement-access
+      summary: Get customer entitlement access
+      description: Get the customer's access to a single feature.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: featureKey
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceKey'
+        - name: expand
+          in: query
+          required: false
+          description: |-
+            Expand computed fields.
+
+            Supported values are:
+
+            - `value`: Expand the balance details of a metered entitlement; it sets the
+            `value` field.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingEntitlementAccessExpand'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: EntitlementAccessResult response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementAccessResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes
@@ -7415,6 +7464,18 @@ components:
       description: |-
         Mapping to attribute metered usage to the customer. One customer can have zero
         or more subjects, but one subject can only belong to one customer.
+    BillingEntitlementAccessExpand:
+      type: string
+      enum:
+        - value
+      description: |-
+        Expands for customer entitlement access.
+
+        Values:
+
+        - `value`: The balance details of a metered entitlement; it sets the `value`
+        field.
+      title: Customer entitlement access expands
     BillingEntitlementAccessResult:
       type: object
       required:
@@ -7448,8 +7509,59 @@ components:
             configuration of the entitlement. Useful to describe per customer configuration.
           example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
           readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementAccessValue'
+          description: |-
+            Only available for metered entitlements. The current balance details of the
+            entitlement. Requires the `value` expand.
+          readOnly: true
       additionalProperties: false
       description: Entitlement access result.
+    BillingEntitlementAccessValue:
+      type: object
+      required:
+        - balance
+        - usage
+        - overage
+        - total_available_grant_amount
+        - grant_balances
+      properties:
+        balance:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The remaining balance of the entitlement in the current usage period.
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage recorded in the current usage period.
+          readOnly: true
+        overage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage exceeding the available balance in the current usage period.
+          readOnly: true
+        total_available_grant_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The total amount granted and currently available to the entitlement.
+          readOnly: true
+        grant_balances:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Numeric'
+          description: The remaining balance of each grant, keyed by grant ID.
+          readOnly: true
+      additionalProperties: false
+      description: Balance details of a metered entitlement.
+      example:
+        balance: '100'
+        usage: '50'
+        overage: '0'
+        total_available_grant_amount: '100'
+        grant_balances:
+          additional_property: '1'
     BillingEntitlementType:
       type: string
       enum:

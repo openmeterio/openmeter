@@ -59,6 +59,9 @@ type ListEntitlementsParams struct {
 type Service interface {
 	models.ServiceHooks[Entitlement]
 
+	// Facade interfaces provide convenience helpers for the API layer.
+	CustomerEntitlementAccessAPIService
+
 	// Meant for API use primarily
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)
 	// OverrideEntitlement replaces a currently active entitlement with a new one.

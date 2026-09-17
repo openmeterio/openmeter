@@ -6,10 +6,30 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 type EntitlementsService struct {
 	client *Client
+}
+
+type GetCustomerEntitlementAccessParams struct {
+	Expand []EntitlementAccessExpand
+}
+
+func (p GetCustomerEntitlementAccessParams) values() url.Values {
+	q := url.Values{}
+
+	if len(p.Expand) > 0 {
+		expandValues := make([]string, 0, len(p.Expand))
+		for _, value := range p.Expand {
+			expandValues = append(expandValues, string(value))
+		}
+		q.Set("expand", strings.Join(expandValues, ","))
+	}
+
+	return q
 }
 
 func (s *EntitlementsService) ListCustomerAccess(ctx context.Context, customerID string) (*ListCustomerEntitlementAccessResponseData, error) {
@@ -27,6 +47,35 @@ func (s *EntitlementsService) ListCustomerAccess(ctx context.Context, customerID
 	}
 
 	var out ListCustomerEntitlementAccessResponseData
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Get the customer's access to a single feature.
+func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID string, featureKey string, params GetCustomerEntitlementAccessParams) (*EntitlementAccessResult, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if featureKey == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "featureKey", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlement-access/features/{featureKey}"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "featureKey", featureKey)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out EntitlementAccessResult
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}
