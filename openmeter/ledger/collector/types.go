@@ -81,10 +81,12 @@ func (s fboCollectionSelections) postingAmounts(spendChargeID *string) []transac
 			Address: selection.source.address,
 			Amount:  selection.amount,
 			Identity: ledger.EntryIdentityParts{
-				CollectionSource:   &collectionSource,
-				CollectionOriginID: selection.collectionOriginID,
-				SourceChargeID:     selection.source.sourceChargeID,
-				SpendChargeID:      spendChargeID,
+				CollectionSource: &collectionSource,
+				Provenance: ledger.Provenance{
+					CollectionOriginID: selection.collectionOriginID,
+					SourceChargeID:     selection.source.sourceChargeID,
+					SpendChargeID:      spendChargeID,
+				},
 			},
 			Annotations: models.Annotations{
 				ledger.AnnotationCollectionSourceOrder: idx,

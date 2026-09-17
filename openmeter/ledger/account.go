@@ -89,9 +89,6 @@ type AccountCatalog interface {
 	AccountLocker
 }
 
-// LockForPosting serializes balance selection with collection, backfill,
-// recognition, and correction. Acquire the complete customer set before reads
-// so CommitGroup does not extend a partial lock set in a different order.
 func (a CustomerAccounts) LockForPosting(ctx context.Context, locker AccountLocker) error {
 	return locker.LockAccountsForPosting(ctx, []Account{a.FBOAccount, a.ReceivableAccount, a.AccruedAccount})
 }

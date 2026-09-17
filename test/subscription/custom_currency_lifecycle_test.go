@@ -151,9 +151,11 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	query := ledger.BalanceBucketQuery{
 		Namespace: f.view.Subscription.Namespace,
 		Filters: ledger.Filters{
-			AccountID:     lo.ToPtr(f.business.EarningsAccount.ID().ID),
-			SpendChargeID: mo.Some(&remaining[0]),
-			Route:         ledger.RouteFilter{Currency: f.currency.Reference()},
+			AccountID: lo.ToPtr(f.business.EarningsAccount.ID().ID),
+			Provenance: ledger.ProvenanceFilter{
+				SpendChargeID: mo.Some(&remaining[0]),
+			},
+			Route: ledger.RouteFilter{Currency: f.currency.Reference()},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID, ledger.BalanceBucketGroupBySourceChargeID},
 	}

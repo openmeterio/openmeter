@@ -3811,17 +3811,20 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 	s.Len(advancedCharges, 2)
 
 	s.markLedgerEntriesLegacyBySpendChargeID(ctx, ns, unrestrictedSpendChargeID, apiRequestsSpendChargeID)
-	// Recreate the pre-cutover billing metadata too. Clearing origin columns
+
+	// Recreate the legacy lineage billing metadata too. Clearing origin columns
 	// alone no longer makes a new collection a legacy backfill candidate.
 	for _, result := range advancedCharges {
 		charge, err := result.AsFlatFeeCharge()
 		s.Require().NoError(err)
 		realizations := charge.Realizations.CurrentRun.CreditRealizations
+
 		for i := range realizations {
 			realizations[i].Annotations = creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance)
 			err := s.DBClient.ChargeFlatFeeRunCreditAllocations.UpdateOneID(realizations[i].ID).SetAnnotations(realizations[i].Annotations).Exec(ctx)
 			s.Require().NoError(err)
 		}
+
 		feature := charge.Intent.GetFeatureKey()
 		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 			Namespace: ns, CustomerID: cust.ID, ChargeID: charge.ID, Currency: charge.Intent.GetCurrency(),

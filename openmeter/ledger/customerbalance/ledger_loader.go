@@ -27,14 +27,19 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 
 	for len(txs) <= input.Limit {
 		result, err := l.service.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
-			Namespace:      input.CustomerID.Namespace,
-			Cursor:         after,
-			Before:         before,
-			Limit:          input.Limit,
-			AccountIDs:     []string{input.AccountID},
-			Currency:       input.Currency,
-			AsOf:           &input.AsOf,
-			Route:          featureFilterRoute(input.FeatureFilter),
+			Namespace: input.CustomerID.Namespace,
+			Cursor:    after,
+			Before:    before,
+			Limit:     input.Limit,
+			EntryFilter: ledger.TransactionEntryFilter{
+				AccountIDs: []string{input.AccountID},
+				Currency:   input.Currency,
+				Route:      featureFilterRoute(input.FeatureFilter),
+			},
+			ReturnOnlyMatchingEntries: true,
+
+			AsOf: &input.AsOf,
+
 			CreditMovement: l.movement,
 			ExcludeAnnotationFilters: map[string]string{
 				ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,

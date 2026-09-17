@@ -50,11 +50,13 @@ func (s *service) CreateInitialLineages(ctx context.Context, input legacylineage
 		if err != nil {
 			return fmt.Errorf("build initial credit realization lineage specs: %w", err)
 		}
+
 		for idx := range specs {
 			if specs[idx].OriginKind == creditrealization.LineageOriginKindAdvance {
 				specs[idx].AdvanceFeatures = input.Features
 			}
 		}
+
 		if len(specs) == 0 {
 			return nil
 		}
@@ -110,14 +112,17 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input le
 			if err != nil {
 				return err
 			}
+
 			if selected != nil {
 				if selectedByRealization[correctsRealizationID] == nil {
 					selectedByRealization[correctsRealizationID] = make(map[string]alpacadecimal.Decimal)
 				}
+
 				for id, amount := range selected {
 					selectedByRealization[correctsRealizationID][id] = selectedByRealization[correctsRealizationID][id].Add(amount)
 				}
 			}
+
 			if _, ok := correctionAmountsByRealizationID[correctsRealizationID]; !ok {
 				correctionOrder = append(correctionOrder, correctsRealizationID)
 			}
@@ -135,6 +140,7 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input le
 		}
 
 		lineagesByRealizationID := make(map[string]legacylineage.Lineage, len(lineages))
+
 		for _, entry := range lineages {
 			lineagesByRealizationID[entry.RootRealizationID] = entry
 		}
@@ -147,6 +153,7 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input le
 				if selectedByRealization[realizationID] != nil {
 					return fmt.Errorf("selected correction lineage no longer exists")
 				}
+
 				continue
 			}
 
@@ -155,20 +162,26 @@ func (s *service) PersistCorrectionLineageSegments(ctx context.Context, input le
 			if selected == nil {
 				return fmt.Errorf("legacy correction requires exact ledger segment selections")
 			}
+
 			total := alpacadecimal.Zero
 			active := make(map[string]alpacadecimal.Decimal)
+
 			for _, segment := range entry.Segments {
 				active[segment.ID] = segment.Amount
 			}
+
 			for id, amount := range selected {
 				if amount.GreaterThan(active[id]) {
 					return fmt.Errorf("stale correction segment selection %s", id)
 				}
+
 				total = total.Add(amount)
 			}
+
 			if !total.Equal(remaining) {
 				return fmt.Errorf("selected correction segments do not match correction amount")
 			}
+
 			for _, segment := range entry.Segments {
 				if !remaining.IsPositive() {
 					break
@@ -217,14 +230,17 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input lega
 	if len(input.Allocations) == 0 {
 		return nil
 	}
+
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		lineages, err := s.adapter.LockAdvanceLineagesForBackfill(ctx, input.Namespace, input.CustomerID, input.Currency.Reference())
 		if err != nil {
 			return fmt.Errorf("lock advance lineages for backfill: %w", err)
 		}
+
 		lineages = legacylineage.FilterAdvanceLineagesForBackfill(lineages, input.FeatureFilters)
 
 		segmentsByID := make(map[string]legacylineage.Segment)
+
 		for _, root := range lineages {
 			for _, segment := range root.Segments {
 				segmentsByID[segment.ID] = segment
@@ -232,11 +248,13 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input lega
 		}
 
 		now := clock.Now().Truncate(time.Microsecond)
+
 		for _, allocation := range input.Allocations {
 			segment, ok := segmentsByID[allocation.SegmentID]
 			if !ok || allocation.Amount.GreaterThan(segment.Amount) {
 				return fmt.Errorf("backfill allocation exceeds active eligible segment %s", allocation.SegmentID)
 			}
+
 			coveredAmount := allocation.Amount
 			if err := s.adapter.CloseSegment(ctx, segment.ID, now); err != nil {
 				return fmt.Errorf("close uncovered advance lineage segment %s: %w", segment.ID, err)

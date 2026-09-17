@@ -54,6 +54,7 @@ func TestSubscriptionMigrationPreservesCollectionOrigins(t *testing.T) {
 		meta.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount: decimal.NewFromInt(20), PaymentTerm: productcatalog.InAdvancePaymentTerm,
 		})
+
 		return meta, nil
 	}))
 	nextPlan, err := f.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
@@ -79,6 +80,7 @@ func TestSubscriptionMigrationPreservesCollectionOrigins(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, after, 2)
 	var newOrigin string
+
 	for _, bucket := range after {
 		require.Equal(t, before[0].GroupByValues[ledger.BalanceBucketGroupBySourceChargeID], bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])
 		origin := lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])
@@ -91,6 +93,7 @@ func TestSubscriptionMigrationPreservesCollectionOrigins(t *testing.T) {
 			require.Equal(t, float64(10), bucket.SettledAmount.InexactFloat64())
 		}
 	}
+
 	require.NotEmpty(t, newOrigin)
 	requireCustomCurrencyAccountBalance(t, f, f.accounts.FBOAccount, 5)
 
@@ -105,10 +108,12 @@ func TestSubscriptionMigrationPreservesCollectionOrigins(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, final, 2)
 	remainingByOrigin := map[string]float64{}
+
 	for _, bucket := range final {
 		require.Equal(t, before[0].GroupByValues[ledger.BalanceBucketGroupBySourceChargeID], bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])
 		remainingByOrigin[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])] += bucket.SettledAmount.InexactFloat64()
 	}
+
 	require.Equal(t, map[string]float64{originalOrigin: 5, newOrigin: 5}, remainingByOrigin)
 	requireCustomCurrencyAccountBalance(t, f, f.accounts.FBOAccount, 10)
 

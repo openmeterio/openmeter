@@ -7,14 +7,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// AnnotationLineageOriginKind retains the stored pre-cutover annotation key.
+// AnnotationLineageOriginKind retains the stored legacy lineage annotation key.
 //
 // Deprecated: New collections use ledger.AnnotationOriginTracked and ledger origins.
 const AnnotationLineageOriginKind = "billing.credit_realization.lineage_origin_kind"
 
 // LineageOriginKind identifies the source of a legacy lineage root.
 //
-// Deprecated: Retained for pre-cutover histories; new collections use ledger origins.
+// Deprecated: Retained for legacy lineage histories; new collections use ledger origins.
 type LineageOriginKind string
 
 const (

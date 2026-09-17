@@ -339,10 +339,14 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 		FBOAddress:      fboAddress,
 		BreakageAddress: breakageAddress,
 		FBOIdentity: ledger.EntryIdentityParts{
-			SourceChargeID: input.SourceChargeID,
+			Provenance: ledger.Provenance{
+				SourceChargeID: input.SourceChargeID,
+			},
 		},
 		BreakageIdentity: ledger.EntryIdentityParts{
-			SourceChargeID: input.SourceChargeID,
+			Provenance: ledger.Provenance{
+				SourceChargeID: input.SourceChargeID,
+			},
 		},
 	})
 	if err != nil {
@@ -413,9 +417,11 @@ func (s *service) ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledg
 		FBOAddress:      input.Plan.FBOAddress,
 		BreakageAddress: input.Plan.BreakageAddress,
 		FBOIdentity: ledger.EntryIdentityParts{
-			SourceChargeID:     input.SourceChargeID,
-			SpendChargeID:      input.SpendChargeID,
-			CollectionOriginID: input.CollectionOriginID,
+			Provenance: ledger.Provenance{
+				SourceChargeID:     input.SourceChargeID,
+				SpendChargeID:      input.SpendChargeID,
+				CollectionOriginID: input.CollectionOriginID,
+			},
 		},
 		BreakageIdentity: releaseBreakageIdentity(input.SourceChargeID, input.SpendChargeID, input.CollectionOriginID),
 	})
@@ -457,9 +463,11 @@ func (s *service) ReopenRelease(ctx context.Context, input ReopenReleaseInput) (
 		FBOAddress:      input.Release.FBOAddress,
 		BreakageAddress: input.Release.BreakageAddress,
 		FBOIdentity: ledger.EntryIdentityParts{
-			SourceChargeID:     input.SourceChargeID,
-			SpendChargeID:      input.SpendChargeID,
-			CollectionOriginID: input.CollectionOriginID,
+			Provenance: ledger.Provenance{
+				SourceChargeID:     input.SourceChargeID,
+				SpendChargeID:      input.SpendChargeID,
+				CollectionOriginID: input.CollectionOriginID,
+			},
 		},
 		BreakageIdentity: releaseBreakageIdentity(input.SourceChargeID, input.SpendChargeID, input.CollectionOriginID),
 	})
@@ -837,9 +845,13 @@ func newRecordID(namespace string) models.NamespacedID {
 // Legacy releases used source-only breakage provenance. Origin-tracked releases
 // carry the same origin and spend on both legs so the origin balances independently.
 func releaseBreakageIdentity(source, spend, origin *string) ledger.EntryIdentityParts {
-	identity := ledger.EntryIdentityParts{SourceChargeID: source, CollectionOriginID: origin}
+	identity := ledger.EntryIdentityParts{Provenance: ledger.Provenance{
+		SourceChargeID:     source,
+		CollectionOriginID: origin,
+	}}
 	if origin != nil {
 		identity.SpendChargeID = spend
 	}
+
 	return identity
 }

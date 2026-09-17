@@ -105,16 +105,20 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvena
 				Address: sourceFBO.Address(),
 				Amount:  alpacadecimal.NewFromInt(source1AccruedAmount),
 				Identity: ledger.EntryIdentityParts{
-					SourceChargeID: &sourceCharge1,
-					SpendChargeID:  &spendCharge,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &sourceCharge1,
+						SpendChargeID:  &spendCharge,
+					},
 				},
 			},
 			{
 				Address: sourceFBO.Address(),
 				Amount:  alpacadecimal.NewFromInt(source2AccruedAmount),
 				Identity: ledger.EntryIdentityParts{
-					SourceChargeID: &sourceCharge2,
-					SpendChargeID:  &spendCharge,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &sourceCharge2,
+						SpendChargeID:  &spendCharge,
+					},
 				},
 			},
 		},
@@ -198,8 +202,10 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 					Address: sourceFBO.Address(),
 					Amount:  alpacadecimal.NewFromInt(creditBackedAmount),
 					Identity: ledger.EntryIdentityParts{
-						SourceChargeID: &sourceChargeID,
-						SpendChargeID:  &spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: &sourceChargeID,
+							SpendChargeID:  &spendChargeID,
+						},
 					},
 				},
 			},

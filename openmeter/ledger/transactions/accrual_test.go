@@ -93,8 +93,10 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesChargeProvenance(t *testi
 					Address: fbo.Address(),
 					Amount:  alpacadecimal.NewFromInt(30),
 					Identity: ledger.EntryIdentityParts{
-						SourceChargeID: &sourceChargeID,
-						SpendChargeID:  &spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: &sourceChargeID,
+							SpendChargeID:  &spendChargeID,
+						},
 					},
 				},
 			},
@@ -181,8 +183,10 @@ func TestTransferCustomerFBOToAccruedCorrection_PreservesChargeProvenance(t *tes
 				Amount:  alpacadecimal.NewFromInt(firstSourceAmount),
 				Identity: ledger.EntryIdentityParts{
 					CollectionSource: &collectionSource0,
-					SourceChargeID:   &sourceCharge1,
-					SpendChargeID:    &spendCharge1,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &sourceCharge1,
+						SpendChargeID:  &spendCharge1,
+					},
 				},
 			},
 			{
@@ -190,8 +194,10 @@ func TestTransferCustomerFBOToAccruedCorrection_PreservesChargeProvenance(t *tes
 				Amount:  alpacadecimal.NewFromInt(secondSourceAmount),
 				Identity: ledger.EntryIdentityParts{
 					CollectionSource: &collectionSource1,
-					SourceChargeID:   &sourceCharge2,
-					SpendChargeID:    &spendCharge2,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &sourceCharge2,
+						SpendChargeID:  &spendCharge2,
+					},
 				},
 			},
 		},

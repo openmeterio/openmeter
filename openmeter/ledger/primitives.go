@@ -81,9 +81,7 @@ type EntryInput interface {
 	Amount() alpacadecimal.Decimal
 	IdentityKey() string
 	SchemaVersion() EntrySchemaVersion
-	CollectionOriginID() *string
-	SourceChargeID() *string
-	SpendChargeID() *string
+	Provenance() Provenance
 	Annotations() models.Annotations
 }
 
@@ -197,22 +195,29 @@ type Ledger interface {
 	ListTransactions(ctx context.Context, params ListTransactionsInput) (ListTransactionsResult, error)
 }
 
+type TransactionEntryFilter struct {
+	AccountIDs []string
+	Currency   *currencyx.Code
+	Route      RouteFilter
+	Provenance ProvenanceFilter
+}
+
+type ListTransactionsResult struct {
+	Items      []Transaction
+	NextCursor *TransactionCursor
+}
+
 type ListTransactionsInput struct {
 	Namespace string
-	// CollectionOriginID selects transactions and entries belonging to this collection
-	// origin, like the account/route filters. Each origin balances independently.
-	CollectionOriginID *string
-	Cursor             *TransactionCursor
-	Before             *TransactionCursor
-	Limit              int
+	Cursor    *TransactionCursor
+	Before    *TransactionCursor
+	Limit     int
 
 	TransactionID *models.NamespacedID
 
-	// AccountIDs scopes the query to transactions with entries on these accounts.
-	AccountIDs []string
-	Currency   *currencyx.Code
-	AsOf       *time.Time
-	Route      RouteFilter
+	EntryFilter               TransactionEntryFilter
+	ReturnOnlyMatchingEntries bool
+	AsOf                      *time.Time
 
 	CreditMovement ListTransactionsCreditMovement
 
@@ -223,15 +228,11 @@ type ListTransactionsInput struct {
 	ExcludeAnnotationFilters map[string]string
 }
 
-type ListTransactionsResult struct {
-	Items      []Transaction
-	NextCursor *TransactionCursor
-}
-
 func (i ListTransactionsInput) Validate() error {
-	if i.CollectionOriginID != nil && *i.CollectionOriginID == "" {
-		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{"reason": "collection_origin_id_invalid"})
+	if err := i.EntryFilter.Provenance.Validate(); err != nil {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{"reason": "provenance_invalid", "error": err})
 	}
+
 	if i.Limit < 1 {
 		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 			"reason": "limit_invalid",
@@ -275,11 +276,11 @@ func (i ListTransactionsInput) Validate() error {
 		}
 	}
 
-	if i.Currency != nil {
-		if err := ValidateCurrency(*i.Currency); err != nil {
+	if i.EntryFilter.Currency != nil {
+		if err := ValidateCurrency(*i.EntryFilter.Currency); err != nil {
 			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 				"reason":   "currency_invalid",
-				"currency": i.Currency,
+				"currency": i.EntryFilter.Currency,
 				"error":    err,
 			})
 		}
@@ -292,10 +293,10 @@ func (i ListTransactionsInput) Validate() error {
 		})
 	}
 
-	if err := validateListTransactionsRouteFilter(i.Route); err != nil {
+	if err := validateListTransactionsRouteFilter(i.EntryFilter.Route); err != nil {
 		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 			"reason": "route_invalid",
-			"route":  i.Route,
+			"route":  i.EntryFilter.Route,
 			"error":  err,
 		})
 	}

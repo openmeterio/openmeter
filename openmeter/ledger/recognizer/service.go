@@ -18,7 +18,7 @@ import (
 
 // Service recognizes credit-backed accrued value as earnings. New collections
 // derive eligibility and amounts from origin/source/spend ledger balances;
-// pre-cutover collections retain lineage compatibility. Invoice-backed and
+// legacy lineage collections retain lineage compatibility. Invoice-backed and
 // source-less accrued value remain deferred.
 type Service interface {
 	RecognizeEarnings(ctx context.Context, in RecognizeEarningsInput) (RecognizeEarningsResult, error)

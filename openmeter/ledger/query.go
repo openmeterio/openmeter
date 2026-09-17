@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/mo"
-
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -51,21 +49,11 @@ func (p Query) Validate() error {
 		})
 	}
 
-	if err := validateOptionalChargeIDFilter("source_charge_id", p.Filters.SourceChargeID); err != nil {
+	if err := p.Filters.Provenance.Validate(); err != nil {
 		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
-			"reason": "source_charge_id_invalid",
+			"reason": "provenance_invalid",
 			"error":  err,
 		})
-	}
-
-	if err := validateOptionalChargeIDFilter("spend_charge_id", p.Filters.SpendChargeID); err != nil {
-		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
-			"reason": "spend_charge_id_invalid",
-			"error":  err,
-		})
-	}
-	if err := validateOptionalChargeIDFilter("collection_origin_id", p.Filters.CollectionOriginID); err != nil {
-		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{"reason": "collection_origin_id_invalid", "error": err})
 	}
 
 	if p.Filters.BookedAtPeriod != nil {
@@ -114,9 +102,7 @@ func (p Query) Validate() error {
 }
 
 type Filters struct {
-	// CollectionOriginID isolates a collection's lifecycle. Some(nil) selects legacy and
-	// unrelated entries; absence aggregates across origins.
-	CollectionOriginID mo.Option[*string]
+	Provenance ProvenanceFilter
 	// BookedAtPeriod is inclusive-exclusive... should it be? Maybe finally add period inclusivity params?
 	BookedAtPeriod *timeutil.OpenPeriod
 	After          *TransactionCursor
@@ -124,26 +110,7 @@ type Filters struct {
 	TransactionID  *string
 	// AccountID narrows the query to a single account via its sub-accounts.
 	AccountID *string
-	// SourceChargeID narrows entries by the creditpurchase charge that funded them.
-	// Absent aggregates across source charges, Some(nil) selects source-less entries.
-	SourceChargeID mo.Option[*string]
-	// SpendChargeID narrows entries by the charge that consumed or accrued value.
-	// Absent aggregates across spend charges, Some(nil) selects spend-less entries.
-	SpendChargeID mo.Option[*string]
 	// Route is a partial route filter. AccountID plus a full Route.Filter() identifies
 	// one sub-account, but arbitrary RouteFilter values can match many sub-accounts.
 	Route RouteFilter
-}
-
-func validateOptionalChargeIDFilter(name string, filter mo.Option[*string]) error {
-	if filter.IsAbsent() {
-		return nil
-	}
-
-	value, _ := filter.Get()
-	if value != nil && *value == "" {
-		return fmt.Errorf("%s must not be empty", name)
-	}
-
-	return nil
 }

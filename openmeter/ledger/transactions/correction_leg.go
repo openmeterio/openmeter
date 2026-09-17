@@ -91,9 +91,7 @@ func allocateCorrectionLegs(
 			counterpartAddress: counterpartAddress,
 			amount:             entryAmount,
 			identity: ledger.EntryIdentityParts{
-				SourceChargeID:     entry.SourceChargeID(),
-				CollectionOriginID: entry.CollectionOriginID(),
-				SpendChargeID:      entry.SpendChargeID(),
+				Provenance: entry.Provenance(),
 			},
 		})
 		available = available.Add(entryAmount)
@@ -137,10 +135,8 @@ func allocateCorrectionLegs(
 			leg.sourceAddress,
 			leg.amount,
 			ledger.EntryIdentityParts{
-				CorrectionSource:   &leg.sourceEntryID,
-				SourceChargeID:     leg.identity.SourceChargeID,
-				CollectionOriginID: leg.identity.CollectionOriginID,
-				SpendChargeID:      leg.identity.SpendChargeID,
+				CorrectionSource: &leg.sourceEntryID,
+				Provenance:       leg.identity.Provenance,
 			},
 			false,
 		)

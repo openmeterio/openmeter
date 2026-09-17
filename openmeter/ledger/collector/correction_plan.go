@@ -37,19 +37,24 @@ type collectionCorrectionInput struct {
 
 func (i collectionCorrectionInput) Validate() error {
 	var errs []error
+
 	if i.amount.IsNegative() {
 		errs = append(errs, errors.New("correction amount must not be negative"))
 	}
+
 	ids := make(map[string]bool)
+
 	for _, p := range i.positions {
 		if p.id == "" || ids[p.id] {
 			errs = append(errs, errors.New("correction positions require distinct identifiers"))
 		}
+
 		ids[p.id] = true
 		if p.accrued.IsNegative() || p.earnings.IsNegative() || p.coverage.IsNegative() {
 			errs = append(errs, fmt.Errorf("negative remaining collection position %s", p.id))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -66,37 +71,47 @@ func planCollectionCorrection(input collectionCorrectionInput) ([]correctionSele
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+
 	positions := slices.Clone(input.positions)
 	slices.SortStableFunc(positions, func(a, b correctionPosition) int {
 		if a.uncovered != b.uncovered {
 			if a.uncovered {
 				return 1
 			}
+
 			return -1
 		}
+
 		if c := a.recordedAt.Compare(b.recordedAt); c != 0 {
 			return -c
 		}
+
 		if c := cmp.Compare(a.order, b.order); c != 0 {
 			return -c
 		}
+
 		if c := cmp.Compare(a.orderKey, b.orderKey); c != 0 {
 			return -c
 		}
+
 		return -cmp.Compare(a.id, b.id)
 	})
 	remaining := input.amount
 	var out []correctionSelection
+
 	for _, position := range positions {
 		take := minDecimal(remaining, position.amount())
 		if !take.IsPositive() {
 			continue
 		}
+
 		out = append(out, correctionSelection{id: position.id, amount: take, earnings: minDecimal(take, position.earnings)})
 		remaining = remaining.Sub(take)
 	}
+
 	if remaining.IsPositive() {
 		return nil, fmt.Errorf("correction exceeds remaining collection balance by %s", remaining)
 	}
+
 	return out, nil
 }

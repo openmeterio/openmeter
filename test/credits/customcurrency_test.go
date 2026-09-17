@@ -383,10 +383,10 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceUsesFiatCredits
 	s.Require().NoError(err)
 	s.Require().Len(coverageGroup.Transactions(), 1)
 	for _, entry := range coverageGroup.Transactions()[0].Entries() {
-		s.Require().NotNil(entry.SourceChargeID())
-		s.Equal(fiatCredit.ID, *entry.SourceChargeID())
-		s.Require().NotNil(entry.SpendChargeID())
-		s.Equal(flatFeeCharge.ID, *entry.SpendChargeID())
+		s.Require().NotNil(entry.Provenance().SourceChargeID)
+		s.Equal(fiatCredit.ID, *entry.Provenance().SourceChargeID)
+		s.Require().NotNil(entry.Provenance().SpendChargeID)
+		s.Equal(flatFeeCharge.ID, *entry.Provenance().SpendChargeID)
 	}
 
 	// when:
@@ -776,10 +776,10 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNative
 	s.Require().NoError(err)
 	s.Require().Len(coverageGroup.Transactions(), 1)
 	for _, entry := range coverageGroup.Transactions()[0].Entries() {
-		s.Require().NotNil(entry.SourceChargeID())
-		s.Equal(matchingFiatCreditID, *entry.SourceChargeID())
-		s.Require().NotNil(entry.SpendChargeID())
-		s.Equal(flatFeeChargeID, *entry.SpendChargeID())
+		s.Require().NotNil(entry.Provenance().SourceChargeID)
+		s.Equal(matchingFiatCreditID, *entry.Provenance().SourceChargeID)
+		s.Require().NotNil(entry.Provenance().SpendChargeID)
+		s.Equal(flatFeeChargeID, *entry.Provenance().SpendChargeID)
 	}
 
 	// when:

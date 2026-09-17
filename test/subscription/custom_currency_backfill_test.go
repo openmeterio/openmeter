@@ -79,7 +79,9 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 	buckets, err := f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: f.view.Subscription.Namespace,
 		Filters: ledger.Filters{
-			AccountID: lo.ToPtr(f.business.EarningsAccount.ID().ID), SourceChargeID: mo.Some(&purchaseID.ID),
+			AccountID: lo.ToPtr(f.business.EarningsAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some(&purchaseID.ID),
+			},
 			Route: ledger.RouteFilter{Currency: f.currency.Reference(), CostBasis: mo.Some(lo.ToPtr(decimal.NewFromFloat(0.5))), CostBasisCurrency: mo.Some(lo.ToPtr(currencyx.Code("USD")))},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByCollectionOriginID},
@@ -97,18 +99,22 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 	buckets, err = f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: f.view.Subscription.Namespace,
 		Filters: ledger.Filters{
-			AccountID:      lo.ToPtr(f.accounts.ReceivableAccount.ID().ID),
-			SourceChargeID: mo.Some[*string](nil),
-			Route:          ledger.RouteFilter{Currency: f.currency.Reference(), CostBasis: mo.Some[*decimal.Decimal](nil), TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen)},
+			AccountID: lo.ToPtr(f.accounts.ReceivableAccount.ID().ID),
+			Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some[*string](nil),
+			},
+			Route: ledger.RouteFilter{Currency: f.currency.Reference(), CostBasis: mo.Some[*decimal.Decimal](nil), TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen)},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID, ledger.BalanceBucketGroupByCollectionOriginID},
 	})
 	require.NoError(t, err)
 	uncovered := map[string]float64{}
+
 	for _, bucket := range buckets {
 		if bucket.SettledAmount.IsZero() {
 			continue
 		}
+
 		require.NotEmpty(t, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
 		uncovered[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] -= bucket.SettledAmount.InexactFloat64()
 	}

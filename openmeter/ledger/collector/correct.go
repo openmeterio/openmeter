@@ -82,14 +82,17 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
+
 	run := func(ctx context.Context) (creditrealization.CreateCorrectionInputs, error) {
 		if len(input.Corrections) == 0 {
 			return nil, nil
 		}
+
 		accounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID})
 		if err != nil {
 			return nil, err
 		}
+
 		if err := accounts.LockForPosting(ctx, c.deps.AccountCatalog); err != nil {
 			return nil, err
 		}
@@ -97,18 +100,22 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 		// Legacy selection reserves entry amounts across the batch. Origin
 		// corrections reconstruct only their indexed origin histories below.
 		used := make(map[string]alpacadecimal.Decimal)
+
 		for _, correction := range input.Corrections {
 			if correction.Allocation.Annotations[ledger.AnnotationOriginTracked] != true {
 				used, err = c.correctedSourceAmounts(ctx, input)
 				if err != nil {
 					return nil, err
 				}
+
 				break
 			}
 		}
+
 		// Reserve source capacity across the batch before committing any postings.
 		actions := make([]plannedAction, 0, len(input.Corrections))
 		selectedSegments := make(map[string]map[string]alpacadecimal.Decimal)
+
 		for _, correction := range input.Corrections {
 			correctionActions, err := c.planCorrection(ctx, input, correction, used, selectedSegments)
 			if err != nil {
@@ -159,15 +166,18 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 		out := make(creditrealization.CreateCorrectionInputs, 0, len(input.Corrections))
 		for _, correction := range input.Corrections {
 			var annotations models.Annotations
+
 			if selected := selectedSegments[correction.Allocation.ID]; selected != nil {
 				annotations, err = legacylineage.CorrectionAnnotations(selected)
 				if err != nil {
 					return nil, err
 				}
 			}
+
 			if correction.Allocation.Annotations[ledger.AnnotationOriginTracked] == true {
 				annotations = models.Annotations{ledger.AnnotationOriginTracked: true}
 			}
+
 			out = append(out, creditrealization.CreateCorrectionInput{
 				Annotations: annotations,
 				LedgerTransaction: ledgertransaction.GroupReference{
@@ -195,8 +205,9 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	if err != nil {
 		return nil, err
 	}
+
 	for _, entry := range source.transaction.Entries() {
-		if entry.CollectionOriginID() != nil {
+		if entry.Provenance().CollectionOriginID != nil {
 			return c.planOriginCorrection(ctx, input, source, correction.Amount.Abs())
 		}
 	}
@@ -211,11 +222,14 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	if err != nil {
 		return nil, err
 	}
+
 	selected, err := planCollectionCorrection(collectionCorrectionInput{amount: correction.Amount.Abs(), positions: positions})
 	if err != nil {
 		return nil, err
 	}
+
 	selectedSegments[correction.Allocation.ID] = make(map[string]alpacadecimal.Decimal)
+
 	return c.writeLegacyCorrection(ctx, input, selected, evidence, used, selectedSegments[correction.Allocation.ID])
 }
 
@@ -586,8 +600,10 @@ func breakageReleaseFactsByTransactionID(group ledger.TransactionGroup) map[stri
 			}
 
 			out[tx.ID().ID] = ledger.EntryIdentityParts{
-				SourceChargeID: entry.SourceChargeID(),
-				SpendChargeID:  entry.SpendChargeID(),
+				Provenance: ledger.Provenance{
+					SourceChargeID: entry.Provenance().SourceChargeID,
+					SpendChargeID:  entry.Provenance().SpendChargeID,
+				},
 			}
 			break
 		}
@@ -668,9 +684,9 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 				Release:            release,
 				Amount:             amount,
 				SourceKind:         breakage.SourceKindUsageCorrection,
-				SourceChargeID:     correctedEntry.entry.SourceChargeID(),
-				SpendChargeID:      correctedEntry.entry.SpendChargeID(),
-				CollectionOriginID: correctedEntry.entry.CollectionOriginID(),
+				SourceChargeID:     correctedEntry.entry.Provenance().SourceChargeID,
+				SpendChargeID:      correctedEntry.entry.Provenance().SpendChargeID,
+				CollectionOriginID: correctedEntry.entry.Provenance().CollectionOriginID,
 			})
 			if err != nil {
 				return nil, nil, fmt.Errorf("resolve breakage reopen: %w", err)
@@ -838,8 +854,8 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 
 	for _, transaction := range group.Transactions() {
 		for _, entry := range transaction.Entries() {
-			if sourceChargeID == nil && entry.SourceChargeID() != nil {
-				sourceChargeID = entry.SourceChargeID()
+			if sourceChargeID == nil && entry.Provenance().SourceChargeID != nil {
+				sourceChargeID = entry.Provenance().SourceChargeID
 			}
 
 			route := entry.PostingAddress().Route().Route()
@@ -1021,8 +1037,8 @@ type correctionPostingKey struct{ subAccountID, sourceChargeID, spendChargeID st
 func correctionEntryKey(entry ledger.EntryInput) correctionPostingKey {
 	return correctionPostingKey{
 		subAccountID:   entry.PostingAddress().SubAccountID(),
-		sourceChargeID: lo.FromPtrOr(entry.SourceChargeID(), ""),
-		spendChargeID:  lo.FromPtrOr(entry.SpendChargeID(), ""),
+		sourceChargeID: lo.FromPtrOr(entry.Provenance().SourceChargeID, ""),
+		spendChargeID:  lo.FromPtrOr(entry.Provenance().SpendChargeID, ""),
 	}
 }
 

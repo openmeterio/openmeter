@@ -714,10 +714,10 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	s.Require().NoError(err)
 	s.Require().Len(coverageGroup.Transactions(), 1)
 	for _, entry := range coverageGroup.Transactions()[0].Entries() {
-		s.Require().NotNil(entry.SourceChargeID())
-		s.Equal(input.SourceChargeID, *entry.SourceChargeID())
-		s.Require().NotNil(entry.SpendChargeID())
-		s.Equal(input.ChargeID, *entry.SpendChargeID())
+		s.Require().NotNil(entry.Provenance().SourceChargeID)
+		s.Equal(input.SourceChargeID, *entry.Provenance().SourceChargeID)
+		s.Require().NotNil(entry.Provenance().SpendChargeID)
+		s.Equal(input.ChargeID, *entry.Provenance().SpendChargeID)
 	}
 
 	// The synthetic custom purchase leaves no spendable custom balance or open
@@ -742,9 +742,10 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	// New coverage is corrected from its ledger origin, with no lineage side state.
 	s.Empty(lineages)
 	s.Equal(true, input.FiatCreditRealization.Annotations[ledger.AnnotationOriginTracked])
+
 	for _, tx := range coverageGroup.Transactions() {
 		for _, entry := range tx.Entries() {
-			s.NotNil(entry.CollectionOriginID())
+			s.NotNil(entry.Provenance().CollectionOriginID)
 		}
 	}
 
@@ -917,9 +918,9 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requirePaymentTransaction(nam
 	s.Require().NoError(err)
 	s.Equal(expectedTemplateCode, templateCode)
 	for _, entry := range transaction.Entries() {
-		s.Require().NotNil(entry.SourceChargeID())
-		s.Equal(chargeID, *entry.SourceChargeID())
-		s.Nil(entry.SpendChargeID())
+		s.Require().NotNil(entry.Provenance().SourceChargeID)
+		s.Equal(chargeID, *entry.Provenance().SourceChargeID)
+		s.Nil(entry.Provenance().SpendChargeID)
 	}
 }
 

@@ -45,7 +45,7 @@ projection. The type-specific detailed status is the lifecycle state.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
 - [Legacy lineage](legacylineage/README.md) is deprecated compatibility for
-  pre-cutover credit histories. New collections use ledger origins; remaining
+  legacy lineage credit histories. New collections use ledger origins; remaining
   lineage reads and writes must stay confined to legacy histories.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles
   subscription-derived source intent, including item currency and subscription
@@ -419,7 +419,7 @@ Charges persist no cross-run FX remainder, so later runs cannot carry or absorb
 an earlier run's rounding difference. Correction reverses the complete original
 conversion rather than partially recomputing it.
 
-New credit realizations use ledger origins; pre-cutover realizations retain
+New credit realizations use ledger origins; legacy lineage realizations retain
 lineage compatibility. Both use the namespace-scoped managed currency ID in
 addition to code. Advance, backfill, and recognition therefore remain isolated
 when managed currencies reuse a code. `AdvanceCharges` recognizes credit-backed value in

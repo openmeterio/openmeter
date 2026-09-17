@@ -178,7 +178,9 @@ func setup(t *testing.T, config setupConfig) testDeps {
 
 	var chargesService charges.Service
 	var ledgerDeps ledgertestutils.Deps
+
 	var lineageService legacylineage.Service
+
 	if config.enableCharges {
 		logger := testutils.NewLogger(t)
 		ledgerDeps, err = ledgertestutils.InitDeps(deps.DBDeps.DBClient, logger)

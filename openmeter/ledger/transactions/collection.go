@@ -86,9 +86,11 @@ func collectFromAttributableCustomerAccrued(
 		}
 
 		identity := ledger.EntryIdentityParts{
-			SourceChargeID:     bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
-			CollectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID],
-			SpendChargeID:      bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+			Provenance: ledger.Provenance{
+				SourceChargeID:     bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+				CollectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID],
+				SpendChargeID:      bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+			},
 		}
 		if (identity.CollectionOriginID != nil) != originTracked || !isCreditBackedAccruedIdentity(identity) {
 			continue

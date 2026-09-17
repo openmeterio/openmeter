@@ -1069,6 +1069,7 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 		if err != nil || result.TransactionGroupID == "" {
 			return result, err
 		}
+
 		err = e.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency,
 			Amount: charge.Intent.CreditAmount, FeatureFilters: charge.Intent.FeatureFilters.Normalize(),
@@ -1240,7 +1241,9 @@ func (e *creditPurchaseHandlerTestEnv) requireTransactionGroupEntriesSourceCharg
 	require.NotEmpty(t, entries)
 
 	expectedIdentityKey, _ := ledger.EntryIdentityParts{
-		SourceChargeID: &sourceChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID,
+		},
 	}.Text()
 
 	for _, entry := range entries {

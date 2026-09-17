@@ -123,8 +123,10 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	nullSourceBalances, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: namespace,
 		Filters: ledger.Filters{
-			AccountID:      &accountID,
-			SourceChargeID: mo.Some[*string](nil),
+			AccountID: &accountID,
+			Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some[*string](nil),
+			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
 	})
@@ -361,8 +363,10 @@ func provenanceEntryInput(t *testing.T, sub *ledgeraccount.SubAccountData, amoun
 	t.Helper()
 
 	identityKey, _ := ledger.EntryIdentityParts{
-		SourceChargeID: sourceChargeID,
-		SpendChargeID:  spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: sourceChargeID,
+			SpendChargeID:  spendChargeID,
+		},
 	}.Text()
 
 	return &transactionstestutils.AnyEntryInput{

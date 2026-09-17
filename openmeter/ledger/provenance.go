@@ -4,8 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -15,65 +14,50 @@ const (
 	AnnotationBackfillCreditPriority = "ledger.backfill.credit_priority"
 )
 
-// ValidateOriginProvenance prevents a balanced transaction from silently moving
-// value between collection occurrences or dropping its immutable spend identity.
-// Cost-basis translation may add/remove source attribution on the same account
-// type; a transfer between account types must preserve the source as well.
-func ValidateOriginProvenance(entries []EntryInput) error {
-	type originBalance struct {
-		amount        alpacadecimal.Decimal
-		spend         string
-		accountType   AccountType
-		sourceAmounts map[string]alpacadecimal.Decimal
-		mixedAccount  bool
+type Provenance struct {
+	CollectionOriginID *string
+	SourceChargeID     *string
+	SpendChargeID      *string
+}
+
+func (p Provenance) Filter() ProvenanceFilter {
+	return ProvenanceFilter{
+		CollectionOriginID: mo.Some(p.CollectionOriginID),
+		SourceChargeID:     mo.Some(p.SourceChargeID),
+		SpendChargeID:      mo.Some(p.SpendChargeID),
 	}
-	balances := make(map[string]originBalance)
+}
+
+// Absent fields match any value; Some(nil) matches entries without that ID.
+type ProvenanceFilter struct {
+	CollectionOriginID mo.Option[*string]
+	SourceChargeID     mo.Option[*string]
+	SpendChargeID      mo.Option[*string]
+}
+
+func (f ProvenanceFilter) Validate() error {
 	var errs []error
-	for _, entry := range entries {
-		if entry.CollectionOriginID() == nil {
-			continue
-		}
-		spend := lo.FromPtr(entry.SpendChargeID())
-		if spend == "" {
-			errs = append(errs, errors.New("origin provenance requires spend_charge_id"))
-		}
-		key := *entry.CollectionOriginID() + ":" + entry.PostingAddress().Route().Route().Currency.IdentityKey()
-		value, exists := balances[key]
-		if !exists {
-			value.spend = spend
-			value.sourceAmounts = make(map[string]alpacadecimal.Decimal)
-			value.accountType = entry.PostingAddress().AccountType()
-		}
-		if value.spend != spend {
-			errs = append(errs, errors.New("origin provenance must preserve spend_charge_id"))
-		}
-		source := lo.FromPtr(entry.SourceChargeID())
-		value.sourceAmounts[source] = value.sourceAmounts[source].Add(entry.Amount())
-		value.mixedAccount = value.mixedAccount || value.accountType != entry.PostingAddress().AccountType()
-		value.amount = value.amount.Add(entry.Amount())
-		balances[key] = value
+
+	if err := validateOptionalProvenanceID("collection_origin_id", f.CollectionOriginID); err != nil {
+		errs = append(errs, err)
 	}
-	for _, value := range balances {
-		if !value.amount.IsZero() {
-			errs = append(errs, fmt.Errorf("origin provenance must balance independently: %s", value.amount))
-		}
-		for _, amount := range value.sourceAmounts {
-			if amount.IsZero() {
-				continue
-			}
-			if value.mixedAccount {
-				errs = append(errs, errors.New("origin transfer must preserve source_charge_id"))
-				break
-			}
-			// The only source-changing operation is attribution of previously unknown
-			// receivable/accrued value (or its exact reversal), never purchase A to B.
-			_, hasUnknownSource := value.sourceAmounts[""]
-			if !hasUnknownSource || len(value.sourceAmounts) != 2 ||
-				(value.accountType != AccountTypeCustomerReceivable && value.accountType != AccountTypeCustomerAccrued) {
-				errs = append(errs, errors.New("origin source translation must attribute unknown receivable or accrued value"))
-				break
-			}
-		}
+
+	if err := validateOptionalProvenanceID("source_charge_id", f.SourceChargeID); err != nil {
+		errs = append(errs, err)
 	}
+
+	if err := validateOptionalProvenanceID("spend_charge_id", f.SpendChargeID); err != nil {
+		errs = append(errs, err)
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func validateOptionalProvenanceID(name string, filter mo.Option[*string]) error {
+	value, _ := filter.Get()
+	if value != nil && *value == "" {
+		return fmt.Errorf("%s must not be empty", name)
+	}
+
+	return nil
 }

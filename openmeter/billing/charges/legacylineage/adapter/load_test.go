@@ -38,6 +38,7 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 	// Given outstanding advances, a partial remainder, fully backed and consumed
 	// history, ordinary credit, and unrelated customers/currencies/namespaces.
 	ids := map[string]string{}
+
 	for _, scenario := range []struct {
 		name       string
 		features   []string
@@ -58,6 +59,7 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		{name: "other namespace", features: []string{"api"}, otherScope: "namespace"},
 	} {
 		namespace, customerID, currency := testNamespace, testCustomerID, testCurrency.Reference()
+
 		switch scenario.otherScope {
 		case "customer":
 			customerID = ulid.Make().String()
@@ -66,10 +68,12 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		case "namespace":
 			namespace = ulid.Make().String()
 		}
+
 		origin := scenario.origin
 		if origin == "" {
 			origin = creditrealization.LineageOriginKindAdvance
 		}
+
 		chargeID, rootID := ulid.Make().String(), ulid.Make().String()
 		_, err := db.Charge.Create().SetID(chargeID).SetNamespace(namespace).SetType(meta.ChargeTypeUsageBased).Save(ctx)
 		require.NoError(t, err)
@@ -92,6 +96,7 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 				Allocations: []legacylineage.AdvanceBackfillAllocation{{SegmentID: segments[0].ID, Amount: alpacadecimal.NewFromInt(scenario.backed)}},
 			}))
 		}
+
 		if scenario.consumed {
 			require.NoError(t, service.CloseSegment(ctx, segments[0].ID, clock.Now()))
 		}
@@ -131,6 +136,7 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 						if *input.SegmentState == creditrealization.LineageSegmentStateAdvanceBackfilled {
 							expectedAmount = 5
 						}
+
 						require.Equal(t, expectedAmount, root.Segments[0].Amount.InexactFloat64())
 					}
 				}

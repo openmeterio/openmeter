@@ -60,8 +60,8 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 
 			require.NotNil(t, route.CostBasis)
 			require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
-			require.Equal(t, sourceChargeID, *entry.SourceChargeID())
-			require.Equal(t, spendChargeID, *entry.SpendChargeID())
+			require.Equal(t, sourceChargeID, *entry.Provenance().SourceChargeID)
+			require.Equal(t, spendChargeID, *entry.Provenance().SpendChargeID)
 			if route.Currency.Code == currencyx.Code("USD") {
 				require.Nil(t, route.CostBasisCurrency)
 			} else {
@@ -252,7 +252,10 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 		filtered, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 			Namespace: env.Namespace,
 			Limit:     10,
-			Currency:  &customCurrency,
+			EntryFilter: ledger.TransactionEntryFilter{
+				Currency: &customCurrency,
+			},
+			ReturnOnlyMatchingEntries: true,
 		})
 		require.NoError(t, err)
 		require.Len(t, filtered.Items, 3)
@@ -380,10 +383,13 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 			filtered, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 				Namespace: env.Namespace,
 				Limit:     10,
-				Currency:  &customCurrency,
-				Route: ledger.RouteFilter{
-					CostBasisCurrency: mo.Some(&source),
+				EntryFilter: ledger.TransactionEntryFilter{
+					Currency: &customCurrency,
+					Route: ledger.RouteFilter{
+						CostBasisCurrency: mo.Some(&source),
+					},
 				},
+				ReturnOnlyMatchingEntries: true,
 			})
 			require.NoError(t, err)
 			require.Len(t, filtered.Items, 2)
@@ -486,8 +492,8 @@ func TestConvertCurrencyTemplateCorrection(t *testing.T) {
 	require.Equal(t, string(ledger.TransactionDirectionCorrection), correctionInputs[0].Annotations()[ledger.AnnotationTransactionDirection])
 	require.Equal(t, TemplateCode(ConvertCurrencyTemplate{}), correctionInputs[0].Annotations()[ledger.AnnotationTransactionTemplateCode])
 	for _, entry := range correctionInputs[0].EntryInputs() {
-		require.NotNil(t, entry.SourceChargeID())
-		require.Equal(t, sourceChargeID, *entry.SourceChargeID())
+		require.NotNil(t, entry.Provenance().SourceChargeID)
+		require.Equal(t, sourceChargeID, *entry.Provenance().SourceChargeID)
 	}
 
 	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, correctionInputs...))
