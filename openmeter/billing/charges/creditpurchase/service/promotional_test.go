@@ -11,7 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
@@ -244,7 +244,7 @@ func newPromotionalStateMachineTestMachine(
 
 	lineageService.On("BackfillAdvanceLineageSegments",
 		mock.Anything,
-		mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
+		mock.MatchedBy(func(input legacylineage.BackfillAdvanceLineageSegmentsInput) bool {
 			return input.Namespace == charge.Namespace &&
 				input.CustomerID == charge.Intent.CustomerID &&
 				input.Currency.GetCode() == charge.Intent.Currency.GetCode() &&
@@ -268,7 +268,7 @@ func newPromotionalStateMachineRealizations(
 	t *testing.T,
 	adapter creditpurchase.Adapter,
 	handler creditpurchase.Handler,
-	lineageService lineage.Service,
+	lineageService legacylineage.Service,
 ) *creditpurchaserealizations.Service {
 	t.Helper()
 
@@ -366,20 +366,20 @@ func (h *promotionalStateMachineHandler) OnPromotionalCreditPurchase(ctx context
 }
 
 type promotionalStateMachineLineage struct {
-	lineage.Service
+	legacylineage.Service
 	mock.Mock
 }
 
-func (l *promotionalStateMachineLineage) BackfillAdvanceLineageSegments(ctx context.Context, input lineage.BackfillAdvanceLineageSegmentsInput) error {
+func (l *promotionalStateMachineLineage) BackfillAdvanceLineageSegments(ctx context.Context, input legacylineage.BackfillAdvanceLineageSegmentsInput) error {
 	args := l.Called(ctx, input)
 	return args.Error(0)
 }
 
 var (
 	_ creditpurchase.Handler = (*promotionalStateMachineHandler)(nil)
-	_ lineage.Service        = (*promotionalStateMachineLineage)(nil)
+	_ legacylineage.Service  = (*promotionalStateMachineLineage)(nil)
 )
 
-func (*promotionalStateMachineLineage) LoadLineagesByCustomer(context.Context, lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {
+func (*promotionalStateMachineLineage) LoadLineagesByCustomer(context.Context, legacylineage.LoadLineagesByCustomerInput) ([]legacylineage.Lineage, error) {
 	return nil, nil
 }

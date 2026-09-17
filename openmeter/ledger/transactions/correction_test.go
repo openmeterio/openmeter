@@ -156,3 +156,5 @@ func TestCorrectTransactionDoesNotFallbackToLegacyTemplateNameWhenCodeExists(t *
 	require.Error(t, err)
 	require.Contains(t, err.Error(), `unknown correction template code "unknown.template"`)
 }
+
+func (t *correctionTestTransaction) GroupID() models.NamespacedID { return t.ID() }

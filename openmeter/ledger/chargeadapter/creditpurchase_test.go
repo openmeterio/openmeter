@@ -13,9 +13,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -686,8 +686,9 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 type creditPurchaseHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	handler               chargecreditpurchase.Handler
+	breakage              ledgerbreakage.Service
 	currency              currencies.Currency
-	lineage               lineage.Service
+	lineage               legacylineage.Service
 	originalAdvanceGroups map[string]string
 }
 
@@ -718,14 +719,15 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 	)
 	require.NoError(t, err)
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{Client: base.DB})
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: base.DB})
 	require.NoError(t, err)
-	lineageService, err := lineageservice.New(lineageservice.Config{Adapter: lineageAdapter})
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{Adapter: lineageAdapter})
 	require.NoError(t, err)
 
 	return &creditPurchaseHandlerTestEnv{
 		IntegrationEnv:        base,
 		handler:               handler,
+		breakage:              breakageService,
 		lineage:               lineageService,
 		originalAdvanceGroups: map[string]string{},
 		currency:              currenciestestutils.NewFiatCurrency(t, "USD"),
@@ -997,7 +999,7 @@ type advanceExposureInput struct {
 	TaxCode       *string
 }
 
-// createAdvance persists the original journal with its uncovered lineage.
+// createAdvance persists the original journal with its uncovered legacylineage.
 // Nil spend provenance exercises legacy entries through that same lineage path.
 func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advanceExposureInput) {
 	t.Helper()
@@ -1024,9 +1026,12 @@ func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advance
 	_, err = e.DB.Charge.Create().SetID(chargeID).SetNamespace(e.Namespace).SetType(meta.ChargeTypeUsageBased).Save(ctx)
 	require.NoError(t, err)
 	realizationID := ulid.Make().String()
-	require.NoError(t, e.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
-		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: chargeID,
-		Currency: input.Currency, Features: input.Features,
+	require.NoError(t, e.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
+		Namespace:  e.Namespace,
+		CustomerID: e.CustomerID.ID,
+		ChargeID:   chargeID,
+		Currency:   input.Currency,
+		Features:   input.Features,
 		Realizations: creditrealization.Realizations{{CreateInput: creditrealization.CreateInput{
 			ID: realizationID, Type: creditrealization.TypeAllocation, Amount: input.Amount,
 			ServicePeriod:     timeutil.ClosedPeriod{From: e.Now(), To: e.Now()},
@@ -1042,8 +1047,10 @@ func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advance
 func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargecreditpurchase.Charge) (chargecreditpurchase.CreditGrantResult, error) {
 	t.Helper()
 	return transaction.Run(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
-		roots, err := e.lineage.LoadLineagesByCustomer(ctx, lineage.LoadLineagesByCustomerInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency.Reference(),
+		roots, err := e.lineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+			Namespace:         e.Namespace,
+			CustomerID:        e.CustomerID.ID,
+			Currency:          charge.Intent.Currency.Reference(),
 			OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
 			HasActiveSegments: true,
 			SegmentState:      lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
@@ -1067,10 +1074,15 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 		if err != nil || result.TransactionGroupID == "" {
 			return result, err
 		}
-		err = e.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency,
-			Amount: charge.Intent.CreditAmount, FeatureFilters: charge.Intent.FeatureFilters.Normalize(),
-			BackingTransactionGroupID: result.TransactionGroupID, Allocations: result.BackfillAllocations,
+
+		err = e.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
+			Namespace:                 e.Namespace,
+			CustomerID:                e.CustomerID.ID,
+			Currency:                  charge.Intent.Currency,
+			Amount:                    charge.Intent.CreditAmount,
+			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
+			BackingTransactionGroupID: result.TransactionGroupID,
+			Allocations:               result.BackfillAllocations,
 		})
 		return result, err
 	})
@@ -1238,7 +1250,9 @@ func (e *creditPurchaseHandlerTestEnv) requireTransactionGroupEntriesSourceCharg
 	require.NotEmpty(t, entries)
 
 	expectedIdentityKey, _ := ledger.EntryIdentityParts{
-		SourceChargeID: &sourceChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID,
+		},
 	}.Text()
 
 	for _, entry := range entries {

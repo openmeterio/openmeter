@@ -50,7 +50,9 @@ func TestEntryIdentityParts_Text(t *testing.T) {
 		{
 			name: "source charge v2",
 			parts: ledger.EntryIdentityParts{
-				SourceChargeID: &sourceChargeID,
+				Provenance: ledger.Provenance{
+					SourceChargeID: &sourceChargeID,
+				},
 			},
 			expectedText:    "entry-identity:v2:||01JABCDEF0123456789ABCDEFG|",
 			expectedVersion: ledger.EntryIdentityVersion2,
@@ -59,8 +61,10 @@ func TestEntryIdentityParts_Text(t *testing.T) {
 			name: "collection source plus charge provenance v2",
 			parts: ledger.EntryIdentityParts{
 				CollectionSource: &collectionSource,
-				SourceChargeID:   &sourceChargeID,
-				SpendChargeID:    &spendChargeID,
+				Provenance: ledger.Provenance{
+					SourceChargeID: &sourceChargeID,
+					SpendChargeID:  &spendChargeID,
+				},
 			},
 			expectedText:    "entry-identity:v2:0||01JABCDEF0123456789ABCDEFG|01JBCDEFG0123456789ABCDEFG",
 			expectedVersion: ledger.EntryIdentityVersion2,
@@ -69,7 +73,9 @@ func TestEntryIdentityParts_Text(t *testing.T) {
 			name: "correction source plus spend provenance v2",
 			parts: ledger.EntryIdentityParts{
 				CorrectionSource: &correctionSource,
-				SpendChargeID:    &spendChargeID,
+				Provenance: ledger.Provenance{
+					SpendChargeID: &spendChargeID,
+				},
 			},
 			expectedText:    "entry-identity:v2:|entry%3A1||01JBCDEFG0123456789ABCDEFG",
 			expectedVersion: ledger.EntryIdentityVersion2,
@@ -107,8 +113,10 @@ func TestValidateEntryIdentityKey(t *testing.T) {
 	})
 	identityKey, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 
 	t.Run("accepts canonical identity", func(t *testing.T) {
@@ -217,12 +225,13 @@ func TestValidateEntryIdentityKey(t *testing.T) {
 }
 
 type validationEntryInput struct {
-	address        ledger.PostingAddress
-	amount         alpacadecimal.Decimal
-	identityKey    string
-	schemaVersion  ledger.EntrySchemaVersion
-	sourceChargeID *string
-	spendChargeID  *string
+	address            ledger.PostingAddress
+	amount             alpacadecimal.Decimal
+	identityKey        string
+	schemaVersion      ledger.EntrySchemaVersion
+	sourceChargeID     *string
+	spendChargeID      *string
+	collectionOriginID *string
 }
 
 func (e validationEntryInput) PostingAddress() ledger.PostingAddress {
@@ -245,12 +254,12 @@ func (e validationEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
 	return e.schemaVersion
 }
 
-func (e validationEntryInput) SourceChargeID() *string {
-	return e.sourceChargeID
-}
-
-func (e validationEntryInput) SpendChargeID() *string {
-	return e.spendChargeID
+func (e validationEntryInput) Provenance() ledger.Provenance {
+	return ledger.Provenance{
+		CollectionOriginID: e.collectionOriginID,
+		SourceChargeID:     e.sourceChargeID,
+		SpendChargeID:      e.spendChargeID,
+	}
 }
 
 func (e validationEntryInput) Annotations() models.Annotations {

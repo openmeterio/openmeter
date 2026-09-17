@@ -26,12 +26,16 @@ func settledBalanceForSubAccount(ctx context.Context, querier ledger.BalanceQuer
 func invoicePaymentIdentity(chargeID string, chargeCurrency currencies.Currency) ledger.EntryIdentityParts {
 	if chargeCurrency.IsCustom() {
 		return ledger.EntryIdentityParts{
-			SourceChargeID: &chargeID,
+			Provenance: ledger.Provenance{
+				SourceChargeID: &chargeID,
+			},
 		}
 	}
 
 	return ledger.EntryIdentityParts{
-		SpendChargeID: &chargeID,
+		Provenance: ledger.Provenance{
+			SpendChargeID: &chargeID,
+		},
 	}
 }
 

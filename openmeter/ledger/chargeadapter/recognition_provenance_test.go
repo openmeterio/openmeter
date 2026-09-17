@@ -76,9 +76,10 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 			var spends []string
 			for _, entry := range entries {
 				if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsNegative() {
-					require.NotNil(t, entry.SpendChargeID())
-					if !slices.Contains(spends, *entry.SpendChargeID()) {
-						spends = append(spends, *entry.SpendChargeID())
+					require.NotNil(t, entry.Provenance().SpendChargeID)
+
+					if !slices.Contains(spends, *entry.Provenance().SpendChargeID) {
+						spends = append(spends, *entry.Provenance().SpendChargeID)
 					}
 				}
 			}
@@ -103,8 +104,8 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 				}
 				for _, entry := range correctionEntries {
 					if entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.Amount().IsNegative() {
-						require.NotNil(t, entry.SpendChargeID())
-						require.Equal(t, charge.ID, *entry.SpendChargeID(), "correction reversed another spend's recognized earnings")
+						require.NotNil(t, entry.Provenance().SpendChargeID)
+						require.Equal(t, charge.ID, *entry.Provenance().SpendChargeID, "correction reversed another spend's recognized earnings")
 					}
 				}
 			}
@@ -116,8 +117,8 @@ func TestCustomCurrencyRecognizedCorrectionPreservesSpend(t *testing.T) {
 				require.Nil(t, page.NextCursor)
 				for _, tx := range page.Items {
 					for _, entry := range tx.Entries() {
-						if entry.PostingAddress().AccountType() == accountType && entry.SpendChargeID() != nil {
-							balances[*entry.SpendChargeID()] = balances[*entry.SpendChargeID()].Add(entry.Amount())
+						if entry.PostingAddress().AccountType() == accountType && entry.Provenance().SpendChargeID != nil {
+							balances[*entry.Provenance().SpendChargeID] = balances[*entry.Provenance().SpendChargeID].Add(entry.Amount())
 						}
 					}
 				}

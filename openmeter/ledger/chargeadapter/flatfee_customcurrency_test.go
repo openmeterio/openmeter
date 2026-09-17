@@ -222,7 +222,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(t *
 
 func TestOnFlatFeeCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testing.T) {
 	env := newFlatFeeHandlerTestEnv(t)
-	sourceChargeID := "fiat-credit-source"
+	sourceChargeID := "01J00000000000000000000006"
 	fbo := env.fundPriorityForSource(t, 1, 6, sourceChargeID)
 
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
@@ -451,7 +451,7 @@ func (e *flatFeeHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *test
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
-				ID: "flat-fee-charge-cc-cti",
+				ID: "01J00000000000000000000003",
 			},
 			Intent: flatfee.Intent{
 				Intent: meta.Intent{

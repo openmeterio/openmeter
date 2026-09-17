@@ -37,15 +37,15 @@ func (e *EntryInput) IdentityKey() string {
 }
 
 func (e *EntryInput) SchemaVersion() ledger.EntrySchemaVersion {
+	if e.identity.CollectionOriginID != nil {
+		return ledger.EntrySchemaVersionOrigin
+	}
+
 	return ledger.EntrySchemaVersionCurrent
 }
 
-func (e *EntryInput) SourceChargeID() *string {
-	return e.identity.SourceChargeID
-}
-
-func (e *EntryInput) SpendChargeID() *string {
-	return e.identity.SpendChargeID
+func (e *EntryInput) Provenance() ledger.Provenance {
+	return e.identity.Provenance
 }
 
 func (e *EntryInput) Annotations() models.Annotations {

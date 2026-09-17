@@ -62,23 +62,7 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 		entryPredicates = append(entryPredicates, ledgerentrydb.TransactionID(*b.query.Filters.TransactionID))
 	}
 
-	if b.query.Filters.SourceChargeID.IsPresent() {
-		sourceChargeID, _ := b.query.Filters.SourceChargeID.Get()
-		if sourceChargeID != nil {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeID(*sourceChargeID))
-		} else {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeIDIsNil())
-		}
-	}
-
-	if b.query.Filters.SpendChargeID.IsPresent() {
-		spendChargeID, _ := b.query.Filters.SpendChargeID.Get()
-		if spendChargeID != nil {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeID(*spendChargeID))
-		} else {
-			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeIDIsNil())
-		}
-	}
+	entryPredicates = append(entryPredicates, entryProvenancePredicates(b.query.Filters.Provenance)...)
 
 	if b.query.Filters.BookedAtPeriod != nil {
 		transactionPredicates := make([]predicate.LedgerTransaction, 0, 2)
@@ -227,4 +211,37 @@ func matchFeature(feature string) predicate.LedgerSubAccountRoute {
 			}),
 		))
 	}
+}
+
+func entryProvenancePredicates(filter ledger.ProvenanceFilter) []predicate.LedgerEntry {
+	entryPredicates := make([]predicate.LedgerEntry, 0, 3)
+
+	if filter.SourceChargeID.IsPresent() {
+		sourceChargeID, _ := filter.SourceChargeID.Get()
+		if sourceChargeID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeID(*sourceChargeID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeIDIsNil())
+		}
+	}
+
+	if filter.SpendChargeID.IsPresent() {
+		spendChargeID, _ := filter.SpendChargeID.Get()
+		if spendChargeID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeID(*spendChargeID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeIDIsNil())
+		}
+	}
+
+	if filter.CollectionOriginID.IsPresent() {
+		collectionOriginID, _ := filter.CollectionOriginID.Get()
+		if collectionOriginID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.CollectionOriginID(*collectionOriginID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.CollectionOriginIDIsNil())
+		}
+	}
+
+	return entryPredicates
 }

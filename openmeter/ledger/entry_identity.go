@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/equal"
@@ -18,6 +19,7 @@ const (
 	EntryIdentityVersion1 EntryIdentityVersion = 1
 	// charge provenance
 	EntryIdentityVersion2 EntryIdentityVersion = 2
+	EntryIdentityVersion3 EntryIdentityVersion = 3
 )
 
 func (e EntryIdentityVersion) prefix() string {
@@ -32,6 +34,10 @@ func (e EntryIdentityVersion) prefix() string {
 type EntryIdentityKeyText string
 
 func (e EntryIdentityKeyText) Version() EntryIdentityVersion {
+	if strings.HasPrefix(string(e), EntryIdentityVersion3.prefix()) {
+		return EntryIdentityVersion3
+	}
+
 	if strings.HasPrefix(string(e), EntryIdentityVersion2.prefix()) {
 		return EntryIdentityVersion2
 	}
@@ -41,6 +47,25 @@ func (e EntryIdentityKeyText) Version() EntryIdentityVersion {
 
 func (e EntryIdentityKeyText) Parse() (EntryIdentityVersion, EntryIdentityParts, error) {
 	version := e.Version()
+	if version == EntryIdentityVersion3 {
+		encoded := strings.TrimPrefix(string(e), version.prefix())
+
+		parts := strings.Split(encoded, "|")
+		if len(parts) != 5 {
+			return version, EntryIdentityParts{}, fmt.Errorf("invalid ledger entry identity key format")
+		}
+
+		prior, err := parseV2EntryIdentityKey(EntryIdentityVersion2.prefix() + strings.Join(parts[:4], "|"))
+		if err != nil {
+			return version, EntryIdentityParts{}, err
+		}
+
+		out := prior.EntryIdentityParts()
+		out.CollectionOriginID, err = parseOptionalEntryIdentityPart("collection_origin_id", parts[4])
+
+		return version, out, err
+	}
+
 	if version == EntryIdentityVersion1 {
 		parts, err := parseV1EntryIdentityKey(string(e))
 		if err != nil {
@@ -59,13 +84,24 @@ func (e EntryIdentityKeyText) Parse() (EntryIdentityVersion, EntryIdentityParts,
 }
 
 type EntryIdentityParts struct {
+	Provenance
 	CollectionSource *string // Custom key to keep 1:1 matching logic during collection
-	CorrectionSource *string // References the ID of the entry we're collecting
-	SourceChargeID   *string // The original creditpurchase charge (if exists) that funds this entry
-	SpendChargeID    *string // The usage charge (if exists) that accrued this entry
+	CorrectionSource *string // References the original entry being reversed
 }
 
 func (e EntryIdentityParts) Text() (EntryIdentityKeyText, EntryIdentityVersion) {
+	prior := v2EntryIdentityParts{
+		CollectionSource: e.CollectionSource,
+		CorrectionSource: e.CorrectionSource,
+		SourceChargeID:   e.SourceChargeID,
+		SpendChargeID:    e.SpendChargeID,
+	}
+	if e.CollectionOriginID != nil {
+		encoded := strings.TrimPrefix(string(prior.Text()), EntryIdentityVersion2.prefix())
+
+		return EntryIdentityKeyText(EntryIdentityVersion3.prefix() + encoded + "|" + escapeEntryIdentityPart(e.CollectionOriginID)), EntryIdentityVersion3
+	}
+
 	if e.SourceChargeID == nil && e.SpendChargeID == nil {
 		return v1EntryIdentityParts{
 			CollectionSource: e.CollectionSource,
@@ -73,7 +109,7 @@ func (e EntryIdentityParts) Text() (EntryIdentityKeyText, EntryIdentityVersion) 
 		}.Text(), EntryIdentityVersion1
 	}
 
-	return v2EntryIdentityParts(e).Text(), EntryIdentityVersion2
+	return prior.Text(), EntryIdentityVersion2
 }
 
 func ValidateEntryIdentityKey(entry EntryInput) error {
@@ -89,15 +125,26 @@ func ValidateEntryIdentityKey(entry EntryInput) error {
 			return fmt.Errorf("identity_key version %d requires schema_version %d", version, EntrySchemaVersionCurrent)
 		}
 
-		if entry.SourceChargeID() != nil || entry.SpendChargeID() != nil {
+		if entry.Provenance().SourceChargeID != nil || entry.Provenance().SpendChargeID != nil {
 			return fmt.Errorf("schema_version %d cannot contain charge provenance", EntrySchemaVersionLegacy)
 		}
 	case EntrySchemaVersionCurrent:
+		if entry.Provenance().CollectionOriginID != nil || version == EntryIdentityVersion3 {
+			return fmt.Errorf("origin provenance requires schema_version %d", EntrySchemaVersionOrigin)
+		}
+	case EntrySchemaVersionOrigin:
+		if version != EntryIdentityVersion3 || entry.Provenance().CollectionOriginID == nil {
+			return fmt.Errorf("schema_version %d requires origin provenance", EntrySchemaVersionOrigin)
+		}
+
+		if _, err := ulid.ParseStrict(*entry.Provenance().CollectionOriginID); err != nil {
+			return fmt.Errorf("collection_origin_id: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported schema_version %d", entry.SchemaVersion())
 	}
 
-	if (entry.SourceChargeID() != nil || entry.SpendChargeID() != nil) && version != EntryIdentityVersion2 {
+	if (entry.Provenance().SourceChargeID != nil || entry.Provenance().SpendChargeID != nil) && version < EntryIdentityVersion2 {
 		return fmt.Errorf("identity_key version must be %d when charge provenance is present", EntryIdentityVersion2)
 	}
 
@@ -105,12 +152,16 @@ func ValidateEntryIdentityKey(entry EntryInput) error {
 		return fmt.Errorf("identity_key version %d requires charge provenance", EntryIdentityVersion2)
 	}
 
-	if !equal.ComparablePtrEqual(parts.SourceChargeID, entry.SourceChargeID()) {
+	if !equal.ComparablePtrEqual(parts.SourceChargeID, entry.Provenance().SourceChargeID) {
 		return fmt.Errorf("source_charge_id does not match identity_key")
 	}
 
-	if !equal.ComparablePtrEqual(parts.SpendChargeID, entry.SpendChargeID()) {
+	if !equal.ComparablePtrEqual(parts.SpendChargeID, entry.Provenance().SpendChargeID) {
 		return fmt.Errorf("spend_charge_id does not match identity_key")
+	}
+
+	if !equal.ComparablePtrEqual(parts.CollectionOriginID, entry.Provenance().CollectionOriginID) {
+		return fmt.Errorf("collection_origin_id does not match identity_key")
 	}
 
 	expected, expectedVersion := parts.Text()
@@ -198,7 +249,14 @@ func (e v2EntryIdentityParts) Text() EntryIdentityKeyText {
 }
 
 func (e v2EntryIdentityParts) EntryIdentityParts() EntryIdentityParts {
-	return EntryIdentityParts(e)
+	return EntryIdentityParts{
+		CollectionSource: e.CollectionSource,
+		CorrectionSource: e.CorrectionSource,
+		Provenance: Provenance{
+			SourceChargeID: e.SourceChargeID,
+			SpendChargeID:  e.SpendChargeID,
+		},
+	}
 }
 
 func parseV2EntryIdentityKey(identityKey string) (v2EntryIdentityParts, error) {

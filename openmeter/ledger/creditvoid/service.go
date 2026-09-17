@@ -251,9 +251,11 @@ func (s *service) planVoid(ctx context.Context, input VoidCreditPurchaseInput) (
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: input.CustomerID.Namespace,
 		Filters: ledger.Filters{
-			AccountID:      &fboAccountID.ID,
-			SourceChargeID: mo.Some(&input.ChargeID),
-			AsOf:           &voidedAt,
+			AccountID: &fboAccountID.ID,
+			Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some(&input.ChargeID),
+			},
+			AsOf: &voidedAt,
 			Route: ledger.RouteFilter{
 				Currency: currencies.NewCurrencyReference(input.Currency),
 			},
@@ -440,11 +442,15 @@ func (s *service) originalIssueTransaction(ctx context.Context, input VoidCredit
 
 	for {
 		page, err := s.ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
-			Namespace:      input.CustomerID.Namespace,
-			Cursor:         cursor,
-			Limit:          100,
-			AccountIDs:     []string{slice.fboAccount},
-			Currency:       &input.Currency,
+			Namespace: input.CustomerID.Namespace,
+			Cursor:    cursor,
+			Limit:     100,
+			EntryFilter: ledger.TransactionEntryFilter{
+				AccountIDs: []string{slice.fboAccount},
+				Currency:   &input.Currency,
+			},
+			ReturnOnlyMatchingEntries: true,
+
 			AsOf:           &voidedAt,
 			CreditMovement: ledger.ListTransactionsCreditMovementPositive,
 			AnnotationFilters: map[string]string{
@@ -504,7 +510,8 @@ func transactionIssuedFBOForSource(tx ledger.Transaction, sourceChargeID string,
 		if !entry.Amount().IsPositive() {
 			continue
 		}
-		if entry.SourceChargeID() == nil || *entry.SourceChargeID() != sourceChargeID {
+
+		if entry.Provenance().SourceChargeID == nil || *entry.Provenance().SourceChargeID != sourceChargeID {
 			continue
 		}
 
