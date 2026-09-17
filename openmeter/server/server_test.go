@@ -1143,6 +1143,10 @@ func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input e
 	return &entitlement.Entitlement{}, nil
 }
 
+func (n NoopEntitlementConnector) CreateCustomerEntitlement(ctx context.Context, input entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
 }

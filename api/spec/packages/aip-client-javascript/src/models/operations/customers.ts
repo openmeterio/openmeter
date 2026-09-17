@@ -13,6 +13,7 @@ import type {
   CreateCreditAdjustmentRequest as CreateCreditAdjustmentRequestBody,
   CreateCreditGrantRequestInput,
   CreateCustomerRequest as CreateCustomerRequestBody,
+  CreateEntitlementRequestInput,
   CreditAdjustment,
   CreditBalances,
   CreditGrant,
@@ -24,6 +25,7 @@ import type {
   CustomerPagePaginatedResponse,
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
+  Entitlement,
   GetCreditBalanceParamsFilter,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
@@ -111,6 +113,12 @@ export type CreateCustomerStripePortalSessionRequest = AcceptDateStrings<{
 }>
 export type CreateCustomerStripePortalSessionResponse =
   AppStripeCreateCustomerPortalSessionResult
+
+export type CreateCustomerEntitlementRequest = AcceptDateStrings<{
+  customerId: string
+  body: CreateEntitlementRequestInput
+}>
+export type CreateCustomerEntitlementResponse = Entitlement
 
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string

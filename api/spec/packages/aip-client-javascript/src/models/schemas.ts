@@ -499,6 +499,26 @@ export const entitlementType = z
   .enum(['metered', 'static', 'boolean'])
   .describe('The type of the entitlement.')
 
+export const iso8601Duration = z
+  .string()
+
+  .regex(
+    new RegExp(
+      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
+    ),
+  )
+
+  .describe(
+    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
+  )
+
+export const entitlementMeasureUsageFromPreset = z
+  .enum(['current_period_start', 'now'])
+
+  .describe(
+    'Preset start of usage measurement for a metered entitlement. - `current_period_start`: usage is measured from the start of the current usage period. - `now`: usage is measured from the entitlement creation time.',
+  )
+
 export const createLabels = z
   .record(z.string(), z.string())
 
@@ -525,19 +545,6 @@ export const taxBehavior = z
 
   .describe(
     'Tax behavior. This enum is used to specify whether tax is included in the price or excluded from the price.',
-  )
-
-export const iso8601Duration = z
-  .string()
-
-  .regex(
-    new RegExp(
-      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
-    ),
-  )
-
-  .describe(
-    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
   )
 
 export const creditPurchasePaymentSettlementStatus = z
@@ -1674,6 +1681,26 @@ export const createCurrencyCustomRequest = z
   })
   .describe('CurrencyCustom create request.')
 
+export const entitlementIssueAfterReset = z
+  .object({
+    amount: numeric,
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+      .default(1)
+
+      .describe(
+        'The priority of the grant created after each reset. Lower values have higher priority.',
+      ),
+  })
+
+  .describe(
+    'Usage granted automatically alongside a metered entitlement. The grant is configured so that after each reset the balance returns to `amount`; the typical use case is a recurring starting balance.',
+  )
+
 export const createChargeCostBasisManual = z
   .object({
     type: z
@@ -1974,6 +2001,12 @@ export const profileReference = z
   })
   .describe('Billing profile reference.')
 
+export const featureReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('Feature reference.')
+
 export const createChargeCostBasisPinned = z
   .object({
     type: z
@@ -2034,12 +2067,6 @@ export const subscriptionCostBasisPin = z
   .describe(
     'A cost basis pinned to a custom-currency pair for the subscription.',
   )
-
-export const featureReference = z
-  .object({
-    id: ulid,
-  })
-  .describe('Feature reference.')
 
 export const subscriptionReference = z
   .object({
@@ -2266,6 +2293,16 @@ export const appStripeCreateCustomerPortalSessionResult = z
     'Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object). Contains all the information needed to redirect the customer to the Stripe Customer Portal.',
   )
 
+export const closedPeriod = z
+  .object({
+    from: dateTime,
+    to: dateTime,
+  })
+
+  .describe(
+    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
+  )
+
 export const chargeResolvedCostBasis = z
   .object({
     fiatCurrency: currencyCode,
@@ -2276,16 +2313,6 @@ export const chargeResolvedCostBasis = z
 
   .describe(
     'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
-  )
-
-export const closedPeriod = z
-  .object({
-    from: dateTime,
-    to: dateTime,
-  })
-
-  .describe(
-    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
 
 export const subscriptionAddonTimelineSegment = z
@@ -3017,6 +3044,20 @@ export const entitlementAccessResult = z
   })
   .describe('Entitlement access result.')
 
+export const entitlementRecurringPeriodInput = z
+  .object({
+    interval: iso8601Duration,
+    anchor: dateTime.optional(),
+  })
+  .describe('Recurring period input with an interval and an optional anchor.')
+
+export const recurringPeriod = z
+  .object({
+    anchor: dateTime,
+    interval: iso8601Duration,
+  })
+  .describe('Recurring period with an anchor and an interval.')
+
 export const rateCardMeteredEntitlement = z
   .object({
     type: z
@@ -3073,12 +3114,12 @@ export const subscriptionEditStretchPhase = z
     'Extend the duration of a phase, shifting later phases by the same amount.',
   )
 
-export const recurringPeriod = z
-  .object({
-    anchor: dateTime,
-    interval: iso8601Duration,
-  })
-  .describe('Recurring period with an anchor and an interval.')
+export const entitlementMeasureUsageFrom = z
+  .union([entitlementMeasureUsageFromPreset, dateTime])
+
+  .describe(
+    'Defines the time from which usage is measured: either a preset or an explicit timestamp.',
+  )
 
 export const updateCreditGrantExternalSettlementRequest = z
   .object({
@@ -4388,6 +4429,156 @@ export const listCustomerEntitlementAccessResponseData = z
   })
   .describe('List customer entitlement access response data.')
 
+export const entitlementGrantCreateRequest = z
+  .object({
+    amount: numeric,
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+
+      .describe(
+        'The priority of the grant. Lower values have higher priority: a priority of 1 is more urgent than a priority of 2. When several grants are available, the one with the highest priority is consumed first; among equal priorities the one closest to expiration wins, then the earliest created.',
+      ),
+    effectiveAt: dateTime,
+    expiresAfter: iso8601Duration.optional(),
+    maxRolloverAmount: numeric.optional(),
+    minRolloverAmount: numeric.optional(),
+    labels: labels.optional(),
+    recurrence: entitlementRecurringPeriodInput.optional(),
+  })
+  .describe('A grant created together with a metered entitlement.')
+
+export const createEntitlementStaticRequest = z
+  .object({
+    type: z.literal('static').describe('The type of the entitlement.'),
+    feature: featureReference,
+    labels: labels.optional(),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON value. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+    usagePeriod: entitlementRecurringPeriodInput.optional(),
+  })
+  .describe('Static entitlement create request.')
+
+export const createEntitlementBooleanRequest = z
+  .object({
+    type: z.literal('boolean').describe('The type of the entitlement.'),
+    feature: featureReference,
+    labels: labels.optional(),
+    usagePeriod: entitlementRecurringPeriodInput.optional(),
+  })
+  .describe('Boolean entitlement create request.')
+
+export const entitlementMetered = z
+  .object({
+    id: ulid,
+    type: z.literal('metered').describe('The type of the entitlement.'),
+    feature: featureReference,
+    customer: customerReference,
+    labels: labels.optional(),
+    activeFrom: dateTime,
+    activeTo: dateTime.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    usagePeriod: recurringPeriod,
+    currentUsagePeriod: closedPeriod,
+    isSoftLimit: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'If true, the customer can use the feature even if the entitlement is exhausted; access remains granted.',
+      ),
+    issue: entitlementIssueAfterReset.optional(),
+    issueAfterReset: numeric.optional(),
+    issueAfterResetPriority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+      .default(1)
+      .describe('The priority of the grant created after each reset.'),
+    preserveOverageAtReset: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'If true, the overage is preserved at reset. If false, the usage is reset to 0.',
+      ),
+    measureUsageFrom: dateTime,
+    lastReset: dateTime,
+  })
+
+  .describe(
+    'Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems. Access is determined based on feature usage using a balance calculation: the usage allowance provided by the issued grants is burnt down by the usage.',
+  )
+
+export const entitlementStatic = z
+  .object({
+    id: ulid,
+    type: z.literal('static').describe('The type of the entitlement.'),
+    feature: featureReference,
+    customer: customerReference,
+    labels: labels.optional(),
+    usagePeriod: recurringPeriod.optional(),
+    currentUsagePeriod: closedPeriod.optional(),
+    activeFrom: dateTime,
+    activeTo: dateTime.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON value. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+  })
+
+  .describe(
+    'Static entitlements let you pass along a configuration while granting access, for example "using this feature with X Y settings".',
+  )
+
+export const entitlementBoolean = z
+  .object({
+    id: ulid,
+    type: z.literal('boolean').describe('The type of the entitlement.'),
+    feature: featureReference,
+    customer: customerReference,
+    labels: labels.optional(),
+    usagePeriod: recurringPeriod.optional(),
+    currentUsagePeriod: closedPeriod.optional(),
+    activeFrom: dateTime,
+    activeTo: dateTime.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+  })
+
+  .describe(
+    'Boolean entitlements define static feature access, for example "can use SSO authentication".',
+  )
+
+export const workflowCollectionAlignmentAnchored = z
+  .object({
+    type: z.literal('anchored').describe('The type of alignment.'),
+    recurringPeriod: recurringPeriod,
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
+  )
+
 export const rateCardEntitlement = z
   .discriminatedUnion('type', [
     rateCardMeteredEntitlement,
@@ -4409,16 +4600,6 @@ export const subscriptionEditAddPhase = z
 
   .describe(
     'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
-  )
-
-export const workflowCollectionAlignmentAnchored = z
-  .object({
-    type: z.literal('anchored').describe('The type of alignment.'),
-    recurringPeriod: recurringPeriod,
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
 export const subscriptionBase = z
@@ -5099,6 +5280,57 @@ export const appStripeCreateCheckoutSessionRequestOptions = z
     "Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).",
   )
 
+export const createEntitlementMeteredRequest = z
+  .object({
+    type: z.literal('metered').describe('The type of the entitlement.'),
+    feature: featureReference,
+    labels: labels.optional(),
+    isSoftLimit: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'If true, the customer can use the feature even if the entitlement is exhausted; access remains granted.',
+      ),
+    issue: entitlementIssueAfterReset.optional(),
+    issueAfterReset: numeric.optional(),
+    issueAfterResetPriority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+      .default(1)
+      .describe('The priority of the grant created after each reset.'),
+    preserveOverageAtReset: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'If true, the overage is preserved at reset. If false, the usage is reset to 0.',
+      ),
+    usagePeriod: entitlementRecurringPeriodInput,
+    measureUsageFrom: entitlementMeasureUsageFrom.optional(),
+    grants: z
+      .array(entitlementGrantCreateRequest)
+      .optional()
+
+      .describe(
+        'Grants created together with the entitlement. Cannot be combined with `issue`.',
+      ),
+  })
+  .describe('Metered entitlement create request.')
+
+export const entitlement = z
+  .discriminatedUnion('type', [
+    entitlementMetered,
+    entitlementStatic,
+    entitlementBoolean,
+  ])
+  .describe('An entitlement grants a customer access to a feature.')
+
 export const workflowCollectionAlignment = z
   .discriminatedUnion('type', [
     workflowCollectionAlignmentSubscription,
@@ -5671,6 +5903,14 @@ export const customerStripeCreateCheckoutSessionRequest = z
   .describe(
     'Request to create a Stripe Checkout Session for the customer. Checkout Sessions are used to collect payment method information from customers in a secure, Stripe-hosted interface. This integration uses setup mode to collect payment methods that can be charged later for subscription billing.',
   )
+
+export const createEntitlementRequest = z
+  .discriminatedUnion('type', [
+    createEntitlementMeteredRequest,
+    createEntitlementStaticRequest,
+    createEntitlementBooleanRequest,
+  ])
+  .describe('Entitlement create request.')
 
 export const workflowCollectionSettings = z
   .object({
@@ -7127,6 +7367,14 @@ export const listCustomerEntitlementAccessPathParams = z.object({
 export const listCustomerEntitlementAccessResponse =
   listCustomerEntitlementAccessResponseData
 
+export const createCustomerEntitlementPathParams = z.object({
+  customerId: ulid,
+})
+
+export const createCustomerEntitlementBody = createEntitlementRequest
+
+export const createCustomerEntitlementResponse = entitlement
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -8486,6 +8734,26 @@ export const entitlementTypeWire = z
   .enum(['metered', 'static', 'boolean'])
   .describe('The type of the entitlement.')
 
+export const iso8601DurationWire = z
+  .string()
+
+  .regex(
+    new RegExp(
+      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
+    ),
+  )
+
+  .describe(
+    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
+  )
+
+export const entitlementMeasureUsageFromPresetWire = z
+  .enum(['current_period_start', 'now'])
+
+  .describe(
+    'Preset start of usage measurement for a metered entitlement. - `current_period_start`: usage is measured from the start of the current usage period. - `now`: usage is measured from the entitlement creation time.',
+  )
+
 export const createLabelsWire = z
   .record(z.string(), z.string())
 
@@ -8512,19 +8780,6 @@ export const taxBehaviorWire = z
 
   .describe(
     'Tax behavior. This enum is used to specify whether tax is included in the price or excluded from the price.',
-  )
-
-export const iso8601DurationWire = z
-  .string()
-
-  .regex(
-    new RegExp(
-      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
-    ),
-  )
-
-  .describe(
-    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
   )
 
 export const creditPurchasePaymentSettlementStatusWire = z
@@ -9655,6 +9910,25 @@ export const createCurrencyCustomRequestWire = z
   })
   .describe('CurrencyCustom create request.')
 
+export const entitlementIssueAfterResetWire = z
+  .strictObject({
+    amount: numericWire,
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+
+      .describe(
+        'The priority of the grant created after each reset. Lower values have higher priority.',
+      ),
+  })
+
+  .describe(
+    'Usage granted automatically alongside a metered entitlement. The grant is configured so that after each reset the balance returns to `amount`; the typical use case is a recurring starting balance.',
+  )
+
 export const createChargeCostBasisManualWire = z
   .strictObject({
     type: z
@@ -9955,6 +10229,12 @@ export const profileReferenceWire = z
   })
   .describe('Billing profile reference.')
 
+export const featureReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+  })
+  .describe('Feature reference.')
+
 export const createChargeCostBasisPinnedWire = z
   .strictObject({
     type: z
@@ -10015,12 +10295,6 @@ export const subscriptionCostBasisPinWire = z
   .describe(
     'A cost basis pinned to a custom-currency pair for the subscription.',
   )
-
-export const featureReferenceWire = z
-  .strictObject({
-    id: ulidWire,
-  })
-  .describe('Feature reference.')
 
 export const subscriptionReferenceWire = z
   .strictObject({
@@ -10246,6 +10520,16 @@ export const appStripeCreateCustomerPortalSessionResultWire = z
     'Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object). Contains all the information needed to redirect the customer to the Stripe Customer Portal.',
   )
 
+export const closedPeriodWire = z
+  .strictObject({
+    from: dateTimeWire,
+    to: dateTimeWire,
+  })
+
+  .describe(
+    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
+  )
+
 export const chargeResolvedCostBasisWire = z
   .strictObject({
     fiat_currency: currencyCodeWire,
@@ -10256,16 +10540,6 @@ export const chargeResolvedCostBasisWire = z
 
   .describe(
     'Fiat conversion rate a custom-currency charge is invoiced at. Present once the cost basis is resolved; dynamic cost bases are exposed only after the service period has started.',
-  )
-
-export const closedPeriodWire = z
-  .strictObject({
-    from: dateTimeWire,
-    to: dateTimeWire,
-  })
-
-  .describe(
-    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
 
 export const subscriptionAddonTimelineSegmentWire = z
@@ -10993,6 +11267,20 @@ export const entitlementAccessResultWire = z
   })
   .describe('Entitlement access result.')
 
+export const entitlementRecurringPeriodInputWire = z
+  .strictObject({
+    interval: iso8601DurationWire,
+    anchor: dateTimeWire.optional(),
+  })
+  .describe('Recurring period input with an interval and an optional anchor.')
+
+export const recurringPeriodWire = z
+  .strictObject({
+    anchor: dateTimeWire,
+    interval: iso8601DurationWire,
+  })
+  .describe('Recurring period with an anchor and an interval.')
+
 export const rateCardMeteredEntitlementWire = z
   .strictObject({
     type: z
@@ -11048,12 +11336,12 @@ export const subscriptionEditStretchPhaseWire = z
     'Extend the duration of a phase, shifting later phases by the same amount.',
   )
 
-export const recurringPeriodWire = z
-  .strictObject({
-    anchor: dateTimeWire,
-    interval: iso8601DurationWire,
-  })
-  .describe('Recurring period with an anchor and an interval.')
+export const entitlementMeasureUsageFromWire = z
+  .union([entitlementMeasureUsageFromPresetWire, dateTimeWire])
+
+  .describe(
+    'Defines the time from which usage is measured: either a preset or an explicit timestamp.',
+  )
 
 export const updateCreditGrantExternalSettlementRequestWire = z
   .strictObject({
@@ -12355,6 +12643,153 @@ export const listCustomerEntitlementAccessResponseDataWire = z
   })
   .describe('List customer entitlement access response data.')
 
+export const entitlementGrantCreateRequestWire = z
+  .strictObject({
+    amount: numericWire,
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+
+      .describe(
+        'The priority of the grant. Lower values have higher priority: a priority of 1 is more urgent than a priority of 2. When several grants are available, the one with the highest priority is consumed first; among equal priorities the one closest to expiration wins, then the earliest created.',
+      ),
+    effective_at: dateTimeWire,
+    expires_after: iso8601DurationWire.optional(),
+    max_rollover_amount: numericWire.optional(),
+    min_rollover_amount: numericWire.optional(),
+    labels: labelsWire.optional(),
+    recurrence: entitlementRecurringPeriodInputWire.optional(),
+  })
+  .describe('A grant created together with a metered entitlement.')
+
+export const createEntitlementStaticRequestWire = z
+  .strictObject({
+    type: z.literal('static').describe('The type of the entitlement.'),
+    feature: featureReferenceWire,
+    labels: labelsWire.optional(),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON value. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+    usage_period: entitlementRecurringPeriodInputWire.optional(),
+  })
+  .describe('Static entitlement create request.')
+
+export const createEntitlementBooleanRequestWire = z
+  .strictObject({
+    type: z.literal('boolean').describe('The type of the entitlement.'),
+    feature: featureReferenceWire,
+    labels: labelsWire.optional(),
+    usage_period: entitlementRecurringPeriodInputWire.optional(),
+  })
+  .describe('Boolean entitlement create request.')
+
+export const entitlementMeteredWire = z
+  .strictObject({
+    id: ulidWire,
+    type: z.literal('metered').describe('The type of the entitlement.'),
+    feature: featureReferenceWire,
+    customer: customerReferenceWire,
+    labels: labelsWire.optional(),
+    active_from: dateTimeWire,
+    active_to: dateTimeWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    usage_period: recurringPeriodWire,
+    current_usage_period: closedPeriodWire,
+    is_soft_limit: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'If true, the customer can use the feature even if the entitlement is exhausted; access remains granted.',
+      ),
+    issue: entitlementIssueAfterResetWire.optional(),
+    issue_after_reset: numericWire.optional(),
+    issue_after_reset_priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+      .describe('The priority of the grant created after each reset.'),
+    preserve_overage_at_reset: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'If true, the overage is preserved at reset. If false, the usage is reset to 0.',
+      ),
+    measure_usage_from: dateTimeWire,
+    last_reset: dateTimeWire,
+  })
+
+  .describe(
+    'Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems. Access is determined based on feature usage using a balance calculation: the usage allowance provided by the issued grants is burnt down by the usage.',
+  )
+
+export const entitlementStaticWire = z
+  .strictObject({
+    id: ulidWire,
+    type: z.literal('static').describe('The type of the entitlement.'),
+    feature: featureReferenceWire,
+    customer: customerReferenceWire,
+    labels: labelsWire.optional(),
+    usage_period: recurringPeriodWire.optional(),
+    current_usage_period: closedPeriodWire.optional(),
+    active_from: dateTimeWire,
+    active_to: dateTimeWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON value. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+  })
+
+  .describe(
+    'Static entitlements let you pass along a configuration while granting access, for example "using this feature with X Y settings".',
+  )
+
+export const entitlementBooleanWire = z
+  .strictObject({
+    id: ulidWire,
+    type: z.literal('boolean').describe('The type of the entitlement.'),
+    feature: featureReferenceWire,
+    customer: customerReferenceWire,
+    labels: labelsWire.optional(),
+    usage_period: recurringPeriodWire.optional(),
+    current_usage_period: closedPeriodWire.optional(),
+    active_from: dateTimeWire,
+    active_to: dateTimeWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+  })
+
+  .describe(
+    'Boolean entitlements define static feature access, for example "can use SSO authentication".',
+  )
+
+export const workflowCollectionAlignmentAnchoredWire = z
+  .strictObject({
+    type: z.literal('anchored').describe('The type of alignment.'),
+    recurring_period: recurringPeriodWire,
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
+  )
+
 export const rateCardEntitlementWire = z
   .discriminatedUnion('type', [
     rateCardMeteredEntitlementWire,
@@ -12376,16 +12811,6 @@ export const subscriptionEditAddPhaseWire = z
 
   .describe(
     'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
-  )
-
-export const workflowCollectionAlignmentAnchoredWire = z
-  .strictObject({
-    type: z.literal('anchored').describe('The type of alignment.'),
-    recurring_period: recurringPeriodWire,
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
 export const subscriptionBaseWire = z
@@ -13066,6 +13491,54 @@ export const appStripeCreateCheckoutSessionRequestOptionsWire = z
     "Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).",
   )
 
+export const createEntitlementMeteredRequestWire = z
+  .strictObject({
+    type: z.literal('metered').describe('The type of the entitlement.'),
+    feature: featureReferenceWire,
+    labels: labelsWire.optional(),
+    is_soft_limit: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'If true, the customer can use the feature even if the entitlement is exhausted; access remains granted.',
+      ),
+    issue: entitlementIssueAfterResetWire.optional(),
+    issue_after_reset: numericWire.optional(),
+    issue_after_reset_priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(255)
+      .optional()
+      .describe('The priority of the grant created after each reset.'),
+    preserve_overage_at_reset: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'If true, the overage is preserved at reset. If false, the usage is reset to 0.',
+      ),
+    usage_period: entitlementRecurringPeriodInputWire,
+    measure_usage_from: entitlementMeasureUsageFromWire.optional(),
+    grants: z
+      .array(entitlementGrantCreateRequestWire)
+      .optional()
+
+      .describe(
+        'Grants created together with the entitlement. Cannot be combined with `issue`.',
+      ),
+  })
+  .describe('Metered entitlement create request.')
+
+export const entitlementWire = z
+  .discriminatedUnion('type', [
+    entitlementMeteredWire,
+    entitlementStaticWire,
+    entitlementBooleanWire,
+  ])
+  .describe('An entitlement grants a customer access to a feature.')
+
 export const workflowCollectionAlignmentWire = z
   .discriminatedUnion('type', [
     workflowCollectionAlignmentSubscriptionWire,
@@ -13640,6 +14113,14 @@ export const customerStripeCreateCheckoutSessionRequestWire = z
   .describe(
     'Request to create a Stripe Checkout Session for the customer. Checkout Sessions are used to collect payment method information from customers in a secure, Stripe-hosted interface. This integration uses setup mode to collect payment methods that can be charged later for subscription billing.',
   )
+
+export const createEntitlementRequestWire = z
+  .discriminatedUnion('type', [
+    createEntitlementMeteredRequestWire,
+    createEntitlementStaticRequestWire,
+    createEntitlementBooleanRequestWire,
+  ])
+  .describe('Entitlement create request.')
 
 export const workflowCollectionSettingsWire = z
   .strictObject({
@@ -15113,6 +15594,14 @@ export const listCustomerEntitlementAccessPathParamsWire = z.object({
 
 export const listCustomerEntitlementAccessResponseWire =
   listCustomerEntitlementAccessResponseDataWire
+
+export const createCustomerEntitlementPathParamsWire = z.object({
+  customerId: ulidWire,
+})
+
+export const createCustomerEntitlementBodyWire = createEntitlementRequestWire
+
+export const createCustomerEntitlementResponseWire = entitlementWire
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

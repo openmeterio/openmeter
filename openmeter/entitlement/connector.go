@@ -58,6 +58,7 @@ type ListEntitlementsParams struct {
 
 type Service interface {
 	models.ServiceHooks[Entitlement]
+	CustomerEntitlementAPIService
 
 	// Meant for API use primarily
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)
