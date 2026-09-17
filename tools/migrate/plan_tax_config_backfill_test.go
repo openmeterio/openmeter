@@ -232,6 +232,47 @@ func TestPlanTaxConfigBackfillMigrationFailsOnMismatchedTaxIdentity(t *testing.T
 	require.Contains(t, err.Error(), "does not match the referenced live tax code Stripe app mapping")
 }
 
+func TestPlanTaxConfigBackfillMigrationFailsOnInvalidNormalizedReference(t *testing.T) {
+	testCases := []struct {
+		name             string
+		taxCodeNamespace string
+		deletedAt        sql.NullTime
+	}{
+		{
+			name:             "cross namespace",
+			taxCodeNamespace: "another_namespace",
+		},
+		{
+			name:             "deleted",
+			taxCodeNamespace: "plan_tax_config_backfill_invalid_reference",
+			deletedAt: sql.NullTime{
+				Time:  time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			db, migrator := newPlanTaxConfigBackfillTestEnv(t)
+			namespace := "plan_tax_config_backfill_invalid_reference"
+			phaseID := ulid.Make().String()
+			taxCodeID := ulid.Make().String()
+
+			require.NoError(t, migrator.Migrate(planTaxConfigBackfillSeedVersion))
+			seedPlanTaxCode(t, db, tc.taxCodeNamespace, taxCodeID, "general", "General", nil, nil,
+				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), tc.deletedAt)
+			seedPlan(t, db, namespace, phaseID)
+			seedPlanRateCard(t, db, namespace, phaseID, ulid.Make().String(), "invalid_reference", taxCodeID, nil,
+				fmt.Sprintf(`{"tax_code_id":%q}`, taxCodeID))
+
+			err := migrator.Up()
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "reference a missing, deleted, or cross-namespace tax code")
+		})
+	}
+}
+
 func newPlanTaxConfigBackfillTestEnv(t *testing.T) (*sql.DB, *migrate.Migrate) {
 	t.Helper()
 

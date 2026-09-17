@@ -82,6 +82,28 @@ BEGIN
   END IF;
 END $$;
 
+-- Normalized references must remain usable by the read path even when the
+-- legacy JSON does not carry a provider code.
+DO $$
+DECLARE
+  invalid_reference_count int;
+BEGIN
+  SELECT count(*) INTO invalid_reference_count
+  FROM plan_rate_cards r
+  WHERE r.tax_code_id IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM tax_codes t
+      WHERE t.id = r.tax_code_id
+        AND t.namespace = r.namespace
+        AND t.deleted_at IS NULL
+    );
+
+  IF invalid_reference_count > 0 THEN
+    RAISE EXCEPTION 'plan tax config backfill: % row(s) reference a missing, deleted, or cross-namespace tax code', invalid_reference_count;
+  END IF;
+END $$;
+
 -- A tax code ID and Stripe code encode the same tax identity. After restoring
 -- embedded IDs, reject rows whose referenced live entity does not carry the
 -- stored Stripe mapping instead of preserving two conflicting identities.
