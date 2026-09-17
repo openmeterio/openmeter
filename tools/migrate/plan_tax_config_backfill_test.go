@@ -16,6 +16,7 @@ import (
 const (
 	planTaxConfigBackfillSeedVersion = 20260916155504
 	planTaxConfigBackfillVersion     = 20260917100415
+	planTaxConfigValidateVersion     = 20260917100416
 )
 
 func TestPlanTaxConfigBackfillMigration(t *testing.T) {
@@ -85,6 +86,8 @@ func TestPlanTaxConfigBackfillMigration(t *testing.T) {
 				version:   planTaxConfigBackfillVersion,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
+					assertPlanTaxConstraintsValidated(t, db, false)
+
 					assertPlanRateCardTax(t, db, rTieBreak, systemSaaS)
 					assertPlanRateCardBehavior(t, db, rTieBreak, "exclusive")
 
@@ -154,6 +157,33 @@ func TestPlanTaxConfigBackfillMigration(t *testing.T) {
 					require.Contains(t, err.Error(), "plan_rate_card_tax_behavior_consistency")
 
 					seedPlanRateCard(t, db, namespace, phaseID, ulid.Make().String(), "optional_after_migration", nil, nil, nil)
+				},
+			},
+			{
+				version:   planTaxConfigValidateVersion,
+				direction: directionUp,
+				action: func(t *testing.T, db *sql.DB) {
+					assertPlanTaxConstraintsValidated(t, db, true)
+				},
+			},
+			{
+				version:   planTaxConfigBackfillSeedVersion,
+				direction: directionDown,
+				action: func(t *testing.T, db *sql.DB) {
+					assertPlanTaxConstraintsAbsent(t, db)
+					assertPlanRateCardTax(t, db, rTieBreak, systemSaaS)
+					assertPlanRateCardBehavior(t, db, rTieBreak, "exclusive")
+
+					var created int
+					err := db.QueryRowContext(t.Context(), `
+						SELECT count(*)
+						FROM tax_codes
+						WHERE namespace = $1
+						  AND deleted_at IS NULL
+						  AND key IN ('stripe_txcd_40010001', 'stripe_txcd_20060051')
+					`, namespace).Scan(&created)
+					require.NoError(t, err)
+					require.Equal(t, 2, created)
 				},
 			},
 		},
@@ -410,6 +440,47 @@ func assertPlanRateCardBehavior(t *testing.T, db *sql.DB, rateCardID, wantBehavi
 	require.True(t, embeddedBehavior.Valid)
 	require.Equal(t, wantBehavior, behavior.String)
 	require.Equal(t, wantBehavior, embeddedBehavior.String)
+}
+
+func assertPlanTaxConstraintsValidated(t *testing.T, db *sql.DB, wantValidated bool) {
+	t.Helper()
+
+	var total, validated int
+	err := db.QueryRowContext(t.Context(), `
+		SELECT
+			count(*),
+			count(*) FILTER (WHERE convalidated)
+		FROM pg_constraint
+		WHERE conrelid = 'plan_rate_cards'::regclass
+		  AND conname IN (
+			'plan_rate_card_tax_code_consistency',
+			'plan_rate_card_tax_behavior_consistency'
+		  )
+	`).Scan(&total, &validated)
+	require.NoError(t, err)
+	require.Equal(t, 2, total)
+	if wantValidated {
+		require.Equal(t, 2, validated)
+	} else {
+		require.Zero(t, validated)
+	}
+}
+
+func assertPlanTaxConstraintsAbsent(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	var count int
+	err := db.QueryRowContext(t.Context(), `
+		SELECT count(*)
+		FROM pg_constraint
+		WHERE conrelid = 'plan_rate_cards'::regclass
+		  AND conname IN (
+			'plan_rate_card_tax_code_consistency',
+			'plan_rate_card_tax_behavior_consistency'
+		  )
+	`).Scan(&count)
+	require.NoError(t, err)
+	require.Zero(t, count)
 }
 
 func assertPlanTaxCodeCreatedShape(t *testing.T, db *sql.DB, id, stripeCode string) {
