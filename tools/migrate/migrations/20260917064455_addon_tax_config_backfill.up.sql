@@ -82,6 +82,38 @@ BEGIN
   END IF;
 END $$;
 
+-- A tax code ID and Stripe code encode the same tax identity. After restoring
+-- embedded IDs, reject rows whose referenced live entity does not carry the
+-- stored Stripe mapping instead of preserving two conflicting identities.
+DO $$
+DECLARE
+  mismatched_count int;
+BEGIN
+  SELECT count(*) INTO mismatched_count
+  FROM addon_rate_cards r
+  WHERE r.tax_code_id IS NOT NULL
+    AND NULLIF(btrim(r.tax_config -> 'stripe' ->> 'code'), '') IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM tax_codes t,
+           LATERAL jsonb_array_elements(
+             CASE
+               WHEN jsonb_typeof(t.app_mappings) = 'array' THEN t.app_mappings
+               ELSE '[]'::jsonb
+             END
+           ) AS m
+      WHERE t.id = r.tax_code_id
+        AND t.namespace = r.namespace
+        AND t.deleted_at IS NULL
+        AND m ->> 'app_type' = 'stripe'
+        AND m ->> 'tax_code' = btrim(r.tax_config -> 'stripe' ->> 'code')
+    );
+
+  IF mismatched_count > 0 THEN
+    RAISE EXCEPTION 'add-on tax config backfill: % row(s) contain a Stripe code that does not match the referenced live tax code Stripe app mapping', mismatched_count;
+  END IF;
+END $$;
+
 -- Collect only the (namespace, Stripe code) pairs used by add-on rate cards that
 -- still need a normalized tax code reference.
 DROP TABLE IF EXISTS _addon_tax_config_backfill_pairs;

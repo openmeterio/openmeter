@@ -213,6 +213,25 @@ func TestAddonTaxConfigBackfillMigrationFailsOnConflictingRepresentations(t *tes
 	require.Contains(t, err.Error(), "conflicting tax behavior representations")
 }
 
+func TestAddonTaxConfigBackfillMigrationFailsOnMismatchedTaxIdentity(t *testing.T) {
+	db, migrator := newAddonTaxConfigBackfillTestEnv(t)
+	namespace := "addon_tax_config_backfill_mismatched_identity"
+	addonID := ulid.Make().String()
+	taxCodeID := ulid.Make().String()
+
+	require.NoError(t, migrator.Migrate(addonTaxConfigBackfillSeedVersion))
+	seedAddonTaxCode(t, db, namespace, taxCodeID, "general", "General",
+		`[{"app_type":"stripe","tax_code":"txcd_10000000"}]`, nil,
+		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), sql.NullTime{})
+	seedAddon(t, db, namespace, addonID)
+	seedAddonRateCard(t, db, namespace, addonID, ulid.Make().String(), "mismatched_identity", nil, nil,
+		fmt.Sprintf(`{"stripe":{"code":"txcd_20060051"},"tax_code_id":%q}`, taxCodeID))
+
+	err := migrator.Up()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "does not match the referenced live tax code Stripe app mapping")
+}
+
 func newAddonTaxConfigBackfillTestEnv(t *testing.T) (*sql.DB, *migrate.Migrate) {
 	t.Helper()
 
