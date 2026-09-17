@@ -76,6 +76,23 @@ func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entit
 	return items, nil
 }
 
+func (c *service) CreateCustomerEntitlement(ctx context.Context, input entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return nil, err
+	}
+
+	createInput := input.Entitlement
+	createInput.Namespace = cus.Namespace
+	createInput.UsageAttribution = cus.GetUsageAttribution()
+
+	return c.CreateEntitlement(ctx, createInput, input.Grants)
+}
+
 func (c *service) getActiveCustomer(ctx context.Context, customerID customer.CustomerID) (*customer.Customer, error) {
 	cus, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customerID,

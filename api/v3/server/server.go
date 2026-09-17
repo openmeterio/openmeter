@@ -25,6 +25,7 @@ import (
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
+	customersentitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
 	entitlementaccesshandler "github.com/openmeterio/openmeter/api/v3/handlers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	featurecosthandler "github.com/openmeterio/openmeter/api/v3/handlers/featurecost"
@@ -249,27 +250,28 @@ type Server struct {
 	swagger *openapi3.T
 
 	// handlers
-	addonHandler                addonshandler.Handler
-	appsHandler                 appshandler.Handler
-	eventsHandler               eventshandler.Handler
-	llmcostHandler              llmcosthandler.Handler
-	customersHandler            customershandler.Handler
-	customersBillingHandler     customersbillinghandler.Handler
-	customersCreditsHandler     customerscreditshandler.Handler
-	customersEntitlementHandler customersentitlementhandler.Handler
-	entitlementAccessHandler    entitlementaccesshandler.Handler
-	metersHandler               metershandler.Handler
-	subscriptionsHandler        subscriptionshandler.Handler
-	subscriptionAddonsHandler   subscriptionaddonshandler.Handler
-	billingProfilesHandler      billingprofileshandler.Handler
-	billingInvoicesHandler      billinginvoiceshandler.Handler
-	plansHandler                planshandler.Handler
-	planAddonsHandler           planaddonshandler.Handler
-	chargesHandler              chargeshandler.Handler
-	taxcodesHandler             taxcodeshandler.Handler
-	currenciesHandler           currencieshandler.Handler
-	featuresHandler             featureshandler.Handler
-	featureCostHandler          featurecosthandler.Handler
+	addonHandler                 addonshandler.Handler
+	appsHandler                  appshandler.Handler
+	eventsHandler                eventshandler.Handler
+	llmcostHandler               llmcosthandler.Handler
+	customersHandler             customershandler.Handler
+	customersBillingHandler      customersbillinghandler.Handler
+	customersCreditsHandler      customerscreditshandler.Handler
+	customersEntitlementHandler  customersentitlementhandler.Handler
+	customersEntitlementsHandler customersentitlementshandler.Handler
+	entitlementAccessHandler     entitlementaccesshandler.Handler
+	metersHandler                metershandler.Handler
+	subscriptionsHandler         subscriptionshandler.Handler
+	subscriptionAddonsHandler    subscriptionaddonshandler.Handler
+	billingProfilesHandler       billingprofileshandler.Handler
+	billingInvoicesHandler       billinginvoiceshandler.Handler
+	plansHandler                 planshandler.Handler
+	planAddonsHandler            planaddonshandler.Handler
+	chargesHandler               chargeshandler.Handler
+	taxcodesHandler              taxcodeshandler.Handler
+	currenciesHandler            currencieshandler.Handler
+	featuresHandler              featureshandler.Handler
+	featureCostHandler           featurecosthandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -324,6 +326,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	customersCreditsHandler := customerscreditshandler.New(resolveNamespace, config.CustomerService, customerBalanceFacade, creditGrantService, ledgerService, accountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
+	customersEntitlementsHandler := customersentitlementshandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, config.SubscriptionWorkflowService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, config.SubscriptionService, config.SubscriptionWorkflowService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -353,29 +356,30 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	return &Server{
-		Config:                      config,
-		swagger:                     swagger,
-		addonHandler:                addonHandler,
-		appsHandler:                 appsHandler,
-		eventsHandler:               eventsHandler,
-		llmcostHandler:              llmcostH,
-		customersHandler:            customersHandler,
-		customersBillingHandler:     customersBillingHandler,
-		customersCreditsHandler:     customersCreditsHandler,
-		customersEntitlementHandler: customersEntitlementHandler,
-		metersHandler:               metersHandler,
-		subscriptionsHandler:        subscriptionsHandler,
-		subscriptionAddonsHandler:   subscriptionAddonsHandler,
-		billingProfilesHandler:      billingProfilesHandler,
-		billingInvoicesHandler:      billingInvoicesHandler,
-		plansHandler:                plansHandler,
-		planAddonsHandler:           planAddonsHandler,
-		chargesHandler:              chargesH,
-		taxcodesHandler:             taxcodesHandler,
-		currenciesHandler:           currenciesHandler,
-		featuresHandler:             featuresH,
-		featureCostHandler:          featureCostH,
-		entitlementAccessHandler:    entitlementAccessHandler,
+		Config:                       config,
+		swagger:                      swagger,
+		addonHandler:                 addonHandler,
+		appsHandler:                  appsHandler,
+		eventsHandler:                eventsHandler,
+		llmcostHandler:               llmcostH,
+		customersHandler:             customersHandler,
+		customersBillingHandler:      customersBillingHandler,
+		customersCreditsHandler:      customersCreditsHandler,
+		customersEntitlementHandler:  customersEntitlementHandler,
+		customersEntitlementsHandler: customersEntitlementsHandler,
+		metersHandler:                metersHandler,
+		subscriptionsHandler:         subscriptionsHandler,
+		subscriptionAddonsHandler:    subscriptionAddonsHandler,
+		billingProfilesHandler:       billingProfilesHandler,
+		billingInvoicesHandler:       billingInvoicesHandler,
+		plansHandler:                 plansHandler,
+		planAddonsHandler:            planAddonsHandler,
+		chargesHandler:               chargesH,
+		taxcodesHandler:              taxcodesHandler,
+		currenciesHandler:            currenciesHandler,
+		featuresHandler:              featuresH,
+		featureCostHandler:           featureCostH,
+		entitlementAccessHandler:     entitlementAccessHandler,
 	}, nil
 }
 
