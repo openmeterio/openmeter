@@ -1,0 +1,9 @@
+-- Intentionally no-op.
+--
+-- This migration stamps normalized tax columns (tax_code_id, tax_behavior) from
+-- the legacy JSON tax configs and creates tax code entities for stripe codes that
+-- had no owner. Rolling back would require deleting the created entities and
+-- knowing which rows were stamped — neither is recorded, and undoing the stamps
+-- would reintroduce the legacy JSON-only state the migration cleans up. Re-running
+-- the migration on a clean database is a no-op: every statement matches on the
+-- NULL state it fixes.
