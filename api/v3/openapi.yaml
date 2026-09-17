@@ -6759,7 +6759,7 @@ components:
           description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
+            - $ref: '#/components/schemas/TaxCodeConfig'
           description: |-
             Tax configuration for the grant.
 
@@ -6944,24 +6944,6 @@ components:
         `expires_at` time has passed.
         - `voided`: The credit block was voided. Remaining balance is forfeited.
       title: Credit grant lifecycle status
-    BillingCreditGrantTaxConfig:
-      type: object
-      properties:
-        behavior:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxBehavior'
-          description: Tax behavior applied to the invoice line item.
-        tax_code:
-          allOf:
-            - $ref: '#/components/schemas/TaxCodeReference'
-          description: Tax code applied to the invoice line item.
-      additionalProperties: false
-      description: |-
-        Tax configuration for a credit grant.
-
-        Tax configuration should be provided to ensure correct revenue recognition,
-        including for externally funded grants.
-      title: Tax configuration for a credit grant
     BillingCreditGrantVoidPaymentAdjustment:
       type: string
       enum:
@@ -8263,7 +8245,7 @@ components:
           title: Price
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingRateCardTaxConfig'
+            - $ref: '#/components/schemas/TaxCodeConfig'
           description: Tax configuration snapshot for this line.
           title: Tax config
         feature_key:
@@ -9485,7 +9467,7 @@ components:
           title: Discounts
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/BillingRateCardTaxConfig'
+            - $ref: '#/components/schemas/TaxCodeConfig'
           description: The tax config of the rate card.
           title: Tax config
         entitlement:
@@ -9624,17 +9606,6 @@ components:
           title: Config
       additionalProperties: false
       description: The entitlement template of a static entitlement.
-    BillingRateCardTaxConfig:
-      type: object
-      required:
-        - code
-      properties:
-        behavior:
-          $ref: '#/components/schemas/BillingTaxBehavior'
-        code:
-          $ref: '#/components/schemas/TaxCodeReference'
-      additionalProperties: false
-      description: The tax config of the rate card.
     BillingSettlementMode:
       type: string
       enum:
@@ -12212,7 +12183,7 @@ components:
           description: Present when a funding workflow applies (funding_method is not `none`).
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/CreateCreditGrantTaxConfig'
+            - $ref: '#/components/schemas/CreateTaxCodeConfig'
           description: |-
             Tax configuration for the grant.
 
@@ -12254,24 +12225,6 @@ components:
             safe to retry. The same key may be reused across different customers.
       additionalProperties: false
       description: CreditGrant create request.
-    CreateCreditGrantTaxConfig:
-      type: object
-      properties:
-        behavior:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxBehavior'
-          description: Tax behavior applied to the invoice line item.
-        tax_code:
-          allOf:
-            - $ref: '#/components/schemas/CreateResourceReference'
-          description: Tax code applied to the invoice line item.
-      additionalProperties: false
-      description: |-
-        Tax configuration for a credit grant.
-
-        Tax configuration should be provided to ensure correct revenue recognition,
-        including for externally funded grants.
-      title: Tax configuration for a credit grant
     CreateCurrencyCode:
       oneOf:
         - $ref: '#/components/schemas/CurrencyCode'
@@ -12621,6 +12574,33 @@ components:
           title: Timing
       additionalProperties: false
       description: SubscriptionAddon create request.
+    CreateTaxCodeConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: |-
+            Tax behavior.
+
+            This enum is used to specify whether tax is included in the price or excluded
+            from the price. If not specified, the billing profile is used to determine the
+            tax behavior. If not specified in the billing profile, the provider's default
+            behavior is used.
+          title: Tax behavior
+        code:
+          allOf:
+            - $ref: '#/components/schemas/CreateResourceReference'
+          description: Tax code applied to the invoice line item.
+          title: Tax code
+      additionalProperties: false
+      description: |-
+        Tax configuration for a billable resource.
+
+        Applies a tax code and tax behavior to the resulting invoice line items. When
+        not set, the applicable default is used: the billing profile default tax
+        configuration, then the organization default tax code.
+      title: Tax code configuration
     CreateTaxCodeRequest:
       type: object
       required:
@@ -14813,6 +14793,33 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    TaxCodeConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: |-
+            Tax behavior.
+
+            This enum is used to specify whether tax is included in the price or excluded
+            from the price. If not specified, the billing profile is used to determine the
+            tax behavior. If not specified in the billing profile, the provider's default
+            behavior is used.
+          title: Tax behavior
+        code:
+          allOf:
+            - $ref: '#/components/schemas/TaxCodeReference'
+          description: Tax code applied to the invoice line item.
+          title: Tax code
+      additionalProperties: false
+      description: |-
+        Tax configuration for a billable resource.
+
+        Applies a tax code and tax behavior to the resulting invoice line items. When
+        not set, the applicable default is used: the billing profile default tax
+        configuration, then the organization default tax code.
+      title: Tax code configuration
     TaxCodePagePaginatedResponse:
       type: object
       required:
@@ -15290,7 +15297,7 @@ components:
           title: Price
         tax_config:
           allOf:
-            - $ref: '#/components/schemas/UpdateRateCardTaxConfig'
+            - $ref: '#/components/schemas/UpdateTaxCodeConfig'
           description: Tax configuration snapshot for this line.
           title: Tax config
         feature_key:
@@ -15652,17 +15659,6 @@ components:
 
         When UnitConfig is present on the containing resource, tier boundaries
         (up_to_amount) are expressed in converted billing units.
-    UpdateRateCardTaxConfig:
-      type: object
-      required:
-        - code
-      properties:
-        behavior:
-          $ref: '#/components/schemas/BillingTaxBehavior'
-        code:
-          $ref: '#/components/schemas/UpdateResourceReference'
-      additionalProperties: false
-      description: The tax config of the rate card.
     UpdateResourceReference:
       type: object
       required:
@@ -15698,6 +15694,33 @@ components:
         Structurally a read-only subset of `BillingParty` (the type configured on the
         billing profile), so the snapshot stays aligned with the source. `key` is
         omitted because it is not part of the snapshotted supplier data.
+    UpdateTaxCodeConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: |-
+            Tax behavior.
+
+            This enum is used to specify whether tax is included in the price or excluded
+            from the price. If not specified, the billing profile is used to determine the
+            tax behavior. If not specified in the billing profile, the provider's default
+            behavior is used.
+          title: Tax behavior
+        code:
+          allOf:
+            - $ref: '#/components/schemas/UpdateResourceReference'
+          description: Tax code applied to the invoice line item.
+          title: Tax code
+      additionalProperties: false
+      description: |-
+        Tax configuration for a billable resource.
+
+        Applies a tax code and tax behavior to the resulting invoice line items. When
+        not set, the applicable default is used: the billing profile default tax
+        configuration, then the organization default tax code.
+      title: Tax code configuration
     UpsertAddonRequest:
       type: object
       required:

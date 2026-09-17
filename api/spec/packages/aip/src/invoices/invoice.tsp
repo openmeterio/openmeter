@@ -757,7 +757,7 @@ model InvoiceLineRateCard {
    */
   @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Tax config")
-  tax_config?: ProductCatalog.RateCardTaxConfig;
+  tax_config?: Tax.TaxCodeConfig;
 
   /**
    * The feature key associated with this line's rate card.

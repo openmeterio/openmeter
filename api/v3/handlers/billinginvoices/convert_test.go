@@ -6,6 +6,7 @@ import (
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -271,4 +272,57 @@ func TestMergeInvoiceSupplierFromAPI(t *testing.T) {
 	require.Equal(t, "supplier-id", merged.ID)
 	require.Equal(t, "New Supplier", merged.Name)
 	require.Equal(t, lo.ToPtr("TAX-1"), merged.TaxCode)
+}
+
+func TestMapRateCardTaxConfig(t *testing.T) {
+	t.Run("maps behavior-only tax config", func(t *testing.T) {
+		price := api.UpdatePrice{}
+		require.NoError(t, price.FromUpdatePriceFlat(api.UpdatePriceFlat{
+			Amount: "1",
+			Type:   api.UpdatePriceFlatTypeFlat,
+		}))
+
+		// given: an update rate card carrying a tax config with behavior only.
+		rc := api.UpdateInvoiceLineRateCard{
+			Price: price,
+			TaxConfig: &api.UpdateTaxCodeConfig{
+				Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
+			},
+		}
+
+		// when: the rate card is mapped onto its domain representations.
+		_, taxConfig, _, _, err := mapRateCardFromAPI(rc)
+
+		// then: the tax config maps without a tax code reference; the code is
+		// inherited from the billing profile default at invoice time.
+		require.NoError(t, err)
+		require.NotNil(t, taxConfig)
+		assert.Nil(t, taxConfig.TaxCodeID)
+		require.NotNil(t, taxConfig.Behavior)
+		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *taxConfig.Behavior)
+	})
+
+	t.Run("rejects empty tax config", func(t *testing.T) {
+		price := api.UpdatePrice{}
+		require.NoError(t, price.FromUpdatePriceFlat(api.UpdatePriceFlat{
+			Amount: "1",
+			Type:   api.UpdatePriceFlatTypeFlat,
+		}))
+
+		// given: an update rate card carrying an empty tax config.
+		rc := api.UpdateInvoiceLineRateCard{
+			Price:     price,
+			TaxConfig: &api.UpdateTaxCodeConfig{},
+		}
+
+		// when: the rate card is mapped onto its domain representations.
+		_, _, _, _, err := mapRateCardFromAPI(rc)
+
+		// then: the empty config surfaces as a billing validation error, which the
+		// update-invoice route's error encoder maps to a 400.
+		require.Error(t, err)
+		var validationErr billing.ValidationError
+		require.ErrorAs(t, err, &validationErr)
+		assert.True(t, models.IsGenericValidationError(err), "the underlying cause must remain the tax config validation error")
+	})
 }

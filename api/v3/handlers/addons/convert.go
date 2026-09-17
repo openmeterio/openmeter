@@ -3,6 +3,7 @@ package addons
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -265,7 +266,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3.BillingRateCard, er
 
 	// TaxConfig
 	if meta.TaxConfig != nil {
-		result.TaxConfig = ToAPIBillingRateCardTaxConfig(meta.TaxConfig)
+		result.TaxConfig = ToAPITaxCodeConfig(meta.TaxConfig)
 	}
 
 	// Discounts
@@ -610,19 +611,19 @@ func ToAPIBillingPricePaymentTerm(t productcatalog.PaymentTermType) (*apiv3.Bill
 	}
 }
 
-func ToAPIBillingRateCardTaxConfig(tc *productcatalog.TaxConfig) *apiv3.BillingRateCardTaxConfig {
+func ToAPITaxCodeConfig(tc *productcatalog.TaxConfig) *apiv3.TaxCodeConfig {
 	if tc == nil {
 		return nil
 	}
 
-	result := &apiv3.BillingRateCardTaxConfig{}
+	result := &apiv3.TaxCodeConfig{}
 
 	if tc.Behavior != nil {
 		result.Behavior = (*apiv3.BillingTaxBehavior)(tc.Behavior)
 	}
 
 	if tc.TaxCodeID != nil {
-		result.Code = apiv3.TaxCodeReference{Id: *tc.TaxCodeID}
+		result.Code = &apiv3.TaxCodeReference{Id: *tc.TaxCodeID}
 	}
 
 	return result
@@ -826,7 +827,12 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 	}
 
 	if rc.TaxConfig != nil {
-		meta.TaxConfig = FromAPIBillingRateCardTaxConfig(rc.TaxConfig)
+		taxConfig, err := FromAPITaxCodeConfig(rc.TaxConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		meta.TaxConfig = taxConfig
 	}
 
 	if rc.Discounts != nil {
@@ -1109,22 +1115,30 @@ func FromAPIBillingSpendCommitments(c *apiv3.BillingSpendCommitments) (productca
 	return result, nil
 }
 
-func FromAPIBillingRateCardTaxConfig(tc *apiv3.BillingRateCardTaxConfig) *productcatalog.TaxConfig {
+func FromAPITaxCodeConfig(tc *apiv3.TaxCodeConfig) (*productcatalog.TaxConfig, error) {
 	if tc == nil {
-		return nil
+		return nil, nil
+	}
+
+	if tc.Code != nil && tc.Code.Id == "" {
+		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id must be set when tax_config.code is present"))
+	}
+
+	if tc.Code == nil && tc.Behavior == nil {
+		return nil, models.NewGenericValidationError(errors.New("tax_config.code.id or tax_config.behavior must be set"))
 	}
 
 	result := &productcatalog.TaxConfig{}
+
+	if tc.Code != nil {
+		result.TaxCodeID = &tc.Code.Id
+	}
 
 	if tc.Behavior != nil {
 		result.Behavior = (*productcatalog.TaxBehavior)(tc.Behavior)
 	}
 
-	if tc.Code.Id != "" {
-		result.TaxCodeID = &tc.Code.Id
-	}
-
-	return result
+	return result, nil
 }
 
 func FromAPIBillingRateCardDiscounts(d *apiv3.BillingRateCardDiscounts) (productcatalog.Discounts, error) {

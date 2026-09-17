@@ -578,3 +578,74 @@ func TestToAPIAddon_EmptyRateCards(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(out), `"rate_cards":[]`)
 }
+
+func TestFromAPITaxCodeConfig(t *testing.T) {
+	t.Run("nil when tax config is nil", func(t *testing.T) {
+		result, err := FromAPITaxCodeConfig(nil)
+		require.NoError(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("maps code ID", func(t *testing.T) {
+		tc := &apiv3.TaxCodeConfig{
+			Code: &apiv3.TaxCodeReference{Id: "01TAXCODE000"},
+		}
+
+		result, err := FromAPITaxCodeConfig(tc)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.NotNil(t, result.TaxCodeID)
+		assert.Equal(t, "01TAXCODE000", *result.TaxCodeID)
+		assert.Nil(t, result.Behavior)
+	})
+
+	t.Run("maps behavior", func(t *testing.T) {
+		tc := &apiv3.TaxCodeConfig{
+			Code:     &apiv3.TaxCodeReference{Id: "01TAXCODE000"},
+			Behavior: lo.ToPtr(apiv3.BillingTaxBehavior("inclusive")),
+		}
+
+		result, err := FromAPITaxCodeConfig(tc)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.NotNil(t, result.Behavior)
+		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
+	})
+
+	t.Run("maps behavior-only config", func(t *testing.T) {
+		result, err := FromAPITaxCodeConfig(&apiv3.TaxCodeConfig{
+			Behavior: lo.ToPtr(apiv3.BillingTaxBehavior("inclusive")),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Nil(t, result.TaxCodeID)
+		require.NotNil(t, result.Behavior)
+		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *result.Behavior)
+	})
+
+	t.Run("rejects empty code ID", func(t *testing.T) {
+		result, err := FromAPITaxCodeConfig(&apiv3.TaxCodeConfig{
+			Code: &apiv3.TaxCodeReference{Id: ""},
+		})
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.True(t, models.IsGenericValidationError(err), "an explicit code reference without an id must surface as a validation error")
+	})
+
+	t.Run("rejects empty code ID even with behavior", func(t *testing.T) {
+		result, err := FromAPITaxCodeConfig(&apiv3.TaxCodeConfig{
+			Code:     &apiv3.TaxCodeReference{Id: ""},
+			Behavior: lo.ToPtr(apiv3.BillingTaxBehavior("inclusive")),
+		})
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.True(t, models.IsGenericValidationError(err), "an explicit code reference without an id must surface as a validation error")
+	})
+
+	t.Run("rejects empty tax config", func(t *testing.T) {
+		result, err := FromAPITaxCodeConfig(&apiv3.TaxCodeConfig{})
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.True(t, models.IsGenericValidationError(err), "tax config without code or behavior must surface as a validation error")
+	})
+}
