@@ -14,6 +14,7 @@ import {
   updateCustomerBillingAppData,
   createCustomerStripeCheckoutSession,
   createCustomerStripePortalSession,
+  deleteCustomerEntitlement,
   createCreditGrant,
   getCreditGrant,
   listCreditGrants,
@@ -43,6 +44,8 @@ import type {
   CreateCustomerStripeCheckoutSessionResponse,
   CreateCustomerStripePortalSessionRequest,
   CreateCustomerStripePortalSessionResponse,
+  DeleteCustomerEntitlementRequest,
+  DeleteCustomerEntitlementResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -150,6 +153,11 @@ export class Customers {
     return (this._billing ??= new CustomersBilling(this._client))
   }
 
+  private _entitlements?: CustomersEntitlements
+  get entitlements(): CustomersEntitlements {
+    return (this._entitlements ??= new CustomersEntitlements(this._client))
+  }
+
   private _credits?: CustomersCredits
   get credits(): CustomersCredits {
     return (this._credits ??= new CustomersCredits(this._client))
@@ -241,6 +249,33 @@ export class CustomersBilling {
   ): Promise<CreateCustomerStripePortalSessionResponse> {
     return unwrap(
       await createCustomerStripePortalSession(this._client, request, options),
+    )
+  }
+}
+
+export class CustomersEntitlements {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Delete customer entitlement
+   *
+   * Deleting an entitlement revokes access to the associated feature. As a single
+   * customer can only have one active entitlement per feature, when "migrating"
+   * features you have to delete the old entitlements as well.
+   *
+   * As access and status checks can be historical queries, deleting an entitlement
+   * populates the `deleted_at` timestamp. When queried for a time before that, the
+   * entitlement is still considered active: you cannot have retroactive changes to
+   * access, which is important for, among other things, auditing.
+   *
+   * DELETE /openmeter/customers/{customerId}/entitlements/{entitlementId}
+   */
+  async delete(
+    request: DeleteCustomerEntitlementRequest,
+    options?: RequestOptions,
+  ): Promise<DeleteCustomerEntitlementResponse> {
+    return unwrap(
+      await deleteCustomerEntitlement(this._client, request, options),
     )
   }
 }

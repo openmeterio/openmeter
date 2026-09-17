@@ -52,3 +52,30 @@ func (i ListCustomerEntitlementAccessInput) Validate() error {
 
 	return nil
 }
+
+// CustomerEntitlementAPIService is the API-facing facade for customer-scoped entitlement operations.
+type CustomerEntitlementAPIService interface {
+	DeleteCustomerEntitlement(ctx context.Context, input DeleteCustomerEntitlementInput) error
+}
+
+// DeleteCustomerEntitlementInput addresses an entitlement by ID within the customer
+// referenced by ID. An entitlement that belongs to another customer is reported
+// as not found.
+type DeleteCustomerEntitlementInput struct {
+	CustomerID    customer.CustomerID
+	EntitlementID string
+}
+
+func (i DeleteCustomerEntitlementInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}

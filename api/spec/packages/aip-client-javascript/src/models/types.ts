@@ -1502,6 +1502,9 @@ export interface NotFound extends BaseError {}
 /** Gone. */
 export interface Gone extends BaseError {}
 
+/** Precondition Failed. */
+export interface PreconditionFailed extends BaseError {}
+
 /** Conflict. */
 export interface Conflict extends BaseError {}
 
@@ -7041,6 +7044,9 @@ export interface NotFoundInput extends BaseErrorInput {}
 
 /** Gone. */
 export interface GoneInput extends BaseErrorInput {}
+
+/** Precondition Failed. */
+export interface PreconditionFailedInput extends BaseErrorInput {}
 
 /** Conflict. */
 export interface ConflictInput extends BaseErrorInput {}

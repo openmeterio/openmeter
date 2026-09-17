@@ -2578,6 +2578,8 @@ export const notFound = baseError.describe('Not Found.')
 
 export const gone = baseError.describe('Gone.')
 
+export const preconditionFailed = baseError.describe('Precondition Failed.')
+
 export const conflict = baseError.describe('Conflict.')
 
 export const payloadTooLarge = baseError.describe('Payload Too Large.')
@@ -7172,6 +7174,11 @@ export const getCustomerEntitlementAccessQueryParams = z.object({
 
 export const getCustomerEntitlementAccessResponse = entitlementAccessResult
 
+export const deleteCustomerEntitlementPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -10602,6 +10609,10 @@ export const forbiddenWire = baseErrorWire.describe('Forbidden.')
 export const notFoundWire = baseErrorWire.describe('Not Found.')
 
 export const goneWire = baseErrorWire.describe('Gone.')
+
+export const preconditionFailedWire = baseErrorWire.describe(
+  'Precondition Failed.',
+)
 
 export const conflictWire = baseErrorWire.describe('Conflict.')
 
@@ -15204,6 +15215,11 @@ export const getCustomerEntitlementAccessQueryParamsWire = z.object({
 
 export const getCustomerEntitlementAccessResponseWire =
   entitlementAccessResultWire
+
+export const deleteCustomerEntitlementPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

@@ -621,6 +621,17 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 			},
 		},
+		// Customer entitlements
+		{
+			name: "delete customer entitlement",
+			req: testRequest{
+				method: http.MethodDelete,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW",
+			},
+			res: testResponse{
+				status: http.StatusNoContent,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
@@ -1141,6 +1152,10 @@ func (n NoopEntitlementConnector) RegisterHooks(hooks ...models.ServiceHook[enti
 
 func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs, grants []entitlement.CreateEntitlementGrantInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) DeleteCustomerEntitlement(ctx context.Context, input entitlement.DeleteCustomerEntitlementInput) error {
+	return nil
 }
 
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {

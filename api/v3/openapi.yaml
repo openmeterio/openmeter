@@ -1991,6 +1991,46 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}:
+    delete:
+      operationId: delete-customer-entitlement
+      summary: Delete customer entitlement
+      description: |-
+        Deleting an entitlement revokes access to the associated feature. As a single
+        customer can only have one active entitlement per feature, when "migrating"
+        features you have to delete the old entitlements as well.
+
+        As access and status checks can be historical queries, deleting an entitlement
+        populates the `deleted_at` timestamp. When queried for a time before that, the
+        entitlement is still considered active: you cannot have retroactive changes to
+        access, which is important for, among other things, auditing.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes
@@ -16538,6 +16578,21 @@ components:
       properties:
         page:
           $ref: '#/components/schemas/CursorMetaPage'
+    PreconditionFailedError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 412
+            title:
+              example: Precondition Failed
+            type:
+              example: https://httpstatuses.com/412
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Precondition Failed
   responses:
     BadRequest:
       description: Bad Request
@@ -16584,6 +16639,12 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ConflictError'
+    PreconditionFailed:
+      description: Precondition Failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/PreconditionFailedError'
   examples:
     UnauthorizedExample:
       value:

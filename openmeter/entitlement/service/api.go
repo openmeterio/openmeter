@@ -76,6 +76,32 @@ func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entit
 	return items, nil
 }
 
+func (c *service) DeleteCustomerEntitlement(ctx context.Context, input entitlement.DeleteCustomerEntitlementInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return err
+	}
+
+	entitlementID := models.NamespacedID{Namespace: cus.Namespace, ID: input.EntitlementID}
+
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, entitlementID)
+	if err != nil {
+		return err
+	}
+
+	// The entitlement is addressed through the customer, so one owned by another
+	// customer must not be revealed.
+	if ent.CustomerID != cus.ID {
+		return &entitlement.NotFoundError{EntitlementID: entitlementID}
+	}
+
+	return c.DeleteEntitlement(ctx, cus.Namespace, ent.ID, clock.Now())
+}
+
 func (c *service) getActiveCustomer(ctx context.Context, customerID customer.CustomerID) (*customer.Customer, error) {
 	cus, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customerID,
