@@ -11,13 +11,14 @@ legacy segments and amounts selected by ledger posting.
 
 Correction uses the collector's shared source-order planner. Its reader maps
 legacy segments to original sources/backing groups; recognition time never
-changes source priority. The writer requires the exact segment selections carried
-on the correction realization and checks them under lineage locks. Missing or
-stale selections fail and roll back the enclosing ledger/realization transaction.
+changes source priority. The writer requires exact segment selections in the
+correction realization's `ledger.correction.legacy_segments` annotation and checks
+them under lineage locks. Missing or stale selections fail and roll back the
+enclosing ledger/realization transaction.
 Existing correction rows need no backfill: they are already persisted and are
 not submitted again to this writer.
 
-The stored table names, enum values, and billing annotations remain unchanged.
+The stored table names, enum values, and existing annotation keys are preserved.
 Deprecation does not make these records disposable; remove this compatibility
 path only when legacy histories can no longer require lifecycle operations.
 

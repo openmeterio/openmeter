@@ -25,10 +25,10 @@ func CorrectionAnnotations(selected map[string]alpacadecimal.Decimal) (models.An
 func CorrectionSelections(annotations models.Annotations) (map[string]alpacadecimal.Decimal, error) {
 	value, exists := annotations[annotationCorrectionSegments]
 	if !exists {
+		// Corrections without a legacy root do not carry segment selections.
 		return nil, nil
 	}
 
-	// No selection is needed when the realization has no legacy root.
 	encoded, ok := value.(string)
 	if !ok {
 		return nil, fmt.Errorf("invalid legacy correction selections")
