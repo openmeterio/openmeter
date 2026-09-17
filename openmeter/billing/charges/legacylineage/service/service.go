@@ -1,3 +1,4 @@
+// Deprecated: Use ledger collection provenance.
 package service
 
 import (
