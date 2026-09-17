@@ -192,6 +192,7 @@ var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) {
 var AddonEagerLoadRateCardsWithFeaturesFn = func(aq *entdb.AddonQuery) {
 	aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 		arq.WithFeatures()
+		arq.WithTaxCode()
 	})
 }
 
