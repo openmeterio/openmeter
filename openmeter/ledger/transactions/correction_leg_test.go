@@ -96,14 +96,14 @@ func TestRoutePairingKeyString(t *testing.T) {
 		s := k.String()
 		assert.Contains(t, s, "tax_code=tax_A")
 		assert.Contains(t, s, "currency=FIAT:USD")
-		assert.Contains(t, s, "cost_basis=<unset>")
+		assert.Contains(t, s, "cost_basis=null")
 	})
 
-	t.Run("absent taxCode renders as unset", func(t *testing.T) {
+	t.Run("absent taxCode renders as null", func(t *testing.T) {
 		k := routePairingKey{
 			currency: usd,
 			taxCode:  mo.None[string](),
 		}
-		assert.Contains(t, k.String(), "tax_code=<unset>")
+		assert.Contains(t, k.String(), "tax_code=null")
 	})
 }
