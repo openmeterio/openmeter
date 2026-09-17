@@ -22,9 +22,7 @@ func creditRealizationLineageNow() time.Time {
 	return clock.Now().Truncate(time.Microsecond)
 }
 
-// CreditRealizationLineage stores deprecated pre-cutover compatibility state.
-// Keep its table and records while legacy histories still require lifecycle
-// operations. New origin-tracked collections must not create roots here.
+// Deprecated: Use ledger collection provenance.
 type CreditRealizationLineage struct {
 	ent.Schema
 }
@@ -109,9 +107,7 @@ func (CreditRealizationLineage) Indexes() []ent.Index {
 	}
 }
 
-// CreditRealizationLineageSegment stores deprecated mutable amount snapshots.
-// Legacy backfill, recognition, and correction still update these segments;
-// new collections derive the corresponding amounts from ledger entries.
+// Deprecated: Use ledger collection provenance.
 type CreditRealizationLineageSegment struct {
 	ent.Schema
 }

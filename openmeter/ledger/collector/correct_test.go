@@ -494,7 +494,10 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	customTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &env.Currency,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &env.Currency,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, customTransactions.Items)
@@ -510,7 +513,10 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	usdTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &usd,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &usd,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.Empty(t, usdTransactions.Items)
@@ -619,7 +625,10 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	usdBeforeCollection, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &fiatCurrency,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &fiatCurrency,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 
@@ -694,10 +703,13 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	sourceQualifiedTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &customCurrency,
-		Route: ledger.RouteFilter{
-			CostBasisCurrency: mo.Some(&fiatCurrency),
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &customCurrency,
+			Route: ledger.RouteFilter{
+				CostBasisCurrency: mo.Some(&fiatCurrency),
+			},
 		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, sourceQualifiedTransactions.Items)
@@ -714,10 +726,13 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	sourceLessTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &customCurrency,
-		Route: ledger.RouteFilter{
-			CostBasisCurrency: mo.Some[*currencyx.Code](nil),
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &customCurrency,
+			Route: ledger.RouteFilter{
+				CostBasisCurrency: mo.Some[*currencyx.Code](nil),
+			},
 		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, sourceLessTransactions.Items)
@@ -730,7 +745,10 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	usdAfterCorrection, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &fiatCurrency,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &fiatCurrency,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.Len(t, usdAfterCorrection.Items, len(usdBeforeCollection.Items))
@@ -1070,7 +1088,7 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 
 	// given: two spends share one later purchase/backfill group and recognition group.
 	for _, spend := range spends {
-		// Reproduce pre-cutover collection entries: this regression protects the
+		// Reproduce legacy lineage collection entries: this regression protects the
 		// retained lineage corrector, while origin lifecycles exercise the new path.
 		inputs, err := transactions.ResolveTransactions(t.Context(), corrector.deps, transactions.ResolutionScope{Namespace: env.Namespace, CustomerID: env.CustomerID},
 			transactions.IssueCustomerReceivableTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), SpendChargeID: &spend},
@@ -1122,8 +1140,8 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 	earnings := map[string]alpacadecimal.Decimal{}
 	for _, tx := range page.Items {
 		for _, entry := range tx.Entries() {
-			if entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.SpendChargeID() != nil {
-				earnings[*entry.SpendChargeID()] = earnings[*entry.SpendChargeID()].Add(entry.Amount())
+			if entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.Provenance().SpendChargeID != nil {
+				earnings[*entry.Provenance().SpendChargeID] = earnings[*entry.Provenance().SpendChargeID].Add(entry.Amount())
 			}
 		}
 	}

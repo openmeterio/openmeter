@@ -288,16 +288,20 @@ func TestCoverCustomerReceivableTemplatePreselectedSourcesPreservesRoutesAndProv
 				Address: firstFBO.Address(),
 				Amount:  alpacadecimal.NewFromInt(20),
 				Identity: ledger.EntryIdentityParts{
-					SourceChargeID: &firstSourceChargeID,
-					SpendChargeID:  &spendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &firstSourceChargeID,
+						SpendChargeID:  &spendChargeID,
+					},
 				},
 			},
 			{
 				Address: secondFBO.Address(),
 				Amount:  alpacadecimal.NewFromInt(10),
 				Identity: ledger.EntryIdentityParts{
-					SourceChargeID: &secondSourceChargeID,
-					SpendChargeID:  &spendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &secondSourceChargeID,
+						SpendChargeID:  &spendChargeID,
+					},
 				},
 			},
 		},
@@ -315,9 +319,9 @@ func TestCoverCustomerReceivableTemplatePreselectedSourcesPreservesRoutesAndProv
 	entries := inputs[0].EntryInputs()
 	require.Len(t, entries, 4)
 	for _, entry := range entries {
-		require.NotNil(t, entry.SourceChargeID())
-		require.NotNil(t, entry.SpendChargeID())
-		require.Equal(t, spendChargeID, *entry.SpendChargeID())
+		require.NotNil(t, entry.Provenance().SourceChargeID)
+		require.NotNil(t, entry.Provenance().SpendChargeID)
+		require.Equal(t, spendChargeID, *entry.Provenance().SpendChargeID)
 	}
 }
 

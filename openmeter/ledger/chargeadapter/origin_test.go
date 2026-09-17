@@ -49,6 +49,7 @@ func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 		base.currency = currenciestestutils.NewCustomCurrency(t, "TOKENS", 2)
 		base.currency.Namespace = base.Namespace
 	}
+
 	deps := transactions.ResolverDependencies{AccountService: base.Deps.ResolversService, AccountCatalog: base.Deps.AccountService, BalanceQuerier: base.Deps.HistoricalLedger}
 	collect, err := collector.NewService(collector.Config{
 		Ledger: base.Deps.HistoricalLedger, Dependencies: deps,
@@ -65,6 +66,7 @@ func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 		Lineage: legacy, TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
+
 	return &originTestEnv{creditPurchaseHandlerTestEnv: base, collector: collect, recognizer: rec, legacy: legacy}
 }
 
@@ -74,6 +76,7 @@ func (e *originTestEnv) purchase(t *testing.T, amount int64, basis float64, expi
 	if e.currency.IsCustom() {
 		charge = e.newExternalChargeCustomCurrency(t, e.currency, alpacadecimal.NewFromInt(amount), alpacadecimal.NewFromFloat(basis), "USD")
 	}
+
 	charge.ID = ulid.Make().String()
 	period := timeutil.ClosedPeriod{From: e.Now().Add(-time.Hour), To: e.Now()}
 	charge.Intent.ServicePeriod = period
@@ -83,8 +86,10 @@ func (e *originTestEnv) purchase(t *testing.T, amount int64, basis float64, expi
 	if expires {
 		charge.Intent.ExpiresAt = lo.ToPtr(e.Now().Add(24 * time.Hour))
 	}
+
 	_, err := e.grantCredits(t, charge)
 	require.NoError(t, err)
+
 	return charge.ID
 }
 
@@ -97,6 +102,7 @@ func (e *originTestEnv) collect(t *testing.T, spend string, amount int64) credit
 	})
 	require.NoError(t, err)
 	var out creditrealization.Realizations
+
 	for i, allocation := range allocations.AsCreateInputs() {
 		allocation.ID = ulid.Make().String()
 		require.Equal(t, true, allocation.Annotations[ledger.AnnotationOriginTracked])
@@ -105,6 +111,7 @@ func (e *originTestEnv) collect(t *testing.T, spend string, amount int64) credit
 			ManagedModel:    models.ManagedModel{CreatedAt: e.Now(), UpdatedAt: e.Now()}, CreateInput: allocation, SortHint: i,
 		})
 	}
+
 	return out
 }
 
@@ -121,6 +128,7 @@ func (e *originTestEnv) recognize(t *testing.T) float64 {
 	t.Helper()
 	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{CustomerID: e.CustomerID, Currency: e.currency, At: e.Now()})
 	require.NoError(t, err)
+
 	return result.RecognizedAmount.InexactFloat64()
 }
 
@@ -128,15 +136,20 @@ func (e *originTestEnv) provenanceBalance(t *testing.T, account ledger.Account, 
 	t.Helper()
 	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 		Namespace: e.Namespace, Filters: ledger.Filters{
-			AccountID: lo.ToPtr(account.ID().ID), SourceChargeID: mo.Some(source),
-			SpendChargeID: mo.Some(spend), AsOf: lo.ToPtr(e.Now()), Route: ledger.RouteFilter{Currency: e.currency.Reference()},
+			AccountID: lo.ToPtr(account.ID().ID), Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some(source),
+				SpendChargeID:  mo.Some(spend),
+			},
+			AsOf: lo.ToPtr(e.Now()), Route: ledger.RouteFilter{Currency: e.currency.Reference()},
 		},
 	})
 	require.NoError(t, err)
 	amount := alpacadecimal.Zero
+
 	for _, bucket := range buckets {
 		amount = amount.Add(bucket.SettledAmount)
 	}
+
 	return amount.InexactFloat64()
 }
 
@@ -146,6 +159,7 @@ func TestOriginRecognitionCorrectionIsolatesRunsAndCostBases(t *testing.T) {
 		if custom {
 			name = "custom"
 		}
+
 		t.Run(name, func(t *testing.T) {
 			// given two runs of one charge and another spend, recognized together.
 			e := newOriginTestEnv(t, custom)
@@ -182,6 +196,7 @@ func TestOriginAdvanceBackfillCorrectionReopensExactPurchasedSources(t *testing.
 		if custom {
 			name = "custom"
 		}
+
 		t.Run(name, func(t *testing.T) {
 			// given one advance, two expiring partial backfills, and recognition.
 			e := newOriginTestEnv(t, custom)
@@ -238,6 +253,7 @@ func TestOriginRecognitionAndCorrectionSerializeBalanceReads(t *testing.T) {
 	start := make(chan struct{})
 	errs := make(chan error, 2)
 	var wg sync.WaitGroup
+
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -257,9 +273,11 @@ func TestOriginRecognitionAndCorrectionSerializeBalanceReads(t *testing.T) {
 	close(start)
 	wg.Wait()
 	close(errs)
+
 	for err := range errs {
 		require.NoError(t, err)
 	}
+
 	// then either valid ordering produces the same booked state.
 	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &source, &spend))
 	require.Zero(t, e.provenanceBalance(t, e.CustomerAccounts.AccruedAccount, &source, &spend))
@@ -267,7 +285,7 @@ func TestOriginRecognitionAndCorrectionSerializeBalanceReads(t *testing.T) {
 }
 
 func TestOriginAndLegacyHistoriesSharePurchasesWithoutSharingCorrectionState(t *testing.T) {
-	// given an actual pre-cutover advance with lineage and a new advance for the same customer.
+	// given an actual legacy lineage advance with lineage and a new advance for the same customer.
 	e := newOriginTestEnv(t, true)
 	legacySpend, spend := ulid.Make().String(), ulid.Make().String()
 	amount := alpacadecimal.NewFromInt(20)
@@ -307,7 +325,7 @@ func TestOriginAndLegacyHistoriesSharePurchasesWithoutSharingCorrectionState(t *
 	e.correct(t, spend, allocated[0], 20)
 	require.Zero(t, e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &source, &spend))
 	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &source, &legacySpend))
-	// The compatibility reader can still unwind its pre-cutover allocation.
+	// The compatibility reader can still unwind its legacy lineage allocation.
 	_, err = e.collector.CorrectCollectedAccrued(t.Context(), collector.CorrectCollectedAccruedInput{
 		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: legacySpend, AllocateAt: e.Now(),
 		Corrections: creditrealization.CorrectionRequest{{Allocation: legacyAllocation, Amount: amount.Neg()}}, LineageSegmentsByRealization: segments,
@@ -334,6 +352,7 @@ func TestOriginCorrectionRollbackAndOvercorrectionLeaveJournalUnchanged(t *testi
 		if _, err := e.collector.CorrectCollectedAccrued(ctx, input); err != nil {
 			return err
 		}
+
 		return failed
 	})
 	require.ErrorIs(t, err, failed)
@@ -377,6 +396,7 @@ func TestOriginBackfillAndCorrectionSerializeBalanceReads(t *testing.T) {
 	start := make(chan struct{})
 	errs := make(chan error, 2)
 	var wg sync.WaitGroup
+
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -395,9 +415,11 @@ func TestOriginBackfillAndCorrectionSerializeBalanceReads(t *testing.T) {
 	close(start)
 	wg.Wait()
 	close(errs)
+
 	for err := range errs {
 		require.NoError(t, err)
 	}
+
 	// then both valid orderings leave 20 consumed and 10 reusable, with no uncovered advance.
 	require.Equal(t, float64(20), e.recognize(t))
 	require.Equal(t, float64(10), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &charge.ID, nil))
@@ -430,28 +452,41 @@ func TestOriginRecognitionRespectsBookingTimeAndManagedCurrencyIdentity(t *testi
 	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &sourceA, &spend))
 	group, err := e.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{Namespace: e.Namespace, ID: first[0].LedgerTransaction.TransactionGroupID})
 	require.NoError(t, err)
-	origin := group.Transactions()[0].Entries()[0].CollectionOriginID()
+	origin := group.Transactions()[0].Entries()[0].Provenance().CollectionOriginID
 	require.NotNil(t, origin)
 	// Indexed traversal returns complete origin pairs across pages without sibling origins.
-	query := ledger.ListTransactionsInput{Namespace: e.Namespace, CollectionOriginID: origin, Limit: 1}
+	query := ledger.ListTransactionsInput{
+		Namespace: e.Namespace, EntryFilter: ledger.TransactionEntryFilter{
+			Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some(origin)},
+		},
+		ReturnOnlyMatchingEntries: true, Limit: 1,
+	}
 	var ids []string
+
 	for {
 		page, err := e.Deps.HistoricalLedger.ListTransactions(t.Context(), query)
 		require.NoError(t, err)
+
 		for _, tx := range page.Items {
 			ids = append(ids, tx.ID().ID)
 			require.NotEmpty(t, tx.GroupID().ID)
+
 			for _, entry := range tx.Entries() {
-				require.Equal(t, origin, entry.CollectionOriginID())
+				require.Equal(t, origin, entry.Provenance().CollectionOriginID)
 			}
 		}
+
 		if page.NextCursor == nil {
 			break
 		}
+
 		query.Cursor = page.NextCursor
 	}
+
 	require.Len(t, ids, 2)
-	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{Namespace: e.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(e.BusinessAccounts.EarningsAccount.ID().ID), CollectionOriginID: mo.Some(origin)}, GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID}})
+	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{Namespace: e.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(e.BusinessAccounts.EarningsAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+		CollectionOriginID: mo.Some(origin),
+	}}, GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID}})
 	require.NoError(t, err)
 	require.Len(t, buckets, 1)
 	require.Equal(t, origin, buckets[0].GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])
@@ -481,9 +516,11 @@ func TestOriginRecognitionDoesNotBorrowPromotionalBacking(t *testing.T) {
 	require.Equal(t, float64(2), e.provenanceBalance(t, e.CustomerAccounts.AccruedAccount, &promo.ID, &spend))
 	require.Zero(t, e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &promo.ID, &spend))
 	require.Equal(t, float64(8), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &paid, &spend))
+
 	for _, allocation := range allocations {
 		e.correct(t, spend, allocation, int64(allocation.Amount.InexactFloat64()))
 	}
+
 	require.Zero(t, e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &paid, &spend))
 	require.Equal(t, float64(8), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &paid, nil))
 	require.Equal(t, float64(2), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &promo.ID, nil))
@@ -495,11 +532,13 @@ func TestOriginFractionalPurchaseBacksOldestCollection(t *testing.T) {
 	start := e.Now()
 	spends := []string{ulid.Make().String(), ulid.Make().String(), ulid.Make().String()}
 	slices.Reverse(spends)
+
 	for i, spend := range spends {
 		clock.FreezeTime(start.Add(time.Duration(i) * time.Hour))
 		defer clock.UnFreeze()
 		e.collect(t, spend, 1)
 	}
+
 	clock.FreezeTime(start.Add(3 * time.Hour))
 	defer clock.UnFreeze()
 	// When a fractional purchase is too small to divide across all three advances.
@@ -512,6 +551,7 @@ func TestOriginFractionalPurchaseBacksOldestCollection(t *testing.T) {
 	require.NoError(t, err)
 	// Then the oldest origin gets the full .05 and newer advances remain uncovered.
 	require.Empty(t, result.BackfillAllocations)
+
 	for i, spend := range spends {
 		require.Equal(t, []float64{.05, 0, 0}[i], e.provenanceBalance(t, e.CustomerAccounts.AccruedAccount, &purchase.ID, &spend))
 	}

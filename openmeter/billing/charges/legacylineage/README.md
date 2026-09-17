@@ -4,7 +4,7 @@ Compatibility only: new collections use [ledger origins](../../../ledger/README.
 and derive amounts from ledger entries. Do not add new lineage consumers or
 create roots and segments for origin-tracked collections.
 
-Pre-cutover histories still need both reads and writes here: purchases backfill
+Legacy lineage histories still need both reads and writes here: purchases backfill
 their advances, recognition updates their segments, and corrections unwind them.
 Mixed histories must retain one collection-time FIFO order and persist the exact
 legacy segments and amounts selected by ledger posting.

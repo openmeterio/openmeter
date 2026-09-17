@@ -628,5 +628,6 @@ func (s *BaseSuite) CreateTestCustomer(ns, subjectKey string) *customer.Customer
 		_, err = s.LedgerDeps.ResolversService.EnsureBusinessAccounts(s.T().Context(), ns)
 		s.Require().NoError(err)
 	}
+
 	return cust
 }

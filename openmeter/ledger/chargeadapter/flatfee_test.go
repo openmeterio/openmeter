@@ -1176,10 +1176,12 @@ func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizati
 	t.Helper()
 	require.NotEmpty(t, recognitionGroupID)
 	segments := e.activeSegmentsByRealization(t, realizations)
+
 	for _, realization := range realizations {
 		require.Equal(t, true, realization.Annotations[ledger.AnnotationOriginTracked])
 		require.Empty(t, segments[realization.ID], "origin-tracked recognition must not create lineage segments")
 	}
+
 	return segments
 }
 

@@ -75,6 +75,7 @@ func (s *Service) createCreditRealizationLineages(
 	if len(realizations) == 0 {
 		return nil
 	}
+
 	featureKey := charge.Intent.GetFeatureKey()
 	if err := s.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,

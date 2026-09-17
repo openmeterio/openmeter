@@ -51,17 +51,20 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 		}
 
 		return ledgerhistorical.EntryData{
-			ID:                 entry.ID,
-			Namespace:          entry.Namespace,
-			Annotations:        entry.Annotations,
-			CreatedAt:          entry.CreatedAt,
-			IdentityKey:        entry.IdentityKey,
-			SchemaVersion:      ledger.EntrySchemaVersion(entry.SchemaVersion),
-			SourceChargeID:     entry.SourceChargeID,
-			SpendChargeID:      entry.SpendChargeID,
-			CollectionOriginID: entry.CollectionOriginID,
-			SubAccountID:       entry.SubAccountID,
-			AccountType:        account.AccountType,
+			ID:            entry.ID,
+			Namespace:     entry.Namespace,
+			Annotations:   entry.Annotations,
+			CreatedAt:     entry.CreatedAt,
+			IdentityKey:   entry.IdentityKey,
+			SchemaVersion: ledger.EntrySchemaVersion(entry.SchemaVersion),
+			Provenance: ledger.Provenance{
+				SourceChargeID:     entry.SourceChargeID,
+				SpendChargeID:      entry.SpendChargeID,
+				CollectionOriginID: entry.CollectionOriginID,
+			},
+
+			SubAccountID: entry.SubAccountID,
+			AccountType:  account.AccountType,
 			Route: ledger.Route{
 				Currency:                       currency,
 				CostBasisCurrency:              route.CostBasisCurrency,
@@ -138,9 +141,9 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				SetSubAccountID(subAccountID).
 				SetIdentityKey(entryInput.IdentityKey()).
 				SetSchemaVersion(int(entryInput.SchemaVersion())).
-				SetNillableSourceChargeID(entryInput.SourceChargeID()).
-				SetNillableSpendChargeID(entryInput.SpendChargeID()).
-				SetNillableCollectionOriginID(entryInput.CollectionOriginID()).
+				SetNillableSourceChargeID(entryInput.Provenance().SourceChargeID).
+				SetNillableSpendChargeID(entryInput.Provenance().SpendChargeID).
+				SetNillableCollectionOriginID(entryInput.Provenance().CollectionOriginID).
 				SetAnnotations(entryInput.Annotations()).
 				SetAmount(entryInput.Amount()).
 				SetTransactionID(entity.ID))
@@ -165,23 +168,26 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 			},
 			lo.Map(createdEntries, func(e *db.LedgerEntry, _ int) ledgerhistorical.EntryData {
 				return ledgerhistorical.EntryData{
-					ID:                 e.ID,
-					Namespace:          e.Namespace,
-					Annotations:        e.Annotations,
-					CreatedAt:          e.CreatedAt,
-					IdentityKey:        e.IdentityKey,
-					SchemaVersion:      ledger.EntrySchemaVersion(e.SchemaVersion),
-					SourceChargeID:     e.SourceChargeID,
-					SpendChargeID:      e.SpendChargeID,
-					CollectionOriginID: e.CollectionOriginID,
-					SubAccountID:       e.SubAccountID,
-					AccountType:        accountTypesBySubAccountID[e.SubAccountID],
-					Route:              routeBySubAccountID[e.SubAccountID],
-					RouteID:            routeIDBySubAccountID[e.SubAccountID],
-					RouteKey:           routeKeyBySubAccountID[e.SubAccountID],
-					RouteKeyVer:        routeKeyVersionBySubAccountID[e.SubAccountID],
-					Amount:             e.Amount,
-					TransactionID:      e.TransactionID,
+					ID:            e.ID,
+					Namespace:     e.Namespace,
+					Annotations:   e.Annotations,
+					CreatedAt:     e.CreatedAt,
+					IdentityKey:   e.IdentityKey,
+					SchemaVersion: ledger.EntrySchemaVersion(e.SchemaVersion),
+					Provenance: ledger.Provenance{
+						SourceChargeID:     e.SourceChargeID,
+						SpendChargeID:      e.SpendChargeID,
+						CollectionOriginID: e.CollectionOriginID,
+					},
+
+					SubAccountID:  e.SubAccountID,
+					AccountType:   accountTypesBySubAccountID[e.SubAccountID],
+					Route:         routeBySubAccountID[e.SubAccountID],
+					RouteID:       routeIDBySubAccountID[e.SubAccountID],
+					RouteKey:      routeKeyBySubAccountID[e.SubAccountID],
+					RouteKeyVer:   routeKeyVersionBySubAccountID[e.SubAccountID],
+					Amount:        e.Amount,
+					TransactionID: e.TransactionID,
 				}
 			}),
 		)
@@ -299,15 +305,7 @@ func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecima
 
 func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledger.ListTransactionsResult, error) {
-		entryPredicates, err := listTransactionsEntryPredicates(input.AccountIDs, input.Currency, input.Route)
-		if err != nil {
-			return ledger.ListTransactionsResult{}, err
-		}
-		if input.CollectionOriginID != nil {
-			entryPredicates = append(entryPredicates, ledgerentrydb.Namespace(input.Namespace), ledgerentrydb.CollectionOriginID(*input.CollectionOriginID))
-		}
-
-		subAccountPredicates, err := listTransactionsSubAccountPredicates(input.AccountIDs, input.Currency, input.Route)
+		entryPredicates, err := listTransactionsEntryPredicates(input.EntryFilter)
 		if err != nil {
 			return ledger.ListTransactionsResult{}, err
 		}
@@ -315,7 +313,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		query := tx.db.LedgerTransaction.Query().
 			Where(ledgertransactiondb.Namespace(input.Namespace)).
 			WithEntries(func(q *db.LedgerEntryQuery) {
-				if len(entryPredicates) > 0 {
+				if input.ReturnOnlyMatchingEntries && len(entryPredicates) > 0 {
 					q.Where(entryPredicates...)
 				}
 				q.Order(
@@ -331,20 +329,12 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		if input.TransactionID != nil {
 			query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
 		}
-		if input.CollectionOriginID != nil {
-			query = query.Where(ledgertransactiondb.HasEntriesWith(ledgerentrydb.Namespace(input.Namespace), ledgerentrydb.CollectionOriginID(*input.CollectionOriginID)))
-		}
-
 		if input.AsOf != nil {
 			query = query.Where(ledgertransactiondb.BookedAtLTE(*input.AsOf))
 		}
 
-		if len(subAccountPredicates) > 0 {
-			query = query.Where(
-				ledgertransactiondb.HasEntriesWith(
-					ledgerentrydb.HasSubAccountWith(subAccountPredicates...),
-				),
-			)
+		if len(entryPredicates) > 0 {
+			query = query.Where(ledgertransactiondb.HasEntriesWith(entryPredicates...))
 		}
 
 		// Filter by annotation key-value matches.
@@ -360,7 +350,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 		}
 
 		if input.CreditMovement != ledger.ListTransactionsCreditMovementUnspecified {
-			pred, err := ledgerTransactionCreditMovementPredicate(input.AccountIDs, input.Currency, input.Route, input.CreditMovement)
+			pred, err := ledgerTransactionCreditMovementPredicate(input.EntryFilter, input.CreditMovement)
 			if err != nil {
 				return ledger.ListTransactionsResult{}, err
 			}
@@ -432,9 +422,10 @@ func transactionAnnotationNotEqual(key, value string) predicate.LedgerTransactio
 	}
 }
 
-func listTransactionsEntryPredicates(accountIDs []string, currency *currencyx.Code, route ledger.RouteFilter) ([]predicate.LedgerEntry, error) {
-	entryPredicates := make([]predicate.LedgerEntry, 0, 2)
-	subAccountPredicates, err := listTransactionsSubAccountPredicates(accountIDs, currency, route)
+func listTransactionsEntryPredicates(filter ledger.TransactionEntryFilter) ([]predicate.LedgerEntry, error) {
+	entryPredicates := entryProvenancePredicates(filter.Provenance)
+
+	subAccountPredicates, err := listTransactionsSubAccountPredicates(filter.AccountIDs, filter.Currency, filter.Route)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +449,8 @@ func listTransactionsSubAccountPredicates(accountIDs []string, currency *currenc
 		return nil, err
 	}
 	if len(routePredicates) > 0 {
-		subAccountPredicates = append(subAccountPredicates,
+		subAccountPredicates = append(
+			subAccountPredicates,
 			ledgersubaccountdb.HasRouteWith(routePredicates...),
 		)
 	}
@@ -573,9 +565,7 @@ func listTransactionsOrdering(before bool) []ledgertransactiondb.OrderOption {
 }
 
 func ledgerTransactionCreditMovementPredicate(
-	accountIDs []string,
-	currency *currencyx.Code,
-	route ledger.RouteFilter,
+	filter ledger.TransactionEntryFilter,
 	movement ledger.ListTransactionsCreditMovement,
 ) (predicate.LedgerTransaction, error) {
 	var having *sql.Predicate
@@ -591,7 +581,7 @@ func ledgerTransactionCreditMovementPredicate(
 		return nil, fmt.Errorf("unsupported credit movement filter: %d", movement)
 	}
 
-	selector, err := scopedFBOMovementTransactionSelector(accountIDs, currency, route, having)
+	selector, err := scopedFBOMovementTransactionSelector(filter, having)
 	if err != nil {
 		return nil, err
 	}
@@ -605,9 +595,7 @@ func ledgerTransactionCreditMovementPredicate(
 }
 
 func scopedFBOMovementTransactionSelector(
-	accountIDs []string,
-	currency *currencyx.Code,
-	route ledger.RouteFilter,
+	filter ledger.TransactionEntryFilter,
 	having *sql.Predicate,
 ) (*sql.Selector, error) {
 	const routeTableAlias = "lsar"
@@ -624,14 +612,18 @@ func scopedFBOMovementTransactionSelector(
 		On(subAccounts.C(ledgersubaccountdb.FieldAccountID), accounts.C(ledgeraccountdb.FieldID)).
 		Where(sql.EQ(accounts.C(ledgeraccountdb.FieldAccountType), ledger.AccountTypeCustomerFBO))
 
-	if len(accountIDs) > 0 {
-		selector.Where(sql.In(subAccounts.C(ledgersubaccountdb.FieldAccountID), stringsToAny(accountIDs)...))
+	if len(filter.AccountIDs) > 0 {
+		selector.Where(sql.In(subAccounts.C(ledgersubaccountdb.FieldAccountID), stringsToAny(filter.AccountIDs)...))
+	}
+
+	for _, predicate := range entryProvenancePredicates(filter.Provenance) {
+		predicate(selector)
 	}
 
 	routes := sql.Table(ledgersubaccountroutedb.Table).As(routeTableAlias)
 	routePredicates, err := scopedRouteSelectorPredicates(scopedRouteSelectorPredicatesInput{
-		currency:        currency,
-		route:           route,
+		currency:        filter.Currency,
+		route:           filter.Route,
 		routeColumn:     routes.C,
 		routeTableAlias: routeTableAlias,
 	})

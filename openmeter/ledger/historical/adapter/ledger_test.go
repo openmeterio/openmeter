@@ -70,8 +70,10 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	collectionSource := "0"
 	identityKey, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
@@ -155,13 +157,13 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
 	require.Equal(t, string(identityKey), entriesBySubAccountFromTx[subAccountA.ID].IdentityKey())
 	require.Equal(t, ledger.EntrySchemaVersionCurrent, entriesBySubAccountFromTx[subAccountA.ID].SchemaVersion())
-	require.Equal(t, &sourceChargeID, entriesBySubAccountFromTx[subAccountA.ID].SourceChargeID())
-	require.Equal(t, &spendChargeID, entriesBySubAccountFromTx[subAccountA.ID].SpendChargeID())
+	require.Equal(t, &sourceChargeID, entriesBySubAccountFromTx[subAccountA.ID].Provenance().SourceChargeID)
+	require.Equal(t, &spendChargeID, entriesBySubAccountFromTx[subAccountA.ID].Provenance().SpendChargeID)
 	require.EqualValues(t, 0, entriesBySubAccountFromTx[subAccountA.ID].Annotations()[ledger.AnnotationCollectionSourceOrder])
 	require.Equal(t, "", entriesBySubAccountFromTx[subAccountB.ID].IdentityKey())
 	require.Equal(t, ledger.EntrySchemaVersionCurrent, entriesBySubAccountFromTx[subAccountB.ID].SchemaVersion())
-	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SourceChargeID())
-	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SpendChargeID())
+	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].Provenance().SourceChargeID)
+	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].Provenance().SpendChargeID)
 
 	hydratedGroup, err := env.repo.GetTransactionGroup(ctx, models.NamespacedID{
 		Namespace: namespace,
@@ -191,13 +193,17 @@ func TestRepo_BookTransaction_AllowsSameSubAccountEntriesWithDifferentProvenance
 	collectionSource := "collection-source"
 	identityKey1, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID1,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID1,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 	identityKey2, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID2,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID2,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
@@ -565,10 +571,14 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	accountIDs := []string{usdSubAccount.AccountID, eurSubAccount.AccountID}
 
 	usdConsumed, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Currency:       &usd,
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   &usd,
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
@@ -578,20 +588,28 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	require.Equal(t, currencyx.Code("USD"), usdConsumed.Items[0].Entries()[0].PostingAddress().Route().Route().Currency.Code)
 
 	usdFunded, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Currency:       &usd,
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   &usd,
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
 	require.Len(t, usdFunded.Items, 0)
 
 	eurFunded, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Currency:       &eur,
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   &eur,
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
@@ -601,10 +619,14 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	require.Equal(t, currencyx.Code("EUR"), eurFunded.Items[0].Entries()[0].PostingAddress().Route().Route().Currency.Code)
 
 	eurConsumed, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Currency:       &eur,
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   &eur,
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
@@ -643,20 +665,28 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 	accountIDs := []string{usdSubAccountA.AccountID, usdSubAccountB.AccountID}
 
 	consumed, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Currency:       &usd,
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   &usd,
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
 	require.Len(t, consumed.Items, 0)
 
 	funded, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Currency:       &usd,
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   &usd,
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
@@ -709,10 +739,14 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 	}
 
 	featureAPositive, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Route:          ledger.RouteFilter{MatchFeature: "feature-a"},
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Route:      ledger.RouteFilter{MatchFeature: "feature-a"},
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
@@ -726,20 +760,28 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 	)
 
 	featureBPositive, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Route:          ledger.RouteFilter{MatchFeature: "feature-b"},
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Route:      ledger.RouteFilter{MatchFeature: "feature-b"},
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
 	})
 	require.NoError(t, err)
 	require.Len(t, featureBPositive.Items, 0)
 
 	featureBNegative, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:      namespace,
-		Limit:          20,
-		AccountIDs:     accountIDs,
-		Route:          ledger.RouteFilter{MatchFeature: "feature-b"},
+		Namespace: namespace,
+		Limit:     20,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Route:      ledger.RouteFilter{MatchFeature: "feature-b"},
+		},
+		ReturnOnlyMatchingEntries: true,
+
 		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
 	})
 	require.NoError(t, err)
@@ -860,9 +902,12 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	require.NoError(t, err)
 
 	page1, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:  namespace,
-		Limit:      1,
-		AccountIDs: []string{usdSubAccountA.AccountID},
+		Namespace: namespace,
+		Limit:     1,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: []string{usdSubAccountA.AccountID},
+		},
+		ReturnOnlyMatchingEntries: true,
 		AnnotationFilters: map[string]string{
 			"kind": "keep",
 		},
@@ -873,10 +918,13 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	require.NotNil(t, page1.NextCursor)
 
 	page2, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:  namespace,
-		Cursor:     lo.ToPtr(page1.Items[len(page1.Items)-1].Cursor()),
-		Limit:      1,
-		AccountIDs: []string{usdSubAccountA.AccountID},
+		Namespace: namespace,
+		Cursor:    lo.ToPtr(page1.Items[len(page1.Items)-1].Cursor()),
+		Limit:     1,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: []string{usdSubAccountA.AccountID},
+		},
+		ReturnOnlyMatchingEntries: true,
 		AnnotationFilters: map[string]string{
 			"kind": "keep",
 		},
@@ -887,9 +935,12 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	require.Nil(t, page2.NextCursor)
 
 	excludingSkip, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:  namespace,
-		Limit:      10,
-		AccountIDs: []string{usdSubAccountA.AccountID},
+		Namespace: namespace,
+		Limit:     10,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: []string{usdSubAccountA.AccountID},
+		},
+		ReturnOnlyMatchingEntries: true,
 		ExcludeAnnotationFilters: map[string]string{
 			"kind": "skip",
 		},
@@ -934,9 +985,12 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 
 	// Account scope should filter hydrated entries as well (not only transactions).
 	accountScoped, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:  namespace,
-		Limit:      10,
-		AccountIDs: []string{usdSubAccount.AccountID},
+		Namespace: namespace,
+		Limit:     10,
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: []string{usdSubAccount.AccountID},
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.Len(t, accountScoped.Items, 1)
@@ -949,7 +1003,10 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 	currencyScoped, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace: namespace,
 		Limit:     10,
-		Currency:  &eur,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &eur,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.Len(t, currencyScoped.Items, 1)
@@ -1399,4 +1456,132 @@ func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 	require.NoError(t, err)
 
 	return value
+}
+
+func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) {
+	// Given transactions containing two independently balanced origins and a legacy transaction.
+	env := NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	ctx := t.Context()
+	namespace := testNamespace()
+	usd := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))}
+	eur := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))}
+	fboA := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, usd)
+	accruedA := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerAccrued, usd)
+	fboB := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, eur)
+	accruedB := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerAccrued, eur)
+	originA := "01J00000000000000000000001"
+	originB := "01J00000000000000000000002"
+	source := "01J00000000000000000000003"
+	spendA := "01J00000000000000000000004"
+	spendB := "01J00000000000000000000005"
+	provenanceA := ledger.Provenance{CollectionOriginID: &originA, SourceChargeID: &source, SpendChargeID: &spendA}
+	provenanceB := ledger.Provenance{CollectionOriginID: &originB, SpendChargeID: &spendB}
+	var entries []*transactionstestutils.AnyEntryInput
+
+	for _, leg := range []struct {
+		subAccount *ledgeraccount.SubAccountData
+		amount     int64
+		provenance ledger.Provenance
+	}{
+		{fboA, -10, provenanceA},
+		{accruedA, 10, provenanceA},
+		{fboB, 20, provenanceB},
+		{accruedB, -20, provenanceB},
+	} {
+		identity, _ := (ledger.EntryIdentityParts{Provenance: leg.provenance}).Text()
+		entries = append(entries, &transactionstestutils.AnyEntryInput{
+			Address:                 testAddress(t, leg.subAccount),
+			AmountValue:             alpacadecimal.NewFromInt(leg.amount),
+			IdentityKeyValue:        string(identity),
+			SchemaVersionValue:      ledger.EntrySchemaVersionOrigin,
+			CollectionOriginIDValue: leg.provenance.CollectionOriginID,
+			SourceChargeIDValue:     leg.provenance.SourceChargeID,
+			SpendChargeIDValue:      leg.provenance.SpendChargeID,
+		})
+	}
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
+	require.NoError(t, err)
+	groupID := models.NamespacedID{Namespace: namespace, ID: group.ID}
+	at := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	var transactions []ledger.Transaction
+
+	for i := range 2 {
+		txn, err := env.repo.BookTransaction(ctx, groupID, mustSetUpHistoricalTransactionInput(t, at.Add(time.Duration(i)*time.Hour), entries))
+		require.NoError(t, err)
+		transactions = append(transactions, txn)
+	}
+
+	legacy, err := env.repo.BookTransaction(ctx, groupID, mustSetUpHistoricalTransactionInput(t, at.Add(2*time.Hour), []*transactionstestutils.AnyEntryInput{
+		{Address: testAddress(t, fboA), AmountValue: alpacadecimal.NewFromInt(-5)},
+		{Address: testAddress(t, accruedA), AmountValue: alpacadecimal.NewFromInt(5)},
+	}))
+	require.NoError(t, err)
+
+	for _, matchingOnly := range []bool{false, true} {
+		t.Run(fmt.Sprintf("matching_entries_only_%t", matchingOnly), func(t *testing.T) {
+			// When selecting one origin across pages, entry loading is an independent choice.
+			query := ledger.ListTransactionsInput{
+				Namespace:                 namespace,
+				Limit:                     1,
+				EntryFilter:               ledger.TransactionEntryFilter{Provenance: provenanceA.Filter()},
+				ReturnOnlyMatchingEntries: matchingOnly,
+			}
+
+			// Then both pages contain the same transactions, with complete or explicitly filtered entries.
+			for i := 1; i >= 0; i-- {
+				page, err := env.repo.ListTransactions(ctx, query)
+				require.NoError(t, err)
+				require.Len(t, page.Items, 1)
+				require.Equal(t, transactions[i].ID(), page.Items[0].ID())
+				wantEntries := 4
+				if matchingOnly {
+					wantEntries = 2
+
+					for _, entry := range page.Items[0].Entries() {
+						require.Equal(t, provenanceA, entry.Provenance())
+					}
+				}
+
+				require.Len(t, page.Items[0].Entries(), wantEntries)
+				if i == 0 {
+					require.Nil(t, page.NextCursor)
+				} else {
+					require.NotNil(t, page.NextCursor)
+					query.Cursor = page.NextCursor
+				}
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name     string
+		filter   ledger.TransactionEntryFilter
+		movement ledger.ListTransactionsCreditMovement
+		want     int
+	}{
+		{"unfiltered", ledger.TransactionEntryFilter{}, ledger.ListTransactionsCreditMovementUnspecified, 3},
+		{"missing origin", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some[*string](nil)}}, ledger.ListTransactionsCreditMovementUnspecified, 1},
+		{"missing source", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some(&originB), SourceChargeID: mo.Some[*string](nil)}}, ledger.ListTransactionsCreditMovementUnspecified, 2},
+		{"origin and account on different entries", ledger.TransactionEntryFilter{AccountIDs: []string{fboB.AccountID}, Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementUnspecified, 0},
+		{"origin and route on different entries", ledger.TransactionEntryFilter{Route: eur.Filter(), Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementUnspecified, 0},
+		{"origin and spend on different entries", ledger.TransactionEntryFilter{Provenance: ledger.ProvenanceFilter{CollectionOriginID: mo.Some(&originA), SpendChargeID: mo.Some(&spendB)}}, ledger.ListTransactionsCreditMovementUnspecified, 0},
+		{"positive movement from another origin", ledger.TransactionEntryFilter{Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementPositive, 0},
+		{"negative movement from selected origin", ledger.TransactionEntryFilter{Provenance: provenanceA.Filter()}, ledger.ListTransactionsCreditMovementNegative, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Given the mixed-origin transactions, when combining entry predicates...
+			page, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+				Namespace: namespace, Limit: 10, EntryFilter: tc.filter, CreditMovement: tc.movement,
+			})
+
+			// Then every predicate must match the same entry, including movement attribution.
+			require.NoError(t, err)
+			require.Len(t, page.Items, tc.want)
+			if tc.name == "missing origin" {
+				require.Equal(t, legacy.ID(), page.Items[0].ID())
+			}
+		})
+	}
 }

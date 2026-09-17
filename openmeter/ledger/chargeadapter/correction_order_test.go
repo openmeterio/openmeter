@@ -33,6 +33,7 @@ func (e *originTestEnv) collectLegacyAdvance(t *testing.T, spend string, amount 
 		transactions.IssueCustomerReceivableTemplate{At: e.Now(), Amount: value, Currency: e.currency.Reference(), SpendChargeID: &spend},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{At: e.Now(), Amount: value, Currency: e.currency.Reference(), SpendChargeID: &spend})
 	require.NoError(t, err)
+
 	return e.recordLegacyCollection(t, spend, amount, creditrealization.LineageOriginKindAdvance, inputs)
 }
 
@@ -52,6 +53,7 @@ func (e *originTestEnv) recordLegacyCollection(t *testing.T, spend string, amoun
 	require.NoError(t, e.legacy.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{Namespace: e.Namespace, ChargeID: spend, CustomerID: e.CustomerID.ID, Currency: e.currency, Realizations: creditrealization.Realizations{allocation}}))
 	// This handler fixture has no billing allocation row; retain its real ledger reference.
 	e.originalAdvanceGroups[allocation.ID] = group.ID().ID
+
 	return allocation
 }
 
@@ -62,6 +64,7 @@ func (e *originTestEnv) correctWithLegacyPersistence(t *testing.T, spend string,
 		if err != nil {
 			return err
 		}
+
 		corrections, err := e.collector.CorrectCollectedAccrued(ctx, collector.CorrectCollectedAccruedInput{
 			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: spend, AllocateAt: e.Now(),
 			Corrections: creditrealization.CorrectionRequest{{Allocation: allocation, Amount: alpacadecimal.NewFromInt(-amount)}}, LineageSegmentsByRealization: segments,
@@ -69,14 +72,18 @@ func (e *originTestEnv) correctWithLegacyPersistence(t *testing.T, spend string,
 		if err != nil {
 			return err
 		}
+
 		inputs, err := corrections.AsCreateInputs(creditrealization.Realizations{allocation})
 		if err != nil {
 			return err
 		}
+
 		var realized creditrealization.Realizations
+
 		for _, input := range inputs {
 			realized = append(realized, creditrealization.Realization{CreateInput: input})
 		}
+
 		return e.legacy.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{Namespace: e.Namespace, Realizations: realized})
 	}))
 }
@@ -90,22 +97,27 @@ func TestCorrectionSelectsNewestBackingBeforeRecognitionState(t *testing.T) {
 					e := newOriginTestEnv(t, false)
 					spend := ulid.Make().String()
 					var allocation creditrealization.Realization
+
 					if storage == "legacy" {
 						allocation = e.collectLegacyAdvance(t, spend, 10)
 					} else {
 						allocation = e.collect(t, spend, 10)[0]
 					}
+
 					a := e.purchase(t, 5, 1, false)
 					if recognition != "together" {
 						require.Equal(t, float64(5), e.recognize(t))
 					}
+
 					b := e.purchase(t, 5, 2, false)
 					if recognition == "together" {
 						require.Equal(t, float64(10), e.recognize(t))
 					}
+
 					if recognition == "between purchases" {
 						require.Equal(t, float64(5), e.recognize(t))
 					}
+
 					// When correcting 2, then another 4, B must be exhausted before touching A.
 					e.correctWithLegacyPersistence(t, spend, allocation, 2)
 					require.Zero(t, e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &a, nil))
@@ -142,10 +154,12 @@ func TestRecollectionMintsNewOriginAndCorrectionKeepsOlderRemainder(t *testing.T
 	realized, err := corrections.AsCreateInputs(first)
 	require.NoError(t, err)
 	all := append(creditrealization.Realizations{}, first...)
+
 	for _, r := range realized {
 		r.ID = ulid.Make().String()
 		all = append(all, creditrealization.Realization{CreateInput: r})
 	}
+
 	clock.FreezeTime(start.Add(time.Hour))
 	second := e.collect(t, spend, 4)
 	all = append(all, second...)
@@ -153,8 +167,8 @@ func TestRecollectionMintsNewOriginAndCorrectionKeepsOlderRemainder(t *testing.T
 	require.NoError(t, err)
 	secondGroup, err := e.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{Namespace: e.Namespace, ID: second[0].LedgerTransaction.TransactionGroupID})
 	require.NoError(t, err)
-	oldOrigin := firstGroup.Transactions()[0].Entries()[0].CollectionOriginID()
-	newOrigin := secondGroup.Transactions()[0].Entries()[0].CollectionOriginID()
+	oldOrigin := firstGroup.Transactions()[0].Entries()[0].Provenance().CollectionOriginID
+	newOrigin := secondGroup.Transactions()[0].Entries()[0].Provenance().CollectionOriginID
 	require.NotNil(t, oldOrigin)
 	require.NotNil(t, newOrigin)
 	require.NotEqual(t, *oldOrigin, *newOrigin)
@@ -168,19 +182,25 @@ func TestRecollectionMintsNewOriginAndCorrectionKeepsOlderRemainder(t *testing.T
 		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: spend, AllocateAt: e.Now(), Corrections: request,
 	})
 	require.NoError(t, err)
+
 	// Then O1 retains 5 and O2 is empty; no generation counting or history replay is needed.
 	for id, expected := range map[string]float64{*oldOrigin: 5, *newOrigin: 0} {
 		buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 			Namespace: e.Namespace,
-			Filters:   ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.AccruedAccount.ID().ID), CollectionOriginID: mo.Some(&id)},
+			Filters: ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.AccruedAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+				CollectionOriginID: mo.Some(&id),
+			}},
 		})
 		require.NoError(t, err)
 		total := alpacadecimal.Zero
+
 		for _, bucket := range buckets {
 			total = total.Add(bucket.SettledAmount)
 		}
+
 		require.Equal(t, expected, total.InexactFloat64())
 	}
+
 	require.Equal(t, float64(5), e.availableSourceCredit(t, source))
 }
 
@@ -191,27 +211,39 @@ func TestLegacyCollapsedSourcesSelectNewerUnrecognizedCredit(t *testing.T) {
 	b := e.purchase(t, 5, 1, false)
 	spend := ulid.Make().String()
 	var sources []transactions.PostingAmount
+
 	for order, id := range []string{a, b} {
 		buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 			Namespace: e.Namespace,
-			Filters:   ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.FBOAccount.ID().ID), SourceChargeID: mo.Some(&id)},
+			Filters: ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.FBOAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some(&id),
+			}},
 		})
 		require.NoError(t, err)
 		require.Len(t, buckets, 1)
 		sources = append(sources, transactions.PostingAmount{
 			Address: buckets[0].Address, Amount: alpacadecimal.NewFromInt(5),
-			Identity: ledger.EntryIdentityParts{SourceChargeID: lo.ToPtr(id), SpendChargeID: &spend}, Annotations: models.Annotations{ledger.AnnotationCollectionSourceOrder: order},
+			Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
+				SourceChargeID: lo.ToPtr(id),
+				SpendChargeID:  &spend,
+			}}, Annotations: models.Annotations{ledger.AnnotationCollectionSourceOrder: order},
 		})
 	}
+
 	deps := transactions.ResolverDependencies{AccountService: e.Deps.ResolversService, AccountCatalog: e.Deps.AccountService, BalanceQuerier: e.Deps.HistoricalLedger}
 	inputs, err := transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace}, transactions.TransferCustomerFBOToAccruedTemplate{At: e.Now(), Currency: e.currency.Reference(), Sources: sources})
 	require.NoError(t, err)
 	allocation := e.recordLegacyCollection(t, spend, 10, creditrealization.LineageOriginKindRealCredit, inputs)
 	// Only A is recognized; record the same transition through the legacy service.
-	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{Namespace: e.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.AccruedAccount.ID().ID), SourceChargeID: mo.Some(&a)}})
+	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{Namespace: e.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.AccruedAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+		SourceChargeID: mo.Some(&a),
+	}}})
 	require.NoError(t, err)
 	require.Len(t, buckets, 1)
-	inputs, err = transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace}, transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: e.Now(), Currency: e.currency.Reference(), Amount: alpacadecimal.NewFromInt(5), Sources: []transactions.PostingAmount{{Address: buckets[0].Address, Amount: alpacadecimal.NewFromInt(5), Identity: ledger.EntryIdentityParts{SourceChargeID: &a, SpendChargeID: &spend}}}})
+	inputs, err = transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace}, transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: e.Now(), Currency: e.currency.Reference(), Amount: alpacadecimal.NewFromInt(5), Sources: []transactions.PostingAmount{{Address: buckets[0].Address, Amount: alpacadecimal.NewFromInt(5), Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
+		SourceChargeID: &a,
+		SpendChargeID:  &spend,
+	}}}}})
 	require.NoError(t, err)
 	group, err := e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
@@ -237,13 +269,17 @@ func (e *originTestEnv) availableSourceCredit(t *testing.T, source string) float
 	t.Helper()
 	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 		Namespace: e.Namespace,
-		Filters:   ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.FBOAccount.ID().ID), SourceChargeID: mo.Some(&source), AsOf: lo.ToPtr(e.Now()), Route: ledger.RouteFilter{Currency: e.currency.Reference()}},
+		Filters: ledger.Filters{AccountID: lo.ToPtr(e.CustomerAccounts.FBOAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+			SourceChargeID: mo.Some(&source),
+		}, AsOf: lo.ToPtr(e.Now()), Route: ledger.RouteFilter{Currency: e.currency.Reference()}},
 	})
 	require.NoError(t, err)
 	total := alpacadecimal.Zero
+
 	for _, bucket := range buckets {
 		total = total.Add(bucket.SettledAmount)
 	}
+
 	return total.InexactFloat64()
 }
 
@@ -267,14 +303,18 @@ func TestStaleLegacyCorrectionSelectionRollsBackLedger(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		inputs, err := corrections.AsCreateInputs(creditrealization.Realizations{allocation})
 		if err != nil {
 			return err
 		}
+
 		var realized creditrealization.Realizations
+
 		for _, input := range inputs {
 			realized = append(realized, creditrealization.Realization{CreateInput: input})
 		}
+
 		return e.legacy.PersistCorrectionLineageSegments(ctx, legacylineage.PersistCorrectionLineageSegmentsInput{Namespace: e.Namespace, Realizations: realized})
 	})
 	// Then rejecting the stale segment IDs also rolls back the ledger postings.

@@ -31,6 +31,7 @@ func (s *Service) createCreditRealizationLineages(
 	if len(realizations) == 0 {
 		return nil
 	}
+
 	if err := s.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
@@ -521,6 +522,7 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 	if len(realizations) == 0 {
 		return legacylineage.ActiveSegmentsByRealizationID{}, nil
 	}
+
 	realizationIDs := lo.Map(realizations, func(realization creditrealization.Realization, _ int) string {
 		return realization.ID
 	})

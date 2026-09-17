@@ -92,6 +92,7 @@ func (a *adapter) CreateLineages(ctx context.Context, input legacylineage.Create
 		if _, err := tx.db.CreditRealizationLineage.CreateBulk(rootCreates...).Save(ctx); err != nil {
 			return fmt.Errorf("create credit realization lineages: %w", err)
 		}
+
 		if _, err := tx.db.CreditRealizationLineageSegment.CreateBulk(segmentCreates...).Save(ctx); err != nil {
 			return fmt.Errorf("create initial credit realization lineage segments: %w", err)
 		}
@@ -106,6 +107,7 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input legacylineag
 		if input.SegmentState != nil {
 			activeSegments = append(activeSegments, creditrealizationlineagesegment.StateEQ(*input.SegmentState))
 		}
+
 		query := tx.db.CreditRealizationLineage.Query().Where(
 			creditrealizationlineage.Namespace(input.Namespace),
 			creditrealizationlineage.CustomerIDEQ(input.CustomerID),
@@ -114,14 +116,17 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input legacylineag
 		if input.OriginKind != nil {
 			query.Where(creditrealizationlineage.OriginKindEQ(*input.OriginKind))
 		}
+
 		if input.HasActiveSegments || input.SegmentState != nil {
 			// Filtering the eager-loaded children alone would still return every
 			// historical root, including ones with no matching segments.
 			query.Where(creditrealizationlineage.HasSegmentsWith(activeSegments...))
 		}
+
 		if len(input.FeatureFilters) > 0 {
 			query.Where(advanceFeaturesOverlap(input.FeatureFilters))
 		}
+
 		lineages, err := query.WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
 			q.Where(activeSegments...).Order(creditrealizationlineagesegment.ByCreatedAt(), creditrealizationlineagesegment.ByID())
 		}).Order(creditrealizationlineage.ByCreatedAt(), creditrealizationlineage.ByID()).All(ctx)
@@ -133,6 +138,7 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input legacylineag
 		if err := tx.loadOriginalAllocations(ctx, input.Namespace, mapped); err != nil {
 			return nil, err
 		}
+
 		return mapped, nil
 	})
 }
@@ -279,6 +285,7 @@ func (a *adapter) CreateSegment(ctx context.Context, input legacylineage.CreateS
 			SetNillableSourceBackingTransactionGroupID(input.SourceBackingTransactionGroupID)
 
 		_, err := create.Save(ctx)
+
 		return err
 	})
 }
@@ -316,33 +323,42 @@ func mapSegment(segment *entdb.CreditRealizationLineageSegment) legacylineage.Se
 // group, including legacy collections without spend provenance.
 func (a *adapter) loadOriginalAllocations(ctx context.Context, namespace string, roots []legacylineage.Lineage) error {
 	var ids []string
+
 	for _, root := range roots {
 		ids = append(ids, root.RootRealizationID)
 	}
+
 	if len(ids) == 0 {
 		return nil
 	}
+
 	flat, err := a.db.ChargeFlatFeeRunCreditAllocations.Query().Where(chargeflatfeeruncreditallocations.Namespace(namespace), chargeflatfeeruncreditallocations.IDIn(ids...)).All(ctx)
 	if err != nil {
 		return err
 	}
+
 	usage, err := a.db.ChargeUsageBasedRunCreditAllocations.Query().Where(chargeusagebasedruncreditallocations.Namespace(namespace), chargeusagebasedruncreditallocations.IDIn(ids...)).All(ctx)
 	if err != nil {
 		return err
 	}
+
 	groups := make(map[string]string, len(flat)+len(usage))
 	sortHints := make(map[string]int, len(flat)+len(usage))
+
 	for _, allocation := range flat {
 		groups[allocation.ID] = allocation.LedgerTransactionGroupID
 		sortHints[allocation.ID] = allocation.SortHint
 	}
+
 	for _, allocation := range usage {
 		groups[allocation.ID] = allocation.LedgerTransactionGroupID
 		sortHints[allocation.ID] = allocation.SortHint
 	}
+
 	for i := range roots {
 		roots[i].OriginalTransactionGroupID = groups[roots[i].RootRealizationID]
 		roots[i].OriginalAllocationSortHint = sortHints[roots[i].RootRealizationID]
 	}
+
 	return nil
 }

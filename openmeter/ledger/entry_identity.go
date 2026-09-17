@@ -37,6 +37,7 @@ func (e EntryIdentityKeyText) Version() EntryIdentityVersion {
 	if strings.HasPrefix(string(e), EntryIdentityVersion3.prefix()) {
 		return EntryIdentityVersion3
 	}
+
 	if strings.HasPrefix(string(e), EntryIdentityVersion2.prefix()) {
 		return EntryIdentityVersion2
 	}
@@ -52,14 +53,18 @@ func (e EntryIdentityKeyText) Parse() (EntryIdentityVersion, EntryIdentityParts,
 		if len(parts) != 5 {
 			return version, EntryIdentityParts{}, fmt.Errorf("invalid ledger entry identity key format")
 		}
+
 		prior, err := parseV2EntryIdentityKey(EntryIdentityVersion2.prefix() + strings.Join(parts[:4], "|"))
 		if err != nil {
 			return version, EntryIdentityParts{}, err
 		}
+
 		out := prior.EntryIdentityParts()
 		out.CollectionOriginID, err = parseOptionalEntryIdentityPart("collection_origin_id", parts[4])
+
 		return version, out, err
 	}
+
 	if version == EntryIdentityVersion1 {
 		parts, err := parseV1EntryIdentityKey(string(e))
 		if err != nil {
@@ -78,13 +83,9 @@ func (e EntryIdentityKeyText) Parse() (EntryIdentityVersion, EntryIdentityParts,
 }
 
 type EntryIdentityParts struct {
-	// CollectionOriginID identifies one original collection slice across backfill,
-	// recognition, and correction. Reusing returned credit starts a new origin.
-	CollectionOriginID *string
-	CollectionSource   *string // Custom key to keep 1:1 matching logic during collection
-	CorrectionSource   *string // References the original entry being reversed
-	SourceChargeID     *string // The original creditpurchase charge (if exists) that funds this entry
-	SpendChargeID      *string // The usage charge (if exists) that accrued this entry
+	Provenance
+	CollectionSource *string // Custom key to keep 1:1 matching logic during collection
+	CorrectionSource *string // References the original entry being reversed
 }
 
 func (e EntryIdentityParts) Text() (EntryIdentityKeyText, EntryIdentityVersion) {
@@ -96,8 +97,10 @@ func (e EntryIdentityParts) Text() (EntryIdentityKeyText, EntryIdentityVersion) 
 	}
 	if e.CollectionOriginID != nil {
 		encoded := strings.TrimPrefix(string(prior.Text()), EntryIdentityVersion2.prefix())
+
 		return EntryIdentityKeyText(EntryIdentityVersion3.prefix() + encoded + "|" + escapeEntryIdentityPart(e.CollectionOriginID)), EntryIdentityVersion3
 	}
+
 	if e.SourceChargeID == nil && e.SpendChargeID == nil {
 		return v1EntryIdentityParts{
 			CollectionSource: e.CollectionSource,
@@ -121,25 +124,26 @@ func ValidateEntryIdentityKey(entry EntryInput) error {
 			return fmt.Errorf("identity_key version %d requires schema_version %d", version, EntrySchemaVersionCurrent)
 		}
 
-		if entry.SourceChargeID() != nil || entry.SpendChargeID() != nil {
+		if entry.Provenance().SourceChargeID != nil || entry.Provenance().SpendChargeID != nil {
 			return fmt.Errorf("schema_version %d cannot contain charge provenance", EntrySchemaVersionLegacy)
 		}
 	case EntrySchemaVersionCurrent:
-		if entry.CollectionOriginID() != nil || version == EntryIdentityVersion3 {
+		if entry.Provenance().CollectionOriginID != nil || version == EntryIdentityVersion3 {
 			return fmt.Errorf("origin provenance requires schema_version %d", EntrySchemaVersionOrigin)
 		}
 	case EntrySchemaVersionOrigin:
-		if version != EntryIdentityVersion3 || entry.CollectionOriginID() == nil {
+		if version != EntryIdentityVersion3 || entry.Provenance().CollectionOriginID == nil {
 			return fmt.Errorf("schema_version %d requires origin provenance", EntrySchemaVersionOrigin)
 		}
-		if _, err := ulid.ParseStrict(*entry.CollectionOriginID()); err != nil {
+
+		if _, err := ulid.ParseStrict(*entry.Provenance().CollectionOriginID); err != nil {
 			return fmt.Errorf("collection_origin_id: %w", err)
 		}
 	default:
 		return fmt.Errorf("unsupported schema_version %d", entry.SchemaVersion())
 	}
 
-	if (entry.SourceChargeID() != nil || entry.SpendChargeID() != nil) && version < EntryIdentityVersion2 {
+	if (entry.Provenance().SourceChargeID != nil || entry.Provenance().SpendChargeID != nil) && version < EntryIdentityVersion2 {
 		return fmt.Errorf("identity_key version must be %d when charge provenance is present", EntryIdentityVersion2)
 	}
 
@@ -147,14 +151,15 @@ func ValidateEntryIdentityKey(entry EntryInput) error {
 		return fmt.Errorf("identity_key version %d requires charge provenance", EntryIdentityVersion2)
 	}
 
-	if !equal.ComparablePtrEqual(parts.SourceChargeID, entry.SourceChargeID()) {
+	if !equal.ComparablePtrEqual(parts.SourceChargeID, entry.Provenance().SourceChargeID) {
 		return fmt.Errorf("source_charge_id does not match identity_key")
 	}
 
-	if !equal.ComparablePtrEqual(parts.SpendChargeID, entry.SpendChargeID()) {
+	if !equal.ComparablePtrEqual(parts.SpendChargeID, entry.Provenance().SpendChargeID) {
 		return fmt.Errorf("spend_charge_id does not match identity_key")
 	}
-	if !equal.ComparablePtrEqual(parts.CollectionOriginID, entry.CollectionOriginID()) {
+
+	if !equal.ComparablePtrEqual(parts.CollectionOriginID, entry.Provenance().CollectionOriginID) {
 		return fmt.Errorf("collection_origin_id does not match identity_key")
 	}
 
@@ -246,8 +251,10 @@ func (e v2EntryIdentityParts) EntryIdentityParts() EntryIdentityParts {
 	return EntryIdentityParts{
 		CollectionSource: e.CollectionSource,
 		CorrectionSource: e.CorrectionSource,
-		SourceChargeID:   e.SourceChargeID,
-		SpendChargeID:    e.SpendChargeID,
+		Provenance: Provenance{
+			SourceChargeID: e.SourceChargeID,
+			SpendChargeID:  e.SpendChargeID,
+		},
 	}
 }
 

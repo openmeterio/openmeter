@@ -64,13 +64,11 @@ func (q BalanceBucketQuery) Validate() error {
 }
 
 type BalanceBucket struct {
-	// FirstRecordedAt is the earliest recording time among entries included in
-	// this bucket, independent of their economic effective time or current sum.
-	FirstRecordedAt time.Time
-	Address         PostingAddress
-	GroupByValues   map[string]*string
-	SettledAmount   alpacadecimal.Decimal
-	PendingAmount   alpacadecimal.Decimal
+	OldestMatchingEntryCreatedAt time.Time
+	Address                      PostingAddress
+	GroupByValues                map[string]*string
+	SettledAmount                alpacadecimal.Decimal
+	PendingAmount                alpacadecimal.Decimal
 }
 
 // GetBalancesAtBoundariesInput describes independent persisted balance boundaries.

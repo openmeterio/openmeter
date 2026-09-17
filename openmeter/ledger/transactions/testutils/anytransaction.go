@@ -43,12 +43,8 @@ func (a *AnyEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
 	return a.SchemaVersionValue
 }
 
-func (a *AnyEntryInput) SourceChargeID() *string {
-	return a.SourceChargeIDValue
-}
-
-func (a *AnyEntryInput) SpendChargeID() *string {
-	return a.SpendChargeIDValue
+func (a *AnyEntryInput) Provenance() ledger.Provenance {
+	return ledger.Provenance{CollectionOriginID: a.CollectionOriginIDValue, SourceChargeID: a.SourceChargeIDValue, SpendChargeID: a.SpendChargeIDValue}
 }
 
 func (a *AnyEntryInput) Annotations() models.Annotations {
@@ -102,5 +98,3 @@ func (a *AnyTransactionGroupInput) Transactions() []ledger.TransactionInput {
 func (a *AnyTransactionGroupInput) Annotations() models.Annotations {
 	return a.AnnotationsValue
 }
-
-func (a *AnyEntryInput) CollectionOriginID() *string { return a.CollectionOriginIDValue }

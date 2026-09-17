@@ -174,6 +174,7 @@ func (c *accrualCollector) resolveCoveredReceivableInputs(ctx context.Context, i
 	for i := range selections {
 		selections[i].collectionOriginID = lo.ToPtr(ulid.Make().String())
 	}
+
 	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -227,6 +228,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 	for i := range selections {
 		selections[i].collectionOriginID = lo.ToPtr(ulid.Make().String())
 	}
+
 	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -287,10 +289,12 @@ func (c *accrualCollector) resolveCollectionBreakageInputs(ctx context.Context, 
 			SourceEntryIdentityKey: func() string {
 				collectionSource := strconv.Itoa(idx)
 				identityKey, _ := ledger.EntryIdentityParts{
-					CollectionSource:   &collectionSource,
-					CollectionOriginID: selection.collectionOriginID,
-					SourceChargeID:     selection.source.sourceChargeID,
-					SpendChargeID:      &chargeID,
+					CollectionSource: &collectionSource,
+					Provenance: ledger.Provenance{
+						CollectionOriginID: selection.collectionOriginID,
+						SourceChargeID:     selection.source.sourceChargeID,
+						SpendChargeID:      &chargeID,
+					},
 				}.Text()
 
 				return string(identityKey)
@@ -373,6 +377,7 @@ func (i collectedInputs) toCreditRealizations(servicePeriod timeutil.ClosedPerio
 		if annotations == nil {
 			annotations = make(models.Annotations)
 		}
+
 		annotations[ledger.AnnotationOriginTracked] = true
 		// Keep billing realization granularity at the FBO sub-account bucket.
 		// Entry identity may split same-sub-account collection internally, but

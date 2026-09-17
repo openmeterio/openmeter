@@ -483,6 +483,7 @@ func (s *Service) loadActiveCreditRealizationLineageSegments(
 	if len(realizations) == 0 {
 		return legacylineage.ActiveSegmentsByRealizationID{}, nil
 	}
+
 	realizationIDs := lo.Map(realizations, func(realization creditrealization.Realization, _ int) string {
 		return realization.ID
 	})

@@ -62,6 +62,7 @@ func (s Segment) Validate() error {
 		if s.BackingTransactionGroupID == nil || *s.BackingTransactionGroupID == "" {
 			errs = append(errs, errors.New("backing transaction group id is required for earnings_recognized"))
 		}
+
 		switch {
 		case s.SourceState == nil:
 			errs = append(errs, errors.New("source state is required for earnings_recognized"))

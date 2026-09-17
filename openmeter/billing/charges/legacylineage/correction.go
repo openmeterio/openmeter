@@ -18,6 +18,7 @@ func CorrectionAnnotations(selected map[string]alpacadecimal.Decimal) (models.An
 	if err != nil {
 		return nil, err
 	}
+
 	return models.Annotations{annotationCorrectionSegments: string(encoded)}, nil
 }
 
@@ -25,22 +26,29 @@ func CorrectionSelections(annotations models.Annotations) (map[string]alpacadeci
 	value, exists := annotations[annotationCorrectionSegments]
 	if !exists {
 		return nil, nil
-	} // No selection is needed when the realization has no legacy root.
+	}
+
+	// No selection is needed when the realization has no legacy root.
 	encoded, ok := value.(string)
 	if !ok {
 		return nil, fmt.Errorf("invalid legacy correction selections")
 	}
+
 	var out map[string]alpacadecimal.Decimal
+
 	if err := json.Unmarshal([]byte(encoded), &out); err != nil {
 		return nil, err
 	}
+
 	if out == nil {
 		return nil, fmt.Errorf("legacy correction selections must be present")
 	}
+
 	for id, amount := range out {
 		if id == "" || !amount.IsPositive() {
 			return nil, fmt.Errorf("invalid legacy correction selection %s", id)
 		}
 	}
+
 	return out, nil
 }

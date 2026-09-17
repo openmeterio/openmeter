@@ -170,13 +170,17 @@ func TestDefaultValidator_AllowsDuplicateSubAccountEntriesWithUniqueProvenanceId
 	collectionSource := "collection-source"
 	identityKey1, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID1,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID1,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 	identityKey2, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
-		SourceChargeID:   &sourceChargeID2,
-		SpendChargeID:    &spendChargeID,
+		Provenance: ledger.Provenance{
+			SourceChargeID: &sourceChargeID2,
+			SpendChargeID:  &spendChargeID,
+		},
 	}.Text()
 	costBasis := alpacadecimal.NewFromInt(1)
 	accruedAddress := addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-source", ledger.Route{

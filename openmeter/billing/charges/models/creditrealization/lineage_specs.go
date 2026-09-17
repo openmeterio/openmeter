@@ -23,7 +23,7 @@ type InitialLineageSpec struct {
 
 // InitialLineageSpecs excludes origin-tracked collections from legacy persistence.
 //
-// Deprecated: Retained only for processing pre-cutover realizations.
+// Deprecated: Retained only for processing legacy lineage realizations.
 func InitialLineageSpecs(realizations Realizations) ([]InitialLineageSpec, error) {
 	out := make([]InitialLineageSpec, 0, len(realizations))
 
@@ -31,6 +31,7 @@ func InitialLineageSpecs(realizations Realizations) ([]InitialLineageSpec, error
 		if realization.Annotations[ledger.AnnotationOriginTracked] == true {
 			continue
 		}
+
 		if realization.Type != TypeAllocation {
 			continue
 		}
@@ -62,10 +63,12 @@ func InitialLineageSpecs(realizations Realizations) ([]InitialLineageSpec, error
 // are represented entirely by ledger entries.
 func (r Realizations) LegacyLineageRealizations() Realizations {
 	var out Realizations
+
 	for _, realization := range r {
 		if realization.Annotations[ledger.AnnotationOriginTracked] != true {
 			out = append(out, realization)
 		}
 	}
+
 	return out
 }

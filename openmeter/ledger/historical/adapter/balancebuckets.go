@@ -18,7 +18,7 @@ import (
 )
 
 type balanceBucketRow struct {
-	FirstRecordedAt                time.Time
+	OldestMatchingEntryCreatedAt   time.Time
 	SubAccountID                   string
 	SourceChargeID                 stdsql.NullString
 	SpendChargeID                  stdsql.NullString
@@ -79,7 +79,7 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.SpendChargeID,
 		&r.CollectionOriginID,
 		&r.SumAmount,
-		&r.FirstRecordedAt,
+		&r.OldestMatchingEntryCreatedAt,
 		&r.RouteID,
 		&r.AccountType,
 		&r.RoutingKeyVersion,
@@ -137,11 +137,11 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 	}
 
 	return ledger.BalanceBucket{
-		Address:         address,
-		FirstRecordedAt: r.FirstRecordedAt,
-		GroupByValues:   balanceBucketGroupByValues(groupBy, r),
-		SettledAmount:   amount,
-		PendingAmount:   amount,
+		Address:                      address,
+		OldestMatchingEntryCreatedAt: r.OldestMatchingEntryCreatedAt,
+		GroupByValues:                balanceBucketGroupByValues(groupBy, r),
+		SettledAmount:                amount,
+		PendingAmount:                amount,
 	}, nil
 }
 

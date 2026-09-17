@@ -298,6 +298,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			require.NoError(t, err)
 			allocated := decimal.Zero
 			collectionOrigins := map[string]bool{}
+
 			for _, bucket := range buckets {
 				require.NotEmpty(t, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
 				require.Contains(t, chargeIDsBeforeRetry, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]))
@@ -362,6 +363,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				require.Empty(t, backfilled)
 				grantID, err := grants[0].GetChargeID()
 				require.NoError(t, err)
+
 				for _, expected := range []struct {
 					account  ledger.Account
 					sourceID string
@@ -374,14 +376,17 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 					buckets, err := deps.ledgerDeps.HistoricalLedger.GetBalanceBuckets(t.Context(), query)
 					require.NoError(t, err)
 					bySource := map[string]float64{}
+
 					for _, bucket := range buckets {
 						if bucket.SettledAmount.IsZero() {
 							continue
 						}
+
 						require.Contains(t, collectionOrigins, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
 						require.Contains(t, chargeIDsBeforeRetry, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]))
 						bySource[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])] += bucket.SettledAmount.InexactFloat64()
 					}
+
 					require.Equal(t, map[string]float64{expected.sourceID: expected.amount}, bySource)
 				}
 				beforeEntries, err = deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())

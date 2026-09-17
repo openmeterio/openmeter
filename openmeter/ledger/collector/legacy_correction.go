@@ -32,24 +32,30 @@ func (c *accrualCorrector) readLegacyPositions(ctx context.Context, input Correc
 	if source.advanceReceivableIssueTransaction == nil {
 		return c.readLegacyFundedPositions(ctx, input, source, segments, used)
 	}
+
 	positions := make(map[string]correctionPosition)
 	evidence := make(map[string]legacyCorrectionEvidence)
+
 	for _, segment := range segments {
 		if err := segment.Validate(); err != nil {
 			return nil, nil, err
 		}
+
 		state, backingID := segment.State, lo.FromPtr(segment.BackingTransactionGroupID)
 		recognized := state == creditrealization.LineageSegmentStateEarningsRecognized
 		if recognized {
 			state, backingID = *segment.SourceState, lo.FromPtr(segment.SourceBackingTransactionGroupID)
 		}
+
 		key := backingID
 		if state == creditrealization.LineageSegmentStateAdvanceUncovered {
 			key = unknownOriginSource
 		}
+
 		if key == "" {
 			return nil, nil, fmt.Errorf("legacy advance is missing backing evidence")
 		}
+
 		position, exists := positions[key]
 		if !exists {
 			position = correctionPosition{id: key, uncovered: key == unknownOriginSource}
@@ -58,28 +64,34 @@ func (c *accrualCorrector) readLegacyPositions(ctx context.Context, input Correc
 				if err != nil {
 					return nil, nil, err
 				}
+
 				tx, err := backfillTransactionForSource(backfillTransactionForSourceInput{group: group, original: source.transaction, accountType: ledger.AccountTypeCustomerAccrued, templateCode: transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{})})
 				if err != nil {
 					return nil, nil, err
 				}
+
 				if tx == nil {
 					return nil, nil, fmt.Errorf("legacy backing has no matching accrued translation")
 				}
+
 				position.recordedAt = tx.Cursor().CreatedAt
 				position.orderKey = tx.ID().ID
 			}
 		}
+
 		if recognized {
 			position.earnings = position.earnings.Add(segment.Amount)
 		} else {
 			position.accrued = position.accrued.Add(segment.Amount)
 		}
+
 		positions[key] = position
 		e := evidence[key]
 		e.source = source
 		e.parts = append(e.parts, legacyCorrectionPart{segment: segment, amount: segment.Amount})
 		evidence[key] = e
 	}
+
 	return lo.Values(positions), evidence, nil
 }
 
@@ -92,6 +104,7 @@ func (c *accrualCorrector) readLegacyFundedPositions(ctx context.Context, input 
 	positions := make([]correctionPosition, len(entries))
 	evidence := make(map[string]legacyCorrectionEvidence)
 	capacity := make(map[string]alpacadecimal.Decimal)
+
 	for i, entry := range entries {
 		id := entry.ID().ID
 		positions[i] = correctionPosition{id: id, order: i}
@@ -100,35 +113,44 @@ func (c *accrualCorrector) readLegacyFundedPositions(ctx context.Context, input 
 		evidence[id] = legacyCorrectionEvidence{source: narrowed}
 		capacity[id] = entry.Amount().Abs().Sub(used[id])
 	}
+
 	// Reserve recognition references once even when several segments share a group.
 	recognitionUsed := make(map[string]alpacadecimal.Decimal)
+
 	for _, segment := range segments {
 		if err := segment.Validate(); err != nil {
 			return nil, nil, err
 		}
+
 		if segment.State != creditrealization.LineageSegmentStateEarningsRecognized {
 			continue
 		}
+
 		group, err := c.ledger.GetTransactionGroup(ctx, models.NamespacedID{Namespace: input.Namespace, ID: *segment.BackingTransactionGroupID})
 		if err != nil {
 			return nil, nil, err
 		}
+
 		tx, err := c.forwardTransactionByTemplate(group, transactions.TemplateCode(transactions.RecognizeEarningsFromAttributableAccruedTemplate{}))
 		if err != nil {
 			return nil, nil, err
 		}
+
 		remaining := segment.Amount
+
 		for i, entry := range entries {
 			for _, recognized := range tx.Entries() {
 				if recognized.PostingAddress().AccountType() != ledger.AccountTypeCustomerAccrued || !recognized.Amount().IsNegative() || !legacyRecognitionMatchesSource(source, entry, recognized) {
 					continue
 				}
+
 				id := entry.ID().ID
 				available := recognized.Amount().Abs().Sub(used[recognized.ID().ID]).Sub(recognitionUsed[recognized.ID().ID])
 				take := minDecimal(remaining, minDecimal(capacity[id], available))
 				if !take.IsPositive() {
 					continue
 				}
+
 				positions[i].earnings = positions[i].earnings.Add(take)
 				e := evidence[id]
 				e.parts = append(e.parts, legacyCorrectionPart{segment: segment, amount: take})
@@ -138,36 +160,44 @@ func (c *accrualCorrector) readLegacyFundedPositions(ctx context.Context, input 
 				remaining = remaining.Sub(take)
 			}
 		}
+
 		if remaining.IsPositive() {
 			return nil, nil, fmt.Errorf("legacy recognized segment exceeds matching original source evidence")
 		}
 	}
+
 	for _, segment := range segments {
 		if segment.State == creditrealization.LineageSegmentStateEarningsRecognized {
 			continue
 		}
+
 		remaining := segment.Amount
+
 		for i, entry := range entries {
 			id := entry.ID().ID
 			take := minDecimal(remaining, capacity[id])
 			if !take.IsPositive() {
 				continue
 			}
+
 			if segment.State == creditrealization.LineageSegmentStateReceivableCoverage {
 				positions[i].coverage = positions[i].coverage.Add(take)
 			} else {
 				positions[i].accrued = positions[i].accrued.Add(take)
 			}
+
 			e := evidence[id]
 			e.parts = append(e.parts, legacyCorrectionPart{segment: segment, amount: take})
 			evidence[id] = e
 			capacity[id] = capacity[id].Sub(take)
 			remaining = remaining.Sub(take)
 		}
+
 		if remaining.IsPositive() {
 			return nil, nil, fmt.Errorf("legacy segment exceeds remaining collection source evidence")
 		}
 	}
+
 	return positions, evidence, nil
 }
 
@@ -176,13 +206,16 @@ func legacyRecognitionMatchesSource(source collectedSource, fbo, recognized ledg
 		if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerAccrued || !entry.Amount().IsPositive() {
 			continue
 		}
-		if lo.FromPtr(entry.SourceChargeID()) != lo.FromPtr(fbo.SourceChargeID()) || lo.FromPtr(entry.SpendChargeID()) != lo.FromPtr(fbo.SpendChargeID()) {
+
+		if lo.FromPtr(entry.Provenance().SourceChargeID) != lo.FromPtr(fbo.Provenance().SourceChargeID) || lo.FromPtr(entry.Provenance().SpendChargeID) != lo.FromPtr(fbo.Provenance().SpendChargeID) {
 			continue
 		}
+
 		a, b := entry.PostingAddress().Route().Route(), fbo.PostingAddress().Route().Route()
 		if !a.Currency.Equal(b.Currency) || lo.FromPtr(a.CostBasisCurrency) != lo.FromPtr(b.CostBasisCurrency) {
 			continue
 		}
+
 		if a.CostBasis == nil || b.CostBasis == nil {
 			if a.CostBasis != b.CostBasis {
 				continue
@@ -190,10 +223,12 @@ func legacyRecognitionMatchesSource(source collectedSource, fbo, recognized ledg
 		} else if !a.CostBasis.Equal(*b.CostBasis) {
 			continue
 		}
+
 		if correctionEntryKey(entry) == correctionEntryKey(recognized) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -201,34 +236,42 @@ func legacyRecognitionMatchesSource(source collectedSource, fbo, recognized ledg
 // the posting mechanics within the selected source; it cannot reorder sources.
 func (c *accrualCorrector) writeLegacyCorrection(ctx context.Context, input CorrectCollectedAccruedInput, selected []correctionSelection, evidence map[string]legacyCorrectionEvidence, used, selectedSegments map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	var actions []plannedAction
+
 	for _, selection := range selected {
 		e := evidence[selection.id]
+
 		for _, recognized := range []bool{true, false} {
 			remaining := selection.amount.Sub(selection.earnings)
 			if recognized {
 				remaining = selection.earnings
 			}
+
 			for _, part := range e.parts {
 				if (part.segment.State == creditrealization.LineageSegmentStateEarningsRecognized) != recognized {
 					continue
 				}
+
 				take := minDecimal(remaining, part.amount)
 				if !take.IsPositive() {
 					continue
 				}
+
 				resolved, err := c.planSegmentCorrection(ctx, input, e.source, part.segment, take, used)
 				if err != nil {
 					return nil, err
 				}
+
 				actions = append(actions, resolved...)
 				selectedSegments[part.segment.ID] = selectedSegments[part.segment.ID].Add(take)
 				remaining = remaining.Sub(take)
 			}
+
 			if remaining.IsPositive() {
 				return nil, fmt.Errorf("legacy selection exceeds its source evidence")
 			}
 		}
 	}
+
 	return actions, nil
 }
 
@@ -238,17 +281,22 @@ func (c *accrualCorrector) planUntrackedCorrection(source collectedSource, amoun
 	entries := slices.Clone(source.entries)
 	slices.SortStableFunc(entries, compareCollectedFBOCorrectionSourceEntries)
 	var positions []correctionPosition
+
 	byID := make(map[string]ledger.Entry)
+
 	for order, entry := range entries {
 		id := entry.ID().ID
 		positions = append(positions, correctionPosition{id: id, order: order, accrued: entry.Amount().Abs().Sub(used[id])})
 		byID[id] = entry
 	}
+
 	selected, err := planCollectionCorrection(collectionCorrectionInput{amount: amount, positions: positions})
 	if err != nil {
 		return nil, err
 	}
+
 	var actions []plannedAction
+
 	for _, selection := range selected {
 		narrowed := source
 		narrowed.entries = []ledger.Entry{byID[selection.id]}
@@ -256,7 +304,9 @@ func (c *accrualCorrector) planUntrackedCorrection(source collectedSource, amoun
 		if err != nil {
 			return nil, err
 		}
+
 		actions = append(actions, planned...)
 	}
+
 	return actions, nil
 }

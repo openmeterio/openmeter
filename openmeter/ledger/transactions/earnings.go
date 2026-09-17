@@ -128,9 +128,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
 	return t.routePairingKey(entry.PostingAddress(), ledger.EntryIdentityParts{
-		SourceChargeID:     entry.SourceChargeID(),
-		CollectionOriginID: entry.CollectionOriginID(),
-		SpendChargeID:      entry.SpendChargeID(),
+		Provenance: entry.Provenance(),
 	})
 }
 
@@ -138,6 +136,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Co
 	var collections []postingAddressAmount
 	if t.Sources == nil {
 		var err error
+
 		collections, err = collectFromAttributableCustomerAccrued(ctx, customerID, t.Currency, t.Amount, resolvers, t.OriginTracked, t.At)
 		if err != nil {
 			return nil, fmt.Errorf("collect from attributable accrued: %w", err)

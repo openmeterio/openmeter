@@ -93,6 +93,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 			if err != nil {
 				return result, err
 			}
+
 			err = env.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 				Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency,
 				Amount: purchase.Intent.CreditAmount, BackingTransactionGroupID: result.TransactionGroupID,
@@ -104,17 +105,22 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 
 		// Then each original occurrence retains its exact journal backing.
 		require.Empty(t, result.BackfillAllocations, "new origins do not allocate legacy segments")
+
 		for i, run := range runs {
 			require.Empty(t, env.activeSegmentsByRealization(t, run.CreditsAllocated))
 			group, err := env.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{Namespace: env.Namespace, ID: groups[run.CreditsAllocated[0].ID]})
 			require.NoError(t, err)
-			origin := group.Transactions()[0].Entries()[0].CollectionOriginID()
+			origin := group.Transactions()[0].Entries()[0].Provenance().CollectionOriginID
 			require.NotNil(t, origin)
 			buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
-				Namespace: env.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(env.CustomerAccounts.AccruedAccount.ID().ID), SourceChargeID: mo.Some(&purchase.ID), CollectionOriginID: mo.Some(origin)},
+				Namespace: env.Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(env.CustomerAccounts.AccruedAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+					SourceChargeID:     mo.Some(&purchase.ID),
+					CollectionOriginID: mo.Some(origin),
+				}},
 			})
 			require.NoError(t, err)
 			var backed float64
+
 			for _, bucket := range buckets {
 				backed += bucket.SettledAmount.InexactFloat64()
 			}
@@ -122,8 +128,10 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		}
 		buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 			Namespace: env.Namespace,
-			Filters:   ledger.Filters{AccountID: lo.ToPtr(env.CustomerAccounts.AccruedAccount.ID().ID), SourceChargeID: mo.Some(&purchase.ID)},
-			GroupBy:   []string{ledger.BalanceBucketGroupBySpendChargeID},
+			Filters: ledger.Filters{AccountID: lo.ToPtr(env.CustomerAccounts.AccruedAccount.ID().ID), Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some(&purchase.ID),
+			}},
+			GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
 		})
 		require.NoError(t, err)
 		booked := map[string]float64{}
@@ -151,6 +159,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		for _, correction := range correctionInputs {
 			corrected = append(corrected, creditrealization.Realization{CreateInput: correction})
 		}
+
 		require.NoError(t, env.lineage.PersistCorrectionLineageSegments(t.Context(), legacylineage.PersistCorrectionLineageSegmentsInput{Namespace: env.Namespace, Realizations: corrected}))
 		require.Len(t, corrections, 1)
 	}
@@ -296,6 +305,7 @@ func TestAdvanceBackfillSortsSuppliedRootsByCollectionTimeThenID(t *testing.T) {
 				if err != nil {
 					return result, err
 				}
+
 				err = env.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 					Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency,
 					Amount: purchase.Intent.CreditAmount, BackingTransactionGroupID: result.TransactionGroupID,
@@ -356,6 +366,7 @@ func TestAdvanceBackfillStaleSelectionRollsBackPurchase(t *testing.T) {
 			return err
 		}
 		rejectedGroupID = result.TransactionGroupID
+
 		return env.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
 			Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.currency,
 			Amount: second.Intent.CreditAmount, BackingTransactionGroupID: result.TransactionGroupID,

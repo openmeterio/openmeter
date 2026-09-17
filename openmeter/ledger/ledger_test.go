@@ -37,12 +37,8 @@ func (e exampleEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
 	return ledger.EntrySchemaVersionCurrent
 }
 
-func (e exampleEntryInput) SourceChargeID() *string {
-	return nil
-}
-
-func (e exampleEntryInput) SpendChargeID() *string {
-	return nil
+func (e exampleEntryInput) Provenance() ledger.Provenance {
+	return ledger.Provenance{}
 }
 
 func (e exampleEntryInput) Annotations() models.Annotations {
@@ -151,5 +147,3 @@ func TestBalanceBucketQueryValidateGroupBy(t *testing.T) {
 		},
 	}.Validate())
 }
-
-func (e exampleEntryInput) CollectionOriginID() *string { return nil }

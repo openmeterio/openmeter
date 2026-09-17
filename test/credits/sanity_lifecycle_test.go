@@ -384,9 +384,11 @@ func (s *SanityLifecycleSuite) assertAdvanceBacking(ctx context.Context, custome
 	buckets, err := s.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: customerID.Namespace,
 		Filters: ledger.Filters{
-			AccountID:      lo.ToPtr(accounts.AccruedAccount.ID().ID),
-			SourceChargeID: mo.Some(&purchase.ID),
-			Route:          ledger.RouteFilter{Currency: currencies.NewCurrencyReference(USD), CostBasis: mo.Some(&costBasis)},
+			AccountID: lo.ToPtr(accounts.AccruedAccount.ID().ID),
+			Provenance: ledger.ProvenanceFilter{
+				SourceChargeID: mo.Some(&purchase.ID),
+			},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(USD), CostBasis: mo.Some(&costBasis)},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
 	})
@@ -395,9 +397,11 @@ func (s *SanityLifecycleSuite) assertAdvanceBacking(ctx context.Context, custome
 	for _, bucket := range buckets {
 		booked[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] += bucket.SettledAmount.InexactFloat64()
 	}
+
 	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: customerID.Namespace, CustomerID: customerID.ID, Currency: currencies.NewCurrencyReference(USD)})
 	s.Require().NoError(err)
 	s.Empty(lineages, "new collections use ledger origins")
+
 	for chargeID, amount := range expected {
 		s.Equal(amount, booked[chargeID], "persisted ledger backing for %s", chargeID)
 	}
