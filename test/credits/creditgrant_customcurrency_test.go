@@ -7,17 +7,12 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
-	creditgrantservice "github.com/openmeterio/openmeter/openmeter/billing/creditgrant/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
-	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -234,37 +229,4 @@ func (s *CreditGrantTestSuite) TestCreateFiatGrantWithManualCostBasis() {
 	fiatAmount, err := grant.GetFiatSettlementAmount()
 	s.Require().NoError(err)
 	s.Equal(float64(50), fiatAmount.InexactFloat64())
-}
-
-func (s *CreditGrantTestSuite) TestCreateCustomCurrencyGrantRejectedWhenDisabled() {
-	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("creditgrant-custom-currency-disabled")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
-
-	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
-	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-	s.createTokensCurrency(ns)
-
-	svc, err := creditgrantservice.New(creditgrantservice.Config{
-		CreditPurchaseService: s.CreditPurchaseService,
-		ChargesService:        s.Charges,
-		BillingService:        s.BillingService,
-		CustomerService:       s.CustomerService,
-		CreditVoidService:     creditvoid.NewNoopService(),
-		TransactionManager:    enttx.NewCreator(s.DBClient),
-		CurrencyResolver:      s.CurrencyResolver,
-		CreditsConfig:         config.CreditsConfiguration{EnableCustomCurrencyCharge: false},
-	})
-	s.Require().NoError(err)
-
-	_, err = svc.Create(ctx, creditgrant.CreateInput{
-		Namespace:     ns,
-		CustomerID:    cust.ID,
-		Name:          "Promotional TOKENS",
-		Currency:      TOKENS,
-		Amount:        alpacadecimal.NewFromInt(10),
-		FundingMethod: creditgrant.FundingMethodNone,
-	})
-	s.Require().ErrorIs(err, meta.ErrCustomCurrencyNotSupported)
 }

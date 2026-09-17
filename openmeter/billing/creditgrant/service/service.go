@@ -10,7 +10,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -41,7 +40,6 @@ type Config struct {
 	CreditVoidService     creditvoid.Service
 	TransactionManager    transaction.Creator
 	CurrencyResolver      currencies.CurrencyResolver
-	CreditsConfig         config.CreditsConfiguration
 }
 
 func (c Config) Validate() error {
@@ -91,7 +89,6 @@ func New(config Config) (creditgrant.Service, error) {
 		creditVoidService:     config.CreditVoidService,
 		transactionManager:    config.TransactionManager,
 		currencyResolver:      config.CurrencyResolver,
-		creditsConfig:         config.CreditsConfig,
 	}, nil
 }
 
@@ -103,7 +100,6 @@ type service struct {
 	creditVoidService     creditvoid.Service
 	transactionManager    transaction.Creator
 	currencyResolver      currencies.CurrencyResolver
-	creditsConfig         config.CreditsConfiguration
 }
 
 func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (creditpurchase.Charge, error) {
@@ -127,10 +123,6 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("resolving currency: %w", err)
-	}
-
-	if currency.IsCustom() && !s.creditsConfig.EnableCustomCurrencyCharge {
-		return creditpurchase.Charge{}, models.NewGenericValidationError(meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if input.FundingMethod == creditgrant.FundingMethodInvoice {
