@@ -29,14 +29,14 @@ func (k routePairingKey) String() string {
 	return fmt.Sprintf(
 		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,features=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s,collection_origin_id=%s",
 		k.currency,
-		k.costBasisCurrency.OrElse("<unset>"),
-		k.taxCode.OrElse("<unset>"),
-		k.taxBehavior.OrElse("<unset>"),
+		k.costBasisCurrency.OrElse("null"),
+		k.taxCode.OrElse("null"),
+		k.taxBehavior.OrElse("null"),
 		k.features,
-		k.costBasis.OrElse("<unset>"),
-		k.sourceChargeID.OrElse("<unset>"),
-		k.spendChargeID.OrElse("<unset>"),
-		k.collectionOriginID.OrElse("<unset>"),
+		k.costBasis.OrElse("null"),
+		k.sourceChargeID.OrElse("null"),
+		k.spendChargeID.OrElse("null"),
+		k.collectionOriginID.OrElse("null"),
 	)
 }
 
