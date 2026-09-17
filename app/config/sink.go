@@ -176,5 +176,5 @@ func ConfigureSink(v *viper.Viper) {
 	ConfigureKafkaConfiguration(v, "sink")
 
 	// Override Kafka configuration defaults
-	v.SetDefault("sink.kafka.consumerGroupId", "openmeter-sink-worker")
+	v.SetDefault("sink.kafka.consumerGroupID", "openmeter-sink-worker")
 }
