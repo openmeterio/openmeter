@@ -1,0 +1,32 @@
+{
+  "name": "rebase-api-action",
+  "version": "1.0.0",
+  "description": "Custom GitHub Action to rebase PRs and handle API conflicts",
+  "main": "src/main.ts",
+  "scripts": {
+    "build": "ncc build src/main.ts -o dist",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "check-format": "prettier --check ."
+  },
+  "keywords": [
+    "github",
+    "action",
+    "rebase",
+    "chatops"
+  ],
+  "author": "",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@vercel/ncc": "^0.38.1",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "prettier": "^3.2.5"
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
+}
