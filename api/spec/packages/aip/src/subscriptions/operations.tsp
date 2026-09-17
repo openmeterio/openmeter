@@ -281,6 +281,7 @@ interface SubscriptionsOperations {
   @summary("Migrate subscription")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.RPCEndpointExtension, true)
+  @extension(Shared.InternalExtension, true)
   @route("/{subscriptionId}/migrate")
   migrate(@path subscriptionId: Shared.ULID, @body body: SubscriptionMigrate):
     | SubscriptionMigrateResponse

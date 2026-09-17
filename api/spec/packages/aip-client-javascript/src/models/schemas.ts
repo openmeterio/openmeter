@@ -6360,7 +6360,7 @@ export const subscriptionCustomPlan = z
   })
 
   .describe(
-    'An inline (custom) plan definition used to create or change a subscription without referencing a published plan. Mirrors the plan create shape without a key or version, since a custom plan is not persisted or versioned on its own.',
+    'An inline (custom) plan definition used to create or change a subscription without referencing a published plan. Mirrors the plan create shape without a key or version, since a custom plan is not persisted or versioned on its own. `settlement_mode` is also omitted: it is a subscription-level concern set via the `settlement_mode` field on the create/change request, not on the inline plan.',
   )
 
 export const plan = z
@@ -6410,7 +6410,7 @@ export const plan = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
-    settlementMode: settlementMode.optional().default('credit_then_invoice'),
+    settlementMode: settlementMode,
     validationErrors: z
       .array(productCatalogValidationError)
       .optional()
@@ -6452,8 +6452,12 @@ export const createPlanRequest = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
+    settlementMode: settlementMode.optional().default('credit_then_invoice'),
   })
-  .describe('Plan create request.')
+
+  .describe(
+    'Plan create request. `settlement_mode` is re-declared as optional with a `credit_then_invoice` default, applied only on create.',
+  )
 
 export const upsertPlanRequest = z
   .object({
@@ -6483,8 +6487,12 @@ export const upsertPlanRequest = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
+    settlementMode: settlementMode.optional(),
   })
-  .describe('Plan upsert request.')
+
+  .describe(
+    "Plan upsert (update) request. `settlement_mode` is re-declared as optional with no default, so an omitted value leaves the plan's existing settlement mode unchanged.",
+  )
 
 export const subscriptionEditOperation = z
   .discriminatedUnion('type', [
@@ -14365,7 +14373,7 @@ export const subscriptionCustomPlanWire = z
   })
 
   .describe(
-    'An inline (custom) plan definition used to create or change a subscription without referencing a published plan. Mirrors the plan create shape without a key or version, since a custom plan is not persisted or versioned on its own.',
+    'An inline (custom) plan definition used to create or change a subscription without referencing a published plan. Mirrors the plan create shape without a key or version, since a custom plan is not persisted or versioned on its own. `settlement_mode` is also omitted: it is a subscription-level concern set via the `settlement_mode` field on the create/change request, not on the inline plan.',
   )
 
 export const planWire = z
@@ -14413,7 +14421,7 @@ export const planWire = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
-    settlement_mode: settlementModeWire.optional(),
+    settlement_mode: settlementModeWire,
     validation_errors: z
       .array(productCatalogValidationErrorWire)
       .optional()
@@ -14454,8 +14462,12 @@ export const createPlanRequestWire = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
+    settlement_mode: settlementModeWire.optional(),
   })
-  .describe('Plan create request.')
+
+  .describe(
+    'Plan create request. `settlement_mode` is re-declared as optional with a `credit_then_invoice` default, applied only on create.',
+  )
 
 export const upsertPlanRequestWire = z
   .strictObject({
@@ -14484,8 +14496,12 @@ export const upsertPlanRequestWire = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
+    settlement_mode: settlementModeWire.optional(),
   })
-  .describe('Plan upsert request.')
+
+  .describe(
+    "Plan upsert (update) request. `settlement_mode` is re-declared as optional with no default, so an omitted value leaves the plan's existing settlement mode unchanged.",
+  )
 
 export const subscriptionEditOperationWire = z
   .discriminatedUnion('type', [

@@ -5807,6 +5807,10 @@ export interface SubscriptionPhase {
  * An inline (custom) plan definition used to create or change a subscription
  * without referencing a published plan. Mirrors the plan create shape without a
  * key or version, since a custom plan is not persisted or versioned on its own.
+ *
+ * `settlement_mode` is also omitted: it is a subscription-level concern set via
+ * the `settlement_mode` field on the create/change request, not on the inline
+ * plan.
  */
 export interface SubscriptionCustomPlan {
   /**
@@ -5916,7 +5920,10 @@ export interface Plan {
   validationErrors?: ProductCatalogValidationError[]
 }
 
-/** Plan create request. */
+/**
+ * Plan create request. `settlement_mode` is re-declared as optional with a
+ * `credit_then_invoice` default, applied only on create.
+ */
 export interface CreatePlanRequest {
   /**
    * Display name of the resource.
@@ -5948,9 +5955,15 @@ export interface CreatePlanRequest {
    * occurs only at the end of a billing period. At least one phase is required.
    */
   phases: PlanPhase[]
+  /** Settlement mode for the plan. Defaults to `credit_then_invoice` when omitted. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
 }
 
-/** Plan upsert request. */
+/**
+ * Plan upsert (update) request. `settlement_mode` is re-declared as optional with
+ * no default, so an omitted value leaves the plan's existing settlement mode
+ * unchanged.
+ */
 export interface UpsertPlanRequest {
   /**
    * Display name of the resource.
@@ -5972,6 +5985,11 @@ export interface UpsertPlanRequest {
    * occurs only at the end of a billing period. At least one phase is required.
    */
   phases: PlanPhase[]
+  /**
+   * Settlement mode for the plan. When omitted, the existing settlement mode is
+   * preserved.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
 }
 
 /** Addon purchased with a subscription. */
@@ -8605,6 +8623,10 @@ export interface SubscriptionPhaseInput {
  * An inline (custom) plan definition used to create or change a subscription
  * without referencing a published plan. Mirrors the plan create shape without a
  * key or version, since a custom plan is not persisted or versioned on its own.
+ *
+ * `settlement_mode` is also omitted: it is a subscription-level concern set via
+ * the `settlement_mode` field on the create/change request, not on the inline
+ * plan.
  */
 export interface SubscriptionCustomPlanInput {
   /**
@@ -8706,7 +8728,7 @@ export interface PlanInput {
    * invoiced.
    * - `credit_only`: Usage is settled exclusively against credits.
    */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  settlementMode: 'credit_then_invoice' | 'credit_only'
   /**
    * List of validation errors in `draft` state that prevent the plan from being
    * published.
@@ -8714,7 +8736,10 @@ export interface PlanInput {
   validationErrors?: ProductCatalogValidationError[]
 }
 
-/** Plan create request. */
+/**
+ * Plan create request. `settlement_mode` is re-declared as optional with a
+ * `credit_then_invoice` default, applied only on create.
+ */
 export interface CreatePlanRequestInput {
   /**
    * Display name of the resource.
@@ -8746,9 +8771,15 @@ export interface CreatePlanRequestInput {
    * occurs only at the end of a billing period. At least one phase is required.
    */
   phases: PlanPhaseInput[]
+  /** Settlement mode for the plan. Defaults to `credit_then_invoice` when omitted. */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
 }
 
-/** Plan upsert request. */
+/**
+ * Plan upsert (update) request. `settlement_mode` is re-declared as optional with
+ * no default, so an omitted value leaves the plan's existing settlement mode
+ * unchanged.
+ */
 export interface UpsertPlanRequestInput {
   /**
    * Display name of the resource.
@@ -8770,6 +8801,11 @@ export interface UpsertPlanRequestInput {
    * occurs only at the end of a billing period. At least one phase is required.
    */
   phases: PlanPhaseInput[]
+  /**
+   * Settlement mode for the plan. When omitted, the existing settlement mode is
+   * preserved.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
 }
 
 /** Addon purchased with a subscription. */

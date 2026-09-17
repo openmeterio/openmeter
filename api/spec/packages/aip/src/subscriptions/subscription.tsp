@@ -104,12 +104,16 @@ union SubscriptionCreateTiming {
  * An inline (custom) plan definition used to create or change a subscription
  * without referencing a published plan. Mirrors the plan create shape without a
  * key or version, since a custom plan is not persisted or versioned on its own.
+ *
+ * `settlement_mode` is also omitted: it is a subscription-level concern set via
+ * the `settlement_mode` field on the create/change request, not on the inline
+ * plan.
  */
 @friendlyName("BillingSubscriptionCustomPlan")
 model SubscriptionCustomPlan {
   ...Shared.CreateRequest<OmitProperties<
     ProductCatalog.Plan,
-    "key" | "version"
+    "key" | "version" | "settlement_mode"
   >>;
 }
 

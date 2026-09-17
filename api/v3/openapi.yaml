@@ -3744,6 +3744,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionMigrate'
+      x-internal: true
       x-rpc-endpoint: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/restore:
@@ -9030,6 +9031,7 @@ components:
         - billing_cadence
         - status
         - phases
+        - settlement_mode
       properties:
         id:
           allOf:
@@ -9149,7 +9151,6 @@ components:
             invoiced.
             - `credit_only`: Usage is settled exclusively against credits.
           title: Settlement Mode
-          default: credit_then_invoice
           readOnly: true
         validation_errors:
           type: array
@@ -10520,6 +10521,10 @@ components:
         An inline (custom) plan definition used to create or change a subscription
         without referencing a published plan. Mirrors the plan create shape without a
         key or version, since a custom plan is not persisted or versioned on its own.
+
+        `settlement_mode` is also omitted: it is a subscription-level concern set via
+        the `settlement_mode` field on the create/change request, not on the inline
+        plan.
     BillingSubscriptionEdit:
       type: object
       required:
@@ -12694,8 +12699,16 @@ components:
             The plan phases define the pricing ramp for a subscription. A phase switch
             occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: Settlement mode for the plan. Defaults to `credit_then_invoice` when omitted.
+          title: Settlement Mode
+          default: credit_then_invoice
       additionalProperties: false
-      description: Plan create request.
+      description: |-
+        Plan create request. `settlement_mode` is re-declared as optional with a
+        `credit_then_invoice` default, applied only on create.
     CreateResourceReference:
       type: object
       required:
@@ -16050,8 +16063,18 @@ components:
             The plan phases define the pricing ramp for a subscription. A phase switch
             occurs only at the end of a billing period. At least one phase is required.
           title: Plan phases
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: |-
+            Settlement mode for the plan. When omitted, the existing settlement mode is
+            preserved.
+          title: Settlement Mode
       additionalProperties: false
-      description: Plan upsert request.
+      description: |-
+        Plan upsert (update) request. `settlement_mode` is re-declared as optional with
+        no default, so an omitted value leaves the plan's existing settlement mode
+        unchanged.
     UpsertTaxCodeRequest:
       type: object
       required:

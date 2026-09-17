@@ -118,7 +118,7 @@ model Plan {
    */
   @visibility(Lifecycle.Read)
   @summary("Settlement Mode")
-  settlement_mode?: ProductCatalog.SettlementMode = ProductCatalog.SettlementMode.CreditThenInvoice;
+  settlement_mode: ProductCatalog.SettlementMode;
 
   /**
    * List of validation errors in `draft` state that prevent the plan from being
@@ -127,6 +127,40 @@ model Plan {
   @visibility(Lifecycle.Read)
   @summary("Validation errors")
   validation_errors?: ProductCatalogValidationError[];
+}
+
+/**
+ * Plan create request. `settlement_mode` is re-declared as optional with a
+ * `credit_then_invoice` default, applied only on create.
+ */
+@friendlyName("CreatePlanRequest")
+model CreatePlanRequestBody {
+  ...Shared.CreateRequest<OmitProperties<Plan, "settlement_mode">>;
+
+  /**
+   * Settlement mode for the plan. Defaults to `credit_then_invoice` when omitted.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Settlement Mode")
+  settlement_mode?: ProductCatalog.SettlementMode = ProductCatalog.SettlementMode.CreditThenInvoice;
+}
+
+/**
+ * Plan upsert (update) request. `settlement_mode` is re-declared as optional with
+ * no default, so an omitted value leaves the plan's existing settlement mode
+ * unchanged.
+ */
+@friendlyName("UpsertPlanRequest")
+model UpsertPlanRequestBody {
+  ...Shared.UpsertRequest<OmitProperties<Plan, "settlement_mode">>;
+
+  /**
+   * Settlement mode for the plan. When omitted, the existing settlement mode is
+   * preserved.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Update)
+  @summary("Settlement Mode")
+  settlement_mode?: ProductCatalog.SettlementMode;
 }
 
 /**
