@@ -215,6 +215,7 @@ func matchFeature(feature string) predicate.LedgerSubAccountRoute {
 
 func entryProvenancePredicates(filter ledger.ProvenanceFilter) []predicate.LedgerEntry {
 	entryPredicates := make([]predicate.LedgerEntry, 0, 3)
+
 	if filter.SourceChargeID.IsPresent() {
 		sourceChargeID, _ := filter.SourceChargeID.Get()
 		if sourceChargeID != nil {

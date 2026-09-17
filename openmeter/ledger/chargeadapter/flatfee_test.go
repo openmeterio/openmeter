@@ -139,7 +139,10 @@ func TestOnAllocateCredits(t *testing.T) {
 
 		env.fundPriority(t, 1, 30)
 		input := env.newAssignmentInput(alpacadecimal.NewFromInt(30))
-		input.ServicePeriod = timeutil.ClosedPeriod{From: env.Now(), To: env.Now().Add(time.Hour)}
+		input.ServicePeriod = timeutil.ClosedPeriod{
+			From: env.Now(),
+			To:   env.Now().Add(time.Hour),
+		}
 		editFlatFeeBaseLayerForTest(t, &input.Charge, func(intent *chargeflatfee.IntentMutableFields) {
 			intent.PaymentTerm = productcatalog.InArrearsPaymentTerm
 			intent.InvoiceAt = input.ServicePeriod.From

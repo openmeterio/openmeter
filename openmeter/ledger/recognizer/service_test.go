@@ -391,7 +391,9 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 			}
 			require.Equal(t, float64(10), env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
 			roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
-				Namespace: env.Namespace, CustomerID: env.CustomerID.ID, Currency: env.CurrencyReference(),
+				Namespace:  env.Namespace,
+				CustomerID: env.CustomerID.ID,
+				Currency:   env.CurrencyReference(),
 			})
 			require.NoError(t, err)
 			require.Len(t, roots, 1)

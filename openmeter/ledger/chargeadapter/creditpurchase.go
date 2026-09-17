@@ -269,6 +269,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, in
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
 	}
+
 	accounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return chargecreditpurchase.CreditGrantResult{}, err
@@ -309,6 +310,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, in
 	advanceAttributionAmount := alpacadecimal.Zero
 	for _, attribution := range advanceAttributions {
 		advanceAttributionAmount = advanceAttributionAmount.Add(attribution.advanceAmount)
+
 		if attribution.collectionOriginID != nil {
 			annotations[ledger.AnnotationBackfillCreditPriority] = lo.FromPtrOr(charge.Intent.Priority, ledger.DefaultCustomerFBOPriority)
 		}
@@ -533,13 +535,17 @@ func (h *creditPurchaseHandler) advanceAttributions(
 		if candidate.legacy != nil {
 			root := *candidate.legacy
 			receivableBuckets.requiredFeatures = root.AdvanceFeatures
+
 			spendKey, accruedBuckets, err = h.accruedBucketsForAdvance(ctx, customerID.Namespace, root, unattributedAccrued)
 			if err != nil {
 				return advanceBackfillPlan{}, err
 			}
 
 			for _, segment := range root.Segments {
-				selections = append(selections, legacylineage.AdvanceBackfillAllocation{SegmentID: segment.ID, Amount: segment.Amount})
+				selections = append(selections, legacylineage.AdvanceBackfillAllocation{
+					SegmentID: segment.ID,
+					Amount:    segment.Amount,
+				})
 			}
 		} else {
 			spendKey = candidate.key.spendChargeID
@@ -586,9 +592,13 @@ func (h *creditPurchaseHandler) advanceAttributions(
 					}
 				}
 			}
+
 			plan.attributions = append(plan.attributions, attributions...)
 			if candidate.legacy != nil {
-				plan.allocations = append(plan.allocations, legacylineage.AdvanceBackfillAllocation{SegmentID: selection.SegmentID, Amount: covered})
+				plan.allocations = append(plan.allocations, legacylineage.AdvanceBackfillAllocation{
+					SegmentID: selection.SegmentID,
+					Amount:    covered,
+				})
 			}
 
 			remaining = remaining.Sub(covered)
@@ -607,6 +617,7 @@ func (h *creditPurchaseHandler) advanceAttributions(
 // entry preserves the spend charge that created the advance.
 func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, receivableAccountID models.NamespacedID, currency currencies.CurrencyReference) ([]advanceReceivableBalance, error) {
 	openStatus := ledger.TransactionAuthorizationStatusOpen
+
 	buckets, err := h.balanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: receivableAccountID.Namespace,
 		Filters: ledger.Filters{
@@ -615,7 +626,6 @@ func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, r
 				SourceChargeID: mo.Some[*string](nil),
 				SpendChargeID:  mo.None[*string](),
 			},
-
 			Route: ledger.RouteFilter{
 				Currency:                       currency,
 				CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
@@ -682,6 +692,7 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 
 		route := bucket.Address.Route().Route()
 		spendChargeID := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
+
 		key := accruedBackfillBucketKey{
 			spendChargeID:   advanceSpendKey(spendChargeID, bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]),
 			taxDimensionKey: taxDimensionRouteKey(route),
@@ -714,7 +725,10 @@ func (h *creditPurchaseHandler) accruedBucketsForAdvance(ctx context.Context, na
 		return "", nil, fmt.Errorf("advance lineage %s is missing its original transaction group", root.ID)
 	}
 
-	group, err := h.ledger.GetTransactionGroup(ctx, models.NamespacedID{Namespace: namespace, ID: root.OriginalTransactionGroupID})
+	group, err := h.ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        root.OriginalTransactionGroupID,
+	})
 	if err != nil {
 		return "", nil, err
 	}
@@ -956,6 +970,7 @@ func sortedAdvanceBackfillLineages(roots []legacylineage.Lineage) []legacylineag
 		slices.SortFunc(root.Segments, func(a, b legacylineage.Segment) int {
 			return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), cmp.Compare(a.ID, b.ID))
 		})
+
 		candidates = append(candidates, root)
 	}
 
@@ -1218,7 +1233,11 @@ func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattri
 	var candidates []advanceBackfillCandidate
 
 	for _, root := range sortedAdvanceBackfillLineages(legacylineage.FilterAdvanceLineagesForBackfill(roots, features)) {
-		candidates = append(candidates, advanceBackfillCandidate{recordedAt: root.CreatedAt, id: root.ID, legacy: &root})
+		candidates = append(candidates, advanceBackfillCandidate{
+			recordedAt: root.CreatedAt,
+			id:         root.ID,
+			legacy:     &root,
+		})
 	}
 
 	for _, balance := range balances {
@@ -1226,7 +1245,11 @@ func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattri
 			continue
 		}
 
-		candidates = append(candidates, advanceBackfillCandidate{recordedAt: balance.oldestMatchingEntryCreatedAt, id: *balance.collectionOriginID, key: balance.key})
+		candidates = append(candidates, advanceBackfillCandidate{
+			recordedAt: balance.oldestMatchingEntryCreatedAt,
+			id:         *balance.collectionOriginID,
+			key:        balance.key,
+		})
 	}
 
 	slices.SortFunc(candidates, func(a, b advanceBackfillCandidate) int {

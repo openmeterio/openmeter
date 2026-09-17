@@ -188,6 +188,7 @@ func ValidateOriginProvenance(entries []EntryInput) error {
 	}
 
 	balances := make(map[string]originBalance)
+
 	var errs []error
 
 	for _, entry := range entries {
@@ -202,6 +203,7 @@ func ValidateOriginProvenance(entries []EntryInput) error {
 		}
 
 		key := *provenance.CollectionOriginID + ":" + entry.PostingAddress().Route().Route().Currency.IdentityKey()
+
 		value, exists := balances[key]
 		if !exists {
 			value.spend = spend

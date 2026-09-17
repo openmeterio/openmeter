@@ -103,5 +103,8 @@ func (t *TransactionGroup) Annotations() models.Annotations {
 }
 
 func (t *Transaction) GroupID() models.NamespacedID {
-	return models.NamespacedID{Namespace: t.data.Namespace, ID: t.data.GroupID}
+	return models.NamespacedID{
+		Namespace: t.data.Namespace,
+		ID:        t.data.GroupID,
+	}
 }

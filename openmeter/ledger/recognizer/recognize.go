@@ -223,37 +223,56 @@ func minDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
 func (s *service) resolveOriginRecognition(ctx context.Context, in RecognizeEarningsInput, accounts ledger.CustomerAccounts) ([]ledger.TransactionInput, error) {
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: in.CustomerID.Namespace,
-		Filters:   ledger.Filters{AccountID: lo.ToPtr(accounts.AccruedAccount.ID().ID), AsOf: &in.At, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
-		GroupBy:   []string{ledger.BalanceBucketGroupByCollectionOriginID, ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
+		Filters: ledger.Filters{
+			AccountID: lo.ToPtr(accounts.AccruedAccount.ID().ID),
+			AsOf:      &in.At,
+			Route:     ledger.RouteFilter{Currency: in.Currency.Reference()},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID, ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	amount := alpacadecimal.Zero
+
 	var sources []transactions.PostingAmount
 
 	for _, bucket := range buckets {
 		source := bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID]
 		spend := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
+
 		if bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID] == nil || source == nil || spend == nil || *source == *spend || bucket.Address.Route().Route().CostBasis == nil || !bucket.SettledAmount.IsPositive() {
 			continue
 		}
 
 		amount = amount.Add(bucket.SettledAmount)
-		sources = append(sources, transactions.PostingAmount{Address: bucket.Address, Amount: bucket.SettledAmount, Identity: ledger.EntryIdentityParts{
-			Provenance: ledger.Provenance{
-				CollectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID],
-				SourceChargeID:     source,
-				SpendChargeID:      spend,
+		sources = append(sources, transactions.PostingAmount{
+			Address: bucket.Address,
+			Amount:  bucket.SettledAmount,
+			Identity: ledger.EntryIdentityParts{
+				Provenance: ledger.Provenance{
+					CollectionOriginID: bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID],
+					SourceChargeID:     source,
+					SpendChargeID:      spend,
+				},
 			},
-		}})
+		})
 	}
 
 	if !amount.IsPositive() {
 		return nil, nil
 	}
 
-	return transactions.ResolveTransactions(ctx, s.deps, transactions.ResolutionScope{CustomerID: in.CustomerID, Namespace: in.CustomerID.Namespace},
-		transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: in.At, Amount: amount, Currency: in.Currency.Reference(), OriginTracked: true, Sources: sources})
+	return transactions.ResolveTransactions(ctx, s.deps, transactions.ResolutionScope{
+		CustomerID: in.CustomerID,
+		Namespace:  in.CustomerID.Namespace,
+	},
+		transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+			At:            in.At,
+			Amount:        amount,
+			Currency:      in.Currency.Reference(),
+			OriginTracked: true,
+			Sources:       sources,
+		})
 }

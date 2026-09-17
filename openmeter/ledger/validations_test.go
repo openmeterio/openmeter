@@ -254,18 +254,29 @@ func TestOriginIdentityVersionAndPersistenceContract(t *testing.T) {
 	origin := "01J00000000000000000000001"
 	spend := "01J00000000000000000000002"
 	source := "01J00000000000000000000003"
-	parts := ledger.EntryIdentityParts{Provenance: ledger.Provenance{
-		CollectionOriginID: &origin,
-		SpendChargeID:      &spend,
-		SourceChargeID:     &source,
-	}, CorrectionSource: lo.ToPtr("entry:original")}
+	parts := ledger.EntryIdentityParts{
+		Provenance: ledger.Provenance{
+			CollectionOriginID: &origin,
+			SpendChargeID:      &spend,
+			SourceChargeID:     &source,
+		},
+		CorrectionSource: lo.ToPtr("entry:original"),
+	}
 	key, version := parts.Text()
 	require.Equal(t, ledger.EntryIdentityVersion3, version)
+
 	parsedVersion, parsed, err := key.Parse()
 	require.NoError(t, err)
 	require.Equal(t, version, parsedVersion)
 	require.Equal(t, parts, parsed)
-	entry := validationEntryInput{identityKey: string(key), schemaVersion: ledger.EntrySchemaVersionOrigin, collectionOriginID: &origin, spendChargeID: &spend, sourceChargeID: &source}
+
+	entry := validationEntryInput{
+		identityKey:        string(key),
+		schemaVersion:      ledger.EntrySchemaVersionOrigin,
+		collectionOriginID: &origin,
+		spendChargeID:      &spend,
+		sourceChargeID:     &source,
+	}
 	require.NoError(t, ledger.ValidateEntryIdentityKey(entry))
 
 	for _, test := range []struct {
@@ -295,14 +306,17 @@ func TestOriginProvenanceCannotLeakBetweenBalancedPairs(t *testing.T) {
 	spend := "01J00000000000000000000002"
 	source := "01J00000000000000000000003"
 	route := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))}
-	debit := validationEntryInput{
-		amount: alpacadecimal.NewFromInt(-10), collectionOriginID: &origin, spendChargeID: &spend, sourceChargeID: &source,
-		address: testEntryIdentityAddress(t, ledger.AccountTypeCustomerAccrued, "accrued", route),
+	negativeEntry := validationEntryInput{
+		amount:             alpacadecimal.NewFromInt(-10),
+		collectionOriginID: &origin,
+		spendChargeID:      &spend,
+		sourceChargeID:     &source,
+		address:            testEntryIdentityAddress(t, ledger.AccountTypeCustomerAccrued, "accrued", route),
 	}
-	credit := debit
-	credit.amount = debit.amount.Neg()
-	credit.address = testEntryIdentityAddress(t, ledger.AccountTypeEarnings, "earnings", route)
-	require.NoError(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{debit, credit}))
+	positiveEntry := negativeEntry
+	positiveEntry.amount = negativeEntry.amount.Neg()
+	positiveEntry.address = testEntryIdentityAddress(t, ledger.AccountTypeEarnings, "earnings", route)
+	require.NoError(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{negativeEntry, positiveEntry}))
 
 	for _, test := range []struct {
 		name    string
@@ -316,22 +330,22 @@ func TestOriginProvenanceCannotLeakBetweenBalancedPairs(t *testing.T) {
 		{"different purchase", func(e *validationEntryInput) { e.sourceChargeID = lo.ToPtr("another-source") }, "preserve source"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			copy := credit
+			copy := positiveEntry
 			test.mutate(&copy)
-			require.ErrorContains(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{debit, copy}), test.message)
+			require.ErrorContains(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{negativeEntry, copy}), test.message)
 		})
 	}
 
 	// Attribution can change source within accrued without moving value to another origin.
-	translated := credit
-	translated.address = debit.address
+	translated := positiveEntry
+	translated.address = negativeEntry.address
 	translated.sourceChargeID = lo.ToPtr("another-source")
-	require.ErrorContains(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{debit, translated}), "attribute unknown")
-	unknownDebit := debit
-	unknownDebit.sourceChargeID = nil
-	require.NoError(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{unknownDebit, translated}))
+	require.ErrorContains(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{negativeEntry, translated}), "attribute unknown")
+	unknownSourceEntry := negativeEntry
+	unknownSourceEntry.sourceChargeID = nil
+	require.NoError(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{unknownSourceEntry, translated}))
 	// One recognition can contain distinct backing sources of the same advance.
-	secondDebit, secondCredit := debit, credit
-	secondDebit.sourceChargeID, secondCredit.sourceChargeID = translated.sourceChargeID, translated.sourceChargeID
-	require.NoError(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{debit, credit, secondDebit, secondCredit}))
+	secondNegativeEntry, secondPositiveEntry := negativeEntry, positiveEntry
+	secondNegativeEntry.sourceChargeID, secondPositiveEntry.sourceChargeID = translated.sourceChargeID, translated.sourceChargeID
+	require.NoError(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{negativeEntry, positiveEntry, secondNegativeEntry, secondPositiveEntry}))
 }

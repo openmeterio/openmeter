@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -825,7 +825,7 @@ func (t CoverCustomerReceivableTemplate) routePairingKey(address ledger.PostingA
 
 	return routePairingKey{
 		currency:          route.Currency.IdentityKey(),
-		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
+		costBasisCurrency: mo.PointerToOption(route.CostBasisCurrency),
 		features:          strings.Join(route.Features, "\x00"),
 		costBasis:         costBasisKey(route.CostBasis),
 	}
@@ -833,18 +833,18 @@ func (t CoverCustomerReceivableTemplate) routePairingKey(address ledger.PostingA
 
 func (t CoverCustomerReceivableTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
 	key := t.routePairingKey(entry.PostingAddress())
-	key.sourceChargeID = lo.FromPtrOr(entry.Provenance().SourceChargeID, "null")
-	key.spendChargeID = lo.FromPtrOr(entry.Provenance().SpendChargeID, "null")
-	key.collectionOriginID = lo.FromPtrOr(entry.Provenance().CollectionOriginID, "null")
+	key.sourceChargeID = mo.PointerToOption(entry.Provenance().SourceChargeID)
+	key.spendChargeID = mo.PointerToOption(entry.Provenance().SpendChargeID)
+	key.collectionOriginID = mo.PointerToOption(entry.Provenance().CollectionOriginID)
 
 	return key
 }
 
 func (t CoverCustomerReceivableTemplate) sourceRoutePairingKey(source PostingAmount) routePairingKey {
 	key := t.routePairingKey(source.Address)
-	key.sourceChargeID = lo.FromPtrOr(source.Identity.SourceChargeID, "null")
-	key.spendChargeID = lo.FromPtrOr(source.Identity.SpendChargeID, "null")
-	key.collectionOriginID = lo.FromPtrOr(source.Identity.CollectionOriginID, "null")
+	key.sourceChargeID = mo.PointerToOption(source.Identity.SourceChargeID)
+	key.spendChargeID = mo.PointerToOption(source.Identity.SpendChargeID)
+	key.collectionOriginID = mo.PointerToOption(source.Identity.CollectionOriginID)
 
 	return key
 }

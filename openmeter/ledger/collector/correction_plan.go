@@ -50,6 +50,7 @@ func (i collectionCorrectionInput) Validate() error {
 		}
 
 		ids[p.id] = true
+
 		if p.accrued.IsNegative() || p.earnings.IsNegative() || p.coverage.IsNegative() {
 			errs = append(errs, fmt.Errorf("negative remaining collection position %s", p.id))
 		}
@@ -96,7 +97,9 @@ func planCollectionCorrection(input collectionCorrectionInput) ([]correctionSele
 
 		return -cmp.Compare(a.id, b.id)
 	})
+
 	remaining := input.amount
+
 	var out []correctionSelection
 
 	for _, position := range positions {
@@ -105,7 +108,11 @@ func planCollectionCorrection(input collectionCorrectionInput) ([]correctionSele
 			continue
 		}
 
-		out = append(out, correctionSelection{id: position.id, amount: take, earnings: minDecimal(take, position.earnings)})
+		out = append(out, correctionSelection{
+			id:       position.id,
+			amount:   take,
+			earnings: minDecimal(take, position.earnings),
+		})
 		remaining = remaining.Sub(take)
 	}
 

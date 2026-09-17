@@ -70,7 +70,7 @@ func (c *accrualCorrector) readOriginPositions(ctx context.Context, input Correc
 			continue
 		}
 
-		key := lo.FromPtrOr(pair.credit.Provenance().SourceChargeID, unknownOriginSource)
+		key := lo.FromPtrOr(pair.positiveEntry.Provenance().SourceChargeID, unknownOriginSource)
 		p := positions[key]
 		p.recordedAt = pair.transaction.Cursor().CreatedAt
 		p.orderKey = pair.transaction.ID().ID

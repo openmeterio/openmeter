@@ -1027,8 +1027,11 @@ func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advance
 	require.NoError(t, err)
 	realizationID := ulid.Make().String()
 	require.NoError(t, e.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
-		Namespace: e.Namespace, CustomerID: e.CustomerID.ID, ChargeID: chargeID,
-		Currency: input.Currency, Features: input.Features,
+		Namespace:  e.Namespace,
+		CustomerID: e.CustomerID.ID,
+		ChargeID:   chargeID,
+		Currency:   input.Currency,
+		Features:   input.Features,
 		Realizations: creditrealization.Realizations{{CreateInput: creditrealization.CreateInput{
 			ID: realizationID, Type: creditrealization.TypeAllocation, Amount: input.Amount,
 			ServicePeriod:     timeutil.ClosedPeriod{From: e.Now(), To: e.Now()},
@@ -1045,7 +1048,9 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 	t.Helper()
 	return transaction.Run(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
 		roots, err := e.lineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency.Reference(),
+			Namespace:         e.Namespace,
+			CustomerID:        e.CustomerID.ID,
+			Currency:          charge.Intent.Currency.Reference(),
 			OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
 			HasActiveSegments: true,
 			SegmentState:      lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
@@ -1071,9 +1076,13 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 		}
 
 		err = e.lineage.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
-			Namespace: e.Namespace, CustomerID: e.CustomerID.ID, Currency: charge.Intent.Currency,
-			Amount: charge.Intent.CreditAmount, FeatureFilters: charge.Intent.FeatureFilters.Normalize(),
-			BackingTransactionGroupID: result.TransactionGroupID, Allocations: result.BackfillAllocations,
+			Namespace:                 e.Namespace,
+			CustomerID:                e.CustomerID.ID,
+			Currency:                  charge.Intent.Currency,
+			Amount:                    charge.Intent.CreditAmount,
+			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
+			BackingTransactionGroupID: result.TransactionGroupID,
+			Allocations:               result.BackfillAllocations,
 		})
 		return result, err
 	})

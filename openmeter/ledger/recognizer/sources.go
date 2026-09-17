@@ -41,9 +41,13 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 	accountID := accounts.AccruedAccount.ID().ID
 	buckets, err := s.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: in.CustomerID.Namespace,
-		Filters: ledger.Filters{Provenance: ledger.ProvenanceFilter{
-			CollectionOriginID: mo.Some[*string](nil),
-		}, AccountID: &accountID, Route: ledger.RouteFilter{Currency: in.Currency.Reference()}},
+		Filters: ledger.Filters{
+			Provenance: ledger.ProvenanceFilter{
+				CollectionOriginID: mo.Some[*string](nil),
+			},
+			AccountID: &accountID,
+			Route:     ledger.RouteFilter{Currency: in.Currency.Reference()},
+		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID, ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	if err != nil {
@@ -93,7 +97,8 @@ func (s *service) planRecognition(ctx context.Context, in RecognizeEarningsInput
 				} else {
 					sourceIndexes[key] = len(sources)
 					sources = append(sources, transactions.PostingAmount{
-						Address: entry.PostingAddress(), Amount: take,
+						Address: entry.PostingAddress(),
+						Amount:  take,
 						Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
 							SourceChargeID: entry.Provenance().SourceChargeID,
 							SpendChargeID:  entry.Provenance().SpendChargeID,
