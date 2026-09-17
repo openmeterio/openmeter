@@ -2037,6 +2037,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
       tags:
         - OpenMeter Entitlements
       requestBody:
@@ -17193,6 +17195,21 @@ components:
       properties:
         page:
           $ref: '#/components/schemas/CursorMetaPage'
+    PreconditionFailedError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 412
+            title:
+              example: Precondition Failed
+            type:
+              example: https://httpstatuses.com/412
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Precondition Failed
   responses:
     BadRequest:
       description: Bad Request
@@ -17239,6 +17256,12 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ConflictError'
+    PreconditionFailed:
+      description: Precondition Failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/PreconditionFailedError'
   examples:
     UnauthorizedExample:
       value:

@@ -1520,6 +1520,9 @@ export interface Gone extends BaseError {}
 /** Conflict. */
 export interface Conflict extends BaseError {}
 
+/** Precondition Failed. */
+export interface PreconditionFailed extends BaseError {}
+
 /** Payload Too Large. */
 export interface PayloadTooLarge extends BaseError {}
 
@@ -7321,6 +7324,9 @@ export interface GoneInput extends BaseErrorInput {}
 
 /** Conflict. */
 export interface ConflictInput extends BaseErrorInput {}
+
+/** Precondition Failed. */
+export interface PreconditionFailedInput extends BaseErrorInput {}
 
 /** Payload Too Large. */
 export interface PayloadTooLargeInput extends BaseErrorInput {}

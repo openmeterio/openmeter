@@ -147,6 +147,23 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 		require.Equal(t, cust.ID, boolean.Customer.ID)
 	})
 
+	t.Run("deleted customer", func(t *testing.T) {
+		deletedKey := uniqueKey("ent_deleted_customer")
+		deleted, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:  deletedKey,
+			Name: "Deleted Customer " + deletedKey,
+		})
+		c.requireStatus(http.StatusCreated, err)
+		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
+
+		req := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementBooleanRequest(v3sdk.CreateEntitlementBooleanRequest{
+			Feature: v3sdk.FeatureReference{ID: "01K4WAQ0J99ZZ0MD75HXR112H9"},
+		}))
+
+		_, err = c.Customers.Entitlements.Create(t.Context(), deleted.ID, req)
+		requireProblem(t, err, http.StatusPreconditionFailed)
+	})
+
 	t.Run("unknown customer", func(t *testing.T) {
 		req := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementBooleanRequest(v3sdk.CreateEntitlementBooleanRequest{
 			Feature: v3sdk.FeatureReference{ID: "01K4WAQ0J99ZZ0MD75HXR112H9"},

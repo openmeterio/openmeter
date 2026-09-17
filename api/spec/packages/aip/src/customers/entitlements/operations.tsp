@@ -44,6 +44,7 @@ namespace Entitlements {
       | Shared.CreateResponse<Entitlement>
       | Common.NotFound
       | Common.Conflict
+      | Common.PreconditionFailed
       | Common.ErrorResponses;
   }
 }
