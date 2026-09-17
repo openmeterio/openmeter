@@ -70,7 +70,6 @@ func NewCreditGrantService(
 	customerService customer.Service,
 	creditVoidService creditvoid.Service,
 	currencyResolver currencies.CurrencyResolver,
-	creditsConfig config.CreditsConfiguration,
 ) (creditgrant.Service, error) {
 	if billingRegistry.Charges == nil {
 		return nil, nil
@@ -84,7 +83,6 @@ func NewCreditGrantService(
 		CreditVoidService:     creditVoidService,
 		TransactionManager:    enttx.NewCreator(db),
 		CurrencyResolver:      currencyResolver,
-		CreditsConfig:         creditsConfig,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create credit grant service: %w", err)
