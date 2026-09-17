@@ -2588,6 +2588,8 @@ export const gone = baseError.describe('Gone.')
 
 export const conflict = baseError.describe('Conflict.')
 
+export const preconditionFailed = baseError.describe('Precondition Failed.')
+
 export const payloadTooLarge = baseError.describe('Payload Too Large.')
 
 export const unsupportedMediaType = baseError.describe(
@@ -10814,6 +10816,10 @@ export const notFoundWire = baseErrorWire.describe('Not Found.')
 export const goneWire = baseErrorWire.describe('Gone.')
 
 export const conflictWire = baseErrorWire.describe('Conflict.')
+
+export const preconditionFailedWire = baseErrorWire.describe(
+  'Precondition Failed.',
+)
 
 export const payloadTooLargeWire = baseErrorWire.describe('Payload Too Large.')
 
