@@ -95,15 +95,15 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 
 	advanceService := advancetestutils.NewService(s.T(), ledgerDeps)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		ledgerDeps.HistoricalLedger,
-		ledgerDeps.HistoricalLedger,
-		ledgerDeps.ResolversService,
-		ledgerDeps.AccountService,
-		advanceService,
-		ledgerbreakage.NewNoopService(),
-		transactionManager,
-	)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             ledgerDeps.HistoricalLedger,
+		BalanceQuerier:     ledgerDeps.HistoricalLedger,
+		AccountResolver:    ledgerDeps.ResolversService,
+		AccountCatalog:     ledgerDeps.AccountService,
+		AdvanceService:     advanceService,
+		BreakageService:    ledgerbreakage.NewNoopService(),
+		TransactionManager: transactionManager,
+	})
 	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{

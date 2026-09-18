@@ -63,15 +63,15 @@ func (s *CreditPurchaseCostBasisSuite) SetupSuite() {
 	})
 	s.Require().NoError(err)
 
-	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		s.Ledger,
-		s.BalanceQuerier,
-		s.LedgerResolver,
-		s.LedgerAccountService,
-		s.AdvanceService,
-		s.BreakageService,
-		enttx.NewCreator(s.DBClient),
-	)
+	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             s.Ledger,
+		BalanceQuerier:     s.BalanceQuerier,
+		AccountResolver:    s.LedgerResolver,
+		AccountCatalog:     s.LedgerAccountService,
+		AdvanceService:     s.AdvanceService,
+		BreakageService:    s.BreakageService,
+		TransactionManager: enttx.NewCreator(s.DBClient),
+	})
 	s.Require().NoError(err)
 
 	s.creditPurchaseService, err = creditpurchaseservice.New(creditpurchaseservice.Config{

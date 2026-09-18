@@ -143,15 +143,15 @@ func NewChargesCreditPurchaseHandler(
 	breakageService ledgerbreakage.Service,
 	transactionManager transaction.Creator,
 ) (creditpurchase.Handler, error) {
-	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		ledgerService,
-		balanceQuerier,
-		accountResolver,
-		accountService,
-		advanceService,
-		breakageService,
-		transactionManager,
-	)
+	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             ledgerService,
+		BalanceQuerier:     balanceQuerier,
+		AccountResolver:    accountResolver,
+		AccountCatalog:     accountService,
+		AdvanceService:     advanceService,
+		BreakageService:    breakageService,
+		TransactionManager: transactionManager,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges credit purchase handler: %w", err)
 	}

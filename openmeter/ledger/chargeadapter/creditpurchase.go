@@ -2,6 +2,7 @@ package chargeadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -34,35 +35,63 @@ type creditPurchaseHandler struct {
 
 var _ chargecreditpurchase.Handler = (*creditPurchaseHandler)(nil)
 
-func NewCreditPurchaseHandler(
-	ledger ledger.Ledger,
-	balanceQuerier ledger.BalanceQuerier,
-	accountResolver ledger.AccountResolver,
-	accountCatalog ledger.AccountCatalog,
-	advanceService advance.Service,
-	breakageService breakage.Service,
-	transactionManager transaction.Creator,
-) (chargecreditpurchase.Handler, error) {
-	if advanceService == nil {
-		return nil, fmt.Errorf("advance service is required")
+type CreditPurchaseHandlerConfig struct {
+	Ledger             ledger.Ledger
+	BalanceQuerier     ledger.BalanceQuerier
+	AccountResolver    ledger.AccountResolver
+	AccountCatalog     ledger.AccountCatalog
+	AdvanceService     advance.Service
+	BreakageService    breakage.Service
+	TransactionManager transaction.Creator
+}
+
+func (c CreditPurchaseHandlerConfig) Validate() error {
+	var errs []error
+
+	if c.Ledger == nil {
+		errs = append(errs, errors.New("ledger is required"))
 	}
 
-	if breakageService == nil {
-		breakageService = breakage.NewNoopService()
+	if c.BalanceQuerier == nil {
+		errs = append(errs, errors.New("balance querier is required"))
 	}
 
-	if transactionManager == nil {
-		return nil, fmt.Errorf("transaction manager is required")
+	if c.AccountResolver == nil {
+		errs = append(errs, errors.New("account resolver is required"))
+	}
+
+	if c.AccountCatalog == nil {
+		errs = append(errs, errors.New("account catalog is required"))
+	}
+
+	if c.AdvanceService == nil {
+		errs = append(errs, errors.New("advance service is required"))
+	}
+
+	if c.BreakageService == nil {
+		errs = append(errs, errors.New("breakage service is required"))
+	}
+
+	if c.TransactionManager == nil {
+		errs = append(errs, errors.New("transaction manager is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func NewCreditPurchaseHandler(config CreditPurchaseHandlerConfig) (chargecreditpurchase.Handler, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
 	}
 
 	return &creditPurchaseHandler{
-		ledger:             ledger,
-		balanceQuerier:     balanceQuerier,
-		accountResolver:    accountResolver,
-		accountCatalog:     accountCatalog,
-		advance:            advanceService,
-		breakage:           breakageService,
-		transactionManager: transactionManager,
+		ledger:             config.Ledger,
+		balanceQuerier:     config.BalanceQuerier,
+		accountResolver:    config.AccountResolver,
+		accountCatalog:     config.AccountCatalog,
+		advance:            config.AdvanceService,
+		breakage:           config.BreakageService,
+		transactionManager: config.TransactionManager,
 	}, nil
 }
 
