@@ -45,8 +45,8 @@ projection. The type-specific detailed status is the lifecycle state.
 - [Ledger charge adapters](../../ledger/README.md) translate requested economic
   effects into ledger transactions. They do not decide when a charge advances.
 - [Legacy lineage](legacylineage/README.md) is deprecated compatibility for
-  legacy lineage credit histories. New collections use ledger origins; remaining
-  lineage reads and writes must stay confined to legacy histories.
+  legacy lineage credit histories. Lineage reads and writes must stay confined
+  to legacy histories.
 - [Subscription sync](../worker/subscriptionsync/README.md) reconciles
   subscription-derived source intent, including item currency and subscription
   cost-basis selection. It does not treat API overrides as new subscription
@@ -261,11 +261,11 @@ Finalized charges remain eligible while they have uncovered advances.
 Later purchases backfill eligible advances in original collection order. Each
 collection occurrence keeps its place after partial backfill or correction;
 charge IDs and replacement segment creation times do not define that order.
-For new collections, the ledger selects origin buckets directly, without
-lineage state. For legacy collections, it returns the amounts actually booked
-for each uncovered segment, and lineage persists that same allocation. The
-purchase's lifecycle transaction rolls back if a selected segment changed before persistence. Ledger account
-locks still precede lineage locks.
+For origin-tracked collections, the ledger selects origin buckets directly,
+without lineage state. For legacy collections, it returns the amounts actually
+booked for each uncovered segment, and lineage persists that same allocation.
+The purchase's lifecycle transaction rolls back if a selected segment changed
+before persistence. Ledger account locks still precede lineage locks.
 
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier
@@ -419,14 +419,13 @@ Charges persist no cross-run FX remainder, so later runs cannot carry or absorb
 an earlier run's rounding difference. Correction reverses the complete original
 conversion rather than partially recomputing it.
 
-New credit realizations use ledger origins; legacy lineage realizations retain
-lineage compatibility. Both use the namespace-scoped managed currency ID in
-addition to code. Advance, backfill, and recognition therefore remain isolated
-when managed currencies reuse a code. `AdvanceCharges` recognizes credit-backed value in
-the charge's native currency only when accrued entries have distinct source-
-credit and spend-charge provenance. Accrued value without that provenance -
-including the same-charge custom overage and an unbackfilled advance - remains
-deferred.
+Origin-tracked and legacy lineage credit realizations identify managed currencies
+by namespace-scoped currency ID in addition to code. Advance, backfill, and
+recognition therefore remain isolated when managed currencies reuse a code.
+`AdvanceCharges` recognizes credit-backed value in the charge's native currency
+only when accrued entries have distinct source-credit and spend-charge
+provenance. Accrued value without that provenance - including the same-charge
+custom overage and an unbackfilled advance - remains deferred.
 
 If converting an uncovered custom-currency overage rounds to zero fiat, the
 charge layer omits the empty line during preview and collection. The ledger and
