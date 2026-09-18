@@ -220,7 +220,7 @@ func (s *service) CollectToAccrued(ctx context.Context, input CollectToAccruedIn
 		return nil, fmt.Errorf("source balance as of is required")
 	}
 
-	return s.collector.collect(ctx, input)
+	return s.collector.collectToAccrued(ctx, input)
 }
 
 func (s *service) CollectToReceivable(ctx context.Context, input CollectToReceivableInput) (creditrealization.CreateAllocationInputs, error) {

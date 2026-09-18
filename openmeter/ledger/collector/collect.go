@@ -39,7 +39,7 @@ type resolvedCollectedInputs struct {
 	breakagePending []breakage.PendingRecord
 }
 
-func (c *accrualCollector) collect(ctx context.Context, input CollectToAccruedInput) (creditrealization.CreateAllocationInputs, error) {
+func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectToAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	run := func(ctx context.Context) (creditrealization.CreateAllocationInputs, error) {
 		if input.Amount.IsZero() {
 			return nil, nil

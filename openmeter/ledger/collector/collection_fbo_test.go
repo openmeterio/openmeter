@@ -70,7 +70,7 @@ func TestCollectCustomerFBOSeparatesManagedCurrenciesWithSameCode(t *testing.T) 
 	))
 
 	// when: collection targets only the alpha managed currency.
-	_, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	_, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		"spend-alpha",
 		alpacadecimal.NewFromInt(50),
@@ -241,7 +241,7 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 		From: env.Now().Add(-time.Hour),
 		To:   env.Now(),
 	}
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          testChargeID(1),
 		CustomerID:        env.CustomerID.ID,
@@ -291,7 +291,7 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, firstSourceAmount, nil, &sourceCharge1, env.Now().Add(10*time.Hour))
 	secondPlanID := bookExpiringCreditWithFeatures(t, env, breakageService, 1, secondSourceAmount, nil, &sourceCharge2, env.Now().Add(15*time.Hour))
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(spendAmount),
@@ -354,7 +354,7 @@ func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *te
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, laterSourceAmount, nil, &sourceCharge1, env.Now().Add(15*time.Hour))
 	bookExpiringCreditWithFeatures(t, env, breakageService, 1, earlierSourceAmount, nil, &sourceCharge2, env.Now().Add(10*time.Hour))
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(spendAmount),
@@ -392,7 +392,7 @@ func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {
 	fundSourceCharge(t, env, sourceCharge1, 1, 100)
 	fundSourceCharge(t, env, sourceCharge2, 1, 50)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(120), productcatalog.CreditThenInvoiceSettlementMode))
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(120), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(120), allocations[0].Amount.InexactFloat64())
@@ -415,11 +415,11 @@ func TestCollectToAccruedSplitsAccruedBySpendCharge(t *testing.T) {
 	spendCharge2 := testChargeID(3)
 	fundSourceCharge(t, env, sourceCharge, 1, 100)
 
-	firstAllocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge1, alpacadecimal.NewFromInt(40), productcatalog.CreditThenInvoiceSettlementMode))
+	firstAllocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge1, alpacadecimal.NewFromInt(40), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, firstAllocations, 1)
 
-	secondAllocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge2, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode))
+	secondAllocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge2, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, secondAllocations, 1)
 
@@ -437,7 +437,7 @@ func TestCollectToAccruedAdvanceShortfallStampsSpendCharge(t *testing.T) {
 	collector := newTestAccrualCollector(t, env)
 
 	spendCharge := testChargeID(1)
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode))
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode))
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(30), allocations[0].Amount.InexactFloat64())
@@ -458,7 +458,7 @@ func TestCollectToAccruedCreditThenInvoiceOnlyCollectsAvailableCredit(t *testing
 	spendCharge := testChargeID(2)
 	fundSourceCharge(t, env, sourceCharge, 1, 40)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(70), productcatalog.CreditThenInvoiceSettlementMode))
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(70), productcatalog.CreditThenInvoiceSettlementMode))
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(40), allocations[0].Amount.InexactFloat64())
@@ -484,7 +484,7 @@ func TestCollectToAccruedCustomCurrencyCreditThenInvoiceDoesNotCreateExposure(t 
 	spendCharge := testChargeID(2)
 	fundSourceCharge(t, env, sourceCharge, 1, 40)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(70),
