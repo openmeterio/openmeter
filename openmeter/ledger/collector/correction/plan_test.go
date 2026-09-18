@@ -1,4 +1,4 @@
-package collector
+package correction
 
 import (
 	"testing"

@@ -250,6 +250,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Logger:  logger,
 		Advance: advanceService,
 		Ledger:  base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{

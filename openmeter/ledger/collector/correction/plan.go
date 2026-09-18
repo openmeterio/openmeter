@@ -1,4 +1,4 @@
-package collector
+package correction
 
 import (
 	"cmp"
@@ -23,11 +23,12 @@ type correctionPosition struct {
 	uncovered  bool
 	accrued    alpacadecimal.Decimal
 	earnings   alpacadecimal.Decimal
-	coverage   alpacadecimal.Decimal
+	// receivable comes from collecting FBO credit directly to cover an amount owed.
+	receivable alpacadecimal.Decimal
 }
 
-func (p correctionPosition) amount() alpacadecimal.Decimal {
-	return p.accrued.Add(p.earnings).Add(p.coverage)
+func (p correctionPosition) remainingCorrectableAmount() alpacadecimal.Decimal {
+	return p.accrued.Add(p.earnings).Add(p.receivable)
 }
 
 type collectionCorrectionInput struct {
@@ -51,7 +52,7 @@ func (i collectionCorrectionInput) Validate() error {
 
 		ids[p.id] = true
 
-		if p.accrued.IsNegative() || p.earnings.IsNegative() || p.coverage.IsNegative() {
+		if p.accrued.IsNegative() || p.earnings.IsNegative() || p.receivable.IsNegative() {
 			errs = append(errs, fmt.Errorf("negative remaining collection position %s", p.id))
 		}
 	}
@@ -83,6 +84,7 @@ func planCollectionCorrection(input collectionCorrectionInput) ([]correctionSele
 			return -1
 		}
 
+		// Negate comparisons to select in reverse collection/backing order.
 		if c := a.recordedAt.Compare(b.recordedAt); c != 0 {
 			return -c
 		}
@@ -103,7 +105,7 @@ func planCollectionCorrection(input collectionCorrectionInput) ([]correctionSele
 	var out []correctionSelection
 
 	for _, position := range positions {
-		take := minDecimal(remaining, position.amount())
+		take := minDecimal(remaining, position.remainingCorrectableAmount())
 		if !take.IsPositive() {
 			continue
 		}

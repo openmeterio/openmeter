@@ -1,10 +1,11 @@
-package collector
+package correction
 
 import (
 	"cmp"
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 )
 
 // originPair retains immutable routes and exact reversal capacity for the writer.
@@ -31,6 +33,20 @@ func (p originPair) correctionSource() advance.CorrectionSource {
 		PositiveEntry:   p.positiveEntry,
 		RemainingAmount: p.remaining,
 	}
+}
+
+func (pair originPair) reverse(at time.Time, amount alpacadecimal.Decimal) (ledger.TransactionInput, error) {
+	if amount.GreaterThan(pair.remaining) {
+		return nil, fmt.Errorf("reversal exceeds remaining original entry amount")
+	}
+
+	return transactions.ReverseOriginEntryPair(transactions.ReverseOriginEntryPairInput{
+		At:            at,
+		Amount:        amount,
+		Transaction:   pair.transaction,
+		NegativeEntry: pair.negativeEntry,
+		PositiveEntry: pair.positiveEntry,
+	})
 }
 
 // Roles describe account movements, independent of the template implementation.
@@ -94,7 +110,7 @@ func (h originReferences) attributionForBackfill(backfill *originPair) (*originP
 	return attribution, nil
 }
 
-func (c *accrualCorrector) loadOriginReferences(ctx context.Context, namespace, collectionOriginID string) (originReferences, error) {
+func (c *Corrector) loadOriginReferences(ctx context.Context, namespace, collectionOriginID string) (originReferences, error) {
 	history := originReferences{}
 	query := ledger.ListTransactionsInput{
 		Namespace: namespace,

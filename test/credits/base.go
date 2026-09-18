@@ -148,6 +148,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.RevenueRecognizer = revenueRecognizer
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Logger:  logger,
 		Advance: s.AdvanceService,
 		Ledger:  deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{

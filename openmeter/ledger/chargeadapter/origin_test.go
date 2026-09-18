@@ -18,9 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
 	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -30,6 +28,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -60,6 +59,7 @@ func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 	advanceService := advancetestutils.NewService(t, base.Deps, base.breakage)
 
 	collect, err := collector.NewService(collector.Config{
+		Logger:             omtestutils.NewDiscardLogger(t),
 		Advance:            advanceService,
 		Ledger:             base.Deps.HistoricalLedger,
 		Dependencies:       deps,
@@ -255,6 +255,35 @@ func TestOriginRecognitionCorrectionIsolatesRunsAndCostBases(t *testing.T) {
 	}
 }
 
+func TestOriginPartialCorrectionReturnsBackingBeforeCancellingUncoveredAdvance(t *testing.T) {
+	// given two ordered advances of 20 and one purchase of 25.
+	e := newOriginTestEnv(t, false)
+	firstSpend, secondSpend := ulid.Make().String(), ulid.Make().String()
+	e.collect(t, firstSpend, 20)
+	second := e.collect(t, secondSpend, 20)
+	require.Len(t, second, 1)
+
+	purchase := e.purchase(t, 25, .5, true)
+	require.Equal(t, float64(25), e.recognize(t))
+	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &purchase, &firstSpend))
+	require.Equal(t, float64(5), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &purchase, &secondSpend))
+
+	// when correcting 7 from the second advance, then its 5 funded units return
+	// to FBO and 2 uncovered units are canceled; the first advance is untouched.
+	e.correct(t, secondSpend, second[0], 7)
+	require.Equal(t, float64(20), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &purchase, &firstSpend))
+	require.Zero(t, e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &purchase, &secondSpend))
+	require.Equal(t, float64(5), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &purchase, nil))
+	require.Equal(t, float64(13), e.provenanceBalance(t, e.CustomerAccounts.AccruedAccount, nil, &secondSpend))
+	require.Equal(t, float64(-13), e.provenanceBalance(t, e.CustomerAccounts.ReceivableAccount, nil, &secondSpend))
+
+	// when another 3 are corrected, then only uncovered advance remains to cancel.
+	e.correct(t, secondSpend, second[0], 3)
+	require.Equal(t, float64(5), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &purchase, nil))
+	require.Equal(t, float64(10), e.provenanceBalance(t, e.CustomerAccounts.AccruedAccount, nil, &secondSpend))
+	require.Equal(t, float64(-10), e.provenanceBalance(t, e.CustomerAccounts.ReceivableAccount, nil, &secondSpend))
+}
+
 func TestOriginAdvanceBackfillCorrectionReopensExactPurchasedSources(t *testing.T) {
 	for _, custom := range []bool{false, true} {
 		name := "fiat"
@@ -377,65 +406,7 @@ func TestOriginAndLegacyHistoriesSharePurchasesWithoutSharingCorrectionState(t *
 	e := newOriginTestEnv(t, true)
 	legacySpend, spend := ulid.Make().String(), ulid.Make().String()
 	amount := alpacadecimal.NewFromInt(20)
-	deps := transactions.ResolverDependencies{
-		AccountService: e.Deps.ResolversService,
-		AccountCatalog: e.Deps.AccountService,
-		BalanceQuerier: e.Deps.HistoricalLedger,
-	}
-	inputs, err := transactions.ResolveTransactions(
-		t.Context(),
-		deps,
-		transactions.ResolutionScope{
-			CustomerID: e.CustomerID,
-			Namespace:  e.Namespace,
-		},
-		transactions.IssueCustomerReceivableTemplate{
-			At:            e.Now(),
-			Amount:        amount,
-			Currency:      e.currency.Reference(),
-			SpendChargeID: &legacySpend,
-		},
-		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:            e.Now(),
-			Amount:        amount,
-			Currency:      e.currency.Reference(),
-			SpendChargeID: &legacySpend,
-		},
-	)
-	require.NoError(t, err)
-
-	group, err := e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
-	require.NoError(t, err)
-
-	legacyAllocation := creditrealization.Realization{
-		NamespacedModel: models.NamespacedModel{Namespace: e.Namespace},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: e.Now(),
-			UpdatedAt: e.Now(),
-		},
-		CreateInput: creditrealization.CreateInput{
-			ID:          ulid.Make().String(),
-			Annotations: creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
-			ServicePeriod: timeutil.ClosedPeriod{
-				From: e.Now().Add(-time.Hour),
-				To:   e.Now(),
-			},
-			LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID},
-			Amount:            amount,
-			Type:              creditrealization.TypeAllocation,
-		},
-	}
-	_, err = e.DB.Charge.Create().SetNamespace(e.Namespace).SetID(legacySpend).SetType(meta.ChargeTypeUsageBased).Save(t.Context())
-	require.NoError(t, err)
-	require.NoError(t, e.legacy.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
-		Namespace:    e.Namespace,
-		ChargeID:     legacySpend,
-		CustomerID:   e.CustomerID.ID,
-		Currency:     e.currency,
-		Realizations: creditrealization.Realizations{legacyAllocation},
-	}))
-
-	e.originalAdvanceGroups[legacyAllocation.ID] = group.ID().ID
+	legacyAllocation := e.collectLegacyAdvance(t, legacySpend, 20)
 	allocated := e.collect(t, spend, 20)
 
 	// when purchases cross the legacy/new boundary, FIFO exhausts the legacy
@@ -475,6 +446,90 @@ func TestOriginAndLegacyHistoriesSharePurchasesWithoutSharingCorrectionState(t *
 	require.Zero(t, e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &source, &legacySpend))
 	require.Equal(t, float64(25), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &source, nil))
 	require.Equal(t, float64(15), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &secondSource, nil))
+}
+
+func TestMixedCorrectionBatchPreservesRealizationOrderAndLegacySelections(t *testing.T) {
+	// given one charge with a legacy advance and two origin-tracked advances.
+	e := newOriginTestEnv(t, true)
+	spend := ulid.Make().String()
+	legacyAllocation := e.collectLegacyAdvance(t, spend, 20)
+	first := e.collect(t, spend, 20)
+	second := e.collect(t, spend, 20)
+	require.Len(t, first, 1)
+	require.Len(t, second, 1)
+
+	purchase := e.purchase(t, 25, .5, true)
+	require.Equal(t, float64(25), e.recognize(t))
+
+	segments, err := e.legacy.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, []string{legacyAllocation.ID})
+	require.NoError(t, err)
+	require.Len(t, segments[legacyAllocation.ID], 1)
+
+	// when one batch interleaves provenance and legacy corrections, then each
+	// realization keeps its own metadata and all postings share one committed group.
+	requests := creditrealization.CorrectionRequest{
+		{Allocation: first[0], Amount: alpacadecimal.NewFromInt(-7)},
+		{Allocation: legacyAllocation, Amount: alpacadecimal.NewFromInt(-3)},
+		{Allocation: second[0], Amount: alpacadecimal.NewFromInt(-4)},
+	}
+	result, err := e.collector.CorrectCollectedAccrued(t.Context(), collector.CorrectCollectedAccruedInput{
+		Namespace:                    e.Namespace,
+		CustomerID:                   e.CustomerID.ID,
+		ChargeID:                     spend,
+		AllocateAt:                   e.Now(),
+		Corrections:                  requests,
+		LineageSegmentsByRealization: segments,
+	})
+	require.NoError(t, err)
+	require.Len(t, result, 3)
+	require.NotEmpty(t, result[0].LedgerTransaction.TransactionGroupID)
+
+	for i, correction := range result {
+		require.Equal(t, requests[i].Allocation.ID, correction.CorrectsRealizationID)
+		require.Equal(t, requests[i].Amount.InexactFloat64(), correction.Amount.InexactFloat64())
+		require.Equal(t, result[0].LedgerTransaction, correction.LedgerTransaction)
+	}
+
+	for _, index := range []int{0, 2} {
+		require.Equal(t, true, result[index].Annotations[ledger.AnnotationOriginTracked])
+		selected, err := legacylineage.CorrectionSelections(result[index].Annotations)
+		require.NoError(t, err)
+		require.Nil(t, selected)
+	}
+
+	require.NotEqual(t, true, result[1].Annotations[ledger.AnnotationOriginTracked])
+	selected, err := legacylineage.CorrectionSelections(result[1].Annotations)
+	require.NoError(t, err)
+	require.Len(t, selected, 1)
+	require.Equal(t, float64(3), selected[segments[legacyAllocation.ID][0].ID].InexactFloat64())
+
+	// The legacy purchase backing falls from 20 to 17; provenance returns 5
+	// purchased units and cancels 6 uncovered units across its two origins.
+	require.Equal(t, float64(17), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &purchase, &spend))
+	require.Equal(t, float64(8), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &purchase, nil))
+	require.Equal(t, float64(29), e.provenanceBalance(t, e.CustomerAccounts.AccruedAccount, nil, &spend))
+	require.Equal(t, float64(-29), e.provenanceBalance(t, e.CustomerAccounts.ReceivableAccount, nil, &spend))
+
+	created, err := result.AsCreateInputs(creditrealization.Realizations{legacyAllocation, first[0], second[0]})
+	require.NoError(t, err)
+
+	var realized creditrealization.Realizations
+
+	for _, input := range created {
+		realized = append(realized, creditrealization.Realization{
+			NamespacedModel: models.NamespacedModel{Namespace: e.Namespace},
+			CreateInput:     input,
+		})
+	}
+
+	require.NoError(t, e.legacy.PersistCorrectionLineageSegments(t.Context(), legacylineage.PersistCorrectionLineageSegmentsInput{
+		Namespace:    e.Namespace,
+		Realizations: realized,
+	}))
+	remaining, err := e.legacy.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, []string{legacyAllocation.ID})
+	require.NoError(t, err)
+	require.Len(t, remaining[legacyAllocation.ID], 1)
+	require.Equal(t, float64(17), remaining[legacyAllocation.ID][0].Amount.InexactFloat64())
 }
 
 func TestOriginCorrectionRollbackAndOvercorrectionLeaveJournalUnchanged(t *testing.T) {
