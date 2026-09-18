@@ -75,21 +75,9 @@ facts stored independently from the journal.
   The same selected slices drive journal postings and lineage transitions;
   customer-wide recognized totals cannot be redistributed across lineages.
 
-Credit-purchase backfill orders collection origins by their original recording
-time and ID, together with legacy advance roots in collection order. Capacity
-comes from matching receivable and accrued routes. The ledger
-sorts its inputs by original collection time and ID independently of query order,
-and stops reading journals when the purchase amount is allocated. A partial
-purchase exhausts an older eligible occurrence before funding a newer one;
-tax treatment, feature eligibility, currency identity, and purchase cost basis
-remain attached to the booked amounts. Corrections select the original spend
-and posting route, including when a purchase or recognition group spans several
-charges. This forward policy does not reconcile historical misallocations.
-
-After accrued backfill, the remaining purchase attributes eligible outstanding
-advance receivable even when matching accrued is absent. This receivable-only
-attribution preserves spend and feature routes without creating accrued or
-marking lineage as backfilled. Only the excess then becomes new credit.
+[Advance backfill](advance/README.md) selects outstanding advances and builds
+purchase attribution templates. Credit issuance coordinates those templates with
+settlement, breakage, and legacy lineage persistence.
 
 The historical ledger makes a group atomic, but it does not deduplicate a
 repeated `CommitGroup` call. The initiating domain must make retries safe and
