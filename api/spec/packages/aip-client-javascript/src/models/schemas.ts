@@ -506,6 +506,19 @@ export const entitlementAccessExpand = z
     'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
   )
 
+export const iso8601Duration = z
+  .string()
+
+  .regex(
+    new RegExp(
+      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
+    ),
+  )
+
+  .describe(
+    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
+  )
+
 export const createLabels = z
   .record(z.string(), z.string())
 
@@ -532,19 +545,6 @@ export const taxBehavior = z
 
   .describe(
     'Tax behavior. This enum is used to specify whether tax is included in the price or excluded from the price.',
-  )
-
-export const iso8601Duration = z
-  .string()
-
-  .regex(
-    new RegExp(
-      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
-    ),
-  )
-
-  .describe(
-    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
   )
 
 export const creditPurchasePaymentSettlementStatus = z
@@ -2578,6 +2578,8 @@ export const notFound = baseError.describe('Not Found.')
 
 export const gone = baseError.describe('Gone.')
 
+export const preconditionFailed = baseError.describe('Precondition Failed.')
+
 export const conflict = baseError.describe('Conflict.')
 
 export const payloadTooLarge = baseError.describe('Payload Too Large.')
@@ -3016,6 +3018,13 @@ export const customerStripeCreateCustomerPortalSessionRequest = z
     'Request to create a Stripe Customer Portal Session for the customer. Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods, change their billing address and access their invoice history. Only returns URL if the customer billing profile is linked to a stripe app and customer.',
   )
 
+export const recurringPeriod = z
+  .object({
+    anchor: dateTime,
+    interval: iso8601Duration,
+  })
+  .describe('Recurring period with an anchor and an interval.')
+
 export const rateCardMeteredEntitlement = z
   .object({
     type: z
@@ -3071,13 +3080,6 @@ export const subscriptionEditStretchPhase = z
   .describe(
     'Extend the duration of a phase, shifting later phases by the same amount.',
   )
-
-export const recurringPeriod = z
-  .object({
-    anchor: dateTime,
-    interval: iso8601Duration,
-  })
-  .describe('Recurring period with an anchor and an interval.')
 
 export const updateCreditGrantExternalSettlementRequest = z
   .object({
@@ -4400,6 +4402,48 @@ export const appStripeCreateCheckoutSessionConsentCollection = z
   })
   .describe('Checkout Session consent collection configuration.')
 
+export const entitlementGrant = z
+  .object({
+    id: ulid,
+    entitlementId: ulid,
+    amount: numeric,
+    priority: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(255)
+
+      .describe(
+        'The priority of the grant. Lower values have higher priority: a priority of 1 is more urgent than a priority of 2. When several grants are available, the one with the highest priority is consumed first; among equal priorities the one closest to expiration wins, then the earliest created.',
+      ),
+    effectiveAt: dateTime,
+    expiresAfter: iso8601Duration.optional(),
+    expiresAt: dateTime.optional(),
+    maxRolloverAmount: numeric,
+    minRolloverAmount: numeric,
+    recurrence: recurringPeriod.optional(),
+    nextRecurrence: dateTime.optional(),
+    voidedAt: dateTime.optional(),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+  })
+
+  .describe(
+    "A grant issued for a metered entitlement. Grants define the usage allowance the entitlement's balance is burnt down from: each grant is in effect between its effective time and its expiration, and grants are consumed in priority order. Grants are immutable once created, so the balance is deterministic regardless of when it is queried. They can only be deleted, which ends them at the time of the deletion.",
+  )
+
+export const workflowCollectionAlignmentAnchored = z
+  .object({
+    type: z.literal('anchored').describe('The type of alignment.'),
+    recurringPeriod: recurringPeriod,
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
+  )
+
 export const rateCardEntitlement = z
   .discriminatedUnion('type', [
     rateCardMeteredEntitlement,
@@ -4421,16 +4465,6 @@ export const subscriptionEditAddPhase = z
 
   .describe(
     'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
-  )
-
-export const workflowCollectionAlignmentAnchored = z
-  .object({
-    type: z.literal('anchored').describe('The type of alignment.'),
-    recurringPeriod: recurringPeriod,
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
 export const subscriptionBase = z
@@ -5118,6 +5152,13 @@ export const appStripeCreateCheckoutSessionRequestOptions = z
   .describe(
     "Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).",
   )
+
+export const entitlementGrantPagePaginatedResponse = z
+  .object({
+    data: z.array(entitlementGrant),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
 
 export const workflowCollectionAlignment = z
   .discriminatedUnion('type', [
@@ -7172,6 +7213,35 @@ export const getCustomerEntitlementAccessQueryParams = z.object({
 
 export const getCustomerEntitlementAccessResponse = entitlementAccessResult
 
+export const listCustomerEntitlementGrantsPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const listCustomerEntitlementGrantsQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  includeDeleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listCustomerEntitlementGrantsResponse = z.object({
+  data: z.array(entitlementGrant),
+  meta: paginatedMeta,
+})
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -8538,6 +8608,19 @@ export const entitlementAccessExpandWire = z
     'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
   )
 
+export const iso8601DurationWire = z
+  .string()
+
+  .regex(
+    new RegExp(
+      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
+    ),
+  )
+
+  .describe(
+    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
+  )
+
 export const createLabelsWire = z
   .record(z.string(), z.string())
 
@@ -8564,19 +8647,6 @@ export const taxBehaviorWire = z
 
   .describe(
     'Tax behavior. This enum is used to specify whether tax is included in the price or excluded from the price.',
-  )
-
-export const iso8601DurationWire = z
-  .string()
-
-  .regex(
-    new RegExp(
-      '^P(?:\\d+(?:\\.\\d+)?Y)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?W)?(?:\\d+(?:\\.\\d+)?D)?(?:T(?:\\d+(?:\\.\\d+)?H)?(?:\\d+(?:\\.\\d+)?M)?(?:\\d+(?:\\.\\d+)?S)?)?$',
-    ),
-  )
-
-  .describe(
-    '[ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.',
   )
 
 export const creditPurchasePaymentSettlementStatusWire = z
@@ -10603,6 +10673,10 @@ export const notFoundWire = baseErrorWire.describe('Not Found.')
 
 export const goneWire = baseErrorWire.describe('Gone.')
 
+export const preconditionFailedWire = baseErrorWire.describe(
+  'Precondition Failed.',
+)
+
 export const conflictWire = baseErrorWire.describe('Conflict.')
 
 export const payloadTooLargeWire = baseErrorWire.describe('Payload Too Large.')
@@ -11037,6 +11111,13 @@ export const customerStripeCreateCustomerPortalSessionRequestWire = z
     'Request to create a Stripe Customer Portal Session for the customer. Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods, change their billing address and access their invoice history. Only returns URL if the customer billing profile is linked to a stripe app and customer.',
   )
 
+export const recurringPeriodWire = z
+  .strictObject({
+    anchor: dateTimeWire,
+    interval: iso8601DurationWire,
+  })
+  .describe('Recurring period with an anchor and an interval.')
+
 export const rateCardMeteredEntitlementWire = z
   .strictObject({
     type: z
@@ -11091,13 +11172,6 @@ export const subscriptionEditStretchPhaseWire = z
   .describe(
     'Extend the duration of a phase, shifting later phases by the same amount.',
   )
-
-export const recurringPeriodWire = z
-  .strictObject({
-    anchor: dateTimeWire,
-    interval: iso8601DurationWire,
-  })
-  .describe('Recurring period with an anchor and an interval.')
 
 export const updateCreditGrantExternalSettlementRequestWire = z
   .strictObject({
@@ -12412,6 +12486,48 @@ export const appStripeCreateCheckoutSessionConsentCollectionWire = z
   })
   .describe('Checkout Session consent collection configuration.')
 
+export const entitlementGrantWire = z
+  .strictObject({
+    id: ulidWire,
+    entitlement_id: ulidWire,
+    amount: numericWire,
+    priority: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(255)
+
+      .describe(
+        'The priority of the grant. Lower values have higher priority: a priority of 1 is more urgent than a priority of 2. When several grants are available, the one with the highest priority is consumed first; among equal priorities the one closest to expiration wins, then the earliest created.',
+      ),
+    effective_at: dateTimeWire,
+    expires_after: iso8601DurationWire.optional(),
+    expires_at: dateTimeWire.optional(),
+    max_rollover_amount: numericWire,
+    min_rollover_amount: numericWire,
+    recurrence: recurringPeriodWire.optional(),
+    next_recurrence: dateTimeWire.optional(),
+    voided_at: dateTimeWire.optional(),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+  })
+
+  .describe(
+    "A grant issued for a metered entitlement. Grants define the usage allowance the entitlement's balance is burnt down from: each grant is in effect between its effective time and its expiration, and grants are consumed in priority order. Grants are immutable once created, so the balance is deterministic regardless of when it is queried. They can only be deleted, which ends them at the time of the deletion.",
+  )
+
+export const workflowCollectionAlignmentAnchoredWire = z
+  .strictObject({
+    type: z.literal('anchored').describe('The type of alignment.'),
+    recurring_period: recurringPeriodWire,
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
+  )
+
 export const rateCardEntitlementWire = z
   .discriminatedUnion('type', [
     rateCardMeteredEntitlementWire,
@@ -12433,16 +12549,6 @@ export const subscriptionEditAddPhaseWire = z
 
   .describe(
     'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
-  )
-
-export const workflowCollectionAlignmentAnchoredWire = z
-  .strictObject({
-    type: z.literal('anchored').describe('The type of alignment.'),
-    recurring_period: recurringPeriodWire,
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
 export const subscriptionBaseWire = z
@@ -13130,6 +13236,13 @@ export const appStripeCreateCheckoutSessionRequestOptionsWire = z
   .describe(
     "Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).",
   )
+
+export const entitlementGrantPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(entitlementGrantWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
 
 export const workflowCollectionAlignmentWire = z
   .discriminatedUnion('type', [
@@ -15204,6 +15317,41 @@ export const getCustomerEntitlementAccessQueryParamsWire = z.object({
 
 export const getCustomerEntitlementAccessResponseWire =
   entitlementAccessResultWire
+
+export const listCustomerEntitlementGrantsPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const listCustomerEntitlementGrantsQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort grants returned in the response. Supported sort attributes are: - `created_at` (default) - `updated_at` - `effective_at` - `expires_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  include_deleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listCustomerEntitlementGrantsResponseWire = z.strictObject({
+  data: z.array(entitlementGrantWire),
+  meta: paginatedMetaWire,
+})
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

@@ -1502,6 +1502,9 @@ export interface NotFound extends BaseError {}
 /** Gone. */
 export interface Gone extends BaseError {}
 
+/** Precondition Failed. */
+export interface PreconditionFailed extends BaseError {}
+
 /** Conflict. */
 export interface Conflict extends BaseError {}
 
@@ -1923,6 +1926,14 @@ export interface CustomerStripeCreateCustomerPortalSessionRequest {
   stripeOptions: AppStripeCreateCustomerPortalSessionOptions
 }
 
+/** Recurring period with an anchor and an interval. */
+export interface RecurringPeriod {
+  /** A date-time anchor to base the recurring period on. */
+  anchor: Date
+  /** The interval duration in ISO 8601 format. */
+  interval: string
+}
+
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlement {
   /** The type of the entitlement template. */
@@ -1974,14 +1985,6 @@ export interface SubscriptionEditStretchPhase {
   phaseKey: string
   /** The ISO-8601 duration to extend the phase by. */
   extendBy: string
-}
-
-/** Recurring period with an anchor and an interval. */
-export interface RecurringPeriod {
-  /** A date-time anchor to base the recurring period on. */
-  anchor: Date
-  /** The interval duration in ISO 8601 format. */
-  interval: string
 }
 
 /**
@@ -3414,14 +3417,77 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
 }
 
 /**
- * Add a new phase to the subscription. The phase is created without items; use
- * add-item operations to populate it.
+ * A grant issued for a metered entitlement. Grants define the usage allowance the
+ * entitlement's balance is burnt down from: each grant is in effect between its
+ * effective time and its expiration, and grants are consumed in priority order.
+ *
+ * Grants are immutable once created, so the balance is deterministic regardless of
+ * when it is queried. They can only be deleted, which ends them at the time of the
+ * deletion.
  */
-export interface SubscriptionEditAddPhase {
-  /** Discriminator for the add-phase operation. */
-  type: 'add_phase'
-  /** The phase to add. */
-  phase: SubscriptionPhaseCreate
+export interface EntitlementGrant {
+  id: string
+  /** The ID of the entitlement the grant belongs to. */
+  entitlementId: string
+  /** The granted amount, in the feature's unit. */
+  amount: string
+  /**
+   * The priority of the grant. Lower values have higher priority: a priority of 1 is
+   * more urgent than a priority of 2. When several grants are available, the one
+   * with the highest priority is consumed first; among equal priorities the one
+   * closest to expiration wins, then the earliest created.
+   */
+  priority: number
+  /**
+   * The time the grant takes effect. It is also the anchor of the recurrence for
+   * recurring grants.
+   */
+  effectiveAt: Date
+  /**
+   * The duration after which the grant expires, counted from `effective_at`. Always
+   * a single-unit duration (for example `PT12H`, `P7D`, `P2W`, `P3M`, `P1Y`). Absent
+   * when the grant never expires.
+   */
+  expiresAfter?: string
+  /**
+   * The time the grant expires, calculated from `effective_at` and `expires_after`.
+   * The grant is no longer in effect at this time. Absent when the grant never
+   * expires.
+   */
+  expiresAt?: Date
+  /**
+   * Grants are rolled over at reset, after which they can have a different balance
+   * compared to what they had before the reset. Balance after the reset is
+   * calculated as
+   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   */
+  maxRolloverAmount: string
+  /**
+   * Grants are rolled over at reset, after which they can have a different balance
+   * compared to what they had before the reset. Balance after the reset is
+   * calculated as
+   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   */
+  minRolloverAmount: string
+  /**
+   * The recurrence of the grant. When set, the grant amount is re-issued every
+   * interval, anchored at `effective_at`. Absent for non-recurring grants.
+   */
+  recurrence?: RecurringPeriod
+  /** The next time the grant recurs. Absent for non-recurring grants. */
+  nextRecurrence?: Date
+  /**
+   * The time the grant was voided. A voided grant is no longer in effect from this
+   * time.
+   */
+  voidedAt?: Date
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
 }
 
 /**
@@ -3433,6 +3499,17 @@ export interface WorkflowCollectionAlignmentAnchored {
   type: 'anchored'
   /** The recurring period for the alignment. */
   recurringPeriod: RecurringPeriod
+}
+
+/**
+ * Add a new phase to the subscription. The phase is created without items; use
+ * add-item operations to populate it.
+ */
+export interface SubscriptionEditAddPhase {
+  /** Discriminator for the add-phase operation. */
+  type: 'add_phase'
+  /** The phase to add. */
+  phase: SubscriptionPhaseCreate
 }
 
 /** Subscription fields without phases or the current billing period. */
@@ -4237,6 +4314,12 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
   redirectOnCompletion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollection
+}
+
+/** Page paginated response. */
+export interface EntitlementGrantPagePaginatedResponse {
+  data: EntitlementGrant[]
+  meta: PaginatedMeta
 }
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
@@ -7041,6 +7124,9 @@ export interface NotFoundInput extends BaseErrorInput {}
 
 /** Gone. */
 export interface GoneInput extends BaseErrorInput {}
+
+/** Precondition Failed. */
+export interface PreconditionFailedInput extends BaseErrorInput {}
 
 /** Conflict. */
 export interface ConflictInput extends BaseErrorInput {}

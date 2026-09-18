@@ -92,8 +92,13 @@ interface CustomerBillingEndpoints
 
 @route("/openmeter/customers/{customerId}/entitlement-access")
 @tag(Shared.EntitlementsTag)
-interface CustomerEntitlementsEndpoints
+interface CustomerEntitlementAccessEndpoints
   extends Entitlements.CustomerEntitlementsOperations {}
+
+@route("/openmeter/customers/{customerId}/entitlements/{entitlementId}/grants")
+@tag(Shared.EntitlementsTag)
+interface CustomerEntitlementGrantsEndpoints
+  extends Customers.Entitlements.Grants.CustomerEntitlementGrantsOperations {}
 
 @route("/openmeter/customers/{customerId}/credits/grants")
 @tag(Shared.CustomersTag)

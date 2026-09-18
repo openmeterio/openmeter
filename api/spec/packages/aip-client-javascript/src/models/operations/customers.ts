@@ -24,6 +24,7 @@ import type {
   CustomerPagePaginatedResponse,
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
+  EntitlementGrantPagePaginatedResponse,
   GetCreditBalanceParamsFilter,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
@@ -111,6 +112,34 @@ export type CreateCustomerStripePortalSessionRequest = AcceptDateStrings<{
 }>
 export type CreateCustomerStripePortalSessionResponse =
   AppStripeCreateCustomerPortalSessionResult
+
+export interface ListCustomerEntitlementGrantsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort grants returned in the response. Supported sort attributes are:
+   *
+   * - `created_at` (default)
+   * - `updated_at`
+   * - `effective_at`
+   * - `expires_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /** Include deleted grants in the response. */
+  includeDeleted?: boolean
+}
+
+export type ListCustomerEntitlementGrantsRequest = AcceptDateStrings<
+  ListCustomerEntitlementGrantsQuery & {
+    customerId: string
+    entitlementId: string
+  }
+>
+export type ListCustomerEntitlementGrantsResponse =
+  EntitlementGrantPagePaginatedResponse
 
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string

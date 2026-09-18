@@ -8,10 +8,13 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
@@ -74,6 +77,60 @@ func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entit
 	})
 
 	return items, nil
+}
+
+func (c *service) ListCustomerEntitlementGrants(ctx context.Context, input entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	if err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	// The entitlement is already resolved, so the grant list is addressed by ID; the
+	// list itself does not depend on the entitlement type and is empty for the
+	// non-metered ones, as grants can only be issued for metered entitlements.
+	grants, err := c.meteredEntitlementConnector.ListEntitlementGrants(ctx, ent.Namespace, meteredentitlement.ListEntitlementGrantsParams{
+		CustomerID:                ent.CustomerID,
+		EntitlementIDOrFeatureKey: ent.ID,
+		IncludeDeleted:            input.IncludeDeleted,
+		OrderBy:                   input.OrderBy,
+		Order:                     input.Order,
+		Page:                      input.Page,
+	})
+	if err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	return pagination.MapResult(grants, func(g meteredentitlement.EntitlementGrant) grant.Grant {
+		return g.Grant
+	}), nil
+}
+
+// getCustomerEntitlement resolves an entitlement addressed through the customer
+// that owns it. The customer has to exist and not be deleted.
+func (c *service) getCustomerEntitlement(ctx context.Context, customerID customer.CustomerID, entitlementID string) (*entitlement.Entitlement, error) {
+	cus, err := c.getActiveCustomer(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	id := models.NamespacedID{Namespace: cus.Namespace, ID: entitlementID}
+
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// The entitlement is addressed through the customer, so one owned by another
+	// customer must not be revealed.
+	if ent.CustomerID != cus.ID {
+		return nil, &entitlement.NotFoundError{EntitlementID: id}
+	}
+
+	return ent, nil
 }
 
 func (c *service) getActiveCustomer(ctx context.Context, customerID customer.CustomerID) (*customer.Customer, error) {

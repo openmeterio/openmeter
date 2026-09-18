@@ -33,6 +33,8 @@ import type {
   CreateCustomerStripeCheckoutSessionResponse,
   CreateCustomerStripePortalSessionRequest,
   CreateCustomerStripePortalSessionResponse,
+  ListCustomerEntitlementGrantsRequest,
+  ListCustomerEntitlementGrantsResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -481,6 +483,80 @@ export function createCustomerStripePortalSession(
           )
         }
         return fromWire(data, schemas.createCustomerStripePortalSessionResponse)
+      })
+  })
+}
+
+/**
+ * List customer entitlement grants
+ *
+ * List the grants issued for an entitlement of the customer. Grants only exist for
+ * metered entitlements, so the list of a boolean or static entitlement is empty.
+ *
+ * Deleted grants are excluded unless `include_deleted` is set. Voided and expired
+ * grants are always included, as they are part of the balance history.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
+ */
+export function listCustomerEntitlementGrants(
+  client: Client,
+  req: ListCustomerEntitlementGrantsRequest,
+  options?: RequestOptions,
+): Promise<Result<ListCustomerEntitlementGrantsResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.listCustomerEntitlementGrantsPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.listCustomerEntitlementGrantsPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/grants`
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(
+        schemas.listCustomerEntitlementGrantsQueryParams.shape.sort,
+        req.sort,
+      )
+    }
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        includeDeleted: req.includeDeleted,
+      },
+      schemas.listCustomerEntitlementGrantsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCustomerEntitlementGrantsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listCustomerEntitlementGrantsResponseWire, data)
+        }
+        return fromWire(data, schemas.listCustomerEntitlementGrantsResponse)
       })
   })
 }

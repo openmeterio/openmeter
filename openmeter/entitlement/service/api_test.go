@@ -7,6 +7,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
@@ -17,6 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -236,6 +240,214 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		_, err = conn.ListCustomerEntitlementAccess(t.Context(), entitlement.ListCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 		})
+		require.True(t, models.IsGenericPreConditionFailedError(err), "expected precondition failed error, got: %v", err)
+	})
+}
+
+func TestCustomerEntitlementGrantAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-customer-entitlement-grant-api"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     namespace,
+		Name:          "Meter 1",
+		Key:           "meter1",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	createMeterInPG(t, deps.dbClient, mtr)
+
+	createFeature := func(t *testing.T, key string, meterID *string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: namespace,
+			MeterID:   meterID,
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	createMeteredEntitlement := func(t *testing.T, cust *customer.Customer, featureKey string, grants ...entitlement.CreateEntitlementGrantInputs) *entitlement.Entitlement {
+		t.Helper()
+
+		ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       &featureKey,
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now,
+			})),
+		}, grants)
+		require.NoError(t, err)
+
+		return ent
+	}
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	customerID := customer.CustomerID{Namespace: namespace, ID: cust.ID}
+
+	// given a metered entitlement of the customer with three grants effective a minute
+	// apart, the last of which expires and recurs
+	meteredFeature := createFeature(t, "metered", lo.ToPtr(mtr.ID))
+	meteredEnt := createMeteredEntitlement(t, cust, meteredFeature.Key, entitlement.CreateEntitlementGrantInputs{
+		CreateGrantInput: credit.CreateGrantInput{Amount: 1, EffectiveAt: now},
+	})
+
+	secondGrant, err := deps.registry.MeteredEntitlement.CreateGrant(t.Context(), namespace, cust.ID, meteredEnt.ID, meteredentitlement.CreateEntitlementGrantInputs{
+		CreateGrantInput: credit.CreateGrantInput{Amount: 2, EffectiveAt: now.Add(time.Minute)},
+	})
+	require.NoError(t, err)
+
+	thirdGrant, err := deps.registry.MeteredEntitlement.CreateGrant(t.Context(), namespace, cust.ID, meteredEnt.ID, meteredentitlement.CreateEntitlementGrantInputs{
+		CreateGrantInput: credit.CreateGrantInput{
+			Amount:      3,
+			Priority:    5,
+			EffectiveAt: now.Add(2 * time.Minute),
+			Expiration:  &grant.ExpirationPeriod{Count: 1, Duration: grant.ExpirationPeriodDurationMonth},
+			Recurrence:  &timeutil.Recurrence{Interval: timeutil.RecurrencePeriodWeek, Anchor: now.Add(2 * time.Minute)},
+			Metadata:    map[string]string{"source": "promo"},
+		},
+	})
+	require.NoError(t, err)
+
+	// given a boolean entitlement of the customer, which cannot own grants
+	booleanFeature := createFeature(t, "boolean", nil)
+	booleanEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureKey:       &booleanFeature.Key,
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	}, nil)
+	require.NoError(t, err)
+
+	// given a metered entitlement on another customer
+	otherCust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+	otherEnt := createMeteredEntitlement(t, otherCust, meteredFeature.Key)
+
+	listInput := func() entitlement.ListCustomerEntitlementGrantsInput {
+		return entitlement.ListCustomerEntitlementGrantsInput{
+			CustomerID:    customerID,
+			EntitlementID: meteredEnt.ID,
+			OrderBy:       grant.OrderByEffectiveAt,
+			Order:         sortx.OrderAsc,
+			Page:          pagination.NewPage(1, 10),
+		}
+	}
+
+	t.Run("List should reject an incomplete input", func(t *testing.T) {
+		input := listInput()
+		input.Page = pagination.Page{}
+
+		_, err := conn.ListCustomerEntitlementGrants(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("List should report a missing customer as not found", func(t *testing.T) {
+		input := listInput()
+		input.CustomerID = customer.CustomerID{Namespace: namespace, ID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2"}
+
+		_, err := conn.ListCustomerEntitlementGrants(t.Context(), input)
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("List should report a missing entitlement as not found", func(t *testing.T) {
+		input := listInput()
+		input.EntitlementID = "01K5A4V2X8Q9Z7M3N6P1R4S8T2"
+
+		_, err := conn.ListCustomerEntitlementGrants(t.Context(), input)
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("List should not reveal another customer's entitlement", func(t *testing.T) {
+		input := listInput()
+		input.EntitlementID = otherEnt.ID
+
+		_, err := conn.ListCustomerEntitlementGrants(t.Context(), input)
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("List should return the grants of the entitlement in the requested order", func(t *testing.T) {
+		grants, err := conn.ListCustomerEntitlementGrants(t.Context(), listInput())
+		require.NoError(t, err)
+
+		require.Equal(t, 3, grants.TotalCount)
+		require.Equal(t, []float64{1, 2, 3}, lo.Map(grants.Items, func(g grant.Grant, _ int) float64 { return g.Amount }))
+
+		for _, g := range grants.Items {
+			require.Equal(t, meteredEnt.ID, g.OwnerID)
+		}
+
+		third := grants.Items[2]
+		require.Equal(t, thirdGrant.ID, third.ID)
+		require.Equal(t, uint8(5), third.Priority)
+		require.Equal(t, &grant.ExpirationPeriod{Count: 1, Duration: grant.ExpirationPeriodDurationMonth}, third.Expiration)
+		require.True(t, now.Add(2*time.Minute).AddDate(0, 1, 0).Equal(lo.FromPtr(third.ExpiresAt)), "unexpected expires at: %s", lo.FromPtr(third.ExpiresAt))
+		require.NotNil(t, third.Recurrence)
+		require.Equal(t, map[string]string{"source": "promo"}, third.Metadata)
+
+		// when the order is reversed and the second page of size one is requested
+		input := listInput()
+		input.Order = sortx.OrderDesc
+		input.Page = pagination.NewPage(2, 1)
+
+		grants, err = conn.ListCustomerEntitlementGrants(t.Context(), input)
+		require.NoError(t, err)
+
+		// then the middle grant is returned while the count still covers every grant
+		require.Equal(t, 3, grants.TotalCount)
+		require.Len(t, grants.Items, 1)
+		require.Equal(t, secondGrant.ID, grants.Items[0].ID)
+	})
+
+	t.Run("List should be empty for an entitlement that cannot own grants", func(t *testing.T) {
+		input := listInput()
+		input.EntitlementID = booleanEnt.ID
+
+		grants, err := conn.ListCustomerEntitlementGrants(t.Context(), input)
+		require.NoError(t, err)
+		require.Equal(t, 0, grants.TotalCount)
+		require.Empty(t, grants.Items)
+	})
+
+	t.Run("List should hide deleted grants unless asked for", func(t *testing.T) {
+		// given the second grant got deleted a minute ago; no production path deletes a
+		// single grant of a live entitlement, so the deletion is recorded directly
+		require.NoError(t, deps.dbClient.Grant.UpdateOneID(secondGrant.ID).SetDeletedAt(clock.Now().Add(-time.Minute)).Exec(t.Context()))
+
+		grants, err := conn.ListCustomerEntitlementGrants(t.Context(), listInput())
+		require.NoError(t, err)
+		require.Equal(t, 2, grants.TotalCount)
+		require.Equal(t, []float64{1, 3}, lo.Map(grants.Items, func(g grant.Grant, _ int) float64 { return g.Amount }))
+
+		input := listInput()
+		input.IncludeDeleted = true
+
+		grants, err = conn.ListCustomerEntitlementGrants(t.Context(), input)
+		require.NoError(t, err)
+		require.Equal(t, 3, grants.TotalCount)
+		require.NotNil(t, grants.Items[1].DeletedAt)
+	})
+
+	t.Run("List should reject a deleted customer", func(t *testing.T) {
+		// given the customer gets deleted and time moves past the deletion
+		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
+		clock.SetTime(clock.Now().Add(time.Minute))
+
+		_, err := conn.ListCustomerEntitlementGrants(t.Context(), listInput())
 		require.True(t, models.IsGenericPreConditionFailedError(err), "expected precondition failed error, got: %v", err)
 	})
 }
