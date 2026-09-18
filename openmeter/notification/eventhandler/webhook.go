@@ -305,7 +305,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 					wh, ok := webhooksByChannelID[status.ChannelID]
 					if !ok {
-						h.logger.ErrorContext(ctx, "notification channel for delivery status does not exist at webhook provider. it means its state is out of sync",
+						h.logger.WarnContext(ctx, "notification channel for delivery status does not exist at webhook provider. it means its state is out of sync",
 							"namespace", event.Namespace,
 							"notification.event.id", event.ID,
 							"notification.delivery_status.id", status.ID,
@@ -325,7 +325,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 					}
 
 					if !lo.Contains(wh.Channels, event.Rule.ID) {
-						h.logger.ErrorContext(ctx, "notification rule is not associated with notification channel for delivery status at webhook provider. it means its state is out of sync",
+						h.logger.WarnContext(ctx, "notification rule is not associated with notification channel for delivery status at webhook provider. it means its state is out of sync",
 							"namespace", event.Namespace,
 							"notification.event.id", event.ID,
 							"notification.delivery_status.id", status.ID,
