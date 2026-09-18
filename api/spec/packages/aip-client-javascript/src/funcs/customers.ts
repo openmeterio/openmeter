@@ -505,8 +505,8 @@ export function createCustomerStripePortalSession(
  *
  * A given customer can only have one active (non-deleted) entitlement per feature.
  * If you try to create a new entitlement for a feature that already has an active
- * entitlement, the request fails with a 409 error. If the customer has been
- * deleted, the request fails with a 412 error.
+ * entitlement, or if the customer has been deleted, the request fails with a 409
+ * error.
  *
  * Once an entitlement is created you cannot modify it, only delete it.
  *

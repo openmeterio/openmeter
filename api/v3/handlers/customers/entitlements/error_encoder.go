@@ -11,7 +11,7 @@ import (
 
 // errorEncoder maps entitlement domain errors to their HTTP responses and falls
 // back to the generic models errors the customer service wraps (not found,
-// precondition failed), which apierrors.GenericErrorEncoder does not handle.
+// conflict), which apierrors.GenericErrorEncoder does not handle.
 func errorEncoder() encoder.ErrorEncoder {
 	generic := commonhttp.GenericErrorEncoder()
 

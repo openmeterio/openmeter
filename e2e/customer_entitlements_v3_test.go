@@ -174,9 +174,9 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 			Feature: v3sdk.FeatureReference{ID: "01K4WAQ0J99ZZ0MD75HXR112H9"},
 		}))
 
-		// when an entitlement is created for it, then the request fails the precondition
+		// when an entitlement is created for it, then the request conflicts with the deleted state
 		_, err = c.Customers.Entitlements.Create(t.Context(), deleted.ID, req)
-		requireProblem(t, err, http.StatusPreconditionFailed)
+		requireProblem(t, err, http.StatusConflict)
 	})
 
 	t.Run("unknown customer", func(t *testing.T) {

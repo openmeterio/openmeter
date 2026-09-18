@@ -79,17 +79,6 @@ model Gone extends BaseError {
 }
 
 /**
- * Precondition Failed.
- */
-#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
-@error
-@useRef("../../../../common/definitions/errors.yaml#/components/responses/PreconditionFailed")
-@friendlyName("PreconditionFailed")
-model PreconditionFailed extends BaseError {
-  @statusCode _: 412;
-}
-
-/**
  * Payload Too Large.
  */
 #suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"

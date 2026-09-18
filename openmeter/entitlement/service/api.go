@@ -102,7 +102,7 @@ func (c *service) getActiveCustomer(ctx context.Context, customerID customer.Cus
 	}
 
 	if cus.IsDeleted() {
-		return nil, models.NewGenericPreConditionFailedError(
+		return nil, models.NewGenericConflictError(
 			fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
 		)
 	}

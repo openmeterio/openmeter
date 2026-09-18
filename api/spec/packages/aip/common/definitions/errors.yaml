@@ -121,13 +121,6 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/GoneError'
-    # 412
-    PreconditionFailed:
-      description: Precondition Failed
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/PreconditionFailedError'
     # 413
     PayloadTooLarge:
       description: Payload Too Large
@@ -625,21 +618,6 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
-    PreconditionFailedError:
-      allOf:
-        - $ref: '#/components/schemas/BaseError'
-        - type: object
-          properties:
-            status:
-              example: 412
-            title:
-              example: Precondition Failed
-            type:
-              example: https://httpstatuses.com/412
-            instance:
-              example: kong:trace:1234567890
-            detail:
-              example: Precondition Failed
     InternalError:
       $ref: '#/components/schemas/BaseError'
     NotAvailableError:
