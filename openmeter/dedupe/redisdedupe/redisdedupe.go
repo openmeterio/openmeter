@@ -167,6 +167,39 @@ func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.I
 	return existingItems, nil
 }
 
+// Remove deletes the item(s) from the deduplication index, releasing a previously made claim.
+//
+// In keyhash-migration mode only the keyhash-format key is removed: that is the key IsUnique
+// claims, while an existing raw-format key may belong to an event that was successfully
+// ingested before the migration.
+func (d Deduplicator) Remove(ctx context.Context, items ...dedupe.Item) error {
+	if d.Redis == nil {
+		return errors.New("redis client not initialized")
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	keys := make([]string, 0, len(items))
+	for _, item := range items {
+		switch d.Mode {
+		case DedupeModeRawKey:
+			keys = append(keys, item.Key())
+		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
+			keys = append(keys, GetKeyHash(item.Key()))
+		default:
+			return fmt.Errorf("invalid dedupe mode: %s", d.Mode)
+		}
+	}
+
+	if err := d.Redis.Del(ctx, keys...).Err(); err != nil {
+		return fmt.Errorf("failed to delete keys in redis: %w", err)
+	}
+
+	return nil
+}
+
 // Close closes underlying redis client
 func (d Deduplicator) Close() error {
 	if d.Redis != nil {
