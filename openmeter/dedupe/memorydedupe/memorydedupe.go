@@ -3,6 +3,7 @@ package memorydedupe
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -66,6 +67,10 @@ func (d *Deduplicator) Set(_ context.Context, items ...dedupe.Item) ([]dedupe.It
 }
 
 func (d *Deduplicator) Release(_ context.Context, claim dedupe.Claim) error {
+	if claim.Token == "" {
+		return errors.New("claim token is empty")
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if token, ok := d.store.Peek(claim.Item.Key()); ok && token == claim.Token {
