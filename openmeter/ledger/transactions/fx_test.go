@@ -56,12 +56,14 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 			route := entry.PostingAddress().Route().Route()
 			key := fmt.Sprintf("%s/%s", entry.PostingAddress().AccountType(), route.Currency.Code)
 			require.Equal(t, expected[key], entry.Amount().InexactFloat64())
+
 			delete(expected, key)
 
 			require.NotNil(t, route.CostBasis)
 			require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
 			require.Equal(t, sourceChargeID, *entry.Provenance().SourceChargeID)
 			require.Equal(t, spendChargeID, *entry.Provenance().SpendChargeID)
+
 			if route.Currency.Code == currencyx.Code("USD") {
 				require.Nil(t, route.CostBasisCurrency)
 			} else {
@@ -174,10 +176,12 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 				err := input.Validate()
 				if tt.mutate == nil {
 					require.NoError(t, err)
+
 					return
 				}
 
 				require.Error(t, err)
+
 				if tt.errorContains != "" {
 					require.ErrorContains(t, err, tt.errorContains)
 				}
@@ -259,6 +263,7 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, filtered.Items, 3)
+
 		for _, transaction := range filtered.Items {
 			for _, entry := range transaction.Entries() {
 				route := entry.PostingAddress().Route().Route()
@@ -309,6 +314,7 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 
 		first, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), group)
 		require.NoError(t, err)
+
 		second, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), group)
 		require.NoError(t, err)
 
@@ -393,6 +399,7 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.Len(t, filtered.Items, 2)
+
 			for _, transaction := range filtered.Items {
 				for _, entry := range transaction.Entries() {
 					route := entry.PostingAddress().Route().Route()
@@ -480,17 +487,22 @@ func TestConvertCurrencyTemplateCorrection(t *testing.T) {
 	require.NoError(t, err)
 
 	convertTx := findForwardTransaction(t, group, ConvertCurrencyTemplate{})
-	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
-		At:                  env.Now(),
-		Amount:              alpacadecimal.NewFromInt(100),
-		CostBasis:           &costBasis,
-		OriginalTransaction: convertTx,
-		OriginalGroup:       group,
-	})
+	correctionInputs, err := CorrectTransaction(
+		t.Context(),
+		env.resolverDeps(),
+		CorrectionInput{
+			At:                  env.Now(),
+			Amount:              alpacadecimal.NewFromInt(100),
+			CostBasis:           &costBasis,
+			OriginalTransaction: convertTx,
+			OriginalGroup:       group,
+		},
+	)
 	require.NoError(t, err)
 	require.Len(t, correctionInputs, 1)
 	require.Equal(t, string(ledger.TransactionDirectionCorrection), correctionInputs[0].Annotations()[ledger.AnnotationTransactionDirection])
 	require.Equal(t, TemplateCode(ConvertCurrencyTemplate{}), correctionInputs[0].Annotations()[ledger.AnnotationTransactionTemplateCode])
+
 	for _, entry := range correctionInputs[0].EntryInputs() {
 		require.NotNil(t, entry.Provenance().SourceChargeID)
 		require.Equal(t, sourceChargeID, *entry.Provenance().SourceChargeID)

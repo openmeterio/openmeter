@@ -50,11 +50,15 @@ func TestAccruedCollectionSeparatesOriginAndLegacyBalances(t *testing.T) {
 			require.NoError(t, err)
 
 			// Legacy template correction accepts originless entries; tracked entries need the collector.
-			_, err = CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
-				At:                  env.Now(),
-				Amount:              alpacadecimal.NewFromInt(1),
-				OriginalTransaction: group.Transactions()[0],
-			})
+			_, err = CorrectTransaction(
+				t.Context(),
+				env.resolverDeps(),
+				CorrectionInput{
+					At:                  env.Now(),
+					Amount:              alpacadecimal.NewFromInt(1),
+					OriginalTransaction: group.Transactions()[0],
+				},
+			)
 			if tc.origin == nil {
 				require.NoError(t, err)
 			} else {
@@ -65,13 +69,17 @@ func TestAccruedCollectionSeparatesOriginAndLegacyBalances(t *testing.T) {
 
 	// when selecting each recognition pool against the combined accrued balance.
 	for _, tracked := range []bool{false, true} {
-		selected, err := collectFromAttributableCustomerAccrued(t.Context(), env.resolverDeps(), collectFromAttributableCustomerAccruedInput{
-			CustomerID:    env.CustomerID,
-			Currency:      env.CurrencyReference(),
-			Target:        alpacadecimal.NewFromInt(50),
-			OriginTracked: tracked,
-			AsOf:          env.Now(),
-		})
+		selected, err := collectFromAttributableCustomerAccrued(
+			t.Context(),
+			env.resolverDeps(),
+			collectFromAttributableCustomerAccruedInput{
+				CustomerID:    env.CustomerID,
+				Currency:      env.CurrencyReference(),
+				Target:        alpacadecimal.NewFromInt(50),
+				OriginTracked: tracked,
+				AsOf:          env.Now(),
+			},
+		)
 		require.NoError(t, err)
 
 		// then only that pool contributes, even though both pools share the same subaccount.

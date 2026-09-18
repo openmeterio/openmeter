@@ -29,10 +29,24 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 		amounts []int64
 		legacy  bool
 	}{
-		{name: "full backfill", amounts: []int64{8}},
-		{name: "partial backfills", amounts: []int64{3, 5}},
-		{name: "legacy full backfill", amounts: []int64{8}, legacy: true},
-		{name: "legacy partial backfills", amounts: []int64{3, 5}, legacy: true},
+		{
+			name:    "full backfill",
+			amounts: []int64{8},
+		},
+		{
+			name:    "partial backfills",
+			amounts: []int64{3, 5},
+		},
+		{
+			name:    "legacy full backfill",
+			amounts: []int64{8},
+			legacy:  true,
+		},
+		{
+			name:    "legacy partial backfills",
+			amounts: []int64{3, 5},
+			legacy:  true,
+		},
 	} {
 		s.Run(tc.name, func() {
 			t := s.T()
@@ -55,24 +69,40 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			// given: ten credits of usage consume two promotional credits with no cost
 			// basis and create an eight-credit advance in the same managed currency.
 			promo := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-				Namespace: ns, Customer: customer.GetID(), Currency: tokens,
-				Amount: alpacadecimal.NewFromInt(2), At: start, Name: "Promotional credits",
+				Namespace:  ns,
+				Customer:   customer.GetID(),
+				Currency:   tokens,
+				Amount:     alpacadecimal.NewFromInt(2),
+				At:         start,
+				Name:       "Promotional credits",
 				Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 				TaxConfig:  productcatalog.TaxCodeConfig{TaxCodeID: defaults.CreditGrantTaxCodeID},
 			})
 			s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 10, start.Add(time.Hour))
 			clock.FreezeTime(end.Add(3 * 24 * time.Hour))
 			usage := s.createCustomCurrencyUsageCharge(ctx, customCurrencyUsageChargeInput{
-				Namespace: ns, Customer: customer.GetID(), Currency: tokens,
-				ServicePeriod: timeutil.ClosedPeriod{From: start, To: end}, FeatureKey: feature.Feature.Key,
-				UnitPrice: alpacadecimal.NewFromInt(1), SettlementMode: productcatalog.CreditOnlySettlementMode,
-				Name: "Credit-only usage", TaxConfig: productcatalog.TaxCodeConfig{TaxCodeID: defaults.InvoicingTaxCodeID},
+				Namespace: ns,
+				Customer:  customer.GetID(),
+				Currency:  tokens,
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: start,
+					To:   end,
+				},
+				FeatureKey:     feature.Feature.Key,
+				UnitPrice:      alpacadecimal.NewFromInt(1),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Name:           "Credit-only usage",
+				TaxConfig:      productcatalog.TaxCodeConfig{TaxCodeID: defaults.InvoicingTaxCodeID},
 			})
 
 			if tc.legacy {
 				// Seed the legacy lineage storage shape. Amounts/routes remain exactly as
 				// posted; only the new collection identity and tracking metadata differ.
-				page, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: ns, AnnotationFilters: map[string]string{ledger.AnnotationChargeID: usage.ID}, Limit: 100})
+				page, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
+					Namespace:         ns,
+					AnnotationFilters: map[string]string{ledger.AnnotationChargeID: usage.ID},
+					Limit:             100,
+				})
 				s.Require().NoError(err)
 				s.Require().Nil(page.NextCursor)
 
@@ -84,6 +114,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 
 						_, identity, err := ledger.EntryIdentityKeyText(entry.IdentityKey()).Parse()
 						s.Require().NoError(err)
+
 						identity.CollectionOriginID = nil
 						key, _ := identity.Text()
 						_, err = s.DBClient.ExecContext(ctx, `UPDATE ledger_entries SET collection_origin_id = NULL, schema_version = $1, identity_key = $2 WHERE namespace = $3 AND id = $4`, ledger.EntrySchemaVersionCurrent, string(key), ns, entry.ID().ID)
@@ -92,6 +123,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 				}
 
 				s.Require().Len(usage.Realizations, 1)
+
 				realizations := usage.Realizations[0].CreditsAllocated
 				s.Require().Len(realizations, 2)
 
@@ -108,7 +140,14 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 					s.Require().NoError(err)
 				}
 
-				s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{Namespace: ns, CustomerID: customer.ID, ChargeID: usage.ID, Currency: tokens, Features: []string{feature.Feature.Key}, Realizations: realizations}))
+				s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
+					Namespace:    ns,
+					CustomerID:   customer.ID,
+					ChargeID:     usage.ID,
+					Currency:     tokens,
+					Features:     []string{feature.Feature.Key},
+					Realizations: realizations,
+				}))
 			}
 
 			// when: paid purchases at USD 0.5 backfill the advance, with recognition
@@ -119,26 +158,36 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			for _, amount := range tc.amounts {
 				clock.FreezeTime(clock.Now().Add(time.Minute))
 				purchase := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-					Namespace: ns, Customer: customer.GetID(), Currency: tokens,
-					Amount: alpacadecimal.NewFromInt(amount), At: clock.Now(), Name: "Paid backfill",
+					Namespace:  ns,
+					Customer:   customer.GetID(),
+					Currency:   tokens,
+					Amount:     alpacadecimal.NewFromInt(amount),
+					At:         clock.Now(),
+					Name:       "Paid backfill",
 					Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus}),
 					CostBasis:  creditpurchase.NewCostBasis(s.newManualCostBasis(alpacadecimal.NewFromFloat(0.5))),
 					TaxConfig:  productcatalog.TaxCodeConfig{TaxCodeID: defaults.CreditGrantTaxCodeID},
 				})
 				purchase = s.settleExternalCreditPurchase(ctx, purchase.GetChargeID())
 				result, err := s.RevenueRecognizer.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{
-					CustomerID: customer.GetID(), Currency: tokens, At: clock.Now(),
+					CustomerID: customer.GetID(),
+					Currency:   tokens,
+					At:         clock.Now(),
 				})
 				s.Require().NoError(err)
+
 				s.Equal(float64(amount), result.RecognizedAmount.InexactFloat64())
 				backing := purchase.Realizations.CreditGrantRealization.TransactionGroupID
 				amountByBacking[backing] = float64(amount)
 				recognitionByBacking[backing] = result.LedgerGroupID
 				earningsBySource[sourceSpendChargeBucketKey(&purchase.ID, &usage.ID)] = float64(amount)
 				retry, err := s.RevenueRecognizer.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{
-					CustomerID: customer.GetID(), Currency: tokens, At: clock.Now(),
+					CustomerID: customer.GetID(),
+					Currency:   tokens,
+					At:         clock.Now(),
 				})
 				s.Require().NoError(err)
+
 				s.Zero(retry.RecognizedAmount.InexactFloat64())
 				s.Empty(retry.LedgerGroupID)
 			}
@@ -148,16 +197,24 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			accounts := s.mustCustomerAccounts(customer.GetID())
 			business, err := s.LedgerResolver.GetBusinessAccounts(ctx, ns)
 			s.Require().NoError(err)
+
 			s.requireAccountBalance(business.EarningsAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 8, "paid earnings")
 			s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{Currency: tokens.Reference()}, earningsBySource)
 			s.requireAccountBalance(accounts.AccruedAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 2, "promotional accrued")
-			s.requireCustomerAccruedSourceSpendBalanceBuckets(customer.GetID(), ledger.RouteFilter{Currency: tokens.Reference()}, map[string]float64{
-				sourceSpendChargeBucketKey(&promo.ID, &usage.ID): 2,
-			})
+			s.requireCustomerAccruedSourceSpendBalanceBuckets(
+				customer.GetID(),
+				ledger.RouteFilter{Currency: tokens.Reference()},
+				map[string]float64{
+					sourceSpendChargeBucketKey(&promo.ID, &usage.ID): 2,
+				},
+			)
 			roots, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
-				Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference(),
+				Namespace:  ns,
+				CustomerID: customer.ID,
+				Currency:   tokens.Reference(),
 			})
 			s.Require().NoError(err)
+
 			if tc.legacy {
 				s.Require().Len(roots, 2)
 			} else {
@@ -165,9 +222,16 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 				positions := make(map[string]alpacadecimal.Decimal)
 
 				for _, account := range []ledger.Account{accounts.AccruedAccount, business.EarningsAccount} {
-					buckets, err := s.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{Namespace: ns, Filters: ledger.Filters{AccountID: lo.ToPtr(account.ID().ID), Provenance: ledger.ProvenanceFilter{
-						SpendChargeID: mo.Some(&usage.ID),
-					}}, GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID}})
+					buckets, err := s.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+						Namespace: ns,
+						Filters: ledger.Filters{
+							AccountID: lo.ToPtr(account.ID().ID),
+							Provenance: ledger.ProvenanceFilter{
+								SpendChargeID: mo.Some(&usage.ID),
+							},
+						},
+						GroupBy: []string{ledger.BalanceBucketGroupByCollectionOriginID},
+					})
 					s.Require().NoError(err)
 
 					for _, bucket := range buckets {
@@ -177,6 +241,7 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 
 						origin := bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]
 						s.Require().NotNil(origin)
+
 						positions[*origin] = positions[*origin].Add(bucket.SettledAmount)
 					}
 				}
@@ -213,24 +278,36 @@ func (s *CustomCurrencyCreditsSuite) TestPaidBackfillRecognitionLeavesPromotiona
 			err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 				CustomerID: customer.GetID(),
 				PatchesByChargeID: map[string]charges.Patch{
-					usage.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{ChangeSource: billing.ChangeSourceSystem, Policy: meta.RefundAsCreditsDeletePolicy})),
+					usage.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+						ChangeSource: billing.ChangeSourceSystem,
+						Policy:       meta.RefundAsCreditsDeletePolicy,
+					})),
 				},
 			})
 			s.Require().NoError(err)
+
 			s.requireAccountBalance(business.EarningsAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 0, "refunded earnings")
 			s.requireAccountBalance(accounts.AccruedAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 0, "refunded accrued")
 			s.requireAccountBalance(accounts.FBOAccount, ledger.RouteFilter{Currency: tokens.Reference()}, 10, "refunded credit")
-			roots, err = s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: ns, CustomerID: customer.ID, Currency: tokens.Reference()})
+			roots, err = s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+				Namespace:  ns,
+				CustomerID: customer.ID,
+				Currency:   tokens.Reference(),
+			})
 			s.Require().NoError(err)
+
 			for _, root := range roots {
 				s.Empty(root.Segments)
 			}
 
 			// A retry after correction cannot recognize refunded value.
 			retry, err := s.RevenueRecognizer.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{
-				CustomerID: customer.GetID(), Currency: tokens, At: clock.Now(),
+				CustomerID: customer.GetID(),
+				Currency:   tokens,
+				At:         clock.Now(),
 			})
 			s.Require().NoError(err)
+
 			s.Zero(retry.RecognizedAmount.InexactFloat64())
 			s.Empty(retry.LedgerGroupID)
 		})

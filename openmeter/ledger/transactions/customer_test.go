@@ -318,6 +318,7 @@ func TestCoverCustomerReceivableTemplatePreselectedSourcesPreservesRoutesAndProv
 
 	entries := inputs[0].EntryInputs()
 	require.Len(t, entries, 4)
+
 	for _, entry := range entries {
 		require.NotNil(t, entry.Provenance().SourceChargeID)
 		require.NotNil(t, entry.Provenance().SpendChargeID)

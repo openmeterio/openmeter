@@ -580,6 +580,7 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
+
 	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: base.DB,
 	})
@@ -607,11 +608,15 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
-		handler: chargeadapter.NewUsageBasedHandler(base.Deps.HistoricalLedger, transactions.ResolverDependencies{
-			AccountService: base.Deps.ResolversService,
-			AccountCatalog: base.Deps.AccountService,
-			BalanceQuerier: base.Deps.HistoricalLedger,
-		}, collectorService),
+		handler: chargeadapter.NewUsageBasedHandler(
+			base.Deps.HistoricalLedger,
+			transactions.ResolverDependencies{
+				AccountService: base.Deps.ResolversService,
+				AccountCatalog: base.Deps.AccountService,
+				BalanceQuerier: base.Deps.HistoricalLedger,
+			},
+			collectorService,
+		),
 		lineage:    lineageService,
 		recognizer: recognizerService,
 		currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
@@ -986,7 +991,9 @@ func (e *usageBasedHandlerTestEnv) activeSegmentsByRealization(t *testing.T, rea
 
 func (e *usageBasedHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
+
 	require.NotEmpty(t, recognitionGroupID)
+
 	segments := e.activeSegmentsByRealization(t, realizations)
 
 	for _, realization := range realizations {

@@ -111,15 +111,20 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	ctx := t.Context()
 	raw, err := json.Marshal(f.view)
 	require.NoError(t, err)
+
 	var staleView subscription.SubscriptionView
 	require.NoError(t, json.Unmarshal(raw, &staleView))
+
 	horizon := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
 	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, f.view, horizon))
+
 	ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
 	require.GreaterOrEqual(t, len(ids), 2)
+
 	clock.FreezeTime(f.view.Subscription.ActiveFrom)
 	_, err = f.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: f.view.Customer.GetID()})
 	require.NoError(t, err)
+
 	requireCustomCurrencyAccountBalance(t, f, f.accounts.FBOAccount, 10)
 	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 10)
 
@@ -128,8 +133,10 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	clock.FreezeTime(cancelAt)
 	_, err = f.subscriptionService.Cancel(ctx, f.view.Subscription.NamespacedID, subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)})
 	require.NoError(t, err)
+
 	canceled, err := f.subscriptionService.GetView(ctx, f.view.Subscription.NamespacedID)
 	require.NoError(t, err)
+
 	event := subscription.NewCancelledEvent(ctx, canceled)
 	require.NoError(t, f.subscriptionSyncService.HandleCancelledEvent(ctx, &event))
 
@@ -137,17 +144,28 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	remaining := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
 	require.Len(t, remaining, 1)
 	require.Contains(t, ids, remaining[0])
-	result, err := f.chargesService.GetByID(ctx, charges.GetByIDInput{ChargeID: chargesmeta.ChargeID{Namespace: f.view.Subscription.Namespace, ID: remaining[0]}})
+
+	result, err := f.chargesService.GetByID(ctx, charges.GetByIDInput{ChargeID: chargesmeta.ChargeID{
+		Namespace: f.view.Subscription.Namespace,
+		ID:        remaining[0],
+	}})
 	require.NoError(t, err)
+
 	charge, err := result.AsFlatFeeCharge()
 	require.NoError(t, err)
 	require.Equal(t, cancelAt, charge.Intent.GetEffectiveServicePeriod().To)
 	require.Equal(t, float64(5), charge.State.AmountAfterProration.InexactFloat64())
+
 	requireCustomCurrencyAccountBalance(t, f, f.accounts.FBOAccount, 15)
 	requireCustomCurrencyAccountBalance(t, f, f.business.EarningsAccount, 5)
-	beforeLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
+	beforeLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+		Namespace:  f.view.Subscription.Namespace,
+		CustomerID: f.view.Customer.ID,
+		Currency:   f.currency.Reference(),
+	})
 	require.NoError(t, err)
 	require.Empty(t, beforeLineage)
+
 	query := ledger.BalanceBucketQuery{
 		Namespace: f.view.Subscription.Namespace,
 		Filters: ledger.Filters{
@@ -165,20 +183,29 @@ func TestSubscriptionCustomCurrencyRealizedCancellation(t *testing.T) {
 	require.NotEmpty(t, lo.FromPtr(beforeBuckets[0].GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
 	require.NotEmpty(t, lo.FromPtr(beforeBuckets[0].GroupByValues[ledger.BalanceBucketGroupBySourceChargeID]))
 	require.Equal(t, float64(5), beforeBuckets[0].SettledAmount.InexactFloat64())
+
 	beforeEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
 	require.NoError(t, err)
 	require.NoError(t, f.subscriptionSyncService.HandleCancelledEvent(ctx, &event))
 	require.NoError(t, f.subscriptionSyncService.SyncByView(ctx, staleView, horizon))
 	require.Equal(t, remaining, listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID))
+
 	afterEntries, err := f.DBDeps.DBClient.LedgerEntry.Query().Count(ctx)
 	require.NoError(t, err)
 	require.Equal(t, beforeEntries, afterEntries)
-	afterLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: f.view.Subscription.Namespace, CustomerID: f.view.Customer.ID, Currency: f.currency.Reference()})
+
+	afterLineage, err := f.lineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+		Namespace:  f.view.Subscription.Namespace,
+		CustomerID: f.view.Customer.ID,
+		Currency:   f.currency.Reference(),
+	})
 	require.NoError(t, err)
 	require.Equal(t, beforeLineage, afterLineage)
+
 	afterBuckets, err := f.ledgerDeps.HistoricalLedger.GetBalanceBuckets(ctx, query)
 	require.NoError(t, err)
 	require.Equal(t, beforeBuckets, afterBuckets)
+
 	assertNoSubscriptionInvoices(t, f.testDeps, f.view.Customer.ID)
 }
 

@@ -76,32 +76,40 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 		},
 	}.Text()
 
-	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
-		{
-			Address:             testAddress(t, subAccountA),
-			AmountValue:         alpacadecimal.NewFromInt(-100),
-			IdentityKeyValue:    string(identityKey),
-			SourceChargeIDValue: &sourceChargeID,
-			SpendChargeIDValue:  &spendChargeID,
-			AnnotationsValue: models.Annotations{
-				ledger.AnnotationCollectionSourceOrder: 0,
+	txInput := mustSetUpHistoricalTransactionInput(
+		t,
+		time.Now().UTC(),
+		[]*transactionstestutils.AnyEntryInput{
+			{
+				Address:             testAddress(t, subAccountA),
+				AmountValue:         alpacadecimal.NewFromInt(-100),
+				IdentityKeyValue:    string(identityKey),
+				SourceChargeIDValue: &sourceChargeID,
+				SpendChargeIDValue:  &spendChargeID,
+				AnnotationsValue: models.Annotations{
+					ledger.AnnotationCollectionSourceOrder: 0,
+				},
+			},
+			{
+				Address:     testAddress(t, subAccountB),
+				AmountValue: alpacadecimal.NewFromInt(100),
 			},
 		},
-		{
-			Address:     testAddress(t, subAccountB),
-			AmountValue: alpacadecimal.NewFromInt(100),
-		},
-	})
+	)
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
 	})
 	require.NoError(t, err)
 
-	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{
-		Namespace: namespace,
-		ID:        group.ID,
-	}, txInput)
+	tx, err := env.repo.BookTransaction(
+		ctx,
+		models.NamespacedID{
+			Namespace: namespace,
+			ID:        group.ID,
+		},
+		txInput,
+	)
 	require.NoError(t, err)
 	require.NotNil(t, tx)
 
@@ -128,6 +136,7 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	})
 	require.Contains(t, subAccountIDs, subAccountA.ID)
 	require.Contains(t, subAccountIDs, subAccountB.ID)
+
 	entriesBySubAccount := lo.SliceToMap(entries, func(e *entdb.LedgerEntry) (string, *entdb.LedgerEntry) {
 		return e.SubAccountID, e
 	})
@@ -144,6 +153,7 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	require.Nil(t, entriesBySubAccount[subAccountB.ID].SpendChargeID)
 
 	require.Len(t, tx.Entries(), 2)
+
 	addressesBySubAccount := map[string]ledger.PostingAddress{}
 	entriesBySubAccountFromTx := map[string]ledger.Entry{}
 	for _, entry := range tx.Entries() {
@@ -172,6 +182,7 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, hydratedGroup.Transactions(), 1)
 	require.Len(t, hydratedGroup.Transactions()[0].Entries(), 2)
+
 	for _, entry := range hydratedGroup.Transactions()[0].Entries() {
 		require.Equal(t, ledger.EntrySchemaVersionCurrent, entry.SchemaVersion())
 	}
@@ -211,38 +222,49 @@ func TestRepo_BookTransaction_AllowsSameSubAccountEntriesWithDifferentProvenance
 	})
 	require.NoError(t, err)
 
-	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
-		{
-			Address:             testAddress(t, subAccountA),
-			AmountValue:         alpacadecimal.NewFromInt(-20),
-			IdentityKeyValue:    string(identityKey1),
-			SourceChargeIDValue: &sourceChargeID1,
-			SpendChargeIDValue:  &spendChargeID,
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(
+		t,
+		time.Now().UTC(),
+		[]*transactionstestutils.AnyEntryInput{
+			{
+				Address:             testAddress(t, subAccountA),
+				AmountValue:         alpacadecimal.NewFromInt(-20),
+				IdentityKeyValue:    string(identityKey1),
+				SourceChargeIDValue: &sourceChargeID1,
+				SpendChargeIDValue:  &spendChargeID,
+			},
+			{
+				Address:             testAddress(t, subAccountA),
+				AmountValue:         alpacadecimal.NewFromInt(-10),
+				IdentityKeyValue:    string(identityKey2),
+				SourceChargeIDValue: &sourceChargeID2,
+				SpendChargeIDValue:  &spendChargeID,
+			},
+			{
+				Address:     testAddress(t, subAccountB),
+				AmountValue: alpacadecimal.NewFromInt(30),
+			},
 		},
-		{
-			Address:             testAddress(t, subAccountA),
-			AmountValue:         alpacadecimal.NewFromInt(-10),
-			IdentityKeyValue:    string(identityKey2),
-			SourceChargeIDValue: &sourceChargeID2,
-			SpendChargeIDValue:  &spendChargeID,
-		},
-		{
-			Address:     testAddress(t, subAccountB),
-			AmountValue: alpacadecimal.NewFromInt(30),
-		},
-	}))
+	))
 	require.NoError(t, err)
 
 	entriesForSubAccountA := lo.Filter(tx.Entries(), func(entry ledger.Entry, _ int) bool {
 		return entry.PostingAddress().SubAccountID() == subAccountA.ID
 	})
 	require.Len(t, entriesForSubAccountA, 2)
-	require.ElementsMatch(t, []string{
-		string(identityKey1),
-		string(identityKey2),
-	}, lo.Map(entriesForSubAccountA, func(entry ledger.Entry, _ int) string {
-		return entry.IdentityKey()
-	}))
+	require.ElementsMatch(
+		t,
+		[]string{
+			string(identityKey1),
+			string(identityKey2),
+		},
+		lo.Map(entriesForSubAccountA, func(entry ledger.Entry, _ int) string {
+			return entry.IdentityKey()
+		}),
+	)
 }
 
 func TestRepo_GetTransactionGroup_PreservesTaxBehavior(t *testing.T) {
@@ -553,17 +575,24 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	})
 	require.NoError(t, err)
 
-	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
-		{
-			Address:     testAddress(t, usdSubAccount),
-			AmountValue: alpacadecimal.NewFromInt(-10),
+	txInput := mustSetUpHistoricalTransactionInput(
+		t,
+		time.Now().UTC(),
+		[]*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, usdSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(-10),
+			},
+			{
+				Address:     testAddress(t, eurSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(10),
+			},
 		},
-		{
-			Address:     testAddress(t, eurSubAccount),
-			AmountValue: alpacadecimal.NewFromInt(10),
-		},
-	})
-	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput)
+	)
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, txInput)
 	require.NoError(t, err)
 
 	usd := currencyx.Code("USD")
@@ -645,16 +674,23 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 	})
 	require.NoError(t, err)
 
-	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
-		{
-			Address:     testAddress(t, usdSubAccountA),
-			AmountValue: alpacadecimal.NewFromInt(-10),
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(
+		t,
+		time.Now().UTC(),
+		[]*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, usdSubAccountA),
+				AmountValue: alpacadecimal.NewFromInt(-10),
+			},
+			{
+				Address:     testAddress(t, usdSubAccountB),
+				AmountValue: alpacadecimal.NewFromInt(10),
+			},
 		},
-		{
-			Address:     testAddress(t, usdSubAccountB),
-			AmountValue: alpacadecimal.NewFromInt(10),
-		},
-	}))
+	))
 	require.NoError(t, err)
 
 	usd := currencyx.Code("USD")
@@ -696,33 +732,49 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 	ctx := t.Context()
 	namespace := testNamespace()
 	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
-	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a"}})
-	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a", "feature-b"}})
-	featureB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-b"}})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+		Features: []string{"feature-a"},
+	})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+		Features: []string{"feature-a", "feature-b"},
+	})
+	featureB := env.createSubAccount(t, namespace, ledger.Route{
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+		Features: []string{"feature-b"},
+	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
 	})
 	require.NoError(t, err)
 
-	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
-		{
-			Address:     testAddress(t, unrestricted),
-			AmountValue: alpacadecimal.NewFromInt(100),
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(
+		t,
+		time.Now().UTC(),
+		[]*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, unrestricted),
+				AmountValue: alpacadecimal.NewFromInt(100),
+			},
+			{
+				Address:     testAddress(t, featureA),
+				AmountValue: alpacadecimal.NewFromInt(10),
+			},
+			{
+				Address:     testAddress(t, featureAOrB),
+				AmountValue: alpacadecimal.NewFromInt(20),
+			},
+			{
+				Address:     testAddress(t, featureB),
+				AmountValue: alpacadecimal.NewFromInt(-130),
+			},
 		},
-		{
-			Address:     testAddress(t, featureA),
-			AmountValue: alpacadecimal.NewFromInt(10),
-		},
-		{
-			Address:     testAddress(t, featureAOrB),
-			AmountValue: alpacadecimal.NewFromInt(20),
-		},
-		{
-			Address:     testAddress(t, featureB),
-			AmountValue: alpacadecimal.NewFromInt(-130),
-		},
-	}))
+	))
 	require.NoError(t, err)
 
 	accountIDs := []string{
@@ -805,7 +857,10 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 
 	now := time.Now().UTC()
 
-	txOld, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+	txOld, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, &transactionstestutils.AnyTransactionInput{
 		BookedAtValue: now.Add(-2 * time.Hour),
 		AnnotationsValue: models.Annotations{
 			"kind": "keep",
@@ -823,7 +878,10 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	})
 	require.NoError(t, err)
 
-	txSkip, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+	txSkip, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, &transactionstestutils.AnyTransactionInput{
 		BookedAtValue: now.Add(-90 * time.Minute),
 		AnnotationsValue: models.Annotations{
 			"kind": "skip",
@@ -841,7 +899,10 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	})
 	require.NoError(t, err)
 
-	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, &transactionstestutils.AnyTransactionInput{
 		BookedAtValue: now.Add(-1 * time.Hour),
 		AnnotationsValue: models.Annotations{
 			"kind": "keep",
@@ -859,7 +920,10 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	})
 	require.NoError(t, err)
 
-	txNew, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+	txNew, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, &transactionstestutils.AnyTransactionInput{
 		BookedAtValue: now.Add(-30 * time.Minute),
 		AnnotationsValue: models.Annotations{
 			"kind": "keep",
@@ -877,7 +941,10 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	})
 	require.NoError(t, err)
 
-	txUnannotated, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, &transactionstestutils.AnyTransactionInput{
+	txUnannotated, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, &transactionstestutils.AnyTransactionInput{
 		BookedAtValue: now.Add(-15 * time.Minute),
 		EntryInputsValues: []*transactionstestutils.AnyEntryInput{
 			{
@@ -962,16 +1029,23 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
-		{
-			Address:     testAddress(t, usdSubAccount),
-			AmountValue: alpacadecimal.NewFromInt(-10),
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(
+		t,
+		time.Now().UTC(),
+		[]*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, usdSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(-10),
+			},
+			{
+				Address:     testAddress(t, eurSubAccount),
+				AmountValue: alpacadecimal.NewFromInt(10),
+			},
 		},
-		{
-			Address:     testAddress(t, eurSubAccount),
-			AmountValue: alpacadecimal.NewFromInt(10),
-		},
-	}))
+	))
 	require.NoError(t, err)
 
 	// Account scope should filter hydrated entries as well (not only transactions).
@@ -1518,16 +1592,20 @@ func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) 
 		transactions = append(transactions, txn)
 	}
 
-	legacy, err := env.repo.BookTransaction(ctx, groupID, mustSetUpHistoricalTransactionInput(t, at.Add(2*time.Hour), []*transactionstestutils.AnyEntryInput{
-		{
-			Address:     testAddress(t, fboA),
-			AmountValue: alpacadecimal.NewFromInt(-5),
+	legacy, err := env.repo.BookTransaction(ctx, groupID, mustSetUpHistoricalTransactionInput(
+		t,
+		at.Add(2*time.Hour),
+		[]*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, fboA),
+				AmountValue: alpacadecimal.NewFromInt(-5),
+			},
+			{
+				Address:     testAddress(t, accruedA),
+				AmountValue: alpacadecimal.NewFromInt(5),
+			},
 		},
-		{
-			Address:     testAddress(t, accruedA),
-			AmountValue: alpacadecimal.NewFromInt(5),
-		},
-	}))
+	))
 	require.NoError(t, err)
 
 	for _, matchingOnly := range []bool{false, true} {
@@ -1562,6 +1640,7 @@ func TestRepo_ListTransactions_ProvenanceSelectionAndEntryLoading(t *testing.T) 
 					require.Nil(t, page.NextCursor)
 				} else {
 					require.NotNil(t, page.NextCursor)
+
 					query.Cursor = page.NextCursor
 				}
 			}

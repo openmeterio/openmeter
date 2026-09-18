@@ -162,8 +162,12 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 
 	// Set up accrued balance and legacylineage.
 	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(), CostBasis: &costBasis,
-		SourceChargeID: &sourceChargeID, SpendChargeID: &chargeID,
+		At:             env.Now(),
+		Amount:         alpacadecimal.NewFromInt(50),
+		Currency:       env.CurrencyReference(),
+		CostBasis:      &costBasis,
+		SourceChargeID: &sourceChargeID,
+		SpendChargeID:  &chargeID,
 	})
 	env.createLineageForRealization(t, chargeID, realID, currency, alpacadecimal.NewFromInt(50), creditrealization.LineageOriginKindRealCredit)
 
@@ -205,8 +209,12 @@ func TestRecognizeEarnings_ReceivableCoverageDoesNotRecognizeUnrelatedAccrued(t 
 	// - accrued value from one charge
 	// - an unrelated receivable-coverage lineage for the same customer and currency
 	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(5), Currency: env.CurrencyReference(), CostBasis: &costBasis,
-		SourceChargeID: &sourceChargeID, SpendChargeID: &accruedChargeID,
+		At:             env.Now(),
+		Amount:         alpacadecimal.NewFromInt(5),
+		Currency:       env.CurrencyReference(),
+		CostBasis:      &costBasis,
+		SourceChargeID: &sourceChargeID,
+		SpendChargeID:  &accruedChargeID,
 	})
 	env.createLineageForRealization(t, coverageChargeID, realizationID, currency, alpacadecimal.NewFromInt(3), creditrealization.LineageOriginKindReceivableCoverage)
 
@@ -308,8 +316,12 @@ func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testin
 
 	// Set up accrued balance and two lineages.
 	env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(70), Currency: env.CurrencyReference(), CostBasis: &costBasis,
-		SourceChargeID: &sourceChargeID, SpendChargeID: &chargeID,
+		At:             env.Now(),
+		Amount:         alpacadecimal.NewFromInt(70),
+		Currency:       env.CurrencyReference(),
+		CostBasis:      &costBasis,
+		SourceChargeID: &sourceChargeID,
+		SpendChargeID:  &chargeID,
 	})
 	env.createLineageForRealization(t, chargeID, realA, currency, alpacadecimal.NewFromInt(30), creditrealization.LineageOriginKindRealCredit)
 	env.createLineageForRealization(t, chargeID, realB, currency, alpacadecimal.NewFromInt(40), creditrealization.LineageOriginKindRealCredit)
@@ -347,7 +359,10 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 		alreadyRecognized int64
 	}{
 		{name: "matching source only"},
-		{name: "partially available source", alreadyRecognized: 15},
+		{
+			name:              "partially available source",
+			alreadyRecognized: 15,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			env := newRecognizerTestEnv(t)
@@ -359,26 +374,39 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 			// shares its accrued subaccount. Existing journal recognition may
 			// leave less live accrued than the lineage's face amount.
 			env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-				At: env.Now(), Amount: alpacadecimal.NewFromInt(40), Currency: env.CurrencyReference(), CostBasis: &costBasis,
-				SourceChargeID: &source, SpendChargeID: &spend,
+				At:             env.Now(),
+				Amount:         alpacadecimal.NewFromInt(40),
+				Currency:       env.CurrencyReference(),
+				CostBasis:      &costBasis,
+				SourceChargeID: &source,
+				SpendChargeID:  &spend,
 			})
 			env.createLineageForRealization(t, spend, testID(), currency, alpacadecimal.NewFromInt(40), creditrealization.LineageOriginKindRealCredit)
 			if tc.alreadyRecognized > 0 {
 				env.resolveAndCommit(t, transactions.RecognizeEarningsFromAttributableAccruedTemplate{
-					At: env.Now(), Amount: alpacadecimal.NewFromInt(tc.alreadyRecognized), Currency: env.CurrencyReference(),
+					At:       env.Now(),
+					Amount:   alpacadecimal.NewFromInt(tc.alreadyRecognized),
+					Currency: env.CurrencyReference(),
 				})
 			}
+
 			// This source sorts before the tracked one, so scalar recognition
 			// would consume it even when the tracked source has enough balance.
 			unrelatedSource, unrelatedSpend := "00000000000000000000000001", testID()
 			env.resolveAndCommit(t, transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-				At: env.Now(), Amount: alpacadecimal.NewFromInt(10), Currency: env.CurrencyReference(), CostBasis: &costBasis,
-				SourceChargeID: &unrelatedSource, SpendChargeID: &unrelatedSpend,
+				At:             env.Now(),
+				Amount:         alpacadecimal.NewFromInt(10),
+				Currency:       env.CurrencyReference(),
+				CostBasis:      &costBasis,
+				SourceChargeID: &unrelatedSource,
+				SpendChargeID:  &unrelatedSpend,
 			})
 
 			// when: recognition selects only the allocation's actual remaining source.
 			result, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
-				CustomerID: env.CustomerID, At: env.Now(), Currency: currency,
+				CustomerID: env.CustomerID,
+				At:         env.Now(),
+				Currency:   currency,
 			})
 			require.NoError(t, err)
 			require.Equal(t, float64(40-tc.alreadyRecognized), result.RecognizedAmount.InexactFloat64())
@@ -390,6 +418,7 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 				require.Equal(t, &spend, entry.SpendChargeID)
 			}
 			require.Equal(t, float64(10), env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
+
 			roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 				Namespace:  env.Namespace,
 				CustomerID: env.CustomerID.ID,
@@ -397,6 +426,7 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.Len(t, roots, 1)
+
 			amounts := make(map[creditrealization.LineageSegmentState]float64)
 			for _, segment := range roots[0].Segments {
 				amounts[segment.State] += segment.Amount.InexactFloat64()
@@ -408,7 +438,12 @@ func TestRecognizeEarnings_AccruedSourceIsolation(t *testing.T) {
 			}
 			require.Equal(t, float64(40-tc.alreadyRecognized), amounts[creditrealization.LineageSegmentStateEarningsRecognized])
 			require.Equal(t, float64(tc.alreadyRecognized), amounts[creditrealization.LineageSegmentStateRealCredit])
-			retry, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{CustomerID: env.CustomerID, At: env.Now(), Currency: currency})
+
+			retry, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+				CustomerID: env.CustomerID,
+				At:         env.Now(),
+				Currency:   currency,
+			})
 			require.NoError(t, err)
 			require.Zero(t, retry.RecognizedAmount.InexactFloat64())
 			require.Empty(t, retry.LedgerGroupID)

@@ -721,6 +721,7 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 
 	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: base.DB})
 	require.NoError(t, err)
+
 	lineageService, err := legacylineageservice.New(legacylineageservice.Config{Adapter: lineageAdapter})
 	require.NoError(t, err)
 
@@ -1003,28 +1004,44 @@ type advanceExposureInput struct {
 // Nil spend provenance exercises legacy entries through that same lineage path.
 func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advanceExposureInput) {
 	t.Helper()
+
 	ctx := t.Context()
-	inputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{
-		AccountService: e.Deps.ResolversService,
-		AccountCatalog: e.Deps.AccountService,
-		BalanceQuerier: e.Deps.HistoricalLedger,
-	}, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace},
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		transactions.ResolverDependencies{
+			AccountService: e.Deps.ResolversService,
+			AccountCatalog: e.Deps.AccountService,
+			BalanceQuerier: e.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: e.CustomerID,
+			Namespace:  e.Namespace,
+		},
 		transactions.IssueCustomerReceivableTemplate{
-			At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(),
-			Features: input.Features, SpendChargeID: input.SpendChargeID,
+			At:            e.Now(),
+			Amount:        input.Amount,
+			Currency:      input.Currency.Reference(),
+			Features:      input.Features,
+			SpendChargeID: input.SpendChargeID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(),
-			Features: input.Features, SpendChargeID: input.SpendChargeID, TaxCode: input.TaxCode,
+			At:            e.Now(),
+			Amount:        input.Amount,
+			Currency:      input.Currency.Reference(),
+			Features:      input.Features,
+			SpendChargeID: input.SpendChargeID,
+			TaxCode:       input.TaxCode,
 		},
 	)
 	require.NoError(t, err)
+
 	group, err := e.Deps.HistoricalLedger.CommitGroup(ctx, transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
 
 	chargeID := lo.FromPtrOr(input.SpendChargeID, ulid.Make().String())
 	_, err = e.DB.Charge.Create().SetID(chargeID).SetNamespace(e.Namespace).SetType(meta.ChargeTypeUsageBased).Save(ctx)
 	require.NoError(t, err)
+
 	realizationID := ulid.Make().String()
 	require.NoError(t, e.lineage.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
 		Namespace:  e.Namespace,
@@ -1033,12 +1050,18 @@ func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advance
 		Currency:   input.Currency,
 		Features:   input.Features,
 		Realizations: creditrealization.Realizations{{CreateInput: creditrealization.CreateInput{
-			ID: realizationID, Type: creditrealization.TypeAllocation, Amount: input.Amount,
-			ServicePeriod:     timeutil.ClosedPeriod{From: e.Now(), To: e.Now()},
+			ID:     realizationID,
+			Type:   creditrealization.TypeAllocation,
+			Amount: input.Amount,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: e.Now(),
+				To:   e.Now(),
+			},
 			LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID},
 			Annotations:       creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
 		}}},
 	}))
+
 	e.originalAdvanceGroups[realizationID] = group.ID().ID
 }
 
@@ -1046,6 +1069,7 @@ func (e *creditPurchaseHandlerTestEnv) createAdvance(t *testing.T, input advance
 // sequence, so repeated purchases observe the persisted remainder.
 func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargecreditpurchase.Charge) (chargecreditpurchase.CreditGrantResult, error) {
 	t.Helper()
+
 	return transaction.Run(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
 		roots, err := e.lineage.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
 			Namespace:         e.Namespace,
@@ -1059,12 +1083,16 @@ func (e *creditPurchaseHandlerTestEnv) grantCredits(t *testing.T, charge chargec
 		if err != nil {
 			return chargecreditpurchase.CreditGrantResult{}, err
 		}
+
 		// The charge service hydrates this reference from allocation rows. These
 		// handler fixtures retain the groups returned when creating each advance.
 		for i := range roots {
 			roots[i].OriginalTransactionGroupID = e.originalAdvanceGroups[roots[i].RootRealizationID]
 		}
-		input := chargecreditpurchase.CreditGrantInput{Charge: charge, AdvanceLineages: roots}
+		input := chargecreditpurchase.CreditGrantInput{
+			Charge:          charge,
+			AdvanceLineages: roots,
+		}
 		var result chargecreditpurchase.CreditGrantResult
 		if charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
 			result, err = e.handler.OnPromotionalCreditPurchase(ctx, input)

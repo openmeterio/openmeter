@@ -51,9 +51,13 @@ func TestOnAllocateCredits(t *testing.T) {
 		require.NotEmpty(t, realizations[0].LedgerTransaction.TransactionGroupID)
 		require.Equal(
 			t,
-			ledger.ChargeAnnotations(models.NamespacedID{Namespace: env.Namespace, ID: input.Charge.ID}),
+			ledger.ChargeAnnotations(models.NamespacedID{
+				Namespace: env.Namespace,
+				ID:        input.Charge.ID,
+			}),
 			env.transactionGroupAnnotations(t, realizations[0].LedgerTransaction.TransactionGroupID),
 		)
+
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, input.ServicePeriod.From, bookedAt)
 			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.GetEffectiveInvoiceAt(), bookedAt)
@@ -714,6 +718,7 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
+
 	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: base.DB,
 	})
@@ -1177,7 +1182,9 @@ func (e *flatFeeHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realiz
 
 func (e *flatFeeHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
+
 	require.NotEmpty(t, recognitionGroupID)
+
 	segments := e.activeSegmentsByRealization(t, realizations)
 
 	for _, realization := range realizations {

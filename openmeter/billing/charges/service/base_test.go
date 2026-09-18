@@ -167,6 +167,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	subscriptionItemReferenceValidator, err := itemreference.NewValidator(subscriptionrepo.NewSubscriptionItemRepo(s.DBClient))
 	s.Require().NoError(err)
+
 	s.ItemReferenceValidator = subscriptionItemReferenceValidator
 
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
@@ -273,9 +274,13 @@ func (s *BaseSuite) SetupSuite() {
 	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{
 		CreditsEnabled:           true,
 		CreditThenInvoiceEnabled: true,
-		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
-		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+		FeatureGate: featuregate.NewFeatureGateChecker(
+			featuregate.NewNoop(),
+			featuregate.Flags{
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			},
+			map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true},
+		),
 	})
 	s.NoError(err)
 	err = s.BillingService.RegisterCreateLineRouter(createLineRouter)
@@ -625,6 +630,7 @@ func (s *BaseSuite) CreateTestCustomer(ns, subjectKey string) *customer.Customer
 	if s.UseRealRecognizer || s.UseRealLedgerHandlers {
 		_, err := s.LedgerDeps.ResolversService.CreateCustomerAccounts(s.T().Context(), cust.GetID())
 		s.Require().NoError(err)
+
 		_, err = s.LedgerDeps.ResolversService.EnsureBusinessAccounts(s.T().Context(), ns)
 		s.Require().NoError(err)
 	}
