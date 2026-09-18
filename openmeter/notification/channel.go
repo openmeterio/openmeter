@@ -267,3 +267,36 @@ var (
 )
 
 type DeleteChannelInput = GetChannelInput
+
+var (
+	_ models.Validator                            = (*DisableChannelInput)(nil)
+	_ models.CustomValidator[DisableChannelInput] = (*DisableChannelInput)(nil)
+)
+
+// DisableChannelInput disables a Channel that is still enabled, without touching any other
+// mutable field. Reconciliation uses it to mirror a provider-initiated endpoint disable, where a
+// read-modify-write over the whole Channel would revert a concurrent user update.
+type DisableChannelInput struct {
+	models.NamespacedID
+
+	// Annotations replaces the annotations of the Channel.
+	Annotations models.Annotations
+}
+
+func (i DisableChannelInput) ValidateWith(validators ...models.ValidatorFunc[DisableChannelInput]) error {
+	return models.Validate(i, validators...)
+}
+
+func (i DisableChannelInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}

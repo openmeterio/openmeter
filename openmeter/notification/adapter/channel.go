@@ -196,3 +196,26 @@ func (a *adapter) UpdateChannel(ctx context.Context, params notification.UpdateC
 
 	return entutils.TransactingRepo(ctx, a, fn)
 }
+
+func (a *adapter) DisableChannel(ctx context.Context, params notification.DisableChannelInput) error {
+	fn := func(ctx context.Context, a *adapter) error {
+		// The disabled predicate makes this a single conditional statement instead of a
+		// check-then-act over the whole row, so a concurrent update to the channel is not reverted.
+		_, err := a.db.NotificationChannel.Update().
+			Where(
+				channeldb.ID(params.ID),
+				channeldb.Namespace(params.Namespace),
+				channeldb.Disabled(false),
+			).
+			SetDisabled(true).
+			SetAnnotations(params.Annotations).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to disable notification channel: %w", err)
+		}
+
+		return nil
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, fn)
+}
