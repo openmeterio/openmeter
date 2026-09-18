@@ -100,6 +100,11 @@ interface CustomerEntitlementAccessEndpoints
 interface CustomerEntitlementsEndpoints
   extends Customers.Entitlements.CustomerEntitlementsOperations {}
 
+@route("/openmeter/customers/{customerId}/entitlements/{entitlementId}/grants")
+@tag(Shared.EntitlementsTag)
+interface CustomerEntitlementGrantsEndpoints
+  extends Customers.Entitlements.Grants.CustomerEntitlementGrantsOperations {}
+
 @route("/openmeter/customers/{customerId}/credits/grants")
 @tag(Shared.CustomersTag)
 interface CustomerCreditGrantsEndpoints

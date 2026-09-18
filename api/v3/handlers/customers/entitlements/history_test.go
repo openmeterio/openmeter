@@ -15,6 +15,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -46,6 +47,10 @@ func (f fakeService) GetCustomerEntitlement(context.Context, entitlement.GetCust
 
 func (f fakeService) ListCustomerEntitlements(context.Context, entitlement.ListCustomerEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
 	return pagination.Result[entitlement.Entitlement]{}, errors.New("not implemented")
+}
+
+func (f fakeService) ListCustomerEntitlementGrants(context.Context, entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, errors.New("not implemented")
 }
 
 func serveGetCustomerEntitlementHistory(t *testing.T, svc fakeService, params api.GetCustomerEntitlementHistoryParams) *httptest.ResponseRecorder {

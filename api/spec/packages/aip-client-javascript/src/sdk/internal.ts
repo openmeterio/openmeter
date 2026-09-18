@@ -8,6 +8,7 @@ import {
   getCustomerEntitlementHistory,
   getCustomerEntitlement,
   listCustomerEntitlements,
+  listCustomerEntitlementGrants,
   voidCreditGrant,
   listCustomerCharges,
   createCustomerCharges,
@@ -56,6 +57,8 @@ import type {
   GetCustomerEntitlementResponse,
   ListCustomerEntitlementsRequest,
   ListCustomerEntitlementsResponse,
+  ListCustomerEntitlementGrantsRequest,
+  ListCustomerEntitlementGrantsResponse,
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
   ListCustomerChargesRequest,
@@ -139,6 +142,7 @@ import type {
   CostBasis,
   Currency,
   Entitlement,
+  EntitlementGrant,
   Invoice,
   PlanAddon,
 } from '../models/types.js'
@@ -315,6 +319,61 @@ export class InternalCustomersEntitlements {
   ): AsyncIterable<Entitlement> {
     return paginatePages(
       (req, opts) => listCustomerEntitlements(this._client, req, opts),
+      request,
+      options,
+    )
+  }
+
+  private _grants?: InternalCustomersEntitlementsGrants
+  get grants(): InternalCustomersEntitlementsGrants {
+    return (this._grants ??= new InternalCustomersEntitlementsGrants(
+      this._client,
+    ))
+  }
+}
+
+export class InternalCustomersEntitlementsGrants {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List customer entitlement grants
+   *
+   * List the grants issued for an entitlement of the customer. Grants only exist for
+   * metered entitlements, so the list of a boolean or static entitlement is empty.
+   *
+   * Deleted grants are excluded unless `include_deleted` is set. Voided and expired
+   * grants are always included, as they are part of the balance history.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
+   */
+  async list(
+    request: ListCustomerEntitlementGrantsRequest,
+    options?: RequestOptions,
+  ): Promise<ListCustomerEntitlementGrantsResponse> {
+    return unwrap(
+      await listCustomerEntitlementGrants(this._client, request, options),
+    )
+  }
+
+  /**
+   * List customer entitlement grants
+   *
+   * List the grants issued for an entitlement of the customer. Grants only exist for
+   * metered entitlements, so the list of a boolean or static entitlement is empty.
+   *
+   * Deleted grants are excluded unless `include_deleted` is set. Voided and expired
+   * grants are always included, as they are part of the balance history.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
+   */
+  listAll(
+    request: ListCustomerEntitlementGrantsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<EntitlementGrant> {
+    return paginatePages(
+      (req, opts) => listCustomerEntitlementGrants(this._client, req, opts),
       request,
       options,
     )

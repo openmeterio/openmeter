@@ -1663,6 +1663,62 @@ type EntitlementBurndownSegment struct {
 	GrantUsages []EntitlementGrantUsage `json:"grant_usages"`
 }
 
+// A grant issued for a metered entitlement. Grants define the usage allowance the
+// entitlement's balance is burnt down from: each grant is in effect between its
+// effective time and its expiration, and grants are consumed in priority order.
+//
+// Grants are immutable once created, so the balance is deterministic regardless of
+// when it is queried. They can only be deleted, which ends them at the time of the
+// deletion.
+type EntitlementGrant struct {
+	ID string `json:"id"`
+	// The ID of the entitlement the grant belongs to.
+	EntitlementID string `json:"entitlement_id"`
+	// The granted amount, in the feature's unit.
+	Amount Numeric `json:"amount"`
+	// The priority of the grant. Lower values have higher priority: a priority of 1 is
+	// more urgent than a priority of 2. When several grants are available, the one
+	// with the highest priority is consumed first; among equal priorities the one
+	// closest to expiration wins, then the earliest created.
+	Priority uint8 `json:"priority"`
+	// The time the grant takes effect. It is also the anchor of the recurrence for
+	// recurring grants.
+	EffectiveAt time.Time `json:"effective_at"`
+	// The duration after which the grant expires, counted from `effective_at`. Always
+	// a single-unit duration (for example `PT12H`, `P7D`, `P2W`, `P3M`, `P1Y`). Absent
+	// when the grant never expires.
+	ExpiresAfter *string `json:"expires_after,omitempty"`
+	// The time the grant expires, calculated from `effective_at` and `expires_after`.
+	// The grant is no longer in effect at this time. Absent when the grant never
+	// expires.
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	// Grants are rolled over at reset, after which they can have a different balance
+	// compared to what they had before the reset. Balance after the reset is
+	// calculated as
+	// `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+	MaxRolloverAmount Numeric `json:"max_rollover_amount"`
+	// Grants are rolled over at reset, after which they can have a different balance
+	// compared to what they had before the reset. Balance after the reset is
+	// calculated as
+	// `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+	MinRolloverAmount Numeric `json:"min_rollover_amount"`
+	// The recurrence of the grant. When set, the grant amount is re-issued every
+	// interval, anchored at `effective_at`. Absent for non-recurring grants.
+	Recurrence *RecurringPeriod `json:"recurrence,omitempty"`
+	// The next time the grant recurs. Absent for non-recurring grants.
+	NextRecurrence *time.Time `json:"next_recurrence,omitempty"`
+	// The time the grant was voided. A voided grant is no longer in effect from this
+	// time.
+	VoidedAt *time.Time        `json:"voided_at,omitempty"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
 // A grant created together with a metered entitlement.
 type EntitlementGrantCreateRequest struct {
 	// The amount to grant, in the feature's unit. Must be positive.
@@ -1690,6 +1746,12 @@ type EntitlementGrantCreateRequest struct {
 	// The recurrence of the grant. When set, the amount is issued again every
 	// interval. The anchor defaults to `effective_at`.
 	Recurrence *RecurringPeriodInput `json:"recurrence,omitempty"`
+}
+
+// Page paginated response.
+type EntitlementGrantPagePaginatedResponse struct {
+	Data []EntitlementGrant `json:"data"`
+	Meta PaginatedMeta      `json:"meta"`
 }
 
 // Usage taken from a single grant.

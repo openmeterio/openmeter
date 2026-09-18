@@ -111,6 +111,14 @@ func (s *Server) ListCustomerEntitlements(w http.ResponseWriter, r *http.Request
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) ListCustomerEntitlementGrants(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID, params api.ListCustomerEntitlementGrantsParams) {
+	s.customersEntitlementsHandler.ListCustomerEntitlementGrants().With(customersentitlementshandler.ListCustomerEntitlementGrantsParams{
+		CustomerID:    customerId,
+		EntitlementID: entitlementId,
+		Params:        params,
+	}).ServeHTTP(w, r)
+}
+
 func (s *Server) GetCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID, featureKey api.ResourceKey, params api.GetCustomerEntitlementAccessParams) {
 	s.customersEntitlementHandler.GetCustomerEntitlementAccess().With(customersentitlementhandler.GetCustomerEntitlementAccessParams{
 		CustomerID: customerId,
