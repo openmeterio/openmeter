@@ -1813,6 +1813,12 @@ type EntitlementMetered struct {
 	LastReset time.Time `json:"last_reset"`
 }
 
+// Page paginated response.
+type EntitlementPagePaginatedResponse struct {
+	Data []Entitlement `json:"data"`
+	Meta PaginatedMeta `json:"meta"`
+}
+
 // Recurring period input with an interval and an optional anchor.
 type EntitlementRecurringPeriodInput struct {
 	// The interval duration in ISO 8601 format.

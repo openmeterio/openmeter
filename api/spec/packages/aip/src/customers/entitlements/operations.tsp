@@ -3,6 +3,7 @@ import "@typespec/rest";
 import "@typespec/openapi";
 import "@typespec/openapi3";
 import "../../common/error.tsp";
+import "../../common/parameters.tsp";
 import "../../shared/index.tsp";
 import "./entitlement.tsp";
 
@@ -10,6 +11,27 @@ using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 namespace Customers;
+
+/**
+ * Filter options for listing customer entitlements.
+ */
+@friendlyName("ListCustomerEntitlementsParamsFilter")
+model ListCustomerEntitlementsParamsFilter {
+  /**
+   * Filter entitlements by feature ID.
+   */
+  feature_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter entitlements by feature key.
+   */
+  feature_key?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter entitlements by type (`metered`, `static` or `boolean`).
+   */
+  type?: Common.StringFieldFilterExact;
+}
 
 namespace Entitlements {
   interface CustomerEntitlementsOperations {
@@ -44,6 +66,59 @@ namespace Entitlements {
       | Shared.CreateResponse<Entitlement>
       | Common.NotFound
       | Common.Conflict
+      | Common.PreconditionFailed
+      | Common.ErrorResponses;
+
+    /**
+     * Get an entitlement of the customer by ID. For checking entitlement access, use
+     * the entitlement access endpoints instead.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @get
+    @operationId("get-customer-entitlement")
+    @summary("Get customer entitlement")
+    get(@path customerId: Shared.ULID, @path entitlementId: Shared.ULID):
+      | Shared.GetResponse<Entitlement>
+      | Common.NotFound
+      | Common.PreconditionFailed
+      | Common.ErrorResponses;
+
+    /**
+     * List the entitlements of the customer that are active at the time of the
+     * request. For checking entitlement access, use the entitlement access endpoints
+     * instead.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @get
+    @operationId("list-customer-entitlements")
+    @summary("List customer entitlements")
+    list(
+      @path customerId: Shared.ULID,
+      ...Common.PagePaginationQuery,
+
+      /**
+       * Sort entitlements returned in the response. Supported sort attributes are:
+       *
+       * - `created_at` (default)
+       * - `updated_at`
+       *
+       * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+       * suffix is used to specify a descending order.
+       */
+      @query(#{ name: "sort" })
+      sort?: Common.SortQuery,
+
+      /**
+       * Filter entitlements returned in the response.
+       *
+       * To filter entitlements by feature key add the following query param:
+       * `filter[feature_key]=my-feature`
+       */
+      @query(#{ style: "deepObject", explode: true })
+      filter?: ListCustomerEntitlementsParamsFilter,
+    ):
+      | Shared.PagePaginatedResponse<Entitlement>
+      | Common.NotFound
       | Common.PreconditionFailed
       | Common.ErrorResponses;
   }

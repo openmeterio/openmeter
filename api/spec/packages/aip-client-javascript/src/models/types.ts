@@ -2013,6 +2013,28 @@ export interface SubscriptionEditStretchPhase {
   extendBy: string
 }
 
+/** Filter options for getting a credit balance. */
+export interface GetCreditBalanceParamsFilter {
+  /**
+   * Filter credit balance by currency code. When historical custom currencies reuse
+   * a code, each managed currency is returned as a separate balance row.
+   */
+  currency?: StringFieldFilterExact
+  /**
+   * Filter credit balance by feature key. Omit to return the total portfolio value.
+   * Use `exists=false` to return only unrestricted balance.
+   */
+  featureKey?: StringFieldFilter
+}
+
+/** Filter options for listing plans. */
+export interface ListPlansParamsFilter {
+  key?: StringFieldFilter
+  name?: StringFieldFilter
+  status?: StringFieldFilterExact
+  currency?: StringFieldFilterExact
+}
+
 /**
  * Request body for updating the external payment settlement status of a credit
  * grant.
@@ -2046,28 +2068,6 @@ export interface ValidationIssue {
   field?: string
   /** Component that reported the validation issue, if applicable. */
   component?: string
-}
-
-/** Filter options for getting a credit balance. */
-export interface GetCreditBalanceParamsFilter {
-  /**
-   * Filter credit balance by currency code. When historical custom currencies reuse
-   * a code, each managed currency is returned as a separate balance row.
-   */
-  currency?: StringFieldFilterExact
-  /**
-   * Filter credit balance by feature key. Omit to return the total portfolio value.
-   * Use `exists=false` to return only unrestricted balance.
-   */
-  featureKey?: StringFieldFilter
-}
-
-/** Filter options for listing plans. */
-export interface ListPlansParamsFilter {
-  key?: StringFieldFilter
-  name?: StringFieldFilter
-  status?: StringFieldFilterExact
-  currency?: StringFieldFilterExact
 }
 
 /** Request body for voiding a credit grant. */
@@ -2772,6 +2772,16 @@ export interface ListCustomersParamsFilter {
   usageAttributionSubjectKey?: StringFieldFilter
   planKey?: StringFieldFilter
   billingProfileId?: UlidFieldFilter
+}
+
+/** Filter options for listing customer entitlements. */
+export interface ListCustomerEntitlementsParamsFilter {
+  /** Filter entitlements by feature ID. */
+  featureId?: UlidFieldFilter
+  /** Filter entitlements by feature key. */
+  featureKey?: StringFieldFilterExact
+  /** Filter entitlements by type (`metered`, `static` or `boolean`). */
+  type?: StringFieldFilterExact
 }
 
 /** Filter options for listing subscriptions. */
@@ -5209,6 +5219,12 @@ export interface CustomerStripeCreateCheckoutSessionRequest {
    * [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
   stripeOptions: AppStripeCreateCheckoutSessionRequestOptions
+}
+
+/** Page paginated response. */
+export interface EntitlementPagePaginatedResponse {
+  data: Entitlement[]
+  meta: PaginatedMeta
 }
 
 /**
@@ -8219,6 +8235,12 @@ export interface CustomerStripeCreateCheckoutSessionRequestInput {
    * [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
   stripeOptions: AppStripeCreateCheckoutSessionRequestOptionsInput
+}
+
+/** Page paginated response. */
+export interface EntitlementPagePaginatedResponseInput {
+  data: EntitlementInput[]
+  meta: PaginatedMeta
 }
 
 /**
