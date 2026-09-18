@@ -36,10 +36,10 @@ func TestDeduplicatingCollector(t *testing.T) {
 	ev2.SetSource("source")
 	ev2.SetType("some-other-type")
 
-	err = dedupeCollector.Ingest(context.Background(), namespace, ev1)
+	err = dedupeCollector.Ingest(t.Context(), namespace, ev1)
 	require.NoError(t, err)
 
-	err = dedupeCollector.Ingest(context.Background(), namespace, ev2)
+	err = dedupeCollector.Ingest(t.Context(), namespace, ev2)
 	require.NoError(t, err)
 
 	assert.Equal(t, []event.Event{ev1}, collector.Events(namespace))
@@ -86,17 +86,17 @@ func TestDeduplicatingCollector_ReleasesClaimOnIngestFailure(t *testing.T) {
 	ev.SetType("some-type")
 
 	// The first attempt claims the dedupe key but fails to ingest.
-	err = dedupeCollector.Ingest(context.Background(), namespace, ev)
+	err = dedupeCollector.Ingest(t.Context(), namespace, ev)
 	require.Error(t, err)
 	assert.Empty(t, inMemory.Events(namespace))
 
 	// The client's retry must not be dropped as a duplicate: the event is metered exactly once.
-	err = dedupeCollector.Ingest(context.Background(), namespace, ev)
+	err = dedupeCollector.Ingest(t.Context(), namespace, ev)
 	require.NoError(t, err)
 	assert.Equal(t, []event.Event{ev}, inMemory.Events(namespace))
 
 	// A genuine duplicate afterwards is still deduplicated.
-	err = dedupeCollector.Ingest(context.Background(), namespace, ev)
+	err = dedupeCollector.Ingest(t.Context(), namespace, ev)
 	require.NoError(t, err)
 	assert.Equal(t, []event.Event{ev}, inMemory.Events(namespace))
 }
@@ -108,7 +108,7 @@ type failRemoveDeduplicator struct {
 	err error
 }
 
-func (d failRemoveDeduplicator) Remove(ctx context.Context, items ...dedupe.Item) error {
+func (d failRemoveDeduplicator) Release(ctx context.Context, claim dedupe.Claim) error {
 	return d.err
 }
 
@@ -134,9 +134,40 @@ func TestDeduplicatingCollector_ReleaseFailureIsLoud(t *testing.T) {
 	ev.SetSource("source")
 	ev.SetType("some-type")
 
-	err = dedupeCollector.Ingest(context.Background(), namespace, ev)
+	err = dedupeCollector.Ingest(t.Context(), namespace, ev)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, removeErr)
 	assert.ErrorContains(t, err, "transient ingest failure")
 	assert.ErrorContains(t, err, "releasing dedupe claim")
+}
+
+type canceledContextDeduplicator struct {
+	dedupe.Deduplicator
+	releaseContextErr error
+}
+
+func (d *canceledContextDeduplicator) Release(ctx context.Context, claim dedupe.Claim) error {
+	d.releaseContextErr = ctx.Err()
+	return d.Deduplicator.Release(ctx, claim)
+}
+
+func TestDeduplicatingCollector_ReleasesClaimAfterContextCancellation(t *testing.T) {
+	inMemory := ingest.NewInMemoryCollector()
+	deduplicator, err := memorydedupe.NewDeduplicator(0)
+	require.NoError(t, err)
+	observed := &canceledContextDeduplicator{Deduplicator: deduplicator}
+	collector := &transientFailCollector{collector: inMemory}
+	dedupeCollector := ingest.DeduplicatingCollector{Collector: collector, Deduplicator: observed}
+
+	ev := event.New()
+	ev.SetID("id")
+	ev.SetSource("source")
+	ev.SetType("some-type")
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	require.Error(t, dedupeCollector.Ingest(ctx, "default", ev))
+	require.NoError(t, observed.releaseContextErr)
+	require.NoError(t, dedupeCollector.Ingest(t.Context(), "default", ev))
+	require.Equal(t, []event.Event{ev}, inMemory.Events("default"))
 }

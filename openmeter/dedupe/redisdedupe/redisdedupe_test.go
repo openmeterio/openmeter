@@ -18,6 +18,7 @@ type lookupHook struct {
 	calls   int
 	err     error
 	latency time.Duration
+	values  map[string]string
 }
 
 func (h *lookupHook) DialHook(next redis.DialHook) redis.DialHook { return next }
@@ -35,6 +36,15 @@ func (h *lookupHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
 			return h.err
 		}
 		switch cmd := cmd.(type) {
+		case *redis.Cmd:
+			args := cmd.Args()
+			key, token := args[len(args)-2].(string), args[len(args)-1].(string)
+			if h.values[key] == token {
+				delete(h.values, key)
+				cmd.SetVal(int64(1))
+			} else {
+				cmd.SetVal(int64(0))
+			}
 		case *redis.SliceCmd:
 			values := make([]any, len(cmd.Args())-1)
 			for i, arg := range cmd.Args()[1:] {
@@ -152,37 +162,28 @@ func TestCheckUniqueBatchInvalidMode(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestRemove(t *testing.T) {
+func TestRelease(t *testing.T) {
 	for _, mode := range []DedupeMode{DedupeModeRawKey, DedupeModeKeyHash, DedupeModeKeyHashMigration} {
 		t.Run(string(mode), func(t *testing.T) {
 			item := dedupe.Item{Namespace: "ns", Source: "source", ID: "id"}
-
-			// claimedKey is the key IsUnique would have created for the item in this mode.
-			claimedKey := item.Key()
+			key := item.Key()
 			if mode != DedupeModeRawKey {
-				claimedKey = GetKeyHash(item.Key())
+				key = GetKeyHash(key)
 			}
-
-			hook := &lookupHook{keys: map[string]bool{
-				claimedKey: true,
-				// A pre-existing raw-format key may belong to an event ingested before
-				// the keyhash migration, so it must survive the release.
-				item.Key(): true,
-			}}
+			hook := &lookupHook{keys: map[string]bool{}, values: map[string]string{key: "current"}}
 			client := redis.NewClient(&redis.Options{})
 			t.Cleanup(func() { require.NoError(t, client.Close()) })
 			client.AddHook(hook)
 			d := Deduplicator{Redis: client, Mode: mode}
 
-			require.NoError(t, d.Remove(t.Context(), item))
-			require.NotContains(t, hook.keys, claimedKey)
-
-			if mode == DedupeModeKeyHashMigration {
-				require.Contains(t, hook.keys, item.Key())
-			}
+			require.NoError(t, d.Release(t.Context(), dedupe.Claim{Item: item, Token: "stale"}))
+			require.Equal(t, "current", hook.values[key])
+			require.NoError(t, d.Release(t.Context(), dedupe.Claim{Item: item, Token: "current"}))
+			require.NotContains(t, hook.values, key)
 
 			hook.err = errors.New("redis unavailable")
-			require.ErrorIs(t, d.Remove(t.Context(), item), hook.err)
+			require.ErrorIs(t, d.Release(t.Context(), dedupe.Claim{Item: item, Token: "current"}), hook.err)
 		})
 	}
 }
+

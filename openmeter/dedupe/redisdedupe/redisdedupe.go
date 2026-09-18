@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
@@ -38,68 +39,49 @@ type Deduplicator struct {
 
 // IsUnique checks if an event is unique AND adds it to the deduplication index.
 func (d Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {
-	if d.Redis == nil {
-		return false, errors.New("redis client not initialized")
-	}
-
-	item := dedupe.Item{
-		Namespace: namespace,
-		ID:        ev.ID(),
-		Source:    ev.Source(),
-	}
-
-	switch d.Mode {
-	case DedupeModeRawKey:
-		return d.setKey(ctx, item.Key())
-	case DedupeModeKeyHash:
-		keyHash := GetKeyHash(item.Key())
-		return d.setKey(ctx, keyHash)
-	case DedupeModeKeyHashMigration:
-		keyHash := GetKeyHash(item.Key())
-		isUnique, err := d.setKey(ctx, keyHash)
-		if err != nil {
-			return false, err
-		}
-
-		// Migration to the new hashing format
-		if isUnique {
-			// We might have succeeded setting the key only because the key just exist in the old format
-			// Let's check if the old key exists
-			isSet, err := d.Redis.Exists(ctx, item.Key()).Result()
-			if err != nil {
-				return false, err
-			}
-
-			keyExists := isSet == 1
-
-			return !keyExists, nil
-		}
-	}
-
-	return false, fmt.Errorf("unknown status")
+	_, unique, err := d.Claim(ctx, dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()})
+	return unique, err
 }
 
-func (d Deduplicator) setKey(ctx context.Context, key string) (bool, error) {
-	status, err := d.Redis.SetArgs(ctx, key, "", redis.SetArgs{
-		TTL:  d.Expiration,
-		Mode: "nx",
-	}).Result()
+func (d Deduplicator) Claim(ctx context.Context, item dedupe.Item) (dedupe.Claim, bool, error) {
+	if d.Redis == nil {
+		return dedupe.Claim{}, false, errors.New("redis client not initialized")
+	}
+	claim := dedupe.Claim{Item: item, Token: uuid.NewString()}
+	key := item.Key()
+	if d.Mode != DedupeModeRawKey {
+		key = GetKeyHash(key)
+	}
+	unique, err := d.setKey(ctx, key, claim.Token)
+	if err != nil || !unique {
+		return dedupe.Claim{}, unique, err
+	}
+	if d.Mode == DedupeModeKeyHashMigration {
+		exists, err := d.Redis.Exists(ctx, item.Key()).Result()
+		if err != nil {
+			return dedupe.Claim{}, false, err
+		}
+		if exists == 1 {
+			if err := d.Release(ctx, claim); err != nil {
+				return dedupe.Claim{}, false, err
+			}
+			return dedupe.Claim{}, false, nil
+		}
+	}
+	return claim, true, nil
+}
 
-	// This is an unusual API, see: https://github.com/redis/go-redis/blob/v9.0.5/commands_test.go#L1545
-	// Redis returns redis.Nil
+func (d Deduplicator) setKey(ctx context.Context, key, value string) (bool, error) {
+	status, err := d.Redis.SetArgs(ctx, key, value, redis.SetArgs{TTL: d.Expiration, Mode: "nx"}).Result()
 	if err != nil && err != redis.Nil {
 		return false, err
 	}
-
-	// Key already existed before, so it's a duplicate
 	if status == "" {
 		return false, nil
 	}
-	// Key did not exist before, so it's unique
 	if status == "OK" {
 		return true, nil
 	}
-
 	return false, fmt.Errorf("unknown status")
 }
 
@@ -167,36 +149,23 @@ func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.I
 	return existingItems, nil
 }
 
-// Remove deletes the item(s) from the deduplication index, releasing a previously made claim.
-//
-// In keyhash-migration mode only the keyhash-format key is removed: that is the key IsUnique
-// claims, while an existing raw-format key may belong to an event that was successfully
-// ingested before the migration.
-func (d Deduplicator) Remove(ctx context.Context, items ...dedupe.Item) error {
+// Release deletes a claim only if the stored ownership token still matches.
+func (d Deduplicator) Release(ctx context.Context, claim dedupe.Claim) error {
 	if d.Redis == nil {
 		return errors.New("redis client not initialized")
 	}
-
-	if len(items) == 0 {
-		return nil
+	key := claim.Item.Key()
+	switch d.Mode {
+	case DedupeModeRawKey:
+	case DedupeModeKeyHash, DedupeModeKeyHashMigration:
+		key = GetKeyHash(key)
+	default:
+		return fmt.Errorf("invalid dedupe mode: %s", d.Mode)
 	}
-
-	keys := make([]string, 0, len(items))
-	for _, item := range items {
-		switch d.Mode {
-		case DedupeModeRawKey:
-			keys = append(keys, item.Key())
-		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
-			keys = append(keys, GetKeyHash(item.Key()))
-		default:
-			return fmt.Errorf("invalid dedupe mode: %s", d.Mode)
-		}
+	const compareAndDelete = `if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end`
+	if err := d.Redis.Eval(ctx, compareAndDelete, []string{key}, claim.Token).Err(); err != nil {
+		return fmt.Errorf("failed to release claim in redis: %w", err)
 	}
-
-	if err := d.Redis.Del(ctx, keys...).Err(); err != nil {
-		return fmt.Errorf("failed to delete keys in redis: %w", err)
-	}
-
 	return nil
 }
 
@@ -265,3 +234,4 @@ func (d Deduplicator) CheckUniqueBatch(ctx context.Context, items []dedupe.Item)
 
 	return result, nil
 }
+

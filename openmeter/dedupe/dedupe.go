@@ -13,16 +13,23 @@ type Deduplicator interface {
 	// IsUnique checks if an event is unique AND adds it to the deduplication index.
 	// TODO: deprecate or rename IsUnique
 	IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error)
+	// Claim checks if an item is unique and, if so, adds an owned claim to the index.
+	Claim(ctx context.Context, item Item) (Claim, bool, error)
 	// CheckUnique checks if an item is unique.
 	CheckUnique(ctx context.Context, item Item) (bool, error)
 	// Set adds the item(s) to the deduplicator
 	Set(ctx context.Context, events ...Item) ([]Item, error)
-	// Remove deletes the item(s) from the deduplication index, releasing a previously made claim.
-	Remove(ctx context.Context, items ...Item) error
+	// Release deletes a claim only if it is still owned by the caller.
+	Release(ctx context.Context, claim Claim) error
 	// CheckUniqueBatch checks if a batch of items is unique.
 	CheckUniqueBatch(ctx context.Context, items []Item) (CheckUniqueBatchResult, error)
 	// Close cleans up resources
 	Close() error
+}
+
+type Claim struct {
+	Item  Item
+	Token string
 }
 
 type ItemSet map[Item]struct{}
@@ -41,3 +48,4 @@ type Item struct {
 func (i Item) Key() string {
 	return fmt.Sprintf("%s-%s-%s", i.Namespace, i.Source, i.ID)
 }
+
