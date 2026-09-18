@@ -51,3 +51,27 @@ func TestDeduplicator(t *testing.T) {
 	assert.True(t, isUnique)
 	assert.False(t, isUnique2)
 }
+
+func TestRemove(t *testing.T) {
+	deduplicator, err := memorydedupe.NewDeduplicator(1024)
+	require.NoError(t, err)
+
+	item := dedupe.Item{
+		Namespace: "default",
+		ID:        "id",
+		Source:    "source",
+	}
+
+	_, err = deduplicator.Set(context.Background(), item)
+	require.NoError(t, err)
+
+	isUnique, err := deduplicator.CheckUnique(context.Background(), item)
+	require.NoError(t, err)
+	assert.False(t, isUnique)
+
+	require.NoError(t, deduplicator.Remove(context.Background(), item))
+
+	isUnique, err = deduplicator.CheckUnique(context.Background(), item)
+	require.NoError(t, err)
+	assert.True(t, isUnique)
+}
