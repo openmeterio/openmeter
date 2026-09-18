@@ -712,15 +712,15 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 
 	advanceService := advancetestutils.NewService(t, base.Deps)
 
-	handler, err := chargeadapter.NewCreditPurchaseHandler(
-		base.Deps.HistoricalLedger,
-		base.Deps.HistoricalLedger,
-		base.Deps.ResolversService,
-		base.Deps.AccountService,
-		advanceService,
-		breakageService,
-		enttx.NewCreator(base.DB),
-	)
+	handler, err := chargeadapter.NewCreditPurchaseHandler(chargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             base.Deps.HistoricalLedger,
+		BalanceQuerier:     base.Deps.HistoricalLedger,
+		AccountResolver:    base.Deps.ResolversService,
+		AccountCatalog:     base.Deps.AccountService,
+		AdvanceService:     advanceService,
+		BreakageService:    breakageService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
 	require.NoError(t, err)
 
 	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: base.DB})

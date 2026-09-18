@@ -166,15 +166,15 @@ func (s *BaseSuite) SetupSuite() {
 	)
 	s.FlatFeeHandler = flatFeeHandler
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		deps.HistoricalLedger,
-		deps.HistoricalLedger,
-		deps.ResolversService,
-		deps.AccountService,
-		s.AdvanceService,
-		breakageService,
-		transactionManager,
-	)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             deps.HistoricalLedger,
+		BalanceQuerier:     deps.HistoricalLedger,
+		AccountResolver:    deps.ResolversService,
+		AccountCatalog:     deps.AccountService,
+		AdvanceService:     s.AdvanceService,
+		BreakageService:    breakageService,
+		TransactionManager: transactionManager,
+	})
 	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{

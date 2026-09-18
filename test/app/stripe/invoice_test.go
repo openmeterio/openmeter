@@ -143,15 +143,15 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 
 	advanceService := advancetestutils.NewService(s.T(), ledgerDeps)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		ledgerDeps.HistoricalLedger,
-		ledgerDeps.HistoricalLedger,
-		ledgerDeps.ResolversService,
-		ledgerDeps.AccountService,
-		advanceService,
-		ledgerbreakage.NewNoopService(),
-		enttx.NewCreator(s.DBClient),
-	)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             ledgerDeps.HistoricalLedger,
+		BalanceQuerier:     ledgerDeps.HistoricalLedger,
+		AccountResolver:    ledgerDeps.ResolversService,
+		AccountCatalog:     ledgerDeps.AccountService,
+		AdvanceService:     advanceService,
+		BreakageService:    ledgerbreakage.NewNoopService(),
+		TransactionManager: enttx.NewCreator(s.DBClient),
+	})
 	s.Require().NoError(err)
 
 	chargeStack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{

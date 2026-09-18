@@ -346,15 +346,15 @@ func newTestEnv(t *testing.T) *testEnv {
 
 	advanceService := advancetestutils.NewService(t, base.Deps)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		base.Deps.HistoricalLedger,
-		base.Deps.HistoricalLedger,
-		base.Deps.ResolversService,
-		base.Deps.AccountService,
-		advanceService,
-		breakageService,
-		enttx.NewCreator(base.DB),
-	)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             base.Deps.HistoricalLedger,
+		BalanceQuerier:     base.Deps.HistoricalLedger,
+		AccountResolver:    base.Deps.ResolversService,
+		AccountCatalog:     base.Deps.AccountService,
+		AdvanceService:     advanceService,
+		BreakageService:    breakageService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
 	require.NoError(t, err)
 
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
