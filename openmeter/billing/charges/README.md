@@ -255,14 +255,15 @@ settlement JSON column is deprecated and ignored.
 For legacy collections, purchases load only advance roots with active uncovered
 segments eligible for that purchase's feature filters; settled history is excluded in the database.
 Finalized charges remain eligible while they have uncovered advances.
-Later purchases backfill eligible advances in original collection order. Each
+The ledger [advance service](../../ledger/advance/README.md#backfill) backfills
+eligible advances in original collection order. Each
 collection occurrence keeps its place after partial backfill or correction;
 charge IDs and replacement segment creation times do not define that order.
 For origin-tracked collections, the ledger selects origin buckets directly,
 without lineage state. For legacy collections, it returns the amounts actually
 booked for each uncovered segment, and lineage persists that same allocation.
 The purchase's lifecycle transaction rolls back if a selected segment changed
-before persistence. Ledger account locks still precede lineage locks.
+before persistence. Ledger account locks precede lineage locks.
 
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier

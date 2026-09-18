@@ -3,9 +3,8 @@
 This package turns selected customer FBO credit into accrued value and, for
 custom-currency `credit_then_invoice` overage, fiat receivable coverage.
 Credit-only accrual asks [advance](../advance/README.md) to create an advance for
-an uncovered amount. The
-hard part is preserving the exact order of selected sources so later correction
-and breakage flows can undo the same economic slices.
+an uncovered amount. Source order is preserved so correction and breakage can
+undo the same collected amounts.
 
 ## Vocab
 
@@ -142,14 +141,17 @@ source #0 -> order 0
 source #1 -> order 1
 ```
 
-Every new source slice also receives an immutable `collection_origin_id`. Its downstream
-backfill, recognition, and correction entries retain that origin. Two runs of
-the same spend charge consuming the same purchase therefore remain independently
-correctable. Reused FBO credit starts a fresh origin.
+`CollectionSource` records source selection order and pairs the collection's
+entries. Each selected source slice also receives a `CollectionOriginID`, which
+groups its downstream backfill, recognition, correction, and breakage postings.
+Two runs of the same spend charge consuming the same purchase therefore remain
+independently correctable. Collecting restored FBO credit starts a fresh origin.
 
-That identity is not a second source of numeric truth. Amounts come from ledger entries. The identity only records the order in which committed source entries were selected.
-
-This bridge is needed because later correction starts from a billing allocation, but breakage releases are attached to concrete FBO source entries.
+These identities store no amounts. Correction starts from billing's allocation
+and its original group/subaccount, then uses ledger balances and exact original
+entry references. Breakage releases are attached to concrete FBO source entries.
+See [collection provenance](../README.md#collection-provenance) for the identity
+and validation rules.
 
 ## Credit-Only Advance
 
@@ -186,7 +188,7 @@ Advance does not create breakage because no expiring real credit backs it yet.
 
 ## Advance Backfill
 
-When later real credit covers advance, the covered value is already used from the collector's perspective.
+When later real credit covers advance, the covered value is already used from the collector's perspective. [Advance backfill](../advance/README.md#backfill) owns the FIFO selection and attribution postings.
 
 Example:
 
@@ -218,7 +220,9 @@ source-selection rules, and correction posting with breakage reopening.
 
 ## Transaction Boundary
 
-Collection and correction must run inside one database transaction.
+Each collection or correction operation holds customer posting locks from source
+selection through commit. The caller persists its billing realizations in the
+same database transaction.
 
 The atomic unit includes:
 

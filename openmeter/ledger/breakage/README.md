@@ -20,7 +20,8 @@ All breakage record amounts are positive. The sign lives in the ledger entries.
 
 ## Core Invariant
 
-Breakage avoids grant-level lineage only if:
+Collection must release the exact breakage plan attached to each selected FBO
+source:
 
 ```text
 FBO consumption order == breakage release order
@@ -30,6 +31,7 @@ The shared ordering is:
 
 ```text
 credit_priority asc
+feature-restricted before unrestricted
 expires_at asc
 stable cursor asc
 ```
@@ -43,7 +45,10 @@ The correctness argument:
 3. Every consumed planned slice creates a `release` against that same plan.
 4. Therefore the open planned amount at an expiry is exactly the remaining unused expiring credit for that expiry.
 
-If collection order and release order diverge, a release can reduce the wrong expiry. At that point the system would need explicit grant lineage to recover correctness.
+The collector matches plans to available FBO balances by route, managed currency
+identity, and source charge when present. Ordering alone is insufficient when
+several purchases share a route. A release against another source or expiry
+would leave the wrong credit available.
 
 ## Routing And Metadata
 
@@ -64,6 +69,19 @@ Breakage-generated FBO entries must not be treated as normal credit issuance or 
 ledger.collection.type = breakage
 ledger.breakage.kind = plan|release|reopen
 ```
+
+## Collection provenance
+
+A purchase's breakage plan carries its source charge and has no collection
+origin. Releases caused by origin-tracked collection or advance backfill carry
+the source, spend, and collection origin on both FBO and breakage entries;
+reopening those releases preserves the same provenance. Each such movement
+balances within its origin, including at the future expiry timestamp.
+
+Breakage records retain the plan/release links and open amounts used for expiry
+selection and reopening. Collection provenance does not replace these records
+or the legacy release format. Correction uses exact source-entry links for
+ordinary collection and source/origin matching for advance-backfill releases.
 
 ## Type: Plan
 
@@ -122,11 +140,9 @@ FBO(route):     -x
 ACCRUED/OFFSET: +x
 ```
 
-Breakage walks open plans in the same order as FBO collection:
-
-```text
-credit_priority asc, expires_at asc, stable cursor asc
-```
+The collector selects FBO sources in the order above and asks breakage to
+release the plan attached to each selected source. Breakage does not independently
+choose another funding source.
 
 For each selected plan slice `y`, it books a release at that plan's expiry:
 
@@ -194,7 +210,8 @@ FBO +5
 BR  -5
 ```
 
-The releases follow expiry order without needing to know which "grant" the usage came from.
+The releases follow the selected sources and retain their plan links, so later
+correction can reopen the same expirations.
 
 ## Type: Reopen
 
@@ -264,7 +281,7 @@ FBO(plan.fbo_route):     +y
 BR(plan.breakage_route): -y
 ```
 
-The currently important path is restoration:
+Restoration books:
 
 ```text
 @T
@@ -331,7 +348,9 @@ For breakage, this is both:
 1. issuance of expiring real credit;
 2. immediate consumption of that same credit, because the advance usage already happened.
 
-If 5 advance is covered by new credit at `T5` that expires at `T20`, the FBO attribution makes the covered value real credit and breakage books both sides:
+If a purchase at `T5` backs 5 of advance and expires at `T20`, backfill attributes
+the receivable and accrued value to that purchase. The consumed portion is not
+issued as available FBO credit; breakage books both sides:
 
 ```text
 @T20 [plan]
@@ -357,7 +376,7 @@ Now the covered credit is unused again and can expire.
 
 ## Expired Breakage Impact
 
-Customer-visible expired credit is not one breakage transaction. It is the net impact of visible breakage records grouped by expiry and currency:
+Customer-visible expired credit is not one breakage transaction. It is the net impact of visible breakage records grouped by source grant, expiry, and currency identity:
 
 ```text
 impact = -(plans - releases + reopens)
@@ -376,4 +395,7 @@ plans - releases + reopens = 10 - 5 + 2 = 7
 customer-visible impact = -7
 ```
 
-The visible transaction cursor is the newest ledger transaction cursor among the records that contributed to the net impact. That keeps pagination stable while presenting one customer-facing expired row per expiry/currency bucket.
+The visible cursor uses expiry time for both timestamps and the first plan
+record ID for the source grant. Later releases or reopens change the net amount
+without moving that cursor. See the [customer balance view](../customerbalance/README.md#cursor-semantics)
+for pagination and balance-boundary behavior.

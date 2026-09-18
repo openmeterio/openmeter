@@ -17,11 +17,25 @@ backing order, then unwinds recognition within the selected source. Recognition
 batching cannot change which funding is returned. Backed advance remains ahead
 of its uncovered remainder.
 
-The provenance reader derives remaining accrued, earnings and receivable positions
-from ledger balances scoped to `collection_origin_id` and source. It validates
-whole-origin conservation per currency under posting locks. Original entries
-supply immutable ordering, routes and exact correction references; template
-history is not replayed to determine the current state.
+The provenance reader derives remaining amounts from ledger balances scoped to
+`collection_origin_id` and source:
+
+| Account | Correctable value |
+| --- | --- |
+| Accrued | Collected value not yet recognized |
+| Earnings | Collected value already recognized; recognition must be unwound |
+| Receivable | Credit collected directly from FBO to cover an amount owed |
+
+Their sum is the remaining correctable amount. For example, collecting 20 and
+recognizing 8 leaves 12 accrued + 8 earnings = 20 correctable. Direct receivable
+coverage instead leaves its correctable amount in receivable; the negative
+receivable from issuing an advance is not added to correction capacity.
+
+The reader includes all committed movements, even when the requested correction
+is backdated. It validates whole-origin conservation per currency identity under
+posting locks. Original entries supply ordering, routes, and exact reversal
+references; account movements identify what must be unwound. Balances determine
+remaining amounts without replaying historical template implementations.
 
 The [legacy reader](../../../billing/charges/legacylineage/README.md) adapts active
 segments and their original ledger references to the same planner. The legacy
@@ -37,7 +51,9 @@ The shared flow locks, prepares the batch, commits, persists breakage, and attac
 the committed group reference. Mixed batches preserve the request's realization
 order and resolve legacy templates after collecting all selections.
 
-Example:
+## Restoring Collected Credit
+
+The following are alternative corrections against the same original allocation:
 
 ```text
 original allocation amount = 10
@@ -140,4 +156,6 @@ The collector correction reverses the 5 of earnings. Advance correction unwinds 
 restores 5 of purchased credit, and cancels 7 of B's original collection and
 receivable issue. For expiring purchased credit, it also reopens the corresponding
 breakage release. A later correction of 3 from B cancels uncovered advance only;
-it does not return the same purchased credit again.
+it does not return the same purchased credit again. This scenario and mixed
+legacy/provenance correction batches are covered in the
+[charge adapter integration tests](../../chargeadapter/origin_test.go).

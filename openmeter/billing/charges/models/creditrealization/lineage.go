@@ -9,12 +9,12 @@ import (
 
 // AnnotationLineageOriginKind retains the stored legacy lineage annotation key.
 //
-// Deprecated: New collections use ledger.AnnotationOriginTracked and ledger origins.
+// Deprecated: Use ledger collection provenance.
 const AnnotationLineageOriginKind = "billing.credit_realization.lineage_origin_kind"
 
 // LineageOriginKind identifies the source of a legacy lineage root.
 //
-// Deprecated: Retained for legacy lineage histories; new collections use ledger origins.
+// Deprecated: Retained for legacy lineage histories.
 type LineageOriginKind string
 
 const (
@@ -61,7 +61,7 @@ func LineageOriginKindFromAnnotations(annotations models.Annotations) (LineageOr
 
 // LineageSegmentState describes mutable backing state in a legacy history.
 //
-// Deprecated: New collections derive backing and recognition state from ledger entries.
+// Deprecated: Use ledger balances scoped by collection provenance.
 type LineageSegmentState string
 
 const (
