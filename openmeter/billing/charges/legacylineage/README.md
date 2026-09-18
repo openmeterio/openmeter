@@ -1,8 +1,9 @@
 # Legacy credit-realization lineage — deprecated
 
-Compatibility only: new collections use [ledger origins](../../../ledger/README.md#transaction-invariants)
-and derive amounts from ledger entries. Do not add new lineage consumers or
-create roots and segments for origin-tracked collections.
+Compatibility for legacy lineage histories. Origin-tracked collections derive
+amounts from [ledger entries](../../../ledger/README.md#transaction-invariants).
+Do not add lineage consumers or create roots and segments for origin-tracked
+collections.
 
 Legacy lineage histories still need both reads and writes here: purchases backfill
 their advances, recognition updates their segments, and corrections unwind them.
