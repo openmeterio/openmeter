@@ -228,248 +228,244 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 // then issues new receivables for any remaining amount.
 func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input chargecreditpurchase.CreditGrantInput) (chargecreditpurchase.CreditGrantResult, error) {
 	return transaction.Run(ctx, h.transactionManager, func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
-		return h.issueCreditPurchaseGroup(ctx, input)
-	})
-}
-
-func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, input chargecreditpurchase.CreditGrantInput) (chargecreditpurchase.CreditGrantResult, error) {
-	charge := input.Charge
-	if err := input.Validate(); err != nil {
-		return chargecreditpurchase.CreditGrantResult{}, err
-	}
-
-	if charge.Intent.CreditAmount.IsZero() {
-		return chargecreditpurchase.CreditGrantResult{}, nil
-	}
-
-	var costBasisPtr *alpacadecimal.Decimal
-	var costBasisCurrency *currencyx.Code
-	if charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
-		if !charge.Intent.Currency.IsCustom() {
-			costBasisPtr = lo.ToPtr(alpacadecimal.Zero)
-		}
-	} else {
-		if charge.State.ResolvedCostBasis == nil {
-			return chargecreditpurchase.CreditGrantResult{}, models.NewGenericPreConditionFailedError(
-				fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
-			)
+		charge := input.Charge
+		if err := input.Validate(); err != nil {
+			return chargecreditpurchase.CreditGrantResult{}, err
 		}
 
-		costBasisPtr = &charge.State.ResolvedCostBasis.CostBasis
-		if charge.Intent.Currency.IsCustom() {
-			fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
-			if err != nil {
-				return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("get settlement fiat currency: %w", err)
+		if charge.Intent.CreditAmount.IsZero() {
+			return chargecreditpurchase.CreditGrantResult{}, nil
+		}
+
+		var costBasisPtr *alpacadecimal.Decimal
+		var costBasisCurrency *currencyx.Code
+		if charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
+			if !charge.Intent.Currency.IsCustom() {
+				costBasisPtr = lo.ToPtr(alpacadecimal.Zero)
+			}
+		} else {
+			if charge.State.ResolvedCostBasis == nil {
+				return chargecreditpurchase.CreditGrantResult{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
+				)
 			}
 
-			costBasisCurrency = lo.ToPtr(currencyx.Code(fiatCurrency.GetFiatCode()))
+			costBasisPtr = &charge.State.ResolvedCostBasis.CostBasis
+			if charge.Intent.Currency.IsCustom() {
+				fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
+				if err != nil {
+					return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("get settlement fiat currency: %w", err)
+				}
+
+				costBasisCurrency = lo.ToPtr(currencyx.Code(fiatCurrency.GetFiatCode()))
+			}
 		}
-	}
-	customerID := customer.CustomerID{
-		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
-	}
+		customerID := customer.CustomerID{
+			Namespace: charge.Namespace,
+			ID:        charge.Intent.CustomerID,
+		}
 
-	accounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
-	if err != nil {
-		return chargecreditpurchase.CreditGrantResult{}, err
-	}
-
-	if err := accounts.LockForPosting(ctx, h.accountCatalog); err != nil {
-		return chargecreditpurchase.CreditGrantResult{}, err
-	}
-
-	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
-	featureFilters := charge.Intent.FeatureFilters.Normalize()
-	effectiveAt := charge.Intent.ServicePeriod.To
-	// LedgerTransaction.CreatedAt retains recording time. For effective time,
-	// future-effective purchases book attribution immediately so subsequent
-	// committed purchases observe reduced advance; already-effective purchases
-	// backdate attribution alongside issuance and settlement.
-	advanceAttributionEffectiveAt := clock.Now()
-	if effectiveAt.Before(advanceAttributionEffectiveAt) {
-		advanceAttributionEffectiveAt = effectiveAt
-	}
-
-	// Advance attribution re-buckets an existing unknown-cost-basis advance into
-	// this purchase's known cost-basis bucket, which requires a cost basis to
-	// attribute into. A grant with no cost basis (a custom-currency promotional
-	// grant) has none, so it skips attribution and issues its full amount to
-	// FBO. The outstanding advance is left on its unknown-cost-basis route,
-	// where the balance formula (FBO + nil-cost-basis advance receivable) still
-	// nets it against the new credit, and a later paid purchase attributes it.
-	var plan advanceBackfillPlan
-	if costBasisPtr != nil {
-		plan, err = h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters, input.AdvanceLineages)
+		accounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
 		if err != nil {
-			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("get advance attributions: %w", err)
+			return chargecreditpurchase.CreditGrantResult{}, err
 		}
-	}
 
-	advanceAttributions := mergeAdvanceAttributions(plan.attributions)
-	advanceAttributionAmount := alpacadecimal.Zero
-	for _, attribution := range advanceAttributions {
-		advanceAttributionAmount = advanceAttributionAmount.Add(attribution.advanceAmount)
-
-		if attribution.collectionOriginID != nil {
-			annotations[ledger.AnnotationBackfillCreditPriority] = lo.FromPtrOr(charge.Intent.Priority, ledger.DefaultCustomerFBOPriority)
+		if err := accounts.LockForPosting(ctx, h.accountCatalog); err != nil {
+			return chargecreditpurchase.CreditGrantResult{}, err
 		}
-	}
 
-	issuableAmount := charge.Intent.CreditAmount.Sub(advanceAttributionAmount)
-	if issuableAmount.IsNegative() {
-		issuableAmount = alpacadecimal.Zero
-	}
+		annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
+		featureFilters := charge.Intent.FeatureFilters.Normalize()
+		effectiveAt := charge.Intent.ServicePeriod.To
+		// LedgerTransaction.CreatedAt retains recording time. For effective time,
+		// future-effective purchases book attribution immediately so subsequent
+		// committed purchases observe reduced advance; already-effective purchases
+		// backdate attribution alongside issuance and settlement.
+		advanceAttributionEffectiveAt := clock.Now()
+		if effectiveAt.Before(advanceAttributionEffectiveAt) {
+			advanceAttributionEffectiveAt = effectiveAt
+		}
 
-	var templates []transactions.TransactionTemplate
+		// Advance attribution re-buckets an existing unknown-cost-basis advance into
+		// this purchase's known cost-basis bucket, which requires a cost basis to
+		// attribute into. A grant with no cost basis (a custom-currency promotional
+		// grant) has none, so it skips attribution and issues its full amount to
+		// FBO. The outstanding advance is left on its unknown-cost-basis route,
+		// where the balance formula (FBO + nil-cost-basis advance receivable) still
+		// nets it against the new credit, and a later paid purchase attributes it.
+		var plan advanceBackfillPlan
+		if costBasisPtr != nil {
+			plan, err = h.planAdvanceBackfill(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters, input.AdvanceLineages)
+			if err != nil {
+				return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("plan advance backfill: %w", err)
+			}
+		}
 
-	for _, attribution := range advanceAttributions {
-		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At:                 advanceAttributionEffectiveAt,
-			Amount:             attribution.advanceAmount,
-			Currency:           charge.Intent.Currency.Reference(),
-			CostBasisCurrency:  costBasisCurrency,
-			CostBasis:          costBasisPtr,
-			AdvanceFeatures:    attribution.advanceFeatures,
-			AttributedFeatures: featureFilters,
-			SourceChargeID:     &charge.ID,
-			SpendChargeID:      attribution.spendChargeID,
-			CollectionOriginID: attribution.collectionOriginID,
-		})
+		advanceAttributions := mergeAdvanceAttributions(plan.attributions)
+		advanceAttributionAmount := alpacadecimal.Zero
+		for _, attribution := range advanceAttributions {
+			advanceAttributionAmount = advanceAttributionAmount.Add(attribution.advanceAmount)
 
-		if attribution.accruedAmount.IsPositive() {
-			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
+			if attribution.collectionOriginID != nil {
+				annotations[ledger.AnnotationBackfillCreditPriority] = lo.FromPtrOr(charge.Intent.Priority, ledger.DefaultCustomerFBOPriority)
+			}
+		}
+
+		issuableAmount := charge.Intent.CreditAmount.Sub(advanceAttributionAmount)
+		if issuableAmount.IsNegative() {
+			issuableAmount = alpacadecimal.Zero
+		}
+
+		var templates []transactions.TransactionTemplate
+
+		for _, attribution := range advanceAttributions {
+			templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 				At:                 advanceAttributionEffectiveAt,
-				Amount:             attribution.accruedAmount,
+				Amount:             attribution.advanceAmount,
 				Currency:           charge.Intent.Currency.Reference(),
-				TaxCode:            attribution.taxCode,
-				TaxBehavior:        attribution.taxBehavior,
-				FromCostBasis:      nil,
-				ToCostBasis:        costBasisPtr,
 				CostBasisCurrency:  costBasisCurrency,
+				CostBasis:          costBasisPtr,
+				AdvanceFeatures:    attribution.advanceFeatures,
+				AttributedFeatures: featureFilters,
 				SourceChargeID:     &charge.ID,
 				SpendChargeID:      attribution.spendChargeID,
 				CollectionOriginID: attribution.collectionOriginID,
 			})
-		}
-	}
 
-	if issuableAmount.IsPositive() {
-		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
-			At:                effectiveAt,
-			Amount:            issuableAmount,
-			Currency:          charge.Intent.Currency.Reference(),
-			CostBasisCurrency: costBasisCurrency,
-			CostBasis:         costBasisPtr,
-			Features:          featureFilters,
-			SourceChargeID:    &charge.ID,
-			CreditPriority:    charge.Intent.Priority,
-		})
-	}
-
-	switch charge.Intent.Settlement.Type() {
-	case chargecreditpurchase.SettlementTypePromotional:
-		// Promotional grants settle immediately through wash so the credited FBO balance
-		// does not leave an unsettled receivable behind.
-		templates = append(templates,
-			transactions.AuthorizeCustomerReceivablePaymentTemplate{
-				At:             effectiveAt,
-				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency.Reference(),
-				CostBasis:      costBasisPtr,
-				Features:       featureFilters,
-				SourceChargeID: &charge.ID,
-			},
-			transactions.SettleCustomerReceivableFromPaymentTemplate{
-				At:             effectiveAt,
-				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency.Reference(),
-				CostBasis:      costBasisPtr,
-				Features:       featureFilters,
-				SourceChargeID: &charge.ID,
-			},
-		)
-	case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:
-		// Deferred settlement modes are handled by later lifecycle events.
-	default:
-		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
-	}
-
-	inputs, err := transactions.ResolveTransactions(
-		ctx,
-		h.resolverDependencies(),
-		transactions.ResolutionScope{
-			CustomerID: customerID,
-			Namespace:  charge.Namespace,
-		},
-		templates...,
-	)
-	if err != nil {
-		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve transactions: %w", err)
-	}
-
-	var pendingBreakage []breakage.PendingRecord
-	if charge.Intent.ExpiresAt != nil {
-		immediateReleases := make([]breakage.PlanIssuanceImmediateRelease, 0, len(advanceAttributions))
-		for _, attribution := range advanceAttributions {
-			if !attribution.advanceAmount.IsPositive() {
-				continue
+			if attribution.accruedAmount.IsPositive() {
+				templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
+					At:                 advanceAttributionEffectiveAt,
+					Amount:             attribution.accruedAmount,
+					Currency:           charge.Intent.Currency.Reference(),
+					TaxCode:            attribution.taxCode,
+					TaxBehavior:        attribution.taxBehavior,
+					FromCostBasis:      nil,
+					ToCostBasis:        costBasisPtr,
+					CostBasisCurrency:  costBasisCurrency,
+					SourceChargeID:     &charge.ID,
+					SpendChargeID:      attribution.spendChargeID,
+					CollectionOriginID: attribution.collectionOriginID,
+				})
 			}
+		}
 
-			immediateReleases = append(immediateReleases, breakage.PlanIssuanceImmediateRelease{
-				Amount:             attribution.advanceAmount,
-				SpendChargeID:      attribution.spendChargeID,
-				CollectionOriginID: attribution.collectionOriginID,
+		if issuableAmount.IsPositive() {
+			templates = append(templates, transactions.IssueCustomerReceivableTemplate{
+				At:                effectiveAt,
+				Amount:            issuableAmount,
+				Currency:          charge.Intent.Currency.Reference(),
+				CostBasisCurrency: costBasisCurrency,
+				CostBasis:         costBasisPtr,
+				Features:          featureFilters,
+				SourceChargeID:    &charge.ID,
+				CreditPriority:    charge.Intent.Priority,
 			})
 		}
 
-		breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, breakage.PlanIssuanceInput{
-			CustomerID:        customerID,
-			Amount:            charge.Intent.CreditAmount,
-			ImmediateReleases: immediateReleases,
-			Currency:          charge.Intent.Currency.Reference(),
-			CostBasisCurrency: costBasisCurrency,
-			CostBasis:         costBasisPtr,
-			CreditPriority:    charge.Intent.Priority,
-			Features:          featureFilters,
-			ExpiresAt:         *charge.Intent.ExpiresAt,
-			SourceChargeID:    &charge.ID,
-		})
+		switch charge.Intent.Settlement.Type() {
+		case chargecreditpurchase.SettlementTypePromotional:
+			// Promotional grants settle immediately through wash so the credited FBO balance
+			// does not leave an unsettled receivable behind.
+			templates = append(templates,
+				transactions.AuthorizeCustomerReceivablePaymentTemplate{
+					At:             effectiveAt,
+					Amount:         charge.Intent.CreditAmount,
+					Currency:       charge.Intent.Currency.Reference(),
+					CostBasis:      costBasisPtr,
+					Features:       featureFilters,
+					SourceChargeID: &charge.ID,
+				},
+				transactions.SettleCustomerReceivableFromPaymentTemplate{
+					At:             effectiveAt,
+					Amount:         charge.Intent.CreditAmount,
+					Currency:       charge.Intent.Currency.Reference(),
+					CostBasis:      costBasisPtr,
+					Features:       featureFilters,
+					SourceChargeID: &charge.ID,
+				},
+			)
+		case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:
+			// Deferred settlement modes are handled by later lifecycle events.
+		default:
+			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
+		}
+
+		inputs, err := transactions.ResolveTransactions(
+			ctx,
+			h.resolverDependencies(),
+			transactions.ResolutionScope{
+				CustomerID: customerID,
+				Namespace:  charge.Namespace,
+			},
+			templates...,
+		)
 		if err != nil {
-			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve breakage plan: %w", err)
+			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve transactions: %w", err)
 		}
 
-		inputs = append(inputs, breakageInputs...)
-		pendingBreakage = append(pendingBreakage, pending...)
-	}
+		var pendingBreakage []breakage.PendingRecord
+		if charge.Intent.ExpiresAt != nil {
+			immediateReleases := make([]breakage.PlanIssuanceImmediateRelease, 0, len(advanceAttributions))
+			for _, attribution := range advanceAttributions {
+				if !attribution.advanceAmount.IsPositive() {
+					continue
+				}
 
-	if len(inputs) == 0 {
-		return chargecreditpurchase.CreditGrantResult{}, nil
-	}
+				immediateReleases = append(immediateReleases, breakage.PlanIssuanceImmediateRelease{
+					Amount:             attribution.advanceAmount,
+					SpendChargeID:      attribution.spendChargeID,
+					CollectionOriginID: attribution.collectionOriginID,
+				})
+			}
 
-	for i, input := range inputs {
-		if input != nil {
-			inputs[i] = transactions.WithAnnotations(input, annotations)
+			breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, breakage.PlanIssuanceInput{
+				CustomerID:        customerID,
+				Amount:            charge.Intent.CreditAmount,
+				ImmediateReleases: immediateReleases,
+				Currency:          charge.Intent.Currency.Reference(),
+				CostBasisCurrency: costBasisCurrency,
+				CostBasis:         costBasisPtr,
+				CreditPriority:    charge.Intent.Priority,
+				Features:          featureFilters,
+				ExpiresAt:         *charge.Intent.ExpiresAt,
+				SourceChargeID:    &charge.ID,
+			})
+			if err != nil {
+				return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve breakage plan: %w", err)
+			}
+
+			inputs = append(inputs, breakageInputs...)
+			pendingBreakage = append(pendingBreakage, pending...)
 		}
-	}
 
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		charge.Namespace,
-		annotations,
-		inputs...,
-	))
-	if err != nil {
-		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
-	}
+		if len(inputs) == 0 {
+			return chargecreditpurchase.CreditGrantResult{}, nil
+		}
 
-	if err := h.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
-		return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("persist breakage records: %w", err)
-	}
+		for i, input := range inputs {
+			if input != nil {
+				inputs[i] = transactions.WithAnnotations(input, annotations)
+			}
+		}
 
-	return chargecreditpurchase.CreditGrantResult{
-		GroupReference:      ledgertransaction.GroupReference{TransactionGroupID: transactionGroup.ID().ID},
-		BackfillAllocations: plan.allocations,
-	}, nil
+		transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+			charge.Namespace,
+			annotations,
+			inputs...,
+		))
+		if err != nil {
+			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
+		}
+
+		if err := h.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
+			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("persist breakage records: %w", err)
+		}
+
+		return chargecreditpurchase.CreditGrantResult{
+			GroupReference:      ledgertransaction.GroupReference{TransactionGroupID: transactionGroup.ID().ID},
+			BackfillAllocations: plan.allocations,
+		}, nil
+	})
 }
 
 func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDependencies {
@@ -480,13 +476,13 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 	}
 }
 
-// advanceAttributions determines how much of a credit purchase first covers
+// planAdvanceBackfill determines how much of a credit purchase first covers
 // existing advance receivable and accrued exposure before issuing new credit.
 // It matches receivable and accrued buckets by spend and collection origin so
 // attribution cannot move value between independently correctable occurrences.
 // Legacy rows have no spend charge; for those, route buckets still need to stay
 // distinct so clearing receivable cannot accidentally net across feature routes.
-func (h *creditPurchaseHandler) advanceAttributions(
+func (h *creditPurchaseHandler) planAdvanceBackfill(
 	ctx context.Context,
 	customerID customer.CustomerID,
 	currency currencies.Currency,
