@@ -173,3 +173,165 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 		requireProblem(t, err, http.StatusNotFound)
 	})
 }
+
+func TestV3GetAndListCustomerEntitlements(t *testing.T) {
+	c := newV3Client(t)
+
+	customerKey := uniqueKey("ent_list_customer")
+	cust, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:  customerKey,
+		Name: "Entitlement Customer " + customerKey,
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
+			SubjectKeys: []string{customerKey},
+		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, cust)
+
+	meteredFeature := createMeteredFeature(t, c, "ent_list_metered")
+	metered, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
+		Feature:     v3sdk.FeatureReference{ID: meteredFeature.ID},
+		UsagePeriod: v3sdk.EntitlementRecurringPeriodInput{Interval: "P1M"},
+	})))
+	c.requireStatus(http.StatusCreated, err)
+	meteredEnt, err := metered.AsEntitlementMetered()
+	require.NoError(t, err)
+
+	booleanFeatureKey := uniqueKey("ent_list_boolean")
+	booleanFeature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+		Key:  booleanFeatureKey,
+		Name: "Boolean Feature " + booleanFeatureKey,
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	boolean, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementBooleanRequest(v3sdk.CreateEntitlementBooleanRequest{
+		Feature: v3sdk.FeatureReference{ID: booleanFeature.ID},
+	})))
+	c.requireStatus(http.StatusCreated, err)
+	booleanEnt, err := boolean.AsEntitlementBoolean()
+	require.NoError(t, err)
+
+	t.Run("get by id", func(t *testing.T) {
+		got, err := c.Customers.Entitlements.Get(t.Context(), cust.ID, meteredEnt.ID)
+		c.requireStatus(http.StatusOK, err)
+
+		gotMetered, err := got.AsEntitlementMetered()
+		require.NoError(t, err)
+		require.Equal(t, meteredEnt.ID, gotMetered.ID)
+		require.Equal(t, meteredFeature.ID, gotMetered.Feature.ID)
+		require.Equal(t, cust.ID, gotMetered.Customer.ID)
+	})
+
+	t.Run("get unknown entitlement", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Get(t.Context(), cust.ID, "01K4WAQ0J99ZZ0MD75HXR112H9")
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("get entitlement of another customer", func(t *testing.T) {
+		otherKey := uniqueKey("ent_list_other_customer")
+		other, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:  otherKey,
+			Name: "Other Customer " + otherKey,
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		_, err = c.Customers.Entitlements.Get(t.Context(), other.ID, meteredEnt.ID)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("list", func(t *testing.T) {
+		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+			Sort: &v3sdk.Sort{By: "created_at", Order: v3sdk.SortOrderDesc},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.EqualValues(t, 2, list.Meta.Page.Total)
+		require.Len(t, list.Data, 2)
+
+		first, err := list.Data[0].AsEntitlementBoolean()
+		require.NoError(t, err)
+		require.Equal(t, booleanEnt.ID, first.ID)
+
+		second, err := list.Data[1].AsEntitlementMetered()
+		require.NoError(t, err)
+		require.Equal(t, meteredEnt.ID, second.ID)
+	})
+
+	t.Run("list paginated", func(t *testing.T) {
+		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+			Page: &v3sdk.PageParams{Number: lo.ToPtr(2), Size: lo.ToPtr(1)},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.EqualValues(t, 2, list.Meta.Page.Total)
+		require.Len(t, list.Data, 1)
+
+		item, err := list.Data[0].AsEntitlementBoolean()
+		require.NoError(t, err)
+		require.Equal(t, booleanEnt.ID, item.ID)
+	})
+
+	t.Run("list filtered", func(t *testing.T) {
+		for name, filter := range map[string]v3sdk.EntitlementFilter{
+			"feature id":  {FeatureID: &v3sdk.StringExactFilter{Eq: lo.ToPtr(meteredFeature.ID)}},
+			"feature key": {FeatureKey: &v3sdk.StringExactFilter{Oeq: []string{meteredFeature.Key, "unknown_feature"}}},
+			"type":        {Type: &v3sdk.StringExactFilter{Eq: lo.ToPtr("metered")}},
+		} {
+			list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+				Filter: &filter,
+			})
+			c.requireStatus(http.StatusOK, err)
+			require.Len(t, list.Data, 1, name)
+
+			item, err := list.Data[0].AsEntitlementMetered()
+			require.NoError(t, err, name)
+			require.Equal(t, meteredEnt.ID, item.ID, name)
+		}
+	})
+
+	t.Run("list excludes by type", func(t *testing.T) {
+		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+			Filter: &v3sdk.EntitlementFilter{Type: &v3sdk.StringExactFilter{Neq: lo.ToPtr("metered")}},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.Len(t, list.Data, 1)
+
+		item, err := list.Data[0].AsEntitlementBoolean()
+		require.NoError(t, err)
+		require.Equal(t, booleanEnt.ID, item.ID)
+	})
+
+	t.Run("list rejects unsupported filters and sort", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+			Filter: &v3sdk.EntitlementFilter{Type: &v3sdk.StringExactFilter{Eq: lo.ToPtr("unknown")}},
+		})
+		requireProblem(t, err, http.StatusBadRequest)
+
+		_, err = c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+			Sort: &v3sdk.Sort{By: "feature_key"},
+		})
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("unknown customer", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Get(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", meteredEnt.ID)
+		requireProblem(t, err, http.StatusNotFound)
+
+		_, err = c.Customers.Entitlements.List(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", v3sdk.EntitlementListParams{})
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("deleted customer", func(t *testing.T) {
+		deletedKey := uniqueKey("ent_list_deleted_customer")
+		deleted, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:  deletedKey,
+			Name: "Deleted Customer " + deletedKey,
+		})
+		c.requireStatus(http.StatusCreated, err)
+		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
+
+		_, err = c.Customers.Entitlements.Get(t.Context(), deleted.ID, meteredEnt.ID)
+		requireProblem(t, err, http.StatusPreconditionFailed)
+
+		_, err = c.Customers.Entitlements.List(t.Context(), deleted.ID, v3sdk.EntitlementListParams{})
+		requireProblem(t, err, http.StatusPreconditionFailed)
+	})
+}

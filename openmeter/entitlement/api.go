@@ -4,9 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // CustomerEntitlementAccessAPIService is the API-facing facade for customer-scoped
@@ -56,6 +63,8 @@ func (i ListCustomerEntitlementAccessInput) Validate() error {
 // CustomerEntitlementAPIService is the API-facing facade for customer-scoped entitlement operations.
 type CustomerEntitlementAPIService interface {
 	CreateCustomerEntitlement(ctx context.Context, input CreateCustomerEntitlementInput) (*Entitlement, error)
+	GetCustomerEntitlement(ctx context.Context, input GetCustomerEntitlementInput) (*Entitlement, error)
+	ListCustomerEntitlements(ctx context.Context, input ListCustomerEntitlementsInput) (pagination.Result[Entitlement], error)
 }
 
 // CreateCustomerEntitlementInput creates an entitlement for the customer referenced by ID.
@@ -80,6 +89,90 @@ func (i CreateCustomerEntitlementInput) Validate() error {
 
 	if i.Entitlement.IssueAfterReset != nil && len(i.Grants) > 0 {
 		errs = append(errs, errors.New("issue after reset and grants cannot be used together"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// GetCustomerEntitlementInput addresses an entitlement by ID within the customer
+// referenced by ID. An entitlement that belongs to another customer is reported
+// as not found.
+type GetCustomerEntitlementInput struct {
+	CustomerID    customer.CustomerID
+	EntitlementID string
+}
+
+func (i GetCustomerEntitlementInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ListCustomerEntitlementsInput lists the entitlements of the customer referenced
+// by ID that are active at the time of the call. An unset OrderBy sorts by
+// creation time so pagination is stable.
+type ListCustomerEntitlementsInput struct {
+	CustomerID customer.CustomerID
+
+	FeatureID  *filter.FilterULID
+	FeatureKey *filter.FilterString
+	Type       *filter.FilterString
+
+	OrderBy ListEntitlementsOrderBy
+	Order   sortx.Order
+	Page    pagination.Page
+}
+
+func (i ListCustomerEntitlementsInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.FeatureID != nil {
+		if err := i.FeatureID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature ID filter: %w", err))
+		}
+	}
+
+	if i.FeatureKey != nil {
+		if err := i.FeatureKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature key filter: %w", err))
+		}
+	}
+
+	if i.Type != nil {
+		if err := i.Type.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("type filter: %w", err))
+		}
+
+		// The column is free text in the database, so an unknown type would silently
+		// match nothing instead of being reported.
+		values := append(lo.FromPtr(i.Type.In), lo.FromPtr(i.Type.Eq), lo.FromPtr(i.Type.Ne))
+		for _, value := range lo.Compact(values) {
+			if !slices.Contains(EntitlementType(value).Values(), EntitlementType(value)) {
+				errs = append(errs, fmt.Errorf("invalid entitlement type: %s", value))
+			}
+		}
+	}
+
+	if i.OrderBy != "" && !slices.Contains(i.OrderBy.Values(), i.OrderBy) {
+		errs = append(errs, fmt.Errorf("invalid order by: %s, supported: %s", i.OrderBy, strings.Join(i.OrderBy.StrValues(), ", ")))
+	}
+
+	if !i.Page.IsZero() {
+		if err := i.Page.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("page: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

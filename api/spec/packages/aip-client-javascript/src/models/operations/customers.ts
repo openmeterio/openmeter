@@ -26,10 +26,12 @@ import type {
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
   Entitlement,
+  EntitlementPagePaginatedResponse,
   GetCreditBalanceParamsFilter,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
   ListCustomerChargesParamsFilter,
+  ListCustomerEntitlementsParamsFilter,
   ListCustomersParamsFilter,
   SortQueryInput,
   UpdateCreditGrantExternalSettlementRequest as UpdateCreditGrantExternalSettlementRequestBody,
@@ -119,6 +121,39 @@ export type CreateCustomerEntitlementRequest = AcceptDateStrings<{
   body: CreateEntitlementRequestInput
 }>
 export type CreateCustomerEntitlementResponse = Entitlement
+
+export type GetCustomerEntitlementRequest = {
+  customerId: string
+  entitlementId: string
+}
+export type GetCustomerEntitlementResponse = Entitlement
+
+export interface ListCustomerEntitlementsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort entitlements returned in the response. Supported sort attributes are:
+   *
+   * - `created_at` (default)
+   * - `updated_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /**
+   * Filter entitlements returned in the response.
+   *
+   * To filter entitlements by feature key add the following query param:
+   * `filter[feature_key]=my-feature`
+   */
+  filter?: ListCustomerEntitlementsParamsFilter
+}
+
+export type ListCustomerEntitlementsRequest = AcceptDateStrings<
+  ListCustomerEntitlementsQuery & { customerId: string }
+>
+export type ListCustomerEntitlementsResponse = EntitlementPagePaginatedResponse
 
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string

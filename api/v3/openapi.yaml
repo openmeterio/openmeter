@@ -2048,6 +2048,104 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateEntitlementRequest'
       x-unstable: true
+    get:
+      operationId: list-customer-entitlements
+      summary: List customer entitlements
+      description: |-
+        List the entitlements of the customer that are active at the time of the
+        request. For checking entitlement access, use the entitlement access endpoints
+        instead.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort entitlements returned in the response. Supported sort attributes are:
+
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter entitlements returned in the response.
+
+            To filter entitlements by feature key add the following query param:
+            `filter[feature_key]=my-feature`
+          schema:
+            $ref: '#/components/schemas/ListCustomerEntitlementsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}:
+    get:
+      operationId: get-customer-entitlement
+      summary: Get customer entitlement
+      description: |-
+        Get an entitlement of the customer by ID. For checking entitlement access, use
+        the entitlement access endpoints instead.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Entitlement response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+      tags:
+        - OpenMeter Entitlements
+      x-unstable: true
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes
@@ -13861,6 +13959,20 @@ components:
         - feature_not_found
         - no_credit_available
       description: Machine-readable reason code for denied feature access.
+    EntitlementPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlement'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     ExternalResourceKey:
       type: string
       minLength: 1
@@ -14452,6 +14564,23 @@ components:
           readOnly: true
       additionalProperties: false
       description: List customer entitlement access response data.
+    ListCustomerEntitlementsParamsFilter:
+      type: object
+      properties:
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter entitlements by feature ID.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by feature key.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by type (`metered`, `static` or `boolean`).
+      additionalProperties: false
+      description: Filter options for listing customer entitlements.
     ListCustomersParamsFilter:
       type: object
       properties:

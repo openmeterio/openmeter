@@ -35,6 +35,10 @@ import type {
   CreateCustomerStripePortalSessionResponse,
   CreateCustomerEntitlementRequest,
   CreateCustomerEntitlementResponse,
+  GetCustomerEntitlementRequest,
+  GetCustomerEntitlementResponse,
+  ListCustomerEntitlementsRequest,
+  ListCustomerEntitlementsResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -544,6 +548,113 @@ export function createCustomerEntitlement(
           assertValid(schemas.createCustomerEntitlementResponseWire, data)
         }
         return fromWire(data, schemas.createCustomerEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement
+ *
+ * Get an entitlement of the customer by ID. For checking entitlement access, use
+ * the entitlement access endpoints instead.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}
+ */
+export function getCustomerEntitlement(
+  client: Client,
+  req: GetCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getCustomerEntitlementPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * List customer entitlements
+ *
+ * List the entitlements of the customer that are active at the time of the
+ * request. For checking entitlement access, use the entitlement access endpoints
+ * instead.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements
+ */
+export function listCustomerEntitlements(
+  client: Client,
+  req: ListCustomerEntitlementsRequest,
+  options?: RequestOptions,
+): Promise<Result<ListCustomerEntitlementsResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.listCustomerEntitlementsPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.listCustomerEntitlementsPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements`
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(
+        schemas.listCustomerEntitlementsQueryParams.shape.sort,
+        req.sort,
+      )
+    }
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listCustomerEntitlementsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCustomerEntitlementsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listCustomerEntitlementsResponseWire, data)
+        }
+        return fromWire(data, schemas.listCustomerEntitlementsResponse)
       })
   })
 }

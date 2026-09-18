@@ -15,6 +15,8 @@ import {
   createCustomerStripeCheckoutSession,
   createCustomerStripePortalSession,
   createCustomerEntitlement,
+  getCustomerEntitlement,
+  listCustomerEntitlements,
   createCreditGrant,
   getCreditGrant,
   listCreditGrants,
@@ -46,6 +48,10 @@ import type {
   CreateCustomerStripePortalSessionResponse,
   CreateCustomerEntitlementRequest,
   CreateCustomerEntitlementResponse,
+  GetCustomerEntitlementRequest,
+  GetCustomerEntitlementResponse,
+  ListCustomerEntitlementsRequest,
+  ListCustomerEntitlementsResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -65,6 +71,7 @@ import type {
   CreditGrant,
   CreditTransaction,
   Customer,
+  Entitlement,
 } from '../models/types.js'
 
 export class Customers {
@@ -286,6 +293,61 @@ export class CustomersEntitlements {
   ): Promise<CreateCustomerEntitlementResponse> {
     return unwrap(
       await createCustomerEntitlement(this._client, request, options),
+    )
+  }
+
+  /**
+   * Get customer entitlement
+   *
+   * Get an entitlement of the customer by ID. For checking entitlement access, use
+   * the entitlement access endpoints instead.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}
+   */
+  async get(
+    request: GetCustomerEntitlementRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementResponse> {
+    return unwrap(await getCustomerEntitlement(this._client, request, options))
+  }
+
+  /**
+   * List customer entitlements
+   *
+   * List the entitlements of the customer that are active at the time of the
+   * request. For checking entitlement access, use the entitlement access endpoints
+   * instead.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements
+   */
+  async list(
+    request: ListCustomerEntitlementsRequest,
+    options?: RequestOptions,
+  ): Promise<ListCustomerEntitlementsResponse> {
+    return unwrap(
+      await listCustomerEntitlements(this._client, request, options),
+    )
+  }
+
+  /**
+   * List customer entitlements
+   *
+   * List the entitlements of the customer that are active at the time of the
+   * request. For checking entitlement access, use the entitlement access endpoints
+   * instead.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements
+   */
+  listAll(
+    request: ListCustomerEntitlementsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<Entitlement> {
+    return paginatePages(
+      (req, opts) => listCustomerEntitlements(this._client, req, opts),
+      request,
+      options,
     )
   }
 }
