@@ -123,7 +123,7 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 	servicePeriod := testServicePeriod(env)
 	chargeID := testChargeID(1)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -190,7 +190,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	servicePeriod := testServicePeriod(env)
 	chargeID := testChargeID(3)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -281,7 +281,7 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 	expiresAfter := 10 * time.Hour // the single source expires in the future, so correction reopens one future breakage plan.
 	bookExpiringCreditWithFeatures(t, env, breakageService, priority, sourceAmount, nil, &sourceCharge, env.Now().Add(expiresAfter))
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(sourceAmount),
@@ -364,7 +364,7 @@ func TestCorrectCollectedAccruedPreservesSourceAndSpendBuckets(t *testing.T) {
 	fundSourceCharge(t, env, sourceCharge1, priority, firstSourceAmount)
 	fundSourceCharge(t, env, sourceCharge2, priority, secondSourceAmount)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(firstSourceAmount+secondSourceAmount),
@@ -417,7 +417,7 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	servicePeriod := testServicePeriod(env)
 	chargeID := testChargeID(1)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -484,7 +484,7 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	spendCharge := testChargeID(2)
 	fundSourceCharge(t, env, sourceCharge, 1, 100)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(40),
@@ -691,7 +691,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          spendCharge,
 		CustomerID:        env.CustomerID.ID,
@@ -954,7 +954,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	// not by which realization/allocation a correction references. Only
 	// collections booked in independent transactions are independently
 	// correctable.
-	usdAllocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	usdAllocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          usdChargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -968,7 +968,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	require.NoError(t, err)
 	require.Len(t, usdAllocations, 1)
 
-	eurAllocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	eurAllocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          eurChargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -1076,7 +1076,7 @@ func TestCorrectCollectedAccruedResumesCollapsedSourceSuffix(t *testing.T) {
 	sharedFBO := fundSourceCharge(t, env, sourceA, 1, 10)
 	fundSourceCharge(t, env, sourceB, 1, 20)
 	otherFBO := fundSourceCharge(t, env, sourceC, 2, 15)
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID,
 		BookedAt: env.Now(), SourceBalanceAsOf: env.Now(), Currency: env.CurrencyReference(),
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
