@@ -30,8 +30,10 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 	db := testDB.EntDriver.Client()
 	adapter, err := legacylineageadapter.New(legacylineageadapter.Config{Client: db})
 	require.NoError(t, err)
+
 	service, err := legacylineageservice.New(legacylineageservice.Config{Adapter: adapter})
 	require.NoError(t, err)
+
 	testNamespace, testCustomerID := ulid.Make().String(), ulid.Make().String()
 	testCurrency := currenciestestutils.NewFiatCurrency(t, "USD")
 
@@ -47,16 +49,49 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		consumed   bool
 		otherScope string
 	}{
-		{name: "api", features: []string{"api"}},
-		{name: "partial", features: []string{"api", "storage"}, backed: 5},
-		{name: "storage", features: []string{"storage"}},
+		{
+			name:     "api",
+			features: []string{"api"},
+		},
+		{
+			name:     "partial",
+			features: []string{"api", "storage"},
+			backed:   5,
+		},
+		{
+			name:     "storage",
+			features: []string{"storage"},
+		},
 		{name: "featureless"},
-		{name: "fully backed", features: []string{"api"}, backed: 20},
-		{name: "consumed", features: []string{"api"}, consumed: true},
-		{name: "real credit", origin: creditrealization.LineageOriginKindRealCredit},
-		{name: "other customer", features: []string{"api"}, otherScope: "customer"},
-		{name: "other currency", features: []string{"api"}, otherScope: "currency"},
-		{name: "other namespace", features: []string{"api"}, otherScope: "namespace"},
+		{
+			name:     "fully backed",
+			features: []string{"api"},
+			backed:   20,
+		},
+		{
+			name:     "consumed",
+			features: []string{"api"},
+			consumed: true,
+		},
+		{
+			name:   "real credit",
+			origin: creditrealization.LineageOriginKindRealCredit,
+		},
+		{
+			name:       "other customer",
+			features:   []string{"api"},
+			otherScope: "customer",
+		},
+		{
+			name:       "other currency",
+			features:   []string{"api"},
+			otherScope: "currency",
+		},
+		{
+			name:       "other namespace",
+			features:   []string{"api"},
+			otherScope: "namespace",
+		},
 	} {
 		namespace, customerID, currency := testNamespace, testCustomerID, testCurrency.Reference()
 
@@ -78,22 +113,36 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		_, err := db.Charge.Create().SetID(chargeID).SetNamespace(namespace).SetType(meta.ChargeTypeUsageBased).Save(ctx)
 		require.NoError(t, err)
 		require.NoError(t, adapter.CreateLineages(ctx, legacylineage.CreateLineagesInput{
-			Namespace: namespace, CustomerID: customerID, ChargeID: chargeID, Currency: currency,
+			Namespace:  namespace,
+			CustomerID: customerID,
+			ChargeID:   chargeID,
+			Currency:   currency,
 			Specs: []creditrealization.InitialLineageSpec{{
-				LineageID: rootID, RootRealizationID: ulid.Make().String(), OriginKind: origin,
-				InitialState: creditrealization.InitialLineageSegmentState(origin),
-				Amount:       alpacadecimal.NewFromInt(20), AdvanceFeatures: scenario.features,
+				LineageID:         rootID,
+				RootRealizationID: ulid.Make().String(),
+				OriginKind:        origin,
+				InitialState:      creditrealization.InitialLineageSegmentState(origin),
+				Amount:            alpacadecimal.NewFromInt(20),
+				AdvanceFeatures:   scenario.features,
 			}},
 		}))
+
 		ids[scenario.name] = rootID
 		segments, err := adapter.ListActiveSegments(ctx, legacylineage.ListActiveSegmentsInput{LineageIDs: []string{rootID}})
 		require.NoError(t, err)
 		require.Len(t, segments, 1)
+
 		if scenario.backed > 0 {
 			require.NoError(t, service.BackfillAdvanceLineageSegments(ctx, legacylineage.BackfillAdvanceLineageSegmentsInput{
-				Namespace: namespace, CustomerID: customerID, Currency: testCurrency,
-				Amount: alpacadecimal.NewFromInt(scenario.backed), BackingTransactionGroupID: ulid.Make().String(),
-				Allocations: []legacylineage.AdvanceBackfillAllocation{{SegmentID: segments[0].ID, Amount: alpacadecimal.NewFromInt(scenario.backed)}},
+				Namespace:                 namespace,
+				CustomerID:                customerID,
+				Currency:                  testCurrency,
+				Amount:                    alpacadecimal.NewFromInt(scenario.backed),
+				BackingTransactionGroupID: ulid.Make().String(),
+				Allocations: []legacylineage.AdvanceBackfillAllocation{{
+					SegmentID: segments[0].ID,
+					Amount:    alpacadecimal.NewFromInt(scenario.backed),
+				}},
 			}))
 		}
 
@@ -107,14 +156,52 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 		input    legacylineage.LoadLineagesByCustomerInput
 		expected []string
 	}{
-		{name: "default preserves history", expected: []string{"api", "partial", "storage", "featureless", "fully backed", "consumed", "real credit"}},
-		{name: "active excludes consumed roots", input: legacylineage.LoadLineagesByCustomerInput{HasActiveSegments: true}, expected: []string{"api", "partial", "storage", "featureless", "fully backed", "real credit"}},
-		{name: "origin selects ordinary credit", input: legacylineage.LoadLineagesByCustomerInput{OriginKind: lo.ToPtr(creditrealization.LineageOriginKindRealCredit)}, expected: []string{"real credit"}},
-		{name: "uncovered excludes fully backed and consumed roots", input: legacylineage.LoadLineagesByCustomerInput{OriginKind: lo.ToPtr(creditrealization.LineageOriginKindAdvance), SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered)}, expected: []string{"api", "partial", "storage", "featureless"}},
-		{name: "backfilled selects only backed segments", input: legacylineage.LoadLineagesByCustomerInput{SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceBackfilled)}, expected: []string{"partial", "fully backed"}},
-		{name: "empty feature filter is unrestricted", input: legacylineage.LoadLineagesByCustomerInput{FeatureFilters: []string{}}, expected: []string{"api", "partial", "storage", "featureless", "fully backed", "consumed", "real credit"}},
-		{name: "restricted purchase includes any overlapping feature", input: legacylineage.LoadLineagesByCustomerInput{OriginKind: lo.ToPtr(creditrealization.LineageOriginKindAdvance), HasActiveSegments: true, SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered), FeatureFilters: []string{"api", "unrelated"}}, expected: []string{"api", "partial"}},
-		{name: "no matching feature", input: legacylineage.LoadLineagesByCustomerInput{FeatureFilters: []string{"unrelated"}}},
+		{
+			name:     "default preserves history",
+			expected: []string{"api", "partial", "storage", "featureless", "fully backed", "consumed", "real credit"},
+		},
+		{
+			name:     "active excludes consumed roots",
+			input:    legacylineage.LoadLineagesByCustomerInput{HasActiveSegments: true},
+			expected: []string{"api", "partial", "storage", "featureless", "fully backed", "real credit"},
+		},
+		{
+			name:     "origin selects ordinary credit",
+			input:    legacylineage.LoadLineagesByCustomerInput{OriginKind: lo.ToPtr(creditrealization.LineageOriginKindRealCredit)},
+			expected: []string{"real credit"},
+		},
+		{
+			name: "uncovered excludes fully backed and consumed roots",
+			input: legacylineage.LoadLineagesByCustomerInput{
+				OriginKind:   lo.ToPtr(creditrealization.LineageOriginKindAdvance),
+				SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
+			},
+			expected: []string{"api", "partial", "storage", "featureless"},
+		},
+		{
+			name:     "backfilled selects only backed segments",
+			input:    legacylineage.LoadLineagesByCustomerInput{SegmentState: lo.ToPtr(creditrealization.LineageSegmentStateAdvanceBackfilled)},
+			expected: []string{"partial", "fully backed"},
+		},
+		{
+			name:     "empty feature filter is unrestricted",
+			input:    legacylineage.LoadLineagesByCustomerInput{FeatureFilters: []string{}},
+			expected: []string{"api", "partial", "storage", "featureless", "fully backed", "consumed", "real credit"},
+		},
+		{
+			name: "restricted purchase includes any overlapping feature",
+			input: legacylineage.LoadLineagesByCustomerInput{
+				OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
+				HasActiveSegments: true,
+				SegmentState:      lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
+				FeatureFilters:    []string{"api", "unrelated"},
+			},
+			expected: []string{"api", "partial"},
+		},
+		{
+			name:  "no matching feature",
+			input: legacylineage.LoadLineagesByCustomerInput{FeatureFilters: []string{"unrelated"}},
+		},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			// When the caller selects candidate roots in the database.
@@ -127,10 +214,12 @@ func TestLoadLineagesFiltersBackfillCandidates(t *testing.T) {
 			actual := lo.Map(roots, func(root legacylineage.Lineage, _ int) string { return root.ID })
 			expected := lo.Map(scenario.expected, func(name string, _ int) string { return ids[name] })
 			require.ElementsMatch(t, expected, actual)
+
 			if input.SegmentState != nil {
 				for _, root := range roots {
 					require.Len(t, root.Segments, 1)
 					require.Equal(t, *input.SegmentState, root.Segments[0].State)
+
 					if root.ID == ids["partial"] {
 						expectedAmount := float64(15)
 						if *input.SegmentState == creditrealization.LineageSegmentStateAdvanceBackfilled {

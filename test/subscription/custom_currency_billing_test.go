@@ -244,7 +244,10 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			clock.FreezeTime(setupAt)
 			defer clock.UnFreeze()
 
-			deps := setup(t, setupConfig{enableCharges: true, enableCreditThenInvoice: true})
+			deps := setup(t, setupConfig{
+				enableCharges:           true,
+				enableCreditThenInvoice: true,
+			})
 			defer deps.cleanup(t)
 			provisionSubscriptionDefaultTaxCodes(t, deps, namespace)
 
@@ -268,40 +271,61 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 					Rate:       decimal.NewFromFloat(0.5),
 				})
 				require.NoError(t, err)
+
 				pinnedCostBasisID = createdCostBasis.ID
 			}
 
 			features := deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
-			createdPlan := createUsageSubscriptionPlan(t, deps, usageSubscriptionPlanInput{
-				Namespace:      namespace,
-				Key:            "custom-currency-billing",
-				PlanCurrency:   tc.planCurrency,
-				CustomCurrency: customCurrency,
-				CustomItem:     tc.customItem,
-				MixedFiatItem:  tc.mixedFiatItem,
-				Features:       features,
-				EffectiveFrom:  setupAt.Add(-time.Second),
-			})
+			createdPlan := createUsageSubscriptionPlan(
+				t,
+				deps,
+				usageSubscriptionPlanInput{
+					Namespace:      namespace,
+					Key:            "custom-currency-billing",
+					PlanCurrency:   tc.planCurrency,
+					CustomCurrency: customCurrency,
+					CustomItem:     tc.customItem,
+					MixedFiatItem:  tc.mixedFiatItem,
+					Features:       features,
+					EffectiveFrom:  setupAt.Add(-time.Second),
+				},
+			)
 
 			customer := createUSDSubscriptionCustomer(t, deps, namespace, "custom-currency-billing")
 			_, err = deps.ledgerDeps.ResolversService.EnsureBusinessAccounts(t.Context(), namespace)
 			require.NoError(t, err)
+
 			accounts, err := deps.ledgerDeps.ResolversService.CreateCustomerAccounts(t.Context(), customer.GetID())
 			require.NoError(t, err)
-			period := timeutil.ClosedPeriod{From: setupAt, To: setupAt}
+
+			period := timeutil.ClosedPeriod{
+				From: setupAt,
+				To:   setupAt,
+			}
 			grants, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
 				Namespace: namespace,
 				Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
-					Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: customer.ID, Currency: customCurrency},
+					Intent: chargesmeta.Intent{
+						ManagedBy:  billing.ManuallyManagedLine,
+						CustomerID: customer.ID,
+						Currency:   customCurrency,
+					},
 					IntentMutableFields: creditpurchase.IntentMutableFields{
-						IntentMutableFields: chargesmeta.IntentMutableFields{Name: "Initial custom credits", ServicePeriod: period, FullServicePeriod: period, BillingPeriod: period},
-						CreditAmount:        decimal.NewFromInt(2), EffectiveAt: &setupAt,
-						Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "Initial custom credits",
+							ServicePeriod:     period,
+							FullServicePeriod: period,
+							BillingPeriod:     period,
+						},
+						CreditAmount: decimal.NewFromInt(2),
+						EffectiveAt:  &setupAt,
+						Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 					},
 				}),
 			})
 			require.NoError(t, err)
 			require.Len(t, grants, 1)
+
 			createdSubscription, err := createCustomCurrencySubscription(
 				t,
 				deps,
@@ -328,10 +352,12 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			view, err := deps.subscriptionService.GetView(t.Context(), createdSubscription.NamespacedID)
 			require.NoError(t, err)
 			require.Equal(t, currencyx.Code("USD"), view.Subscription.InvoiceCurrency)
+
 			assertSubscriptionItemCurrencies(t, view, customCurrency.ID, tc.mixedFiatItem)
 
 			serializedView, err := json.Marshal(view)
 			require.NoError(t, err)
+
 			var eventView subscription.SubscriptionView
 			require.NoError(t, json.Unmarshal(serializedView, &eventView))
 
@@ -339,6 +365,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			// - the serialized subscription event is synchronized through the charge backend twice
 			// - usage is realized at the end of the billing period
 			require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), eventView, invoiceAt))
+
 			chargeIDsBeforeRetry := listSubscriptionChargeIDs(t, deps, createdSubscription.ID)
 			require.NotEmpty(t, chargeIDsBeforeRetry)
 			require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), eventView, invoiceAt))
@@ -372,6 +399,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				})
 				require.NoError(t, err)
 				require.Len(t, invoices, 1)
+
 				assertCustomCurrencyInvoice(t, invoices[0], tc.expectInvoiceTotal, tc.expectCustomLineTotal, tc.expectFiatLineTotal)
 			}
 
@@ -386,15 +414,21 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			balance, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), accounts.FBOAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 			require.NoError(t, err)
 			require.Equal(t, float64(0), balance.InexactFloat64())
+
 			if !tc.expectInvoice {
 				advance, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), accounts.ReceivableAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 				require.NoError(t, err)
 				require.Equal(t, float64(-8), advance.InexactFloat64())
 			}
 
-			lineages, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{Namespace: namespace, CustomerID: customer.ID, Currency: customCurrency.Reference()})
+			lineages, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
+				Namespace:  namespace,
+				CustomerID: customer.ID,
+				Currency:   customCurrency.Reference(),
+			})
 			require.NoError(t, err)
 			require.Empty(t, lineages)
+
 			query := ledger.BalanceBucketQuery{
 				Namespace: namespace,
 				Filters: ledger.Filters{
@@ -405,64 +439,100 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 			}
 			buckets, err := deps.ledgerDeps.HistoricalLedger.GetBalanceBuckets(t.Context(), query)
 			require.NoError(t, err)
+
 			allocated := decimal.Zero
 			collectionOrigins := map[string]bool{}
 
 			for _, bucket := range buckets {
 				require.NotEmpty(t, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
 				require.Contains(t, chargeIDsBeforeRetry, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]))
+
 				collectionOrigins[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID])] = true
 				allocated = allocated.Add(bucket.SettledAmount)
 			}
 			require.Equal(t, expectedAllocated, allocated.InexactFloat64())
+
 			// Retrying synchronization and advancement must preserve the journal,
 			// not just stable charge identifiers.
 			beforeEntries, err := deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())
 			require.NoError(t, err)
 			require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), eventView, invoiceAt))
+
 			_, err = deps.chargesService.AdvanceCharges(t.Context(), charges.AdvanceChargesInput{Customer: customer.GetID()})
 			require.NoError(t, err)
+
 			afterEntries, err := deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())
 			require.NoError(t, err)
 			require.Equal(t, beforeEntries, afterEntries)
+
 			if !tc.expectInvoice {
 				// A paid purchase backfills the subscription's uncovered advance;
 				// payment settlement must recognize the paid native spend exactly once.
 				backfillAt := invoiceAt.Add(time.Minute)
 				clock.FreezeTime(backfillAt)
-				period := timeutil.ClosedPeriod{From: backfillAt, To: backfillAt}
+				period := timeutil.ClosedPeriod{
+					From: backfillAt,
+					To:   backfillAt,
+				}
 				fiat, err := currencyx.NewFiatCurrency("USD")
 				require.NoError(t, err)
+
 				purchases, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
 					Namespace: namespace,
 					Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
-						Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: customer.ID, Currency: customCurrency},
-						IntentMutableFields: creditpurchase.IntentMutableFields{
-							IntentMutableFields: chargesmeta.IntentMutableFields{Name: "Advance backfill", ServicePeriod: period, FullServicePeriod: period, BillingPeriod: period},
-							CreditAmount:        decimal.NewFromInt(8), EffectiveAt: &backfillAt,
-							Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus}),
+						Intent: chargesmeta.Intent{
+							ManagedBy:  billing.ManuallyManagedLine,
+							CustomerID: customer.ID,
+							Currency:   customCurrency,
 						},
-						CostBasis: creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{FiatCurrency: fiat, Rate: decimal.NewFromFloat(0.5)})),
+						IntentMutableFields: creditpurchase.IntentMutableFields{
+							IntentMutableFields: chargesmeta.IntentMutableFields{
+								Name:              "Advance backfill",
+								ServicePeriod:     period,
+								FullServicePeriod: period,
+								BillingPeriod:     period,
+							},
+							CreditAmount: decimal.NewFromInt(8),
+							EffectiveAt:  &backfillAt,
+							Settlement:   creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus}),
+						},
+						CostBasis: creditpurchase.NewCostBasis(costbasis.NewIntent(costbasis.ManualIntent{
+							FiatCurrency: fiat,
+							Rate:         decimal.NewFromFloat(0.5),
+						})),
 					}),
 				})
 				require.NoError(t, err)
 				require.Len(t, purchases, 1)
+
 				purchaseID, err := purchases[0].GetChargeID()
 				require.NoError(t, err)
+
 				for _, status := range []payment.Status{payment.StatusAuthorized, payment.StatusSettled} {
-					_, err = deps.chargesService.HandleCreditPurchaseExternalPaymentStateTransition(t.Context(), charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{ChargeID: purchaseID, TargetPaymentState: status})
+					_, err = deps.chargesService.HandleCreditPurchaseExternalPaymentStateTransition(t.Context(), charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+						ChargeID:           purchaseID,
+						TargetPaymentState: status,
+					})
 					require.NoError(t, err)
 				}
 				advance, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), accounts.ReceivableAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 				require.NoError(t, err)
 				require.Equal(t, float64(0), advance.InexactFloat64())
-				backfilled, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{Namespace: namespace, CustomerID: customer.ID, Currency: customCurrency.Reference()})
+
+				backfilled, err := deps.lineageService.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
+					Namespace:  namespace,
+					CustomerID: customer.ID,
+					Currency:   customCurrency.Reference(),
+				})
 				require.NoError(t, err)
+
 				business, err := deps.ledgerDeps.ResolversService.GetBusinessAccounts(t.Context(), namespace)
 				require.NoError(t, err)
+
 				earnings, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), business.EarningsAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 				require.NoError(t, err)
 				require.Equal(t, float64(8), earnings.InexactFloat64())
+
 				accrued, err := deps.ledgerDeps.HistoricalLedger.GetAccountBalance(t.Context(), accounts.AccruedAccount, ledger.RouteFilter{Currency: customCurrency.Reference()}, ledger.BalanceQuery{})
 				require.NoError(t, err)
 				require.Equal(t, float64(2), accrued.InexactFloat64())
@@ -470,6 +540,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				// Nil-cost-basis promotional credits remain deferred. Recognition
 				// belongs entirely to the paid source, within its original collection.
 				require.Empty(t, backfilled)
+
 				grantID, err := grants[0].GetChargeID()
 				require.NoError(t, err)
 
@@ -484,6 +555,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 					query.Filters.AccountID = lo.ToPtr(expected.account.ID().ID)
 					buckets, err := deps.ledgerDeps.HistoricalLedger.GetBalanceBuckets(t.Context(), query)
 					require.NoError(t, err)
+
 					bySource := map[string]float64{}
 
 					for _, bucket := range buckets {
@@ -493,6 +565,7 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 
 						require.Contains(t, collectionOrigins, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupByCollectionOriginID]))
 						require.Contains(t, chargeIDsBeforeRetry, lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]))
+
 						bySource[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])] += bucket.SettledAmount.InexactFloat64()
 					}
 
@@ -500,11 +573,14 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				}
 				beforeEntries, err = deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())
 				require.NoError(t, err)
+
 				_, err = deps.chargesService.AdvanceCharges(t.Context(), charges.AdvanceChargesInput{Customer: customer.GetID()})
 				require.NoError(t, err)
+
 				afterEntries, err = deps.DBDeps.DBClient.LedgerEntry.Query().Count(t.Context())
 				require.NoError(t, err)
 				require.Equal(t, beforeEntries, afterEntries)
+
 				assertNoSubscriptionInvoices(t, deps, customer.ID)
 			}
 		})

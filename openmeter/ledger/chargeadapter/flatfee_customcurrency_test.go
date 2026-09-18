@@ -268,13 +268,18 @@ func TestOnFlatFeeCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testi
 	allocation.ID = ulid.Make().String()
 	realization := creditrealization.Realization{
 		NamespacedModel: models.NamespacedModel{Namespace: env.Namespace},
-		ManagedModel:    models.ManagedModel{CreatedAt: env.Now(), UpdatedAt: env.Now()},
-		CreateInput:     allocation,
+		ManagedModel: models.ManagedModel{
+			CreatedAt: env.Now(),
+			UpdatedAt: env.Now(),
+		},
+		CreateInput: allocation,
 	}
 	fiatCurrency, err := charge.Intent.GetCostBasisIntent().GetFiatCurrency()
 	require.NoError(t, err)
+
 	request, err := (creditrealization.Realizations{realization}).CreateCorrectionRequest(alpacadecimal.NewFromInt(-6), fiatCurrency)
 	require.NoError(t, err)
+
 	run.FiatOverageCreditRealizations = creditrealization.Realizations{realization}
 
 	corrections, err := env.handler.OnCorrectFiatOverageCreditAllocations(t.Context(), flatfee.CorrectFiatOverageCreditAllocationsInput{

@@ -108,9 +108,14 @@ func TestValidateEntryIdentityKey(t *testing.T) {
 	sourceChargeID := "01JABCDEF0123456789ABCDEFG"
 	spendChargeID := "01JBCDEFG0123456789ABCDEFG"
 	collectionSource := "0"
-	address := testEntryIdentityAddress(t, ledger.AccountTypeCustomerFBO, "subaccount", ledger.Route{
-		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-	})
+	address := testEntryIdentityAddress(
+		t,
+		ledger.AccountTypeCustomerFBO,
+		"subaccount",
+		ledger.Route{
+			Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+		},
+	)
 	identityKey, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,
 		Provenance: ledger.Provenance{

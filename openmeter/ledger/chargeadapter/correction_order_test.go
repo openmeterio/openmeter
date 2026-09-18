@@ -34,10 +34,13 @@ func (e *originTestEnv) collectLegacyAdvance(t *testing.T, spend string, amount 
 		BalanceQuerier: e.Deps.HistoricalLedger,
 	}
 	value := alpacadecimal.NewFromInt(amount)
-	inputs, err := transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{
-		CustomerID: e.CustomerID,
-		Namespace:  e.Namespace,
-	},
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		deps,
+		transactions.ResolutionScope{
+			CustomerID: e.CustomerID,
+			Namespace:  e.Namespace,
+		},
 		transactions.IssueCustomerReceivableTemplate{
 			At:            e.Now(),
 			Amount:        value,
@@ -49,7 +52,8 @@ func (e *originTestEnv) collectLegacyAdvance(t *testing.T, spend string, amount 
 			Amount:        value,
 			Currency:      e.currency.Reference(),
 			SpendChargeID: &spend,
-		})
+		},
+	)
 	require.NoError(t, err)
 
 	return e.recordLegacyCollection(t, spend, amount, creditrealization.LineageOriginKindAdvance, inputs)
@@ -57,6 +61,7 @@ func (e *originTestEnv) collectLegacyAdvance(t *testing.T, spend string, amount 
 
 func (e *originTestEnv) recordLegacyCollection(t *testing.T, spend string, amount int64, kind creditrealization.LineageOriginKind, inputs []ledger.TransactionInput) creditrealization.Realization {
 	t.Helper()
+
 	group, err := e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
 
@@ -87,6 +92,7 @@ func (e *originTestEnv) recordLegacyCollection(t *testing.T, spend string, amoun
 		Currency:     e.currency,
 		Realizations: creditrealization.Realizations{allocation},
 	}))
+
 	// This handler fixture has no billing allocation row; retain its real ledger reference.
 	e.originalAdvanceGroups[allocation.ID] = group.ID().ID
 
@@ -95,6 +101,7 @@ func (e *originTestEnv) recordLegacyCollection(t *testing.T, spend string, amoun
 
 func (e *originTestEnv) correctWithLegacyPersistence(t *testing.T, spend string, allocation creditrealization.Realization, amount int64) {
 	t.Helper()
+
 	require.NoError(t, transaction.RunWithNoValue(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) error {
 		segments, err := e.legacy.LoadActiveSegmentsByRealizationID(ctx, e.Namespace, []string{allocation.ID})
 		if err != nil {
@@ -171,11 +178,13 @@ func TestCorrectionSelectsNewestBackingBeforeRecognitionState(t *testing.T) {
 					e.correctWithLegacyPersistence(t, spend, allocation, 2)
 					require.Zero(t, e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &a, nil))
 					require.Equal(t, float64(2), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &b, nil))
+
 					e.correctWithLegacyPersistence(t, spend, allocation, 4)
 					require.Equal(t, float64(1), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &a, nil))
 					require.Equal(t, float64(5), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &b, nil))
 					require.Equal(t, float64(4), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &a, &spend))
 					require.Zero(t, e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &b, &spend))
+
 					// Then the legacy writer must retain precisely A4 too, so another correction works.
 					e.correctWithLegacyPersistence(t, spend, allocation, 4)
 					require.Equal(t, float64(5), e.provenanceBalance(t, e.CustomerAccounts.FBOAccount, &a, nil))
@@ -208,6 +217,7 @@ func TestRecollectionMintsNewOriginAndCorrectionKeepsOlderRemainder(t *testing.T
 		}},
 	})
 	require.NoError(t, err)
+
 	realized, err := corrections.AsCreateInputs(first)
 	require.NoError(t, err)
 
@@ -227,6 +237,7 @@ func TestRecollectionMintsNewOriginAndCorrectionKeepsOlderRemainder(t *testing.T
 		ID:        first[0].LedgerTransaction.TransactionGroupID,
 	})
 	require.NoError(t, err)
+
 	secondGroup, err := e.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{
 		Namespace: e.Namespace,
 		ID:        second[0].LedgerTransaction.TransactionGroupID,
@@ -239,12 +250,14 @@ func TestRecollectionMintsNewOriginAndCorrectionKeepsOlderRemainder(t *testing.T
 	require.NotNil(t, oldOrigin)
 	require.NotNil(t, newOrigin)
 	require.NotEqual(t, *oldOrigin, *newOrigin)
+
 	// When correcting 5, billing selects the new 4 before 1 from the old remainder.
 	request, err := all.CreateCorrectionRequest(alpacadecimal.NewFromInt(-5), e.currency)
 	require.NoError(t, err)
 	require.Len(t, request, 2)
 	require.Equal(t, second[0].ID, request[0].Allocation.ID)
 	require.Equal(t, float64(-4), request[0].Amount.InexactFloat64())
+
 	_, err = e.collector.CorrectCollectedAccrued(t.Context(), collector.CorrectCollectedAccruedInput{
 		Namespace:   e.Namespace,
 		CustomerID:  e.CustomerID.ID,
@@ -303,6 +316,7 @@ func TestLegacyCollapsedSourcesSelectNewerUnrecognizedCredit(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, buckets, 1)
+
 		sources = append(sources, transactions.PostingAmount{
 			Address: buckets[0].Address,
 			Amount:  alpacadecimal.NewFromInt(5),
@@ -319,16 +333,23 @@ func TestLegacyCollapsedSourcesSelectNewerUnrecognizedCredit(t *testing.T) {
 		AccountCatalog: e.Deps.AccountService,
 		BalanceQuerier: e.Deps.HistoricalLedger,
 	}
-	inputs, err := transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{
-		CustomerID: e.CustomerID,
-		Namespace:  e.Namespace,
-	}, transactions.TransferCustomerFBOToAccruedTemplate{
-		At:       e.Now(),
-		Currency: e.currency.Reference(),
-		Sources:  sources,
-	})
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		deps,
+		transactions.ResolutionScope{
+			CustomerID: e.CustomerID,
+			Namespace:  e.Namespace,
+		},
+		transactions.TransferCustomerFBOToAccruedTemplate{
+			At:       e.Now(),
+			Currency: e.currency.Reference(),
+			Sources:  sources,
+		},
+	)
 	require.NoError(t, err)
+
 	allocation := e.recordLegacyCollection(t, spend, 10, creditrealization.LineageOriginKindRealCredit, inputs)
+
 	// Only A is recognized; record the same transition through the legacy service.
 	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 		Namespace: e.Namespace,
@@ -341,28 +362,37 @@ func TestLegacyCollapsedSourcesSelectNewerUnrecognizedCredit(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, buckets, 1)
-	inputs, err = transactions.ResolveTransactions(t.Context(), deps, transactions.ResolutionScope{
-		CustomerID: e.CustomerID,
-		Namespace:  e.Namespace,
-	}, transactions.RecognizeEarningsFromAttributableAccruedTemplate{
-		At:       e.Now(),
-		Currency: e.currency.Reference(),
-		Amount:   alpacadecimal.NewFromInt(5),
-		Sources: []transactions.PostingAmount{{
-			Address: buckets[0].Address,
-			Amount:  alpacadecimal.NewFromInt(5),
-			Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
-				SourceChargeID: &a,
-				SpendChargeID:  &spend,
+
+	inputs, err = transactions.ResolveTransactions(
+		t.Context(),
+		deps,
+		transactions.ResolutionScope{
+			CustomerID: e.CustomerID,
+			Namespace:  e.Namespace,
+		},
+		transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+			At:       e.Now(),
+			Currency: e.currency.Reference(),
+			Amount:   alpacadecimal.NewFromInt(5),
+			Sources: []transactions.PostingAmount{{
+				Address: buckets[0].Address,
+				Amount:  alpacadecimal.NewFromInt(5),
+				Identity: ledger.EntryIdentityParts{Provenance: ledger.Provenance{
+					SourceChargeID: &a,
+					SpendChargeID:  &spend,
+				}},
 			}},
-		}},
-	})
+		},
+	)
 	require.NoError(t, err)
+
 	group, err := e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
+
 	segments, err := e.legacy.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, []string{allocation.ID})
 	require.NoError(t, err)
 	require.Len(t, segments[allocation.ID], 1)
+
 	original := segments[allocation.ID][0]
 	require.NoError(t, e.legacy.CloseSegment(t.Context(), original.ID, e.Now()))
 	require.NoError(t, e.legacy.CreateSegment(t.Context(), legacylineage.CreateSegmentInput{
@@ -377,10 +407,12 @@ func TestLegacyCollapsedSourcesSelectNewerUnrecognizedCredit(t *testing.T) {
 		BackingTransactionGroupID: lo.ToPtr(group.ID().ID),
 		Amount:                    alpacadecimal.NewFromInt(5),
 	}))
+
 	// When correcting 2 and then 4, B is returned first and only 1 of A's recognition is undone.
 	e.correctWithLegacyPersistence(t, spend, allocation, 2)
 	require.Equal(t, float64(2), e.availableSourceCredit(t, b))
 	require.Equal(t, float64(5), e.provenanceBalance(t, e.BusinessAccounts.EarningsAccount, &a, &spend))
+
 	e.correctWithLegacyPersistence(t, spend, allocation, 4)
 	require.Equal(t, float64(5), e.availableSourceCredit(t, b))
 	require.Equal(t, float64(1), e.availableSourceCredit(t, a))
@@ -390,6 +422,7 @@ func TestLegacyCollapsedSourcesSelectNewerUnrecognizedCredit(t *testing.T) {
 // FBO consumption keeps spend provenance; availability sums all spends for the funding source.
 func (e *originTestEnv) availableSourceCredit(t *testing.T, source string) float64 {
 	t.Helper()
+
 	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 		Namespace: e.Namespace,
 		Filters: ledger.Filters{
@@ -420,9 +453,11 @@ func TestStaleLegacyCorrectionSelectionRollsBackLedger(t *testing.T) {
 	source := e.purchase(t, 10, 1, false)
 	stale, err := e.legacy.LoadActiveSegmentsByRealizationID(t.Context(), e.Namespace, []string{allocation.ID})
 	require.NoError(t, err)
+
 	e.correctWithLegacyPersistence(t, spend, allocation, 2)
 	before, err := e.DB.LedgerTransactionGroup.Query().Count(t.Context())
 	require.NoError(t, err)
+
 	// When that stale selection is posted and handed to compatibility persistence in one transaction.
 	err = transaction.RunWithNoValue(t.Context(), enttx.NewCreator(e.DB), func(ctx context.Context) error {
 		corrections, err := e.collector.CorrectCollectedAccrued(ctx, collector.CorrectCollectedAccruedInput{
@@ -456,8 +491,10 @@ func TestStaleLegacyCorrectionSelectionRollsBackLedger(t *testing.T) {
 			Realizations: realized,
 		})
 	})
+
 	// Then rejecting the stale segment IDs also rolls back the ledger postings.
 	require.ErrorContains(t, err, "stale correction segment selection")
+
 	after, err := e.DB.LedgerTransactionGroup.Query().Count(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, before, after)

@@ -381,6 +381,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 func (s *SanityLifecycleSuite) assertAdvanceBacking(ctx context.Context, customerID customer.CustomerID, purchase creditpurchase.Charge, costBasis alpacadecimal.Decimal, expected map[string]float64) {
 	accounts, err := s.LedgerResolver.GetCustomerAccounts(ctx, customerID)
 	s.Require().NoError(err)
+
 	buckets, err := s.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: customerID.Namespace,
 		Filters: ledger.Filters{
@@ -388,18 +389,27 @@ func (s *SanityLifecycleSuite) assertAdvanceBacking(ctx context.Context, custome
 			Provenance: ledger.ProvenanceFilter{
 				SourceChargeID: mo.Some(&purchase.ID),
 			},
-			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(USD), CostBasis: mo.Some(&costBasis)},
+			Route: ledger.RouteFilter{
+				Currency:  currencies.NewCurrencyReference(USD),
+				CostBasis: mo.Some(&costBasis),
+			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	s.Require().NoError(err)
+
 	booked := map[string]float64{}
 	for _, bucket := range buckets {
 		booked[lo.FromPtr(bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID])] += bucket.SettledAmount.InexactFloat64()
 	}
 
-	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{Namespace: customerID.Namespace, CustomerID: customerID.ID, Currency: currencies.NewCurrencyReference(USD)})
+	lineages, err := s.LineageService.LoadLineagesByCustomer(ctx, legacylineage.LoadLineagesByCustomerInput{
+		Namespace:  customerID.Namespace,
+		CustomerID: customerID.ID,
+		Currency:   currencies.NewCurrencyReference(USD),
+	})
 	s.Require().NoError(err)
+
 	s.Empty(lineages, "new collections use ledger origins")
 
 	for chargeID, amount := range expected {

@@ -24,6 +24,7 @@ func TestCollectionCorrectionSelectsSourceBeforeState(t *testing.T) {
 				earnings: alpacadecimal.NewFromInt(recognizedB),
 			},
 		}
+
 		// When correcting 6, then return B5 and A1 in every state.
 		selected, err := planCollectionCorrection(collectionCorrectionInput{
 			positions: positions,
@@ -61,6 +62,7 @@ func TestCollectionCorrectionUsesOriginalBackingOrder(t *testing.T) {
 			accrued:   alpacadecimal.NewFromInt(5),
 		},
 	}
+
 	// When correcting 11, then backing is exhausted newest first, followed by uncovered.
 	selected, err := planCollectionCorrection(collectionCorrectionInput{
 		positions: positions,
@@ -71,6 +73,7 @@ func TestCollectionCorrectionUsesOriginalBackingOrder(t *testing.T) {
 	require.Equal(t, "Z", selected[1].id)
 	require.Equal(t, "uncovered", selected[2].id)
 	require.Equal(t, float64(1), selected[2].amount.InexactFloat64())
+
 	_, err = planCollectionCorrection(collectionCorrectionInput{
 		positions: positions,
 		amount:    alpacadecimal.NewFromInt(16),

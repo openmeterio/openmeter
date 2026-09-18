@@ -269,9 +269,11 @@ func TestOnUsageBasedCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *te
 	// removes its receivable offset.
 	fiatCurrency, err := charge.Intent.GetCostBasisIntent().GetFiatCurrency()
 	require.NoError(t, err)
+
 	realizations := env.realizationsFromAllocations(allocations)
 	request, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-6), fiatCurrency)
 	require.NoError(t, err)
+
 	run.FiatOverageCreditRealizations = realizations
 
 	corrections, err := env.handler.OnCorrectFiatOverageCreditAllocations(t.Context(), chargeusagebased.CorrectFiatOverageCreditAllocationsInput{
@@ -683,14 +685,17 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 	// Backfilling the first managed currency's uncovered advance must not touch
 	// the second managed currency's lineage, even though both share "ACME".
 	// The compatibility transition is bounded by the actual legacy journal posting.
-	inputs, err := transactions.ResolveTransactions(t.Context(), transactions.ResolverDependencies{
-		AccountService: env.Deps.ResolversService,
-		AccountCatalog: env.Deps.AccountService,
-		BalanceQuerier: env.Deps.HistoricalLedger,
-	}, transactions.ResolutionScope{
-		CustomerID: env.CustomerID,
-		Namespace:  env.Namespace,
-	},
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
 		transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At:                env.Now(),
 			Amount:            alpacadecimal.NewFromInt(30),
@@ -699,10 +704,13 @@ func TestCreateInitialLineages_CustomCurrency(t *testing.T) {
 			CostBasisCurrency: lo.ToPtr(currencyx.Code("USD")),
 			SpendChargeID:     &firstChargeID,
 			SourceChargeID:    lo.ToPtr(ulid.Make().String()),
-		})
+		},
+	)
 	require.NoError(t, err)
+
 	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
+
 	err = env.lineage.BackfillAdvanceLineageSegments(t.Context(), legacylineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace: env.Namespace,
 		Allocations: []legacylineage.AdvanceBackfillAllocation{{
@@ -736,11 +744,17 @@ func (e *usageBasedHandlerTestEnv) createAdvanceLineage(t *testing.T, chargeID s
 	realizations := creditrealization.Realizations{
 		{
 			NamespacedModel: models.NamespacedModel{Namespace: e.Namespace},
-			ManagedModel:    models.ManagedModel{CreatedAt: now, UpdatedAt: now},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 			CreateInput: creditrealization.CreateInput{
-				ID:                realizationID,
-				Annotations:       creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
-				ServicePeriod:     timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now},
+				ID:          realizationID,
+				Annotations: creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: now.Add(-time.Hour),
+					To:   now,
+				},
 				LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()},
 				Amount:            amount,
 				Type:              creditrealization.TypeAllocation,

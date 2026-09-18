@@ -199,6 +199,7 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				require.ErrorIs(t, err, ledger.ErrListTransactionsInputInvalid)
+
 				return
 			}
 
@@ -341,9 +342,11 @@ func TestOriginProvenanceCannotLeakBetweenBalancedPairs(t *testing.T) {
 	translated.address = negativeEntry.address
 	translated.sourceChargeID = lo.ToPtr("another-source")
 	require.ErrorContains(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{negativeEntry, translated}), "attribute unknown")
+
 	unknownSourceEntry := negativeEntry
 	unknownSourceEntry.sourceChargeID = nil
 	require.NoError(t, ledger.ValidateOriginProvenance([]ledger.EntryInput{unknownSourceEntry, translated}))
+
 	// One recognition can contain distinct backing sources of the same advance.
 	secondNegativeEntry, secondPositiveEntry := negativeEntry, positiveEntry
 	secondNegativeEntry.sourceChargeID, secondPositiveEntry.sourceChargeID = translated.sourceChargeID, translated.sourceChargeID

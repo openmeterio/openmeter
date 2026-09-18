@@ -677,21 +677,31 @@ type requireCustomCurrencyLedgerOutcomeInput struct {
 
 func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOutcome(input requireCustomCurrencyLedgerOutcomeInput) {
 	s.T().Helper()
+
 	ctx := s.T().Context()
 
 	// The gross overage is one atomic credit-purchase-equivalent booking:
 	// issue the uncovered custom amount, consume it immediately into accrued,
 	// then convert its custom receivable into the invoice's fiat receivable.
-	s.requireTransactionTemplates(input.Namespace, input.GrossTransactionGroup, []string{
-		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
-		transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
-		transactions.TemplateCode(transactions.ConvertCurrencyTemplate{}),
-	})
+	s.requireTransactionTemplates(
+		input.Namespace,
+		input.GrossTransactionGroup,
+		[]string{
+			transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+			transactions.TemplateCode(transactions.TransferCustomerFBOAdvanceToAccruedTemplate{}),
+			transactions.TemplateCode(transactions.ConvertCurrencyTemplate{}),
+		},
+	)
+
 	// Existing fiat credit settles part of that already-booked receivable in a
 	// separate group; it must not replace or shrink the gross overage booking.
-	s.requireTransactionTemplates(input.Namespace, input.FiatCreditRealization.LedgerTransaction.TransactionGroupID, []string{
-		transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}),
-	})
+	s.requireTransactionTemplates(
+		input.Namespace,
+		input.FiatCreditRealization.LedgerTransaction.TransactionGroupID,
+		[]string{
+			transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}),
+		},
+	)
 	s.requireChargeTransactionTemplates(
 		input.Namespace,
 		input.ChargeID,
@@ -713,10 +723,13 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	})
 	s.Require().NoError(err)
 	s.Require().Len(coverageGroup.Transactions(), 1)
+
 	for _, entry := range coverageGroup.Transactions()[0].Entries() {
 		s.Require().NotNil(entry.Provenance().SourceChargeID)
+
 		s.Equal(input.SourceChargeID, *entry.Provenance().SourceChargeID)
 		s.Require().NotNil(entry.Provenance().SpendChargeID)
+
 		s.Equal(input.ChargeID, *entry.Provenance().SpendChargeID)
 	}
 
@@ -725,6 +738,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	// is fully consumed, reducing the gross -5 USD receivable to -2 USD owed.
 	accounts, err := s.LedgerDeps.ResolversService.GetCustomerAccounts(ctx, input.CustomerID)
 	s.Require().NoError(err)
+
 	customFilter := ledger.RouteFilter{Currency: input.CustomCurrency.Reference()}
 	fiatFilter := ledger.RouteFilter{Currency: currencies.NewCurrencyReference(USD)}
 	s.requireAccountBalance(accounts.FBOAccount, customFilter, 0)
@@ -739,6 +753,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 		Currency:   currencies.NewCurrencyReference(USD),
 	})
 	s.Require().NoError(err)
+
 	// New coverage is corrected from its ledger origin, with no lineage side state.
 	s.Empty(lineages)
 	s.Equal(true, input.FiatCreditRealization.Annotations[ledger.AnnotationOriginTracked])
@@ -762,8 +777,10 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 		BalanceQuerier:    s.LedgerDeps.HistoricalLedger,
 	})
 	s.Require().NoError(err)
+
 	balanceFacade, err := customerbalance.NewFacade(balanceService)
 	s.Require().NoError(err)
+
 	balanceAsOf := coverageGroup.Transactions()[0].BookedAt()
 	balances, err := balanceFacade.GetBalances(ctx, customerbalance.GetBalancesInput{
 		CustomerID: input.CustomerID,
@@ -771,6 +788,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyLedgerOu
 	})
 	s.Require().NoError(err)
 	s.Require().Len(balances, 1)
+
 	s.Equal(USD, balances[0].Currency)
 	s.Nil(balances[0].CustomCurrencyID)
 }
@@ -786,12 +804,14 @@ type requireCustomCurrencyCorrectionOutcomeInput struct {
 
 func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyCorrectionOutcome(input requireCustomCurrencyCorrectionOutcomeInput) {
 	s.T().Helper()
+
 	ctx := s.T().Context()
 
 	// The allocation stays in history and is offset by one persisted correction.
 	// Its group reverses the fiat receivable coverage before the gross custom
 	// overage group is reversed in dependency order.
 	s.Require().Len(input.CorrectedFiatRealizations, 2)
+
 	_, found := lo.Find(input.CorrectedFiatRealizations, func(realization creditrealization.Realization) bool {
 		return realization.ID == input.OriginalFiatRealization.ID && realization.Type == creditrealization.TypeAllocation
 	})
@@ -800,13 +820,20 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyCorrecti
 		return realization.Type == creditrealization.TypeCorrection
 	})
 	s.Require().True(found, "fiat allocation correction is missing")
+
 	s.Equal(float64(-3), correction.Amount.InexactFloat64())
 	s.Require().NotNil(correction.CorrectsRealizationID)
+
 	s.Equal(input.OriginalFiatRealization.ID, *correction.CorrectsRealizationID)
 	s.Require().NotNil(correction.LedgerTransaction)
-	s.requireTransactionTemplates(input.Namespace, correction.LedgerTransaction.TransactionGroupID, []string{
-		transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}),
-	})
+
+	s.requireTransactionTemplates(
+		input.Namespace,
+		correction.LedgerTransaction.TransactionGroupID,
+		[]string{
+			transactions.TemplateCode(transactions.CoverCustomerReceivableTemplate{}),
+		},
+	)
 
 	// One correction exists for each prepared transaction: fiat coverage plus
 	// the conversion, immediate custom consumption, and custom credit issuance.
@@ -826,6 +853,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyCorrecti
 	// receivable, while restoring the original 3 USD paid-credit balance.
 	accounts, err := s.LedgerDeps.ResolversService.GetCustomerAccounts(ctx, input.CustomerID)
 	s.Require().NoError(err)
+
 	customFilter := ledger.RouteFilter{Currency: input.CustomCurrency.Reference()}
 	fiatFilter := ledger.RouteFilter{Currency: currencies.NewCurrencyReference(USD)}
 	s.requireAccountBalance(accounts.FBOAccount, customFilter, 0)
@@ -841,6 +869,7 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requireCustomCurrencyCorrecti
 		Currency:   currencies.NewCurrencyReference(USD),
 	})
 	s.Require().NoError(err)
+
 	s.Empty(lineages)
 	s.Equal(true, correction.Annotations[ledger.AnnotationOriginTracked])
 }
@@ -913,12 +942,15 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) requirePaymentTransaction(nam
 	})
 	s.Require().NoError(err)
 	s.Require().Len(group.Transactions(), 1)
+
 	transaction := group.Transactions()[0]
 	templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transaction.Annotations())
 	s.Require().NoError(err)
+
 	s.Equal(expectedTemplateCode, templateCode)
 	for _, entry := range transaction.Entries() {
 		s.Require().NotNil(entry.Provenance().SourceChargeID)
+
 		s.Equal(chargeID, *entry.Provenance().SourceChargeID)
 		s.Nil(entry.Provenance().SpendChargeID)
 	}

@@ -310,17 +310,25 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 	require.Equal(t, secondPlanID, openPlans[0].ID.ID)
 	require.True(t, openPlans[0].OpenAmount.Equal(alpacadecimal.NewFromInt(secondSourceRemaining)), "open amount: %s", openPlans[0].OpenAmount)
 
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(firstSourceAmount),    // first source is fully accrued to this spend.
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(secondSourceConsumed), // only the remainder of the spend hits source 2.
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(firstSourceAmount),    // first source is fully accrued to this spend.
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(secondSourceConsumed), // only the remainder of the spend hits source 2.
+		},
+	)
 	requireFBOBalanceBuckets(t, env, map[string]float64{})
-	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, nil):          float64(firstSourceAmount),
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge): -float64(firstSourceAmount),
-		sourceSpendChargeKey(&sourceCharge2, nil):          float64(secondSourceAmount),
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(secondSourceConsumed),
-	})
+	requireBreakageBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, nil):          float64(firstSourceAmount),
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge): -float64(firstSourceAmount),
+			sourceSpendChargeKey(&sourceCharge2, nil):          float64(secondSourceAmount),
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(secondSourceConsumed),
+		},
+	)
 }
 
 func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *testing.T) {
@@ -355,14 +363,22 @@ func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *te
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(spendAmount), allocations[0].Amount.InexactFloat64()) // 5 = requested spend was fully covered by credit.
 
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(spendAmount), // 5 = collection used the earlier-expiring source 2.
-	})
-	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, nil):          float64(laterSourceAmount), // 10 = later source 1 was not consumed.
-		sourceSpendChargeKey(&sourceCharge2, nil):          float64(earlierSourceAmount),
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(spendAmount),
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(spendAmount), // 5 = collection used the earlier-expiring source 2.
+		},
+	)
+	requireBreakageBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, nil):          float64(laterSourceAmount), // 10 = later source 1 was not consumed.
+			sourceSpendChargeKey(&sourceCharge2, nil):          float64(earlierSourceAmount),
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): -float64(spendAmount),
+		},
+	)
 }
 
 func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {

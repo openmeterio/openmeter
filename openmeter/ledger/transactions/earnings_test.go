@@ -138,27 +138,39 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvena
 
 	// then:
 	// - recognition keeps the exact source/spend provenance it consumed
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		// 15 = source 2's original 20 less the 5 recognized after source 1.
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2AccruedAfterRecognition),
-	})
-	requireEarningsBalanceBuckets(t, env, map[string]float64{
-		// 10 = source 1 was recognized first by deterministic bucket order.
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(source1RecognizedAmount),
-		// 5 = remaining recognition amount came from source 2.
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2RecognizedAmount),
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			// 15 = source 2's original 20 less the 5 recognized after source 1.
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2AccruedAfterRecognition),
+		},
+	)
+	requireEarningsBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			// 10 = source 1 was recognized first by deterministic bucket order.
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(source1RecognizedAmount),
+			// 5 = remaining recognition amount came from source 2.
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2RecognizedAmount),
+		},
+	)
 
 	recognizeTx := findForwardTransaction(t, group, RecognizeEarningsFromAttributableAccruedTemplate{})
 
 	// when:
 	// - the 5 recognized from source 2 is corrected
-	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
-		At:                  env.Now(),
-		Amount:              alpacadecimal.NewFromInt(correctedRecognizedAmount),
-		OriginalTransaction: recognizeTx,
-		OriginalGroup:       group,
-	})
+	correctionInputs, err := CorrectTransaction(
+		t.Context(),
+		env.resolverDeps(),
+		CorrectionInput{
+			At:                  env.Now(),
+			Amount:              alpacadecimal.NewFromInt(correctedRecognizedAmount),
+			OriginalTransaction: recognizeTx,
+			OriginalGroup:       group,
+		},
+	)
 	require.NoError(t, err)
 	require.NotEmpty(t, correctionInputs)
 
@@ -166,14 +178,22 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvena
 
 	// then:
 	// - the correction restores the same provenance bucket it reversed
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		// 20 = source 2's recognized slice was restored to accrued.
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2AccruedAfterCorrection),
-	})
-	requireEarningsBalanceBuckets(t, env, map[string]float64{
-		// 10 = source 1 remains recognized.
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(source1RecognizedAmount),
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			// 20 = source 2's recognized slice was restored to accrued.
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2AccruedAfterCorrection),
+		},
+	)
+	requireEarningsBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			// 10 = source 1 remains recognized.
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(source1RecognizedAmount),
+		},
+	)
 }
 
 func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrued(t *testing.T) {
@@ -193,7 +213,8 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 	// - one spend charge has accrued value from a credit source
 	// - the same spend charge also has invoice-backed accrued value with source_charge_id unset
 	// - a self-funded accrued bucket has the same source and spend charge
-	env.resolveAndCommit(t,
+	env.resolveAndCommit(
+		t,
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
 			Currency: env.CurrencyReference(),
@@ -242,27 +263,39 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 	// then:
 	// - invoice-backed accrued stays accrued
 	// - earnings only contains the credit-backed source/spend bucket
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		// 7.5 = invoice-backed accrued was intentionally not recognized.
-		sourceSpendChargeKey(nil, &spendChargeID): invoiceBackedAmount,
-		// 3 = same-source-and-spend overage is invoice-backed too.
-		sourceSpendChargeKey(&spendChargeID, &spendChargeID): float64(selfFundedAmount),
-	})
-	requireEarningsBalanceBuckets(t, env, map[string]float64{
-		// 5 = only the credit-backed accrued slice was recognized.
-		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): float64(creditBackedAmount),
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			// 7.5 = invoice-backed accrued was intentionally not recognized.
+			sourceSpendChargeKey(nil, &spendChargeID): invoiceBackedAmount,
+			// 3 = same-source-and-spend overage is invoice-backed too.
+			sourceSpendChargeKey(&spendChargeID, &spendChargeID): float64(selfFundedAmount),
+		},
+	)
+	requireEarningsBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			// 5 = only the credit-backed accrued slice was recognized.
+			sourceSpendChargeKey(&sourceChargeID, &spendChargeID): float64(creditBackedAmount),
+		},
+	)
 
 	recognizeTx := findForwardTransaction(t, group, RecognizeEarningsFromAttributableAccruedTemplate{})
 
 	// when:
 	// - recognition correction reverses the recognized credit-backed amount
-	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
-		At:                  env.Now(),
-		Amount:              alpacadecimal.NewFromInt(creditBackedAmount),
-		OriginalTransaction: recognizeTx,
-		OriginalGroup:       group,
-	})
+	correctionInputs, err := CorrectTransaction(
+		t.Context(),
+		env.resolverDeps(),
+		CorrectionInput{
+			At:                  env.Now(),
+			Amount:              alpacadecimal.NewFromInt(creditBackedAmount),
+			OriginalTransaction: recognizeTx,
+			OriginalGroup:       group,
+		},
+	)
 	require.NoError(t, err)
 	require.NotEmpty(t, correctionInputs)
 
@@ -271,14 +304,18 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 	// then:
 	// - correction restores only the recognized credit-backed slice
 	// - invoice-backed accrued is unchanged because it was never recognized
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		// 5 = credit-backed recognition was corrected back to accrued.
-		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): float64(creditBackedAmount),
-		// 7.5 = invoice-backed accrued was not part of recognition or correction.
-		sourceSpendChargeKey(nil, &spendChargeID): invoiceBackedAmount,
-		// 3 = self-funded overage was not part of recognition or correction.
-		sourceSpendChargeKey(&spendChargeID, &spendChargeID): float64(selfFundedAmount),
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			// 5 = credit-backed recognition was corrected back to accrued.
+			sourceSpendChargeKey(&sourceChargeID, &spendChargeID): float64(creditBackedAmount),
+			// 7.5 = invoice-backed accrued was not part of recognition or correction.
+			sourceSpendChargeKey(nil, &spendChargeID): invoiceBackedAmount,
+			// 3 = self-funded overage was not part of recognition or correction.
+			sourceSpendChargeKey(&spendChargeID, &spendChargeID): float64(selfFundedAmount),
+		},
+	)
 	requireEarningsBalanceBuckets(t, env, map[string]float64{})
 }
 

@@ -185,27 +185,48 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		logger := testutils.NewLogger(t)
 		ledgerDeps, err = ledgertestutils.InitDeps(deps.DBDeps.DBClient, logger)
 		require.NoError(t, err)
-		resolverDeps := transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}
+
+		resolverDeps := transactions.ResolverDependencies{
+			AccountService: ledgerDeps.ResolversService,
+			AccountCatalog: ledgerDeps.AccountService,
+			BalanceQuerier: ledgerDeps.HistoricalLedger,
+		}
 		transactionManager := enttx.NewCreator(deps.DBDeps.DBClient)
 		lineageAdapter, err := lineageadapter.New(lineageadapter.Config{Client: deps.DBDeps.DBClient})
 		require.NoError(t, err)
+
 		lineageService, err = lineageservice.New(lineageservice.Config{Adapter: lineageAdapter})
 		require.NoError(t, err)
+
 		breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{Client: deps.DBDeps.DBClient})
 		require.NoError(t, err)
-		breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{Adapter: breakageAdapter, Dependencies: resolverDeps})
+
+		breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+			Adapter:      breakageAdapter,
+			Dependencies: resolverDeps,
+		})
 		require.NoError(t, err)
+
 		collector, err := ledgercollector.NewService(ledgercollector.Config{
-			Ledger: ledgerDeps.HistoricalLedger, Dependencies: resolverDeps, Breakage: breakageService,
-			AccountLocker: ledgerDeps.AccountService, TransactionManager: transactionManager,
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       resolverDeps,
+			Breakage:           breakageService,
+			AccountLocker:      ledgerDeps.AccountService,
+			TransactionManager: transactionManager,
 		})
 		require.NoError(t, err)
+
 		revenueRecognizer, err := recognizer.NewService(recognizer.Config{
-			Ledger: ledgerDeps.HistoricalLedger, Dependencies: resolverDeps, Lineage: lineageService, TransactionManager: transactionManager,
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       resolverDeps,
+			Lineage:            lineageService,
+			TransactionManager: transactionManager,
 		})
 		require.NoError(t, err)
+
 		creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, breakageService, transactionManager)
 		require.NoError(t, err)
+
 		stack, err := chargestestutils.NewServices(t, chargestestutils.Config{
 			Client:                deps.DBDeps.DBClient,
 			Logger:                slog.Default(),
@@ -222,6 +243,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			SubscriptionService:   deps.SubscriptionService,
 		})
 		require.NoError(t, err)
+
 		chargesService = stack.ChargesService
 	}
 
@@ -243,9 +265,13 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			EnableFlatFeeInArrearsProrating: true,
 			EnableCreditThenInvoice:         config.enableCreditThenInvoice,
 		},
-		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
-		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+		FeatureGate: featuregate.NewFeatureGateChecker(
+			featuregate.NewNoop(),
+			featuregate.Flags{
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			},
+			map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true},
+		),
 	})
 	require.NoError(t, err)
 

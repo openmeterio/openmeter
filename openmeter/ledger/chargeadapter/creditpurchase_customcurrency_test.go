@@ -160,7 +160,11 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 
 	// given: three advances of 1 ACME, in collection order.
 	for i := range spendChargeIDs {
-		env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(1), SpendChargeID: &spendChargeIDs[i]})
+		env.createAdvance(t, advanceExposureInput{
+			Currency:      customCurrencyValue,
+			Amount:        alpacadecimal.NewFromInt(1),
+			SpendChargeID: &spendChargeIDs[i],
+		})
 	}
 
 	// when: the purchase is too small to cover the full advance exposure.
@@ -170,12 +174,16 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 	require.NoError(t, err)
 
 	// then: all 0.05 ACME backs the oldest advance; newer advances stay uncovered.
-	env.requireAccountSourceSpendBucketAmounts(t, env.customAccruedSubAccount(t, customCurrency, customCurrencyIdentity, nil, nil).AccountID().ID, map[string]float64{
-		sourceSpendChargeKey(nil, &spendChargeIDs[0]):        0.95,
-		sourceSpendChargeKey(nil, &spendChargeIDs[1]):        1,
-		sourceSpendChargeKey(nil, &spendChargeIDs[2]):        1,
-		sourceSpendChargeKey(&charge.ID, &spendChargeIDs[0]): 0.05,
-	})
+	env.requireAccountSourceSpendBucketAmounts(
+		t,
+		env.customAccruedSubAccount(t, customCurrency, customCurrencyIdentity, nil, nil).AccountID().ID,
+		map[string]float64{
+			sourceSpendChargeKey(nil, &spendChargeIDs[0]):        0.95,
+			sourceSpendChargeKey(nil, &spendChargeIDs[1]):        1,
+			sourceSpendChargeKey(nil, &spendChargeIDs[2]):        1,
+			sourceSpendChargeKey(&charge.ID, &spendChargeIDs[0]): 0.05,
+		},
+	)
 
 	roots, err := env.lineage.LoadLineagesByCustomer(t.Context(), legacylineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
@@ -184,8 +192,10 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FractionalPurchaseBacksOldestA
 	})
 	require.NoError(t, err)
 	require.Len(t, roots, 3)
+
 	for i, root := range roots {
 		require.Equal(t, spendChargeIDs[i], root.ChargeID)
+
 		var backed, uncovered float64
 		for _, segment := range root.Segments {
 			switch segment.State {
