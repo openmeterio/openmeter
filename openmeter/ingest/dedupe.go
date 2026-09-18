@@ -19,7 +19,7 @@ type DeduplicatingCollector struct {
 }
 
 // Ingest implements the {Collector} interface wrapping an existing {Collector} and deduplicating events.
-func (d DeduplicatingCollector) Ingest(ctx context.Context, namespace string, ev event.Event) error {
+fix(ingest): safely release dedupe claimsfunc (d DeduplicatingCollector) Ingest(ctx context.Context, namespace string, ev event.Event) error {
 	item := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}
 	claim, isUnique, err := d.Deduplicator.Claim(ctx, item)
 	if err != nil {
