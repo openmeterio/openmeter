@@ -21,6 +21,8 @@ type ChannelRepository interface {
 	DeleteChannel(ctx context.Context, params DeleteChannelInput) error
 	GetChannel(ctx context.Context, params GetChannelInput) (*Channel, error)
 	UpdateChannel(ctx context.Context, params UpdateChannelInput) (*Channel, error)
+	// DisableChannel disables the Channel if it is still enabled, and is a no-op otherwise.
+	DisableChannel(ctx context.Context, params DisableChannelInput) error
 }
 
 type RuleRepository interface {

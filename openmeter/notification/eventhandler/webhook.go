@@ -356,7 +356,10 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 						// Note: keep the error local, so a failed write-back does not prevent the delivery
 						// status from being finalized.
-						if err := h.disableChannelForProvider(ctx, event.Namespace, status.ChannelID); err != nil {
+						if err := h.disableChannelForProvider(ctx, models.NamespacedID{
+							Namespace: event.Namespace,
+							ID:        status.ChannelID,
+						}); err != nil {
 							errs = append(errs, fmt.Errorf("failed to mirror provider-side channel disable: %w", err))
 						}
 
@@ -621,34 +624,30 @@ func eventAsPayload(event *notification.Event) (webhook.Payload, error) {
 // again; that update also re-enables the endpoint at the provider.
 //
 // The channel is updated through the repository rather than the service on purpose: the service
-// would push the state we just read back to the provider.
-func (h *Handler) disableChannelForProvider(ctx context.Context, namespace, channelID string) error {
-	channel, err := h.repo.GetChannel(ctx, notification.GetChannelInput{
-		Namespace: namespace,
-		ID:        channelID,
-	})
+// would push the state we just read back to the provider. DisableChannel writes only the disabled
+// flag and the annotations, conditionally on the channel still being enabled, so a channel update
+// racing with reconciliation is not reverted.
+//
+// One window remains open: a user re-enabling the channel between the provider observation and this
+// write still matches the enabled predicate, so the channel is disabled again while the provider
+// endpoint stays enabled, until the channel is updated once more. Closing it needs either a channel
+// revision carried from the provider observation through to this write, or a row lock shared with
+// the channel service, and neither is worth its cost for a window one provider call wide.
+func (h *Handler) disableChannelForProvider(ctx context.Context, channelID models.NamespacedID) error {
+	channel, err := h.repo.GetChannel(ctx, notification.GetChannelInput(channelID))
 	if err != nil {
 		return fmt.Errorf("failed to get channel: %w", err)
-	}
-
-	if channel.Disabled {
-		return nil
 	}
 
 	annotations := lo.Assign(channel.Annotations, models.Annotations{
 		notification.AnnotationChannelProviderDisabledTimestamp: clock.Now().UTC().Format(time.RFC3339),
 	})
 
-	if _, err = h.repo.UpdateChannel(ctx, notification.UpdateChannelInput{
+	if err = h.repo.DisableChannel(ctx, notification.DisableChannelInput{
 		NamespacedID: channel.NamespacedID,
-		Type:         channel.Type,
-		Name:         channel.Name,
-		Disabled:     true,
-		Config:       channel.Config,
-		Metadata:     channel.Metadata,
 		Annotations:  annotations,
 	}); err != nil {
-		return fmt.Errorf("failed to update channel: %w", err)
+		return fmt.Errorf("failed to disable channel: %w", err)
 	}
 
 	return nil

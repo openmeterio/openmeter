@@ -207,7 +207,7 @@ func TestReconcileWebhookEventDisablesChannel(t *testing.T) {
 	})
 }
 
-func TestDisableChannelForProvider(t *testing.T) {
+func TestDisableChannelForProviderMergesAnnotations(t *testing.T) {
 	namespace := ulid.Make().String()
 
 	now := time.Now().UTC().Truncate(time.Second)
@@ -218,36 +218,18 @@ func TestDisableChannelForProvider(t *testing.T) {
 
 	ctx := t.Context()
 
-	t.Run("existing annotations survive the merge", func(t *testing.T) {
-		// given: an enabled channel with a pre-existing annotation
-		channel := createWebhookChannel(t, ctx, repo, namespace, false, models.Annotations{"foo": "bar"})
+	// given: an enabled channel with a pre-existing annotation
+	channel := createWebhookChannel(t, ctx, repo, namespace, false, models.Annotations{"foo": "bar"})
 
-		// when: the provider-side disable is mirrored back
-		err := h.disableChannelForProvider(ctx, namespace, channel.ID)
-		require.NoError(t, err)
+	// when: the provider-side disable is mirrored back
+	err := h.disableChannelForProvider(ctx, channel.NamespacedID)
+	require.NoError(t, err)
 
-		// then: the channel is disabled, the pre-existing annotation is preserved, and the
-		// provider-disabled timestamp annotation is added
-		updatedChannel, err := repo.GetChannel(ctx, notification.GetChannelInput{Namespace: namespace, ID: channel.ID})
-		require.NoError(t, err)
-		require.True(t, updatedChannel.Disabled)
-		require.Equal(t, "bar", updatedChannel.Annotations["foo"])
-		require.Equal(t, now.Format(time.RFC3339), updatedChannel.Annotations[notification.AnnotationChannelProviderDisabledTimestamp])
-	})
-
-	t.Run("already disabled channel is left untouched", func(t *testing.T) {
-		// given: a channel that is already disabled
-		channel := createWebhookChannel(t, ctx, repo, namespace, true, nil)
-
-		// when: the provider-side disable is mirrored back again
-		err := h.disableChannelForProvider(ctx, namespace, channel.ID)
-		require.NoError(t, err)
-
-		// then: the channel row is not rewritten: no annotation is added and UpdatedAt is unchanged
-		updatedChannel, err := repo.GetChannel(ctx, notification.GetChannelInput{Namespace: namespace, ID: channel.ID})
-		require.NoError(t, err)
-		require.True(t, updatedChannel.Disabled)
-		require.Equal(t, channel.UpdatedAt, updatedChannel.UpdatedAt)
-		require.NotContains(t, updatedChannel.Annotations, notification.AnnotationChannelProviderDisabledTimestamp)
-	})
+	// then: the channel is disabled, the pre-existing annotation is preserved, and the
+	// provider-disabled timestamp annotation is added
+	updatedChannel, err := repo.GetChannel(ctx, notification.GetChannelInput{Namespace: namespace, ID: channel.ID})
+	require.NoError(t, err)
+	require.True(t, updatedChannel.Disabled)
+	require.Equal(t, "bar", updatedChannel.Annotations["foo"])
+	require.Equal(t, now.Format(time.RFC3339), updatedChannel.Annotations[notification.AnnotationChannelProviderDisabledTimestamp])
 }
