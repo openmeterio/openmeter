@@ -68,6 +68,7 @@ func (s *CreditPurchaseCostBasisSuite) SetupSuite() {
 		s.BalanceQuerier,
 		s.LedgerResolver,
 		s.LedgerAccountService,
+		s.AdvanceService,
 		s.BreakageService,
 		enttx.NewCreator(s.DBClient),
 	)

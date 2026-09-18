@@ -10,7 +10,6 @@ import (
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -28,6 +27,7 @@ type creditPurchaseHandler struct {
 	accountResolver ledger.AccountResolver
 	accountCatalog  ledger.AccountCatalog
 
+	advance            advance.Service
 	breakage           breakage.Service
 	transactionManager transaction.Creator
 }
@@ -39,12 +39,18 @@ func NewCreditPurchaseHandler(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountCatalog ledger.AccountCatalog,
+	advanceService advance.Service,
 	breakageService breakage.Service,
 	transactionManager transaction.Creator,
 ) (chargecreditpurchase.Handler, error) {
+	if advanceService == nil {
+		return nil, fmt.Errorf("advance service is required")
+	}
+
 	if breakageService == nil {
 		breakageService = breakage.NewNoopService()
 	}
+
 	if transactionManager == nil {
 		return nil, fmt.Errorf("transaction manager is required")
 	}
@@ -54,6 +60,7 @@ func NewCreditPurchaseHandler(
 		balanceQuerier:     balanceQuerier,
 		accountResolver:    accountResolver,
 		accountCatalog:     accountCatalog,
+		advance:            advanceService,
 		breakage:           breakageService,
 		transactionManager: transactionManager,
 	}, nil
@@ -71,35 +78,26 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
-	charge := input.Charge
 
-	if charge.State.ResolvedCostBasis == nil {
-		return ledgertransaction.GroupReference{}, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
-		)
-	}
+	charge := input.Charge
 
 	paymentPosting, err := resolveCreditPurchasePaymentPosting(input)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	costBasis := charge.State.ResolvedCostBasis.CostBasis
-
-	customerID := customer.CustomerID{
-		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
-	}
+	customerID := charge.GetCustomerID()
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
 	var templates []transactions.TransactionTemplate
+
 	if charge.Intent.Currency.IsCustom() {
 		templates = append(templates, transactions.ConvertCurrencyTemplate{
 			At:             input.EventAt,
 			SourceAmount:   paymentPosting.amount,
 			TargetAmount:   charge.Intent.CreditAmount,
-			CostBasis:      costBasis,
+			CostBasis:      paymentPosting.costBasis,
 			SourceCurrency: paymentPosting.currency,
 			TargetCurrency: charge.Intent.Currency.Reference(),
 			Features:       featureFilters,
@@ -110,7 +108,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		At:             input.EventAt,
 		Amount:         paymentPosting.amount,
 		Currency:       paymentPosting.currency,
-		CostBasis:      &costBasis,
+		CostBasis:      &paymentPosting.costBasis,
 		Features:       featureFilters,
 		SourceChargeID: &charge.ID,
 	})
@@ -128,20 +126,13 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
 	}
 
-	for i, input := range inputs {
-		if input != nil {
-			inputs[i] = transactions.WithAnnotations(input, annotations)
-		}
-	}
-
-	transactionGroupInput := transactions.GroupInputs(
+	transactionGroup, err := h.commitTransactions(ctx, transactions.GroupInputs(
 		charge.Namespace,
 		annotations,
 		inputs...,
-	)
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactionGroupInput)
+	))
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+		return ledgertransaction.GroupReference{}, err
 	}
 
 	return ledgertransaction.GroupReference{
@@ -153,25 +144,15 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
-	charge := input.Charge
 
-	if charge.State.ResolvedCostBasis == nil {
-		return ledgertransaction.GroupReference{}, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
-		)
-	}
+	charge := input.Charge
 
 	paymentPosting, err := resolveCreditPurchasePaymentPosting(input)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	costBasis := charge.State.ResolvedCostBasis.CostBasis
-
-	customerID := customer.CustomerID{
-		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
-	}
+	customerID := charge.GetCustomerID()
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
@@ -186,7 +167,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			At:             input.EventAt,
 			Amount:         paymentPosting.amount,
 			Currency:       paymentPosting.currency,
-			CostBasis:      &costBasis,
+			CostBasis:      &paymentPosting.costBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
 		},
@@ -195,20 +176,13 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
 	}
 
-	for i, input := range inputs {
-		if input != nil {
-			inputs[i] = transactions.WithAnnotations(input, annotations)
-		}
-	}
-
-	transactionGroupInput := transactions.GroupInputs(
+	transactionGroup, err := h.commitTransactions(ctx, transactions.GroupInputs(
 		charge.Namespace,
 		annotations,
 		inputs...,
-	)
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactionGroupInput)
+	))
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+		return ledgertransaction.GroupReference{}, err
 	}
 
 	return ledgertransaction.GroupReference{
@@ -222,6 +196,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input chargecreditpurchase.CreditGrantInput) (chargecreditpurchase.CreditGrantResult, error) {
 	return transaction.Run(ctx, h.transactionManager, func(ctx context.Context) (chargecreditpurchase.CreditGrantResult, error) {
 		charge := input.Charge
+
 		if err := input.Validate(); err != nil {
 			return chargecreditpurchase.CreditGrantResult{}, err
 		}
@@ -230,33 +205,17 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 			return chargecreditpurchase.CreditGrantResult{}, nil
 		}
 
-		var costBasisPtr *alpacadecimal.Decimal
-		var costBasisCurrency *currencyx.Code
-		if charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
-			if !charge.Intent.Currency.IsCustom() {
-				costBasisPtr = lo.ToPtr(alpacadecimal.Zero)
-			}
-		} else {
-			if charge.State.ResolvedCostBasis == nil {
-				return chargecreditpurchase.CreditGrantResult{}, models.NewGenericPreConditionFailedError(
-					fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
-				)
-			}
-
-			costBasisPtr = &charge.State.ResolvedCostBasis.CostBasis
-			if charge.Intent.Currency.IsCustom() {
-				fiatCurrency, err := charge.Intent.GetSettlementFiatCurrency()
-				if err != nil {
-					return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("get settlement fiat currency: %w", err)
-				}
-
-				costBasisCurrency = lo.ToPtr(currencyx.Code(fiatCurrency.GetFiatCode()))
-			}
+		costBasis, err := input.GetCostBasis()
+		if err != nil {
+			return chargecreditpurchase.CreditGrantResult{}, err
 		}
-		customerID := customer.CustomerID{
-			Namespace: charge.Namespace,
-			ID:        charge.Intent.CustomerID,
+
+		costBasisCurrency, err := input.GetCostBasisCurrency()
+		if err != nil {
+			return chargecreditpurchase.CreditGrantResult{}, err
 		}
+
+		customerID := charge.GetCustomerID()
 
 		accounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
 		if err != nil {
@@ -270,6 +229,7 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 		annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 		featureFilters := charge.Intent.FeatureFilters.Normalize()
 		effectiveAt := charge.Intent.ServicePeriod.To
+
 		// LedgerTransaction.CreatedAt retains recording time. For effective time,
 		// future-effective purchases book attribution immediately so subsequent
 		// committed purchases observe reduced advance; already-effective purchases
@@ -286,18 +246,15 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 		// FBO. The outstanding advance is left on its unknown-cost-basis route,
 		// where the balance formula (FBO + nil-cost-basis advance receivable) still
 		// nets it against the new credit, and a later paid purchase attributes it.
-		var backfill advance.BackfillResult
-		if costBasisPtr != nil {
-			backfill, err = advance.PlanBackfill(ctx, advance.BackfillDependencies{
-				Ledger:          h.ledger,
-				BalanceQuerier:  h.balanceQuerier,
-				AccountResolver: h.accountResolver,
-			}, advance.BackfillInput{
+		var backfillPlan advance.BackfillPlan
+
+		if costBasis != nil {
+			backfillPlan, err = h.advance.PlanBackfill(ctx, advance.BackfillInput{
 				CustomerID:        customerID,
 				Currency:          charge.Intent.Currency,
 				Amount:            charge.Intent.CreditAmount,
 				At:                advanceAttributionEffectiveAt,
-				CostBasis:         *costBasisPtr,
+				CostBasis:         *costBasis,
 				CostBasisCurrency: costBasisCurrency,
 				Features:          featureFilters,
 				SourceChargeID:    charge.ID,
@@ -308,58 +265,22 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 			}
 		}
 
-		for _, attribution := range backfill.Attributions {
-			if attribution.CollectionOriginID != nil {
+		for _, backfill := range backfillPlan.Backfills {
+			if backfill.CollectionOriginID != nil {
 				annotations[ledger.AnnotationBackfillCreditPriority] = lo.FromPtrOr(charge.Intent.Priority, ledger.DefaultCustomerFBOPriority)
 			}
 		}
 
-		issuableAmount := charge.Intent.CreditAmount.Sub(backfill.Amount)
-		if issuableAmount.IsNegative() {
-			issuableAmount = alpacadecimal.Zero
+		issuance := creditPurchaseIssuance{
+			charge:            charge,
+			costBasis:         costBasis,
+			costBasisCurrency: costBasisCurrency,
+			backfillPlan:      backfillPlan,
 		}
 
-		templates := backfill.Templates
-
-		if issuableAmount.IsPositive() {
-			templates = append(templates, transactions.IssueCustomerReceivableTemplate{
-				At:                effectiveAt,
-				Amount:            issuableAmount,
-				Currency:          charge.Intent.Currency.Reference(),
-				CostBasisCurrency: costBasisCurrency,
-				CostBasis:         costBasisPtr,
-				Features:          featureFilters,
-				SourceChargeID:    &charge.ID,
-				CreditPriority:    charge.Intent.Priority,
-			})
-		}
-
-		switch charge.Intent.Settlement.Type() {
-		case chargecreditpurchase.SettlementTypePromotional:
-			// Promotional grants settle immediately through wash so the credited FBO balance
-			// does not leave an unsettled receivable behind.
-			templates = append(templates,
-				transactions.AuthorizeCustomerReceivablePaymentTemplate{
-					At:             effectiveAt,
-					Amount:         charge.Intent.CreditAmount,
-					Currency:       charge.Intent.Currency.Reference(),
-					CostBasis:      costBasisPtr,
-					Features:       featureFilters,
-					SourceChargeID: &charge.ID,
-				},
-				transactions.SettleCustomerReceivableFromPaymentTemplate{
-					At:             effectiveAt,
-					Amount:         charge.Intent.CreditAmount,
-					Currency:       charge.Intent.Currency.Reference(),
-					CostBasis:      costBasisPtr,
-					Features:       featureFilters,
-					SourceChargeID: &charge.ID,
-				},
-			)
-		case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:
-			// Deferred settlement modes are handled by later lifecycle events.
-		default:
-			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
+		templates, err := issuance.buildTemplates()
+		if err != nil {
+			return chargecreditpurchase.CreditGrantResult{}, err
 		}
 
 		inputs, err := transactions.ResolveTransactions(
@@ -376,57 +297,28 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 		}
 
 		var pendingBreakage []breakage.PendingRecord
-		if charge.Intent.ExpiresAt != nil {
-			immediateReleases := make([]breakage.PlanIssuanceImmediateRelease, 0, len(backfill.Attributions))
-			for _, attribution := range backfill.Attributions {
-				if !attribution.Amount.IsPositive() {
-					continue
-				}
 
-				immediateReleases = append(immediateReleases, breakage.PlanIssuanceImmediateRelease{
-					Amount:             attribution.Amount,
-					SpendChargeID:      attribution.SpendChargeID,
-					CollectionOriginID: attribution.CollectionOriginID,
-				})
-			}
-
-			breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, breakage.PlanIssuanceInput{
-				CustomerID:        customerID,
-				Amount:            charge.Intent.CreditAmount,
-				ImmediateReleases: immediateReleases,
-				Currency:          charge.Intent.Currency.Reference(),
-				CostBasisCurrency: costBasisCurrency,
-				CostBasis:         costBasisPtr,
-				CreditPriority:    charge.Intent.Priority,
-				Features:          featureFilters,
-				ExpiresAt:         *charge.Intent.ExpiresAt,
-				SourceChargeID:    &charge.ID,
-			})
+		if breakageInput := issuance.mapBreakageInput(); breakageInput != nil {
+			breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, *breakageInput)
 			if err != nil {
 				return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("resolve breakage plan: %w", err)
 			}
 
 			inputs = append(inputs, breakageInputs...)
-			pendingBreakage = append(pendingBreakage, pending...)
+			pendingBreakage = pending
 		}
 
 		if len(inputs) == 0 {
 			return chargecreditpurchase.CreditGrantResult{}, nil
 		}
 
-		for i, input := range inputs {
-			if input != nil {
-				inputs[i] = transactions.WithAnnotations(input, annotations)
-			}
-		}
-
-		transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		transactionGroup, err := h.commitTransactions(ctx, transactions.GroupInputs(
 			charge.Namespace,
 			annotations,
 			inputs...,
 		))
 		if err != nil {
-			return chargecreditpurchase.CreditGrantResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
+			return chargecreditpurchase.CreditGrantResult{}, err
 		}
 
 		if err := h.breakage.PersistCommittedRecords(ctx, pendingBreakage, transactionGroup); err != nil {
@@ -435,9 +327,27 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 
 		return chargecreditpurchase.CreditGrantResult{
 			GroupReference:      ledgertransaction.GroupReference{TransactionGroupID: transactionGroup.ID().ID},
-			BackfillAllocations: backfill.LegacyAllocations,
+			BackfillAllocations: backfillPlan.LegacyAllocations,
 		}, nil
 	})
+}
+
+// commitTransactions carries charge annotations on both the group and its transactions.
+func (h *creditPurchaseHandler) commitTransactions(ctx context.Context, group ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
+	inputs := group.Transactions()
+
+	for i, input := range inputs {
+		if input != nil {
+			inputs[i] = transactions.WithAnnotations(input, group.Annotations())
+		}
+	}
+
+	committed, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(group.Namespace(), group.Annotations(), inputs...))
+	if err != nil {
+		return nil, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return committed, nil
 }
 
 func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDependencies {
@@ -449,8 +359,9 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 }
 
 type creditPurchasePaymentPosting struct {
-	amount   alpacadecimal.Decimal
-	currency currencies.CurrencyReference
+	costBasis alpacadecimal.Decimal
+	amount    alpacadecimal.Decimal
+	currency  currencies.CurrencyReference
 }
 
 // resolveCreditPurchasePaymentPosting keeps fiat credit purchases in nominal
@@ -459,10 +370,18 @@ type creditPurchasePaymentPosting struct {
 // their FX transaction.
 func resolveCreditPurchasePaymentPosting(input chargecreditpurchase.PaymentEventInput) (creditPurchasePaymentPosting, error) {
 	charge := input.Charge
+
+	if charge.State.ResolvedCostBasis == nil {
+		return creditPurchasePaymentPosting{}, models.NewGenericPreConditionFailedError(
+			fmt.Errorf("credit purchase charge[%s] cost basis is unresolved", charge.ID),
+		)
+	}
+
 	if !charge.Intent.Currency.IsCustom() {
 		return creditPurchasePaymentPosting{
-			amount:   charge.Intent.CreditAmount,
-			currency: charge.Intent.Currency.Reference(),
+			costBasis: charge.State.ResolvedCostBasis.CostBasis,
+			amount:    charge.Intent.CreditAmount,
+			currency:  charge.Intent.Currency.Reference(),
 		}, nil
 	}
 
@@ -472,7 +391,8 @@ func resolveCreditPurchasePaymentPosting(input chargecreditpurchase.PaymentEvent
 	}
 
 	return creditPurchasePaymentPosting{
-		amount:   input.FiatAmount,
-		currency: currencies.NewCurrencyReference(currencyx.Code(fiatCurrency.GetFiatCode())),
+		costBasis: charge.State.ResolvedCostBasis.CostBasis,
+		amount:    input.FiatAmount,
+		currency:  currencies.NewCurrencyReference(currencyx.Code(fiatCurrency.GetFiatCode())),
 	}, nil
 }

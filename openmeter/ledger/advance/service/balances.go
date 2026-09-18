@@ -1,4 +1,4 @@
-package advance
+package service
 
 import (
 	"cmp"
@@ -23,10 +23,10 @@ import (
 // balances because one receivable sub-account can contain multiple spend-charge
 // provenance buckets. Backfill needs those buckets split so each translated
 // entry preserves the spend charge that created the advance.
-func (p backfillPlanner) advanceReceivableBalances(ctx context.Context, receivableAccountID models.NamespacedID, currency currencies.CurrencyReference) ([]advanceReceivableBalance, error) {
+func (s *service) advanceReceivableBalances(ctx context.Context, receivableAccountID models.NamespacedID, currency currencies.CurrencyReference) ([]advanceReceivableBalance, error) {
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 
-	buckets, err := p.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+	buckets, err := s.balanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: receivableAccountID.Namespace,
 		Filters: ledger.Filters{
 			AccountID: &receivableAccountID.ID,
@@ -70,8 +70,8 @@ func (p backfillPlanner) advanceReceivableBalances(ctx context.Context, receivab
 // that can be attributed to a creditpurchase. It groups by spend charge and tax
 // dimensions because cost-basis backfill must preserve both dimensions when it
 // moves accrued value into the purchased source bucket.
-func (p backfillPlanner) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencies.CurrencyReference) ([]unattributedAccruedBalance, error) {
-	buckets, err := p.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+func (s *service) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencies.CurrencyReference) ([]unattributedAccruedBalance, error) {
+	buckets, err := s.balanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: accruedAccount.ID().Namespace,
 		Filters: ledger.Filters{
 			AccountID: lo.ToPtr(accruedAccount.ID().ID),

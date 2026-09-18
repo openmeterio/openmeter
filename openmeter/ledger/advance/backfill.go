@@ -1,7 +1,6 @@
 package advance
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -16,12 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-type BackfillDependencies struct {
-	Ledger          ledger.Ledger
-	BalanceQuerier  ledger.BalanceQuerier
-	AccountResolver ledger.AccountResolver
-}
 
 type BackfillInput struct {
 	CustomerID customer.CustomerID
@@ -71,75 +64,19 @@ func (i BackfillInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type BackfillResult struct {
-	// Amount includes receivable-only attribution as well as accrued backfill.
-	Amount       alpacadecimal.Decimal
-	Templates    []transactions.TransactionTemplate
-	Attributions []BackfillAttribution
+type BackfillPlan struct {
+	Amount    alpacadecimal.Decimal
+	Templates []transactions.TransactionTemplate
+	Backfills []Backfill
 	// LegacyAllocations must be persisted with the group that books Templates.
 	LegacyAllocations []legacylineage.AdvanceBackfillAllocation
 }
 
-// BackfillAttribution identifies purchased credit consumed by an advance, including
-// receivable-only attribution. It lets issuance release the corresponding breakage.
-type BackfillAttribution struct {
+// Backfill can cover outstanding advance receivable without matching accrued
+// value. In that case, only receivable is attributed; no accrued posting or
+// legacy lineage backfill is created.
+type Backfill struct {
 	Amount             alpacadecimal.Decimal
 	SpendChargeID      *string
 	CollectionOriginID *string
-}
-
-// PlanBackfill selects advances in collection order and builds their attribution
-// templates. The caller must hold the customer's posting locks in the database
-// transaction that will commit these templates and persist legacy allocations.
-func PlanBackfill(ctx context.Context, deps BackfillDependencies, input BackfillInput) (BackfillResult, error) {
-	if err := input.Validate(); err != nil {
-		return BackfillResult{}, err
-	}
-
-	planner := backfillPlanner{BackfillDependencies: deps}
-	selected, err := planner.selectBackfill(ctx, input)
-	if err != nil {
-		return BackfillResult{}, err
-	}
-
-	result := BackfillResult{LegacyAllocations: selected.allocations}
-
-	for _, attribution := range mergeAdvanceAttributions(selected.attributions) {
-		result.Amount = result.Amount.Add(attribution.advanceAmount)
-		result.Attributions = append(result.Attributions, BackfillAttribution{
-			Amount:             attribution.advanceAmount,
-			SpendChargeID:      attribution.spendChargeID,
-			CollectionOriginID: attribution.collectionOriginID,
-		})
-		result.Templates = append(result.Templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At:                 input.At,
-			Amount:             attribution.advanceAmount,
-			Currency:           input.Currency.Reference(),
-			CostBasisCurrency:  input.CostBasisCurrency,
-			CostBasis:          &input.CostBasis,
-			AdvanceFeatures:    attribution.advanceFeatures,
-			AttributedFeatures: input.Features,
-			SourceChargeID:     &input.SourceChargeID,
-			SpendChargeID:      attribution.spendChargeID,
-			CollectionOriginID: attribution.collectionOriginID,
-		})
-
-		if attribution.accruedAmount.IsPositive() {
-			result.Templates = append(result.Templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-				At:                 input.At,
-				Amount:             attribution.accruedAmount,
-				Currency:           input.Currency.Reference(),
-				TaxCode:            attribution.taxCode,
-				TaxBehavior:        attribution.taxBehavior,
-				FromCostBasis:      nil,
-				ToCostBasis:        &input.CostBasis,
-				CostBasisCurrency:  input.CostBasisCurrency,
-				SourceChargeID:     &input.SourceChargeID,
-				SpendChargeID:      attribution.spendChargeID,
-				CollectionOriginID: attribution.collectionOriginID,
-			})
-		}
-	}
-
-	return result, nil
 }

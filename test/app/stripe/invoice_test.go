@@ -29,6 +29,7 @@ import (
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
@@ -140,7 +141,17 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient))
+	advanceService := advancetestutils.NewService(s.T(), ledgerDeps)
+
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+		ledgerDeps.HistoricalLedger,
+		ledgerDeps.HistoricalLedger,
+		ledgerDeps.ResolversService,
+		ledgerDeps.AccountService,
+		advanceService,
+		ledgerbreakage.NewNoopService(),
+		enttx.NewCreator(s.DBClient),
+	)
 	s.Require().NoError(err)
 
 	chargeStack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{

@@ -28,6 +28,7 @@ import (
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -709,11 +710,14 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 	})
 	require.NoError(t, err)
 
+	advanceService := advancetestutils.NewService(t, base.Deps)
+
 	handler, err := chargeadapter.NewCreditPurchaseHandler(
 		base.Deps.HistoricalLedger,
 		base.Deps.HistoricalLedger,
 		base.Deps.ResolversService,
 		base.Deps.AccountService,
+		advanceService,
 		breakageService,
 		enttx.NewCreator(base.DB),
 	)

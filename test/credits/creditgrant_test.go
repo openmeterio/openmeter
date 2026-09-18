@@ -74,7 +74,15 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 	})
 	s.Require().NoError(err)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(s.Ledger, s.BalanceQuerier, s.LedgerResolver, s.LedgerAccountService, ledgerbreakage.NewNoopService(), enttx.NewCreator(s.DBClient))
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+		s.Ledger,
+		s.BalanceQuerier,
+		s.LedgerResolver,
+		s.LedgerAccountService,
+		s.AdvanceService,
+		ledgerbreakage.NewNoopService(),
+		enttx.NewCreator(s.DBClient),
+	)
 	s.Require().NoError(err)
 
 	s.CreditPurchaseService, err = creditpurchaseservice.New(creditpurchaseservice.Config{

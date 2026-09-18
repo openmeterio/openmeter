@@ -33,6 +33,7 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -138,10 +139,19 @@ func NewChargesCreditPurchaseHandler(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	advanceService advance.Service,
 	breakageService ledgerbreakage.Service,
 	transactionManager transaction.Creator,
 ) (creditpurchase.Handler, error) {
-	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerService, balanceQuerier, accountResolver, accountService, breakageService, transactionManager)
+	handler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+		ledgerService,
+		balanceQuerier,
+		accountResolver,
+		accountService,
+		advanceService,
+		breakageService,
+		transactionManager,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges credit purchase handler: %w", err)
 	}
@@ -477,6 +487,11 @@ func newChargesRegistry(
 		return nil, err
 	}
 
+	advanceService, err := NewLedgerAdvanceService(logger, ledgerService, balanceQuerier, accountResolver)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ledger advance service: %w", err)
+	}
+
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
 	usageBasedHandler := NewChargesUsageBasedHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)
 	creditPurchaseHandler, err := NewChargesCreditPurchaseHandler(
@@ -484,6 +499,7 @@ func newChargesRegistry(
 		balanceQuerier,
 		accountResolver,
 		accountService,
+		advanceService,
 		breakageService,
 		transactionManager,
 	)

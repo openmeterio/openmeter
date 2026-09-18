@@ -1,4 +1,4 @@
-package advance
+package service
 
 import (
 	"cmp"
@@ -10,31 +10,28 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 )
 
-type backfillPlanner struct {
-	BackfillDependencies
-}
-
 // selectBackfill matches receivable and accrued by spend and collection origin.
 // Legacy nil-spend balances remain separated by their original feature routes.
-func (p backfillPlanner) selectBackfill(ctx context.Context, input BackfillInput) (backfillSelection, error) {
+func (s *service) selectBackfill(ctx context.Context, input advance.BackfillInput) (backfillSelection, error) {
 	currencyReference := input.Currency.Reference()
 
-	customerAccounts, err := p.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
+	customerAccounts, err := s.accountResolver.GetCustomerAccounts(ctx, input.CustomerID)
 	if err != nil {
 		return backfillSelection{}, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	advanceReceivables, err := p.advanceReceivableBalances(ctx, customerAccounts.ReceivableAccount.ID(), currencyReference)
+	advanceReceivables, err := s.advanceReceivableBalances(ctx, customerAccounts.ReceivableAccount.ID(), currencyReference)
 	if err != nil {
 		return backfillSelection{}, fmt.Errorf("list advance receivable balances: %w", err)
 	}
 
 	slices.SortStableFunc(advanceReceivables, cmpx.Compare[advanceReceivableBalance])
 
-	unattributedAccrued, err := p.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currencyReference)
+	unattributedAccrued, err := s.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currencyReference)
 	if err != nil {
 		return backfillSelection{}, err
 	}
@@ -60,7 +57,7 @@ func (p backfillPlanner) selectBackfill(ctx context.Context, input BackfillInput
 			root := *candidate.legacy
 			receivableBuckets.requiredFeatures = root.AdvanceFeatures
 
-			spendKey, accruedBuckets, err = p.accruedBucketsForAdvance(ctx, input.CustomerID.Namespace, root, unattributedAccrued)
+			spendKey, accruedBuckets, err = s.accruedBucketsForAdvance(ctx, input.CustomerID.Namespace, root, unattributedAccrued)
 			if err != nil {
 				return backfillSelection{}, err
 			}

@@ -30,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
@@ -92,11 +93,14 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	advanceService := advancetestutils.NewService(s.T(), ledgerDeps)
+
 	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
 		ledgerDeps.HistoricalLedger,
 		ledgerDeps.HistoricalLedger,
 		ledgerDeps.ResolversService,
 		ledgerDeps.AccountService,
+		advanceService,
 		ledgerbreakage.NewNoopService(),
 		transactionManager,
 	)
