@@ -48,4 +48,3 @@ type Item struct {
 func (i Item) Key() string {
 	return fmt.Sprintf("%s-%s-%s", i.Namespace, i.Source, i.ID)
 }
-
