@@ -35,7 +35,7 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		IntegrationEnv: env.IntegrationEnv,
 		currency:       env.currency,
 	}
-	advanceService := advancetestutils.NewService(t, env.Deps)
+	advanceService := advancetestutils.NewService(t, env.Deps, breakage.NewNoopService())
 
 	handler, err := chargeadapter.NewCreditPurchaseHandler(chargeadapter.CreditPurchaseHandlerConfig{
 		Ledger:             env.Deps.HistoricalLedger,

@@ -247,8 +247,11 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: base.Deps.HistoricalLedger,
+		Advance: advanceService,
+		Ledger:  base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: base.Deps.ResolversService,
 			AccountCatalog: base.Deps.AccountService,
@@ -343,8 +346,6 @@ func newTestEnv(t *testing.T) *testEnv {
 		MetaAdapter: metaAdapter,
 	})
 	require.NoError(t, err)
-
-	advanceService := advancetestutils.NewService(t, base.Deps)
 
 	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
 		Ledger:             base.Deps.HistoricalLedger,

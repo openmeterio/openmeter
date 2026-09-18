@@ -24,6 +24,8 @@ import (
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -711,9 +713,15 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 		AccountCatalog: base.Deps.AccountService,
 		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
+	breakageService := ledgerbreakage.NewNoopService()
+
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Advance:            advanceService,
 		Ledger:             base.Deps.HistoricalLedger,
 		Dependencies:       deps,
+		Breakage:           breakageService,
 		AccountLocker:      base.Deps.AccountService,
 		TransactionManager: enttx.NewCreator(base.DB),
 	})

@@ -69,14 +69,18 @@ func NewChargesCollectorService(
 	balanceQuerier ledger.BalanceQuerier,
 	accountResolver ledger.AccountResolver,
 	accountService ledgeraccount.Service,
+	advanceService advance.Service,
+	breakageService ledgerbreakage.Service,
 ) (ledgercollector.Service, error) {
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: ledgerService,
+		Advance: advanceService,
+		Ledger:  ledgerService,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: accountResolver,
 			AccountCatalog: accountService,
 			BalanceQuerier: balanceQuerier,
 		},
+		Breakage:           breakageService,
 		AccountLocker:      accountService,
 		TransactionManager: enttx.NewCreator(db),
 	})
@@ -466,9 +470,15 @@ func newChargesRegistry(
 		return nil, err
 	}
 
+	advanceService, err := NewLedgerAdvanceService(logger, ledgerService, balanceQuerier, accountResolver, accountService, breakageService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ledger advance service: %w", err)
+	}
+
 	transactionManager := enttx.NewCreator(db)
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: ledgerService,
+		Advance: advanceService,
+		Ledger:  ledgerService,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: accountResolver,
 			AccountCatalog: accountService,
@@ -485,11 +495,6 @@ func newChargesRegistry(
 	recognizerService, err := NewRecognizerService(db, ledgerService, balanceQuerier, accountResolver, accountService, lineageService)
 	if err != nil {
 		return nil, err
-	}
-
-	advanceService, err := NewLedgerAdvanceService(logger, ledgerService, balanceQuerier, accountResolver)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create ledger advance service: %w", err)
 	}
 
 	flatFeeHandler := NewChargesFlatFeeHandler(ledgerService, balanceQuerier, accountResolver, accountService, collectorService)

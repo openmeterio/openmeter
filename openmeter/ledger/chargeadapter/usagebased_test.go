@@ -25,6 +25,8 @@ import (
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -569,13 +571,19 @@ type usageBasedHandlerTestEnv struct {
 
 func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "chargeadapter-usagebased")
+	breakageService := ledgerbreakage.NewNoopService()
+
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: base.Deps.HistoricalLedger,
+		Advance: advanceService,
+		Ledger:  base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: base.Deps.ResolversService,
 			AccountCatalog: base.Deps.AccountService,
 			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
+		Breakage:           breakageService,
 		AccountLocker:      base.Deps.AccountService,
 		TransactionManager: enttx.NewCreator(base.DB),
 	})

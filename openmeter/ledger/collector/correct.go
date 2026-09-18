@@ -14,18 +14,18 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
-	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type accrualCorrector struct {
 	ledger             ledger.Ledger
+	advance            advance.Service
 	deps               transactions.ResolverDependencies
 	breakage           breakage.Service
 	transactionManager transaction.Creator
@@ -160,10 +160,8 @@ func (c *accrualCorrector) correct(ctx context.Context, input CorrectCollectedAc
 			return nil, fmt.Errorf("commit correction transaction group: %w", err)
 		}
 
-		if c.breakage != nil {
-			if err := c.breakage.PersistCommittedRecords(ctx, resolved.breakagePending, transactionGroup); err != nil {
-				return nil, fmt.Errorf("persist breakage records: %w", err)
-			}
+		if err := c.breakage.PersistCommittedRecords(ctx, resolved.breakagePending, transactionGroup); err != nil {
+			return nil, fmt.Errorf("persist breakage records: %w", err)
 		}
 
 		out := make(creditrealization.CreateCorrectionInputs, 0, len(input.Corrections))
@@ -218,7 +216,7 @@ func (c *accrualCorrector) planCorrection(ctx context.Context, input CorrectColl
 	// Older data may not have lineage yet, so fall back to first-order source correction.
 	segments := input.LineageSegmentsByRealization[correction.Allocation.ID]
 	if len(segments) == 0 {
-		return c.planUntrackedCorrection(source, correction.Amount.Abs(), used)
+		return c.planUntrackedCorrection(ctx, input, source, correction.Amount.Abs(), used)
 	}
 
 	positions, evidence, err := c.readLegacyPositions(ctx, input, source, segments, used)
@@ -257,11 +255,15 @@ func (c *accrualCorrector) planSegmentCorrection(ctx context.Context, input Corr
 	switch segment.State {
 	case creditrealization.LineageSegmentStateRealCredit,
 		creditrealization.LineageSegmentStateReceivableCoverage:
-		return plannedSourceCorrectionActions(source, amount, false, used)
+		return plannedSourceCorrectionActions(source, amount, used)
 	case creditrealization.LineageSegmentStateAdvanceUncovered:
-		return plannedSourceCorrectionActions(source, amount, true, used)
+		return c.planLegacyAdvanceCorrection(ctx, input, source, nil, amount)
 	case creditrealization.LineageSegmentStateAdvanceBackfilled:
-		return c.planBackfilledAdvanceSegment(ctx, input, source, segment, amount, used)
+		if segment.BackingTransactionGroupID == nil {
+			return nil, fmt.Errorf("advance_backfilled segment missing backing transaction group id")
+		}
+
+		return c.planLegacyAdvanceCorrection(ctx, input, source, segment.BackingTransactionGroupID, amount)
 	case creditrealization.LineageSegmentStateEarningsRecognized:
 		return c.planRecognizedEarningsSegment(ctx, input, source, segment, amount, used)
 	default:
@@ -323,139 +325,12 @@ func (c *accrualCorrector) planRecognizedEarningsSegment(ctx context.Context, in
 	return actions, nil
 }
 
-func (c *accrualCorrector) planBackfilledAdvanceSegment(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segment legacylineage.Segment, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
-	if segment.BackingTransactionGroupID == nil || *segment.BackingTransactionGroupID == "" {
-		return nil, fmt.Errorf("advance_backfilled segment missing backing transaction group id")
-	}
-
-	// Backfilled advance means we have to unwind both the later backfill and the
-	// original advance-backed collection.
-	backingGroup, err := c.ledger.GetTransactionGroup(ctx, models.NamespacedID{
-		Namespace: input.Namespace,
-		ID:        *segment.BackingTransactionGroupID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("get backing transaction group %s: %w", *segment.BackingTransactionGroupID, err)
-	}
-
-	actions := make([]plannedAction, 0, 4)
-	translateTx, err := backfillTransactionForSource(backfillTransactionForSourceInput{
-		group: backingGroup, original: source.transaction,
-		accountType:  ledger.AccountTypeCustomerAccrued,
-		templateCode: transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
-	})
-	if err != nil {
-		return nil, err
-	}
-	if translateTx != nil {
-		actions = append(actions, plannedTransactionCorrection{
-			transaction: translateTx,
-			group:       backingGroup,
-			amount:      amount,
-		})
-	}
-
-	attributeTx, err := backfillTransactionForSource(backfillTransactionForSourceInput{
-		group: backingGroup, original: source.advanceReceivableIssueTransaction,
-		accountType:  ledger.AccountTypeCustomerReceivable,
-		templateCode: transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("find backing advance receivable attribution transaction in group %s: %w", backingGroup.ID().ID, err)
-	}
-	if attributeTx == nil {
-		return nil, fmt.Errorf("backing group %s has no receivable attribution matching the collected source", backingGroup.ID().ID)
-	}
-	actions = append(actions, plannedTransactionCorrection{
-		transaction: attributeTx,
-		group:       backingGroup,
-		amount:      amount,
-	})
-	sourceActions, err := plannedSourceCorrectionActions(source, amount, true, used)
-	if err != nil {
-		return nil, err
-	}
-	actions = append(actions, sourceActions...)
-
-	reopenInputs, reopenPending, err := c.resolveAdvanceBackfillBreakageReopenInputs(ctx, input, backingGroup, amount)
-	if err != nil {
-		return nil, err
-	}
-	actions = append(actions, plannedDirectInputs{
-		inputs:          reopenInputs,
-		breakagePending: reopenPending,
-	})
-
-	// The purchased-credit-covered part becomes available credit again.
-	// We intentionally re-issue it into FBO and stop there: releasing purchased backing during
-	// correction does not trigger a fresh customer-wide backfill pass against other uncovered advance.
-	reissueInputs, err := c.reissueBackfilledCredit(ctx, input, backingGroup, amount)
-	if err != nil {
-		return nil, err
-	}
-	actions = append(actions, plannedDirectInputs{inputs: reissueInputs})
-
-	return actions, nil
-}
-
-func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input CorrectCollectedAccruedInput, backingGroup ledger.TransactionGroup, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {
-	// Re-issue into the same known-cost and priority bucket the backfill had used
-	// so the released value becomes ordinary purchased credit again. It can be
-	// consumed later, but we do not immediately redirect it onto some other
-	// uncovered advance during this correction flow.
-	route, err := c.backfilledCreditReissueRoute(backingGroup)
+func plannedSourceCorrectionActions(source collectedSource, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+	entryAmounts, err := reserveCorrectionSources(source.entries, amount, used)
 	if err != nil {
 		return nil, err
 	}
 
-	resolved, err := transactions.ResolveTransactions(
-		ctx,
-		c.deps,
-		transactions.ResolutionScope{
-			CustomerID: customer.CustomerID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
-			Namespace: input.Namespace,
-		},
-		transactions.IssueCustomerReceivableTemplate{
-			At:                input.AllocateAt,
-			Amount:            amount,
-			Currency:          route.currency,
-			CostBasisCurrency: route.costBasisCurrency,
-			CostBasis:         route.costBasis,
-			Features:          route.features,
-			CreditPriority:    route.creditPriority,
-			SourceChargeID:    route.sourceChargeID,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("resolve re-issued purchased credit: %w", err)
-	}
-
-	out := make([]ledger.TransactionInput, 0, len(resolved))
-	for _, txInput := range resolved {
-		out = append(out, transactions.WithAnnotations(txInput, ledger.TransactionAnnotations(
-			transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
-			ledger.TransactionDirectionCorrection,
-		)))
-	}
-
-	return out, nil
-}
-
-func plannedSourceCorrectionActions(source collectedSource, amount alpacadecimal.Decimal, includeAdvanceReceivable bool, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
-	var entryAmounts map[string]alpacadecimal.Decimal
-	if source.advanceReceivableIssueTransaction == nil {
-		var err error
-		entryAmounts, err = reserveCorrectionSources(source.entries, amount, used)
-		if err != nil {
-			return nil, err
-		}
-	}
-	// A source correction always offsets the original collection transaction itself.
-	// Advance-backed collection also needs the companion receivable-issue correction
-	// so the offset reduces the advance-side obligation instead of manufacturing credit.
 	actions := []plannedAction{
 		plannedTransactionCorrection{
 			sourceEntryAmounts: entryAmounts,
@@ -463,14 +338,6 @@ func plannedSourceCorrectionActions(source collectedSource, amount alpacadecimal
 			group:              source.group,
 			amount:             amount,
 		},
-	}
-
-	if includeAdvanceReceivable && source.advanceReceivableIssueTransaction != nil {
-		actions = append(actions, plannedTransactionCorrection{
-			transaction: source.advanceReceivableIssueTransaction,
-			group:       source.group,
-			amount:      amount,
-		})
 	}
 
 	return actions, nil
@@ -542,92 +409,12 @@ func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input Corre
 	}, nil
 }
 
-func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx context.Context, input CorrectCollectedAccruedInput, backingGroup ledger.TransactionGroup, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, []breakage.PendingRecord, error) {
-	if c.breakage == nil {
-		return nil, nil, nil
-	}
-
-	releases, err := c.breakage.ListReleases(ctx, breakage.ListReleasesInput{
-		CustomerID: customer.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
-		SourceTransactionGroupID: []string{backingGroup.ID().ID},
-		ReleaseSourceKind:        []breakage.SourceKind{breakage.SourceKindAdvanceBackfill},
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("list advance-backfill breakage releases: %w", err)
-	}
-
-	inputs := make([]ledger.TransactionInput, 0, len(releases))
-	pending := make([]breakage.PendingRecord, 0, len(releases))
-	releaseFactsByTransactionID := breakageReleaseFactsByTransactionID(backingGroup)
-	remaining := amount
-	for _, release := range releases {
-		if !remaining.IsPositive() {
-			break
-		}
-
-		reopenAmount := minDecimal(release.OpenAmount, remaining)
-		if !reopenAmount.IsPositive() {
-			continue
-		}
-
-		releaseFacts := releaseFactsByTransactionID[release.BreakageTransactionID]
-		if releaseFacts.SpendChargeID != nil && *releaseFacts.SpendChargeID != input.ChargeID {
-			continue
-		}
-		reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-			Release:        release,
-			Amount:         reopenAmount,
-			SourceKind:     breakage.SourceKindUsageCorrection,
-			SourceChargeID: releaseFacts.SourceChargeID,
-			SpendChargeID:  releaseFacts.SpendChargeID,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("resolve advance-backfill breakage reopen: %w", err)
-		}
-
-		inputs = append(inputs, reopenInput)
-		pending = append(pending, reopenRecord)
-		remaining = remaining.Sub(reopenAmount)
-	}
-
-	return inputs, pending, nil
-}
-
-func breakageReleaseFactsByTransactionID(group ledger.TransactionGroup) map[string]ledger.EntryIdentityParts {
-	out := make(map[string]ledger.EntryIdentityParts)
-
-	for _, tx := range group.Transactions() {
-		for _, entry := range tx.Entries() {
-			if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO {
-				continue
-			}
-
-			out[tx.ID().ID] = ledger.EntryIdentityParts{
-				Provenance: ledger.Provenance{
-					SourceChargeID: entry.Provenance().SourceChargeID,
-					SpendChargeID:  entry.Provenance().SpendChargeID,
-				},
-			}
-			break
-		}
-	}
-
-	return out
-}
-
 type correctedFBOEntry struct {
 	entry  ledger.Entry
 	amount alpacadecimal.Decimal
 }
 
 func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, input CorrectCollectedAccruedInput, transactionPlan transactionCorrectionPlan) ([]ledger.TransactionInput, []breakage.PendingRecord, error) {
-	if c.breakage == nil {
-		return nil, nil, nil
-	}
-
 	templateCode, err := ledger.TransactionTemplateCodeFromAnnotations(transactionPlan.transaction.Annotations())
 	if err != nil {
 		return nil, nil, fmt.Errorf("transaction %s template code: %w", transactionPlan.transaction.ID().ID, err)
@@ -837,71 +624,6 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 	return nil, fmt.Errorf("transaction with template code %s not found", templateCode)
 }
 
-type backfilledCreditReissueRouteResult struct {
-	currency          currencies.CurrencyReference
-	costBasisCurrency *currencyx.Code
-	costBasis         *alpacadecimal.Decimal
-	creditPriority    *int
-	features          []string
-	sourceChargeID    *string
-}
-
-func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (backfilledCreditReissueRouteResult, error) {
-	// A correction of backfilled advance turns already-covered value back into
-	// ordinary FBO credit. Use the backing group's known-cost route for that
-	// re-issue. If the group has an FBO route, prefer it because it also carries
-	// the customer credit collection priority. Fully backfilled purchases may
-	// only have the known cost basis on receivable/accrued attribution entries.
-	var fallbackCurrency currencies.CurrencyReference
-	var fallbackCostBasisCurrency *currencyx.Code
-	var fallbackCostBasis *alpacadecimal.Decimal
-	var fallbackFeatures []string
-	var sourceChargeID *string
-
-	for _, transaction := range group.Transactions() {
-		for _, entry := range transaction.Entries() {
-			if sourceChargeID == nil && entry.Provenance().SourceChargeID != nil {
-				sourceChargeID = entry.Provenance().SourceChargeID
-			}
-
-			route := entry.PostingAddress().Route().Route()
-			if route.CostBasis == nil {
-				continue
-			}
-
-			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
-				return backfilledCreditReissueRouteResult{
-					currency:          route.Currency,
-					costBasisCurrency: route.CostBasisCurrency,
-					costBasis:         route.CostBasis,
-					creditPriority:    route.CreditPriority,
-					features:          route.Features,
-					sourceChargeID:    sourceChargeID,
-				}, nil
-			}
-
-			if fallbackCostBasis == nil {
-				fallbackCurrency = route.Currency
-				fallbackCostBasisCurrency = route.CostBasisCurrency
-				fallbackCostBasis = route.CostBasis
-				fallbackFeatures = route.Features
-			}
-		}
-	}
-
-	if fallbackCostBasis != nil {
-		return backfilledCreditReissueRouteResult{
-			currency:          fallbackCurrency,
-			costBasisCurrency: fallbackCostBasisCurrency,
-			costBasis:         fallbackCostBasis,
-			features:          fallbackFeatures,
-			sourceChargeID:    sourceChargeID,
-		}, nil
-	}
-
-	return backfilledCreditReissueRouteResult{}, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
-}
-
 func minDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
 	if a.GreaterThan(b) {
 		return b
@@ -1046,53 +768,4 @@ func correctionEntryKey(entry ledger.EntryInput) correctionPostingKey {
 		sourceChargeID: lo.FromPtrOr(entry.Provenance().SourceChargeID, ""),
 		spendChargeID:  lo.FromPtrOr(entry.Provenance().SpendChargeID, ""),
 	}
-}
-
-// A purchase can backfill multiple spends in one group. Match the original
-// unknown-cost route and spend rather than taking the group's first template.
-type backfillTransactionForSourceInput struct {
-	group        ledger.TransactionGroup
-	original     ledger.Transaction
-	accountType  ledger.AccountType
-	templateCode string
-}
-
-func backfillTransactionForSource(input backfillTransactionForSourceInput) (ledger.Transaction, error) {
-	if input.original == nil {
-		return nil, fmt.Errorf("backfill correction requires original %s transaction", input.accountType)
-	}
-	keys := make(map[correctionPostingKey]struct{})
-	for _, entry := range input.original.Entries() {
-		if entry.PostingAddress().AccountType() == input.accountType {
-			keys[correctionEntryKey(entry)] = struct{}{}
-		}
-	}
-	var found ledger.Transaction
-	for _, tx := range input.group.Transactions() {
-		code, err := ledger.TransactionTemplateCodeFromAnnotations(tx.Annotations())
-		if err != nil {
-			return nil, err
-		}
-		direction, err := ledger.TransactionDirectionFromAnnotations(tx.Annotations())
-		if err != nil {
-			return nil, err
-		}
-		if code != input.templateCode || direction != ledger.TransactionDirectionForward {
-			continue
-		}
-		for _, entry := range tx.Entries() {
-			if entry.PostingAddress().AccountType() != input.accountType {
-				continue
-			}
-			if _, ok := keys[correctionEntryKey(entry)]; !ok {
-				continue
-			}
-			if found != nil {
-				return nil, fmt.Errorf("multiple backfill transactions match the original %s source", input.accountType)
-			}
-			found = tx
-			break
-		}
-	}
-	return found, nil
 }

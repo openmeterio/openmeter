@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -29,6 +30,7 @@ type Service interface {
 }
 
 type Config struct {
+	Advance       advance.Service
 	Ledger        ledger.Ledger
 	Dependencies  transactions.ResolverDependencies
 	Breakage      breakage.Service
@@ -40,6 +42,14 @@ type Config struct {
 
 func (c Config) Validate() error {
 	var errs []error
+
+	if c.Advance == nil {
+		errs = append(errs, errors.New("advance service is required"))
+	}
+
+	if c.Breakage == nil {
+		errs = append(errs, errors.New("breakage service is required"))
+	}
 
 	if c.Ledger == nil {
 		errs = append(errs, fmt.Errorf("ledger is required"))
@@ -245,6 +255,7 @@ func NewService(config Config) (Service, error) {
 	return &service{
 		collector: &accrualCollector{
 			ledger:             config.Ledger,
+			advance:            config.Advance,
 			deps:               config.Dependencies,
 			breakage:           config.Breakage,
 			accountLocker:      config.AccountLocker,
@@ -252,6 +263,7 @@ func NewService(config Config) (Service, error) {
 		},
 		corrector: &accrualCorrector{
 			ledger:             config.Ledger,
+			advance:            config.Advance,
 			deps:               config.Dependencies,
 			breakage:           config.Breakage,
 			transactionManager: config.TransactionManager,

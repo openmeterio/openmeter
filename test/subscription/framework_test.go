@@ -208,7 +208,10 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		})
 		require.NoError(t, err)
 
+		advanceService := advancetestutils.NewService(t, ledgerDeps, breakageService)
+
 		collector, err := ledgercollector.NewService(ledgercollector.Config{
+			Advance:            advanceService,
 			Ledger:             ledgerDeps.HistoricalLedger,
 			Dependencies:       resolverDeps,
 			Breakage:           breakageService,
@@ -224,8 +227,6 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			TransactionManager: transactionManager,
 		})
 		require.NoError(t, err)
-
-		advanceService := advancetestutils.NewService(t, ledgerDeps)
 
 		creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
 			Ledger:             ledgerDeps.HistoricalLedger,

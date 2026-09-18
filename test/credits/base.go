@@ -79,7 +79,6 @@ func (s *BaseSuite) SetupSuite() {
 	deps, err := ledgertestutils.InitDeps(s.DBClient, logger)
 	s.NoError(err)
 
-	s.AdvanceService = advancetestutils.NewService(s.T(), deps)
 	s.Ledger = deps.HistoricalLedger
 	s.BalanceQuerier = deps.HistoricalLedger
 	s.LedgerAccountService = deps.AccountService
@@ -113,6 +112,7 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.BreakageService = breakageService
+	s.AdvanceService = advancetestutils.NewService(s.T(), deps, breakageService)
 
 	creditVoidAdapter, err := creditvoidadapter.New(creditvoidadapter.Config{
 		Client: s.DBClient,
@@ -148,7 +148,8 @@ func (s *BaseSuite) SetupSuite() {
 	s.RevenueRecognizer = revenueRecognizer
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: deps.HistoricalLedger,
+		Advance: s.AdvanceService,
+		Ledger:  deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: deps.ResolversService,
 			AccountCatalog: deps.AccountService,

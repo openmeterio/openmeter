@@ -10,7 +10,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -72,11 +74,11 @@ func (c *accrualCorrector) readLegacyPositions(ctx context.Context, input Correc
 					return nil, nil, err
 				}
 
-				tx, err := backfillTransactionForSource(backfillTransactionForSourceInput{
-					group:        group,
-					original:     source.transaction,
-					accountType:  ledger.AccountTypeCustomerAccrued,
-					templateCode: transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+				tx, err := advance.FindLegacyBackfillTransaction(advance.LegacyBackfillTransactionInput{
+					Group:        group,
+					Original:     source.transaction,
+					AccountType:  ledger.AccountTypeCustomerAccrued,
+					TemplateCode: transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
 				})
 				if err != nil {
 					return nil, nil, err
@@ -306,7 +308,7 @@ func (c *accrualCorrector) writeLegacyCorrection(ctx context.Context, input Corr
 
 // Pre-lineage collections have only their original entries and correction links.
 // They use the same source-order planner without inventing downstream evidence.
-func (c *accrualCorrector) planUntrackedCorrection(source collectedSource, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *accrualCorrector) planUntrackedCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
 	entries := slices.Clone(source.entries)
 	slices.SortStableFunc(entries, compareCollectedFBOCorrectionSourceEntries)
 
@@ -338,13 +340,56 @@ func (c *accrualCorrector) planUntrackedCorrection(source collectedSource, amoun
 		narrowed := source
 		narrowed.entries = []ledger.Entry{byID[selection.id]}
 
-		planned, err := plannedSourceCorrectionActions(narrowed, selection.amount, source.advanceReceivableIssueTransaction != nil, used)
+		var planned []plannedAction
+		var err error
+
+		if source.advanceReceivableIssueTransaction != nil {
+			planned, err = c.planLegacyAdvanceCorrection(ctx, input, narrowed, nil, selection.amount)
+		} else {
+			planned, err = plannedSourceCorrectionActions(narrowed, selection.amount, used)
+		}
 		if err != nil {
 			return nil, err
 		}
 
 		actions = append(actions, planned...)
 	}
+
+	return actions, nil
+}
+
+func (c *accrualCorrector) planLegacyAdvanceCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, backingGroupID *string, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+	plan, err := c.advance.PlanLegacyCorrection(ctx, advance.LegacyCorrectionInput{
+		CustomerID: customer.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
+		ChargeID:       input.ChargeID,
+		At:             input.AllocateAt,
+		Amount:         amount,
+		OriginalGroup:  source.group,
+		Collection:     source.transaction,
+		Issue:          source.advanceReceivableIssueTransaction,
+		BackingGroupID: backingGroupID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	actions := make([]plannedAction, 0, len(plan.LegacyCorrections)+1)
+
+	for _, correction := range plan.LegacyCorrections {
+		actions = append(actions, plannedTransactionCorrection{
+			transaction: correction.OriginalTransaction,
+			group:       correction.OriginalGroup,
+			amount:      correction.Amount,
+		})
+	}
+
+	actions = append(actions, plannedDirectInputs{
+		inputs:          plan.Inputs,
+		breakagePending: plan.BreakagePending,
+	})
 
 	return actions, nil
 }
