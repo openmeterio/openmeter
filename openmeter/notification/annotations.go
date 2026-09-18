@@ -19,4 +19,11 @@ const (
 	AnnotationEventInvoiceNumber = "event.invoice.number"
 
 	AnnotationEventResendTimestamp = "event.resend.timestamp"
+
+	// AnnotationChannelProviderDisabledTimestamp records when the webhook provider was observed to have
+	// disabled the endpoint backing this channel. The provider disables endpoints on its own after a
+	// prolonged delivery failure and never pushes that decision back to us, so without this marker the
+	// channel would keep reporting itself as enabled while every event sent through it fails immediately.
+	// Updating the channel through the API clears the annotation and re-enables the endpoint at the provider.
+	AnnotationChannelProviderDisabledTimestamp = "channel.provider.disabled.timestamp"
 )
