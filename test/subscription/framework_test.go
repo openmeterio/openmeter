@@ -32,6 +32,7 @@ import (
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -224,7 +225,17 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		})
 		require.NoError(t, err)
 
-		creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, breakageService, transactionManager)
+		advanceService := advancetestutils.NewService(t, ledgerDeps)
+
+		creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+			ledgerDeps.HistoricalLedger,
+			ledgerDeps.HistoricalLedger,
+			ledgerDeps.ResolversService,
+			ledgerDeps.AccountService,
+			advanceService,
+			breakageService,
+			transactionManager,
+		)
 		require.NoError(t, err)
 
 		stack, err := chargestestutils.NewServices(t, chargestestutils.Config{

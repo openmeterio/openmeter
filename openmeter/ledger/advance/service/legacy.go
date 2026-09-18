@@ -1,4 +1,4 @@
-package advance
+package service
 
 import (
 	"cmp"
@@ -15,12 +15,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (p backfillPlanner) accruedBucketsForAdvance(ctx context.Context, namespace string, root legacylineage.Lineage, balances []unattributedAccruedBalance) (string, []unattributedAccruedBalance, error) {
+func (s *service) accruedBucketsForAdvance(ctx context.Context, namespace string, root legacylineage.Lineage, balances []unattributedAccruedBalance) (string, []unattributedAccruedBalance, error) {
 	if root.OriginalTransactionGroupID == "" {
 		return "", nil, fmt.Errorf("advance lineage %s is missing its original transaction group", root.ID)
 	}
 
-	group, err := p.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
+	group, err := s.ledger.GetTransactionGroup(ctx, models.NamespacedID{
 		Namespace: namespace,
 		ID:        root.OriginalTransactionGroupID,
 	})

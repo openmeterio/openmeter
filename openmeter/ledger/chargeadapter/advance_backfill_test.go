@@ -20,6 +20,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -33,7 +34,17 @@ func TestAdvanceBackfillInterleavedRunsAndRecognizedCorrection(t *testing.T) {
 		IntegrationEnv: env.IntegrationEnv,
 		currency:       env.currency,
 	}
-	handler, err := chargeadapter.NewCreditPurchaseHandler(env.Deps.HistoricalLedger, env.Deps.HistoricalLedger, env.Deps.ResolversService, env.Deps.AccountService, nil, enttx.NewCreator(env.DB))
+	advanceService := advancetestutils.NewService(t, env.Deps)
+
+	handler, err := chargeadapter.NewCreditPurchaseHandler(
+		env.Deps.HistoricalLedger,
+		env.Deps.HistoricalLedger,
+		env.Deps.ResolversService,
+		env.Deps.AccountService,
+		advanceService,
+		nil,
+		enttx.NewCreator(env.DB),
+	)
 	require.NoError(t, err)
 
 	// Given A's two collection occurrences surround B, while B's charge ID sorts first.

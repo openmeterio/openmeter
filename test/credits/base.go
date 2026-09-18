@@ -27,6 +27,8 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -59,6 +61,7 @@ type BaseSuite struct {
 	BalanceQuerier       ledger.BalanceQuerier
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
+	AdvanceService       advance.Service
 	BreakageService      ledgerbreakage.Service
 	CreditVoidService    creditvoid.Service
 	FlatFeeHandler       flatfee.Handler
@@ -76,6 +79,7 @@ func (s *BaseSuite) SetupSuite() {
 	deps, err := ledgertestutils.InitDeps(s.DBClient, logger)
 	s.NoError(err)
 
+	s.AdvanceService = advancetestutils.NewService(s.T(), deps)
 	s.Ledger = deps.HistoricalLedger
 	s.BalanceQuerier = deps.HistoricalLedger
 	s.LedgerAccountService = deps.AccountService
@@ -162,7 +166,15 @@ func (s *BaseSuite) SetupSuite() {
 	)
 	s.FlatFeeHandler = flatFeeHandler
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService, breakageService, transactionManager)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
+		deps.HistoricalLedger,
+		deps.HistoricalLedger,
+		deps.ResolversService,
+		deps.AccountService,
+		s.AdvanceService,
+		breakageService,
+		transactionManager,
+	)
 	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
