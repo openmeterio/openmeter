@@ -356,7 +356,10 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 						// Note: keep the error local, so a failed write-back does not prevent the delivery
 						// status from being finalized.
-						if err := h.disableChannelForProvider(ctx, event.Namespace, status.ChannelID); err != nil {
+						if err := h.disableChannelForProvider(ctx, models.NamespacedID{
+							Namespace: event.Namespace,
+							ID:        status.ChannelID,
+						}); err != nil {
 							errs = append(errs, fmt.Errorf("failed to mirror provider-side channel disable: %w", err))
 						}
 
@@ -622,11 +625,15 @@ func eventAsPayload(event *notification.Event) (webhook.Payload, error) {
 //
 // The channel is updated through the repository rather than the service on purpose: the service
 // would push the state we just read back to the provider.
-func (h *Handler) disableChannelForProvider(ctx context.Context, namespace, channelID string) error {
-	channel, err := h.repo.GetChannel(ctx, notification.GetChannelInput{
-		Namespace: namespace,
-		ID:        channelID,
-	})
+//
+// The read and the write are not atomic: a channel update landing between them is reverted, and a
+// user re-enabling the channel in that window ends up with the channel disabled while the provider
+// endpoint stays enabled, until the channel is updated once more. Ordering the two writers would
+// take a row lock shared with the channel service, or a channel revision carried from the provider
+// observation through to this write. Neither is worth its cost while channel updates stay as rare
+// as they are in practice; revisit if that changes.
+func (h *Handler) disableChannelForProvider(ctx context.Context, channelID models.NamespacedID) error {
+	channel, err := h.repo.GetChannel(ctx, notification.GetChannelInput(channelID))
 	if err != nil {
 		return fmt.Errorf("failed to get channel: %w", err)
 	}

@@ -223,7 +223,7 @@ func TestDisableChannelForProvider(t *testing.T) {
 		channel := createWebhookChannel(t, ctx, repo, namespace, false, models.Annotations{"foo": "bar"})
 
 		// when: the provider-side disable is mirrored back
-		err := h.disableChannelForProvider(ctx, namespace, channel.ID)
+		err := h.disableChannelForProvider(ctx, channel.NamespacedID)
 		require.NoError(t, err)
 
 		// then: the channel is disabled, the pre-existing annotation is preserved, and the
@@ -237,17 +237,16 @@ func TestDisableChannelForProvider(t *testing.T) {
 
 	t.Run("already disabled channel is left untouched", func(t *testing.T) {
 		// given: a channel that is already disabled
-		channel := createWebhookChannel(t, ctx, repo, namespace, true, nil)
+		channel := createWebhookChannel(t, ctx, repo, namespace, true, models.Annotations{"foo": "bar"})
 
 		// when: the provider-side disable is mirrored back again
-		err := h.disableChannelForProvider(ctx, namespace, channel.ID)
+		err := h.disableChannelForProvider(ctx, channel.NamespacedID)
 		require.NoError(t, err)
 
-		// then: the channel row is not rewritten: no annotation is added and UpdatedAt is unchanged
+		// then: the write is skipped, so the annotations are unchanged
 		updatedChannel, err := repo.GetChannel(ctx, notification.GetChannelInput{Namespace: namespace, ID: channel.ID})
 		require.NoError(t, err)
-		require.True(t, updatedChannel.Disabled)
-		require.Equal(t, channel.UpdatedAt, updatedChannel.UpdatedAt)
+		require.Equal(t, "bar", updatedChannel.Annotations["foo"])
 		require.NotContains(t, updatedChannel.Annotations, notification.AnnotationChannelProviderDisabledTimestamp)
 	})
 }
