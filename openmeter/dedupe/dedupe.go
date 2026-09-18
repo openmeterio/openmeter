@@ -17,6 +17,8 @@ type Deduplicator interface {
 	CheckUnique(ctx context.Context, item Item) (bool, error)
 	// Set adds the item(s) to the deduplicator
 	Set(ctx context.Context, events ...Item) ([]Item, error)
+	// Remove deletes the item(s) from the deduplication index, releasing a previously made claim.
+	Remove(ctx context.Context, items ...Item) error
 	// CheckUniqueBatch checks if a batch of items is unique.
 	CheckUniqueBatch(ctx context.Context, items []Item) (CheckUniqueBatchResult, error)
 	// Close cleans up resources
