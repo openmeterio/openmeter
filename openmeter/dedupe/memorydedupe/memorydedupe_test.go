@@ -92,3 +92,17 @@ func TestReleaseDoesNotDeleteReacquiredClaim(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, unique)
 }
+
+func TestReleaseRejectsEmptyToken(t *testing.T) {
+	deduplicator, err := memorydedupe.NewDeduplicator(1024)
+	require.NoError(t, err)
+	item := dedupe.Item{Namespace: "default", ID: "id", Source: "source"}
+	_, err = deduplicator.Set(t.Context(), item)
+	require.NoError(t, err)
+
+	err = deduplicator.Release(t.Context(), dedupe.Claim{Item: item})
+	require.EqualError(t, err, "claim token is empty")
+	unique, err := deduplicator.CheckUnique(t.Context(), item)
+	require.NoError(t, err)
+	require.False(t, unique)
+}
