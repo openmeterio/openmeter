@@ -59,10 +59,13 @@ func (d Deduplicator) Claim(ctx context.Context, item dedupe.Item) (dedupe.Claim
 	if d.Mode == DedupeModeKeyHashMigration {
 		exists, err := d.Redis.Exists(ctx, item.Key()).Result()
 		if err != nil {
+			if releaseErr := d.releaseDetached(ctx, claim); releaseErr != nil {
+				return dedupe.Claim{}, false, errors.Join(err, releaseErr)
+			}
 			return dedupe.Claim{}, false, err
 		}
 		if exists == 1 {
-			if err := d.Release(ctx, claim); err != nil {
+			if err := d.releaseDetached(ctx, claim); err != nil {
 				return dedupe.Claim{}, false, err
 			}
 			return dedupe.Claim{}, false, nil
@@ -151,6 +154,9 @@ func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.I
 
 // Release deletes a claim only if the stored ownership token still matches.
 func (d Deduplicator) Release(ctx context.Context, claim dedupe.Claim) error {
+	if claim.Token == "" {
+		return errors.New("claim token is empty")
+	}
 	if d.Redis == nil {
 		return errors.New("redis client not initialized")
 	}
@@ -167,6 +173,13 @@ func (d Deduplicator) Release(ctx context.Context, claim dedupe.Claim) error {
 		return fmt.Errorf("failed to release claim in redis: %w", err)
 	}
 	return nil
+}
+
+func (d Deduplicator) releaseDetached(ctx context.Context, claim dedupe.Claim) error {
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+
+	return d.Release(cleanupCtx, claim)
 }
 
 // Close closes underlying redis client
