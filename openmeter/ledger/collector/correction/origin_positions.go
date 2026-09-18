@@ -1,4 +1,4 @@
-package collector
+package correction
 
 import (
 	"context"
@@ -16,7 +16,7 @@ const unknownOriginSource = "uncovered"
 // readOriginPositions reads amounts from the ledger. Original postings supply
 // order and reversal routes only; their template codes do not define the state.
 // Include all committed movements, as correction may itself be backdated.
-func (c *accrualCorrector) readOriginPositions(ctx context.Context, input CorrectCollectedAccruedInput, id string, history originReferences, original *originPair) ([]correctionPosition, error) {
+func (c *Corrector) readOriginPositions(ctx context.Context, input Input, id string, history originReferences, original *originPair) ([]correctionPosition, error) {
 	buckets, err := c.deps.BalanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: input.Namespace,
 		Filters: ledger.Filters{Provenance: ledger.ProvenanceFilter{
@@ -50,7 +50,7 @@ func (c *accrualCorrector) readOriginPositions(ctx context.Context, input Correc
 			p.earnings = p.earnings.Add(bucket.SettledAmount)
 		case ledger.AccountTypeCustomerReceivable:
 			if original.role == originRoleCoverage {
-				p.coverage = p.coverage.Add(bucket.SettledAmount)
+				p.receivable = p.receivable.Add(bucket.SettledAmount)
 			}
 		}
 
@@ -80,7 +80,7 @@ func (c *accrualCorrector) readOriginPositions(ctx context.Context, input Correc
 	var out []correctionPosition
 
 	for _, p := range positions {
-		if !p.amount().IsZero() {
+		if !p.remainingCorrectableAmount().IsZero() {
 			out = append(out, p)
 		}
 	}

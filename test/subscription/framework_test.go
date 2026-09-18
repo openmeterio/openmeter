@@ -211,6 +211,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		advanceService := advancetestutils.NewService(t, ledgerDeps, breakageService)
 
 		collector, err := ledgercollector.NewService(ledgercollector.Config{
+			Logger:             logger,
 			Advance:            advanceService,
 			Ledger:             ledgerDeps.HistoricalLedger,
 			Dependencies:       resolverDeps,

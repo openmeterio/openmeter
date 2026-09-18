@@ -1,8 +1,9 @@
-package collector
+package correction
 
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -17,6 +18,130 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// legacyCorrectionBatch shares source reservations and deferred template corrections
+// across allocations in one correction request.
+type legacyCorrectionBatch struct {
+	corrector   *Corrector
+	input       Input
+	used        map[string]alpacadecimal.Decimal
+	corrections []transactions.CorrectionInput
+}
+
+func (b *legacyCorrectionBatch) prepare(ctx context.Context, correction creditrealization.CorrectionRequestItem, source collectedSource) (correctionPlan, error) {
+	if b.used == nil {
+		used, err := b.corrector.correctedSourceAmounts(ctx, b.input)
+		if err != nil {
+			return correctionPlan{}, err
+		}
+
+		b.used = used
+	}
+
+	segments := b.input.LineageSegmentsByRealization[correction.Allocation.ID]
+
+	var plan legacyCorrectionPlan
+	var annotations models.Annotations
+	var err error
+
+	if len(segments) == 0 {
+		// Collections without lineage can only use original entries and correction links.
+		plan, err = b.corrector.planUntrackedCorrection(ctx, b.input, source, correction.Amount.Abs(), b.used)
+	} else {
+		positions, evidence, readErr := b.corrector.readLegacyPositions(ctx, b.input, source, segments, b.used)
+		if readErr != nil {
+			return correctionPlan{}, readErr
+		}
+
+		selected, selectErr := planCollectionCorrection(collectionCorrectionInput{
+			amount:    correction.Amount.Abs(),
+			positions: positions,
+		})
+		if selectErr != nil {
+			return correctionPlan{}, selectErr
+		}
+
+		// map[legacyLineageSegmentID]selectedCorrectionAmount for this allocation.
+		selectedSegments := make(map[string]alpacadecimal.Decimal)
+		plan, err = b.corrector.writeLegacyCorrection(ctx, b.input, selected, evidence, b.used, selectedSegments)
+		if err != nil {
+			return correctionPlan{}, err
+		}
+
+		annotations, err = legacylineage.CorrectionAnnotations(selectedSegments)
+	}
+
+	if err != nil {
+		return correctionPlan{}, err
+	}
+
+	b.corrections = append(b.corrections, plan.legacyCorrections...)
+	plan.realizations = append(plan.realizations, creditrealization.CreateCorrectionInput{
+		Annotations:           annotations,
+		Amount:                correction.Amount,
+		CorrectsRealizationID: correction.Allocation.ID,
+	})
+
+	return plan.correctionPlan, nil
+}
+
+// Resolve after merging: template correction must see one amount per original transaction.
+func (b *legacyCorrectionBatch) resolve(ctx context.Context) (correctionPlan, error) {
+	var plan correctionPlan
+
+	corrections, err := b.mergedCorrections()
+	if err != nil {
+		return correctionPlan{}, err
+	}
+
+	for _, correction := range corrections {
+		breakageInputs, pending, err := b.corrector.resolveBreakageReopenInputs(ctx, b.input, correction)
+		if err != nil {
+			return correctionPlan{}, err
+		}
+
+		postings, err := transactions.CorrectTransaction(ctx, b.corrector.deps, correction)
+		if err != nil {
+			return correctionPlan{}, fmt.Errorf("correct transaction %s: %w", correction.OriginalTransaction.ID().ID, err)
+		}
+
+		plan.inputs = append(plan.inputs, breakageInputs...)
+		plan.inputs = append(plan.inputs, postings...)
+		plan.breakagePending = append(plan.breakagePending, pending...)
+	}
+
+	return plan, nil
+}
+
+func (b legacyCorrectionBatch) mergedCorrections() ([]transactions.CorrectionInput, error) {
+	out := make([]transactions.CorrectionInput, 0, len(b.corrections))
+	byTransaction := make(map[models.NamespacedID]int)
+
+	for _, correction := range b.corrections {
+		id := correction.OriginalTransaction.ID()
+		idx, exists := byTransaction[id]
+		if !exists {
+			byTransaction[id] = len(out)
+			correction.SourceEntryAmounts = maps.Clone(correction.SourceEntryAmounts)
+			out = append(out, correction)
+
+			continue
+		}
+
+		existing := &out[idx]
+		if (existing.SourceEntryAmounts == nil) != (correction.SourceEntryAmounts == nil) {
+			return nil, fmt.Errorf("cannot merge scoped and unscoped corrections of transaction %s", id.ID)
+		}
+
+		existing.Amount = existing.Amount.Add(correction.Amount)
+
+		for entryID, amount := range correction.SourceEntryAmounts {
+			existing.SourceEntryAmounts[entryID] = existing.SourceEntryAmounts[entryID].Add(amount)
+		}
+	}
+
+	return out, nil
+}
+
 type legacyCorrectionPart struct {
 	segment legacylineage.Segment
 	amount  alpacadecimal.Decimal
@@ -30,7 +155,7 @@ type legacyCorrectionEvidence struct {
 // readLegacyPositions adapts active compatibility segments to economic sources.
 // Recognition refers back to its original backing, so its recording time cannot
 // promote old funding ahead of a more recent purchase.
-func (c *accrualCorrector) readLegacyPositions(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segments []legacylineage.Segment, used map[string]alpacadecimal.Decimal) ([]correctionPosition, map[string]legacyCorrectionEvidence, error) {
+func (c *Corrector) readLegacyPositions(ctx context.Context, input Input, source collectedSource, segments []legacylineage.Segment, used map[string]alpacadecimal.Decimal) ([]correctionPosition, map[string]legacyCorrectionEvidence, error) {
 	if source.advanceReceivableIssueTransaction == nil {
 		return c.readLegacyFundedPositions(ctx, input, source, segments, used)
 	}
@@ -65,6 +190,7 @@ func (c *accrualCorrector) readLegacyPositions(ctx context.Context, input Correc
 				id:        key,
 				uncovered: key == unknownOriginSource,
 			}
+
 			if !position.uncovered {
 				group, err := c.ledger.GetTransactionGroup(ctx, models.NamespacedID{
 					Namespace: input.Namespace,
@@ -115,7 +241,7 @@ func (c *accrualCorrector) readLegacyPositions(ctx context.Context, input Correc
 // Old funded roots can collapse several original credit entries. Split them
 // back along those immutable entries and intersect recognition with its actual
 // accrued routes before presenting positions to the common planner.
-func (c *accrualCorrector) readLegacyFundedPositions(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, segments []legacylineage.Segment, used map[string]alpacadecimal.Decimal) ([]correctionPosition, map[string]legacyCorrectionEvidence, error) {
+func (c *Corrector) readLegacyFundedPositions(ctx context.Context, input Input, source collectedSource, segments []legacylineage.Segment, used map[string]alpacadecimal.Decimal) ([]correctionPosition, map[string]legacyCorrectionEvidence, error) {
 	entries := slices.Clone(source.entries)
 	slices.SortStableFunc(entries, compareCollectedFBOCorrectionSourceEntries)
 	positions := make([]correctionPosition, len(entries))
@@ -128,6 +254,7 @@ func (c *accrualCorrector) readLegacyFundedPositions(ctx context.Context, input 
 			id:    id,
 			order: i,
 		}
+
 		narrowed := source
 		narrowed.entries = []ledger.Entry{entry}
 		evidence[id] = legacyCorrectionEvidence{source: narrowed}
@@ -209,7 +336,7 @@ func (c *accrualCorrector) readLegacyFundedPositions(ctx context.Context, input 
 			}
 
 			if segment.State == creditrealization.LineageSegmentStateReceivableCoverage {
-				positions[i].coverage = positions[i].coverage.Add(take)
+				positions[i].receivable = positions[i].receivable.Add(take)
 			} else {
 				positions[i].accrued = positions[i].accrued.Add(take)
 			}
@@ -265,8 +392,8 @@ func legacyRecognitionMatchesSource(source collectedSource, fbo, recognized ledg
 
 // writeLegacyCorrection translates exact planner selections. State only chooses
 // the posting mechanics within the selected source; it cannot reorder sources.
-func (c *accrualCorrector) writeLegacyCorrection(ctx context.Context, input CorrectCollectedAccruedInput, selected []correctionSelection, evidence map[string]legacyCorrectionEvidence, used, selectedSegments map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
-	var actions []plannedAction
+func (c *Corrector) writeLegacyCorrection(ctx context.Context, input Input, selected []correctionSelection, evidence map[string]legacyCorrectionEvidence, used, selectedSegments map[string]alpacadecimal.Decimal) (legacyCorrectionPlan, error) {
+	var plan legacyCorrectionPlan
 
 	for _, selection := range selected {
 		e := evidence[selection.id]
@@ -289,26 +416,26 @@ func (c *accrualCorrector) writeLegacyCorrection(ctx context.Context, input Corr
 
 				resolved, err := c.planSegmentCorrection(ctx, input, e.source, part.segment, take, used)
 				if err != nil {
-					return nil, err
+					return legacyCorrectionPlan{}, err
 				}
 
-				actions = append(actions, resolved...)
+				plan.append(resolved)
 				selectedSegments[part.segment.ID] = selectedSegments[part.segment.ID].Add(take)
 				remaining = remaining.Sub(take)
 			}
 
 			if remaining.IsPositive() {
-				return nil, fmt.Errorf("legacy selection exceeds its source evidence")
+				return legacyCorrectionPlan{}, fmt.Errorf("legacy selection exceeds its source evidence")
 			}
 		}
 	}
 
-	return actions, nil
+	return plan, nil
 }
 
 // Pre-lineage collections have only their original entries and correction links.
 // They use the same source-order planner without inventing downstream evidence.
-func (c *accrualCorrector) planUntrackedCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *Corrector) planUntrackedCorrection(ctx context.Context, input Input, source collectedSource, amount alpacadecimal.Decimal, used map[string]alpacadecimal.Decimal) (legacyCorrectionPlan, error) {
 	entries := slices.Clone(source.entries)
 	slices.SortStableFunc(entries, compareCollectedFBOCorrectionSourceEntries)
 
@@ -331,34 +458,35 @@ func (c *accrualCorrector) planUntrackedCorrection(ctx context.Context, input Co
 		positions: positions,
 	})
 	if err != nil {
-		return nil, err
+		return legacyCorrectionPlan{}, err
 	}
 
-	var actions []plannedAction
+	var plan legacyCorrectionPlan
 
 	for _, selection := range selected {
 		narrowed := source
 		narrowed.entries = []ledger.Entry{byID[selection.id]}
 
-		var planned []plannedAction
+		var planned legacyCorrectionPlan
 		var err error
 
 		if source.advanceReceivableIssueTransaction != nil {
 			planned, err = c.planLegacyAdvanceCorrection(ctx, input, narrowed, nil, selection.amount)
 		} else {
-			planned, err = plannedSourceCorrectionActions(narrowed, selection.amount, used)
-		}
-		if err != nil {
-			return nil, err
+			planned, err = planSourceCorrection(input.AllocateAt, narrowed, selection.amount, used)
 		}
 
-		actions = append(actions, planned...)
+		if err != nil {
+			return legacyCorrectionPlan{}, err
+		}
+
+		plan.append(planned)
 	}
 
-	return actions, nil
+	return plan, nil
 }
 
-func (c *accrualCorrector) planLegacyAdvanceCorrection(ctx context.Context, input CorrectCollectedAccruedInput, source collectedSource, backingGroupID *string, amount alpacadecimal.Decimal) ([]plannedAction, error) {
+func (c *Corrector) planLegacyAdvanceCorrection(ctx context.Context, input Input, source collectedSource, backingGroupID *string, amount alpacadecimal.Decimal) (legacyCorrectionPlan, error) {
 	plan, err := c.advance.PlanLegacyCorrection(ctx, advance.LegacyCorrectionInput{
 		CustomerID: customer.CustomerID{
 			Namespace: input.Namespace,
@@ -373,23 +501,14 @@ func (c *accrualCorrector) planLegacyAdvanceCorrection(ctx context.Context, inpu
 		BackingGroupID: backingGroupID,
 	})
 	if err != nil {
-		return nil, err
+		return legacyCorrectionPlan{}, err
 	}
 
-	actions := make([]plannedAction, 0, len(plan.LegacyCorrections)+1)
-
-	for _, correction := range plan.LegacyCorrections {
-		actions = append(actions, plannedTransactionCorrection{
-			transaction: correction.OriginalTransaction,
-			group:       correction.OriginalGroup,
-			amount:      correction.Amount,
-		})
-	}
-
-	actions = append(actions, plannedDirectInputs{
-		inputs:          plan.Inputs,
-		breakagePending: plan.BreakagePending,
-	})
-
-	return actions, nil
+	return legacyCorrectionPlan{
+		correctionPlan: correctionPlan{
+			inputs:          plan.Inputs,
+			breakagePending: plan.BreakagePending,
+		},
+		legacyCorrections: plan.LegacyCorrections,
+	}, nil
 }

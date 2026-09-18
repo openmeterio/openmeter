@@ -10,8 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// A purchase can backfill multiple spends in one group. Match the original
-// unknown-cost route and spend rather than taking the group's first template.
+// A purchase can backfill legacy and origin-tracked advances in one group.
+// Match the original unknown-cost route and provenance.
 type LegacyBackfillTransactionInput struct {
 	Group        ledger.TransactionGroup
 	Original     ledger.Transaction
@@ -41,7 +41,7 @@ func (i LegacyBackfillTransactionInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// FindLegacyBackfillTransaction matches the original unknown-cost route and spend.
+// FindLegacyBackfillTransaction matches the original unknown-cost route and provenance.
 func FindLegacyBackfillTransaction(input LegacyBackfillTransactionInput) (ledger.Transaction, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
@@ -93,12 +93,13 @@ func FindLegacyBackfillTransaction(input LegacyBackfillTransactionInput) (ledger
 	return found, nil
 }
 
-type legacyPostingKey struct{ subAccountID, sourceChargeID, spendChargeID string }
+type legacyPostingKey struct{ subAccountID, sourceChargeID, spendChargeID, collectionOriginID string }
 
 func legacyEntryKey(entry ledger.EntryInput) legacyPostingKey {
 	return legacyPostingKey{
-		subAccountID:   entry.PostingAddress().SubAccountID(),
-		sourceChargeID: lo.FromPtrOr(entry.Provenance().SourceChargeID, ""),
-		spendChargeID:  lo.FromPtrOr(entry.Provenance().SpendChargeID, ""),
+		subAccountID:       entry.PostingAddress().SubAccountID(),
+		sourceChargeID:     lo.FromPtrOr(entry.Provenance().SourceChargeID, ""),
+		spendChargeID:      lo.FromPtrOr(entry.Provenance().SpendChargeID, ""),
+		collectionOriginID: lo.FromPtrOr(entry.Provenance().CollectionOriginID, ""),
 	}
 }

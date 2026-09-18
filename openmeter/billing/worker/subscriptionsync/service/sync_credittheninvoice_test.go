@@ -86,6 +86,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 	advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Logger:  logger,
 		Advance: advanceService,
 		Ledger:  ledgerDeps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{

@@ -64,6 +64,7 @@ func NewChargesMetaAdapter(
 }
 
 func NewChargesCollectorService(
+	logger *slog.Logger,
 	db *entdb.Client,
 	ledgerService ledger.Ledger,
 	balanceQuerier ledger.BalanceQuerier,
@@ -73,6 +74,7 @@ func NewChargesCollectorService(
 	breakageService ledgerbreakage.Service,
 ) (ledgercollector.Service, error) {
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Logger:  logger,
 		Advance: advanceService,
 		Ledger:  ledgerService,
 		Dependencies: transactions.ResolverDependencies{
@@ -477,6 +479,7 @@ func newChargesRegistry(
 
 	transactionManager := enttx.NewCreator(db)
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Logger:  logger,
 		Advance: advanceService,
 		Ledger:  ledgerService,
 		Dependencies: transactions.ResolverDependencies{

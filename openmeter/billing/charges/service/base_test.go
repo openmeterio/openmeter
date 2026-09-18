@@ -52,6 +52,7 @@ import (
 	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -186,6 +187,7 @@ func (s *BaseSuite) SetupSuite() {
 		advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
 
 		collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+			Logger:             omtestutils.NewDiscardLogger(s.T()),
 			Advance:            advanceService,
 			Ledger:             ledgerDeps.HistoricalLedger,
 			Dependencies:       ledgerResolverDeps,

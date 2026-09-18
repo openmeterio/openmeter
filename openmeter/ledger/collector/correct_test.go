@@ -18,9 +18,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/collector/correction"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -76,7 +78,7 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	corrections, err := corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	corrections, err := corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendChargeID,
 		CustomerID:  env.CustomerID.ID,
@@ -146,7 +148,7 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 	require.NoError(t, err)
 	require.Len(t, corrections, 2) // the 20 correction spans the unrestricted source and part of the restricted source.
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    chargeID,
 		CustomerID:  env.CustomerID.ID,
@@ -220,7 +222,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    chargeID,
 		CustomerID:  env.CustomerID.ID,
@@ -297,7 +299,7 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -380,7 +382,7 @@ func TestCorrectCollectedAccruedPreservesSourceAndSpendBuckets(t *testing.T) {
 	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -430,7 +432,7 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	require.Len(t, allocations, 1) // credit-only shortfall creates one advance-backed allocation.
 
 	realizations := realizationsFromAllocations(env, allocations)
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:  env.Namespace,
 		ChargeID:   chargeID,
 		CustomerID: env.CustomerID.ID,
@@ -516,7 +518,7 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, corrections, 1)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -744,7 +746,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, corrections, 2)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -991,7 +993,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	//   untouched
 	usdRealization := realizationsFromAllocations(env, usdAllocations)[0]
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:  env.Namespace,
 		ChargeID:   usdChargeID,
 		CustomerID: env.CustomerID.ID,
@@ -1015,20 +1017,24 @@ func newTestAccrualCorrector(
 	t testing.TB,
 	env *ledgertestutils.IntegrationEnv,
 	breakageService ledgerbreakage.Service,
-) *accrualCorrector {
+) *correction.Corrector {
 	t.Helper()
 
-	return &accrualCorrector{
-		advance: advancetestutils.NewService(t, env.Deps, breakageService),
-		ledger:  env.Deps.HistoricalLedger,
-		deps: transactions.ResolverDependencies{
+	corrector, err := correction.New(correction.Config{
+		Logger:  omtestutils.NewDiscardLogger(t),
+		Advance: advancetestutils.NewService(t, env.Deps, breakageService),
+		Ledger:  env.Deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
 			AccountService: env.Deps.ResolversService,
 			AccountCatalog: env.Deps.AccountService,
 			BalanceQuerier: env.Deps.HistoricalLedger,
 		},
-		breakage:           breakageService,
-		transactionManager: enttx.NewCreator(env.DB),
-	}
+		Breakage:           breakageService,
+		TransactionManager: enttx.NewCreator(env.DB),
+	})
+	require.NoError(t, err)
+
+	return corrector
 }
 
 func testServicePeriod(env *ledgertestutils.IntegrationEnv) timeutil.ClosedPeriod {
@@ -1085,7 +1091,7 @@ func TestCorrectCollectedAccruedResumesCollapsedSourceSuffix(t *testing.T) {
 		allocation int
 		amount     int64
 	}{{1, 5}, {0, 10}, {0, 15}} {
-		_, err := corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+		_, err := corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 			Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID, AllocateAt: env.Now(),
 			Corrections: creditrealization.CorrectionRequest{{Allocation: realizations[correction.allocation], Amount: alpacadecimal.NewFromInt(-correction.amount)}},
 		})
@@ -1105,6 +1111,12 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-shared-backfill")
 	env.Currency = "ACME"
 	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
+	deps := transactions.ResolverDependencies{
+		AccountService: env.Deps.ResolversService,
+		AccountCatalog: env.Deps.AccountService,
+		BalanceQuerier: env.Deps.HistoricalLedger,
+	}
+
 	spends := []string{testChargeID(1), testChargeID(2)}
 	purchase := testChargeID(3)
 	var allocations creditrealization.Realizations
@@ -1119,7 +1131,7 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 		// retained lineage corrector, while origin lifecycles exercise the new path.
 		inputs, err := transactions.ResolveTransactions(
 			t.Context(),
-			corrector.deps,
+			deps,
 			transactions.ResolutionScope{
 				Namespace:  env.Namespace,
 				CustomerID: env.CustomerID,
@@ -1178,13 +1190,13 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID,
 	}
-	inputs, err := transactions.ResolveTransactions(t.Context(), corrector.deps, scope, templates...)
+	inputs, err := transactions.ResolveTransactions(t.Context(), deps, scope, templates...)
 	require.NoError(t, err)
 
 	backing, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
 
-	inputs, err = transactions.ResolveTransactions(t.Context(), corrector.deps, scope, transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+	inputs, err = transactions.ResolveTransactions(t.Context(), deps, scope, transactions.RecognizeEarningsFromAttributableAccruedTemplate{
 		At:       env.Now(),
 		Amount:   alpacadecimal.NewFromInt(60),
 		Currency: env.CurrencyReference(),
@@ -1196,7 +1208,7 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 
 	// when: repeatedly correct the second spend, whose backfill transaction is not first.
 	for _, correction := range []int64{10, 20} {
-		_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+		_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 			Namespace:  env.Namespace,
 			ChargeID:   spends[1],
 			CustomerID: env.CustomerID.ID,

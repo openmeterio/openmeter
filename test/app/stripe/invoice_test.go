@@ -45,6 +45,7 @@ import (
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -134,6 +135,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 	advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+		Logger:  omtestutils.NewDiscardLogger(s.T()),
 		Advance: advanceService,
 		Ledger:  ledgerDeps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
