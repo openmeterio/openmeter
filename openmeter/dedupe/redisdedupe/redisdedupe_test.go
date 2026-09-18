@@ -48,6 +48,10 @@ func (h *lookupHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
 			for _, arg := range cmd.Args()[1:] {
 				if h.keys[arg.(string)] {
 					count++
+
+					if cmd.Name() == "del" {
+						delete(h.keys, arg.(string))
+					}
 				}
 			}
 			cmd.SetVal(count)
@@ -146,4 +150,39 @@ func TestCheckUniqueBatchInvalidMode(t *testing.T) {
 	d := Deduplicator{Redis: client, Mode: DedupeMode("invalid")}
 	_, err := d.CheckUniqueBatch(t.Context(), []dedupe.Item{{ID: "id"}})
 	require.Error(t, err)
+}
+
+func TestRemove(t *testing.T) {
+	for _, mode := range []DedupeMode{DedupeModeRawKey, DedupeModeKeyHash, DedupeModeKeyHashMigration} {
+		t.Run(string(mode), func(t *testing.T) {
+			item := dedupe.Item{Namespace: "ns", Source: "source", ID: "id"}
+
+			// claimedKey is the key IsUnique would have created for the item in this mode.
+			claimedKey := item.Key()
+			if mode != DedupeModeRawKey {
+				claimedKey = GetKeyHash(item.Key())
+			}
+
+			hook := &lookupHook{keys: map[string]bool{
+				claimedKey: true,
+				// A pre-existing raw-format key may belong to an event ingested before
+				// the keyhash migration, so it must survive the release.
+				item.Key(): true,
+			}}
+			client := redis.NewClient(&redis.Options{})
+			t.Cleanup(func() { require.NoError(t, client.Close()) })
+			client.AddHook(hook)
+			d := Deduplicator{Redis: client, Mode: mode}
+
+			require.NoError(t, d.Remove(t.Context(), item))
+			require.NotContains(t, hook.keys, claimedKey)
+
+			if mode == DedupeModeKeyHashMigration {
+				require.Contains(t, hook.keys, item.Key())
+			}
+
+			hook.err = errors.New("redis unavailable")
+			require.ErrorIs(t, d.Remove(t.Context(), item), hook.err)
+		})
+	}
 }
