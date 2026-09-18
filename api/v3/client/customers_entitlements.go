@@ -13,6 +13,7 @@ import (
 
 type CustomersEntitlementsService struct {
 	client *Client
+	Grants *CustomersEntitlementsGrantsService
 }
 
 type GetCustomerEntitlementHistoryParams struct {

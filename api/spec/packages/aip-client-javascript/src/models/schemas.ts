@@ -4888,6 +4888,38 @@ export const entitlementBoolean = z
   })
   .describe('A boolean entitlement grants access to a feature.')
 
+export const entitlementGrant = z
+  .object({
+    id: ulid,
+    entitlementId: ulid,
+    amount: numeric,
+    priority: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(255)
+
+      .describe(
+        'The priority of the grant. Lower values have higher priority: a priority of 1 is more urgent than a priority of 2. When several grants are available, the one with the highest priority is consumed first; among equal priorities the one closest to expiration wins, then the earliest created.',
+      ),
+    effectiveAt: dateTime,
+    expiresAfter: iso8601Duration.optional(),
+    expiresAt: dateTime.optional(),
+    maxRolloverAmount: numeric,
+    minRolloverAmount: numeric,
+    recurrence: recurringPeriod.optional(),
+    nextRecurrence: dateTime.optional(),
+    voidedAt: dateTime.optional(),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+  })
+
+  .describe(
+    "A grant issued for a metered entitlement. Grants define the usage allowance the entitlement's balance is burnt down from: each grant is in effect between its effective time and its expiration, and grants are consumed in priority order. Grants are immutable once created, so the balance is deterministic regardless of when it is queried. They can only be deleted, which ends them at the time of the deletion.",
+  )
+
 export const workflowCollectionAlignmentAnchored = z
   .object({
     type: z.literal('anchored').describe('The type of alignment.'),
@@ -5719,6 +5751,13 @@ export const entitlement = z
     entitlementBoolean,
   ])
   .describe('An entitlement grants a customer access to a feature.')
+
+export const entitlementGrantPagePaginatedResponse = z
+  .object({
+    data: z.array(entitlementGrant),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
 
 export const workflowCollectionAlignment = z
   .discriminatedUnion('type', [
@@ -7894,6 +7933,35 @@ export const getEntitlementPathParams = z.object({
 })
 
 export const getEntitlementResponse = entitlement
+
+export const listCustomerEntitlementGrantsPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const listCustomerEntitlementGrantsQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  includeDeleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listCustomerEntitlementGrantsResponse = z.object({
+  data: z.array(entitlementGrant),
+  meta: paginatedMeta,
+})
 
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
@@ -13658,6 +13726,38 @@ export const entitlementBooleanWire = z
   })
   .describe('A boolean entitlement grants access to a feature.')
 
+export const entitlementGrantWire = z
+  .strictObject({
+    id: ulidWire,
+    entitlement_id: ulidWire,
+    amount: numericWire,
+    priority: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(255)
+
+      .describe(
+        'The priority of the grant. Lower values have higher priority: a priority of 1 is more urgent than a priority of 2. When several grants are available, the one with the highest priority is consumed first; among equal priorities the one closest to expiration wins, then the earliest created.',
+      ),
+    effective_at: dateTimeWire,
+    expires_after: iso8601DurationWire.optional(),
+    expires_at: dateTimeWire.optional(),
+    max_rollover_amount: numericWire,
+    min_rollover_amount: numericWire,
+    recurrence: recurringPeriodWire.optional(),
+    next_recurrence: dateTimeWire.optional(),
+    voided_at: dateTimeWire.optional(),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+  })
+
+  .describe(
+    "A grant issued for a metered entitlement. Grants define the usage allowance the entitlement's balance is burnt down from: each grant is in effect between its effective time and its expiration, and grants are consumed in priority order. Grants are immutable once created, so the balance is deterministic regardless of when it is queried. They can only be deleted, which ends them at the time of the deletion.",
+  )
+
 export const workflowCollectionAlignmentAnchoredWire = z
   .strictObject({
     type: z.literal('anchored').describe('The type of alignment.'),
@@ -14486,6 +14586,13 @@ export const entitlementWire = z
     entitlementBooleanWire,
   ])
   .describe('An entitlement grants a customer access to a feature.')
+
+export const entitlementGrantPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(entitlementGrantWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
 
 export const workflowCollectionAlignmentWire = z
   .discriminatedUnion('type', [
@@ -16693,6 +16800,41 @@ export const getEntitlementPathParamsWire = z.object({
 })
 
 export const getEntitlementResponseWire = entitlementWire
+
+export const listCustomerEntitlementGrantsPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const listCustomerEntitlementGrantsQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort grants returned in the response. Supported sort attributes are: - `created_at` (default) - `updated_at` - `effective_at` - `expires_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  include_deleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listCustomerEntitlementGrantsResponseWire = z.strictObject({
+  data: z.array(entitlementGrantWire),
+  meta: paginatedMetaWire,
+})
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

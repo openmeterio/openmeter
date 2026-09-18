@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -45,4 +46,8 @@ func (f fakeService) ResetCustomerEntitlementUsage(ctx context.Context, input en
 
 func (f fakeService) DeleteCustomerEntitlement(context.Context, entitlement.DeleteCustomerEntitlementInput) error {
 	return errors.New("not implemented")
+}
+
+func (f fakeService) ListCustomerEntitlementGrants(context.Context, entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, errors.New("not implemented")
 }
