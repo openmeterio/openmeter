@@ -16,10 +16,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-// Service recognizes credit-backed accrued value as earnings. New collections
-// derive eligibility and amounts from origin/source/spend ledger balances;
-// legacy lineage collections retain lineage compatibility. Invoice-backed and
-// source-less accrued value remain deferred.
+// Service recognizes credit-backed accrued value as earnings. Origin-tracked
+// collections derive eligibility and amounts from ledger balances; legacy
+// collections use lineage compatibility. Invoice-backed, source-less, and
+// unknown-cost accrued value remain deferred.
 type Service interface {
 	RecognizeEarnings(ctx context.Context, in RecognizeEarningsInput) (RecognizeEarningsResult, error)
 }
