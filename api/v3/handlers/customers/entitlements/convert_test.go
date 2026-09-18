@@ -219,7 +219,7 @@ func TestExpirationPeriodFromISODuration(t *testing.T) {
 		})
 	}
 
-	rejected := []string{"P1M1D", "P1.5M", "PT30M", "P0D", "-P1M", "P1DT1H"}
+	rejected := []string{"P1M1D", "P1.5M", "PT30M", "P0D", "-P1M", "P1DT1H", "P4294967296D"}
 
 	for _, iso := range rejected {
 		t.Run(iso, func(t *testing.T) {

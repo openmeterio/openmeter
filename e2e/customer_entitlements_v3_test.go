@@ -26,6 +26,7 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 	require.NotNil(t, cust)
 
 	t.Run("metered with grants", func(t *testing.T) {
+		// given a metered feature and a create request carrying one grant
 		f := createMeteredFeature(t, c, "ent_metered_grants")
 		effectiveAt := time.Now().UTC().Truncate(time.Minute)
 
@@ -41,10 +42,12 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 			}},
 		}))
 
+		// when the entitlement is created
 		created, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, req)
 		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, created)
 
+		// then the response reflects the metered request and a second create for the same feature conflicts
 		metered, err := created.AsEntitlementMetered()
 		require.NoError(t, err)
 		require.NotEmpty(t, metered.ID)
@@ -57,12 +60,12 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 		require.Nil(t, metered.Issue)
 		require.Equal(t, "billing", metered.Labels["team"])
 
-		// A feature can only have one active entitlement per customer.
 		_, err = c.Customers.Entitlements.Create(t.Context(), cust.ID, req)
 		requireProblem(t, err, http.StatusConflict)
 	})
 
 	t.Run("metered with issue after reset", func(t *testing.T) {
+		// given a metered feature and a request issuing credits at every reset
 		f := createMeteredFeature(t, c, "ent_metered_issue")
 
 		req := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
@@ -75,9 +78,11 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 			MeasureUsageFrom: lo.ToPtr(lo.Must(v3sdk.EntitlementMeasureUsageFromFromPreset(v3sdk.EntitlementMeasureUsageFromPresetCurrentPeriodStart))),
 		}))
 
+		// when the entitlement is created
 		created, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, req)
 		c.requireStatus(http.StatusCreated, err)
 
+		// then the issue settings and measure-usage-from preset are applied
 		metered, err := created.AsEntitlementMetered()
 		require.NoError(t, err)
 		require.NotNil(t, metered.Issue)
@@ -87,6 +92,7 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 	})
 
 	t.Run("metered rejects issue combined with grants", func(t *testing.T) {
+		// given a request that sets both issue and grants
 		f := createMeteredFeature(t, c, "ent_metered_conflict")
 
 		req := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
@@ -99,11 +105,13 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 			}},
 		}))
 
+		// when the entitlement is created, then the request is rejected as invalid
 		_, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, req)
 		requireProblem(t, err, http.StatusBadRequest)
 	})
 
 	t.Run("static", func(t *testing.T) {
+		// given a feature without a meter and a static config
 		featureKey := uniqueKey("ent_static")
 		f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:  featureKey,
@@ -116,9 +124,11 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 			Config:  map[string]any{"integrations": []any{"github"}},
 		}))
 
+		// when the entitlement is created
 		created, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, req)
 		c.requireStatus(http.StatusCreated, err)
 
+		// then the config round-trips and no usage period is set
 		static, err := created.AsEntitlementStatic()
 		require.NoError(t, err)
 		require.Equal(t, f.ID, static.Feature.ID)
@@ -127,6 +137,7 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 	})
 
 	t.Run("boolean", func(t *testing.T) {
+		// given a feature without a meter
 		featureKey := uniqueKey("ent_boolean")
 		f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:  featureKey,
@@ -138,9 +149,11 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 			Feature: v3sdk.FeatureReference{ID: f.ID},
 		}))
 
+		// when the entitlement is created
 		created, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, req)
 		c.requireStatus(http.StatusCreated, err)
 
+		// then it is bound to the feature and customer
 		boolean, err := created.AsEntitlementBoolean()
 		require.NoError(t, err)
 		require.Equal(t, f.ID, boolean.Feature.ID)
@@ -148,6 +161,7 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 	})
 
 	t.Run("deleted customer", func(t *testing.T) {
+		// given a customer that has been deleted
 		deletedKey := uniqueKey("ent_deleted_customer")
 		deleted, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 			Key:  deletedKey,
@@ -160,15 +174,18 @@ func TestV3CreateCustomerEntitlement(t *testing.T) {
 			Feature: v3sdk.FeatureReference{ID: "01K4WAQ0J99ZZ0MD75HXR112H9"},
 		}))
 
+		// when an entitlement is created for it, then the request fails the precondition
 		_, err = c.Customers.Entitlements.Create(t.Context(), deleted.ID, req)
 		requireProblem(t, err, http.StatusPreconditionFailed)
 	})
 
 	t.Run("unknown customer", func(t *testing.T) {
+		// given a customer ID that does not exist
 		req := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementBooleanRequest(v3sdk.CreateEntitlementBooleanRequest{
 			Feature: v3sdk.FeatureReference{ID: "01K4WAQ0J99ZZ0MD75HXR112H9"},
 		}))
 
+		// when an entitlement is created for it, then the customer is not found
 		_, err := c.Customers.Entitlements.Create(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", req)
 		requireProblem(t, err, http.StatusNotFound)
 	})

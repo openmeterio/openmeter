@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -281,6 +282,10 @@ func expirationPeriodFromISODuration(d datetime.ISODuration) (grant.ExpirationPe
 
 	for _, candidate := range candidates {
 		if candidate.count > 0 && candidate.iso.String() == d.String() {
+			if candidate.count > math.MaxUint32 {
+				return grant.ExpirationPeriod{}, fmt.Errorf("expiration count %d exceeds the supported maximum of %d", candidate.count, math.MaxUint32)
+			}
+
 			return grant.ExpirationPeriod{
 				Count:    uint32(candidate.count),
 				Duration: candidate.duration,
