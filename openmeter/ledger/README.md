@@ -75,9 +75,10 @@ facts stored independently from the journal.
   The same selected slices drive journal postings and lineage transitions;
   customer-wide recognized totals cannot be redistributed across lineages.
 
-[Advance backfill](advance/README.md) selects outstanding advances and builds
-purchase attribution templates. Credit issuance coordinates those templates with
-settlement, breakage, and legacy lineage persistence.
+[Advances](advance/README.md) owns advance creation, backfill, and correction
+postings. Collector selects correction amounts and unwinds earnings; credit
+issuance coordinates backfill with settlement and breakage. Callers commit the
+plans and persist their bookkeeping in the enclosing database transaction.
 
 The historical ledger makes a group atomic, but it does not deduplicate a
 repeated `CommitGroup` call. The initiating domain must make retries safe and

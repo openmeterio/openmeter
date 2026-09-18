@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 )
 
 // originPair retains immutable routes and exact reversal capacity for the writer.
@@ -21,6 +22,15 @@ type originPair struct {
 	positiveEntry ledger.Entry
 	remaining     alpacadecimal.Decimal
 	role          originRole
+}
+
+func (p originPair) correctionSource() advance.CorrectionSource {
+	return advance.CorrectionSource{
+		Transaction:     p.transaction,
+		NegativeEntry:   p.negativeEntry,
+		PositiveEntry:   p.positiveEntry,
+		RemainingAmount: p.remaining,
+	}
 }
 
 // Roles describe account movements, independent of the template implementation.
@@ -59,6 +69,29 @@ func originPairRole(negativeEntry, positiveEntry ledger.Entry) (originRole, erro
 type originReferences struct {
 	transactions []ledger.Transaction
 	pairs        []*originPair
+}
+
+func (h originReferences) attributionForBackfill(backfill *originPair) (*originPair, error) {
+	var attribution *originPair
+
+	for _, pair := range h.pairs {
+		if pair.role != originRoleAttribution || pair.transaction.GroupID() != backfill.transaction.GroupID() ||
+			lo.FromPtr(pair.negativeEntry.Provenance().SourceChargeID) != lo.FromPtr(backfill.positiveEntry.Provenance().SourceChargeID) {
+			continue
+		}
+
+		if attribution != nil {
+			return nil, fmt.Errorf("ambiguous advance attribution for origin")
+		}
+
+		attribution = pair
+	}
+
+	if attribution == nil {
+		return nil, fmt.Errorf("advance backfill has no matching receivable attribution")
+	}
+
+	return attribution, nil
 }
 
 func (c *accrualCorrector) loadOriginReferences(ctx context.Context, namespace, collectionOriginID string) (originReferences, error) {

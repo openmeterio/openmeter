@@ -24,6 +24,7 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -56,7 +57,10 @@ func newOriginTestEnv(t *testing.T, custom bool) *originTestEnv {
 		AccountCatalog: base.Deps.AccountService,
 		BalanceQuerier: base.Deps.HistoricalLedger,
 	}
+	advanceService := advancetestutils.NewService(t, base.Deps, base.breakage)
+
 	collect, err := collector.NewService(collector.Config{
+		Advance:            advanceService,
 		Ledger:             base.Deps.HistoricalLedger,
 		Dependencies:       deps,
 		Breakage:           base.breakage,

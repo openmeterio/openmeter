@@ -81,19 +81,23 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 
 	transactionManager := enttx.NewCreator(s.DBClient)
 
+	breakageService := ledgerbreakage.NewNoopService()
+
+	advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: ledgerDeps.HistoricalLedger,
+		Advance: advanceService,
+		Ledger:  ledgerDeps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: ledgerDeps.ResolversService,
 			AccountCatalog: ledgerDeps.AccountService,
 			BalanceQuerier: ledgerDeps.HistoricalLedger,
 		},
+		Breakage:           breakageService,
 		AccountLocker:      ledgerDeps.AccountService,
 		TransactionManager: transactionManager,
 	})
 	s.NoError(err)
-
-	advanceService := advancetestutils.NewService(s.T(), ledgerDeps)
 
 	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
 		Ledger:             ledgerDeps.HistoricalLedger,
@@ -101,7 +105,7 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 		AccountResolver:    ledgerDeps.ResolversService,
 		AccountCatalog:     ledgerDeps.AccountService,
 		AdvanceService:     advanceService,
-		BreakageService:    ledgerbreakage.NewNoopService(),
+		BreakageService:    breakageService,
 		TransactionManager: transactionManager,
 	})
 	s.NoError(err)

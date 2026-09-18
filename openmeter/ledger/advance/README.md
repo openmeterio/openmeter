@@ -1,9 +1,19 @@
-# Advance backfill
+# Advances
+
+The service plans advance creation, backfill, and correction. It reads ledger
+balances and original entries; it does not maintain a separate advance balance.
+Callers hold customer posting locks and commit the plan and its bookkeeping in
+one database transaction.
+
+`PlanIssue` issues unknown-cost receivable and transfers the uncovered spend into
+accrued. Both transactions share a fresh collection origin and spend charge.
+The collector decides when a shortfall requires an advance.
+
+## Backfill
 
 Backfill attributes outstanding advance receivable and accrued value to purchased
-credit. The package reads ledger balances and original legacy transactions and
-returns attribution templates, consumed credit amounts, and exact legacy
-segment selections. It does not maintain a separate advance balance.
+credit. Planning returns attribution templates, consumed credit amounts, and
+exact legacy segment selections.
 
 Credit-purchase backfill orders collection origins by their original recording
 time and ID, together with legacy advance roots in collection order. Capacity
@@ -28,3 +38,17 @@ The caller holds customer posting locks before planning and commits the template
 in the same database transaction as purchase issuance and legacy persistence.
 It also coordinates breakage releases for the consumed credit. Planning does not
 commit transactions or update legacy lineage.
+
+## Correction
+
+The collector selects amounts and funding sources and unwinds recognized earnings.
+It passes original entry pairs and remaining reversible amounts to `PlanCorrection`.
+Advance correction reverses the selected backfills, reopens their breakage releases,
+restores the purchased credit to its original cost-basis and feature route, then
+reverses the original advance collection and receivable issue. Restored credit is
+not immediately used to backfill other advances.
+
+`PlanLegacyCorrection` uses original transaction groups for legacy histories.
+It returns deferred template corrections so the collector can merge selections
+against the same transaction before resolving them. Both paths return breakage
+records for the caller to persist with the committed group; neither writes lineage.

@@ -72,10 +72,6 @@ func (c *accrualCollector) listCustomerFBOSources(
 	// prioritize FBO sources before breakage reserves source balances.
 	slices.SortStableFunc(sources, cmpx.Compare[fboCollectionSource])
 
-	if c.breakage == nil {
-		return sources, nil
-	}
-
 	return c.mapBreakagePlansToFBOCollectionSources(ctx, customerID, currency, featureKey, asOf, sources)
 }
 

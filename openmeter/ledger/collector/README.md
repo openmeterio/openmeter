@@ -2,7 +2,8 @@
 
 This package turns selected customer FBO credit into accrued value and, for
 custom-currency `credit_then_invoice` overage, fiat receivable coverage.
-Credit-only accrual can also create an advance for an uncovered amount. The
+Credit-only accrual asks [advance](../advance/README.md) to create an advance for
+an uncovered amount. The
 hard part is preserving the exact order of selected sources so later correction
 and breakage flows can undo the same economic slices.
 
@@ -308,6 +309,12 @@ remaining used: T10(2), T15(0)
 ```
 
 ## Backfilled Advance Correction
+
+Collector owns source selection and earnings unwinding. The injected advance
+service builds the advance and backfill reversals, purchased-credit restoration,
+and associated breakage reopening. Collector commits and persists the combined
+plan under the same posting locks. Legacy template corrections remain deferred
+until collector merges amounts targeting the same original transaction.
 
 Backfilled advance is a two-time problem:
 

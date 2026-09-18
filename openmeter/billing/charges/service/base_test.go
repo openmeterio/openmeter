@@ -41,6 +41,8 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -180,9 +182,15 @@ func (s *BaseSuite) SetupSuite() {
 	var flatFeeHandler flatfee.Handler = s.FlatFeeTestHandler
 	var usageBasedHandler usagebased.Handler = s.UsageBasedTestHandler
 	if s.UseRealLedgerHandlers {
+		breakageService := ledgerbreakage.NewNoopService()
+
+		advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
+
 		collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+			Advance:            advanceService,
 			Ledger:             ledgerDeps.HistoricalLedger,
 			Dependencies:       ledgerResolverDeps,
+			Breakage:           breakageService,
 			AccountLocker:      ledgerDeps.AccountService,
 			TransactionManager: enttx.NewCreator(s.DBClient),
 		})

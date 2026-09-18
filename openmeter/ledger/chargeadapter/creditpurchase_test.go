@@ -710,7 +710,7 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 	})
 	require.NoError(t, err)
 
-	advanceService := advancetestutils.NewService(t, base.Deps)
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
 
 	handler, err := chargeadapter.NewCreditPurchaseHandler(chargeadapter.CreditPurchaseHandlerConfig{
 		Ledger:             base.Deps.HistoricalLedger,

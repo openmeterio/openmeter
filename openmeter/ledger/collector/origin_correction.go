@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 )
 
@@ -101,6 +101,8 @@ func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollec
 		return out, err
 	}
 
+	var backfills []advance.BackfillCorrection
+
 	for _, selection := range selections {
 		remainingRecognition := selection.earnings
 
@@ -143,19 +145,48 @@ func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollec
 				continue
 			}
 
-			resolved, err := c.unwindOriginBackfill(ctx, input, history, pair, take)
+			attribution, err := history.attributionForBackfill(pair)
 			if err != nil {
 				return out, err
 			}
 
-			out.inputs = append(out.inputs, resolved.inputs...)
-			out.breakagePending = append(out.breakagePending, resolved.breakagePending...)
+			backfills = append(backfills, advance.BackfillCorrection{
+				Amount:     take,
+				Accrued:    pair.correctionSource(),
+				Receivable: attribution.correctionSource(),
+			})
 			remainingBacking = remainingBacking.Sub(take)
 		}
 
 		if remainingBacking.IsPositive() {
 			return out, fmt.Errorf("funded position lacks original backing references")
 		}
+	}
+
+	if source.advanceReceivableIssueTransaction != nil {
+		issue, err := history.pairForTransaction(source.advanceReceivableIssueTransaction.ID().ID)
+		if err != nil {
+			return out, err
+		}
+
+		plan, err := c.advance.PlanCorrection(ctx, advance.CorrectionInput{
+			CustomerID: customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+			At:         input.AllocateAt,
+			Amount:     amount,
+			Collection: original.correctionSource(),
+			Issue:      issue.correctionSource(),
+			Backfills:  backfills,
+		})
+		if err != nil {
+			return out, err
+		}
+
+		out.inputs = append(out.inputs, plan.Inputs...)
+		out.breakagePending = append(out.breakagePending, plan.BreakagePending...)
+		return out, nil
 	}
 
 	reversal, err := reverseOriginPair(input, original, amount)
@@ -165,37 +196,22 @@ func (c *accrualCorrector) unwindOrigin(ctx context.Context, input CorrectCollec
 
 	out.inputs = append(out.inputs, reversal)
 
-	if source.advanceReceivableIssueTransaction != nil {
-		issue, err := history.pairForTransaction(source.advanceReceivableIssueTransaction.ID().ID)
-		if err != nil {
-			return out, err
-		}
-
-		reversal, err := reverseOriginPair(input, issue, amount)
-		if err != nil {
-			return out, err
-		}
-
-		out.inputs = append(out.inputs, reversal)
-	} else {
-		// Restrict breakage reopening to this exact original source entry.
-		plan := transactionCorrectionPlan{
-			transaction: originTransactionView{
-				Transaction: original.transaction,
-				entries:     []ledger.Entry{original.negativeEntry, original.positiveEntry},
-			},
-			group:  source.group,
-			amount: amount,
-		}
-
-		inputs, pending, err := c.resolveBreakageReopenInputs(ctx, input, plan)
-		if err != nil {
-			return out, err
-		}
-
-		out.inputs = append(out.inputs, inputs...)
-		out.breakagePending = append(out.breakagePending, pending...)
+	// Restrict breakage reopening to this exact original source entry.
+	plan := transactionCorrectionPlan{
+		transaction: originTransactionView{
+			Transaction: original.transaction,
+			entries:     []ledger.Entry{original.negativeEntry, original.positiveEntry},
+		},
+		group:  source.group,
+		amount: amount,
 	}
+	inputs, pending, err := c.resolveBreakageReopenInputs(ctx, input, plan)
+	if err != nil {
+		return out, err
+	}
+
+	out.inputs = append(out.inputs, inputs...)
+	out.breakagePending = append(out.breakagePending, pending...)
 
 	return out, nil
 }
@@ -212,134 +228,6 @@ func reverseOriginPair(input CorrectCollectedAccruedInput, pair *originPair, amo
 		NegativeEntry: pair.negativeEntry,
 		PositiveEntry: pair.positiveEntry,
 	})
-}
-
-func (c *accrualCorrector) unwindOriginBackfill(ctx context.Context, input CorrectCollectedAccruedInput, history originReferences, backfill *originPair, amount alpacadecimal.Decimal) (resolvedCorrectionInputs, error) {
-	var out resolvedCorrectionInputs
-
-	var attribution *originPair
-
-	for _, pair := range history.pairs {
-		if pair.role == originRoleAttribution &&
-			pair.transaction.GroupID() == backfill.transaction.GroupID() &&
-			lo.FromPtr(pair.negativeEntry.Provenance().SourceChargeID) == lo.FromPtr(backfill.positiveEntry.Provenance().SourceChargeID) {
-			if attribution != nil {
-				return out, fmt.Errorf("ambiguous advance attribution for origin")
-			}
-
-			attribution = pair
-		}
-	}
-
-	if attribution == nil {
-		return out, fmt.Errorf("advance backfill has no matching receivable attribution")
-	}
-
-	for _, pair := range []*originPair{backfill, attribution} {
-		reversal, err := reverseOriginPair(input, pair, amount)
-		if err != nil {
-			return out, err
-		}
-
-		out.inputs = append(out.inputs, reversal)
-	}
-
-	group, err := c.ledger.GetTransactionGroup(ctx, backfill.transaction.GroupID())
-	if err != nil {
-		return out, err
-	}
-
-	if c.breakage != nil {
-		releases, err := c.breakage.ListReleases(ctx, breakage.ListReleasesInput{
-			CustomerID: customer.CustomerID{
-				Namespace: input.Namespace,
-				ID:        input.CustomerID,
-			},
-			SourceTransactionGroupID: []string{group.ID().ID},
-			ReleaseSourceKind:        []breakage.SourceKind{breakage.SourceKindAdvanceBackfill},
-		})
-		if err != nil {
-			return out, err
-		}
-
-		matching := make(map[string]bool)
-
-		for _, tx := range history.transactions {
-			for _, entry := range tx.Entries() {
-				if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO &&
-					lo.FromPtr(entry.Provenance().CollectionOriginID) == lo.FromPtr(backfill.positiveEntry.Provenance().CollectionOriginID) &&
-					lo.FromPtr(entry.Provenance().SourceChargeID) == lo.FromPtr(backfill.positiveEntry.Provenance().SourceChargeID) {
-					matching[tx.ID().ID] = true
-				}
-			}
-		}
-
-		remaining := amount
-
-		for _, release := range releases {
-			if !matching[release.BreakageTransactionID] || !remaining.IsPositive() {
-				continue
-			}
-
-			take := minDecimal(remaining, release.OpenAmount)
-			if !take.IsPositive() {
-				continue
-			}
-
-			reopened, pending, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-				Release:            release,
-				Amount:             take,
-				SourceKind:         breakage.SourceKindUsageCorrection,
-				SourceChargeID:     backfill.positiveEntry.Provenance().SourceChargeID,
-				SpendChargeID:      backfill.positiveEntry.Provenance().SpendChargeID,
-				CollectionOriginID: backfill.positiveEntry.Provenance().CollectionOriginID,
-			})
-			if err != nil {
-				return out, err
-			}
-
-			out.inputs = append(out.inputs, reopened)
-			out.breakagePending = append(out.breakagePending, pending)
-			remaining = remaining.Sub(take)
-		}
-	}
-
-	// The attributed receivable retains the purchase's feature restrictions.
-	// Priority is preserved explicitly even when a purchase was fully backfilled
-	// and therefore never wrote an ordinary FBO issuance entry.
-	route := attribution.negativeEntry.PostingAddress().Route().Route()
-
-	priority, ok := group.Annotations().GetInt(ledger.AnnotationBackfillCreditPriority)
-	if !ok {
-		return out, fmt.Errorf("origin backfill is missing purchased credit priority")
-	}
-
-	reissued, err := transactions.ResolveTransactions(ctx, c.deps, transactions.ResolutionScope{
-		CustomerID: customer.CustomerID{
-			Namespace: input.Namespace,
-			ID:        input.CustomerID,
-		},
-		Namespace: input.Namespace,
-	}, transactions.IssueCustomerReceivableTemplate{
-		At:                input.AllocateAt,
-		Amount:            amount,
-		Currency:          route.Currency,
-		CostBasisCurrency: route.CostBasisCurrency,
-		CostBasis:         route.CostBasis,
-		Features:          route.Features,
-		CreditPriority:    &priority,
-		SourceChargeID:    attribution.negativeEntry.Provenance().SourceChargeID,
-	})
-	if err != nil {
-		return out, err
-	}
-
-	for _, tx := range reissued {
-		out.inputs = append(out.inputs, transactions.WithAnnotations(tx, ledger.TransactionAnnotations(
-			transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}), ledger.TransactionDirectionCorrection)))
-	}
-
-	return out, nil
 }
 
 type originTransactionView struct {
