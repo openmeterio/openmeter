@@ -6,13 +6,6 @@ import (
 	"fmt"
 )
 
-// filtersV1 is the frozen feature-only storage format. New dimensions belong in
-// a new format so existing readers never silently lose restrictions.
-type filtersV1 struct {
-	SchemaVersion FiltersVersion `json:"schema_version"`
-	Features      []string       `json:"features,omitempty"`
-}
-
 func (f Filters) MarshalJSON() ([]byte, error) {
 	if err := f.Validate(); err != nil {
 		return nil, err
@@ -20,7 +13,8 @@ func (f Filters) MarshalJSON() ([]byte, error) {
 	filters := f.Normalize()
 	switch f.Version {
 	case FiltersVersion1:
-		return json.Marshal(filtersV1{SchemaVersion: f.Version, Features: filters.Features})
+		type plain Filters
+		return json.Marshal(plain(filters))
 	default:
 		return nil, fmt.Errorf("unsupported credit filters schema version: %d", f.Version)
 	}
@@ -40,11 +34,12 @@ func (f *Filters) UnmarshalJSON(data []byte) error {
 	var filters Filters
 	switch header.SchemaVersion {
 	case FiltersVersion1:
-		var value filtersV1
+		type plain Filters
+		var value plain
 		if err := decoder.Decode(&value); err != nil {
 			return err
 		}
-		filters = Filters{Version: value.SchemaVersion, Features: value.Features}
+		filters = Filters(value)
 	default:
 		return fmt.Errorf("unsupported credit filters schema version: %d", header.SchemaVersion)
 	}

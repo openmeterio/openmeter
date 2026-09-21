@@ -10,5 +10,5 @@ writers everywhere before backfilling and switching readers to JSON.
 
 `Filters.Version` is retained by Ent, normalization, and JSON round trips.
 Writers explicitly choose v1 when creating filters; encoding honors that version.
-The codec switches on the version and uses a frozen feature-only v1 payload.
+The codec switches on the version and currently supports only v1.
 Missing and unsupported versions are rejected; there is no implicit upgrade.
