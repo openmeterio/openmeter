@@ -302,9 +302,8 @@ SET invoice_default_tax_settings = jsonb_set(
 WHERE tax_behavior IS NOT NULL
   AND invoice_default_tax_settings ->> 'behavior' IS NULL;
 
--- Install the checks before the final scan. NOT VALID avoids an implicit historical
--- table scan but enforces the invariant for concurrent and future writes. PostgreSQL
--- holds the ALTER TABLE lock until commit, making the explicit final scan stable.
+-- NOT VALID avoids an implicit historical table scan while enforcing the invariant
+-- for concurrent and future writes. The next migration validates existing rows.
 ALTER TABLE "billing_workflow_configs"
   ADD CONSTRAINT "billing_workflow_config_tax_behavior_consistency"
     CHECK (tax_behavior IS NOT DISTINCT FROM invoice_default_tax_settings ->> 'behavior') NOT VALID,
@@ -316,68 +315,6 @@ ALTER TABLE "billing_workflow_configs"
         OR tax_code_id IS NOT NULL
       )
     ) NOT VALID;
-
--- Fail while the table lock is held if either representation remains incomplete,
--- a normalized reference is unusable, or the ID and Stripe code identify different
--- tax codes.
-DO $$
-DECLARE
-  tax_code_mismatches int;
-  behavior_mismatches int;
-  invalid_reference_count int;
-  mismatched_identity_count int;
-BEGIN
-  SELECT count(*) INTO tax_code_mismatches
-  FROM billing_workflow_configs
-  WHERE tax_code_id::text IS DISTINCT FROM invoice_default_tax_settings ->> 'tax_code_id'
-     OR (
-       tax_code_id IS NULL
-       AND NULLIF(btrim(invoice_default_tax_settings -> 'stripe' ->> 'code'), '') IS NOT NULL
-     );
-
-  SELECT count(*) INTO behavior_mismatches
-  FROM billing_workflow_configs
-  WHERE tax_behavior IS DISTINCT FROM invoice_default_tax_settings ->> 'behavior';
-
-  SELECT count(*) INTO invalid_reference_count
-  FROM billing_workflow_configs r
-  WHERE r.tax_code_id IS NOT NULL
-    AND NOT EXISTS (
-      SELECT 1
-      FROM tax_codes t
-      WHERE t.id = r.tax_code_id
-        AND t.namespace = r.namespace
-        AND t.deleted_at IS NULL
-    );
-
-  SELECT count(*) INTO mismatched_identity_count
-  FROM billing_workflow_configs r
-  WHERE r.tax_code_id IS NOT NULL
-    AND NULLIF(btrim(r.invoice_default_tax_settings -> 'stripe' ->> 'code'), '') IS NOT NULL
-    AND NOT EXISTS (
-      SELECT 1
-      FROM tax_codes t,
-           LATERAL jsonb_array_elements(
-             CASE
-               WHEN jsonb_typeof(t.app_mappings) = 'array' THEN t.app_mappings
-               ELSE '[]'::jsonb
-             END
-           ) AS m
-      WHERE t.id = r.tax_code_id
-        AND t.namespace = r.namespace
-        AND t.deleted_at IS NULL
-        AND m ->> 'app_type' = 'stripe'
-        AND m ->> 'tax_code' = r.invoice_default_tax_settings -> 'stripe' ->> 'code'
-    );
-
-  IF tax_code_mismatches > 0
-    OR behavior_mismatches > 0
-    OR invalid_reference_count > 0
-    OR mismatched_identity_count > 0
-  THEN
-    RAISE EXCEPTION 'billing workflow config tax backfill: billing_workflow_configs still has % row(s) with inconsistent tax code representations, % row(s) with inconsistent tax behavior representations, % row(s) with invalid normalized tax code references, and % row(s) with mismatched tax identities', tax_code_mismatches, behavior_mismatches, invalid_reference_count, mismatched_identity_count;
-  END IF;
-END $$;
 
 DO $$
 DECLARE

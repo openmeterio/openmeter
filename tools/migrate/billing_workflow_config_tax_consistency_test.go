@@ -181,6 +181,48 @@ func TestBillingWorkflowTaxConsistencyMigration(t *testing.T) {
 	}.Test(t)
 }
 
+func TestBillingWorkflowTaxConsistencyValidationFailsOnTaxCodeDrift(t *testing.T) {
+	testCases := []struct {
+		name      string
+		mutation  string
+		wantError string
+	}{
+		{
+			name:      "deleted reference",
+			mutation:  `UPDATE tax_codes SET deleted_at = NOW() WHERE id = $1`,
+			wantError: "invalid normalized tax code references",
+		},
+		{
+			name:      "changed Stripe mapping",
+			mutation:  `UPDATE tax_codes SET app_mappings = '[{"app_type":"stripe","tax_code":"txcd_20060051"}]'::jsonb WHERE id = $1`,
+			wantError: "mismatched tax identities",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			db, migrator := newBillingWorkflowTaxConsistencyTestEnv(t)
+			namespace := "billing_workflow_tax_consistency_drift"
+			taxCodeID := ulid.Make().String()
+
+			require.NoError(t, migrator.Migrate(billingWorkflowTaxConsistencySeedVersion))
+			seedTaxCode(t, db, namespace, taxCodeID, "general", "General",
+				`[{"app_type":"stripe","tax_code":"txcd_10000000"}]`, nil,
+				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), sql.NullTime{})
+			seedBillingWorkflowConfig(t, db, namespace, ulid.Make().String(), taxCodeID, nil,
+				fmt.Sprintf(`{"stripe":{"code":"txcd_10000000"},"tax_code_id":%q}`, taxCodeID))
+			require.NoError(t, migrator.Migrate(billingWorkflowTaxConsistencyVersion))
+
+			_, err := db.ExecContext(t.Context(), tc.mutation, taxCodeID)
+			require.NoError(t, err)
+
+			err = migrator.Up()
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.wantError)
+		})
+	}
+}
+
 func TestBillingWorkflowTaxConsistencyMigrationFailsOnNonStripeCode(t *testing.T) {
 	testCases := []struct {
 		name string
