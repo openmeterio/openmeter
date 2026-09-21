@@ -7,6 +7,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -84,6 +86,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.EffectiveAt)).
 			SetNillableExpiresAt(meta.NormalizeOptionalTimestamp(in.Intent.ExpiresAt)).
 			SetNillablePriority(in.Intent.Priority).
+			SetFilters(lo.ToPtr(crediteligibility.Filters{Features: in.Intent.FeatureFilters.Normalize()})).
 			SetFeatureFilters(pq.StringArray(in.Intent.FeatureFilters.Normalize())).
 			SetNillableKey(in.Intent.Key).
 			SetStatusDetailed(initialStatus)

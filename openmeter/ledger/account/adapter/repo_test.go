@@ -344,3 +344,30 @@ func (e *TestEnv) Close(t *testing.T) {
 func testNamespace() string {
 	return fmt.Sprintf("ledger-account-adapter-%d", time.Now().UnixNano())
 }
+
+func TestRepoFilterStorageBridge(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	ctx := t.Context()
+	ns := testNamespace()
+	account, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{Namespace: ns, Type: ledger.AccountTypeCustomerFBO})
+	require.NoError(t, err)
+	// Given a route created by a writer that populates both representations.
+	input := ledgeraccount.CreateSubAccountInput{Namespace: ns, AccountID: account.ID.ID, Route: ledger.Route{
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"output", "input"},
+	}}
+	sub, err := env.repo.EnsureSubAccount(ctx, input)
+	require.NoError(t, err)
+	stored, err := env.client.LedgerSubAccountRoute.Query().Where(ledgersubaccountroutedb.ID(sub.RouteMeta.ID)).Only(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, stored.Filters)
+	require.Equal(t, []string{"input", "output"}, stored.Filters.Features)
+	require.Equal(t, stored.Filters.Features, []string(stored.Features))
+	// When an older writer's row has no JSON envelope, lookup preserves identity.
+	_, err = env.db.PGDriver.DB().ExecContext(ctx, `UPDATE ledger_sub_account_routes SET filters = NULL WHERE id = $1`, stored.ID)
+	require.NoError(t, err)
+	existing, err := env.repo.EnsureSubAccount(ctx, input)
+	require.NoError(t, err)
+	require.Equal(t, sub.ID, existing.ID)
+	require.Equal(t, []string{"input", "output"}, existing.Route.Features)
+}

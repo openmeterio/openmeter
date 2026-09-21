@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -107,6 +108,8 @@ type ChargeCreditPurchase struct {
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// Priority holds the value of the "priority" field.
 	Priority *int `json:"priority,omitempty"`
+	// Filters holds the value of the "filters" field.
+	Filters *crediteligibility.Filters `json:"filters,omitempty"`
 	// FeatureFilters holds the value of the "feature_filters" field.
 	FeatureFilters pq.StringArray `json:"feature_filters,omitempty"`
 	// Settlement holds the value of the "settlement" field.
@@ -296,6 +299,8 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt, chargecreditpurchase.FieldVoidedAt:
 			values[i] = new(sql.NullTime)
+		case chargecreditpurchase.FieldFilters:
+			values[i] = chargecreditpurchase.ValueScanner.Filters.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -548,6 +553,12 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.Priority = new(int)
 				*_m.Priority = int(value.Int64)
+			}
+		case chargecreditpurchase.FieldFilters:
+			if value, err := chargecreditpurchase.ValueScanner.Filters.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Filters = value
 			}
 		case chargecreditpurchase.FieldFeatureFilters:
 			if value, ok := values[i].(*pq.StringArray); !ok {
@@ -814,6 +825,11 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString(", ")
 	if v := _m.Priority; v != nil {
 		builder.WriteString("priority=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.Filters; v != nil {
+		builder.WriteString("filters=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

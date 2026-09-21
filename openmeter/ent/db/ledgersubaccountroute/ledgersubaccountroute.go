@@ -7,6 +7,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 )
 
 const (
@@ -36,6 +38,8 @@ const (
 	FieldTaxCode = "tax_code"
 	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
 	FieldTaxBehavior = "tax_behavior"
+	// FieldFilters holds the string denoting the filters field in the database.
+	FieldFilters = "filters"
 	// FieldFeatures holds the string denoting the features field in the database.
 	FieldFeatures = "features"
 	// FieldCostBasis holds the string denoting the cost_basis field in the database.
@@ -80,6 +84,7 @@ var Columns = []string{
 	FieldCostBasisCurrency,
 	FieldTaxCode,
 	FieldTaxBehavior,
+	FieldFilters,
 	FieldFeatures,
 	FieldCostBasis,
 	FieldCreditPriority,
@@ -107,6 +112,10 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all LedgerSubAccountRoute fields.
+	ValueScanner struct {
+		Filters field.TypeValueScanner[*crediteligibility.Filters]
+	}
 )
 
 // OrderOption defines the ordering options for the LedgerSubAccountRoute queries.
@@ -170,6 +179,11 @@ func ByTaxCode(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxBehavior orders the results by the tax_behavior field.
 func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
+}
+
+// ByFilters orders the results by the filters field.
+func ByFilters(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFilters, opts...).ToFunc()
 }
 
 // ByFeatures orders the results by the features field.

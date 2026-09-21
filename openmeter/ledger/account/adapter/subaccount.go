@@ -6,6 +6,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -93,6 +95,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetNillableCostBasisCurrency(normalizedRoute.CostBasisCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
+		SetFilters(lo.ToPtr(crediteligibility.Filters{Features: normalizedRoute.Features})).
 		SetFeatures(pq.StringArray(normalizedRoute.Features)).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).

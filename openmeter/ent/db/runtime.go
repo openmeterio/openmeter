@@ -99,6 +99,7 @@ import (
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -1081,6 +1082,9 @@ func init() {
 	chargecreditpurchaseDescSchemaLevel := chargecreditpurchaseFields[0].Descriptor()
 	// chargecreditpurchase.DefaultSchemaLevel holds the default value on creation for the schema_level field.
 	chargecreditpurchase.DefaultSchemaLevel = chargecreditpurchaseDescSchemaLevel.Default.(int)
+	// chargecreditpurchaseDescFilters is the schema descriptor for filters field.
+	chargecreditpurchaseDescFilters := chargecreditpurchaseFields[8].Descriptor()
+	chargecreditpurchase.ValueScanner.Filters = chargecreditpurchaseDescFilters.ValueScanner.(field.TypeValueScanner[*crediteligibility.Filters])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[19].Descriptor()
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
@@ -2580,6 +2584,9 @@ func init() {
 	ledgersubaccountroute.DefaultUpdatedAt = ledgersubaccountrouteDescUpdatedAt.Default.(func() time.Time)
 	// ledgersubaccountroute.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	ledgersubaccountroute.UpdateDefaultUpdatedAt = ledgersubaccountrouteDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgersubaccountrouteDescFilters is the schema descriptor for filters field.
+	ledgersubaccountrouteDescFilters := ledgersubaccountrouteFields[7].Descriptor()
+	ledgersubaccountroute.ValueScanner.Filters = ledgersubaccountrouteDescFilters.ValueScanner.(field.TypeValueScanner[*crediteligibility.Filters])
 	// ledgersubaccountrouteDescID is the schema descriptor for id field.
 	ledgersubaccountrouteDescID := ledgersubaccountrouteMixinFields0[0].Descriptor()
 	// ledgersubaccountroute.DefaultID holds the default value on creation for the id field.

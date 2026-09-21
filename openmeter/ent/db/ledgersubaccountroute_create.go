@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -140,6 +141,12 @@ func (_c *LedgerSubAccountRouteCreate) SetNillableTaxBehavior(v *ledger.TaxBehav
 	if v != nil {
 		_c.SetTaxBehavior(*v)
 	}
+	return _c
+}
+
+// SetFilters sets the "filters" field.
+func (_c *LedgerSubAccountRouteCreate) SetFilters(v *crediteligibility.Filters) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetFilters(v)
 	return _c
 }
 
@@ -317,6 +324,11 @@ func (_c *LedgerSubAccountRouteCreate) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.Filters(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "filters", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.filters": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.TransactionAuthorizationStatus(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "transaction_authorization_status", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.transaction_authorization_status": %w`, err)}
@@ -332,7 +344,10 @@ func (_c *LedgerSubAccountRouteCreate) sqlSave(ctx context.Context) (*LedgerSubA
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -351,7 +366,7 @@ func (_c *LedgerSubAccountRouteCreate) sqlSave(ctx context.Context) (*LedgerSubA
 	return _node, nil
 }
 
-func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sqlgraph.CreateSpec) {
+func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &LedgerSubAccountRoute{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(ledgersubaccountroute.Table, sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString))
@@ -400,6 +415,14 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 	if value, ok := _c.mutation.TaxBehavior(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldTaxBehavior, field.TypeString, value)
 		_node.TaxBehavior = &value
+	}
+	if value, ok := _c.mutation.Filters(); ok {
+		vv, err := ledgersubaccountroute.ValueScanner.Filters.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(ledgersubaccountroute.FieldFilters, field.TypeString, vv)
+		_node.Filters = value
 	}
 	if value, ok := _c.mutation.Features(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldFeatures, field.TypeOther, value)
@@ -450,7 +473,7 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -575,6 +598,9 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		}
 		if _, exists := u.create.mutation.TaxBehavior(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldTaxBehavior)
+		}
+		if _, exists := u.create.mutation.Filters(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldFilters)
 		}
 		if _, exists := u.create.mutation.Features(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldFeatures)
@@ -722,7 +748,10 @@ func (_c *LedgerSubAccountRouteCreateBulk) Save(ctx context.Context) ([]*LedgerS
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -863,6 +892,9 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			}
 			if _, exists := b.mutation.TaxBehavior(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldTaxBehavior)
+			}
+			if _, exists := b.mutation.Filters(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldFilters)
 			}
 			if _, exists := b.mutation.Features(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldFeatures)
