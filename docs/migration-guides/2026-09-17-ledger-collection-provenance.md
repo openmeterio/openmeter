@@ -8,7 +8,7 @@ and [legacy compatibility](../../openmeter/billing/charges/legacylineage/README.
 
 ## Schema and historical data
 
-The [schema migration](../../tools/migrate/migrations/20260917150210_ledger_entry_collection_origin.up.sql)
+The [schema migration](../../tools/migrate/migrations/20260921103155_ledger_entry_collection_origin.up.sql)
 adds nullable `ledger_entries.collection_origin_id` and an index on namespace
 and origin. It does not rewrite existing entries, identity keys, realizations,
 or lineage records. No historical origin backfill is required.
