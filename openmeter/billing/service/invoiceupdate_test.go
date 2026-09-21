@@ -272,6 +272,14 @@ func TestDiffMutableInvoiceLinesKeepsExplicitTaxCodeToDefaultDiff(t *testing.T) 
 		nil,
 	)
 	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{
+			Namespace: "ns",
+			ID:        explicitTaxCodeID,
+		},
+		Key:  "explicit",
+		Name: "Explicit Tax Code",
+	}
 
 	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
@@ -332,10 +340,70 @@ func TestDiffMutableInvoiceLinesResolvedExplicitTaxCodeIDMatchNoDiff(t *testing.
 	}
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(invoiceTaxConfig, editedTaxConfig)
 	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = *invoiceTaxConfig.TaxCode
 
 	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 	require.True(t, lineDiff.IsEmpty())
+}
+
+func TestInvoiceWithSanitizedTaxConfigForDiffNormalizesExplicitTaxCodeIdentity(t *testing.T) {
+	explicitTaxCodeID := "explicit-tax-code-id"
+	canonicalStripeCode := "txcd_10000000"
+	invoice, _ := standardInvoicePairForTaxConfigDiffTest(&billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20060051"},
+		},
+	}, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{
+			Namespace: "ns",
+			ID:        explicitTaxCodeID,
+		},
+		Key:  "explicit",
+		Name: "Explicit Tax Code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: canonicalStripeCode},
+		},
+	}
+
+	sanitized, err := svc.invoiceWithSanitizedTaxConfigForDiff(
+		t.Context(),
+		svc.defaultTaxCodeResolversForInvoiceUpdate(&invoice),
+		&invoice,
+	)
+	require.NoError(t, err)
+
+	taxConfig := sanitized.GetGenericLines().OrEmpty()[0].GetTaxConfig()
+	require.Equal(t, explicitTaxCodeID, *taxConfig.TaxCodeID)
+	require.Equal(t, canonicalStripeCode, taxConfig.Stripe.Code)
+}
+
+func TestInvoiceWithSanitizedTaxConfigForDiffRejectsCrossNamespaceTaxCode(t *testing.T) {
+	explicitTaxCodeID := "explicit-tax-code-id"
+	invoice, _ := standardInvoicePairForTaxConfigDiffTest(&billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+		},
+	}, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{
+			Namespace: "another-namespace",
+			ID:        explicitTaxCodeID,
+		},
+		Key:  "explicit",
+		Name: "Explicit Tax Code",
+	}
+
+	_, err := svc.invoiceWithSanitizedTaxConfigForDiff(
+		t.Context(),
+		svc.defaultTaxCodeResolversForInvoiceUpdate(&invoice),
+		&invoice,
+	)
+	require.ErrorContains(t, err, "tax code explicit-tax-code-id not found")
 }
 
 func TestDiffMutableInvoiceLinesSystemSourceUsesFullTaxConfigEquality(t *testing.T) {
@@ -482,10 +550,8 @@ func TestWithLineEngineInvoiceLineChangesGroupsAPIEditsByEngine(t *testing.T) {
 		},
 	}
 
-	svc := &Service{
-		adapter:     preallocatingInvoiceLineAdapter{},
-		lineEngines: newEngineRegistry(),
-	}
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.adapter = preallocatingInvoiceLineAdapter{}
 
 	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
 	require.NoError(t, svc.RegisterLineEngine(chargeEngine))
@@ -544,10 +610,8 @@ func TestWithLineEngineInvoiceLineChangesReturnsEngineError(t *testing.T) {
 		changeErr: errEngineFailed,
 	}
 
-	svc := &Service{
-		adapter:     preallocatingInvoiceLineAdapter{},
-		lineEngines: newEngineRegistry(),
-	}
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.adapter = preallocatingInvoiceLineAdapter{}
 
 	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
 
@@ -583,10 +647,8 @@ func TestWithLineEngineInvoiceLineChangesPreallocatesCreatedLineID(t *testing.T)
 		},
 	}
 
-	svc := &Service{
-		adapter:     preallocatingInvoiceLineAdapter{},
-		lineEngines: newEngineRegistry(),
-	}
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.adapter = preallocatingInvoiceLineAdapter{}
 
 	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
 
@@ -633,10 +695,8 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 		},
 	}
 
-	svc := &Service{
-		adapter:     preallocatingInvoiceLineAdapter{},
-		lineEngines: newEngineRegistry(),
-	}
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.adapter = preallocatingInvoiceLineAdapter{}
 
 	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
 
@@ -691,9 +751,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualDeletes(t *testing.T) {
 		},
 	}
 
-	svc := &Service{
-		lineEngines: newEngineRegistry(),
-	}
+	svc := serviceForInvoiceTaxConfigDiffTest()
 
 	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
 
@@ -741,10 +799,8 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 		},
 	}
 
-	svc := &Service{
-		adapter:     preallocatingInvoiceLineAdapter{},
-		lineEngines: newEngineRegistry(),
-	}
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.adapter = preallocatingInvoiceLineAdapter{}
 
 	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
 

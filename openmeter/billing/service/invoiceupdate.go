@@ -304,11 +304,7 @@ func (s *Service) sanitizeTaxConfigForDiff(
 		sanitized.TaxCodeID = nil
 	}
 
-	if sanitized.TaxCodeID != nil {
-		return &sanitized, nil
-	}
-
-	if sanitized.Stripe == nil || sanitized.Stripe.Code == "" {
+	if sanitized.TaxCodeID == nil && (sanitized.Stripe == nil || sanitized.Stripe.Code == "") {
 		providerDefaultTaxCode, err := s.taxCodeService.GetTaxCodeByKey(ctx, taxcode.GetTaxCodeByKeyInput{
 			Namespace: namespace,
 			Key:       taxcode.ProviderDefaultTaxCodeKey,

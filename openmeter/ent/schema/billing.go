@@ -532,6 +532,18 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 	}
 }
 
+func (BillingInvoiceLine) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			// tax_config remains optional. These checks require null-safe equality with
+			// the normalized columns, and a nonblank Stripe code additionally requires a
+			// resolved tax code reference so the snapshot stays aligned with them.
+			"billing_invoice_line_tax_code_consistency":     `(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)`,
+			"billing_invoice_line_tax_behavior_consistency": `tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'`,
+		}),
+	}
+}
+
 func (BillingInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
 		// PostgreSQL looks up child rows by the foreign-key column alone when a line

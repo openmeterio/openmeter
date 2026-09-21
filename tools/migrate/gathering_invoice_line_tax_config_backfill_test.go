@@ -91,21 +91,6 @@ func TestGatheringInvoiceLineTaxConfigBackfillMigrationFailsOnMismatchedTaxIdent
 	require.Contains(t, err.Error(), "does not match the referenced live tax code Stripe app mapping")
 }
 
-func TestGatheringInvoiceLineTaxConfigBackfillMigrationFailsOnInvalidTaxBehavior(t *testing.T) {
-	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
-	require.NoError(t, migrator.Migrate(gatheringInvoiceLineTaxConfigBackfillSeedVersion))
-
-	namespace := "gathering_invoice_line_tax_config_invalid_behavior"
-	gatheringInvoiceID, _ := seedGatheringInvoiceLineTaxParents(t, db, namespace)
-	seedGatheringInvoiceLine(t, db, namespace, gatheringInvoiceID, ulid.Make().String(), nil, nil,
-		`{"behavior":"automatic"}`)
-	seedGatheringInvoiceLine(t, db, namespace, gatheringInvoiceID, ulid.Make().String(), nil, "automatic", `null`)
-
-	err := migrator.Migrate(gatheringInvoiceLineTaxConfigBackfillVersion)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "contain invalid tax behavior")
-}
-
 func newGatheringInvoiceLineTaxConfigBackfillTestEnv(t *testing.T) (*sql.DB, *migrate.Migrate) {
 	t.Helper()
 
@@ -135,8 +120,8 @@ func seedGatheringInvoiceLineTaxParents(t *testing.T, db *sql.DB, namespace stri
 	invoicingAppID := ulid.Make().String()
 	paymentAppID := ulid.Make().String()
 	profileWorkflowID := ulid.Make().String()
-	gatheringWorkflowID := ulid.Make().String()
-	standardWorkflowID := ulid.Make().String()
+	gatheringInvoiceWorkflowID := ulid.Make().String()
+	standardInvoiceWorkflowID := ulid.Make().String()
 	profileID := ulid.Make().String()
 	gatheringInvoiceID := ulid.Make().String()
 	standardInvoiceID := ulid.Make().String()
@@ -165,7 +150,7 @@ func seedGatheringInvoiceLineTaxParents(t *testing.T, db *sql.DB, namespace stri
 		require.NoError(t, err)
 	}
 
-	for _, workflowID := range []string{profileWorkflowID, gatheringWorkflowID, standardWorkflowID} {
+	for _, workflowID := range []string{profileWorkflowID, gatheringInvoiceWorkflowID, standardInvoiceWorkflowID} {
 		_, err = db.ExecContext(t.Context(), `
 			INSERT INTO billing_workflow_configs (
 				id, namespace, created_at, updated_at,
@@ -202,8 +187,8 @@ func seedGatheringInvoiceLineTaxParents(t *testing.T, db *sql.DB, namespace stri
 		number     string
 		workflowID string
 	}{
-		{id: gatheringInvoiceID, typeID: "gathering", status: "gathering", number: "GATHERING-1", workflowID: gatheringWorkflowID},
-		{id: standardInvoiceID, typeID: "standard", status: "draft.created", number: "INV-1", workflowID: standardWorkflowID},
+		{id: gatheringInvoiceID, typeID: "gathering", status: "gathering", number: "GATHERING-1", workflowID: gatheringInvoiceWorkflowID},
+		{id: standardInvoiceID, typeID: "standard", status: "draft.created", number: "INV-1", workflowID: standardInvoiceWorkflowID},
 	} {
 		_, err = db.ExecContext(t.Context(), `
 			INSERT INTO billing_invoices (

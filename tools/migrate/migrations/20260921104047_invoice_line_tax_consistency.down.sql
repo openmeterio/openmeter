@@ -1,0 +1,3 @@
+ALTER TABLE billing_invoice_lines
+  DROP CONSTRAINT billing_invoice_line_tax_code_consistency,
+  DROP CONSTRAINT billing_invoice_line_tax_behavior_consistency;

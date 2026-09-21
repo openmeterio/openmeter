@@ -1,0 +1,1 @@
+-- The backup is retained for manual verification or recovery.
