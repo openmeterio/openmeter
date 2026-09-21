@@ -164,10 +164,13 @@ invoice validation issue.
   optional and may be meterless. Trusted subscription reconciliation may persist
   a credit-then-invoice usage charge whose dependency is unavailable; the charge
   records a product-catalog validation issue and its gathering line remains gated
-  until collection resolves the dependency. A usage-based charge created by key
-  persists only the canonical key and snapshots its feature ID when it activates.
-  An explicitly supplied feature ID is pinned at creation and activation preserves
-  it; when both are supplied, the key must match the feature resolved by ID.
+  until collection resolves the dependency. Automatic advancement treats that
+  persisted issue as a successful blocked state rather than an operation failure;
+  the charge remains unchanged and later attempts can resume after repair. A
+  usage-based charge created by key persists only the canonical key and snapshots
+  its feature ID when it activates. An explicitly supplied feature ID is pinned at
+  creation and activation preserves it; when both are supplied, the key must match
+  the feature resolved by ID.
 - Customer-charge reads resolve the current feature by key when a preactivation
   usage charge has no pinned ID. That ID is an API projection rather than
   persisted state and may change until activation snapshots it.

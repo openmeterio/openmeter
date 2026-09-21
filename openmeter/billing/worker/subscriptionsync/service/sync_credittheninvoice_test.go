@@ -254,6 +254,29 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMeterlessUsageC
 		s.Equal(lo.ToPtr(chargeID.ID), lines[0].ChargeID)
 	})
 
+	s.Run("charge advancement accepts the persisted validation issue", func() {
+		// when:
+		// - the charge worker tries to activate the unresolved charge
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: s.Customer.GetID(),
+		})
+
+		// then:
+		// - the persisted issue represents the blocked state without failing the worker
+		s.Require().NoError(err)
+		s.Empty(advancedCharges)
+
+		chargeAfterAdvance := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+		})
+		s.Equal(usagebased.StatusCreated, chargeAfterAdvance.Status)
+		s.Empty(chargeAfterAdvance.State.FeatureID)
+		s.Empty(chargeAfterAdvance.Realizations)
+		s.Require().Len(chargeAfterAdvance.ValidationIssues, 1)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, chargeAfterAdvance.ValidationIssues[0].Code)
+		s.Equal(billing.ValidationComponentProductCatalog, chargeAfterAdvance.ValidationIssues[0].Component)
+	})
+
 	collectionAt := start.AddDate(0, 1, 0).Add(time.Hour)
 	s.Run("invoice assignment gates the unresolved charge", func() {
 		// when:
