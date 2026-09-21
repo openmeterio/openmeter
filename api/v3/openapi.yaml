@@ -2536,6 +2536,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes
@@ -8342,8 +8345,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingEntitlementAccessValue'
           description: |-
-            Only available for metered entitlements. The current balance details of the
-            entitlement. Requires the `value` expand.
+            Only available for metered entitlements. The balance details of the entitlement
+            at the evaluation time. Requires the `value` expand.
           readOnly: true
       additionalProperties: false
       description: Entitlement access result.
@@ -8359,22 +8362,28 @@ components:
         balance:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The remaining balance of the entitlement in the current usage period.
+          description: |-
+            The remaining balance of the entitlement in the usage period at the evaluation
+            time.
           readOnly: true
         usage:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The usage recorded in the current usage period.
+          description: The usage recorded in the usage period at the evaluation time.
           readOnly: true
         overage:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The usage exceeding the available balance in the current usage period.
+          description: |-
+            The usage exceeding the available balance in the usage period at the evaluation
+            time.
           readOnly: true
         total_available_grant_amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The total amount granted and currently available to the entitlement.
+          description: |-
+            The total amount granted and available to the entitlement at the evaluation
+            time.
           readOnly: true
         grant_balances:
           type: object
@@ -8383,7 +8392,9 @@ components:
           description: The remaining balance of each grant, keyed by grant ID.
           readOnly: true
       additionalProperties: false
-      description: Balance details of a metered entitlement.
+      description: |-
+        Balance details of a metered entitlement at the evaluation time, which is the
+        `at` query parameter when given and the current time otherwise.
       example:
         balance: '100'
         usage: '50'

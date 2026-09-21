@@ -19,6 +19,7 @@ func (unknownEntitlementValue) HasAccess() bool { return true }
 func TestMapEntitlementAccessToAPI(t *testing.T) {
 	metered := entitlement.CustomerEntitlementAccess{
 		FeatureKey: "tokens",
+		Type:       entitlement.EntitlementTypeMetered,
 		Value: &meteredentitlement.MeteredEntitlementValue{
 			Balance:                   100.5,
 			UsageInPeriod:             50,
@@ -55,6 +56,7 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 	t.Run("metered with exhausted balance has no access", func(t *testing.T) {
 		result, err := mapEntitlementAccessToAPI(entitlement.CustomerEntitlementAccess{
 			FeatureKey: "tokens",
+			Type:       entitlement.EntitlementTypeMetered,
 			Value:      &meteredentitlement.MeteredEntitlementValue{Balance: 0, UsageInPeriod: 10, Overage: 2},
 		}, api.BillingEntitlementAccessExpandValue)
 		require.NoError(t, err)
@@ -67,6 +69,7 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 
 		result, err := mapEntitlementAccessToAPI(entitlement.CustomerEntitlementAccess{
 			FeatureKey: "models",
+			Type:       entitlement.EntitlementTypeStatic,
 			Value:      &staticentitlement.StaticEntitlementValue{Config: config},
 		}, api.BillingEntitlementAccessExpandValue)
 		require.NoError(t, err)
@@ -81,6 +84,7 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 	t.Run("boolean", func(t *testing.T) {
 		result, err := mapEntitlementAccessToAPI(entitlement.CustomerEntitlementAccess{
 			FeatureKey: "sso",
+			Type:       entitlement.EntitlementTypeBoolean,
 			Value:      &booleanentitlement.BooleanEntitlementValue{},
 		})
 		require.NoError(t, err)
@@ -91,16 +95,31 @@ func TestMapEntitlementAccessToAPI(t *testing.T) {
 		}, result)
 	})
 
-	t.Run("no access keeps the feature key", func(t *testing.T) {
+	t.Run("inactive entitlement keeps its type", func(t *testing.T) {
+		result, err := mapEntitlementAccessToAPI(entitlement.CustomerEntitlementAccess{
+			FeatureKey: "tokens",
+			Type:       entitlement.EntitlementTypeMetered,
+			Value:      &entitlement.NoAccessValue{},
+		}, api.BillingEntitlementAccessExpandValue)
+		require.NoError(t, err)
+		require.Equal(t, api.BillingEntitlementAccessResult{
+			FeatureKey: "tokens",
+			Type:       api.BillingEntitlementTypeMetered,
+			HasAccess:  false,
+		}, result)
+	})
+
+	t.Run("feature without an entitlement reports the static placeholder type", func(t *testing.T) {
 		result, err := mapEntitlementAccessToAPI(entitlement.CustomerEntitlementAccess{
 			FeatureKey: "missing",
 			Value:      &entitlement.NoAccessValue{},
 		})
 		require.NoError(t, err)
-		require.Equal(t, "missing", result.FeatureKey)
-		require.False(t, result.HasAccess)
-		require.Nil(t, result.Value)
-		require.Nil(t, result.Config)
+		require.Equal(t, api.BillingEntitlementAccessResult{
+			FeatureKey: "missing",
+			Type:       api.BillingEntitlementTypeStatic,
+			HasAccess:  false,
+		}, result)
 	})
 
 	t.Run("unknown value type is rejected", func(t *testing.T) {

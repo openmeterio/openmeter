@@ -57,7 +57,7 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		return fakeEntitlementService{
 			get: func(_ context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
 				*received = input
-				return entitlement.CustomerEntitlementAccess{FeatureKey: testFeatureKey, Value: &booleanentitlement.BooleanEntitlementValue{}}, nil
+				return entitlement.CustomerEntitlementAccess{FeatureKey: testFeatureKey, Type: entitlement.EntitlementTypeBoolean, Value: &booleanentitlement.BooleanEntitlementValue{}}, nil
 			},
 		}
 	}
@@ -108,6 +108,7 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		get: func(_ context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
 			return entitlement.CustomerEntitlementAccess{
 				FeatureKey: input.FeatureKey,
+				Type:       entitlement.EntitlementTypeMetered,
 				Value: &meteredentitlement.MeteredEntitlementValue{
 					Balance:                   25,
 					UsageInPeriod:             75,

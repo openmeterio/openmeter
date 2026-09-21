@@ -151,6 +151,9 @@ interface CustomerEntitlementValueOperations {
   @route("/{entitlementId}/value")
   @operationId("get-customer-entitlement-value")
   @summary("Get customer entitlement value")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
   get(
     @path customerId: Shared.ULID,
     @path entitlementId: Shared.ULID,

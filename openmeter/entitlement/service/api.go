@@ -43,11 +43,23 @@ func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitl
 
 	value, err := c.getEntitlementValueAt(ctx, ent, input.At)
 	if err != nil {
+		// The metered engine resolves the entitlement against the current time, so a
+		// feature-key lookup at a time before a metered entitlement's deletion cannot
+		// be evaluated and grants no access.
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return entitlement.CustomerEntitlementAccess{
+				FeatureKey: ent.FeatureKey,
+				Type:       ent.EntitlementType,
+				Value:      &entitlement.NoAccessValue{},
+			}, nil
+		}
+
 		return entitlement.CustomerEntitlementAccess{}, err
 	}
 
 	return entitlement.CustomerEntitlementAccess{
 		FeatureKey: ent.FeatureKey,
+		Type:       ent.EntitlementType,
 		Value:      value,
 	}, nil
 }
@@ -100,6 +112,7 @@ func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entit
 
 		items = append(items, entitlement.CustomerEntitlementAccess{
 			FeatureKey: featureKey,
+			Type:       ent.Type,
 			Value:      ent.Value,
 		})
 	}

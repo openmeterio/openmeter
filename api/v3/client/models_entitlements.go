@@ -35,20 +35,24 @@ type EntitlementAccessResult struct {
 	// Only available for static entitlements. Config is the JSON parsable
 	// configuration of the entitlement. Useful to describe per customer configuration.
 	Config *string `json:"config,omitempty"`
-	// Only available for metered entitlements. The current balance details of the
-	// entitlement. Requires the `value` expand.
+	// Only available for metered entitlements. The balance details of the entitlement
+	// at the evaluation time. Requires the `value` expand.
 	Value *EntitlementAccessValue `json:"value,omitempty"`
 }
 
-// Balance details of a metered entitlement.
+// Balance details of a metered entitlement at the evaluation time, which is the
+// `at` query parameter when given and the current time otherwise.
 type EntitlementAccessValue struct {
-	// The remaining balance of the entitlement in the current usage period.
+	// The remaining balance of the entitlement in the usage period at the evaluation
+	// time.
 	Balance Numeric `json:"balance"`
-	// The usage recorded in the current usage period.
+	// The usage recorded in the usage period at the evaluation time.
 	Usage Numeric `json:"usage"`
-	// The usage exceeding the available balance in the current usage period.
+	// The usage exceeding the available balance in the usage period at the evaluation
+	// time.
 	Overage Numeric `json:"overage"`
-	// The total amount granted and currently available to the entitlement.
+	// The total amount granted and available to the entitlement at the evaluation
+	// time.
 	TotalAvailableGrantAmount Numeric `json:"total_available_grant_amount"`
 	// The remaining balance of each grant, keyed by grant ID.
 	GrantBalances map[string]Numeric `json:"grant_balances"`
