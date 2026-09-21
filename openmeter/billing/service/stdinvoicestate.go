@@ -224,7 +224,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress)
 
-	stateMachine.Configure(billing.StandardInvoiceStatusDeleted)
+	stateMachine.Configure(billing.StandardInvoiceStatusDeleted).
+		InternalTransition(billing.TriggerDelete, statelessx.WithParameters(out.deleteInvoice))
 
 	// Issuing state. Line finalization handlers can persist durable preparation
 	// before returning. Preparation failures remain retry-only, while invoice-app
@@ -929,16 +930,16 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 		return err
 	}
 
-	// Each delete attempt owns its validation result. This keeps a retry from
-	// being poisoned by a prior delete-sync failure.
-	m.Invoice.ValidationIssues = nil
-
 	// DeletedAt is persisted before delete syncing starts. If syncing later fails
 	// and delete is retried, the source-specific line-engine cleanup has already
 	// run and must not be dispatched again.
 	if m.Invoice.DeletedAt != nil {
 		return nil
 	}
+
+	// Each delete attempt owns its validation result. This keeps a retry from
+	// being poisoned by a prior delete-sync failure.
+	m.Invoice.ValidationIssues = nil
 
 	m.Invoice.DeletionSource = input.Source
 
