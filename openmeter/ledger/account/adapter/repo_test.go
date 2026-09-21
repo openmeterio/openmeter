@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -361,6 +362,7 @@ func TestRepoFilterStorageBridge(t *testing.T) {
 	stored, err := env.client.LedgerSubAccountRoute.Query().Where(ledgersubaccountroutedb.ID(sub.RouteMeta.ID)).Only(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, stored.Filters)
+	require.Equal(t, crediteligibility.FiltersVersion1, stored.Filters.Version)
 	require.Equal(t, []string{"input", "output"}, stored.Filters.Features)
 	require.Equal(t, stored.Filters.Features, []string(stored.Features))
 	// When an older writer's row has no JSON envelope, lookup preserves identity.

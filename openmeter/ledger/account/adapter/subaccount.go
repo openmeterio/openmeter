@@ -95,7 +95,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetNillableCostBasisCurrency(normalizedRoute.CostBasisCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
-		SetFilters(lo.ToPtr(crediteligibility.Filters{Features: normalizedRoute.Features})).
+		SetFilters(lo.ToPtr(crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: normalizedRoute.Features})).
 		SetFeatures(pq.StringArray(normalizedRoute.Features)).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).

@@ -9,9 +9,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-// Filters stores credit restrictions. Empty features impose no restriction.
+type FiltersVersion int
+
+const FiltersVersion1 FiltersVersion = 1
+
+// Filters stores versioned credit restrictions. Empty features impose no restriction.
 type Filters struct {
-	Features []string `json:"features,omitempty"`
+	Version  FiltersVersion `json:"schema_version"`
+	Features []string       `json:"features,omitempty"`
 }
 
 type FeatureFilters []string
@@ -52,7 +57,18 @@ func (f FeatureFilters) ValidateAsFeatureFilter() error {
 	return nil
 }
 
-func (f Filters) Validate() error { return FeatureFilters(f.Features).Validate() }
+func (f Filters) Validate() error {
+	var errs []error
+	if f.Version != FiltersVersion1 {
+		errs = append(errs, fmt.Errorf("unsupported credit filters schema version: %d", f.Version))
+	}
+	if err := FeatureFilters(f.Features).Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("features: %w", err))
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 func (f Filters) Normalize() Filters {
-	return Filters{Features: FeatureFilters(f.Features).Normalize()}
+	f.Features = FeatureFilters(f.Features).Normalize()
+	return f
 }

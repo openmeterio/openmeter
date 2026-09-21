@@ -8,7 +8,7 @@ During the storage transition, writers populate both the JSON envelope and the
 legacy feature columns. Readers still use the legacy columns. Deploy these
 writers everywhere before backfilling and switching readers to JSON.
 
-`StoredFilters` retains an explicit `FiltersVersion`; version-specific readers
-and writers dispatch through it. V1 is a frozen feature-only format. `Filters`
-contains the common matching dimensions, and its JSON writer selects the oldest
-format capable of representing them. Unknown versions and dimensions are rejected.
+`Filters.Version` is retained by Ent, normalization, and JSON round trips.
+Writers explicitly choose v1 when creating filters; encoding honors that version.
+The codec switches on the version and uses a frozen feature-only v1 payload.
+Missing and unsupported versions are rejected; there is no implicit upgrade.
