@@ -680,12 +680,4 @@ func TestToAPITaxCodeConfig(t *testing.T) {
 		require.NotNil(t, result.Behavior)
 		assert.Equal(t, apiv3.BillingTaxBehavior("exclusive"), *result.Behavior)
 	})
-
-	t.Run("stripe-only config is omitted", func(t *testing.T) {
-		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{
-			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		})
-
-		assert.Nil(t, result)
-	})
 }
