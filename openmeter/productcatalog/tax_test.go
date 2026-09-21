@@ -735,6 +735,7 @@ func TestResolveTaxConfig(t *testing.T) {
 		name    string
 		svc     taxcode.Service
 		cfg     *TaxConfig
+		opts    []ResolveTaxConfigOption
 		wantCfg *TaxConfig
 		wantErr string
 	}{
@@ -768,6 +769,21 @@ func TestResolveTaxConfig(t *testing.T) {
 			},
 			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
 			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: nil},
+		},
+		{
+			name: "TaxCodeID set, deleted entity allowed — deleted entity resolved",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					if !input.IncludeDeleted {
+						return taxcode.TaxCode{}, errors.New("deleted tax code lookup is not enabled")
+					}
+
+					return tcWithStripe, nil
+				},
+			},
+			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			opts:    []ResolveTaxConfigOption{AllowDeletedTaxCodeByID()},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
 		},
 		{
 			name: "both TaxCodeID and Stripe code set — TaxCodeID wins, Stripe overwritten from entity",
@@ -817,7 +833,7 @@ func TestResolveTaxConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ResolveTaxConfig(t.Context(), tt.svc, ns, tt.cfg)
+			err := ResolveTaxConfig(t.Context(), tt.svc, ns, tt.cfg, tt.opts...)
 
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)

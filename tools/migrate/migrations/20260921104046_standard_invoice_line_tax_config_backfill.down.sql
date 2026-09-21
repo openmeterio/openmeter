@@ -1,0 +1,4 @@
+-- Data backfill is intentionally irreversible. Restoring incomplete tax
+-- representations would make standard-line reads lossy again. The
+-- om_migration_backup_20260921104045_invoice_line_tax_config table is retained
+-- for manual verification or recovery.

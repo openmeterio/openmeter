@@ -6333,6 +6333,11 @@ func init() {
 	BillingInvoiceLinesTable.ForeignKeys[7].RefTable = SubscriptionItemsTable
 	BillingInvoiceLinesTable.ForeignKeys[8].RefTable = SubscriptionPhasesTable
 	BillingInvoiceLinesTable.ForeignKeys[9].RefTable = TaxCodesTable
+	BillingInvoiceLinesTable.Annotation = &entsql.Annotation{}
+	BillingInvoiceLinesTable.Annotation.Checks = map[string]string{
+		"billing_invoice_line_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
+		"billing_invoice_line_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
+	}
 	BillingInvoiceLineDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceLineUsageDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[0].RefTable = ChargesTable
