@@ -649,3 +649,43 @@ func TestFromAPITaxCodeConfig(t *testing.T) {
 		assert.True(t, models.IsGenericValidationError(err), "tax config without code or behavior must surface as a validation error")
 	})
 }
+
+func TestToAPITaxCodeConfig(t *testing.T) {
+	t.Run("nil when tax config is nil", func(t *testing.T) {
+		assert.Nil(t, ToAPITaxCodeConfig(nil))
+	})
+
+	t.Run("nil when tax config has no shared fields", func(t *testing.T) {
+		assert.Nil(t, ToAPITaxCodeConfig(&productcatalog.TaxConfig{}))
+	})
+
+	t.Run("maps normalized tax code ID", func(t *testing.T) {
+		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr("01TAXCODE000"),
+		})
+
+		require.NotNil(t, result)
+		require.NotNil(t, result.Code)
+		assert.Equal(t, "01TAXCODE000", result.Code.Id)
+		assert.Nil(t, result.Behavior)
+	})
+
+	t.Run("maps behavior-only config", func(t *testing.T) {
+		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{
+			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		})
+
+		require.NotNil(t, result)
+		assert.Nil(t, result.Code)
+		require.NotNil(t, result.Behavior)
+		assert.Equal(t, apiv3.BillingTaxBehavior("exclusive"), *result.Behavior)
+	})
+
+	t.Run("stripe-only config is omitted", func(t *testing.T) {
+		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{
+			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+		})
+
+		assert.Nil(t, result)
+	})
+}

@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -120,7 +119,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 		Name:        meta.Name,
 		Description: meta.Description,
 		Discounts:   ToAPIBillingRateCardDiscount(meta.Discounts),
-		TaxConfig:   ToAPITaxCodeConfig(meta.TaxConfig, meta.TaxCode),
+		TaxConfig:   ToAPITaxCodeConfig(meta.TaxConfig),
 	}
 
 	if meta.Currency != nil {
@@ -532,18 +531,14 @@ func ToAPIBillingPriceTiers(tiers []productcatalog.PriceTier) []api.BillingPrice
 	return result
 }
 
-func ToAPITaxCodeConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxCode) *api.TaxCodeConfig {
-	if c == nil {
+func ToAPITaxCodeConfig(c *productcatalog.TaxConfig) *api.TaxCodeConfig {
+	if c == nil || (c.Behavior == nil && c.TaxCodeID == nil) {
 		return nil
 	}
 
 	result := &api.TaxCodeConfig{}
 
-	// The tax code entity is the authoritative reference when resolved; legacy rows
-	// without a resolvable entity still carry the code on the config itself.
-	if tc != nil {
-		result.Code = &api.TaxCodeReference{Id: tc.ID}
-	} else if c.TaxCodeID != nil {
+	if c.TaxCodeID != nil {
 		result.Code = &api.TaxCodeReference{Id: *c.TaxCodeID}
 	}
 

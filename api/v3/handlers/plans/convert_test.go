@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -1039,79 +1038,58 @@ func TestFromBillingCommitments(t *testing.T) {
 
 func TestToAPITaxCodeConfig(t *testing.T) {
 	t.Run("nil when tax config is nil", func(t *testing.T) {
-		result := ToAPITaxCodeConfig(nil, &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE"}})
+		result := ToAPITaxCodeConfig(nil)
 		assert.Nil(t, result)
 	})
 
-	t.Run("empty config without entity maps to an empty tax config", func(t *testing.T) {
-		// A present-but-empty config emits an empty object rather than nil,
-		// matching the addons outbound mapper.
-		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{}, nil)
-		require.NotNil(t, result)
-		assert.Nil(t, result.Code)
-		assert.Nil(t, result.Behavior)
+	t.Run("nil when tax config has no shared fields", func(t *testing.T) {
+		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{})
+		assert.Nil(t, result)
 	})
 
-	t.Run("maps tax code ID from resolved entity", func(t *testing.T) {
-		tc := &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE000000000000000000"}}
-		result := ToAPITaxCodeConfig(&productcatalog.TaxConfig{}, tc)
-
-		require.NotNil(t, result)
-		require.NotNil(t, result.Code)
-		assert.Equal(t, api.ULID("01TAXCODE000000000000000000"), result.Code.Id)
-		assert.Nil(t, result.Behavior)
-	})
-
-	t.Run("maps code from config when entity is not resolved", func(t *testing.T) {
+	t.Run("maps normalized tax code ID", func(t *testing.T) {
 		c := &productcatalog.TaxConfig{
-			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			TaxCodeID: lo.ToPtr("01TAXCODE000000000000000001"),
 		}
 
-		result := ToAPITaxCodeConfig(c, nil)
+		result := ToAPITaxCodeConfig(c)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Code)
 		assert.Equal(t, "01TAXCODE000000000000000001", result.Code.Id)
-		require.NotNil(t, result.Behavior)
-		assert.Equal(t, api.BillingTaxBehavior("exclusive"), *result.Behavior)
+		assert.Nil(t, result.Behavior)
 	})
 
 	t.Run("maps behavior", func(t *testing.T) {
-		tc := &taxcode.TaxCode{NamespacedID: models.NamespacedID{ID: "01TAXCODE000000000000000000"}}
 		cfg := &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr("01TAXCODE000000000000000000"),
 		}
 
-		result := ToAPITaxCodeConfig(cfg, tc)
+		result := ToAPITaxCodeConfig(cfg)
 		require.NotNil(t, result)
 		require.NotNil(t, result.Behavior)
 		assert.Equal(t, api.BillingTaxBehavior("inclusive"), *result.Behavior)
 	})
 
 	t.Run("maps behavior-only config without code", func(t *testing.T) {
-		// Legacy rows may carry only the behavior (no tax code FK); the API must
-		// surface it instead of dropping the whole tax config.
 		c := &productcatalog.TaxConfig{
 			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 		}
 
-		result := ToAPITaxCodeConfig(c, nil)
+		result := ToAPITaxCodeConfig(c)
 		require.NotNil(t, result)
 		assert.Nil(t, result.Code)
 		require.NotNil(t, result.Behavior)
 		assert.Equal(t, api.BillingTaxBehavior("inclusive"), *result.Behavior)
 	})
 
-	t.Run("stripe-only config maps to an empty tax config", func(t *testing.T) {
-		// Provider-specific fields have no representation in the lean model.
+	t.Run("stripe-only config is omitted", func(t *testing.T) {
 		c := &productcatalog.TaxConfig{
 			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 		}
 
-		result := ToAPITaxCodeConfig(c, nil)
-		require.NotNil(t, result)
-		assert.Nil(t, result.Code)
-		assert.Nil(t, result.Behavior)
+		result := ToAPITaxCodeConfig(c)
+		assert.Nil(t, result)
 	})
 }
 

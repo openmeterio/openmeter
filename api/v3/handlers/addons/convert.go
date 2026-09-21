@@ -612,7 +612,7 @@ func ToAPIBillingPricePaymentTerm(t productcatalog.PaymentTermType) (*apiv3.Bill
 }
 
 func ToAPITaxCodeConfig(tc *productcatalog.TaxConfig) *apiv3.TaxCodeConfig {
-	if tc == nil {
+	if tc == nil || (tc.Behavior == nil && tc.TaxCodeID == nil) {
 		return nil
 	}
 
