@@ -2,9 +2,9 @@
 
 This package turns selected customer FBO credit into accrued value and, for
 custom-currency `credit_then_invoice` overage, fiat receivable coverage.
-Credit-only accrual can also create an advance for an uncovered amount. The
-hard part is preserving the exact order of selected sources so later correction
-and breakage flows can undo the same economic slices.
+Credit-only accrual asks [advance](../advance/README.md) to create an advance for
+an uncovered amount. Source order is preserved so correction and breakage can
+undo the same collected amounts.
 
 ## Vocab
 
@@ -35,6 +35,7 @@ FBO collection order is:
 
 ```text
 credit_priority asc
+feature-restricted before unrestricted
 expires_at asc
 stable cursor asc
 ```
@@ -115,8 +116,8 @@ remaining receivable: RECEIVABLE -2
 
 Coverage preserves the original credit's source charge and records the charge
 whose receivable is covered as the spend charge. Correction restores the exact
-selected FBO sources and reopens their breakage releases. Its lineage records
-that correction provenance but is not eligible for earnings recognition because
+selected FBO sources and reopens their breakage releases. Each source slice has
+a collection origin, but is not eligible for earnings recognition because
 covering a receivable creates no accrued value.
 
 ## Source Entry Identity
@@ -140,9 +141,17 @@ source #0 -> order 0
 source #1 -> order 1
 ```
 
-That identity is not a second source of numeric truth. Amounts come from ledger entries. The identity only records the order in which committed source entries were selected.
+`CollectionSource` records source selection order and pairs the collection's
+entries. Each selected source slice also receives a `CollectionOriginID`, which
+groups its downstream backfill, recognition, correction, and breakage postings.
+Two runs of the same spend charge consuming the same purchase therefore remain
+independently correctable. Collecting restored FBO credit starts a fresh origin.
 
-This bridge is needed because later correction starts from a billing allocation, but breakage releases are attached to concrete FBO source entries.
+These identities store no amounts. Correction starts from billing's allocation
+and its original group/subaccount, then uses ledger balances and exact original
+entry references. Breakage releases are attached to concrete FBO source entries.
+See [collection provenance](../README.md#collection-provenance) for the identity
+and validation rules.
 
 ## Credit-Only Advance
 
@@ -179,7 +188,7 @@ Advance does not create breakage because no expiring real credit backs it yet.
 
 ## Advance Backfill
 
-When later real credit covers advance, the covered value is already used from the collector's perspective.
+When later real credit covers advance, the covered value is already used from the collector's perspective. [Advance backfill](../advance/README.md#backfill) owns the FIFO selection and attribution postings.
 
 Example:
 
@@ -205,127 +214,15 @@ Net breakage is zero unless the original advance-backed usage is later corrected
 
 ## Usage Corrections
 
-Usage correction restores previously collected value. It does not increase usage; it unwinds up to the original collected amount.
-
-Correction uses reverse original collection order within the allocation's FBO
-subaccount. Repeated corrections subtract prior immutable correction links before
-selecting the next source slice. Breakage reopening uses that same selection.
-
-If a shared earnings-recognition group contains other spends or cost bases,
-correction reverses only the accrued route and source/spend provenance needed by
-the original collection or backfill unwind. Group membership alone is not
-sufficient to select recognized value.
-
-Example:
-
-```text
-original allocation amount = 10
-
-source #0: 4 from expiry T10
-source #1: 6 from expiry T15
-```
-
-Correction of 5 restores:
-
-```text
-5 from source #1
-```
-
-Ledger correction:
-
-```text
-@C
-FBO(source #1) +5
-ACCRUED        -5
-```
-
-Breakage correction:
-
-```text
-@T15 [reopen]
-FBO(source #1) -5
-BR             +5
-```
-
-Correction of 8 restores:
-
-```text
-6 from source #1
-2 from source #0
-```
-
-Ledger correction:
-
-```text
-@C
-FBO(source #1) +6
-FBO(source #0) +2
-ACCRUED        -8
-```
-
-Breakage correction:
-
-```text
-@T15 [reopen]
-FBO(source #1) -6
-BR             +6
-
-@T10 [reopen]
-FBO(source #0) -2
-BR             +2
-```
-
-The remaining usage is equivalent to the original collection prefix:
-
-```text
-original:  T10(4), T15(6)
-correct 8
-remaining used: T10(2), T15(0)
-```
-
-## Backfilled Advance Correction
-
-Backfilled advance is a two-time problem:
-
-1. original usage consumed advance;
-2. later real credit covered that already-used advance.
-
-Correcting the original usage has to unwind both facts:
-
-- undo the original advance-backed collection;
-- unwind the later backfill attribution;
-- reopen the advance-backfill breakage release;
-- make the covered real credit available again as ordinary FBO credit.
-
-Example:
-
-```text
-T1 usage consumes 5 advance
-T5 credit purchase backfills that 5, expires T20
-T6 original usage is corrected by 5
-```
-
-The correction:
-
-```text
-@T6
-FBO(advance) +5
-ACCRUED      -5
-```
-
-The backfilled credit is no longer used, so breakage reopens the release:
-
-```text
-@T20 [reopen]
-FBO(real) -5
-BR        +5
-```
-
-The covered real credit is re-issued into ordinary FBO state so it can be consumed later or expire at `T20`.
+[Correction](correction/README.md) restores collected value in reverse original
+collection order. It owns provenance and legacy history handling, the shared
+source-selection rules, and correction posting with breakage reopening.
 
 ## Transaction Boundary
 
-Collection and correction must run inside one database transaction.
+Each collection or correction operation holds customer posting locks from source
+selection through commit. The caller persists its billing realizations in the
+same database transaction.
 
 The atomic unit includes:
 

@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
@@ -25,12 +25,15 @@ import (
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -562,30 +565,38 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 type usageBasedHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
 	handler    chargeusagebased.Handler
-	lineage    lineage.Service
+	lineage    legacylineage.Service
 	recognizer recognizer.Service
 	currency   currencies.Currency
 }
 
 func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "chargeadapter-usagebased")
+	breakageService := ledgerbreakage.NewNoopService()
+
+	advanceService := advancetestutils.NewService(t, base.Deps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: base.Deps.HistoricalLedger,
+		Logger:  omtestutils.NewDiscardLogger(t),
+		Advance: advanceService,
+		Ledger:  base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: base.Deps.ResolversService,
 			AccountCatalog: base.Deps.AccountService,
 			BalanceQuerier: base.Deps.HistoricalLedger,
 		},
+		Breakage:           breakageService,
 		AccountLocker:      base.Deps.AccountService,
 		TransactionManager: enttx.NewCreator(base.DB),
 	})
 	require.NoError(t, err)
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: base.DB,
 	})
 	require.NoError(t, err)
 
-	dbLineage, err := lineageservice.New(lineageservice.Config{
+	dbLineage, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	require.NoError(t, err)
@@ -607,11 +618,15 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 
 	return &usageBasedHandlerTestEnv{
 		IntegrationEnv: base,
-		handler: chargeadapter.NewUsageBasedHandler(base.Deps.HistoricalLedger, transactions.ResolverDependencies{
-			AccountService: base.Deps.ResolversService,
-			AccountCatalog: base.Deps.AccountService,
-			BalanceQuerier: base.Deps.HistoricalLedger,
-		}, collectorService),
+		handler: chargeadapter.NewUsageBasedHandler(
+			base.Deps.HistoricalLedger,
+			transactions.ResolverDependencies{
+				AccountService: base.Deps.ResolversService,
+				AccountCatalog: base.Deps.AccountService,
+				BalanceQuerier: base.Deps.HistoricalLedger,
+			},
+			collectorService,
+		),
 		lineage:    lineageService,
 		recognizer: recognizerService,
 		currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
@@ -623,7 +638,7 @@ func (e *usageBasedHandlerTestEnv) newCreditsOnlyCharge() chargeusagebased.Charg
 }
 
 func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.SettlementMode) chargeusagebased.Charge {
-	now := time.Now().UTC()
+	now := e.Now()
 	featureID := "feature-api-requests"
 	servicePeriod := timeutil.ClosedPeriod{
 		From: now.Add(-time.Hour),
@@ -640,7 +655,7 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
-				ID: "usage-based-charge",
+				ID: "01J00000000000000000000002",
 			},
 			Intent: chargeusagebased.Intent{
 				Intent: meta.Intent{
@@ -673,7 +688,7 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 }
 
 func (e *usageBasedHandlerTestEnv) newRun() chargeusagebased.RealizationRun {
-	now := time.Now().UTC()
+	now := e.Now()
 	featureID := "feature-api-requests"
 
 	return chargeusagebased.RealizationRun{
@@ -960,7 +975,7 @@ func (e *usageBasedHandlerTestEnv) createInitialLineages(t *testing.T, chargeID 
 
 	e.ensureCharge(t, chargeID)
 
-	err := e.lineage.CreateInitialLineages(t.Context(), lineage.CreateInitialLineagesInput{
+	err := e.lineage.CreateInitialLineages(t.Context(), legacylineage.CreateInitialLineagesInput{
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
@@ -970,7 +985,7 @@ func (e *usageBasedHandlerTestEnv) createInitialLineages(t *testing.T, chargeID 
 	require.NoError(t, err)
 }
 
-func (e *usageBasedHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realizations creditrealization.Realizations) lineage.ActiveSegmentsByRealizationID {
+func (e *usageBasedHandlerTestEnv) activeSegmentsByRealization(t *testing.T, realizations creditrealization.Realizations) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 
 	ids := make([]string, 0, len(realizations))
@@ -984,25 +999,19 @@ func (e *usageBasedHandlerTestEnv) activeSegmentsByRealization(t *testing.T, rea
 	return segments
 }
 
-func (e *usageBasedHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) lineage.ActiveSegmentsByRealizationID {
+func (e *usageBasedHandlerTestEnv) assertRecognizedSegments(t *testing.T, realizations creditrealization.Realizations, recognitionGroupID string) legacylineage.ActiveSegmentsByRealizationID {
 	t.Helper()
 
-	segmentsByRealization := e.activeSegmentsByRealization(t, realizations)
-	for _, realization := range realizations {
-		segments := segmentsByRealization[realization.ID]
-		require.Len(t, segments, 1)
+	require.NotEmpty(t, recognitionGroupID)
 
-		segment := segments[0]
-		require.Equal(t, creditrealization.LineageSegmentStateEarningsRecognized, segment.State)
-		require.True(t, segment.Amount.Equal(realization.Amount), "segment=%s expected=%s", segment.Amount, realization.Amount)
-		require.NotNil(t, segment.BackingTransactionGroupID)
-		require.Equal(t, recognitionGroupID, *segment.BackingTransactionGroupID)
-		require.NotNil(t, segment.SourceState)
-		require.Equal(t, creditrealization.LineageSegmentStateRealCredit, *segment.SourceState)
-		require.Nil(t, segment.SourceBackingTransactionGroupID)
+	segments := e.activeSegmentsByRealization(t, realizations)
+
+	for _, realization := range realizations {
+		require.Equal(t, true, realization.Annotations[ledger.AnnotationOriginTracked])
+		require.Empty(t, segments[realization.ID], "origin-tracked recognition must not create lineage segments")
 	}
 
-	return segmentsByRealization
+	return segments
 }
 
 func (e *usageBasedHandlerTestEnv) ensureCharge(t *testing.T, chargeID string) {
@@ -1017,7 +1026,7 @@ func (e *usageBasedHandlerTestEnv) ensureCharge(t *testing.T, chargeID string) {
 }
 
 func (e *usageBasedHandlerTestEnv) realizationsFromAllocations(allocations creditrealization.CreateAllocationInputs) creditrealization.Realizations {
-	now := time.Now().UTC()
+	now := e.Now()
 
 	out := make(creditrealization.Realizations, 0, len(allocations))
 	for i, allocation := range allocations.AsCreateInputs() {

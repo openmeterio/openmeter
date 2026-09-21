@@ -116,6 +116,20 @@ func (_c *LedgerEntryCreate) SetNillableSchemaVersion(v *int) *LedgerEntryCreate
 	return _c
 }
 
+// SetCollectionOriginID sets the "collection_origin_id" field.
+func (_c *LedgerEntryCreate) SetCollectionOriginID(v string) *LedgerEntryCreate {
+	_c.mutation.SetCollectionOriginID(v)
+	return _c
+}
+
+// SetNillableCollectionOriginID sets the "collection_origin_id" field if the given value is not nil.
+func (_c *LedgerEntryCreate) SetNillableCollectionOriginID(v *string) *LedgerEntryCreate {
+	if v != nil {
+		_c.SetCollectionOriginID(*v)
+	}
+	return _c
+}
+
 // SetSourceChargeID sets the "source_charge_id" field.
 func (_c *LedgerEntryCreate) SetSourceChargeID(v string) *LedgerEntryCreate {
 	_c.mutation.SetSourceChargeID(v)
@@ -277,6 +291,11 @@ func (_c *LedgerEntryCreate) check() error {
 	if _, ok := _c.mutation.SchemaVersion(); !ok {
 		return &ValidationError{Name: "schema_version", err: errors.New(`db: missing required field "LedgerEntry.schema_version"`)}
 	}
+	if v, ok := _c.mutation.CollectionOriginID(); ok {
+		if err := ledgerentry.CollectionOriginIDValidator(v); err != nil {
+			return &ValidationError{Name: "collection_origin_id", err: fmt.Errorf(`db: validator failed for field "LedgerEntry.collection_origin_id": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.SourceChargeID(); ok {
 		if err := ledgerentry.SourceChargeIDValidator(v); err != nil {
 			return &ValidationError{Name: "source_charge_id", err: fmt.Errorf(`db: validator failed for field "LedgerEntry.source_charge_id": %w`, err)}
@@ -362,6 +381,10 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SchemaVersion(); ok {
 		_spec.SetField(ledgerentry.FieldSchemaVersion, field.TypeInt, value)
 		_node.SchemaVersion = value
+	}
+	if value, ok := _c.mutation.CollectionOriginID(); ok {
+		_spec.SetField(ledgerentry.FieldCollectionOriginID, field.TypeString, value)
+		_node.CollectionOriginID = &value
 	}
 	if value, ok := _c.mutation.SourceChargeID(); ok {
 		_spec.SetField(ledgerentry.FieldSourceChargeID, field.TypeString, value)
@@ -556,6 +579,9 @@ func (u *LedgerEntryUpsertOne) UpdateNewValues() *LedgerEntryUpsertOne {
 		}
 		if _, exists := u.create.mutation.SchemaVersion(); exists {
 			s.SetIgnore(ledgerentry.FieldSchemaVersion)
+		}
+		if _, exists := u.create.mutation.CollectionOriginID(); exists {
+			s.SetIgnore(ledgerentry.FieldCollectionOriginID)
 		}
 		if _, exists := u.create.mutation.SourceChargeID(); exists {
 			s.SetIgnore(ledgerentry.FieldSourceChargeID)
@@ -853,6 +879,9 @@ func (u *LedgerEntryUpsertBulk) UpdateNewValues() *LedgerEntryUpsertBulk {
 			}
 			if _, exists := b.mutation.SchemaVersion(); exists {
 				s.SetIgnore(ledgerentry.FieldSchemaVersion)
+			}
+			if _, exists := b.mutation.CollectionOriginID(); exists {
+				s.SetIgnore(ledgerentry.FieldCollectionOriginID)
 			}
 			if _, exists := b.mutation.SourceChargeID(); exists {
 				s.SetIgnore(ledgerentry.FieldSourceChargeID)

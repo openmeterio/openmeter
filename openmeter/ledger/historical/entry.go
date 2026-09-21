@@ -19,8 +19,7 @@ type EntryData struct {
 	IdentityKey   string
 	SchemaVersion ledger.EntrySchemaVersion
 
-	SourceChargeID *string
-	SpendChargeID  *string
+	ledger.Provenance
 
 	SubAccountID string
 	AccountType  ledger.AccountType
@@ -80,12 +79,8 @@ func (e *Entry) SchemaVersion() ledger.EntrySchemaVersion {
 	return e.data.SchemaVersion
 }
 
-func (e *Entry) SourceChargeID() *string {
-	return e.data.SourceChargeID
-}
-
-func (e *Entry) SpendChargeID() *string {
-	return e.data.SpendChargeID
+func (e *Entry) Provenance() ledger.Provenance {
+	return e.data.Provenance
 }
 
 func (e *Entry) Annotations() models.Annotations {

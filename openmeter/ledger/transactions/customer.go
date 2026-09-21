@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -20,15 +20,16 @@ import (
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At                time.Time
-	Amount            alpacadecimal.Decimal
-	Currency          currencies.CurrencyReference
-	CostBasisCurrency *currencyx.Code
-	TaxCode           *string
-	CostBasis         *alpacadecimal.Decimal
-	Features          []string
-	SourceChargeID    *string
-	SpendChargeID     *string
+	At                 time.Time
+	Amount             alpacadecimal.Decimal
+	Currency           currencies.CurrencyReference
+	CostBasisCurrency  *currencyx.Code
+	TaxCode            *string
+	CostBasis          *alpacadecimal.Decimal
+	Features           []string
+	SourceChargeID     *string
+	SpendChargeID      *string
+	CollectionOriginID *string
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -93,13 +94,13 @@ func (t IssueCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledge
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsPositive():
 			fboAddress = entry.PostingAddress()
 			fboAmount = fboAmount.Add(entry.Amount())
-			sourceChargeID = entry.SourceChargeID()
-			spendChargeID = entry.SpendChargeID()
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsNegative():
 			receivableAddress = entry.PostingAddress()
 			receivableAmount = receivableAmount.Add(entry.Amount().Abs())
-			sourceChargeID = entry.SourceChargeID()
-			spendChargeID = entry.SpendChargeID()
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
 		}
 	}
 
@@ -119,16 +120,20 @@ func (t IssueCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledge
 					address: fboAddress,
 					amount:  scope.Amount.Neg(),
 					identity: ledger.EntryIdentityParts{
-						SourceChargeID: sourceChargeID,
-						SpendChargeID:  spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
 					},
 				},
 				{
 					address: receivableAddress,
 					amount:  scope.Amount,
 					identity: ledger.EntryIdentityParts{
-						SourceChargeID: sourceChargeID,
-						SpendChargeID:  spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
 					},
 				},
 			},
@@ -173,16 +178,22 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 				address: fbo.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID:     t.SourceChargeID,
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: rec.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID:     t.SourceChargeID,
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -283,16 +294,20 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 				address: wash.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: rec.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -301,6 +316,7 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 
 // AuthorizeCustomerReceivablePaymentTemplate moves open receivable into the
 // authorized receivable route without moving funds across the external cash boundary.
+
 type AuthorizeCustomerReceivablePaymentTemplate struct {
 	At                time.Time
 	Amount            alpacadecimal.Decimal
@@ -390,16 +406,20 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 				address: authorizedReceivable.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: openReceivable.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID: t.SourceChargeID,
+						SpendChargeID:  t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -408,6 +428,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 // AttributeCustomerAdvanceReceivableCostBasisTemplate attributes existing open advance
 // receivable (`cost_basis=nil`) into a known purchase cost-basis bucket.
+
 type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	At                 time.Time
 	Amount             alpacadecimal.Decimal
@@ -419,6 +440,7 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	AttributedFeatures []string
 	SourceChargeID     *string
 	SpendChargeID      *string
+	CollectionOriginID *string
 }
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
@@ -474,12 +496,12 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(scope Corre
 		case entry.Amount().IsPositive():
 			advanceReceivableAddress = entry.PostingAddress()
 			advanceReceivableAmount = advanceReceivableAmount.Add(entry.Amount())
-			spendChargeID = entry.SpendChargeID()
+			spendChargeID = entry.Provenance().SpendChargeID
 		case entry.Amount().IsNegative():
 			attributedReceivableAddress = entry.PostingAddress()
 			attributedReceivableAmount = attributedReceivableAmount.Add(entry.Amount().Abs())
-			sourceChargeID = entry.SourceChargeID()
-			spendChargeID = entry.SpendChargeID()
+			sourceChargeID = entry.Provenance().SourceChargeID
+			spendChargeID = entry.Provenance().SpendChargeID
 		}
 	}
 
@@ -499,15 +521,19 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(scope Corre
 					address: advanceReceivableAddress,
 					amount:  scope.Amount.Neg(),
 					identity: ledger.EntryIdentityParts{
-						SpendChargeID: spendChargeID,
+						Provenance: ledger.Provenance{
+							SpendChargeID: spendChargeID,
+						},
 					},
 				},
 				{
 					address: attributedReceivableAddress,
 					amount:  scope.Amount,
 					identity: ledger.EntryIdentityParts{
-						SourceChargeID: sourceChargeID,
-						SpendChargeID:  spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: sourceChargeID,
+							SpendChargeID:  spendChargeID,
+						},
 					},
 				},
 			},
@@ -549,15 +575,21 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 				address: advanceReceivable.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SpendChargeID: t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 			{
 				address: attributedReceivable.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SourceChargeID: t.SourceChargeID,
-					SpendChargeID:  t.SpendChargeID,
+					Provenance: ledger.Provenance{
+						SourceChargeID:     t.SourceChargeID,
+						CollectionOriginID: t.CollectionOriginID,
+						SpendChargeID:      t.SpendChargeID,
+					},
 				},
 			},
 		},
@@ -751,8 +783,7 @@ func (t CoverCustomerReceivableTemplate) resolvePreselectedSources(ctx context.C
 
 			current.Address = receivable.Address()
 			current.Identity = ledger.EntryIdentityParts{
-				SourceChargeID: source.Identity.SourceChargeID,
-				SpendChargeID:  source.Identity.SpendChargeID,
+				Provenance: source.Identity.Provenance,
 			}
 		}
 
@@ -794,7 +825,7 @@ func (t CoverCustomerReceivableTemplate) routePairingKey(address ledger.PostingA
 
 	return routePairingKey{
 		currency:          route.Currency.IdentityKey(),
-		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
+		costBasisCurrency: mo.PointerToOption(route.CostBasisCurrency),
 		features:          strings.Join(route.Features, "\x00"),
 		costBasis:         costBasisKey(route.CostBasis),
 	}
@@ -802,16 +833,18 @@ func (t CoverCustomerReceivableTemplate) routePairingKey(address ledger.PostingA
 
 func (t CoverCustomerReceivableTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
 	key := t.routePairingKey(entry.PostingAddress())
-	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
-	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
+	key.sourceChargeID = mo.PointerToOption(entry.Provenance().SourceChargeID)
+	key.spendChargeID = mo.PointerToOption(entry.Provenance().SpendChargeID)
+	key.collectionOriginID = mo.PointerToOption(entry.Provenance().CollectionOriginID)
 
 	return key
 }
 
 func (t CoverCustomerReceivableTemplate) sourceRoutePairingKey(source PostingAmount) routePairingKey {
 	key := t.routePairingKey(source.Address)
-	key.sourceChargeID = lo.FromPtrOr(source.Identity.SourceChargeID, "null")
-	key.spendChargeID = lo.FromPtrOr(source.Identity.SpendChargeID, "null")
+	key.sourceChargeID = mo.PointerToOption(source.Identity.SourceChargeID)
+	key.spendChargeID = mo.PointerToOption(source.Identity.SpendChargeID)
+	key.collectionOriginID = mo.PointerToOption(source.Identity.CollectionOriginID)
 
 	return key
 }

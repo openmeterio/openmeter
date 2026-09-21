@@ -1,3 +1,4 @@
+// Deprecated: Use ledger collection provenance.
 package adapter
 
 import (
@@ -6,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -24,7 +25,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (lineage.Adapter, error) {
+func New(config Config) (legacylineage.Adapter, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}

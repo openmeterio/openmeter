@@ -1,42 +1,14 @@
-package lineage
+package legacylineage
 
 import (
 	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
-
-func SortCorrectionPersistSegments(segments []Segment) []Segment {
-	sorted := append([]Segment(nil), segments...)
-
-	sort.SliceStable(sorted, func(i, j int) bool {
-		precedence := func(state creditrealization.LineageSegmentState) int {
-			switch state {
-			case creditrealization.LineageSegmentStateEarningsRecognized:
-				return 0
-			case creditrealization.LineageSegmentStateAdvanceBackfilled:
-				return 1
-			case creditrealization.LineageSegmentStateAdvanceUncovered:
-				return 2
-			case creditrealization.LineageSegmentStateRealCredit:
-				return 3
-			case creditrealization.LineageSegmentStateReceivableCoverage:
-				return 4
-			default:
-				return 5
-			}
-		}
-
-		return precedence(sorted[i].State) < precedence(sorted[j].State)
-	})
-
-	return sorted
-}
 
 func MinDecimal(a, b alpacadecimal.Decimal) alpacadecimal.Decimal {
 	if a.GreaterThan(b) {
@@ -90,6 +62,7 @@ func (s Segment) Validate() error {
 		if s.BackingTransactionGroupID == nil || *s.BackingTransactionGroupID == "" {
 			errs = append(errs, errors.New("backing transaction group id is required for earnings_recognized"))
 		}
+
 		switch {
 		case s.SourceState == nil:
 			errs = append(errs, errors.New("source state is required for earnings_recognized"))

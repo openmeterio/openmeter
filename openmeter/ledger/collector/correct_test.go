@@ -10,16 +10,19 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
-	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
+	"github.com/openmeterio/openmeter/openmeter/ledger/collector/correction"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -27,8 +30,8 @@ import (
 
 func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-receivable")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given: settlement-fiat credit purchased by one charge
 	sourceChargeID := testChargeID(1)
@@ -49,21 +52,25 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, allocations, 1)
 	require.Equal(t, float64(20), allocations[0].Amount.InexactFloat64())
-	originKind, err := creditrealization.LineageOriginKindFromAnnotations(allocations[0].Annotations)
-	require.NoError(t, err)
-	require.Equal(t, creditrealization.LineageOriginKindReceivableCoverage, originKind)
+	require.Equal(t, true, allocations[0].Annotations[ledger.AnnotationOriginTracked])
 
 	// then: FBO -> receivable retains the purchased source and overage spend.
 	require.Equal(t, float64(10), env.SumBalance(t, fbo).InexactFloat64())
-	requireReceivableBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): 20,
-	})
+
+	requireReceivableBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceChargeID, &spendChargeID): 20,
+		},
+	)
 
 	// and: correction reverses the recorded collection rather than reselecting.
 	fiatCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
 		WithCode(env.Currency).
 		Build()
 	require.NoError(t, err)
+
 	realizations := realizationsFromAllocations(env, allocations)
 	request, err := realizations.CreateCorrectionRequest(
 		alpacadecimal.NewFromInt(-20),
@@ -71,13 +78,13 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	corrections, err := corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	corrections, err := corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendChargeID,
 		CustomerID:  env.CustomerID.ID,
 		AllocateAt:  env.Now(),
 		Corrections: request,
-		LineageSegmentsByRealization: lineage.ActiveSegmentsByRealizationID{
+		LineageSegmentsByRealization: legacylineage.ActiveSegmentsByRealizationID{
 			realizations[0].ID: {
 				{
 					Amount: alpacadecimal.NewFromInt(20),
@@ -89,13 +96,14 @@ func TestCollectToReceivableAndCorrectPreservesChargeProvenance(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, corrections, 1)
 	require.Equal(t, float64(30), env.SumBalance(t, fbo).InexactFloat64())
+
 	requireReceivableBalanceBuckets(t, env, map[string]float64{})
 }
 
 func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given:
 	// - one spend charge fully consumes a feature-restricted source and an unrestricted source
@@ -115,7 +123,7 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 	servicePeriod := testServicePeriod(env)
 	chargeID := testChargeID(1)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -140,7 +148,7 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 	require.NoError(t, err)
 	require.Len(t, corrections, 2) // the 20 correction spans the unrestricted source and part of the restricted source.
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    chargeID,
 		CustomerID:  env.CustomerID.ID,
@@ -160,8 +168,8 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-breakage")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
-	corrector := newTestAccrualCorrector(env, breakageService)
+	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	corrector := newTestAccrualCorrector(t, env, breakageService)
 
 	// given:
 	// - two expiring sources are fully consumed and their planned breakage is released
@@ -182,7 +190,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	servicePeriod := testServicePeriod(env)
 	chargeID := testChargeID(3)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -214,7 +222,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    chargeID,
 		CustomerID:  env.CustomerID.ID,
@@ -233,26 +241,38 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	require.Equal(t, unrestrictedPlanID, openPlans[0].ID.ID)
 	require.NotEqual(t, restrictedPlanID, openPlans[0].ID.ID)
 	require.True(t, openPlans[0].OpenAmount.Equal(alpacadecimal.NewFromInt(correctionAmount)), "open amount: %s", openPlans[0].OpenAmount)
-	requireFBOBalanceBucketsAt(t, env, env.Now(), map[string]float64{
-		sourceSpendChargeKey(&unrestrictedSourceCharge, nil): float64(correctionAmount), // current FBO is restored by the corrected 10 before future breakage reopen nets it out.
-	})
-	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&unrestrictedSourceCharge, nil): float64(correctionAmount), // reopened breakage is source-attributed, but not spend-attributed.
-	})
+
+	requireFBOBalanceBucketsAt(
+		t,
+		env,
+		env.Now(),
+		map[string]float64{
+			sourceSpendChargeKey(&unrestrictedSourceCharge, nil): float64(correctionAmount), // current FBO is restored by the corrected 10 before future breakage reopen nets it out.
+		},
+	)
+	requireBreakageBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&restrictedSourceCharge, nil):       float64(restrictedAmount),
+			sourceSpendChargeKey(&restrictedSourceCharge, &chargeID): -float64(restrictedAmount),
+			sourceSpendChargeKey(&unrestrictedSourceCharge, nil):     float64(correctionAmount),
+		},
+	)
 }
 
 func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-breakage")
 	breakageService := newTestBreakageService(t, env)
-	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
-	corrector := newTestAccrualCorrector(env, breakageService)
+	collector := newTestAccrualCollectorWithBreakage(t, env, breakageService)
+	corrector := newTestAccrualCorrector(t, env, breakageService)
 
 	// given:
 	// - sourced expiring credit has been consumed by one spend charge
 	// when:
 	// - part of that collection is corrected
 	// then:
-	// - reopened breakage is attributed to the original source without spend provenance
+	// - reopened breakage offsets the exact source and spend release
 	priority := 1 // only one source is available, so priority just selects its FBO route.
 	sourceCharge := testChargeID(1)
 	spendCharge := testChargeID(2)
@@ -261,7 +281,7 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 	expiresAfter := 10 * time.Hour // the single source expires in the future, so correction reopens one future breakage plan.
 	bookExpiringCreditWithFeatures(t, env, breakageService, priority, sourceAmount, nil, &sourceCharge, env.Now().Add(expiresAfter))
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(sourceAmount),
@@ -279,7 +299,7 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -296,21 +316,36 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 	require.NoError(t, err)
 	require.Len(t, openPlans, 1) // the single release is reopened into one open plan.
 	require.True(t, openPlans[0].OpenAmount.Equal(alpacadecimal.NewFromInt(correctionAmount)), "open amount: %s", openPlans[0].OpenAmount)
-	requireFBOBalanceBucketsAt(t, env, env.Now(), map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, nil): float64(correctionAmount), // current FBO is restored by the corrected 8 before future breakage reopen nets it out.
-	})
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, &spendCharge): float64(sourceAmount - correctionAmount), // 20 original accrued minus 8 corrected leaves 12 accrued to the spend.
-	})
-	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, nil): float64(correctionAmount), // the corrected slice is broken again under the original source, without spend attribution.
-	})
+
+	requireFBOBalanceBucketsAt(
+		t,
+		env,
+		env.Now(),
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, nil): float64(correctionAmount), // current FBO is restored by the corrected 8 before future breakage reopen nets it out.
+		},
+	)
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, &spendCharge): float64(sourceAmount - correctionAmount), // 20 original accrued minus 8 corrected leaves 12 accrued to the spend.
+		},
+	)
+	requireBreakageBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, nil):          float64(sourceAmount),
+			sourceSpendChargeKey(&sourceCharge, &spendCharge): -float64(sourceAmount - correctionAmount),
+		},
+	)
 }
 
 func TestCorrectCollectedAccruedPreservesSourceAndSpendBuckets(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-provenance")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given:
 	// - one spend charge consumes two same-route source charges
@@ -329,7 +364,7 @@ func TestCorrectCollectedAccruedPreservesSourceAndSpendBuckets(t *testing.T) {
 	fundSourceCharge(t, env, sourceCharge1, priority, firstSourceAmount)
 	fundSourceCharge(t, env, sourceCharge2, priority, secondSourceAmount)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(firstSourceAmount+secondSourceAmount),
@@ -347,7 +382,7 @@ func TestCorrectCollectedAccruedPreservesSourceAndSpendBuckets(t *testing.T) {
 	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -367,8 +402,8 @@ func TestCorrectCollectedAccruedPreservesSourceAndSpendBuckets(t *testing.T) {
 
 func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-advance")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given:
 	// - credit-only usage has no real source, so it creates advance receivable and accrued exposure
@@ -382,7 +417,7 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	servicePeriod := testServicePeriod(env)
 	chargeID := testChargeID(1)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -397,7 +432,7 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	require.Len(t, allocations, 1) // credit-only shortfall creates one advance-backed allocation.
 
 	realizations := realizationsFromAllocations(env, allocations)
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:  env.Namespace,
 		ChargeID:   chargeID,
 		CustomerID: env.CustomerID.ID,
@@ -414,23 +449,29 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-remainingAdvance)))
 	require.True(t, env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).Equal(alpacadecimal.Zero))
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(remainingAdvance)))
-	requireFBOProvenanceBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(nil, nil):       float64(correctionAmount),  // accrual correction frees 10 back into unspent advance/FBO value.
-		sourceSpendChargeKey(nil, &chargeID): float64(-correctionAmount), // companion receivable correction removes 10 from the spend-backed advance issuance.
-	})
-	requireReceivableBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(nil, &chargeID): float64(-remainingAdvance), // receivable remains negative for the uncorrected 20 advance.
-	})
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(nil, &chargeID): float64(remainingAdvance), // accrued keeps the uncorrected 20 under spend provenance with no source.
-	})
+
+	requireFBOProvenanceBalanceBuckets(t, env, map[string]float64{})
+	requireReceivableBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(nil, &chargeID): float64(-remainingAdvance), // receivable remains negative for the uncorrected 20 advance.
+		},
+	)
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(nil, &chargeID): float64(remainingAdvance), // accrued keeps the uncorrected 20 under spend provenance with no source.
+		},
+	)
 }
 
 func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-custom-promotion")
 	env.Currency = currencyx.Code("ACME")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given:
 	// - 100 promotional ACME credits with no fiat exchange source
@@ -443,7 +484,7 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	spendCharge := testChargeID(2)
 	fundSourceCharge(t, env, sourceCharge, 1, 100)
 
-	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+	allocations, err := collector.collectToAccrued(t.Context(), collectToAccruedInputForTest(
 		env,
 		spendCharge,
 		alpacadecimal.NewFromInt(40),
@@ -455,9 +496,14 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	require.Equal(t, float64(60), env.SumBalance(t, env.FBOSubAccount(t, 1)).InexactFloat64())
 	require.Equal(t, float64(0), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
 	require.Equal(t, float64(40), env.SumBalance(t, env.AccruedSubAccount(t)).InexactFloat64())
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, &spendCharge): 40,
-	})
+
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, &spendCharge): 40,
+		},
+	)
 	requireReceivableBalanceBuckets(t, env, map[string]float64{})
 
 	realizations := realizationsFromAllocations(env, allocations)
@@ -472,7 +518,7 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, corrections, 1)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -484,21 +530,34 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	require.Equal(t, float64(70), env.SumBalance(t, env.FBOSubAccount(t, 1)).InexactFloat64())
 	require.Equal(t, float64(0), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
 	require.Equal(t, float64(30), env.SumBalance(t, env.AccruedSubAccount(t)).InexactFloat64())
-	requireFBOBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, nil): 70,
-	})
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, &spendCharge): 30,
-	})
+
+	requireFBOBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, nil): 70,
+		},
+	)
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, &spendCharge): 30,
+		},
+	)
 	requireReceivableBalanceBuckets(t, env, map[string]float64{})
 
 	customTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &env.Currency,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &env.Currency,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, customTransactions.Items)
+
 	for _, transaction := range customTransactions.Items {
 		for _, entry := range transaction.Entries() {
 			route := entry.PostingAddress().Route().Route()
@@ -511,7 +570,10 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	usdTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &usd,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &usd,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.Empty(t, usdTransactions.Items)
@@ -520,8 +582,8 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-funded-custom-shortfall")
 	env.Currency = currencyx.Code("ACME")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given:
 	// - 100 ACME credits funded from 25 USD at a copied 0.25 cost basis
@@ -602,6 +664,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 		CostBasis:         &costBasis,
 	})
 	require.NoError(t, err)
+
 	fundedAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
 		Currency:          customCurrencyReference,
 		CostBasisCurrency: &fiatCurrency,
@@ -610,6 +673,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 		CostBasis:         &costBasis,
 	})
 	require.NoError(t, err)
+
 	sourceLessAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
 		Currency:    customCurrencyReference,
 		TaxCode:     &taxCode,
@@ -620,11 +684,14 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	usdBeforeCollection, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &fiatCurrency,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &fiatCurrency,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          spendCharge,
 		CustomerID:        env.CustomerID.ID,
@@ -639,6 +706,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, allocations, 2)
+
 	for _, allocation := range allocations {
 		require.Equal(t, servicePeriod, allocation.ServicePeriod)
 	}
@@ -647,15 +715,24 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	require.Equal(t, float64(-20), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
 	require.Equal(t, float64(100), env.SumBalance(t, fundedAccrued).InexactFloat64())
 	require.Equal(t, float64(20), env.SumBalance(t, sourceLessAccrued).InexactFloat64())
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, &spendCharge): 100,
-		sourceSpendChargeKey(nil, &spendCharge):           20,
-	})
-	requireReceivableBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, nil): -100,
-		sourceSpendChargeKey(nil, nil):           100,
-		sourceSpendChargeKey(nil, &spendCharge):  -20,
-	})
+
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, &spendCharge): 100,
+			sourceSpendChargeKey(nil, &spendCharge):           20,
+		},
+	)
+	requireReceivableBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, nil): -100,
+			sourceSpendChargeKey(nil, nil):           100,
+			sourceSpendChargeKey(nil, &spendCharge):  -20,
+		},
+	)
 
 	resolvedCustomCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
 		WithCode(customCurrency).
@@ -663,12 +740,13 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 		WithPrecision(3).
 		Build()
 	require.NoError(t, err)
+
 	corrections, err := realizationsFromAllocations(env, allocations).
 		CreateCorrectionRequest(alpacadecimal.NewFromInt(-40), resolvedCustomCurrency)
 	require.NoError(t, err)
 	require.Len(t, corrections, 2)
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
 		ChargeID:    spendCharge,
 		CustomerID:  env.CustomerID.ID,
@@ -681,27 +759,44 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	require.Equal(t, float64(0), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
 	require.Equal(t, float64(80), env.SumBalance(t, fundedAccrued).InexactFloat64())
 	require.Equal(t, float64(0), env.SumBalance(t, sourceLessAccrued).InexactFloat64())
-	requireFBOBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, nil): 20,
-	})
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, &spendCharge): 80,
-	})
-	requireReceivableBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge, nil): -100,
-		sourceSpendChargeKey(nil, nil):           100,
-	})
+
+	requireFBOBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, nil): 20,
+		},
+	)
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, &spendCharge): 80,
+		},
+	)
+	requireReceivableBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge, nil): -100,
+			sourceSpendChargeKey(nil, nil):           100,
+		},
+	)
 
 	sourceQualifiedTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &customCurrency,
-		Route: ledger.RouteFilter{
-			CostBasisCurrency: mo.Some(&fiatCurrency),
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &customCurrency,
+			Route: ledger.RouteFilter{
+				CostBasisCurrency: mo.Some(&fiatCurrency),
+			},
 		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, sourceQualifiedTransactions.Items)
+
 	for _, transaction := range sourceQualifiedTransactions.Items {
 		for _, entry := range transaction.Entries() {
 			route := entry.PostingAddress().Route().Route()
@@ -715,13 +810,17 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	sourceLessTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &customCurrency,
-		Route: ledger.RouteFilter{
-			CostBasisCurrency: mo.Some[*currencyx.Code](nil),
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &customCurrency,
+			Route: ledger.RouteFilter{
+				CostBasisCurrency: mo.Some[*currencyx.Code](nil),
+			},
 		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, sourceLessTransactions.Items)
+
 	for _, transaction := range sourceLessTransactions.Items {
 		for _, entry := range transaction.Entries() {
 			require.Nil(t, entry.PostingAddress().Route().Route().CostBasisCurrency)
@@ -731,10 +830,14 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	usdAfterCorrection, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
 		Namespace: env.Namespace,
 		Limit:     100,
-		Currency:  &fiatCurrency,
+		EntryFilter: ledger.TransactionEntryFilter{
+			Currency: &fiatCurrency,
+		},
+		ReturnOnlyMatchingEntries: true,
 	})
 	require.NoError(t, err)
 	require.Len(t, usdAfterCorrection.Items, len(usdBeforeCollection.Items))
+
 	for idx := range usdBeforeCollection.Items {
 		require.Equal(t, usdBeforeCollection.Items[idx].ID(), usdAfterCorrection.Items[idx].ID())
 	}
@@ -748,8 +851,8 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCrossNet(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-custom-multi-source")
 	env.Currency = currencyx.Code("ACME")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given:
 	// - 100 ACME funded from USD at priority 1 (cost basis 0.25)
@@ -851,7 +954,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	// not by which realization/allocation a correction references. Only
 	// collections booked in independent transactions are independently
 	// correctable.
-	usdAllocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	usdAllocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          usdChargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -865,7 +968,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	require.NoError(t, err)
 	require.Len(t, usdAllocations, 1)
 
-	eurAllocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	eurAllocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
 		ChargeID:          eurChargeID,
 		CustomerID:        env.CustomerID.ID,
@@ -890,7 +993,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	//   untouched
 	usdRealization := realizationsFromAllocations(env, usdAllocations)[0]
 
-	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+	_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:  env.Namespace,
 		ChargeID:   usdChargeID,
 		CustomerID: env.CustomerID.ID,
@@ -910,81 +1013,28 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	require.Equal(t, float64(20), env.SumBalance(t, eurAccrued).InexactFloat64())
 }
 
-func TestBackfilledCreditReissueRoutePreservesCostBasisCurrency(t *testing.T) {
-	// given:
-	// - a custom-currency FBO route funded through a USD exchange
-	// when:
-	// - a correction resolves the route for reissuing backfilled credit
-	// then:
-	// - the reissued route keeps the original fiat source
-	now := time.Now().UTC()
-	costBasis := alpacadecimal.NewFromFloat(0.25)
-	priority := 1
-	costBasisCurrency := lo.ToPtr(currencyx.Code("USD"))
-	currency, err := currencies.ParseCurrencyReference([]byte("custom|v1|ACME|custom-currency-id|2"))
-	require.NoError(t, err)
-	route := ledger.Route{
-		Currency:          currency,
-		CostBasisCurrency: costBasisCurrency,
-		CostBasis:         &costBasis,
-		CreditPriority:    &priority,
-	}
-	key, err := ledger.BuildRoutingKey(route)
-	require.NoError(t, err)
-
-	transaction, err := ledgerhistorical.NewTransactionFromData(
-		ledgerhistorical.TransactionData{
-			ID:        "tx-1",
-			Namespace: "ns",
-			CreatedAt: now,
-			BookedAt:  now,
-		},
-		[]ledgerhistorical.EntryData{
-			{
-				ID:            "entry-1",
-				Namespace:     "ns",
-				CreatedAt:     now,
-				SubAccountID:  "subaccount-1",
-				AccountType:   ledger.AccountTypeCustomerFBO,
-				Route:         route,
-				RouteID:       "route-1",
-				RouteKey:      key.Value(),
-				RouteKeyVer:   key.Version(),
-				Amount:        alpacadecimal.NewFromInt(10),
-				TransactionID: "tx-1",
-			},
-		},
-	)
-	require.NoError(t, err)
-
-	group := ledgerhistorical.NewTransactionGroupFromData(
-		ledgerhistorical.TransactionGroupData{
-			ID:        "group-1",
-			Namespace: "ns",
-			CreatedAt: now,
-		},
-		[]*ledgerhistorical.Transaction{transaction},
-	)
-
-	resolved, err := (&accrualCorrector{}).backfilledCreditReissueRoute(group)
-	require.NoError(t, err)
-	require.Equal(t, costBasisCurrency, resolved.costBasisCurrency)
-}
-
 func newTestAccrualCorrector(
+	t testing.TB,
 	env *ledgertestutils.IntegrationEnv,
 	breakageService ledgerbreakage.Service,
-) *accrualCorrector {
-	return &accrualCorrector{
-		ledger: env.Deps.HistoricalLedger,
-		deps: transactions.ResolverDependencies{
+) *correction.Corrector {
+	t.Helper()
+
+	corrector, err := correction.New(correction.Config{
+		Logger:  omtestutils.NewDiscardLogger(t),
+		Advance: advancetestutils.NewService(t, env.Deps, breakageService),
+		Ledger:  env.Deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
 			AccountService: env.Deps.ResolversService,
 			AccountCatalog: env.Deps.AccountService,
 			BalanceQuerier: env.Deps.HistoricalLedger,
 		},
-		breakage:           breakageService,
-		transactionManager: enttx.NewCreator(env.DB),
-	}
+		Breakage:           breakageService,
+		TransactionManager: enttx.NewCreator(env.DB),
+	})
+	require.NoError(t, err)
+
+	return corrector
 }
 
 func testServicePeriod(env *ledgertestutils.IntegrationEnv) timeutil.ClosedPeriod {
@@ -1018,15 +1068,15 @@ func realizationsFromAllocations(env *ledgertestutils.IntegrationEnv, allocation
 
 func TestCorrectCollectedAccruedResumesCollapsedSourceSuffix(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-source-suffix")
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	collector := newTestAccrualCollector(t, env)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
 
 	// given: one allocation collapses two source charges, followed by another route.
 	sourceA, sourceB, sourceC, spend := testChargeID(1), testChargeID(2), testChargeID(3), testChargeID(4)
 	sharedFBO := fundSourceCharge(t, env, sourceA, 1, 10)
 	fundSourceCharge(t, env, sourceB, 1, 20)
 	otherFBO := fundSourceCharge(t, env, sourceC, 2, 15)
-	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+	allocations, err := collector.collectToAccrued(t.Context(), CollectToAccruedInput{
 		Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID,
 		BookedAt: env.Now(), SourceBalanceAsOf: env.Now(), Currency: env.CurrencyReference(),
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
@@ -1041,7 +1091,7 @@ func TestCorrectCollectedAccruedResumesCollapsedSourceSuffix(t *testing.T) {
 		allocation int
 		amount     int64
 	}{{1, 5}, {0, 10}, {0, 15}} {
-		_, err := corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+		_, err := corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
 			Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID, AllocateAt: env.Now(),
 			Corrections: creditrealization.CorrectionRequest{{Allocation: realizations[correction.allocation], Amount: alpacadecimal.NewFromInt(-correction.amount)}},
 		})
@@ -1060,8 +1110,13 @@ func TestCorrectCollectedAccruedResumesCollapsedSourceSuffix(t *testing.T) {
 func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-shared-backfill")
 	env.Currency = "ACME"
-	collector := newTestAccrualCollector(env)
-	corrector := newTestAccrualCorrector(env, nil)
+	corrector := newTestAccrualCorrector(t, env, ledgerbreakage.NewNoopService())
+	deps := transactions.ResolverDependencies{
+		AccountService: env.Deps.ResolversService,
+		AccountCatalog: env.Deps.AccountService,
+		BalanceQuerier: env.Deps.HistoricalLedger,
+	}
+
 	spends := []string{testChargeID(1), testChargeID(2)}
 	purchase := testChargeID(3)
 	var allocations creditrealization.Realizations
@@ -1072,36 +1127,99 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 
 	// given: two spends share one later purchase/backfill group and recognition group.
 	for _, spend := range spends {
-		collected, err := collector.collect(t.Context(), CollectToAccruedInput{
-			Namespace: env.Namespace, ChargeID: spend, CustomerID: env.CustomerID.ID,
-			BookedAt: env.Now(), SourceBalanceAsOf: env.Now(), Currency: env.CurrencyReference(),
-			SettlementMode: productcatalog.CreditOnlySettlementMode, ServicePeriod: testServicePeriod(env), Amount: amount,
-		})
+		// Reproduce legacy lineage collection entries: this regression protects the
+		// retained lineage corrector, while origin lifecycles exercise the new path.
+		inputs, err := transactions.ResolveTransactions(
+			t.Context(),
+			deps,
+			transactions.ResolutionScope{
+				Namespace:  env.Namespace,
+				CustomerID: env.CustomerID,
+			},
+			transactions.IssueCustomerReceivableTemplate{
+				At:            env.Now(),
+				Amount:        amount,
+				Currency:      env.CurrencyReference(),
+				SpendChargeID: &spend,
+			},
+			transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+				At:            env.Now(),
+				Amount:        amount,
+				Currency:      env.CurrencyReference(),
+				SpendChargeID: &spend,
+			},
+		)
 		require.NoError(t, err)
-		require.Len(t, collected, 1)
-		allocations = append(allocations, realizationsFromAllocations(env, collected)...)
+
+		original, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+		require.NoError(t, err)
+
+		allocations = append(allocations, creditrealization.Realization{
+			NamespacedModel: models.NamespacedModel{Namespace: env.Namespace},
+			CreateInput: creditrealization.CreateInput{
+				ID:                ulid.Make().String(),
+				Type:              creditrealization.TypeAllocation,
+				Amount:            amount,
+				ServicePeriod:     testServicePeriod(env),
+				LedgerTransaction: ledgertransaction.GroupReference{TransactionGroupID: original.ID().ID},
+				Annotations:       creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
+			},
+		})
 		templates = append(templates,
-			transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), CostBasis: &basis, CostBasisCurrency: &fiat, SourceChargeID: &purchase, SpendChargeID: lo.ToPtr(spend)},
-			transactions.TranslateCustomerAccruedCostBasisTemplate{At: env.Now(), Amount: amount, Currency: env.CurrencyReference(), ToCostBasis: &basis, CostBasisCurrency: &fiat, SourceChargeID: &purchase, SpendChargeID: lo.ToPtr(spend)},
+			transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
+				At:                env.Now(),
+				Amount:            amount,
+				Currency:          env.CurrencyReference(),
+				CostBasis:         &basis,
+				CostBasisCurrency: &fiat,
+				SourceChargeID:    &purchase,
+				SpendChargeID:     lo.ToPtr(spend),
+			},
+			transactions.TranslateCustomerAccruedCostBasisTemplate{
+				At:                env.Now(),
+				Amount:            amount,
+				Currency:          env.CurrencyReference(),
+				ToCostBasis:       &basis,
+				CostBasisCurrency: &fiat,
+				SourceChargeID:    &purchase,
+				SpendChargeID:     lo.ToPtr(spend),
+			},
 		)
 	}
-	scope := transactions.ResolutionScope{Namespace: env.Namespace, CustomerID: env.CustomerID}
-	inputs, err := transactions.ResolveTransactions(t.Context(), corrector.deps, scope, templates...)
+	scope := transactions.ResolutionScope{
+		Namespace:  env.Namespace,
+		CustomerID: env.CustomerID,
+	}
+	inputs, err := transactions.ResolveTransactions(t.Context(), deps, scope, templates...)
 	require.NoError(t, err)
+
 	backing, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
-	inputs, err = transactions.ResolveTransactions(t.Context(), corrector.deps, scope, transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: env.Now(), Amount: alpacadecimal.NewFromInt(60), Currency: env.CurrencyReference()})
+
+	inputs, err = transactions.ResolveTransactions(t.Context(), deps, scope, transactions.RecognizeEarningsFromAttributableAccruedTemplate{
+		At:       env.Now(),
+		Amount:   alpacadecimal.NewFromInt(60),
+		Currency: env.CurrencyReference(),
+	})
 	require.NoError(t, err)
+
 	recognition, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
 
 	// when: repeatedly correct the second spend, whose backfill transaction is not first.
 	for _, correction := range []int64{10, 20} {
-		_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
-			Namespace: env.Namespace, ChargeID: spends[1], CustomerID: env.CustomerID.ID, AllocateAt: env.Now(),
-			Corrections: creditrealization.CorrectionRequest{{Allocation: allocations[1], Amount: alpacadecimal.NewFromInt(-correction)}},
-			LineageSegmentsByRealization: lineage.ActiveSegmentsByRealizationID{allocations[1].ID: {{
-				Amount: amount, State: creditrealization.LineageSegmentStateEarningsRecognized,
+		_, err = corrector.Correct(t.Context(), CorrectCollectedAccruedInput{
+			Namespace:  env.Namespace,
+			ChargeID:   spends[1],
+			CustomerID: env.CustomerID.ID,
+			AllocateAt: env.Now(),
+			Corrections: creditrealization.CorrectionRequest{{
+				Allocation: allocations[1],
+				Amount:     alpacadecimal.NewFromInt(-correction),
+			}},
+			LineageSegmentsByRealization: legacylineage.ActiveSegmentsByRealizationID{allocations[1].ID: {{
+				Amount:                          amount,
+				State:                           creditrealization.LineageSegmentStateEarningsRecognized,
 				BackingTransactionGroupID:       lo.ToPtr(recognition.ID().ID),
 				SourceState:                     lo.ToPtr(creditrealization.LineageSegmentStateAdvanceBackfilled),
 				SourceBackingTransactionGroupID: lo.ToPtr(backing.ID().ID),
@@ -1112,14 +1230,18 @@ func TestCorrectRecognizedBackfillSelectsOriginalSpend(t *testing.T) {
 
 	// then: the first spend retains earnings and no accrued bucket goes negative.
 	requireAccruedBalanceBuckets(t, env, map[string]float64{})
-	page, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{Namespace: env.Namespace, Limit: 100})
+	page, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     100,
+	})
 	require.NoError(t, err)
 	require.Nil(t, page.NextCursor)
+
 	earnings := map[string]alpacadecimal.Decimal{}
 	for _, tx := range page.Items {
 		for _, entry := range tx.Entries() {
-			if entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.SpendChargeID() != nil {
-				earnings[*entry.SpendChargeID()] = earnings[*entry.SpendChargeID()].Add(entry.Amount())
+			if entry.PostingAddress().AccountType() == ledger.AccountTypeEarnings && entry.Provenance().SpendChargeID != nil {
+				earnings[*entry.Provenance().SpendChargeID] = earnings[*entry.Provenance().SpendChargeID].Add(entry.Amount())
 			}
 		}
 	}

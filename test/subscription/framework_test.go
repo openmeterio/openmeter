@@ -17,9 +17,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
@@ -32,6 +32,7 @@ import (
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -63,7 +64,7 @@ type testDeps struct {
 	billingService              billing.Service
 	chargesService              charges.Service
 	ledgerDeps                  ledgertestutils.Deps
-	lineageService              lineage.Service
+	lineageService              legacylineage.Service
 	sandboxApp                  app.App
 	cleanup                     func(t *testing.T) // Cleanup function
 }
@@ -178,32 +179,67 @@ func setup(t *testing.T, config setupConfig) testDeps {
 
 	var chargesService charges.Service
 	var ledgerDeps ledgertestutils.Deps
-	var lineageService lineage.Service
+
+	var lineageService legacylineage.Service
+
 	if config.enableCharges {
 		logger := testutils.NewLogger(t)
 		ledgerDeps, err = ledgertestutils.InitDeps(deps.DBDeps.DBClient, logger)
 		require.NoError(t, err)
-		resolverDeps := transactions.ResolverDependencies{AccountService: ledgerDeps.ResolversService, AccountCatalog: ledgerDeps.AccountService, BalanceQuerier: ledgerDeps.HistoricalLedger}
+
+		resolverDeps := transactions.ResolverDependencies{
+			AccountService: ledgerDeps.ResolversService,
+			AccountCatalog: ledgerDeps.AccountService,
+			BalanceQuerier: ledgerDeps.HistoricalLedger,
+		}
 		transactionManager := enttx.NewCreator(deps.DBDeps.DBClient)
 		lineageAdapter, err := lineageadapter.New(lineageadapter.Config{Client: deps.DBDeps.DBClient})
 		require.NoError(t, err)
+
 		lineageService, err = lineageservice.New(lineageservice.Config{Adapter: lineageAdapter})
 		require.NoError(t, err)
+
 		breakageAdapter, err := ledgerbreakageadapter.New(ledgerbreakageadapter.Config{Client: deps.DBDeps.DBClient})
 		require.NoError(t, err)
-		breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{Adapter: breakageAdapter, Dependencies: resolverDeps})
+
+		breakageService, err := ledgerbreakage.NewService(ledgerbreakage.Config{
+			Adapter:      breakageAdapter,
+			Dependencies: resolverDeps,
+		})
 		require.NoError(t, err)
+
+		advanceService := advancetestutils.NewService(t, ledgerDeps, breakageService)
+
 		collector, err := ledgercollector.NewService(ledgercollector.Config{
-			Ledger: ledgerDeps.HistoricalLedger, Dependencies: resolverDeps, Breakage: breakageService,
-			AccountLocker: ledgerDeps.AccountService, TransactionManager: transactionManager,
+			Logger:             logger,
+			Advance:            advanceService,
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       resolverDeps,
+			Breakage:           breakageService,
+			AccountLocker:      ledgerDeps.AccountService,
+			TransactionManager: transactionManager,
 		})
 		require.NoError(t, err)
+
 		revenueRecognizer, err := recognizer.NewService(recognizer.Config{
-			Ledger: ledgerDeps.HistoricalLedger, Dependencies: resolverDeps, Lineage: lineageService, TransactionManager: transactionManager,
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       resolverDeps,
+			Lineage:            lineageService,
+			TransactionManager: transactionManager,
 		})
 		require.NoError(t, err)
-		creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerDeps.HistoricalLedger, ledgerDeps.HistoricalLedger, ledgerDeps.ResolversService, ledgerDeps.AccountService, breakageService, transactionManager)
+
+		creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+			Ledger:             ledgerDeps.HistoricalLedger,
+			BalanceQuerier:     ledgerDeps.HistoricalLedger,
+			AccountResolver:    ledgerDeps.ResolversService,
+			AccountCatalog:     ledgerDeps.AccountService,
+			AdvanceService:     advanceService,
+			BreakageService:    breakageService,
+			TransactionManager: transactionManager,
+		})
 		require.NoError(t, err)
+
 		stack, err := chargestestutils.NewServices(t, chargestestutils.Config{
 			Client:                deps.DBDeps.DBClient,
 			Logger:                slog.Default(),
@@ -220,6 +256,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			SubscriptionService:   deps.SubscriptionService,
 		})
 		require.NoError(t, err)
+
 		chargesService = stack.ChargesService
 	}
 
@@ -241,9 +278,13 @@ func setup(t *testing.T, config setupConfig) testDeps {
 			EnableFlatFeeInArrearsProrating: true,
 			EnableCreditThenInvoice:         config.enableCreditThenInvoice,
 		},
-		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
-		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+		FeatureGate: featuregate.NewFeatureGateChecker(
+			featuregate.NewNoop(),
+			featuregate.Flags{
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			},
+			map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true},
+		),
 	})
 	require.NoError(t, err)
 

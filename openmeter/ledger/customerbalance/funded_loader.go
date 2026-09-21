@@ -101,14 +101,19 @@ func (l *fundedCreditTransactionLoader) listCandidatePage(
 	}
 
 	result, err := l.service.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace:  input.CustomerID.Namespace,
-		Cursor:     after,
-		Before:     before,
-		Limit:      max(chargeListPageSize, input.Limit+1),
-		AccountIDs: accountIDs,
-		Currency:   input.Currency,
-		AsOf:       &input.AsOf,
-		Route:      featureFilterRoute(input.FeatureFilter),
+		Namespace: input.CustomerID.Namespace,
+		Cursor:    after,
+		Before:    before,
+		Limit:     max(chargeListPageSize, input.Limit+1),
+		EntryFilter: ledger.TransactionEntryFilter{
+			AccountIDs: accountIDs,
+			Currency:   input.Currency,
+			Route:      featureFilterRoute(input.FeatureFilter),
+		},
+		ReturnOnlyMatchingEntries: true,
+
+		AsOf: &input.AsOf,
+
 		ExcludeAnnotationFilters: map[string]string{
 			ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
 			ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,

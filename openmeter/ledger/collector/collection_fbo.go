@@ -53,7 +53,7 @@ func (c *accrualCollector) listCustomerFBOSources(
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	if err := c.accountLocker.LockAccountsForPosting(ctx, []ledger.Account{customerAccounts.FBOAccount}); err != nil {
+	if err := customerAccounts.LockForPosting(ctx, c.accountLocker); err != nil {
 		return nil, fmt.Errorf("lock customer FBO account: %w", err)
 	}
 
@@ -71,10 +71,6 @@ func (c *accrualCollector) listCustomerFBOSources(
 
 	// prioritize FBO sources before breakage reserves source balances.
 	slices.SortStableFunc(sources, cmpx.Compare[fboCollectionSource])
-
-	if c.breakage == nil {
-		return sources, nil
-	}
 
 	return c.mapBreakagePlansToFBOCollectionSources(ctx, customerID, currency, featureKey, asOf, sources)
 }

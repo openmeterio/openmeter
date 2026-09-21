@@ -93,8 +93,10 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesChargeProvenance(t *testi
 					Address: fbo.Address(),
 					Amount:  alpacadecimal.NewFromInt(30),
 					Identity: ledger.EntryIdentityParts{
-						SourceChargeID: &sourceChargeID,
-						SpendChargeID:  &spendChargeID,
+						Provenance: ledger.Provenance{
+							SourceChargeID: &sourceChargeID,
+							SpendChargeID:  &spendChargeID,
+						},
 					},
 				},
 			},
@@ -102,9 +104,13 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesChargeProvenance(t *testi
 	)
 	require.Len(t, inputs, 1)
 
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): 30,
-	})
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceChargeID, &spendChargeID): 30,
+		},
+	)
 }
 
 func TestTransferCustomerFBOToAccruedCorrection_UsesReverseCollectionPriority(t *testing.T) {
@@ -181,8 +187,10 @@ func TestTransferCustomerFBOToAccruedCorrection_PreservesChargeProvenance(t *tes
 				Amount:  alpacadecimal.NewFromInt(firstSourceAmount),
 				Identity: ledger.EntryIdentityParts{
 					CollectionSource: &collectionSource0,
-					SourceChargeID:   &sourceCharge1,
-					SpendChargeID:    &spendCharge1,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &sourceCharge1,
+						SpendChargeID:  &spendCharge1,
+					},
 				},
 			},
 			{
@@ -190,8 +198,10 @@ func TestTransferCustomerFBOToAccruedCorrection_PreservesChargeProvenance(t *tes
 				Amount:  alpacadecimal.NewFromInt(secondSourceAmount),
 				Identity: ledger.EntryIdentityParts{
 					CollectionSource: &collectionSource1,
-					SourceChargeID:   &sourceCharge2,
-					SpendChargeID:    &spendCharge2,
+					Provenance: ledger.Provenance{
+						SourceChargeID: &sourceCharge2,
+						SpendChargeID:  &spendCharge2,
+					},
 				},
 			},
 		},
@@ -201,23 +211,35 @@ func TestTransferCustomerFBOToAccruedCorrection_PreservesChargeProvenance(t *tes
 	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, originalInputs...))
 	require.NoError(t, err)
 
-	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
-		At:                  env.Now(),
-		Amount:              alpacadecimal.NewFromInt(correctionAmount),
-		OriginalTransaction: group.Transactions()[0],
-		OriginalGroup:       group,
-	})
+	correctionInputs, err := CorrectTransaction(
+		t.Context(),
+		env.resolverDeps(),
+		CorrectionInput{
+			At:                  env.Now(),
+			Amount:              alpacadecimal.NewFromInt(correctionAmount),
+			OriginalTransaction: group.Transactions()[0],
+			OriginalGroup:       group,
+		},
+	)
 	require.NoError(t, err)
 
 	env.commit(t, correctionInputs...)
 
-	requireFBOBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge2, nil): float64(correctionAmount), // corrected 15 returns to the last collected source.
-	})
-	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&sourceCharge1, &spendCharge1): float64(firstSourceAmount),     // first source keeps its full 10 accrued balance.
-		sourceSpendChargeKey(&sourceCharge2, &spendCharge2): float64(secondSourceRemainder), // second source keeps 5 after correcting 15 from 20.
-	})
+	requireFBOBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge2, nil): float64(correctionAmount), // corrected 15 returns to the last collected source.
+		},
+	)
+	requireAccruedBalanceBuckets(
+		t,
+		env,
+		map[string]float64{
+			sourceSpendChargeKey(&sourceCharge1, &spendCharge1): float64(firstSourceAmount),     // first source keeps its full 10 accrued balance.
+			sourceSpendChargeKey(&sourceCharge2, &spendCharge2): float64(secondSourceRemainder), // second source keeps 5 after correcting 15 from 20.
+		},
+	)
 }
 
 func TestTransferCustomerReceivableToAccruedTemplate(t *testing.T) {

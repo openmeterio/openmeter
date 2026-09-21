@@ -1,4 +1,5 @@
-package lineage
+// Deprecated: Use ledger collection provenance.
+package legacylineage
 
 import (
 	"context"
@@ -52,12 +53,15 @@ func (i CreateInitialLineagesInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if i.ChargeID == "" {
 		errs = append(errs, errors.New("charge id is required"))
 	}
+
 	if i.CustomerID == "" {
 		errs = append(errs, errors.New("customer id is required"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
@@ -117,34 +121,43 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if i.CustomerID == "" {
 		errs = append(errs, errors.New("customer id is required"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
 	if !i.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))
 	}
+
 	if i.BackingTransactionGroupID == "" {
 		errs = append(errs, errors.New("backing transaction group id is required"))
 	}
 
 	total := alpacadecimal.Zero
 	seen := map[string]bool{}
+
 	for _, allocation := range i.Allocations {
 		if allocation.SegmentID == "" || seen[allocation.SegmentID] {
 			errs = append(errs, errors.New("backfill segment IDs must be nonempty and unique"))
 		}
+
 		seen[allocation.SegmentID] = true
 		if !allocation.Amount.IsPositive() {
 			errs = append(errs, errors.New("backfill allocation must be positive"))
 		}
+
 		total = total.Add(allocation.Amount)
 	}
+
 	if total.GreaterThan(i.Amount) {
 		errs = append(errs, errors.New("backfill allocations exceed purchase amount"))
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -169,9 +182,11 @@ func (i LoadLineagesByCustomerInput) Validate() error {
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
 	}
+
 	if i.CustomerID == "" {
 		errs = append(errs, errors.New("customer id is required"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
@@ -181,11 +196,13 @@ func (i LoadLineagesByCustomerInput) Validate() error {
 			errs = append(errs, fmt.Errorf("origin kind: %w", err))
 		}
 	}
+
 	if i.SegmentState != nil {
 		if err := i.SegmentState.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("segment state: %w", err))
 		}
 	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -217,9 +234,11 @@ func (i CreateSegmentInput) Validate() error {
 	if i.LineageID == "" {
 		errs = append(errs, errors.New("lineage id is required"))
 	}
+
 	if !i.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))
 	}
+
 	if err := i.State.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
@@ -235,6 +254,7 @@ func (i CreateSegmentInput) Validate() error {
 			errs = append(errs, errors.New("backing transaction group id must not be empty when provided"))
 		}
 	}
+
 	switch i.State {
 	case creditrealization.LineageSegmentStateEarningsRecognized:
 		if i.SourceState == nil {
@@ -243,9 +263,11 @@ func (i CreateSegmentInput) Validate() error {
 			if err := i.SourceState.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("source state: %w", err))
 			}
+
 			if *i.SourceState == creditrealization.LineageSegmentStateEarningsRecognized {
 				errs = append(errs, errors.New("source state cannot be earnings_recognized"))
 			}
+
 			if *i.SourceState == creditrealization.LineageSegmentStateAdvanceBackfilled &&
 				(i.SourceBackingTransactionGroupID == nil || *i.SourceBackingTransactionGroupID == "") {
 				errs = append(errs, errors.New("source backing transaction group id is required when source state is advance_backfilled"))
@@ -255,6 +277,7 @@ func (i CreateSegmentInput) Validate() error {
 		if i.SourceState != nil {
 			errs = append(errs, errors.New("source state is only valid for earnings_recognized segments"))
 		}
+
 		if i.SourceBackingTransactionGroupID != nil && *i.SourceBackingTransactionGroupID == "" {
 			errs = append(errs, errors.New("source backing transaction group id must not be empty when provided"))
 		}

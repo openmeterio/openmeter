@@ -5,34 +5,38 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // routePairingKey pairs source and counterpart sub-accounts during collection,
 // receivable coverage, and earnings correction.
 type routePairingKey struct {
-	currency          string
-	costBasisCurrency string
-	taxCode           string
-	taxBehavior       string
-	features          string
-	costBasis         string
-	sourceChargeID    string
-	spendChargeID     string
+	currency           string
+	costBasisCurrency  mo.Option[currencyx.Code]
+	taxCode            mo.Option[string]
+	taxBehavior        mo.Option[ledger.TaxBehavior]
+	features           string
+	costBasis          mo.Option[string]
+	sourceChargeID     mo.Option[string]
+	spendChargeID      mo.Option[string]
+	collectionOriginID mo.Option[string]
 }
 
 func (k routePairingKey) String() string {
 	return fmt.Sprintf(
-		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,features=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
+		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,features=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s,collection_origin_id=%s",
 		k.currency,
-		k.costBasisCurrency,
-		k.taxCode,
-		k.taxBehavior,
+		k.costBasisCurrency.OrElse("null"),
+		k.taxCode.OrElse("null"),
+		k.taxBehavior.OrElse("null"),
 		k.features,
-		k.costBasis,
-		k.sourceChargeID,
-		k.spendChargeID,
+		k.costBasis.OrElse("null"),
+		k.sourceChargeID.OrElse("null"),
+		k.spendChargeID.OrElse("null"),
+		k.collectionOriginID.OrElse("null"),
 	)
 }
 
@@ -90,8 +94,7 @@ func allocateCorrectionLegs(
 			counterpartAddress: counterpartAddress,
 			amount:             entryAmount,
 			identity: ledger.EntryIdentityParts{
-				SourceChargeID: entry.SourceChargeID(),
-				SpendChargeID:  entry.SpendChargeID(),
+				Provenance: entry.Provenance(),
 			},
 		})
 		available = available.Add(entryAmount)
@@ -136,8 +139,7 @@ func allocateCorrectionLegs(
 			leg.amount,
 			ledger.EntryIdentityParts{
 				CorrectionSource: &leg.sourceEntryID,
-				SourceChargeID:   leg.identity.SourceChargeID,
-				SpendChargeID:    leg.identity.SpendChargeID,
+				Provenance:       leg.identity.Provenance,
 			},
 			false,
 		)

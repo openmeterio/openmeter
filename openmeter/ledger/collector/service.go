@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/collector/correction"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -29,6 +31,8 @@ type Service interface {
 }
 
 type Config struct {
+	Logger        *slog.Logger
+	Advance       advance.Service
 	Ledger        ledger.Ledger
 	Dependencies  transactions.ResolverDependencies
 	Breakage      breakage.Service
@@ -40,6 +44,18 @@ type Config struct {
 
 func (c Config) Validate() error {
 	var errs []error
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	if c.Advance == nil {
+		errs = append(errs, errors.New("advance service is required"))
+	}
+
+	if c.Breakage == nil {
+		errs = append(errs, errors.New("breakage service is required"))
+	}
 
 	if c.Ledger == nil {
 		errs = append(errs, fmt.Errorf("ledger is required"))
@@ -79,15 +95,7 @@ type CollectToAccruedInput struct {
 	TaxBehavior       *ledger.TaxBehavior
 }
 
-type CorrectCollectedAccruedInput struct {
-	Namespace                    string
-	ChargeID                     string
-	CustomerID                   string
-	Annotations                  models.Annotations
-	AllocateAt                   time.Time
-	Corrections                  creditrealization.CorrectionRequest
-	LineageSegmentsByRealization lineage.ActiveSegmentsByRealizationID
-}
+type CorrectCollectedAccruedInput = correction.Input
 
 type CollectToReceivableInput struct {
 	Namespace         string
@@ -171,7 +179,7 @@ func (i CorrectCollectedReceivableInput) Validate() error {
 
 type service struct {
 	collector *accrualCollector
-	corrector *accrualCorrector
+	corrector *correction.Corrector
 }
 
 func NewService(config Config) (Service, error) {
@@ -179,20 +187,28 @@ func NewService(config Config) (Service, error) {
 		return nil, err
 	}
 
+	corrector, err := correction.New(correction.Config{
+		Logger:             config.Logger,
+		Ledger:             config.Ledger,
+		Advance:            config.Advance,
+		Dependencies:       config.Dependencies,
+		Breakage:           config.Breakage,
+		TransactionManager: config.TransactionManager,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create correction service: %w", err)
+	}
+
 	return &service{
 		collector: &accrualCollector{
 			ledger:             config.Ledger,
+			advance:            config.Advance,
 			deps:               config.Dependencies,
 			breakage:           config.Breakage,
 			accountLocker:      config.AccountLocker,
 			transactionManager: config.TransactionManager,
 		},
-		corrector: &accrualCorrector{
-			ledger:             config.Ledger,
-			deps:               config.Dependencies,
-			breakage:           config.Breakage,
-			transactionManager: config.TransactionManager,
-		},
+		corrector: corrector,
 	}, nil
 }
 
@@ -204,7 +220,7 @@ func (s *service) CollectToAccrued(ctx context.Context, input CollectToAccruedIn
 		return nil, fmt.Errorf("source balance as of is required")
 	}
 
-	return s.collector.collect(ctx, input)
+	return s.collector.collectToAccrued(ctx, input)
 }
 
 func (s *service) CollectToReceivable(ctx context.Context, input CollectToReceivableInput) (creditrealization.CreateAllocationInputs, error) {
@@ -216,7 +232,7 @@ func (s *service) CollectToReceivable(ctx context.Context, input CollectToReceiv
 }
 
 func (s *service) CorrectCollectedAccrued(ctx context.Context, input CorrectCollectedAccruedInput) (creditrealization.CreateCorrectionInputs, error) {
-	return s.corrector.correct(ctx, input)
+	return s.corrector.Correct(ctx, input)
 }
 
 func (s *service) CorrectCollectedReceivable(ctx context.Context, input CorrectCollectedReceivableInput) (creditrealization.CreateCorrectionInputs, error) {
@@ -224,7 +240,7 @@ func (s *service) CorrectCollectedReceivable(ctx context.Context, input CorrectC
 		return nil, err
 	}
 
-	return s.corrector.correct(ctx, CorrectCollectedAccruedInput{
+	return s.corrector.Correct(ctx, CorrectCollectedAccruedInput{
 		Namespace:   input.Namespace,
 		ChargeID:    input.ChargeID,
 		CustomerID:  input.CustomerID,

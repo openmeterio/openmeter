@@ -15,9 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -27,6 +27,8 @@ import (
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
@@ -59,10 +61,11 @@ type BaseSuite struct {
 	BalanceQuerier       ledger.BalanceQuerier
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
+	AdvanceService       advance.Service
 	BreakageService      ledgerbreakage.Service
 	CreditVoidService    creditvoid.Service
 	FlatFeeHandler       flatfee.Handler
-	LineageService       lineage.Service
+	LineageService       legacylineage.Service
 	RevenueRecognizer    recognizer.Service
 	CurrencyService      currencies.Service
 	CurrencyResolver     currencies.CurrencyResolver
@@ -81,12 +84,12 @@ func (s *BaseSuite) SetupSuite() {
 	s.LedgerAccountService = deps.AccountService
 	s.LedgerResolver = deps.ResolversService
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.NoError(err)
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	s.NoError(err)
@@ -109,6 +112,7 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.BreakageService = breakageService
+	s.AdvanceService = advancetestutils.NewService(s.T(), deps, breakageService)
 
 	creditVoidAdapter, err := creditvoidadapter.New(creditvoidadapter.Config{
 		Client: s.DBClient,
@@ -144,7 +148,9 @@ func (s *BaseSuite) SetupSuite() {
 	s.RevenueRecognizer = revenueRecognizer
 
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: deps.HistoricalLedger,
+		Logger:  logger,
+		Advance: s.AdvanceService,
+		Ledger:  deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: deps.ResolversService,
 			AccountCatalog: deps.AccountService,
@@ -162,7 +168,15 @@ func (s *BaseSuite) SetupSuite() {
 	)
 	s.FlatFeeHandler = flatFeeHandler
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(deps.HistoricalLedger, deps.HistoricalLedger, deps.ResolversService, deps.AccountService, breakageService, transactionManager)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             deps.HistoricalLedger,
+		BalanceQuerier:     deps.HistoricalLedger,
+		AccountResolver:    deps.ResolversService,
+		AccountCatalog:     deps.AccountService,
+		AdvanceService:     s.AdvanceService,
+		BreakageService:    breakageService,
+		TransactionManager: transactionManager,
+	})
 	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{

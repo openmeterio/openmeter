@@ -57,33 +57,25 @@ facts stored independently from the journal.
 - Reversal and correction logic follows the actual original entries. It
   preserves charge provenance and route pairing, links replacement postings to
   their source entries, and uses deterministic source order rather than
-  recomputing an idealized replacement from current balances.
-- Entry identity records collection or correction linkage and source and spend
-  charge provenance when present. Template codes and transaction annotations
-  describe accounting meaning.
+  recreating the original postings from current charge metadata.
+- Collection provenance identifies independently correctable occurrences. Core
+  validators require entries to balance per origin and currency identity.
+- [Correction](collector/correction/README.md) selects remaining account amounts
+  in reverse original collection or backing order. Exact original-entry references bound
+  reversals. Provenance and legacy lineage use the same source-selection policy.
 - Credit-backed earnings recognition consumes only accrued buckets whose
   source credit and spend charge are both present and distinct. Buckets without
   that provenance - including invoice-backed accrued value and unbackfilled
   advances - remain deferred. Unknown-cost promotional credits also remain
-  deferred. Recognition maps each segment to its original allocation bucket or
-  recorded backfill group, preserving source, spend, currency, and tax route.
-  The same selected slices drive journal postings and lineage transitions;
-  customer-wide recognized totals cannot be redistributed across lineages.
+  deferred. Recognition reads origin-tracked accrued buckets directly; legacy
+  recognition maps segments to their original allocation or backfill postings.
+  Both preserve source, spend, currency identity, and tax route. Only the legacy
+  path updates lineage, using the exact amounts selected for posting.
 
-Credit-purchase backfill uses the charge domain's original advance occurrences
-in order, bounded by their matching receivable and accrued routes. The ledger
-sorts its inputs by original collection time and ID independently of query order,
-and stops reading journals when the purchase amount is allocated. A partial
-purchase exhausts an older eligible occurrence before funding a newer one;
-tax treatment, feature eligibility, currency identity, and purchase cost basis
-remain attached to the booked amounts. Corrections select the original spend
-and posting route, including when a purchase or recognition group spans several
-charges. This forward policy does not reconcile historical misallocations.
-
-After accrued backfill, the remaining purchase attributes eligible outstanding
-advance receivable even when matching accrued is absent. This receivable-only
-attribution preserves spend and feature routes without creating accrued or
-marking lineage as backfilled. Only the excess then becomes new credit.
+The [advance service](advance/README.md) owns advance creation, backfill, and correction
+postings. Collector selects correction amounts and unwinds earnings; credit
+issuance coordinates backfill with settlement and breakage. Callers commit the
+plans and persist their bookkeeping in the enclosing database transaction.
 
 The historical ledger makes a group atomic, but it does not deduplicate a
 repeated `CommitGroup` call. The initiating domain must make retries safe and
@@ -91,9 +83,58 @@ persist the returned group reference with its own lifecycle state. Ledger
 annotations and entry identity preserve accounting meaning and provenance; they
 are not operation idempotency keys.
 
+## Collection provenance
+
+Entry provenance carries three distinct identities:
+
+| Field | Meaning |
+| --- | --- |
+| `CollectionOriginID` | One original collection source slice, including the paired advance issue when applicable |
+| `SourceChargeID` | The charge supplying the value; absent for an uncovered advance |
+| `SpendChargeID` | The charge consuming the value |
+
+An origin is minted when credit is collected into accrued or used to cover
+receivable, or when an advance is issued and collected. Purchase issuance alone
+does not start a collection origin. Backfill, recognition, correction, and
+associated breakage releases/reopens preserve the origin. Collecting restored
+credit again starts another origin, even for the same source and spend charges.
+
+Origins group history; they do not replace source order or exact reversal links.
+`CollectionSource` preserves selection order and pairing, while `CorrectionSource`
+references the original entry being offset. Amounts come from ledger entries.
+
+Within each transaction, origin-bearing entries must have one non-empty spend
+charge per origin and currency identity. Transfers between account types must
+also preserve source attribution. Same-account receivable or accrued
+translations may attribute an unknown source to a purchase, or reverse that
+attribution; they cannot transfer attribution between two purchases.
+Service-level checks under posting locks bound corrections against remaining
+balances and original-entry reversal capacity.
+
+An absent origin does not by itself imply legacy lineage: purchase issuance,
+payment, and other unrelated entries also have no collection origin. Legacy
+collection lifecycle behavior remains in the
+[compatibility path](../billing/charges/legacylineage/README.md).
+See the [migration guide](../../docs/migration-guides/2026-09-17-ledger-collection-provenance.md)
+for deployment and rollback constraints.
+
+## Querying provenance
+
+`ProvenanceFilter` absence means any value; `Some(nil)` means entries without
+that ID; `Some(&id)` matches that ID. `Provenance.Filter()` pins all three fields,
+including nils. Balance queries must group by any provenance dimension that
+needs to remain separate; sharing a subaccount does not imply sharing an origin.
+`OldestMatchingEntryCreatedAt` is the earliest creation time among entries
+matching the bucket query, not an effective-time boundary.
+
+`ListTransactions.EntryFilter` selects transactions containing a matching entry.
+By default, each result contains all its entries, including other origins.
+`ReturnOnlyMatchingEntries` explicitly returns only the matching entries. Such a
+result is a transaction view, not necessarily a complete balanced transaction.
+
 ## Route invariants
 
-Routes currently carry currency, feature restrictions, cost basis, credit
+Routes carry currency, feature restrictions, cost basis, credit
 priority, receivable authorization status, tax code, and tax behavior. These
 are accounting identity, not optional metadata. Dropping a populated dimension
 during translation or filtering can merge economically distinct balances while

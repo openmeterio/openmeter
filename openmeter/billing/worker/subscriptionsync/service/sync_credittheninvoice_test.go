@@ -30,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
@@ -80,26 +81,34 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 
 	transactionManager := enttx.NewCreator(s.DBClient)
 
+	breakageService := ledgerbreakage.NewNoopService()
+
+	advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
-		Ledger: ledgerDeps.HistoricalLedger,
+		Logger:  logger,
+		Advance: advanceService,
+		Ledger:  ledgerDeps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: ledgerDeps.ResolversService,
 			AccountCatalog: ledgerDeps.AccountService,
 			BalanceQuerier: ledgerDeps.HistoricalLedger,
 		},
+		Breakage:           breakageService,
 		AccountLocker:      ledgerDeps.AccountService,
 		TransactionManager: transactionManager,
 	})
 	s.NoError(err)
 
-	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(
-		ledgerDeps.HistoricalLedger,
-		ledgerDeps.HistoricalLedger,
-		ledgerDeps.ResolversService,
-		ledgerDeps.AccountService,
-		ledgerbreakage.NewNoopService(),
-		transactionManager,
-	)
+	creditPurchaseHandler, err := ledgerchargeadapter.NewCreditPurchaseHandler(ledgerchargeadapter.CreditPurchaseHandlerConfig{
+		Ledger:             ledgerDeps.HistoricalLedger,
+		BalanceQuerier:     ledgerDeps.HistoricalLedger,
+		AccountResolver:    ledgerDeps.ResolversService,
+		AccountCatalog:     ledgerDeps.AccountService,
+		AdvanceService:     advanceService,
+		BreakageService:    breakageService,
+		TransactionManager: transactionManager,
+	})
 	s.NoError(err)
 
 	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{

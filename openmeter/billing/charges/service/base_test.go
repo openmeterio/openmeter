@@ -20,9 +20,9 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
-	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
-	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	legacylineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/adapter"
+	legacylineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage/service"
 	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
@@ -40,6 +40,8 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
+	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -50,6 +52,7 @@ import (
 	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
+	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -85,7 +88,7 @@ type BaseSuite struct {
 	UsageBasedService         usagebased.Service
 	CurrencyService           currencies.Service
 	MetaAdapter               meta.Adapter
-	LineageService            lineage.Service
+	LineageService            legacylineage.Service
 	Locker                    *lockr.Locker
 	InvoiceUpdater            invoiceupdater.Updater
 	FlatFeeAdapter            flatfee.Adapter
@@ -127,12 +130,12 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 	s.Locker = locker
 
-	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
+	lineageAdapter, err := legacylineageadapter.New(legacylineageadapter.Config{
 		Client: s.DBClient,
 	})
 	s.NoError(err)
 
-	lineageService, err := lineageservice.New(lineageservice.Config{
+	lineageService, err := legacylineageservice.New(legacylineageservice.Config{
 		Adapter: lineageAdapter,
 	})
 	s.NoError(err)
@@ -166,6 +169,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	subscriptionItemReferenceValidator, err := itemreference.NewValidator(subscriptionrepo.NewSubscriptionItemRepo(s.DBClient))
 	s.Require().NoError(err)
+
 	s.ItemReferenceValidator = subscriptionItemReferenceValidator
 
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
@@ -178,9 +182,16 @@ func (s *BaseSuite) SetupSuite() {
 	var flatFeeHandler flatfee.Handler = s.FlatFeeTestHandler
 	var usageBasedHandler usagebased.Handler = s.UsageBasedTestHandler
 	if s.UseRealLedgerHandlers {
+		breakageService := ledgerbreakage.NewNoopService()
+
+		advanceService := advancetestutils.NewService(s.T(), ledgerDeps, breakageService)
+
 		collectorService, err := ledgercollector.NewService(ledgercollector.Config{
+			Logger:             omtestutils.NewDiscardLogger(s.T()),
+			Advance:            advanceService,
 			Ledger:             ledgerDeps.HistoricalLedger,
 			Dependencies:       ledgerResolverDeps,
+			Breakage:           breakageService,
 			AccountLocker:      ledgerDeps.AccountService,
 			TransactionManager: enttx.NewCreator(s.DBClient),
 		})
@@ -272,9 +283,13 @@ func (s *BaseSuite) SetupSuite() {
 	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{
 		CreditsEnabled:           true,
 		CreditThenInvoiceEnabled: true,
-		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
-		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+		FeatureGate: featuregate.NewFeatureGateChecker(
+			featuregate.NewNoop(),
+			featuregate.Flags{
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			},
+			map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true},
+		),
 	})
 	s.NoError(err)
 	err = s.BillingService.RegisterCreateLineRouter(createLineRouter)
@@ -615,4 +630,18 @@ func (s *BaseSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {
 	})
 	s.NoError(err)
 	return charge
+}
+
+// Ledger-backed services use the same provisioned customer accounts as production.
+func (s *BaseSuite) CreateTestCustomer(ns, subjectKey string) *customer.Customer {
+	cust := s.BaseSuite.CreateTestCustomer(ns, subjectKey)
+	if s.UseRealRecognizer || s.UseRealLedgerHandlers {
+		_, err := s.LedgerDeps.ResolversService.CreateCustomerAccounts(s.T().Context(), cust.GetID())
+		s.Require().NoError(err)
+
+		_, err = s.LedgerDeps.ResolversService.EnsureBusinessAccounts(s.T().Context(), ns)
+		s.Require().NoError(err)
+	}
+
+	return cust
 }

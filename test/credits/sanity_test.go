@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -3768,8 +3769,15 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 		amount     int64
 		featureKey string
 	}{
-		{name: "legacy-unrestricted-advance", amount: 10},
-		{name: "legacy-api-requests-advance", amount: 5, featureKey: apiRequestsTotal.Feature.Key},
+		{
+			name:   "legacy-unrestricted-advance",
+			amount: 10,
+		},
+		{
+			name:       "legacy-api-requests-advance",
+			amount:     5,
+			featureKey: apiRequestsTotal.Feature.Key,
+		},
 	} {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
@@ -3810,6 +3818,31 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 	s.Len(advancedCharges, 2)
 
 	s.markLedgerEntriesLegacyBySpendChargeID(ctx, ns, unrestrictedSpendChargeID, apiRequestsSpendChargeID)
+
+	// Recreate the legacy lineage billing metadata too. Clearing origin columns
+	// alone no longer makes a new collection a legacy backfill candidate.
+	for _, result := range advancedCharges {
+		charge, err := result.AsFlatFeeCharge()
+		s.Require().NoError(err)
+
+		realizations := charge.Realizations.CurrentRun.CreditRealizations
+
+		for i := range realizations {
+			realizations[i].Annotations = creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance)
+			err := s.DBClient.ChargeFlatFeeRunCreditAllocations.UpdateOneID(realizations[i].ID).SetAnnotations(realizations[i].Annotations).Exec(ctx)
+			s.Require().NoError(err)
+		}
+
+		feature := charge.Intent.GetFeatureKey()
+		s.Require().NoError(s.LineageService.CreateInitialLineages(ctx, legacylineage.CreateInitialLineagesInput{
+			Namespace:    ns,
+			CustomerID:   cust.ID,
+			ChargeID:     charge.ID,
+			Currency:     charge.Intent.GetCurrency(),
+			Features:     lo.Ternary(feature == "", nil, []string{feature}),
+			Realizations: realizations,
+		}))
+	}
 
 	s.Equal(float64(-10), s.MustCustomerReceivableBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, unrestrictedRoute).InexactFloat64(),
 		"-10 = unrestricted legacy advance receivable before creditpurchase backfill")
@@ -3855,12 +3888,16 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 		"0 = 5 feature-routed legacy advance receivable fully attributed to the creditpurchase source")
 	s.Equal(float64(15), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&purchaseCostBasis)).InexactFloat64(),
 		"15 = 10 unrestricted + 5 feature-routed legacy accrued translated to the purchased cost basis")
-	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  currencies.NewCurrencyReference(USD),
-		CostBasis: mo.Some(&purchaseCostBasis),
-	}, map[string]float64{
-		sourceSpendChargeBucketKey(&sourceChargeID, nil): 15, // 15 = legacy spend provenance is unknowable, so only the new source is attributable.
-	})
+	s.requireCustomerAccruedSourceSpendBalanceBuckets(
+		cust.GetID(),
+		ledger.RouteFilter{
+			Currency:  currencies.NewCurrencyReference(USD),
+			CostBasis: mo.Some(&purchaseCostBasis),
+		},
+		map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, nil): 15, // 15 = legacy spend provenance is unknowable, so only the new source is attributable.
+		},
+	)
 }
 
 func (s *SanitySuite) markLedgerEntriesLegacyBySpendChargeID(ctx context.Context, namespace string, spendChargeIDs ...string) {
@@ -3870,6 +3907,7 @@ func (s *SanitySuite) markLedgerEntriesLegacyBySpendChargeID(ctx context.Context
 		result, err := s.DBClient.ExecContext(ctx, `
 			UPDATE ledger_entries
 			SET schema_version = 1,
+                collection_origin_id = NULL,
 				source_charge_id = NULL,
 				spend_charge_id = NULL,
 				identity_key = ''

@@ -222,7 +222,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccruedCorrection_NoLedgerTransaction(t *
 
 func TestOnFlatFeeCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testing.T) {
 	env := newFlatFeeHandlerTestEnv(t)
-	sourceChargeID := "fiat-credit-source"
+	sourceChargeID := "01J00000000000000000000006"
 	fbo := env.fundPriorityForSource(t, 1, 6, sourceChargeID)
 
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
@@ -268,13 +268,18 @@ func TestOnFlatFeeCustomCurrencyOverageUsesFiatCreditsToCoverReceivable(t *testi
 	allocation.ID = ulid.Make().String()
 	realization := creditrealization.Realization{
 		NamespacedModel: models.NamespacedModel{Namespace: env.Namespace},
-		ManagedModel:    models.ManagedModel{CreatedAt: env.Now(), UpdatedAt: env.Now()},
-		CreateInput:     allocation,
+		ManagedModel: models.ManagedModel{
+			CreatedAt: env.Now(),
+			UpdatedAt: env.Now(),
+		},
+		CreateInput: allocation,
 	}
 	fiatCurrency, err := charge.Intent.GetCostBasisIntent().GetFiatCurrency()
 	require.NoError(t, err)
+
 	request, err := (creditrealization.Realizations{realization}).CreateCorrectionRequest(alpacadecimal.NewFromInt(-6), fiatCurrency)
 	require.NoError(t, err)
+
 	run.FiatOverageCreditRealizations = creditrealization.Realizations{realization}
 
 	corrections, err := env.handler.OnCorrectFiatOverageCreditAllocations(t.Context(), flatfee.CorrectFiatOverageCreditAllocationsInput{
@@ -451,7 +456,7 @@ func (e *flatFeeHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *test
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
-				ID: "flat-fee-charge-cc-cti",
+				ID: "01J00000000000000000000003",
 			},
 			Intent: flatfee.Intent{
 				Intent: meta.Intent{
