@@ -134,6 +134,38 @@ func TestStandardInvoiceLineTaxConfigBackfillMigration(t *testing.T) {
 	require.Contains(t, err.Error(), "billing_invoice_line_tax_behavior_consistency")
 }
 
+func TestStandardInvoiceLineTaxConfigBackfillMigrationRejectsInvalidTaxBehavior(t *testing.T) {
+	tests := []struct {
+		name        string
+		taxBehavior any
+		taxConfig   any
+	}{
+		{
+			name:      "embedded behavior",
+			taxConfig: `{"behavior":"automatic"}`,
+		},
+		{
+			name:        "normalized behavior",
+			taxBehavior: "automatic",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
+			require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
+
+			namespace := "standard_invoice_line_invalid_tax_behavior"
+			_, standardInvoiceID := seedGatheringInvoiceLineTaxParents(t, db, namespace)
+			seedGatheringInvoiceLine(t, db, namespace, standardInvoiceID, ulid.Make().String(), nil, tt.taxBehavior, tt.taxConfig)
+
+			err := migrator.Migrate(standardInvoiceLineTaxConfigBackfillVersion)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "contain invalid tax behavior; only inclusive or exclusive are allowed")
+		})
+	}
+}
+
 func TestStandardInvoiceLineTaxConfigBackfillMigrationPreservesHistoricalStripeCode(t *testing.T) {
 	db, migrator := newGatheringInvoiceLineTaxConfigBackfillTestEnv(t)
 	require.NoError(t, migrator.Migrate(standardInvoiceLineTaxConfigBackfillSeedVersion))
@@ -171,7 +203,7 @@ func TestStandardInvoiceLineTaxConfigBackupPersistsWhenBackfillFails(t *testing.
 
 	err := migrator.Migrate(standardInvoiceLineTaxConfigBackfillVersion)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "missing or cross-namespace tax code")
+	require.Contains(t, err.Error(), "cannot be resolved to a tax code in the same namespace")
 
 	assertStandardInvoiceLineTaxBackup(t, db, lineID, []byte(fmt.Sprintf(`{"tax_code_id":%q}`, missingTaxCodeID)), "", "")
 }
