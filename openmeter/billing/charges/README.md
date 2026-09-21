@@ -354,6 +354,14 @@ Within the charges domain, custom-currency `credit_then_invoice`:
 - retains the managed currency as charge identity rather than replacing it
   with the settlement fiat currency or display code
 
+Gathering-invoice live previews omit custom-currency flat-fee and usage-based
+lines. Their gathering lines are scheduling placeholders, and neither a
+cost-basis rate nor gross usage determines the invoiceable fiat overage before
+credit allocation. Credit-purchase previews use the persisted cost-basis
+snapshot when it exists and may resolve an unresolved dynamic rate effective at
+the purchase's service-period start only in the preview projection. Listing
+does not persist that resolution, advance the charge, or create realizations.
+
 Charge-currency and settlement-fiat allocations are separate realization and
 lineage domains. Rating and mutable rerating reconcile charge-currency facts;
 invoice finalization first persists the gross converted overage, then allocates

@@ -322,6 +322,19 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 			return nil, fmt.Errorf("usage based charge[%s] not found for gathering preview line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
+		// Custom-currency gathering lines are scheduling placeholders. A preview
+		// cannot allocate credits to calculate the post-allocation overage, so the
+		// zero-fiat placeholder is omitted from the returned invoice.
+		if charge.Intent.GetCurrency().IsCustom() {
+			stdLine.DeletedAt = lo.ToPtr(clock.Now())
+
+			if err := stdLine.Validate(); err != nil {
+				return nil, fmt.Errorf("validating custom currency gathering preview line[%s]: %w", stdLine.ID, err)
+			}
+
+			continue
+		}
+
 		previewResult, err := e.buildGatheringPreviewRun(ctx, charge, featureMeters, stdLine)
 		if err != nil {
 			return nil, fmt.Errorf("building gathering preview run for line[%s]: %w", stdLine.ID, err)
