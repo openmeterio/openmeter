@@ -8,9 +8,11 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -89,6 +91,8 @@ const (
 	FieldExpiresAt = "expires_at"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
+	// FieldFilters holds the string denoting the filters field in the database.
+	FieldFilters = "filters"
 	// FieldFeatureFilters holds the string denoting the feature_filters field in the database.
 	FieldFeatureFilters = "feature_filters"
 	// FieldSettlement holds the string denoting the settlement field in the database.
@@ -242,6 +246,7 @@ var Columns = []string{
 	FieldEffectiveAt,
 	FieldExpiresAt,
 	FieldPriority,
+	FieldFilters,
 	FieldFeatureFilters,
 	FieldStatusDetailed,
 	FieldKey,
@@ -285,6 +290,10 @@ var (
 	DefaultSchemaLevel int
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all ChargeCreditPurchase fields.
+	ValueScanner struct {
+		Filters field.TypeValueScanner[*crediteligibility.Filters]
+	}
 )
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
@@ -513,6 +522,11 @@ func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 // ByPriority orders the results by the priority field.
 func ByPriority(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPriority, opts...).ToFunc()
+}
+
+// ByFilters orders the results by the filters field.
+func ByFilters(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFilters, opts...).ToFunc()
 }
 
 // ByFeatureFilters orders the results by the feature_filters field.

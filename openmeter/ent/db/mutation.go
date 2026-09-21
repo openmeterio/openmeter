@@ -118,6 +118,7 @@ import (
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -40125,6 +40126,7 @@ type ChargeCreditPurchaseMutation struct {
 	expires_at                        *time.Time
 	priority                          *int
 	addpriority                       *int
+	filters                           **crediteligibility.Filters
 	feature_filters                   *pq.StringArray
 	settlement                        *string
 	status_detailed                   *creditpurchase.Status
@@ -41826,6 +41828,55 @@ func (m *ChargeCreditPurchaseMutation) ResetPriority() {
 	delete(m.clearedFields, chargecreditpurchase.FieldPriority)
 }
 
+// SetFilters sets the "filters" field.
+func (m *ChargeCreditPurchaseMutation) SetFilters(c *crediteligibility.Filters) {
+	m.filters = &c
+}
+
+// Filters returns the value of the "filters" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) Filters() (r *crediteligibility.Filters, exists bool) {
+	v := m.filters
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFilters returns the old "filters" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldFilters(ctx context.Context) (v *crediteligibility.Filters, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFilters is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFilters requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFilters: %w", err)
+	}
+	return oldValue.Filters, nil
+}
+
+// ClearFilters clears the value of the "filters" field.
+func (m *ChargeCreditPurchaseMutation) ClearFilters() {
+	m.filters = nil
+	m.clearedFields[chargecreditpurchase.FieldFilters] = struct{}{}
+}
+
+// FiltersCleared returns if the "filters" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) FiltersCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldFilters]
+	return ok
+}
+
+// ResetFilters resets all changes to the "filters" field.
+func (m *ChargeCreditPurchaseMutation) ResetFilters() {
+	m.filters = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldFilters)
+}
+
 // SetFeatureFilters sets the "feature_filters" field.
 func (m *ChargeCreditPurchaseMutation) SetFeatureFilters(pa pq.StringArray) {
 	m.feature_filters = &pa
@@ -42486,7 +42537,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 41)
+	fields := make([]string, 0, 42)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -42592,6 +42643,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.priority != nil {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
+	if m.filters != nil {
+		fields = append(fields, chargecreditpurchase.FieldFilters)
+	}
 	if m.feature_filters != nil {
 		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
 	}
@@ -42688,6 +42742,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpiresAt()
 	case chargecreditpurchase.FieldPriority:
 		return m.Priority()
+	case chargecreditpurchase.FieldFilters:
+		return m.Filters()
 	case chargecreditpurchase.FieldFeatureFilters:
 		return m.FeatureFilters()
 	case chargecreditpurchase.FieldSettlement:
@@ -42779,6 +42835,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldExpiresAt(ctx)
 	case chargecreditpurchase.FieldPriority:
 		return m.OldPriority(ctx)
+	case chargecreditpurchase.FieldFilters:
+		return m.OldFilters(ctx)
 	case chargecreditpurchase.FieldFeatureFilters:
 		return m.OldFeatureFilters(ctx)
 	case chargecreditpurchase.FieldSettlement:
@@ -43045,6 +43103,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetPriority(v)
 		return nil
+	case chargecreditpurchase.FieldFilters:
+		v, ok := value.(*crediteligibility.Filters)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFilters(v)
+		return nil
 	case chargecreditpurchase.FieldFeatureFilters:
 		v, ok := value.(pq.StringArray)
 		if !ok {
@@ -43201,6 +43266,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldPriority) {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldFilters) {
+		fields = append(fields, chargecreditpurchase.FieldFilters)
+	}
 	if m.FieldCleared(chargecreditpurchase.FieldFeatureFilters) {
 		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
 	}
@@ -43286,6 +43354,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ClearPriority()
+		return nil
+	case chargecreditpurchase.FieldFilters:
+		m.ClearFilters()
 		return nil
 	case chargecreditpurchase.FieldFeatureFilters:
 		m.ClearFeatureFilters()
@@ -43414,6 +43485,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ResetPriority()
+		return nil
+	case chargecreditpurchase.FieldFilters:
+		m.ResetFilters()
 		return nil
 	case chargecreditpurchase.FieldFeatureFilters:
 		m.ResetFeatureFilters()
@@ -103262,6 +103336,7 @@ type LedgerSubAccountRouteMutation struct {
 	cost_basis_currency              *currencyx.Code
 	tax_code                         *string
 	tax_behavior                     *ledger.TaxBehavior
+	filters                          **crediteligibility.Filters
 	features                         *pq.StringArray
 	cost_basis                       *alpacadecimal.Decimal
 	credit_priority                  *int
@@ -103830,6 +103905,55 @@ func (m *LedgerSubAccountRouteMutation) ResetTaxBehavior() {
 	delete(m.clearedFields, ledgersubaccountroute.FieldTaxBehavior)
 }
 
+// SetFilters sets the "filters" field.
+func (m *LedgerSubAccountRouteMutation) SetFilters(c *crediteligibility.Filters) {
+	m.filters = &c
+}
+
+// Filters returns the value of the "filters" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) Filters() (r *crediteligibility.Filters, exists bool) {
+	v := m.filters
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFilters returns the old "filters" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldFilters(ctx context.Context) (v *crediteligibility.Filters, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFilters is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFilters requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFilters: %w", err)
+	}
+	return oldValue.Filters, nil
+}
+
+// ClearFilters clears the value of the "filters" field.
+func (m *LedgerSubAccountRouteMutation) ClearFilters() {
+	m.filters = nil
+	m.clearedFields[ledgersubaccountroute.FieldFilters] = struct{}{}
+}
+
+// FiltersCleared returns if the "filters" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) FiltersCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldFilters]
+	return ok
+}
+
+// ResetFilters resets all changes to the "filters" field.
+func (m *LedgerSubAccountRouteMutation) ResetFilters() {
+	m.filters = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldFilters)
+}
+
 // SetFeatures sets the "features" field.
 func (m *LedgerSubAccountRouteMutation) SetFeatures(pa pq.StringArray) {
 	m.features = &pa
@@ -104162,7 +104286,7 @@ func (m *LedgerSubAccountRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountRouteMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccountroute.FieldNamespace)
 	}
@@ -104195,6 +104319,9 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	}
 	if m.tax_behavior != nil {
 		fields = append(fields, ledgersubaccountroute.FieldTaxBehavior)
+	}
+	if m.filters != nil {
+		fields = append(fields, ledgersubaccountroute.FieldFilters)
 	}
 	if m.features != nil {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
@@ -104238,6 +104365,8 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.TaxCode()
 	case ledgersubaccountroute.FieldTaxBehavior:
 		return m.TaxBehavior()
+	case ledgersubaccountroute.FieldFilters:
+		return m.Filters()
 	case ledgersubaccountroute.FieldFeatures:
 		return m.Features()
 	case ledgersubaccountroute.FieldCostBasis:
@@ -104277,6 +104406,8 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldTaxCode(ctx)
 	case ledgersubaccountroute.FieldTaxBehavior:
 		return m.OldTaxBehavior(ctx)
+	case ledgersubaccountroute.FieldFilters:
+		return m.OldFilters(ctx)
 	case ledgersubaccountroute.FieldFeatures:
 		return m.OldFeatures(ctx)
 	case ledgersubaccountroute.FieldCostBasis:
@@ -104371,6 +104502,13 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetTaxBehavior(v)
 		return nil
+	case ledgersubaccountroute.FieldFilters:
+		v, ok := value.(*crediteligibility.Filters)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFilters(v)
+		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		v, ok := value.(pq.StringArray)
 		if !ok {
@@ -104456,6 +104594,9 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccountroute.FieldTaxBehavior) {
 		fields = append(fields, ledgersubaccountroute.FieldTaxBehavior)
 	}
+	if m.FieldCleared(ledgersubaccountroute.FieldFilters) {
+		fields = append(fields, ledgersubaccountroute.FieldFilters)
+	}
 	if m.FieldCleared(ledgersubaccountroute.FieldFeatures) {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
 	}
@@ -104493,6 +104634,9 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldTaxBehavior:
 		m.ClearTaxBehavior()
+		return nil
+	case ledgersubaccountroute.FieldFilters:
+		m.ClearFilters()
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ClearFeatures()
@@ -104546,6 +104690,9 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldTaxBehavior:
 		m.ResetTaxBehavior()
+		return nil
+	case ledgersubaccountroute.FieldFilters:
+		m.ResetFilters()
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ResetFeatures()

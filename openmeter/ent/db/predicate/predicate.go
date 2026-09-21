@@ -200,6 +200,17 @@ type Charge func(*sql.Selector)
 // ChargeCreditPurchase is the predicate function for chargecreditpurchase builders.
 type ChargeCreditPurchase func(*sql.Selector)
 
+// ChargeCreditPurchaseOrErr calls the predicate only if the error is not nit.
+func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPurchase {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // ChargeCreditPurchaseCostBasis is the predicate function for chargecreditpurchasecostbasis builders.
 type ChargeCreditPurchaseCostBasis func(*sql.Selector)
 
@@ -385,6 +396,17 @@ type LedgerSubAccount func(*sql.Selector)
 
 // LedgerSubAccountRoute is the predicate function for ledgersubaccountroute builders.
 type LedgerSubAccountRoute func(*sql.Selector)
+
+// LedgerSubAccountRouteOrErr calls the predicate only if the error is not nit.
+func LedgerSubAccountRouteOrErr(p LedgerSubAccountRoute, err error) LedgerSubAccountRoute {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // LedgerTransaction is the predicate function for ledgertransaction builders.
 type LedgerTransaction func(*sql.Selector)

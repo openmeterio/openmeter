@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -63,6 +64,13 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Nillable().
 			Immutable(),
 		field.Int("priority").
+			Optional().
+			Nillable().
+			Immutable(),
+		field.String("filters").
+			GoType(&crediteligibility.Filters{}).
+			ValueScanner(entutils.JSONStringValueScanner[*crediteligibility.Filters]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
 			Optional().
 			Nillable().
 			Immutable(),

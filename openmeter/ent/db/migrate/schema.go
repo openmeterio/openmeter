@@ -1863,6 +1863,7 @@ var (
 		{Name: "effective_at", Type: field.TypeTime, Nullable: true},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "priority", Type: field.TypeInt, Nullable: true},
+		{Name: "filters", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_filters", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
 		{Name: "settlement", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.initial_credit_grant", "active.payment.pending", "active.payment.authorized", "active.payment.paid_and_authorized", "active.payment.settled", "final", "deleted"}},
@@ -1884,43 +1885,43 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_purchase_cost_basis_charge_fk",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[35]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[36]},
 				RefColumns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_credit_purchases_custom_currencies_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[36]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[37]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[37]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[38]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[38]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[39]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[39]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[40]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[40]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[41]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[41]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[42]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1929,7 +1930,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[37], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[38], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1962,17 +1963,17 @@ var (
 			{
 				Name:    "chargecreditpurchases_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[41]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[42]},
 			},
 			{
 				Name:    "chargecreditpurchases_cost_basis_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[35]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[36]},
 			},
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[37], ChargeCreditPurchasesColumns[33]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[38], ChargeCreditPurchasesColumns[34]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "key IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -4722,6 +4723,7 @@ var (
 		{Name: "cost_basis_currency", Type: field.TypeString, Nullable: true},
 		{Name: "tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeString, Nullable: true},
+		{Name: "filters", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "features", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
 		{Name: "cost_basis", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "credit_priority", Type: field.TypeInt, Nullable: true},
@@ -4736,7 +4738,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ledger_sub_account_routes_ledger_accounts_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[15]},
+				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[16]},
 				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -4755,7 +4757,7 @@ var (
 			{
 				Name:    "ledgersubaccountroute_namespace_account_id_routing_key_version_routing_key",
 				Unique:  true,
-				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[15], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
+				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[16], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
 			},
 		},
 	}

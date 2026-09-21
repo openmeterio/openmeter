@@ -10,6 +10,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -130,6 +131,13 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("tax_behavior").
 			GoType(ledger.TaxBehavior("")).
 			Optional().Nillable().Immutable(),
+		field.String("filters").
+			GoType(&crediteligibility.Filters{}).
+			ValueScanner(entutils.JSONStringValueScanner[*crediteligibility.Filters]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
+			Optional().
+			Nillable().
+			Immutable(),
 		field.Other("features", pq.StringArray{}).
 			Optional().
 			Immutable().
