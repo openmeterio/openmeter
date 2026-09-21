@@ -171,9 +171,10 @@ retry operation for a retryable failure and its delete operation for the
 delete lifecycle; firing a generic state-machine trigger bypasses preparation
 and audit semantics owned by those operations.
 
-Deleting a standard invoice is idempotent. Once it reaches the terminal
-`deleted` state, another delete returns the existing invoice without repeating
-line-engine cleanup or invoicing-app synchronization.
+Deleting a standard invoice is idempotent within the billing service. Once it
+reaches the terminal `deleted` state, another service-level delete returns the
+existing invoice without repeating line-engine cleanup or invoicing-app
+synchronization. The AIP API treats a terminal deleted invoice as not found.
 
 Billing publishes created and updated standard-invoice snapshots for
 downstream consumers. [Notifications](../notification/README.md) maps those

@@ -983,7 +983,7 @@ func newFlatUpdateLine(name string, period v3sdk.ClosedPeriod, amount string) v3
 //   - Create a standard invoice (v1)
 //   - Create a gathering invoice (v1)
 //   - Delete the standard invoice via v3 DELETE and assert 204
-//   - Attempt to delete the same invoice again and assert 400
+//   - Attempt to delete the same invoice again and assert 404
 //   - Attempt to delete a gathering invoice via v3 DELETE and assert 404
 //   - Attempt to delete an unknown invoice ID via v3 DELETE and assert 404
 func TestV3DeleteBillingInvoice(t *testing.T) {
@@ -1166,11 +1166,11 @@ func TestV3DeleteBillingInvoice(t *testing.T) {
 		c.requireStatus(http.StatusNoContent, err)
 	})
 
-	t.Run("Should return 400 when deleting the same invoice again", func(t *testing.T) {
+	t.Run("Should return 404 when deleting the same invoice again", func(t *testing.T) {
 		require.NotEmpty(t, invoiceID, "depends on invoice deletion")
 
 		err := c.Invoices.Delete(t.Context(), invoiceID)
-		problem := requireProblem(t, err, http.StatusBadRequest)
+		problem := requireProblem(t, err, http.StatusNotFound)
 		assert.NotNil(t, problem)
 	})
 

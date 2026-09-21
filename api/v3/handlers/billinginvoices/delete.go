@@ -51,6 +51,17 @@ func (h *handler) DeleteBillingInvoice() DeleteBillingInvoiceHandler {
 					Err:    fmt.Errorf("unsupported invoice type %q", existing.Type()),
 				}
 			}
+			standardInvoice, err := existing.AsStandardInvoice()
+			if err != nil {
+				return nil, err
+			}
+			if standardInvoice.Status == billing.StandardInvoiceStatusDeleted {
+				return nil, billing.NotFoundError{
+					ID:     request.Invoice.ID,
+					Entity: billing.EntityInvoice,
+					Err:    billing.ErrInvoiceNotFound,
+				}
+			}
 
 			if err := billing.ValidateAPIInvoiceDeleteSupported(existing); err != nil {
 				return nil, err
