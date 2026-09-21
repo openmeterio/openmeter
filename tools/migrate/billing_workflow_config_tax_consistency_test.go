@@ -182,16 +182,29 @@ func TestBillingWorkflowTaxConsistencyMigration(t *testing.T) {
 }
 
 func TestBillingWorkflowTaxConsistencyMigrationFailsOnNonStripeCode(t *testing.T) {
-	db, migrator := newBillingWorkflowTaxConsistencyTestEnv(t)
-	namespace := "billing_workflow_tax_consistency_invalid"
+	testCases := []struct {
+		name string
+		code string
+	}{
+		{name: "invalid format", code: "definitely-not-a-stripe-code"},
+		{name: "leading whitespace", code: " txcd_10000000"},
+		{name: "trailing whitespace", code: "txcd_10000000 "},
+	}
 
-	require.NoError(t, migrator.Migrate(billingWorkflowTaxConsistencySeedVersion))
-	seedBillingWorkflowConfig(t, db, namespace, ulid.Make().String(), nil, nil,
-		`{"stripe":{"code":"definitely-not-a-stripe-code"}}`)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			db, migrator := newBillingWorkflowTaxConsistencyTestEnv(t)
+			namespace := "billing_workflow_tax_consistency_invalid"
 
-	err := migrator.Up()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "non-Stripe tax code")
+			require.NoError(t, migrator.Migrate(billingWorkflowTaxConsistencySeedVersion))
+			seedBillingWorkflowConfig(t, db, namespace, ulid.Make().String(), nil, nil,
+				fmt.Sprintf(`{"stripe":{"code":%q}}`, tc.code))
+
+			err := migrator.Up()
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "non-Stripe tax code")
+		})
+	}
 }
 
 func TestBillingWorkflowTaxConsistencyMigrationFailsOnOrphanedAutoKey(t *testing.T) {

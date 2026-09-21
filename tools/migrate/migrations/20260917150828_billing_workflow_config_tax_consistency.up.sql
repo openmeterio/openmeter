@@ -129,7 +129,7 @@ BEGIN
         AND t.namespace = r.namespace
         AND t.deleted_at IS NULL
         AND m ->> 'app_type' = 'stripe'
-        AND m ->> 'tax_code' = btrim(r.invoice_default_tax_settings -> 'stripe' ->> 'code')
+        AND m ->> 'tax_code' = r.invoice_default_tax_settings -> 'stripe' ->> 'code'
     );
 
   IF mismatched_count > 0 THEN
@@ -143,10 +143,10 @@ DROP TABLE IF EXISTS _billing_workflow_config_tax_backfill_pairs;
 CREATE TEMP TABLE _billing_workflow_config_tax_backfill_pairs AS
 SELECT DISTINCT
     r.namespace,
-    btrim(r.invoice_default_tax_settings -> 'stripe' ->> 'code') AS stripe_code
+    r.invoice_default_tax_settings -> 'stripe' ->> 'code' AS stripe_code
 FROM billing_workflow_configs r
 WHERE r.tax_code_id IS NULL
-  AND btrim(r.invoice_default_tax_settings -> 'stripe' ->> 'code') <> '';
+  AND NULLIF(btrim(r.invoice_default_tax_settings -> 'stripe' ->> 'code'), '') IS NOT NULL;
 
 CREATE INDEX ON _billing_workflow_config_tax_backfill_pairs (namespace, stripe_code);
 
@@ -273,7 +273,7 @@ SET tax_code_id = m.winner_id,
 FROM _billing_workflow_config_tax_backfill_map m
 WHERE r.namespace = m.namespace
   AND r.tax_code_id IS NULL
-  AND btrim(r.invoice_default_tax_settings -> 'stripe' ->> 'code') = m.stripe_code;
+  AND r.invoice_default_tax_settings -> 'stripe' ->> 'code' = m.stripe_code;
 
 -- Mirror behavior verbatim when only the JSON representation is populated.
 UPDATE billing_workflow_configs
@@ -367,7 +367,7 @@ BEGIN
         AND t.namespace = r.namespace
         AND t.deleted_at IS NULL
         AND m ->> 'app_type' = 'stripe'
-        AND m ->> 'tax_code' = btrim(r.invoice_default_tax_settings -> 'stripe' ->> 'code')
+        AND m ->> 'tax_code' = r.invoice_default_tax_settings -> 'stripe' ->> 'code'
     );
 
   IF tax_code_mismatches > 0
