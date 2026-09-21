@@ -24,6 +24,7 @@ DO $$
 DECLARE
   tax_code_conflicts int;
   behavior_conflicts int;
+  invalid_behavior_count int;
 BEGIN
   SELECT count(*) INTO tax_code_conflicts
   FROM billing_invoice_lines r
@@ -39,8 +40,23 @@ BEGIN
     AND r.tax_config ->> 'behavior' IS NOT NULL
     AND r.tax_behavior IS DISTINCT FROM r.tax_config ->> 'behavior';
 
+  SELECT count(*) INTO invalid_behavior_count
+  FROM billing_invoice_lines r
+  JOIN _gathering_invoice_line_tax_scope s ON s.id = r.id AND s.invoice_id = r.invoice_id
+  WHERE (
+      r.tax_behavior IS NOT NULL
+      AND r.tax_behavior NOT IN ('inclusive', 'exclusive')
+    ) OR (
+      r.tax_config ->> 'behavior' IS NOT NULL
+      AND r.tax_config ->> 'behavior' NOT IN ('inclusive', 'exclusive')
+    );
+
   IF tax_code_conflicts > 0 OR behavior_conflicts > 0 THEN
     RAISE EXCEPTION 'gathering invoice line tax config backfill: % row(s) have conflicting tax_code_id representations and % row(s) have conflicting tax behavior representations; repair them before re-running', tax_code_conflicts, behavior_conflicts;
+  END IF;
+
+  IF invalid_behavior_count > 0 THEN
+    RAISE EXCEPTION 'gathering invoice line tax config backfill: % row(s) contain invalid tax behavior; only inclusive or exclusive are allowed', invalid_behavior_count;
   END IF;
 END $$;
 
