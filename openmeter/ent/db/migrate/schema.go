@@ -6346,6 +6346,11 @@ func init() {
 	}
 	BillingStandardInvoiceDetailedLineAmountDiscountsTable.ForeignKeys[0].RefTable = BillingStandardInvoiceDetailedLinesTable
 	BillingWorkflowConfigsTable.ForeignKeys[0].RefTable = TaxCodesTable
+	BillingWorkflowConfigsTable.Annotation = &entsql.Annotation{}
+	BillingWorkflowConfigsTable.Annotation.Checks = map[string]string{
+		"billing_workflow_config_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM invoice_default_tax_settings ->> 'behavior'",
+		"billing_workflow_config_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM invoice_default_tax_settings ->> 'tax_code_id') AND (NULLIF(btrim(invoice_default_tax_settings -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
+	}
 	ChargesTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargesTable.ForeignKeys[2].RefTable = ChargeUsageBasedTable

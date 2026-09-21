@@ -306,7 +306,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		// Resolution must run after the deprecation gate and cannot be removed: legacy clients
 		// that predate taxCodeId echo only stripe.code on no-op updates, and resolution is what
 		// re-stamps TaxCodeID from that echoed code.
-		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, targetState.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Namespace, targetState.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
 			return nil, err
 		}
 
@@ -650,10 +650,4 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 	}
 
 	return appID, nil
-}
-
-// resolveDefaultTaxCode resolves the billing profile's default tax config in place.
-// See productcatalog.ResolveTaxConfig for precedence rules.
-func (s *Service) resolveDefaultTaxCode(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) error {
-	return productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, taxConfig)
 }

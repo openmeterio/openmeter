@@ -737,7 +737,7 @@ func (s *Service) taxCodeIDWithBackfill(ctx context.Context, namespace string, t
 	}
 
 	resolved := taxConfig.Clone()
-	if err := s.resolveDefaultTaxCode(ctx, namespace, &resolved); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, &resolved); err != nil {
 		return "", err
 	}
 

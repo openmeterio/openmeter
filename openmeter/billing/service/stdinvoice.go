@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -31,6 +32,14 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 
 			if err := input.EditFn(&sm.Invoice); err != nil {
 				return fmt.Errorf("editing invoice: %w", err)
+			}
+
+			originalTaxConfig := originalInvoice.Workflow.Config.Invoicing.DefaultTaxConfig
+			editedTaxConfig := sm.Invoice.Workflow.Config.Invoicing.DefaultTaxConfig
+			if !originalTaxConfig.Equal(editedTaxConfig) {
+				if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Invoice.Namespace, editedTaxConfig); err != nil {
+					return fmt.Errorf("resolving edited invoice default tax config: %w", err)
+				}
 			}
 
 			lineDiff, err := s.diffMutableInvoiceLines(ctx, originalInvoice, sm.Invoice, input.ChangeSource)
