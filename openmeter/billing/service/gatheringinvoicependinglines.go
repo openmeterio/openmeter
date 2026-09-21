@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -736,7 +737,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("generating invoice number: %w", err)
 	}
 
-	if err := s.resolveDefaultTaxCode(ctx, in.Customer.Namespace, profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, in.Customer.Namespace, profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
 		return nil, fmt.Errorf("resolving default tax code: %w", err)
 	}
 
