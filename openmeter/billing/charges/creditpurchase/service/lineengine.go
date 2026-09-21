@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	creditpurchasemodels "github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,6 +21,11 @@ var _ billing.LineEngine = (*LineEngine)(nil)
 
 type LineEngine struct {
 	service *service
+}
+
+type buildInvoiceCreditPurchaseStandardLinesInput struct {
+	billing.BuildStandardInvoiceLinesInput
+	ResolveDynamicCostBasis bool
 }
 
 func (e *LineEngine) GetLineEngineType() billing.LineEngineType {
@@ -56,17 +62,22 @@ func (e *LineEngine) SplitGatheringLine(_ context.Context, _ billing.SplitGather
 }
 
 func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
-	return e.buildInvoiceCreditPurchaseStandardLines(ctx, input)
+	return e.buildInvoiceCreditPurchaseStandardLines(ctx, buildInvoiceCreditPurchaseStandardLinesInput{
+		BuildStandardInvoiceLinesInput: input,
+	})
 }
 
 func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
-	return e.buildInvoiceCreditPurchaseStandardLines(ctx, input)
+	return e.buildInvoiceCreditPurchaseStandardLines(ctx, buildInvoiceCreditPurchaseStandardLinesInput{
+		BuildStandardInvoiceLinesInput: input,
+		ResolveDynamicCostBasis:        true,
+	})
 }
 
-// buildInvoiceCreditPurchaseStandardLines preserves unresolved gathering lines
-// as provisional zero-value lines. Resolved charges can be fully represented
-// without lifecycle side effects, including in previews.
-func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+// buildInvoiceCreditPurchaseStandardLines preserves unresolved lifecycle lines
+// as provisional zero-value lines. Gathering previews can resolve dynamic cost
+// basis locally so they expose the current fiat projection without side effects.
+func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context, input buildInvoiceCreditPurchaseStandardLinesInput) (billing.StandardLines, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
@@ -94,6 +105,25 @@ func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context
 
 		if charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeInvoice {
 			return nil, fmt.Errorf("credit purchase charge[%s] is not invoice settled", charge.ID)
+		}
+
+		if input.ResolveDynamicCostBasis && charge.Intent.CostBasis.Type() == creditpurchase.CostBasisTypeCustomCurrency {
+			costBasisIntent, err := charge.Intent.CostBasis.AsCustomCurrency()
+			if err != nil {
+				return nil, fmt.Errorf("getting custom-currency cost basis for credit purchase gathering preview charge[%s]: %w", charge.ID, err)
+			}
+
+			resolvedCostBasis, err := costbasis.ResolveForPreview(ctx, e.service.costbasisResolver, costbasis.ResolveForPreviewInput{
+				CurrencyID:        charge.Intent.Currency.NamespacedID,
+				Intent:            costBasisIntent,
+				ResolvedCostBasis: charge.State.ResolvedCostBasis,
+				ServicePeriodFrom: charge.Intent.ServicePeriod.From,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("resolving cost basis for credit purchase gathering preview charge[%s]: %w", charge.ID, err)
+			}
+
+			charge.State.ResolvedCostBasis = resolvedCostBasis
 		}
 
 		// If costbasis is not yet resolved, we should not try to populate the detailed lines until

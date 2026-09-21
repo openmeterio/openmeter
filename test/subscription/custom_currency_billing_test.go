@@ -34,6 +34,115 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLines(t *testing.T) {
+	// given:
+	// - a not-yet-advanced usage-based charge with a dynamic custom-currency cost basis
+	// - usage inside the charge's service period
+	// when:
+	// - billing lists its gathering invoice with live calculation enabled
+	// then:
+	// - the preview omits the scheduling placeholder because credit allocation has not established fiat overage
+	const namespace = "test-namespace"
+
+	setupAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	startsAt := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	invoiceAt := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	usageAt := startsAt.Add(14 * 24 * time.Hour)
+
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
+
+	deps := setup(t, setupConfig{enableCharges: true, enableCreditThenInvoice: true})
+	defer deps.cleanup(t)
+	provisionSubscriptionDefaultTaxCodes(t, deps, namespace)
+
+	profileInput := minimalCreateProfileInputTemplate(deps.sandboxApp.GetID())
+	profileInput.WorkflowConfig.Collection.Interval = datetime.MustParseDuration(t, "P1D")
+	profileInput.WorkflowConfig.Invoicing.AutoAdvance = false
+	_, err := deps.billingService.CreateProfile(t.Context(), profileInput)
+	require.NoError(t, err)
+
+	customCurrency, err := deps.CurrencyService.CreateCurrency(t.Context(), currenciestestutils.NewCreateCurrencyInput(
+		namespace, "CREDITS", "Credits", "CR",
+	))
+	require.NoError(t, err)
+	_, err = deps.CurrencyService.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: customCurrency.ID,
+		FiatCode:   "USD",
+		Rate:       decimal.NewFromFloat(0.5),
+	})
+	require.NoError(t, err)
+
+	features := deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	createdPlan := createUsageSubscriptionPlan(t, deps, usageSubscriptionPlanInput{
+		Namespace:      namespace,
+		Key:            "custom-currency-gathering-preview",
+		PlanCurrency:   customCurrency.GetCode(),
+		CustomCurrency: customCurrency,
+		Features:       features,
+		EffectiveFrom:  setupAt.Add(-time.Second),
+	})
+	customer := createUSDSubscriptionCustomer(t, deps, namespace, "custom-currency-gathering-preview")
+	createdSubscription, err := createCustomCurrencySubscription(
+		t,
+		deps,
+		createdPlan,
+		customer.ID,
+		startsAt,
+		productcatalog.CreditThenInvoiceSettlementMode,
+		subscription.CostBasisModeDynamic,
+	)
+	require.NoError(t, err)
+
+	view, err := deps.subscriptionService.GetView(t.Context(), createdSubscription.NamespacedID)
+	require.NoError(t, err)
+	require.NoError(t, deps.subscriptionSyncService.SyncByView(t.Context(), view, invoiceAt))
+
+	chargeListInput := charges.ListChargesInput{
+		Page:            pagination.Page{PageNumber: 1, PageSize: 100},
+		Namespace:       namespace,
+		SubscriptionIDs: []string{createdSubscription.ID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+	}
+	chargePage, err := deps.chargesService.ListCharges(t.Context(), chargeListInput)
+	require.NoError(t, err)
+	require.Len(t, chargePage.Items, 1)
+	charge, err := chargePage.Items[0].AsUsageBasedCharge()
+	require.NoError(t, err)
+	require.Nil(t, charge.State.ResolvedCostBasis)
+
+	deps.MockStreamingConnector.AddSimpleEvent(
+		subscriptiontestutils.ExampleFeatureMeterSlug,
+		5,
+		usageAt,
+	)
+	clock.FreezeTime(usageAt)
+
+	invoices, err := deps.billingService.ListInvoices(t.Context(), billing.ListInvoicesInput{
+		Namespace:        namespace,
+		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
+		Expand: billing.InvoiceExpands{}.
+			With(billing.InvoiceExpandLines).
+			With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+	})
+	require.NoError(t, err)
+	require.Len(t, invoices.Items, 1)
+
+	preview, err := invoices.Items[0].AsStandardInvoice()
+	require.NoError(t, err)
+	require.Equal(t, currencyx.FiatCode("USD"), preview.Currency)
+	require.Zero(t, preview.Totals.Total.InexactFloat64())
+	require.Empty(t, preview.Lines.OrEmpty())
+
+	chargePage, err = deps.chargesService.ListCharges(t.Context(), chargeListInput)
+	require.NoError(t, err)
+	require.Len(t, chargePage.Items, 1)
+	charge, err = chargePage.Items[0].AsUsageBasedCharge()
+	require.NoError(t, err)
+	require.Nil(t, charge.State.ResolvedCostBasis)
+}
+
 func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 	const namespace = "test-namespace"
 
