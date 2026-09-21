@@ -307,10 +307,9 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Entitlements
 
-| Method                                   | HTTP                                                                       | Description                                                                                      |
-| ---------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access`                 | List customer entitlement access                                                                 |
-| `client.entitlements.getCustomerValue`   | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value` | Get the customer's access through a single entitlement, optionally evaluated at a point in time. |
+| Method                                   | HTTP                                                       | Description                      |
+| ---------------------------------------- | ---------------------------------------------------------- | -------------------------------- |
+| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access` | List customer entitlement access |
 
 ### Subscriptions
 
@@ -443,6 +442,7 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.entitlements.getCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature.                                                                                                                                                                                             |
 | `client.internal.entitlements.list`              | `GET /openmeter/entitlements`                                                    | List the active entitlements of all customers. Intended for administrative use. To list the entitlements of a single customer, use the customer entitlements endpoints; to check entitlement access, use the entitlement access endpoints. |
 | `client.internal.entitlements.get`               | `GET /openmeter/entitlements/{entitlementId}`                                    | Get an entitlement by ID. To check entitlement access, use the entitlement access endpoints instead.                                                                                                                                       |
+| `client.internal.entitlements.getCustomerValue`  | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value`       | Get the customer's access through a single entitlement, optionally evaluated at a point in time.                                                                                                                                           |
 
 ### Internal Subscriptions
 

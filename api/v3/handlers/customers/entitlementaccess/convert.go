@@ -14,44 +14,30 @@ import (
 )
 
 func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, expands ...api.BillingEntitlementAccessExpand) (api.BillingEntitlementAccessResult, error) {
-	featureKey := access.FeatureKey
+	result := api.BillingEntitlementAccessResult{
+		FeatureKey: access.FeatureKey,
+		Type:       api.BillingEntitlementType(access.Type),
+		HasAccess:  access.Value.HasAccess(),
+	}
 
-	switch ent := access.Value.(type) {
+	switch value := access.Value.(type) {
 	case *meteredentitlement.MeteredEntitlementValue:
-		result := api.BillingEntitlementAccessResult{
-			FeatureKey: featureKey,
-			Type:       api.BillingEntitlementTypeMetered,
-			HasAccess:  ent.HasAccess(),
-		}
-
 		if lo.Contains(expands, api.BillingEntitlementAccessExpandValue) {
-			result.Value = lo.ToPtr(mapMeteredEntitlementValueToAPI(ent))
+			result.Value = lo.ToPtr(mapMeteredEntitlementValueToAPI(value))
 		}
-
-		return result, nil
 	case *staticentitlement.StaticEntitlementValue:
-		return api.BillingEntitlementAccessResult{
-			FeatureKey: featureKey,
-			Type:       api.BillingEntitlementTypeStatic,
-			HasAccess:  ent.HasAccess(),
-			Config:     &ent.Config,
-		}, nil
+		result.Config = &value.Config
 	case *booleanentitlement.BooleanEntitlementValue:
-		return api.BillingEntitlementAccessResult{
-			FeatureKey: featureKey,
-			Type:       api.BillingEntitlementTypeBoolean,
-			HasAccess:  ent.HasAccess(),
-		}, nil
 	case *entitlement.NoAccessValue:
-		return api.BillingEntitlementAccessResult{
-			HasAccess:  false,
-			FeatureKey: featureKey,
-			// using a constant value to satisfy the API contract
-			Type: api.BillingEntitlementTypeStatic,
-		}, nil
+		// A feature without any entitlement has no type, but the contract requires one.
+		if access.Type == "" {
+			result.Type = api.BillingEntitlementTypeStatic
+		}
 	default:
 		return api.BillingEntitlementAccessResult{}, errors.New("unknown entitlement type")
 	}
+
+	return result, nil
 }
 
 func mapMeteredEntitlementValueToAPI(value *meteredentitlement.MeteredEntitlementValue) api.BillingEntitlementAccessValue {

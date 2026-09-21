@@ -165,4 +165,45 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 		_, err = c.Entitlements.GetCustomerValue(t.Context(), deleted.ID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{})
 		requireProblem(t, err, http.StatusPreconditionFailed)
 	})
+
+	t.Run("Should return 404 for a deleted entitlement at any time", func(t *testing.T) {
+		// given a standalone boolean entitlement, as subscription-managed ones cannot be deleted
+		featureKey := uniqueKey("ent_value_del")
+		deletedFeature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+			Key:  featureKey,
+			Name: "Deleted Feature " + featureKey,
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, deletedFeature)
+
+		var createBody api.CreateCustomerEntitlementV2JSONRequestBody
+		require.NoError(t, createBody.FromEntitlementBooleanCreateInputs(api.EntitlementBooleanCreateInputs{
+			Type:       api.EntitlementBooleanCreateInputsTypeBoolean,
+			FeatureKey: lo.ToPtr(deletedFeature.Key),
+		}))
+
+		createResp, err := v1.CreateCustomerEntitlementV2WithResponse(t.Context(), customer.ID, createBody)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, createResp.StatusCode(), "unexpected response body: %s", createResp.Body)
+
+		created, err := createResp.JSON201.AsEntitlementBooleanV2()
+		require.NoError(t, err)
+
+		// when the entitlement gets deleted after it became active
+		beforeDeletion := time.Now()
+		require.True(t, beforeDeletion.After(created.ActiveFrom), "entitlement must be active before the deletion")
+
+		deleteResp, err := v1.DeleteCustomerEntitlementV2WithResponse(t.Context(), customer.ID, deletedFeature.Key)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, deleteResp.StatusCode(), "unexpected response body: %s", deleteResp.Body)
+
+		// then it is not found, even at a time before the deletion
+		_, err = c.Entitlements.GetCustomerValue(t.Context(), customer.ID, created.Id, v3sdk.GetCustomerEntitlementValueParams{
+			At: lo.ToPtr(beforeDeletion),
+		})
+		requireProblem(t, err, http.StatusNotFound)
+
+		_, err = c.Entitlements.GetCustomerValue(t.Context(), customer.ID, created.Id, v3sdk.GetCustomerEntitlementValueParams{})
+		requireProblem(t, err, http.StatusNotFound)
+	})
 }

@@ -1782,7 +1782,10 @@ export const entitlementAccessValue = z
       .record(z.string(), numeric)
       .describe('The remaining balance of each grant, keyed by grant ID.'),
   })
-  .describe('Balance details of a metered entitlement.')
+
+  .describe(
+    'Balance details of a metered entitlement at the evaluation time, which is the `at` query parameter when given and the current time otherwise.',
+  )
 
 export const entitlementIssueAfterReset = z
   .object({
@@ -10592,7 +10595,10 @@ export const entitlementAccessValueWire = z
       .record(z.string(), numericWire)
       .describe('The remaining balance of each grant, keyed by grant ID.'),
   })
-  .describe('Balance details of a metered entitlement.')
+
+  .describe(
+    'Balance details of a metered entitlement at the evaluation time, which is the `at` query parameter when given and the current time otherwise.',
+  )
 
 export const entitlementIssueAfterResetWire = z
   .strictObject({

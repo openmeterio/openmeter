@@ -64,7 +64,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 
 	// given a boolean, a static, a metered and an already expired entitlement on the customer
 	boolFeature := createFeature(t, "b-boolean")
-	_, err = conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+	boolEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
 		Namespace:        namespace,
 		UsageAttribution: cust.GetUsageAttribution(),
 		FeatureKey:       &boolFeature.Key,
@@ -275,6 +275,7 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, meteredFeature.Key, access.FeatureKey)
+		require.Equal(t, entitlement.EntitlementTypeMetered, access.Type)
 		require.IsType(t, &entitlement.NoAccessValue{}, access.Value)
 	})
 
@@ -305,6 +306,41 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 			At:            clock.Now(),
 		})
 		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("Get by ID should report a deleted entitlement as not found at any time", func(t *testing.T) {
+		// given the boolean entitlement gets deleted and time moves past the deletion
+		beforeDeletion := clock.Now().Add(-time.Second)
+		require.NoError(t, conn.DeleteEntitlement(t.Context(), namespace, boolEnt.ID, clock.Now()))
+		clock.SetTime(clock.Now().Add(time.Minute))
+
+		// then it is not found, even at a time before the deletion
+		for name, at := range map[string]time.Time{"before deletion": beforeDeletion, "now": clock.Now()} {
+			_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
+				CustomerID:    customerID,
+				EntitlementID: boolEnt.ID,
+				At:            at,
+			})
+			require.True(t, models.IsGenericNotFoundError(err), "%s: expected not found error, got: %v", name, err)
+		}
+	})
+
+	t.Run("Get by feature key should return no access for a deleted metered entitlement before its deletion", func(t *testing.T) {
+		// given the metered entitlement gets deleted and time moves past the deletion
+		beforeDeletion := clock.Now().Add(-time.Second)
+		require.NoError(t, conn.DeleteEntitlement(t.Context(), namespace, meteredEnt.ID, clock.Now()))
+		clock.SetTime(clock.Now().Add(time.Minute))
+
+		// then the credit engine cannot evaluate it, which reads as no access
+		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
+			CustomerID: customerID,
+			FeatureKey: meteredFeature.Key,
+			At:         beforeDeletion,
+		})
+		require.NoError(t, err)
+		require.Equal(t, meteredFeature.Key, access.FeatureKey)
+		require.Equal(t, entitlement.EntitlementTypeMetered, access.Type)
+		require.IsType(t, &entitlement.NoAccessValue{}, access.Value)
 	})
 
 	t.Run("Get and List should reject a deleted customer", func(t *testing.T) {

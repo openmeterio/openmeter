@@ -28,8 +28,12 @@ type CustomerEntitlementAccessAPIService interface {
 	ListCustomerEntitlementAccess(ctx context.Context, input ListCustomerEntitlementAccessInput) ([]CustomerEntitlementAccess, error)
 }
 
+// CustomerEntitlementAccess carries the entitlement type separately from the
+// value because an inactive entitlement yields a NoAccessValue that no longer
+// identifies its type.
 type CustomerEntitlementAccess struct {
 	FeatureKey string
+	Type       EntitlementType
 	Value      EntitlementValue
 }
 

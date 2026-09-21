@@ -19,6 +19,7 @@ import {
   getCustomerEntitlementAccess,
   listEntitlements,
   getEntitlement,
+  getCustomerEntitlementValue,
 } from '../funcs/entitlements.js'
 import {
   unscheduleSubscription,
@@ -90,6 +91,8 @@ import type {
   ListEntitlementsResponse,
   GetEntitlementRequest,
   GetEntitlementResponse,
+  GetCustomerEntitlementValueRequest,
+  GetCustomerEntitlementValueResponse,
 } from '../models/operations/entitlements.js'
 import type {
   UnscheduleSubscriptionRequest,
@@ -592,6 +595,23 @@ export class InternalEntitlements {
     options?: RequestOptions,
   ): Promise<GetEntitlementResponse> {
     return unwrap(await getEntitlement(this._client, request, options))
+  }
+
+  /**
+   * Get customer entitlement value
+   *
+   * Get the customer's access through a single entitlement, optionally evaluated at
+   * a point in time.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value
+   */
+  async getCustomerValue(
+    request: GetCustomerEntitlementValueRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementValueResponse> {
+    return unwrap(
+      await getCustomerEntitlementValue(this._client, request, options),
+    )
   }
 }
 

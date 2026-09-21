@@ -676,15 +676,27 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
-/** Balance details of a metered entitlement. */
+/**
+ * Balance details of a metered entitlement at the evaluation time, which is the
+ * `at` query parameter when given and the current time otherwise.
+ */
 export interface EntitlementAccessValue {
-  /** The remaining balance of the entitlement in the current usage period. */
+  /**
+   * The remaining balance of the entitlement in the usage period at the evaluation
+   * time.
+   */
   balance: string
-  /** The usage recorded in the current usage period. */
+  /** The usage recorded in the usage period at the evaluation time. */
   usage: string
-  /** The usage exceeding the available balance in the current usage period. */
+  /**
+   * The usage exceeding the available balance in the usage period at the evaluation
+   * time.
+   */
   overage: string
-  /** The total amount granted and currently available to the entitlement. */
+  /**
+   * The total amount granted and available to the entitlement at the evaluation
+   * time.
+   */
   totalAvailableGrantAmount: string
   /** The remaining balance of each grant, keyed by grant ID. */
   grantBalances: Record<string, string>
@@ -2720,8 +2732,8 @@ export interface EntitlementAccessResult {
    */
   config?: string
   /**
-   * Only available for metered entitlements. The current balance details of the
-   * entitlement. Requires the `value` expand.
+   * Only available for metered entitlements. The balance details of the entitlement
+   * at the evaluation time. Requires the `value` expand.
    */
   value?: EntitlementAccessValue
 }
