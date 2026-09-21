@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -83,6 +84,12 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		if len(input.Lines) == 0 {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("no lines provided"),
+			}
+		}
+
+		for i := range input.Lines {
+			if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Customer.Namespace, input.Lines[i].TaxConfig); err != nil {
+				return nil, fmt.Errorf("resolving line[%d] tax config: %w", i, err)
 			}
 		}
 

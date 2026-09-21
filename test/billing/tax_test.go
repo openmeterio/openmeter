@@ -242,6 +242,26 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	s.NoError(err)
 	s.Len(res.Lines, 1)
+	s.Require().NotNil(res.Lines[0].TaxConfig)
+	s.Require().NotNil(res.Lines[0].TaxConfig.TaxCodeID, "TaxCodeID must be resolved before the gathering line is persisted")
+
+	createdTC, err := s.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: namespace,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   taxConfig.Stripe.Code,
+	})
+	s.Require().NoError(err, "TaxCode entity must exist before invoice advancement")
+	s.Equal(createdTC.ID, *res.Lines[0].TaxConfig.TaxCodeID)
+
+	dbLine, err := s.DBClient.BillingInvoiceLine.Query().
+		Where(billinginvoicelinedb.ID(res.Lines[0].GetID())).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.Require().NotNil(dbLine.TaxCodeID, "gathering line tax_code_id column must be populated")
+	s.Equal(createdTC.ID, *dbLine.TaxCodeID)
+	s.Require().NotNil(dbLine.TaxBehavior, "gathering line tax_behavior column must be populated")
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior)
+	s.Equal(createdTC.ID, lo.FromPtr(dbLine.TaxConfig.TaxCodeID), "gathering line JSON tax_code_id must match the column")
 
 	// Let's create a partial invoice
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute))
@@ -266,12 +286,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(taxConfig.Stripe, ubpSplitLine.TaxConfig.Stripe, "tax config stripe is retained")
 	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID is stamped during advancement")
 
-	createdTC, err := s.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
-		Namespace: namespace,
-		AppType:   app.AppTypeStripe,
-		TaxCode:   taxConfig.Stripe.Code,
-	})
-	s.Require().NoError(err, "TaxCode entity must exist in DB")
 	s.Equal(createdTC.ID, *ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID must match the DB entity")
 	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCode, "TaxCode entity must be stamped on line")
 	s.Equal(createdTC.ID, ubpSplitLine.TaxConfig.TaxCode.ID, "stamped TaxCode entity must match the DB entity")
@@ -280,7 +294,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Len(ubpSplitLineDetailedLines, 1)
 
 	// Verify the normalized tax_code_id column is written in the DB (not just the JSONB).
-	dbLine, err := s.DBClient.BillingInvoiceLine.Query().
+	dbLine, err = s.DBClient.BillingInvoiceLine.Query().
 		Where(billinginvoicelinedb.ID(ubpSplitLine.GetID())).
 		Only(ctx)
 	s.Require().NoError(err)

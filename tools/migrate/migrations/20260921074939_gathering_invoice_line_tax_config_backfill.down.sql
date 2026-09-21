@@ -1,0 +1,2 @@
+-- Data backfill is intentionally irreversible. Restoring incomplete tax
+-- representations would make gathering-line reads lossy again.

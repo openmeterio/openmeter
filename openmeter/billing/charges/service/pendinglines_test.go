@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -16,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -23,6 +25,64 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
+
+func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesResolvesStripeTaxCodeBeforeCreatingCharge() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-stripe-tax")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Namespace:     ns,
+		Period:        servicePeriod,
+		InvoiceAt:     servicePeriod.To,
+		ManagedBy:     billing.ManuallyManagedLine,
+		Name:          "manual flat",
+		Currency:      currencyx.FiatCode(USD),
+		PerUnitAmount: alpacadecimal.NewFromInt(10),
+		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+	})
+	line.Engine = billing.LineEngineTypeInvoice
+	line.TaxConfig = &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_40010001"},
+	}
+
+	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(USD),
+		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Lines, 1)
+	s.Require().NotNil(result.Lines[0].TaxConfig)
+	s.Require().NotNil(result.Lines[0].TaxConfig.TaxCodeID)
+	s.Require().NotNil(result.Lines[0].TaxConfig.Stripe)
+	s.Equal("txcd_40010001", result.Lines[0].TaxConfig.Stripe.Code)
+
+	resolved, err := s.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: ns,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   "txcd_40010001",
+	})
+	s.Require().NoError(err)
+	s.Equal(resolved.ID, *result.Lines[0].TaxConfig.TaxCodeID)
+
+	charge := s.mustGetChargeByID(meta.ChargeID{Namespace: ns, ID: lo.FromPtr(result.Lines[0].ChargeID)})
+	flatFee, err := charge.AsFlatFeeCharge()
+	s.Require().NoError(err)
+	s.Equal(resolved.ID, flatFee.Intent.GetTaxConfig().TaxCodeID)
+}
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeBackedGatheringLines() {
 	defer s.FlatFeeTestHandler.Reset()

@@ -36,12 +36,18 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		return nil, billing.ValidationError{Err: err}
 	}
 
-	intents, err := mapPendingInvoiceLinesToChargeIntents(input)
-	if err != nil {
-		return nil, billing.ValidationError{Err: err}
-	}
-
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*charges.CreatePendingInvoiceLinesResult, error) {
+		for i := range input.Lines {
+			if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Customer.Namespace, input.Lines[i].TaxConfig); err != nil {
+				return nil, fmt.Errorf("resolving line.%d tax config: %w", i, err)
+			}
+		}
+
+		intents, err := mapPendingInvoiceLinesToChargeIntents(input)
+		if err != nil {
+			return nil, billing.ValidationError{Err: err}
+		}
+
 		result, err := s.create(ctx, charges.CreateInput{
 			Namespace: input.Customer.Namespace,
 			Intents:   charges.NewCreateChargeIntents(intents...),
