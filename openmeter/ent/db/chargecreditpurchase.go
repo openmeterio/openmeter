@@ -828,10 +828,8 @@ func (_m *ChargeCreditPurchase) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.Filters; v != nil {
-		builder.WriteString("filters=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("filters=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Filters))
 	builder.WriteString(", ")
 	builder.WriteString("feature_filters=")
 	builder.WriteString(fmt.Sprintf("%v", _m.FeatureFilters))

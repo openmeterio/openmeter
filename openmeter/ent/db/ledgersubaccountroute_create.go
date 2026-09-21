@@ -275,6 +275,10 @@ func (_c *LedgerSubAccountRouteCreate) defaults() {
 		v := ledgersubaccountroute.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Filters(); !ok {
+		v := ledgersubaccountroute.DefaultFilters()
+		_c.mutation.SetFilters(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := ledgersubaccountroute.DefaultID()
 		_c.mutation.SetID(v)
@@ -323,6 +327,9 @@ func (_c *LedgerSubAccountRouteCreate) check() error {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.tax_behavior": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.Filters(); !ok {
+		return &ValidationError{Name: "filters", err: errors.New(`db: missing required field "LedgerSubAccountRoute.filters"`)}
 	}
 	if v, ok := _c.mutation.Filters(); ok {
 		if err := v.Validate(); err != nil {

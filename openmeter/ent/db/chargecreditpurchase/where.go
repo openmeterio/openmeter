@@ -1947,16 +1947,6 @@ func PriorityNotNil() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldPriority))
 }
 
-// FiltersIsNil applies the IsNil predicate on the "filters" field.
-func FiltersIsNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldFilters))
-}
-
-// FiltersNotNil applies the NotNil predicate on the "filters" field.
-func FiltersNotNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldFilters))
-}
-
 // FeatureFiltersEQ applies the EQ predicate on the "feature_filters" field.
 func FeatureFiltersEQ(v pq.StringArray) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFeatureFilters, v))

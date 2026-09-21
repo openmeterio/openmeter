@@ -5,7 +5,6 @@ import (
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
@@ -14,6 +13,7 @@ import (
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -164,16 +164,11 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCodeIsNil())
 		}
 	}
-	if normalizedRoute.Features.IsPresent() {
-		features, _ := normalizedRoute.Features.Get()
-		if len(features) == 0 {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.FeaturesIsNil())
-		} else {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.Features(pq.StringArray(features)))
-		}
+	if features, ok := normalizedRoute.Features.Get(); ok {
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 	}
 	if normalizedRoute.MatchFeature != "" {
-		routePredicates = append(routePredicates, matchFeature(normalizedRoute.MatchFeature))
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, normalizedRoute.MatchFeature)) })
 	}
 	if normalizedRoute.CostBasis.IsPresent() {
 		costBasis, _ := normalizedRoute.CostBasis.Get()
@@ -200,17 +195,6 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	}
 
 	return subAccountPredicates, nil
-}
-
-func matchFeature(feature string) predicate.LedgerSubAccountRoute {
-	return func(s *sql.Selector) {
-		s.Where(sql.Or(
-			sql.IsNull(s.C(ledgersubaccountroutedb.FieldFeatures)),
-			sql.P(func(b *sql.Builder) {
-				b.Ident(s.C(ledgersubaccountroutedb.FieldFeatures)).WriteString(" @> ").Arg(pq.StringArray{feature})
-			}),
-		))
-	}
 }
 
 func entryProvenancePredicates(filter ledger.ProvenanceFilter) []predicate.LedgerEntry {

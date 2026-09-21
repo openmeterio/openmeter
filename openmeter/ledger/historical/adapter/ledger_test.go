@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/lib/pq"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -1415,12 +1414,12 @@ func TestSumEntriesQuery_SQLMatchFeature(t *testing.T) {
 	sqlStr, args, err := q.SQL()
 	require.NoError(t, err)
 
-	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."features" IS NULL`)
-	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."features" @> $3`)
+	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."filters"->'features' IS NULL`)
+	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."filters"->'features' @> $3`)
 	require.Equal(t, []any{
 		"ns-test",
 		"USD",
-		pq.StringArray{"api-calls"},
+		`["api-calls"]`,
 	}, args)
 }
 
