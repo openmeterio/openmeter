@@ -56,11 +56,7 @@ func (h *handler) DeleteBillingInvoice() DeleteBillingInvoiceHandler {
 				return nil, err
 			}
 			if standardInvoice.Status == billing.StandardInvoiceStatusDeleted {
-				return nil, billing.NotFoundError{
-					ID:     request.Invoice.ID,
-					Entity: billing.EntityInvoice,
-					Err:    billing.ErrInvoiceNotFound,
-				}
+				return nil, apierrors.NewNotFoundError(ctx, billing.ErrInvoiceNotFound, "invoice")
 			}
 
 			if err := billing.ValidateAPIInvoiceDeleteSupported(existing); err != nil {
