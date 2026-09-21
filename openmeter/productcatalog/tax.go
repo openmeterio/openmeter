@@ -230,6 +230,20 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 	return out
 }
 
+type resolveTaxConfigOptions struct {
+	allowDeletedTaxCodeByID bool
+}
+
+type ResolveTaxConfigOption func(*resolveTaxConfigOptions)
+
+// AllowDeletedTaxCodeByID allows resolving a soft-deleted tax code when TaxCodeID is set.
+// Provider-specific tax-code resolution remains limited to active tax codes.
+func AllowDeletedTaxCodeByID() ResolveTaxConfigOption {
+	return func(options *resolveTaxConfigOptions) {
+		options.allowDeletedTaxCodeByID = true
+	}
+}
+
 // ResolveTaxConfig cross-populates TaxCodeID and provider-specific codes on the pointed-to
 // config so the persisted record is internally consistent. Four input cases:
 //   - Only TaxCodeID: looks up the entity, validates it exists (400 if not), and sets Stripe
@@ -242,7 +256,7 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 //   - Neither: no-op.
 //
 // No-op when cfg is nil.
-func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string, cfg *TaxConfig) error {
+func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string, cfg *TaxConfig, opts ...ResolveTaxConfigOption) error {
 	if cfg == nil {
 		return nil
 	}
@@ -251,10 +265,17 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 		return fmt.Errorf("taxcode service is required")
 	}
 
+	var options resolveTaxConfigOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	switch {
 	case cfg.TaxCodeID != nil:
 		tc, err := svc.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			NamespacedID: models.NamespacedID{Namespace: namespace, ID: *cfg.TaxCodeID},
+			Namespace:      namespace,
+			ID:             *cfg.TaxCodeID,
+			IncludeDeleted: options.allowDeletedTaxCodeByID,
 		})
 		if err != nil {
 			if taxcode.IsTaxCodeNotFoundError(err) {

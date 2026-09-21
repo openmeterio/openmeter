@@ -179,7 +179,12 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 	defaultTaxCodeResolvers := s.defaultTaxCodeResolversForInvoiceUpdate(after)
 	if source == billing.ChangeSourceAPIRequest {
 		var err error
-		before, err = s.invoiceWithSanitizedTaxConfigForDiff(ctx, defaultTaxCodeResolvers, before)
+		before, err = s.invoiceWithSanitizedTaxConfigForDiff(
+			ctx,
+			defaultTaxCodeResolvers,
+			before,
+			productcatalog.AllowDeletedTaxCodeByID(),
+		)
 		if err != nil {
 			return mutableInvoiceLineDiff{}, fmt.Errorf("sanitizing persisted invoice line tax configs for diff: %w", err)
 		}
@@ -219,6 +224,7 @@ func (s *Service) invoiceWithSanitizedTaxConfigForDiff(
 	ctx context.Context,
 	defaultTaxCodeResolvers billing.DefaultTaxCodeResolvers,
 	invoice billing.GenericInvoiceReader,
+	opts ...productcatalog.ResolveTaxConfigOption,
 ) (billing.GenericInvoice, error) {
 	if err := defaultTaxCodeResolvers.Validate(); err != nil {
 		return nil, fmt.Errorf("default tax code resolvers: %w", err)
@@ -240,7 +246,7 @@ func (s *Service) invoiceWithSanitizedTaxConfigForDiff(
 	namespace := sanitizedInvoice.GetInvoiceID().Namespace
 	lines := sanitizedInvoice.GetGenericLines().OrEmpty()
 	for i, line := range lines {
-		sanitizedLine, err := s.sanitizeInvoiceLineTaxConfigForDiff(ctx, namespace, line)
+		sanitizedLine, err := s.sanitizeInvoiceLineTaxConfigForDiff(ctx, namespace, line, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("line[%s]: %w", line.GetID(), err)
 		}
@@ -259,8 +265,9 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 	ctx context.Context,
 	namespace string,
 	line billing.GenericInvoiceLine,
+	opts ...productcatalog.ResolveTaxConfigOption,
 ) (billing.GenericInvoiceLine, error) {
-	taxConfig, err := s.sanitizeTaxConfigForDiff(ctx, namespace, line.GetTaxConfig())
+	taxConfig, err := s.sanitizeTaxConfigForDiff(ctx, namespace, line.GetTaxConfig(), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +301,7 @@ func (s *Service) sanitizeTaxConfigForDiff(
 	ctx context.Context,
 	namespace string,
 	taxConfig *billing.TaxConfig,
+	opts ...productcatalog.ResolveTaxConfigOption,
 ) (*billing.TaxConfig, error) {
 	var sanitized billing.TaxConfig
 	if taxConfig != nil {
@@ -323,7 +331,7 @@ func (s *Service) sanitizeTaxConfigForDiff(
 	}
 
 	productCatalogTaxConfig := sanitized.ToProductCatalog()
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, productCatalogTaxConfig); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, productCatalogTaxConfig, opts...); err != nil {
 		return nil, err
 	}
 

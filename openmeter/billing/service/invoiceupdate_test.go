@@ -347,6 +347,65 @@ func TestDiffMutableInvoiceLinesResolvedExplicitTaxCodeIDMatchNoDiff(t *testing.
 	require.True(t, lineDiff.IsEmpty())
 }
 
+func TestDiffMutableInvoiceLinesAllowsReplacingDeletedTaxCode(t *testing.T) {
+	deletedTaxCodeID := "deleted-tax-code-id"
+	replacementTaxCodeID := "replacement-tax-code-id"
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(deletedTaxCodeID),
+			},
+		},
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(replacementTaxCodeID),
+			},
+		},
+	)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	taxCodes := svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes
+	taxCodes[deletedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: deletedTaxCodeID},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		Key:          "deleted",
+		Name:         "Deleted Tax Code",
+	}
+	taxCodes[replacementTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: replacementTaxCodeID},
+		Key:          "replacement",
+		Name:         "Replacement Tax Code",
+	}
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+	require.Len(t, lineDiff.Updated, 1)
+
+	updatedTaxConfig, ok := lineDiff.Updated[0].ChangesToApply.TaxConfig.Get()
+	require.True(t, ok)
+	require.Equal(t, replacementTaxCodeID, *updatedTaxConfig.TaxCodeID)
+}
+
+func TestDiffMutableInvoiceLinesRejectsDeletedTaxCodeInExpectedState(t *testing.T) {
+	deletedTaxCodeID := "deleted-tax-code-id"
+	taxConfig := &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr(deletedTaxCodeID),
+		},
+	}
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(taxConfig, taxConfig)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[deletedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: deletedTaxCodeID},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		Key:          "deleted",
+		Name:         "Deleted Tax Code",
+	}
+
+	_, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.ErrorContains(t, err, "sanitizing expected invoice line tax configs for diff")
+	require.ErrorContains(t, err, "tax code deleted-tax-code-id not found")
+}
+
 func TestInvoiceWithSanitizedTaxConfigForDiffNormalizesExplicitTaxCodeIdentity(t *testing.T) {
 	explicitTaxCodeID := "explicit-tax-code-id"
 	canonicalStripeCode := "txcd_10000000"
@@ -1012,7 +1071,7 @@ func (s *invoiceUpdateTaxCodeService) ListTaxCodes(context.Context, taxcode.List
 
 func (s *invoiceUpdateTaxCodeService) GetTaxCode(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
 	tc, ok := s.taxCodes[input.ID]
-	if !ok || tc.Namespace != input.Namespace {
+	if !ok || tc.Namespace != input.Namespace || (tc.DeletedAt != nil && !input.IncludeDeleted) {
 		return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
 	}
 
