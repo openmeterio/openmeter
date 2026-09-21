@@ -904,7 +904,7 @@ type CreateCreditGrantRequest struct {
 	// provided to ensure correct revenue recognition. When not provided, the default
 	// credit grant tax code is applied, if that's not set the global default taxcode
 	// is used.
-	TaxConfig *CreditGrantTaxConfig     `json:"tax_config,omitempty"`
+	TaxConfig *TaxCodeConfig            `json:"tax_config,omitempty"`
 	Filters   *CreateCreditGrantFilters `json:"filters,omitempty"`
 	// Draw-down priority of the grant. Lower values have higher priority.
 	Priority *int16 `json:"priority,omitempty"`
@@ -1070,7 +1070,7 @@ type CreditGrant struct {
 	// provided to ensure correct revenue recognition. When not provided, the default
 	// credit grant tax code is applied, if that's not set the global default taxcode
 	// is used.
-	TaxConfig *CreditGrantTaxConfig `json:"tax_config,omitempty"`
+	TaxConfig *TaxCodeConfig `json:"tax_config,omitempty"`
 	// Available when `funding_method` is `invoice`.
 	Invoice *CreditGrantInvoiceReference `json:"invoice,omitempty"`
 	Filters *CreditGrantFilters          `json:"filters,omitempty"`
@@ -1183,17 +1183,6 @@ func (value CreditGrantStatus) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// Tax configuration for a credit grant.
-//
-// Tax configuration should be provided to ensure correct revenue recognition,
-// including for externally funded grants.
-type CreditGrantTaxConfig struct {
-	// Tax behavior applied to the invoice line item.
-	Behavior *TaxBehavior `json:"behavior,omitempty"`
-	// Tax code applied to the invoice line item.
-	TaxCode *TaxCodeReference `json:"tax_code,omitempty"`
 }
 
 // Describes how voiding a credit grant adjusts related payment state.

@@ -381,7 +381,7 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 		Price:      price,
 		FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		Discounts:  toAPIRateCardDiscounts(line.RateCardDiscounts),
-		TaxConfig:  addons.ToAPIBillingRateCardTaxConfig(line.TaxConfig.ToProductCatalog()),
+		TaxConfig:  addons.ToAPITaxCodeConfig(line.TaxConfig.ToProductCatalog()),
 	}
 
 	if uc := line.GetUnitConfig(); uc != nil {
@@ -814,19 +814,36 @@ func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price
 		discounts = billing.DiscountsFromProductCatalog(pcDiscounts).UpsertCorrelationIDs()
 	}
 
-	taxConfig := billing.FromProductCatalog(addons.FromAPIBillingRateCardTaxConfig(fromAPIUpdateRateCardTaxConfig(rc.TaxConfig)))
+	// The schema allows tax_config with neither code nor behavior; the at-least-one-of
+	// rule is enforced here, and an explicit code must carry an id. The billing validation
+	// error wrap makes the route's error encoder respond with a 400 instead of the 500
+	// fallback.
+	pcTaxConfig, err := addons.FromAPITaxCodeConfig(fromAPIUpdateTaxCodeConfig(rc.TaxConfig))
+	if err != nil {
+		return nil, nil, "", billing.Discounts{}, billing.ValidationError{
+			Err: fmt.Errorf("mapping tax config: %w", err),
+		}
+	}
+
+	taxConfig := billing.FromProductCatalog(pcTaxConfig)
 
 	return price, taxConfig, lo.FromPtrOr(rc.FeatureKey, ""), discounts, nil
 }
 
-func fromAPIUpdateRateCardTaxConfig(taxConfig *api.UpdateRateCardTaxConfig) *api.BillingRateCardTaxConfig {
+func fromAPIUpdateTaxCodeConfig(taxConfig *api.UpdateTaxCodeConfig) *api.TaxCodeConfig {
 	if taxConfig == nil {
 		return nil
 	}
-	return &api.BillingRateCardTaxConfig{
+
+	result := &api.TaxCodeConfig{
 		Behavior: taxConfig.Behavior,
-		Code: api.TaxCodeReference{
-			Id: taxConfig.Code.Id,
-		},
 	}
+
+	if taxConfig.Code != nil {
+		result.Code = &api.TaxCodeReference{
+			Id: taxConfig.Code.Id,
+		}
+	}
+
+	return result
 }
