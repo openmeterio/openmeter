@@ -288,6 +288,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
 	DefaultSchemaLevel int
+	// DefaultFilters holds the default value on creation for the "filters" field.
+	DefaultFilters func() *crediteligibility.Filters
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.

@@ -61,7 +61,7 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		routes.C(ledgersubaccountroutedb.FieldCostBasisCurrency),
 		routes.C(ledgersubaccountroutedb.FieldTaxCode),
 		routes.C(ledgersubaccountroutedb.FieldTaxBehavior),
-		routes.C(ledgersubaccountroutedb.FieldFeatures),
+		routes.C(ledgersubaccountroutedb.FieldFilters),
 		routes.C(ledgersubaccountroutedb.FieldCostBasis),
 		routes.C(ledgersubaccountroutedb.FieldCreditPriority),
 		routes.C(ledgersubaccountroutedb.FieldTransactionAuthorizationStatus),

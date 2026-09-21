@@ -9,7 +9,6 @@ import (
 	sql "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/lib/pq"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -23,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
+	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -70,7 +70,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 				CostBasisCurrency:              route.CostBasisCurrency,
 				TaxCode:                        route.TaxCode,
 				TaxBehavior:                    route.TaxBehavior,
-				Features:                       route.Features,
+				Features:                       route.Filters.Features,
 				CostBasis:                      route.CostBasis,
 				CreditPriority:                 route.CreditPriority,
 				TransactionAuthorizationStatus: route.TransactionAuthorizationStatus,
@@ -498,18 +498,11 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 		}
 	}
 
-	if route.Features.IsPresent() {
-		features, _ := route.Features.Get()
-		features = ledger.SortedFeatures(features)
-		if len(features) == 0 {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.FeaturesIsNil())
-		} else {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.Features(pq.StringArray(features)))
-		}
+	if features, ok := route.Features.Get(); ok {
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 	}
-
 	if route.MatchFeature != "" {
-		routePredicates = append(routePredicates, matchFeature(route.MatchFeature))
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchFeaturePredicate(s.C, route.MatchFeature)) })
 	}
 
 	return routePredicates, nil
@@ -622,10 +615,9 @@ func scopedFBOMovementTransactionSelector(
 
 	routes := sql.Table(ledgersubaccountroutedb.Table).As(routeTableAlias)
 	routePredicates, err := scopedRouteSelectorPredicates(scopedRouteSelectorPredicatesInput{
-		currency:        filter.Currency,
-		route:           filter.Route,
-		routeColumn:     routes.C,
-		routeTableAlias: routeTableAlias,
+		currency:    filter.Currency,
+		route:       filter.Route,
+		routeColumn: routes.C,
 	})
 	if err != nil {
 		return nil, err
@@ -645,17 +637,15 @@ func scopedFBOMovementTransactionSelector(
 }
 
 type scopedRouteSelectorPredicatesInput struct {
-	currency        *currencyx.Code
-	route           ledger.RouteFilter
-	routeColumn     func(string) string
-	routeTableAlias string
+	currency    *currencyx.Code
+	route       ledger.RouteFilter
+	routeColumn func(string) string
 }
 
 func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]*sql.Predicate, error) {
 	currency := input.currency
 	route := input.route
 	routeColumn := input.routeColumn
-	routeTableAlias := input.routeTableAlias
 
 	predicates := make([]*sql.Predicate, 0, 4)
 
@@ -696,67 +686,13 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]
 		}
 	}
 
-	if route.Features.IsPresent() {
-		features, _ := route.Features.Get()
-		features = ledger.SortedFeatures(features)
-		if len(features) == 0 {
-			predicates = append(predicates, sql.IsNull(routeColumn(ledgersubaccountroutedb.FieldFeatures)))
-		} else {
-			predicates = append(predicates, postgresArrayRouteExpression{
-				Column: postgresQualifiedColumn{
-					TableAlias: routeTableAlias,
-					Field:      ledgersubaccountroutedb.FieldFeatures,
-				},
-				Operator: postgresArrayRouteOperatorEqual,
-				Value:    pq.StringArray(features),
-			}.Predicate())
-		}
+	if features, ok := route.Features.Get(); ok {
+		predicates = append(predicates, routequery.ExactFeaturesPredicate(routeColumn, features))
 	}
-
 	if route.MatchFeature != "" {
-		predicates = append(predicates, sql.Or(
-			sql.IsNull(routeColumn(ledgersubaccountroutedb.FieldFeatures)),
-			postgresArrayRouteExpression{
-				Column: postgresQualifiedColumn{
-					TableAlias: routeTableAlias,
-					Field:      ledgersubaccountroutedb.FieldFeatures,
-				},
-				Operator: postgresArrayRouteOperatorContains,
-				Value:    pq.StringArray{route.MatchFeature},
-			}.Predicate(),
-		))
+		predicates = append(predicates, routequery.MatchFeaturePredicate(routeColumn, route.MatchFeature))
 	}
-
 	return predicates, nil
-}
-
-type postgresArrayRouteOperator string
-
-const (
-	postgresArrayRouteOperatorEqual    postgresArrayRouteOperator = "="
-	postgresArrayRouteOperatorContains postgresArrayRouteOperator = "@>"
-)
-
-type postgresQualifiedColumn struct {
-	TableAlias string
-	Field      string
-}
-
-func (c postgresQualifiedColumn) Ident(b *sql.Builder) {
-	b.Ident(c.TableAlias).WriteString(".").Ident(c.Field)
-}
-
-type postgresArrayRouteExpression struct {
-	Column   postgresQualifiedColumn
-	Operator postgresArrayRouteOperator
-	Value    pq.StringArray
-}
-
-func (e postgresArrayRouteExpression) Predicate() *sql.Predicate {
-	return sql.P(func(b *sql.Builder) {
-		e.Column.Ident(b)
-		b.WriteString(" ").WriteString(string(e.Operator)).WriteString(" ").Arg(e.Value)
-	})
 }
 
 func scopedEntryAmountSumPredicate(op string) *sql.Predicate {

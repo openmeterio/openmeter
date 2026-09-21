@@ -885,16 +885,6 @@ func TaxBehaviorContainsFold(v ledger.TaxBehavior) predicate.LedgerSubAccountRou
 	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTaxBehavior, vc))
 }
 
-// FiltersIsNil applies the IsNil predicate on the "filters" field.
-func FiltersIsNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldFilters))
-}
-
-// FiltersNotNil applies the NotNil predicate on the "filters" field.
-func FiltersNotNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldFilters))
-}
-
 // FeaturesEQ applies the EQ predicate on the "features" field.
 func FeaturesEQ(v pq.StringArray) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldFeatures, v))

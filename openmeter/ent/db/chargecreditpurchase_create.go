@@ -651,6 +651,10 @@ func (_c *ChargeCreditPurchaseCreate) defaults() {
 		v := chargecreditpurchase.DefaultSchemaLevel
 		_c.mutation.SetSchemaLevel(v)
 	}
+	if _, ok := _c.mutation.Filters(); !ok {
+		v := chargecreditpurchase.DefaultFilters()
+		_c.mutation.SetFilters(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargecreditpurchase.DefaultID()
 		_c.mutation.SetID(v)
@@ -756,6 +760,9 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 	}
 	if _, ok := _c.mutation.CreditAmount(); !ok {
 		return &ValidationError{Name: "credit_amount", err: errors.New(`db: missing required field "ChargeCreditPurchase.credit_amount"`)}
+	}
+	if _, ok := _c.mutation.Filters(); !ok {
+		return &ValidationError{Name: "filters", err: errors.New(`db: missing required field "ChargeCreditPurchase.filters"`)}
 	}
 	if v, ok := _c.mutation.Filters(); ok {
 		if err := v.Validate(); err != nil {

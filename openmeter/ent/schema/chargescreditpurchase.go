@@ -71,8 +71,9 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			GoType(&crediteligibility.Filters{}).
 			ValueScanner(entutils.JSONStringValueScanner[*crediteligibility.Filters]()).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
-			Optional().
-			Nillable().
+			DefaultFunc(func() *crediteligibility.Filters {
+				return &crediteligibility.Filters{Version: crediteligibility.FiltersVersion1}
+			}).
 			Immutable(),
 		field.Other("feature_filters", pq.StringArray{}).
 			Optional().
