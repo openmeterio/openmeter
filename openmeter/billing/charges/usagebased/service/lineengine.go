@@ -424,9 +424,9 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
-			return stdLine, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", stdLine.ID, usagebased.ErrActiveRealizationRunAlreadyExists),
-			}
+			return stdLine, usagebased.ErrActiveRealizationRunAlreadyExists.WithAttrs(models.Attributes{
+				billing.AttributeKeyLineID: stdLine.ID,
+			})
 		}
 
 		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{

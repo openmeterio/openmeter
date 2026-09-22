@@ -323,9 +323,9 @@ func (v ValidationIssues) WithoutComponent(component ComponentName) ValidationIs
 }
 
 // ToValidationIssues extracts validation issues from an error tree. If the error is nil, it returns nil.
-// If any leaf error is neither a ValidationIssue nor explicitly wrapped by WrapAsValidationIssue, it
-// returns the original error tree. This behavior allows critical system errors to remain distinct from
-// validation issues.
+// If any leaf error is neither a billing or models ValidationIssue nor explicitly wrapped by
+// WrapAsValidationIssue, it returns the original error tree. This behavior allows critical system
+// errors to remain distinct from validation issues.
 func ToValidationIssues(errIn error) (ValidationIssues, error) {
 	if errIn == nil {
 		return nil, nil
@@ -485,6 +485,14 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 				Attributes: mergedAttributes,
 			},
 		}, nil
+	case models.ValidationIssue:
+		return modelValidationIssueAsBillingValidationIssue(errT, fieldPrefix, component, messagePrefix, attributes)
+	case *models.ValidationIssue:
+		if errT == nil {
+			return nil, nil
+		}
+
+		return modelValidationIssueAsBillingValidationIssue(*errT, fieldPrefix, component, messagePrefix, attributes)
 	}
 
 	switch errT := err.(type) {
@@ -523,6 +531,37 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 			return nil, err
 		}
 	}
+}
+
+func modelValidationIssueAsBillingValidationIssue(issue models.ValidationIssue, fieldPrefix string, component ComponentName, messagePrefix string, attributes models.Annotations) ([]ValidationIssue, error) {
+	issueComponent := component
+	if issueComponent == "" {
+		issueComponent = ComponentName(issue.Component())
+	}
+
+	issueAttributes := models.Annotations(issue.Attributes().AsStringMap())
+	mergedAttributes, err := issueAttributes.Merge(attributes)
+	if err != nil {
+		return nil, fmt.Errorf("merging validation issue attributes: %w", err)
+	}
+
+	mergedAttributes, err = mergedAttributes.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning validation issue attributes: %w", err)
+	}
+
+	// TODO: Migrate billing validation issues to models.ValidationIssue so FieldDescriptor can be
+	// preserved without lossy conversion to the legacy string path.
+	return []ValidationIssue{
+		{
+			Severity:   ValidationIssueSeverity(issue.Severity().String()),
+			Message:    appendMessagePrefix(messagePrefix, issue.Message()),
+			Code:       string(issue.Code()),
+			Path:       appendToPrefix(fieldPrefix, ""),
+			Component:  issueComponent,
+			Attributes: mergedAttributes,
+		},
+	}, nil
 }
 
 type ValidationIssueRecorder struct {

@@ -12,6 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -962,8 +963,13 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 			return billing.StandardInvoice{}, fmt.Errorf("validating standard invoice created input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		var requestValidationError billing.ValidationError
 		lines, err := grouped.Engine.OnStandardInvoiceCreated(ctx, input)
+		// An existing realization is an action precondition, not an invoice defect to persist.
+		if errors.Is(err, usagebased.ErrActiveRealizationRunAlreadyExists) {
+			return billing.StandardInvoice{}, err
+		}
+
+		var requestValidationError billing.ValidationError
 		if errors.As(err, &requestValidationError) {
 			return billing.StandardInvoice{}, err
 		}

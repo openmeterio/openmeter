@@ -261,6 +261,141 @@ func TestValidationIssueParsing(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestModelValidationIssueConversion(t *testing.T) {
+	modelIssue := models.NewValidationIssue(
+		models.ErrorCode("model_issue"),
+		"model issue",
+		models.WithWarningSeverity(),
+		models.WithComponent(models.ComponentName("model-component")),
+		models.WithAttributes(models.Attributes{
+			"model":      "attribute",
+			"precedence": "model",
+		}),
+	)
+
+	t.Run("supports values and pointers", func(t *testing.T) {
+		tests := []struct {
+			name string
+			err  error
+		}{
+			{name: "value", err: modelIssue},
+			{name: "pointer", err: &modelIssue},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				issues, systemErr := ToValidationIssues(test.err)
+				require.NoError(t, systemErr)
+				require.Equal(t, ValidationIssues{{
+					Severity:  ValidationIssueSeverityWarning,
+					Message:   "model issue",
+					Code:      "model_issue",
+					Component: "model-component",
+					Attributes: models.Annotations{
+						"model":      "attribute",
+						"precedence": "model",
+					},
+				}}, issues)
+			})
+		}
+	})
+
+	t.Run("preserves metadata and surrounding billing context", func(t *testing.T) {
+		err := ValidationWithComponent(
+			"outer-component",
+			ValidationWithFieldPrefix(
+				"lines/line-1",
+				ValidationWithAttributes(
+					models.Annotations{
+						"outer":      "attribute",
+						"precedence": "outer",
+					},
+					ValidationWithMessage(
+						modelIssue,
+						"resolve the model issue",
+						models.Attributes{"guidance": "attribute"},
+					),
+				),
+			),
+		)
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, ValidationIssues{{
+			Severity:  ValidationIssueSeverityWarning,
+			Message:   "resolve the model issue: model issue",
+			Code:      "model_issue",
+			Component: "outer-component",
+			Path:      "/lines/line-1",
+			Attributes: models.Annotations{
+				"guidance":   "attribute",
+				"model":      "attribute",
+				"outer":      "attribute",
+				"precedence": "outer",
+			},
+		}}, issues)
+	})
+
+	t.Run("does not disappear through cloned issue unwrap chains", func(t *testing.T) {
+		clonedIssue := modelIssue.Clone().WithAttrs(models.Attributes{"clone": true})
+
+		issues, systemErr := ToValidationIssues(clonedIssue)
+		require.NoError(t, systemErr)
+		require.Len(t, issues, 1)
+		require.Equal(t, "model_issue", issues[0].Code)
+		cloned, ok := issues[0].Attributes["clone"].(bool)
+		require.True(t, ok)
+		require.True(t, cloned)
+		require.Equal(t, "attribute", issues[0].Attributes["model"])
+	})
+
+	t.Run("retains system error behavior for mixed trees", func(t *testing.T) {
+		systemErr := errors.New("database unavailable")
+		err := errors.Join(modelIssue, systemErr)
+
+		issues, extractionErr := ToValidationIssues(err)
+		require.Nil(t, issues)
+		require.Equal(t, err, extractionErr)
+		require.False(t, IsValidationIssueOnly(err))
+	})
+
+	t.Run("is recognized by validation issue helpers", func(t *testing.T) {
+		require.True(t, IsValidationIssueOnly(modelIssue))
+
+		recorder := ValidationIssueRecorder{}
+		require.NoError(t, recorder.Record(
+			modelIssue,
+			WithAttributes(models.Annotations{"recorder": "attribute"}),
+			WithComponent("recorder-component"),
+			WithPath("lines/line-1"),
+		))
+
+		issues, systemErr := ToValidationIssues(recorder.ErrorsOrNil())
+		require.NoError(t, systemErr)
+		require.Equal(t, ValidationIssues{{
+			Severity:  ValidationIssueSeverityWarning,
+			Message:   "model issue",
+			Code:      "model_issue",
+			Component: "recorder-component",
+			Path:      "/lines/line-1",
+			Attributes: models.Annotations{
+				"model":      "attribute",
+				"precedence": "model",
+				"recorder":   "attribute",
+			},
+		}}, issues)
+	})
+
+	t.Run("omits model field descriptor while retaining billing field prefix", func(t *testing.T) {
+		issueWithField := modelIssue.WithPathString("model", "field")
+
+		issues, systemErr := ToValidationIssues(ValidationWithFieldPrefix("billing/line", issueWithField))
+		require.NoError(t, systemErr)
+		require.Len(t, issues, 1)
+		require.Equal(t, "/billing/line", issues[0].Path)
+	})
+}
+
 func TestIsValidationIssueOnly(t *testing.T) {
 	validationErr := NewValidationError("invalid", "invalid")
 	systemErr := errors.New("system error")
