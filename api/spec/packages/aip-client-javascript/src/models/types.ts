@@ -983,6 +983,11 @@ export interface CreditGrantInvoiceReference {
   line?: { id: string }
 }
 
+/** CurrencyCustom reference. */
+export interface CurrencyCustomReference {
+  id: string
+}
+
 /** A cost basis pinned to a custom-currency pair for the subscription. */
 export interface SubscriptionCostBasisPin {
   /** The managed custom currency ID. */
@@ -2445,27 +2450,6 @@ export interface CreditAdjustment {
   labels?: Labels
 }
 
-/** The credit balance by currency. */
-export interface CreditBalance {
-  currency: BillingCurrencyCode
-  /** Immutable managed currency identifier. Present only for custom currencies. */
-  customCurrencyId?: string
-  /**
-   * Credits available after applying currently live charge impacts.
-   *
-   * Always zero for historical balance queries using the `timestamp` parameter
-   * because live charge impacts cannot be reconstructed historically.
-   */
-  live: string
-  /** Credits that have been booked on the ledger as of the balance timestamp. */
-  settled: string
-  /**
-   * Credits that have been granted but are not yet written to the ledger, or are
-   * written to the ledger with a future booked time.
-   */
-  pending: string
-}
-
 /** CreditAdjustment create request. */
 export interface CreateCreditAdjustmentRequest {
   /**
@@ -2502,46 +2486,6 @@ export interface ListCreditTransactionsParamsFilter {
    * transactions.
    */
   featureKey?: StringFieldFilter
-}
-
-/**
- * A credit transaction represents a single credit movement on the customer's
- * balance.
- *
- * Credit transactions are immutable.
- */
-export interface CreditTransaction {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** The date and time the transaction was booked. */
-  bookedAt: Date
-  /** The type of credit transaction. */
-  type: 'funded' | 'consumed' | 'expired' | 'voided'
-  /** Currency of the balance affected by the transaction. */
-  currency: BillingCurrencyCode
-  /** Immutable managed currency identifier. Present only for custom currencies. */
-  customCurrencyId?: string
-  /**
-   * Signed amount of the credit movement. Positive values add balance, negative
-   * values reduce balance.
-   */
-  amount: string
-  /** The available balance before and after the transaction. */
-  availableBalance: { before: string; after: string }
 }
 
 /** Monetary amount in a fiat or custom currency. */
@@ -2884,6 +2828,67 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   invoicingTaxCode?: TaxCodeReference
   /** Default tax code for credit grants. */
   creditGrantTaxCode?: TaxCodeReference
+}
+
+/** The credit balance by currency. */
+export interface CreditBalance {
+  currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
+  /**
+   * Credits available after applying currently live charge impacts.
+   *
+   * Always zero for historical balance queries using the `timestamp` parameter
+   * because live charge impacts cannot be reconstructed historically.
+   */
+  live: string
+  /** Credits that have been booked on the ledger as of the balance timestamp. */
+  settled: string
+  /**
+   * Credits that have been granted but are not yet written to the ledger, or are
+   * written to the ledger with a future booked time.
+   */
+  pending: string
+}
+
+/**
+ * A credit transaction represents a single credit movement on the customer's
+ * balance.
+ *
+ * Credit transactions are immutable.
+ */
+export interface CreditTransaction {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** The date and time the transaction was booked. */
+  bookedAt: Date
+  /** The type of credit transaction. */
+  type: 'funded' | 'consumed' | 'expired' | 'voided'
+  /** Currency of the balance affected by the transaction. */
+  currency: BillingCurrencyCode
+  /** Managed currency reference. Present only for custom currencies. */
+  customCurrency?: CurrencyCustomReference
+  /**
+   * Signed amount of the credit movement. Positive values add balance, negative
+   * values reduce balance.
+   */
+  amount: string
+  /** The available balance before and after the transaction. */
+  availableBalance: { before: string; after: string }
 }
 
 /**
@@ -3777,20 +3782,6 @@ export interface UpsertCustomerBillingDataRequest {
   appData?: AppCustomerData
 }
 
-/** The balances of the credits of a customer. */
-export interface CreditBalances {
-  /** The timestamp of the balance retrieval. */
-  retrievedAt: Date
-  /** The balances by currencies. */
-  balances: CreditBalance[]
-}
-
-/** Cursor paginated response. */
-export interface CreditTransactionPaginatedResponse {
-  data: CreditTransaction[]
-  meta: CursorMeta
-}
-
 /**
  * Flat fee intent fields from the system lifecycle controller shadowed by a manual
  * override.
@@ -4065,6 +4056,20 @@ export interface WorkflowTaxSettings {
    * and `behavior` remains fully supported.
    */
   defaultTaxConfig?: TaxConfig
+}
+
+/** The balances of the credits of a customer. */
+export interface CreditBalances {
+  /** The timestamp of the balance retrieval. */
+  retrievedAt: Date
+  /** The balances by currencies. */
+  balances: CreditBalance[]
+}
+
+/** Cursor paginated response. */
+export interface CreditTransactionPaginatedResponse {
+  data: CreditTransaction[]
+  meta: CursorMeta
 }
 
 /** Page paginated response. */

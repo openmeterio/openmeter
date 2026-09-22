@@ -40,7 +40,7 @@ func TestToAPICreditBalanceCustomCurrencyIdentity(t *testing.T) {
 	})
 
 	require.Equal(t, api.BillingCurrencyCode("CREDITS"), result.Currency)
-	require.Equal(t, lo.ToPtr(currency.ID), result.CustomCurrencyId)
+	require.Equal(t, &api.CurrencyCustomReference{Id: currency.ID}, result.CustomCurrency)
 	require.Equal(t, api.Numeric("10"), result.Settled)
 	require.Equal(t, api.Numeric("8"), result.Live)
 	require.Equal(t, api.Numeric("2"), result.Pending)
@@ -50,7 +50,7 @@ func TestToAPICreditBalanceFiatOmitsCustomCurrencyIdentity(t *testing.T) {
 	result := toAPICreditBalance(currenciestestutils.NewFiatCurrency(t, "USD").Reference(), staticCreditBalance{})
 
 	require.Equal(t, api.BillingCurrencyCode("USD"), result.Currency)
-	require.Nil(t, result.CustomCurrencyId)
+	require.Nil(t, result.CustomCurrency)
 }
 
 func TestToAPIBillingCreditGrantPromotional(t *testing.T) {

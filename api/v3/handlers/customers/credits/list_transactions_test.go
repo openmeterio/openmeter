@@ -65,7 +65,7 @@ func TestToAPIBillingCreditTransaction(t *testing.T) {
 	require.Equal(t, api.Numeric("-10"), tx.Amount)
 	require.Equal(t, api.Numeric("52"), tx.AvailableBalance.Before)
 	require.Equal(t, api.Numeric("42"), tx.AvailableBalance.After)
-	require.Nil(t, tx.CustomCurrencyId)
+	require.Nil(t, tx.CustomCurrency)
 	require.NotNil(t, tx.Description)
 	require.Equal(t, description, *tx.Description)
 	require.NotNil(t, tx.Labels)
@@ -124,7 +124,7 @@ func TestToAPIBillingCreditTransactionCustomCurrencyIdentity(t *testing.T) {
 	})
 
 	require.Equal(t, api.BillingCurrencyCode("CREDITS"), tx.Currency)
-	require.Equal(t, &currencyID, tx.CustomCurrencyId)
+	require.Equal(t, &api.CurrencyCustomReference{Id: currencyID}, tx.CustomCurrency)
 }
 
 func TestCreditTransactionCursorConversion(t *testing.T) {

@@ -162,6 +162,52 @@ func TestV3CustomerCreditTransactionBalancesAcrossCurrencies(t *testing.T) {
 	}, byCurrency)
 }
 
+func TestV3CustomerCreditCustomCurrencyReference(t *testing.T) {
+	c := newV3Client(t)
+	prefix := uniqueKey("credit_custom_currency_reference")
+
+	// given:
+	// - a customer receives promotional credits in a managed custom currency
+	customCurrency := createCustomCurrency(t, c, uniqueCustomCurrencyCode("cc"))
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:      prefix + "_customer",
+		Name:     "Custom Currency Credit Customer " + prefix,
+		Currency: lo.ToPtr("USD"),
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, customer)
+
+	_, err = c.Customers.Credits.Grants.Create(t.Context(), customer.ID, v3sdk.CreateCreditGrantRequest{
+		Name:          "Custom currency promotional credits " + prefix,
+		Amount:        "10",
+		Currency:      v3sdk.BillingCurrencyCode(customCurrency.Code),
+		FundingMethod: v3sdk.CreditFundingMethodNone,
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	// when:
+	// - the balance and transaction history are read through the generated SDK
+	balances, err := c.Customers.Credits.Balance.Get(t.Context(), customer.ID, v3sdk.GetCustomerCreditBalanceParams{})
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, balances)
+	require.Len(t, balances.Balances, 1)
+
+	transactions, err := c.Customers.Credits.Transactions.List(t.Context(), customer.ID, v3sdk.CreditTransactionListParams{})
+	c.requireStatus(http.StatusOK, err)
+	require.NotNil(t, transactions)
+	require.Len(t, transactions.Data, 1)
+
+	// then:
+	// - both response models carry the custom currency as a nested resource reference
+	assert.Equal(t, v3sdk.BillingCurrencyCode(customCurrency.Code), balances.Balances[0].Currency)
+	require.NotNil(t, balances.Balances[0].CustomCurrency)
+	assert.Equal(t, customCurrency.ID, balances.Balances[0].CustomCurrency.ID)
+
+	assert.Equal(t, v3sdk.BillingCurrencyCode(customCurrency.Code), transactions.Data[0].Currency)
+	require.NotNil(t, transactions.Data[0].CustomCurrency)
+	assert.Equal(t, customCurrency.ID, transactions.Data[0].CustomCurrency.ID)
+}
+
 // TestV3CreateCreditGrantMissingTaxCode verifies the documented contract for
 // create-credit-grant: referencing a tax code that does not exist is rejected
 // with HTTP 400 (a validation error), not a 412/500. The OpenAPI spec documents

@@ -512,7 +512,7 @@ func toAPICreditBalance(currency currencies.CurrencyReference, balance customerb
 		Pending:  balance.Pending().String(),
 	}
 	if currency.CustomCurrencyID != nil {
-		result.CustomCurrencyId = currency.CustomCurrencyID
+		result.CustomCurrency = &api.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
 	}
 
 	return result
@@ -570,7 +570,7 @@ func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.Bil
 		},
 	}
 	if currency.CustomCurrencyID != nil {
-		apiTx.CustomCurrencyId = currency.CustomCurrencyID
+		apiTx.CustomCurrency = &api.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
 	}
 
 	labels := creditTransactionLabels(tx.Annotations)

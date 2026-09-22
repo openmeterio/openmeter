@@ -7068,10 +7068,10 @@ components:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Currency of the balance affected by the transaction.
           readOnly: true
-        custom_currency_id:
+        custom_currency:
           allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: Immutable managed currency identifier. Present only for custom currencies.
+            - $ref: '#/components/schemas/CurrencyCustomReference'
+          description: Managed currency reference. Present only for custom currencies.
           readOnly: true
         amount:
           allOf:
@@ -12770,10 +12770,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           readOnly: true
-        custom_currency_id:
+        custom_currency:
           allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: Immutable managed currency identifier. Present only for custom currencies.
+            - $ref: '#/components/schemas/CurrencyCustomReference'
+          description: Managed currency reference. Present only for custom currencies.
           readOnly: true
         live:
           allOf:
@@ -12840,6 +12840,15 @@ components:
         currency code. Custom three-letter currency codes are also supported for
         convenience.
       example: USD
+    CurrencyCustomReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: CurrencyCustom reference.
     CurrencyPagePaginatedResponse:
       type: object
       required:
