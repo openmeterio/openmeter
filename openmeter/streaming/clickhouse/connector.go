@@ -298,21 +298,23 @@ func (c *Connector) createEventsTable(ctx context.Context) error {
 		return fmt.Errorf("create events table: %w", err)
 	}
 
+	// Schema metadata, not a table scan: skip add/backfill once store_row_id exists.
+	var storeRowIDColumns uint64
+	if err := c.config.ClickHouse.QueryRow(ctx, table.hasStoreRowIDColumnSQL()).Scan(&storeRowIDColumns); err != nil {
+		return fmt.Errorf("check events table schema: %w", err)
+	}
+
+	if storeRowIDColumns > 0 {
+		return nil
+	}
+
 	if err := c.config.ClickHouse.Exec(ctx, table.addStoreRowIDSQL()); err != nil {
 		return fmt.Errorf("migrate events table: %w", err)
 	}
 
-	// The synchronous backfill mutation is expensive, so only submit it when
-	// rows actually need it instead of on every connector startup.
-	var emptyStoreRowID uint64
-	if err := c.config.ClickHouse.QueryRow(ctx, table.countRowsWithEmptyStoreRowIDSQL()).Scan(&emptyStoreRowID); err != nil {
-		return fmt.Errorf("count events with empty store_row_id: %w", err)
-	}
-
-	if emptyStoreRowID > 0 {
-		if err := c.config.ClickHouse.Exec(ctx, table.backfillStoreRowIDSQL()); err != nil {
-			return fmt.Errorf("backfill events table: %w", err)
-		}
+	// Background mutation: store_row_id is not on the query path.
+	if err := c.config.ClickHouse.Exec(ctx, table.backfillStoreRowIDSQL()); err != nil {
+		return fmt.Errorf("backfill events table: %w", err)
 	}
 
 	return nil

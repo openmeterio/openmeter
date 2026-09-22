@@ -85,30 +85,41 @@ func TestConnectorCreateEventsTable(t *testing.T) {
 		})
 	}
 
-	t.Run("executes migration without backfill when table is fully populated", func(t *testing.T) {
-		mockCH := NewMockClickHouse()
-		mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once()
-		mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once()
-		mockCH.On("QueryRow", mock.Anything, table.countRowsWithEmptyStoreRowIDSQL(), mock.Anything).Return(row(stubRow{value: 0})).Once()
-
-		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
-
-		require.NoError(t, connector.createEventsTable(t.Context()))
-		mockCH.AssertExpectations(t)
-	})
-
-	t.Run("backfills rows with empty store_row_id", func(t *testing.T) {
+	t.Run("skips add and backfill when store_row_id column exists", func(t *testing.T) {
+		// given a table that already has store_row_id
 		mockCH := NewMockClickHouse()
 		mock.InOrder(
 			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), mock.Anything).Return(row(stubRow{value: 1})).Once(),
+		)
+
+		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
+
+		// when createEventsTable runs
+		require.NoError(t, connector.createEventsTable(t.Context()))
+
+		// then it does not ADD COLUMN or backfill
+		mockCH.AssertExpectations(t)
+		mockCH.AssertNotCalled(t, "Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything)
+		mockCH.AssertNotCalled(t, "Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything)
+	})
+
+	t.Run("adds column and backfills when store_row_id is missing", func(t *testing.T) {
+		// given a pre-store_row_id events table
+		mockCH := NewMockClickHouse()
+		mock.InOrder(
+			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), mock.Anything).Return(row(stubRow{value: 0})).Once(),
 			mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
-			mockCH.On("QueryRow", mock.Anything, table.countRowsWithEmptyStoreRowIDSQL(), mock.Anything).Return(row(stubRow{value: 3})).Once(),
 			mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
 		)
 
 		connector := &Connector{config: Config{ClickHouse: mockCH, Database: table.Database, EventsTableName: table.EventsTableName}}
 
+		// when createEventsTable runs
 		require.NoError(t, connector.createEventsTable(t.Context()))
+
+		// then it adds the column and submits a background backfill
 		mockCH.AssertExpectations(t)
 	})
 
@@ -116,8 +127,8 @@ func TestConnectorCreateEventsTable(t *testing.T) {
 		mockCH := NewMockClickHouse()
 		mock.InOrder(
 			mockCH.On("Exec", mock.Anything, table.toSQL(), mock.Anything).Return(nil).Once(),
+			mockCH.On("QueryRow", mock.Anything, table.hasStoreRowIDColumnSQL(), mock.Anything).Return(row(stubRow{value: 0})).Once(),
 			mockCH.On("Exec", mock.Anything, table.addStoreRowIDSQL(), mock.Anything).Return(nil).Once(),
-			mockCH.On("QueryRow", mock.Anything, table.countRowsWithEmptyStoreRowIDSQL(), mock.Anything).Return(row(stubRow{value: 3})).Once(),
 			mockCH.On("Exec", mock.Anything, table.backfillStoreRowIDSQL(), mock.Anything).Return(errors.New("backfill failed")).Once(),
 		)
 
