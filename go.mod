@@ -42,7 +42,7 @@ require (
 	github.com/govalues/decimal v0.1.36
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.43.0
-	github.com/invopop/gobl v0.505.0
+	github.com/invopop/gobl v0.506.0
 	github.com/invopop/yaml v0.3.1
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/json-iterator/go v1.1.12
