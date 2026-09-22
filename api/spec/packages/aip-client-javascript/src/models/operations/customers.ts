@@ -190,6 +190,12 @@ export type ResetCustomerEntitlementUsageRequest = AcceptDateStrings<{
 }>
 export type ResetCustomerEntitlementUsageResponse = void
 
+export type DeleteCustomerEntitlementRequest = {
+  customerId: string
+  entitlementId: string
+}
+export type DeleteCustomerEntitlementResponse = void
+
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string
   body: CreateCreditGrantRequestInput

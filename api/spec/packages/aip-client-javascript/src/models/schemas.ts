@@ -7699,6 +7699,11 @@ export const resetCustomerEntitlementUsagePathParams = z.object({
 export const resetCustomerEntitlementUsageBody =
   resetCustomerEntitlementUsageRequest
 
+export const deleteCustomerEntitlementPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -16255,6 +16260,11 @@ export const resetCustomerEntitlementUsagePathParamsWire = z.object({
 
 export const resetCustomerEntitlementUsageBodyWire =
   resetCustomerEntitlementUsageRequestWire
+
+export const deleteCustomerEntitlementPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,
