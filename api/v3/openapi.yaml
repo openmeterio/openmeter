@@ -409,9 +409,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/apps/{appId}:
     get:
       operationId: get-app
@@ -3457,6 +3454,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateSubscriptionAddonRequest'
+      x-internal: true
       x-unstable: true
     get:
       operationId: list-subscription-addons

@@ -12,10 +12,10 @@ import {
   unscheduleSubscription,
   restoreSubscription,
   migrateSubscription,
+  createSubscriptionAddon,
   updateSubscriptionAddon,
 } from '../funcs/subscriptions.js'
 import {
-  listApps,
   uninstallApp,
   updateApp,
   listAppCatalog,
@@ -57,12 +57,12 @@ import type {
   RestoreSubscriptionResponse,
   MigrateSubscriptionRequest,
   MigrateSubscriptionResponse,
+  CreateSubscriptionAddonRequest,
+  CreateSubscriptionAddonResponse,
   UpdateSubscriptionAddonRequest,
   UpdateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
 import type {
-  ListAppsRequest,
-  ListAppsResponse,
   UninstallAppRequest,
   UninstallAppResponse,
   UpdateAppRequest,
@@ -117,7 +117,6 @@ import type {
   QueryEntitlementAccessResponse,
 } from '../models/operations/entitlementAccess.js'
 import type {
-  App,
   AppCatalogItem,
   Charge,
   CostBasis,
@@ -344,6 +343,20 @@ export class InternalSubscriptions {
   }
 
   /**
+   * Create a new subscription add-on
+   *
+   * Add add-on to a subscription.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/addons
+   */
+  async createAddon(
+    request: CreateSubscriptionAddonRequest,
+    options?: RequestOptions,
+  ): Promise<CreateSubscriptionAddonResponse> {
+    return unwrap(await createSubscriptionAddon(this._client, request, options))
+  }
+
+  /**
    * Update subscription addon
    *
    * Update a subscription add-on. Only the quantity is mutable; the timing controls
@@ -362,40 +375,6 @@ export class InternalSubscriptions {
 
 export class InternalApps {
   constructor(private readonly _client: Client) {}
-
-  /**
-   * List apps
-   *
-   * List installed apps.
-   *
-   * GET /openmeter/apps
-   */
-  async list(
-    request?: ListAppsRequest,
-    options?: RequestOptions,
-  ): Promise<ListAppsResponse> {
-    return unwrap(await listApps(this._client, request, options))
-  }
-
-  /**
-   * List apps
-   *
-   * List installed apps.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/apps
-   */
-  listAll(
-    request?: ListAppsRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<App> {
-    return paginatePages(
-      (req, opts) => listApps(this._client, req, opts),
-      request ?? {},
-      options,
-    )
-  }
 
   /**
    * Uninstall app

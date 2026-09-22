@@ -37,9 +37,6 @@ interface AppsOperations {
   @get
   @operationId("list-apps")
   @summary("List apps")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   list(
     ...Common.PagePaginationQuery,
 

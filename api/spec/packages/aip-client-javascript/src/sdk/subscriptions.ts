@@ -11,7 +11,6 @@ import {
   unscheduleCancelation,
   changeSubscription,
   editSubscription,
-  createSubscriptionAddon,
   listSubscriptionAddons,
   getSubscriptionAddon,
 } from '../funcs/subscriptions.js'
@@ -30,8 +29,6 @@ import type {
   ChangeSubscriptionResponse,
   EditSubscriptionRequest,
   EditSubscriptionResponse,
-  CreateSubscriptionAddonRequest,
-  CreateSubscriptionAddonResponse,
   ListSubscriptionAddonsRequest,
   ListSubscriptionAddonsResponse,
   GetSubscriptionAddonRequest,
@@ -155,20 +152,6 @@ export class Subscriptions {
     options?: RequestOptions,
   ): Promise<EditSubscriptionResponse> {
     return unwrap(await editSubscription(this._client, request, options))
-  }
-
-  /**
-   * Create a new subscription add-on
-   *
-   * Add add-on to a subscription.
-   *
-   * POST /openmeter/subscriptions/{subscriptionId}/addons
-   */
-  async createAddon(
-    request: CreateSubscriptionAddonRequest,
-    options?: RequestOptions,
-  ): Promise<CreateSubscriptionAddonResponse> {
-    return unwrap(await createSubscriptionAddon(this._client, request, options))
   }
 
   /**
