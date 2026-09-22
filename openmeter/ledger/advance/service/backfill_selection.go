@@ -10,7 +10,9 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 )
 
@@ -36,11 +38,11 @@ func (s *service) selectBackfill(ctx context.Context, input advance.BackfillInpu
 		return backfillSelection{}, err
 	}
 
-	receivableBuckets := newAdvanceReceivableBuckets(advanceReceivables, input.Features)
+	receivableBuckets := newAdvanceReceivableBuckets(advanceReceivables, input.Filters)
 
 	plan := backfillSelection{}
 	remaining := input.Amount
-	candidates := advanceBackfillCandidates(input.LegacyLineages, unattributedAccrued, input.Features)
+	candidates := advanceBackfillCandidates(input.LegacyLineages, unattributedAccrued, input.Filters)
 
 	for _, candidate := range candidates {
 		if !remaining.IsPositive() {
@@ -55,7 +57,7 @@ func (s *service) selectBackfill(ctx context.Context, input advance.BackfillInpu
 
 		if candidate.legacy != nil {
 			root := *candidate.legacy
-			receivableBuckets.requiredFeatures = root.AdvanceFeatures
+			receivableBuckets.requiredFilters = crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: root.AdvanceFeatures}
 
 			spendKey, accruedBuckets, err = s.accruedBucketsForAdvance(ctx, input.CustomerID.Namespace, root, unattributedAccrued)
 			if err != nil {
@@ -82,7 +84,7 @@ func (s *service) selectBackfill(ctx context.Context, input advance.BackfillInpu
 				continue
 			}
 
-			receivableBuckets.requiredFeatures = balances[0].address.Route().Route().Features
+			receivableBuckets.requiredFilters = balances[0].address.Route().Route().Filters
 			selections = []legacylineage.AdvanceBackfillAllocation{{Amount: remaining}}
 		}
 
@@ -151,10 +153,13 @@ type advanceBackfillCandidate struct {
 	legacy     *legacylineage.Lineage
 }
 
-func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattributedAccruedBalance, features []string) []advanceBackfillCandidate {
+func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattributedAccruedBalance, filters crediteligibility.Filters) []advanceBackfillCandidate {
 	var candidates []advanceBackfillCandidate
 
-	for _, root := range sortedAdvanceBackfillLineages(legacylineage.FilterAdvanceLineagesForBackfill(roots, features)) {
+	for _, root := range sortedAdvanceBackfillLineages(roots) {
+		if !filters.Matches(ledger.Route{Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: root.AdvanceFeatures}}) {
+			continue
+		}
 		candidates = append(candidates, advanceBackfillCandidate{
 			recordedAt: root.CreatedAt,
 			id:         root.ID,

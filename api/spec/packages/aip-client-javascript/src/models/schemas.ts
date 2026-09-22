@@ -587,11 +587,81 @@ export const taxBehavior = z
     'Tax behavior. This enum is used to specify whether tax is included in the price or excluded from the price.',
   )
 
+export const createVersionFilter = z
+  .object({
+    eq: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this exact version.'),
+    in: z
+      .array(z.number().int().gte(-2147483648).lte(2147483647))
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Match one of these versions.'),
+    gte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and later versions.'),
+    lte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and earlier versions.'),
+  })
+
+  .describe(
+    'An integer version comparison. Exactly one operator must be provided.',
+  )
+
 export const creditPurchasePaymentSettlementStatus = z
   .enum(['pending', 'authorized', 'settled'])
 
   .describe(
     'Credit purchase payment settlement status. - `pending`: Payment has been initiated and is not yet authorized. - `authorized`: Payment has been authorized. - `settled`: Payment has been settled.',
+  )
+
+export const versionFilter = z
+  .object({
+    eq: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this exact version.'),
+    in: z
+      .array(z.number().int().gte(-2147483648).lte(2147483647))
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Match one of these versions.'),
+    gte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and later versions.'),
+    lte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and earlier versions.'),
+  })
+
+  .describe(
+    'An integer version comparison. Exactly one operator must be provided.',
   )
 
 export const creditGrantStatus = z
@@ -2688,30 +2758,6 @@ export const notImplemented = baseError.describe('Not Implemented.')
 
 export const notAvailable = baseError.describe('Not Available.')
 
-export const createCreditGrantFilters = z
-  .object({
-    features: z
-      .array(resourceKey)
-      .optional()
-
-      .describe(
-        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
-      ),
-  })
-  .describe('Filters for the credit grant.')
-
-export const creditGrantFilters = z
-  .object({
-    features: z
-      .array(resourceKey)
-      .optional()
-
-      .describe(
-        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
-      ),
-  })
-  .describe('Filters for the credit grant.')
-
 export const subscriptionPlanReference = z
   .object({
     id: ulid,
@@ -3204,6 +3250,16 @@ export const listPlansParamsFilter = z
   })
   .describe('Filter options for listing plans.')
 
+export const createCreditGrantPlanFilter = z
+  .object({
+    key: resourceKey,
+    version: createVersionFilter.optional(),
+  })
+
+  .describe(
+    'A plan key and an optional version constraint for matching credit grants.',
+  )
+
 export const updateCreditGrantExternalSettlementRequest = z
   .object({
     status: creditPurchasePaymentSettlementStatus,
@@ -3211,6 +3267,16 @@ export const updateCreditGrantExternalSettlementRequest = z
 
   .describe(
     'Request body for updating the external payment settlement status of a credit grant.',
+  )
+
+export const creditGrantPlanFilter = z
+  .object({
+    key: resourceKey,
+    version: versionFilter.optional(),
+  })
+
+  .describe(
+    'A plan key and an optional version constraint for matching credit grants.',
   )
 
 export const listCreditGrantsParamsFilter = z
@@ -4706,6 +4772,44 @@ export const subscriptionEditAddPhase = z
   .describe(
     'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
   )
+
+export const createCreditGrantFilters = z
+  .object({
+    features: z
+      .array(resourceKey)
+      .optional()
+
+      .describe(
+        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
+      ),
+    plans: z
+      .array(createCreditGrantPlanFilter)
+      .optional()
+
+      .describe(
+        'Limit credits to charges from these plans. Entries are alternatives; when features are also specified, both dimensions must match. Omission or an empty list leaves plans unrestricted.',
+      ),
+  })
+  .describe('Filters for the credit grant.')
+
+export const creditGrantFilters = z
+  .object({
+    features: z
+      .array(resourceKey)
+      .optional()
+
+      .describe(
+        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
+      ),
+    plans: z
+      .array(creditGrantPlanFilter)
+      .optional()
+
+      .describe(
+        'Limit credits to charges from these plans. Entries are alternatives; when features are also specified, both dimensions must match. Omission or an empty list leaves plans unrestricted.',
+      ),
+  })
+  .describe('Filters for the credit grant.')
 
 export const subscriptionBase = z
   .object({
@@ -9042,11 +9146,81 @@ export const taxBehaviorWire = z
     'Tax behavior. This enum is used to specify whether tax is included in the price or excluded from the price.',
   )
 
+export const createVersionFilterWire = z
+  .strictObject({
+    eq: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this exact version.'),
+    in: z
+      .array(z.number().int().gte(-2147483648).lte(2147483647))
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Match one of these versions.'),
+    gte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and later versions.'),
+    lte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and earlier versions.'),
+  })
+
+  .describe(
+    'An integer version comparison. Exactly one operator must be provided.',
+  )
+
 export const creditPurchasePaymentSettlementStatusWire = z
   .enum(['pending', 'authorized', 'settled'])
 
   .describe(
     'Credit purchase payment settlement status. - `pending`: Payment has been initiated and is not yet authorized. - `authorized`: Payment has been authorized. - `settled`: Payment has been settled.',
+  )
+
+export const versionFilterWire = z
+  .strictObject({
+    eq: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this exact version.'),
+    in: z
+      .array(z.number().int().gte(-2147483648).lte(2147483647))
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Match one of these versions.'),
+    gte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and later versions.'),
+    lte: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(2147483647)
+      .optional()
+      .describe('Match this version and earlier versions.'),
+  })
+
+  .describe(
+    'An integer version comparison. Exactly one operator must be provided.',
   )
 
 export const creditGrantStatusWire = z
@@ -11136,30 +11310,6 @@ export const notImplementedWire = baseErrorWire.describe('Not Implemented.')
 
 export const notAvailableWire = baseErrorWire.describe('Not Available.')
 
-export const createCreditGrantFiltersWire = z
-  .strictObject({
-    features: z
-      .array(resourceKeyWire)
-      .optional()
-
-      .describe(
-        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
-      ),
-  })
-  .describe('Filters for the credit grant.')
-
-export const creditGrantFiltersWire = z
-  .strictObject({
-    features: z
-      .array(resourceKeyWire)
-      .optional()
-
-      .describe(
-        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
-      ),
-  })
-  .describe('Filters for the credit grant.')
-
 export const subscriptionPlanReferenceWire = z
   .strictObject({
     id: ulidWire,
@@ -11645,6 +11795,16 @@ export const listPlansParamsFilterWire = z
   })
   .describe('Filter options for listing plans.')
 
+export const createCreditGrantPlanFilterWire = z
+  .strictObject({
+    key: resourceKeyWire,
+    version: createVersionFilterWire.optional(),
+  })
+
+  .describe(
+    'A plan key and an optional version constraint for matching credit grants.',
+  )
+
 export const updateCreditGrantExternalSettlementRequestWire = z
   .strictObject({
     status: creditPurchasePaymentSettlementStatusWire,
@@ -11652,6 +11812,16 @@ export const updateCreditGrantExternalSettlementRequestWire = z
 
   .describe(
     'Request body for updating the external payment settlement status of a credit grant.',
+  )
+
+export const creditGrantPlanFilterWire = z
+  .strictObject({
+    key: resourceKeyWire,
+    version: versionFilterWire.optional(),
+  })
+
+  .describe(
+    'A plan key and an optional version constraint for matching credit grants.',
   )
 
 export const listCreditGrantsParamsFilterWire = z
@@ -13136,6 +13306,44 @@ export const subscriptionEditAddPhaseWire = z
   .describe(
     'Add a new phase to the subscription. The phase is created without items; use add-item operations to populate it.',
   )
+
+export const createCreditGrantFiltersWire = z
+  .strictObject({
+    features: z
+      .array(resourceKeyWire)
+      .optional()
+
+      .describe(
+        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
+      ),
+    plans: z
+      .array(createCreditGrantPlanFilterWire)
+      .optional()
+
+      .describe(
+        'Limit credits to charges from these plans. Entries are alternatives; when features are also specified, both dimensions must match. Omission or an empty list leaves plans unrestricted.',
+      ),
+  })
+  .describe('Filters for the credit grant.')
+
+export const creditGrantFiltersWire = z
+  .strictObject({
+    features: z
+      .array(resourceKeyWire)
+      .optional()
+
+      .describe(
+        'Limit the credit grant to specific features. If no features are specified, the credit grant can be used for any feature.',
+      ),
+    plans: z
+      .array(creditGrantPlanFilterWire)
+      .optional()
+
+      .describe(
+        'Limit credits to charges from these plans. Entries are alternatives; when features are also specified, both dimensions must match. Omission or an empty list leaves plans unrestricted.',
+      ),
+  })
+  .describe('Filters for the credit grant.')
 
 export const subscriptionBaseWire = z
   .strictObject({

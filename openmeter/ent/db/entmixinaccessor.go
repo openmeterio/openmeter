@@ -1044,6 +1044,10 @@ func (e *ChargeCreditPurchase) GetManagedBy() billing.InvoiceLineManagedBy {
 	return e.ManagedBy
 }
 
+func (e *ChargeCreditPurchase) GetSubscriptionPlan() *meta.SubscriptionPlan {
+	return e.SubscriptionPlan
+}
+
 func (e *ChargeCreditPurchase) GetSubscriptionID() *string {
 	return e.SubscriptionID
 }
@@ -1346,6 +1350,10 @@ func (e *ChargeFlatFee) GetCustomCurrencyID() *string {
 
 func (e *ChargeFlatFee) GetManagedBy() billing.InvoiceLineManagedBy {
 	return e.ManagedBy
+}
+
+func (e *ChargeFlatFee) GetSubscriptionPlan() *meta.SubscriptionPlan {
+	return e.SubscriptionPlan
 }
 
 func (e *ChargeFlatFee) GetSubscriptionID() *string {
@@ -1930,6 +1938,10 @@ func (e *ChargeUsageBased) GetCustomCurrencyID() *string {
 
 func (e *ChargeUsageBased) GetManagedBy() billing.InvoiceLineManagedBy {
 	return e.ManagedBy
+}
+
+func (e *ChargeUsageBased) GetSubscriptionPlan() *meta.SubscriptionPlan {
+	return e.SubscriptionPlan
 }
 
 func (e *ChargeUsageBased) GetSubscriptionID() *string {

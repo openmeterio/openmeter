@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -45,6 +46,9 @@ type SubAccount interface {
 
 // RouteFilter is the set of route fields that can be used to filter sub-accounts and query balances.
 type RouteFilter struct {
+	// CreditFilters pins the complete restriction set, including unrestricted
+	// dimensions. Features and MatchFeature remain feature-scoped query views.
+	CreditFilters     mo.Option[crediteligibility.Filters]
 	Currency          currencies.CurrencyReference
 	CostBasisCurrency mo.Option[*currencyx.Code]
 

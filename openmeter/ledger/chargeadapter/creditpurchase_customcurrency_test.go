@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -292,7 +293,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_FeatureFilteredNoAdvance(t *te
 	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}.Normalize()
 
 	charge := env.newExternalChargeCustomCurrency(t, customCurrencyValue, alpacadecimal.NewFromInt(100), costBasis, settlementCurrency)
-	charge.Intent.FeatureFilters = featureFilters
+	charge.Intent.Filters.Features = featureFilters
 
 	ref, err := env.grantCredits(t, charge)
 	require.NoError(t, err)
@@ -368,12 +369,12 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_BackfillsOnlyMatchingFeatureAd
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := mustDecimal(t, "0.5")
 
-	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(40), Features: []string{"api-calls"}})
-	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(30), Features: []string{"storage"}})
+	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(40), Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}}})
+	env.createAdvance(t, advanceExposureInput{Currency: customCurrencyValue, Amount: alpacadecimal.NewFromInt(30), Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"storage"}}})
 
 	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}
 	charge := env.newExternalChargeCustomCurrency(t, customCurrencyValue, alpacadecimal.NewFromInt(100), costBasis, settlementCurrency)
-	charge.Intent.FeatureFilters = featureFilters
+	charge.Intent.Filters.Features = featureFilters
 
 	ref, err := env.grantCredits(t, charge)
 	require.NoError(t, err)
@@ -469,7 +470,7 @@ func (e *creditPurchaseHandlerTestEnv) customFBOSubAccountWithFeatures(t *testin
 		Currency:          customCurrency,
 		CostBasisCurrency: costBasisCurrency,
 		CostBasis:         costBasis,
-		Features:          features,
+		Filters:           crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 		CreditPriority:    ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
@@ -484,7 +485,7 @@ func (e *creditPurchaseHandlerTestEnv) customReceivableSubAccountWithFeatures(t 
 		Currency:                       customCurrency,
 		CostBasisCurrency:              costBasisCurrency,
 		CostBasis:                      costBasis,
-		Features:                       features,
+		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)
@@ -529,6 +530,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1},
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "External Credit Purchase (custom currency)",
 						ServicePeriod:     servicePeriod,
@@ -631,7 +633,7 @@ func (e *creditPurchaseHandlerTestEnv) fiatOpenReceivableSubAccount(t *testing.T
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       currencies.NewCurrencyReference(currency),
 		CostBasis:                      &costBasis,
-		Features:                       features,
+		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)
@@ -645,7 +647,7 @@ func (e *creditPurchaseHandlerTestEnv) fiatAuthorizedReceivableSubAccount(t *tes
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       currencies.NewCurrencyReference(currency),
 		CostBasis:                      &costBasis,
-		Features:                       features,
+		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
 	require.NoError(t, err)

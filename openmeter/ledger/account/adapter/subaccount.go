@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -15,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -96,8 +94,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetNillableCostBasisCurrency(normalizedRoute.CostBasisCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
-		SetFilters(lo.ToPtr(crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: normalizedRoute.Features})).
-		SetFeatures(pq.StringArray(normalizedRoute.Features)).
+		SetFilters(lo.ToPtr(normalizedRoute.Filters)).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).
 		SetNillableTransactionAuthorizationStatus(normalizedRoute.TransactionAuthorizationStatus)
@@ -202,6 +199,9 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCodeIsNil())
 			}
 		}
+		if exact, ok := normalizedRoute.CreditFilters.Get(); ok {
+			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
+		}
 		if features, ok := normalizedRoute.Features.Get(); ok {
 			routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 		}
@@ -280,7 +280,7 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 			CostBasisCurrency:              dbRoute.CostBasisCurrency,
 			TaxCode:                        dbRoute.TaxCode,
 			TaxBehavior:                    dbRoute.TaxBehavior,
-			Features:                       dbRoute.Filters.Features,
+			Filters:                        *dbRoute.Filters,
 			CostBasis:                      dbRoute.CostBasis,
 			CreditPriority:                 dbRoute.CreditPriority,
 			TransactionAuthorizationStatus: dbRoute.TransactionAuthorizationStatus,

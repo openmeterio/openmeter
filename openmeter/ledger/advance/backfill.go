@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -26,7 +27,7 @@ type BackfillInput struct {
 	SourceChargeID    string
 	CostBasis         alpacadecimal.Decimal
 	CostBasisCurrency *currencyx.Code
-	Features          []string
+	Filters           crediteligibility.Filters
 	LegacyLineages    []legacylineage.Lineage
 }
 
@@ -61,6 +62,11 @@ func (i BackfillInput) Validate() error {
 		errs = append(errs, fmt.Errorf("cost basis currency: %w", err))
 	}
 
+	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
+		if err := i.Filters.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filters: %w", err))
+		}
+	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

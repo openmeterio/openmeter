@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -32,7 +33,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
-		Features:                       []string{"feature-a", "feature-b"},
+		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"feature-a", "feature-b"}},
 		CostBasis:                      &costBasis,
 		CreditPriority:                 &priority,
 		TransactionAuthorizationStatus: &authStatus,

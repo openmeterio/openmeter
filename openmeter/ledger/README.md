@@ -134,7 +134,9 @@ result is a transaction view, not necessarily a complete balanced transaction.
 
 ## Route invariants
 
-Routes carry currency, feature restrictions, cost basis, credit
+[Credit filters](crediteligibility/README.md) define shared matching and plan attribution.
+
+Routes carry currency, credit filters (features and plans), cost basis, credit
 priority, receivable authorization status, tax code, and tax behavior. These
 are accounting identity, not optional metadata. Dropping a populated dimension
 during translation or filtering can merge economically distinct balances while
@@ -145,7 +147,7 @@ leaving each transaction locally balanced.
 - `Route.Filter()` pins present values, including explicit nil values.
   `RouteFilter` absence means "do not filter"; it differs from filtering for a
   nil route dimension.
-- Feature dimensions belong only on FBO and receivable routes. Tax dimensions
+- Credit filter dimensions belong only on FBO and receivable routes. Tax dimensions
   belong only on accrued and earnings routes; FBO sources acquire the charge's
   tax attribution when value moves into accrued.
 - Currency and cost-basis attribution survive the relevant FBO, receivable,

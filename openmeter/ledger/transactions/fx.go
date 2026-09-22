@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -24,7 +25,7 @@ type ConvertCurrencyTemplate struct {
 
 	SourceCurrency currencies.CurrencyReference
 	TargetCurrency currencies.CurrencyReference
-	Features       []string
+	Filters        crediteligibility.Filters
 	SourceChargeID *string
 	SpendChargeID  *string
 }
@@ -191,7 +192,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	sourceAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.SourceCurrency,
 		CostBasis:                      &costBasis,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
@@ -202,7 +203,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 		Currency:                       t.TargetCurrency,
 		CostBasisCurrency:              &targetCostBasisCurrency,
 		CostBasis:                      &costBasis,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -119,7 +120,7 @@ func (s *service) reissueBackfilledCredit(ctx context.Context, input advance.Leg
 			Currency:          route.currency,
 			CostBasisCurrency: route.costBasisCurrency,
 			CostBasis:         route.costBasis,
-			Features:          route.features,
+			Filters:           route.filters,
 			CreditPriority:    route.creditPriority,
 			SourceChargeID:    route.sourceChargeID,
 		},
@@ -214,7 +215,7 @@ type backfilledCreditReissueRouteResult struct {
 	costBasisCurrency *currencyx.Code
 	costBasis         *alpacadecimal.Decimal
 	creditPriority    *int
-	features          []string
+	filters           crediteligibility.Filters
 	sourceChargeID    *string
 }
 
@@ -227,7 +228,7 @@ func (s *service) backfilledCreditReissueRoute(group ledger.TransactionGroup) (b
 	var fallbackCurrency currencies.CurrencyReference
 	var fallbackCostBasisCurrency *currencyx.Code
 	var fallbackCostBasis *alpacadecimal.Decimal
-	var fallbackFeatures []string
+	var fallbackFilters crediteligibility.Filters
 	var sourceChargeID *string
 
 	for _, transaction := range group.Transactions() {
@@ -247,7 +248,7 @@ func (s *service) backfilledCreditReissueRoute(group ledger.TransactionGroup) (b
 					costBasisCurrency: route.CostBasisCurrency,
 					costBasis:         route.CostBasis,
 					creditPriority:    route.CreditPriority,
-					features:          route.Features,
+					filters:           route.Filters,
 					sourceChargeID:    sourceChargeID,
 				}, nil
 			}
@@ -256,7 +257,7 @@ func (s *service) backfilledCreditReissueRoute(group ledger.TransactionGroup) (b
 				fallbackCurrency = route.Currency
 				fallbackCostBasisCurrency = route.CostBasisCurrency
 				fallbackCostBasis = route.CostBasis
-				fallbackFeatures = route.Features
+				fallbackFilters = route.Filters
 			}
 		}
 	}
@@ -266,7 +267,7 @@ func (s *service) backfilledCreditReissueRoute(group ledger.TransactionGroup) (b
 			currency:          fallbackCurrency,
 			costBasisCurrency: fallbackCostBasisCurrency,
 			costBasis:         fallbackCostBasis,
-			features:          fallbackFeatures,
+			filters:           fallbackFilters,
 			sourceChargeID:    sourceChargeID,
 		}, nil
 	}

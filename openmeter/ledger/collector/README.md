@@ -35,7 +35,7 @@ FBO collection order is:
 
 ```text
 credit_priority asc
-feature-restricted before unrestricted
+filter-restricted before unrestricted
 expires_at asc
 stable cursor asc
 ```
@@ -98,7 +98,7 @@ Source C is untouched because all lower-priority expiring credit was consumed fi
 Custom-currency `credit_then_invoice` creates its gross fiat receivable before
 asking the collector to cover part of it with eligible settlement-fiat FBO
 credit. This path is not a general receivable settlement mechanism. It uses the
-same priority, expiry, feature, and breakage-release rules as accrued
+same priority, expiry, credit-filter matching, and breakage-release rules as accrued
 collection, but it never creates advance for an uncovered remainder.
 
 Example:
@@ -238,3 +238,6 @@ ledger entries without breakage records
 breakage records without ledger entries
 billing allocations pointing at incomplete ledger work
 ```
+
+Credit sources match the charge route using [shared credit filters](../crediteligibility/README.md).
+Corrections preserve the original routes and collection provenance.

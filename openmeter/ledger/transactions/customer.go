@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -14,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -26,7 +26,7 @@ type IssueCustomerReceivableTemplate struct {
 	CostBasisCurrency  *currencyx.Code
 	TaxCode            *string
 	CostBasis          *alpacadecimal.Decimal
-	Features           []string
+	Filters            crediteligibility.Filters
 	SourceChargeID     *string
 	SpendChargeID      *string
 	CollectionOriginID *string
@@ -153,7 +153,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 		Currency:          t.Currency,
 		CostBasisCurrency: t.CostBasisCurrency,
 		CostBasis:         t.CostBasis,
-		Features:          t.Features,
+		Filters:           t.Filters,
 		CreditPriority:    priority,
 	})
 	if err != nil {
@@ -163,7 +163,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -209,7 +209,7 @@ type SettleCustomerReceivableFromPaymentTemplate struct {
 	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	CostBasis         *alpacadecimal.Decimal
-	Features          []string
+	Filters           crediteligibility.Filters
 	SourceChargeID    *string
 	SpendChargeID     *string
 }
@@ -265,7 +265,7 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -324,7 +324,7 @@ type AuthorizeCustomerReceivablePaymentTemplate struct {
 	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	CostBasis         *alpacadecimal.Decimal
-	Features          []string
+	Filters           crediteligibility.Filters
 	SourceChargeID    *string
 	SpendChargeID     *string
 }
@@ -380,7 +380,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -391,7 +391,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -436,8 +436,8 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	CostBasisCurrency  *currencyx.Code
 	TaxCode            *string
 	CostBasis          *alpacadecimal.Decimal
-	AdvanceFeatures    []string
-	AttributedFeatures []string
+	AdvanceFilters     crediteligibility.Filters
+	AttributedFilters  crediteligibility.Filters
 	SourceChargeID     *string
 	SpendChargeID      *string
 	CollectionOriginID *string
@@ -549,7 +549,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		Features:                       t.AdvanceFeatures,
+		Filters:                        t.AdvanceFilters,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -560,7 +560,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
 		CostBasisCurrency:              t.CostBasisCurrency,
-		Features:                       t.AttributedFeatures,
+		Filters:                        t.AttributedFilters,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -773,7 +773,7 @@ func (t CoverCustomerReceivableTemplate) resolvePreselectedSources(ctx context.C
 			receivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 				Currency:                       sourceRoute.Currency,
 				CostBasisCurrency:              sourceRoute.CostBasisCurrency,
-				Features:                       sourceRoute.Features,
+				Filters:                        sourceRoute.Filters,
 				CostBasis:                      sourceRoute.CostBasis,
 				TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 			})
@@ -826,7 +826,7 @@ func (t CoverCustomerReceivableTemplate) routePairingKey(address ledger.PostingA
 	return routePairingKey{
 		currency:          route.Currency.IdentityKey(),
 		costBasisCurrency: mo.PointerToOption(route.CostBasisCurrency),
-		features:          strings.Join(route.Features, "\x00"),
+		filters:           route.Filters.String(),
 		costBasis:         costBasisKey(route.CostBasis),
 	}
 }

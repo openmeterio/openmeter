@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -109,7 +110,7 @@ type PlanIssuanceInput struct {
 	TaxBehavior       *ledger.TaxBehavior
 	CostBasis         *alpacadecimal.Decimal
 	CreditPriority    *int
-	Features          []string
+	Filters           crediteligibility.Filters
 	ExpiresAt         time.Time
 	SourceChargeID    *string
 }
@@ -704,7 +705,7 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 		CostBasisCurrency: input.CostBasisCurrency,
 		CostBasis:         input.CostBasis,
 		CreditPriority:    resolveCreditPriority(input.CreditPriority),
-		Features:          input.Features,
+		Filters:           input.Filters,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("get FBO sub-account: %w", err)

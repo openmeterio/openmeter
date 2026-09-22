@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector/correction"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -87,7 +88,7 @@ type CollectToAccruedInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencies.CurrencyReference
-	FeatureKey        string
+	Filters           crediteligibility.Filters
 	SettlementMode    productcatalog.SettlementMode
 	ServicePeriod     timeutil.ClosedPeriod
 	Amount            alpacadecimal.Decimal
@@ -105,13 +106,18 @@ type CollectToReceivableInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencies.CurrencyReference
-	FeatureKey        string
+	Filters           crediteligibility.Filters
 	ServicePeriod     timeutil.ClosedPeriod
 	Amount            alpacadecimal.Decimal
 }
 
 func (i CollectToReceivableInput) Validate() error {
 	var errs []error
+	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
+		if err := i.Filters.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filters: %w", err))
+		}
+	}
 
 	if err := (models.NamespacedID{Namespace: i.Namespace, ID: i.ChargeID}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))

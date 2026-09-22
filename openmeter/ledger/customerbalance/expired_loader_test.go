@@ -18,6 +18,7 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -201,7 +202,7 @@ func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
 			CustomerID: env.CustomerID,
 			Amount:     amount,
 			Currency:   env.CurrencyReference(),
-			Features:   spec.features,
+			Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: spec.features},
 			ExpiresAt:  expiresAt,
 		})
 		require.NoError(t, err)
@@ -739,10 +740,10 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 				},
-				CreditAmount:   amount,
-				ExpiresAt:      &expiresAt,
-				FeatureFilters: creditpurchase.FeatureFilters(features),
-				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				CreditAmount: amount,
+				ExpiresAt:    &expiresAt,
+				Filters:      crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters(features)},
+				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 			},
 		},
 	})

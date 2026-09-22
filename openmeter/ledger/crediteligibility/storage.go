@@ -13,6 +13,8 @@ func (f Filters) MarshalJSON() ([]byte, error) {
 	filters := f.Normalize()
 	switch f.Version {
 	case FiltersVersion1:
+		return json.Marshal(filtersV1{Version: filters.Version, Features: filters.Features})
+	case FiltersVersion2:
 		type plain Filters
 		return json.Marshal(plain(filters))
 	default:
@@ -34,6 +36,12 @@ func (f *Filters) UnmarshalJSON(data []byte) error {
 	var filters Filters
 	switch header.SchemaVersion {
 	case FiltersVersion1:
+		var value filtersV1
+		if err := decoder.Decode(&value); err != nil {
+			return err
+		}
+		filters = Filters{Version: value.Version, Features: value.Features}
+	case FiltersVersion2:
 		type plain Filters
 		var value plain
 		if err := decoder.Decode(&value); err != nil {
@@ -48,4 +56,10 @@ func (f *Filters) UnmarshalJSON(data []byte) error {
 	}
 	*f = filters.Normalize()
 	return nil
+}
+
+// filtersV1 keeps the feature-only reader strict when the current format adds plans.
+type filtersV1 struct {
+	Version  FiltersVersion `json:"schema_version"`
+	Features []string       `json:"features,omitempty"`
 }

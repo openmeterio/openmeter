@@ -29,6 +29,7 @@ import (
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -860,7 +861,7 @@ func (e *usageBasedHandlerTestEnv) unknownReceivableSubAccountForFeature(t *test
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.CurrencyReference(),
 		CostBasis:                      nil,
-		Features:                       []string{featureKey},
+		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{featureKey}},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)

@@ -160,7 +160,3 @@ func optionalCurrencyCodeEqual(left *currencyx.Code, right *currencyx.Code) bool
 
 	return *left == *right
 }
-
-func stringSliceEqual(left []string, right []string) bool {
-	return slices.Equal(left, right)
-}

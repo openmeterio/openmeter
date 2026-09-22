@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -20,7 +21,7 @@ type advanceAttribution struct {
 	collectionOriginID *string
 	taxCode            *string
 	taxBehavior        *ledger.TaxBehavior
-	advanceFeatures    []string
+	advanceFilters     crediteligibility.Filters
 	spendChargeID      *string
 	advanceAmount      alpacadecimal.Decimal
 	accruedAmount      alpacadecimal.Decimal
@@ -34,7 +35,7 @@ func (a advanceAttribution) canMergeInto(other advanceAttribution) bool {
 		return false
 	}
 
-	if lo.FromPtr(a.spendChargeID) != lo.FromPtr(other.spendChargeID) || !slices.Equal(a.advanceFeatures, other.advanceFeatures) {
+	if lo.FromPtr(a.spendChargeID) != lo.FromPtr(other.spendChargeID) || !a.advanceFilters.Equal(other.advanceFilters) {
 		return false
 	}
 
@@ -105,7 +106,7 @@ func allocateAccruedBackedAdvanceAttributions(
 				return advanceAttribution{
 					taxCode:            unattributedAccrued[i].taxCode,
 					taxBehavior:        unattributedAccrued[i].taxBehavior,
-					advanceFeatures:    advanceReceivable.address.Route().Route().Features,
+					advanceFilters:     advanceReceivable.address.Route().Route().Filters,
 					spendChargeID:      advanceReceivable.spendChargeID,
 					collectionOriginID: advanceReceivable.collectionOriginID,
 					advanceAmount:      amount,

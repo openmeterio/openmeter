@@ -1,12 +1,11 @@
 package customerbalance
 
 import (
-	"slices"
-
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -87,16 +86,16 @@ func (i Impact) UnboundedAmount() alpacadecimal.Decimal {
 	return i.OutstandingAmount()
 }
 
-func (i Impact) FeatureKey() string {
+func (i Impact) CreditRoute() ledger.Route {
 	switch i.Type() {
 	case meta.ChargeTypeFlatFee:
 		charge, _ := i.AsFlatFeeCharge()
-		return charge.Intent.GetFeatureKey()
+		return ledger.Route{Filters: charge.Intent.GetCreditFilters()}
 	case meta.ChargeTypeUsageBased:
 		charge, _ := i.AsUsageBasedCharge()
-		return charge.Intent.GetFeatureKey()
+		return ledger.Route{Filters: charge.Intent.GetCreditFilters()}
 	default:
-		return ""
+		return ledger.Route{}
 	}
 }
 
@@ -116,7 +115,7 @@ func (chargeLiveBalanceCalculator) CalculateLiveBalanceFromSources(settledBalanc
 
 	for _, impact := range impacts {
 		if boundedAmount := impact.BoundedAmount(); boundedAmount.IsPositive() {
-			liveBalance = liveBalance.Sub(consumeLiveBalanceSources(sources, impact.FeatureKey(), boundedAmount))
+			liveBalance = liveBalance.Sub(consumeLiveBalanceSources(sources, impact.CreditRoute(), boundedAmount))
 		}
 
 		// credit_only can create feature-attributed advance/negative balance, so
@@ -128,12 +127,12 @@ func (chargeLiveBalanceCalculator) CalculateLiveBalanceFromSources(settledBalanc
 	return liveBalance
 }
 
-func consumeLiveBalanceSources(sources []liveBalanceSource, featureKey string, target alpacadecimal.Decimal) alpacadecimal.Decimal {
+func consumeLiveBalanceSources(sources []liveBalanceSource, targetRoute ledger.Route, target alpacadecimal.Decimal) alpacadecimal.Decimal {
 	remaining := target
 	consumed := alpacadecimal.Zero
 
 	for idx := range sources {
-		if !liveBalanceSourceMatchesFeature(sources[idx], featureKey) {
+		if !sources[idx].route.Filters.Matches(targetRoute) {
 			continue
 		}
 
@@ -151,17 +150,6 @@ func consumeLiveBalanceSources(sources []liveBalanceSource, featureKey string, t
 	}
 
 	return consumed
-}
-
-// liveBalanceSourceMatchesFeature is allocability matching, not public balance
-// filter matching. Unrestricted credit sources can cover any charge, but
-// feature-restricted sources can only cover charges for that feature.
-func liveBalanceSourceMatchesFeature(source liveBalanceSource, featureKey string) bool {
-	if len(source.route.Features) == 0 {
-		return true
-	}
-
-	return featureKey != "" && slices.Contains(source.route.Features, featureKey)
 }
 
 func sumImpactAmounts(impacts []Impact) (bounded alpacadecimal.Decimal, unbounded alpacadecimal.Decimal) {

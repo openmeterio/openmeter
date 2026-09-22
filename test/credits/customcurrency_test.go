@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -83,15 +84,15 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 	// - another TOKENS bucket is restricted to a different feature
 	// - POINTS and USD balances are also available but are different currencies
 	matchingCredit := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Currency:       tokens,
-		Amount:         alpacadecimal.NewFromInt(3),
-		At:             setupAt,
-		Name:           "matching TOKENS grant",
-		Priority:       &matchingPriority,
-		FeatureFilters: creditpurchase.FeatureFilters{usageFeature},
-		Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		Namespace:  ns,
+		Customer:   customer.GetID(),
+		Currency:   tokens,
+		Amount:     alpacadecimal.NewFromInt(3),
+		At:         setupAt,
+		Name:       "matching TOKENS grant",
+		Priority:   &matchingPriority,
+		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
+		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
@@ -110,15 +111,15 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 		},
 	})
 	wrongFeatureCredit := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Currency:       tokens,
-		Amount:         alpacadecimal.NewFromInt(5),
-		At:             setupAt,
-		Name:           "other-feature TOKENS grant",
-		Priority:       &wrongFeaturePriority,
-		FeatureFilters: creditpurchase.FeatureFilters{otherFeature},
-		Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		Namespace:  ns,
+		Customer:   customer.GetID(),
+		Currency:   tokens,
+		Amount:     alpacadecimal.NewFromInt(5),
+		At:         setupAt,
+		Name:       "other-feature TOKENS grant",
+		Priority:   &wrongFeaturePriority,
+		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
+		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
@@ -248,13 +249,13 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 	// when:
 	// - a later paid 8 TOKENS purchase restricted to the usage feature arrives
 	backfillPurchase := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Currency:       tokens,
-		Amount:         alpacadecimal.NewFromInt(8),
-		At:             backfillAt,
-		Name:           "TOKENS advance backfill purchase",
-		FeatureFilters: creditpurchase.FeatureFilters{usageFeature},
+		Namespace: ns,
+		Customer:  customer.GetID(),
+		Currency:  tokens,
+		Amount:    alpacadecimal.NewFromInt(8),
+		At:        backfillAt,
+		Name:      "TOKENS advance backfill purchase",
+		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
@@ -592,13 +593,13 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 	clock.FreezeTime(collectionAt.Add(time.Minute))
 	wrongFeatureCostBasis := s.newManualCostBasis(alpacadecimal.NewFromFloat(0.25))
 	wrongFeaturePurchase := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Currency:       tokens,
-		Amount:         alpacadecimal.NewFromInt(4),
-		At:             clock.Now(),
-		Name:           "wrong-feature TOKENS purchase",
-		FeatureFilters: creditpurchase.FeatureFilters{otherFeature},
+		Namespace: ns,
+		Customer:  customer.GetID(),
+		Currency:  tokens,
+		Amount:    alpacadecimal.NewFromInt(4),
+		At:        clock.Now(),
+		Name:      "wrong-feature TOKENS purchase",
+		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
@@ -650,13 +651,13 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 	clock.FreezeTime(collectionAt.Add(2 * time.Minute))
 	matchingCostBasis := s.newManualCostBasis(alpacadecimal.NewFromFloat(0.5))
 	matchingPurchase := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Currency:       tokens,
-		Amount:         alpacadecimal.NewFromInt(6),
-		At:             clock.Now(),
-		Name:           "partial matching TOKENS purchase",
-		FeatureFilters: creditpurchase.FeatureFilters{usageFeature},
+		Namespace: ns,
+		Customer:  customer.GetID(),
+		Currency:  tokens,
+		Amount:    alpacadecimal.NewFromInt(6),
+		At:        clock.Now(),
+		Name:      "partial matching TOKENS purchase",
+		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
@@ -757,51 +758,51 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNative
 	// - 4 matching and 2 wrong-feature TOKENS are available
 	// - 1 matching and 2 wrong-feature USD credits are available
 	matchingCustomCredit := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Currency:       tokens,
-		Amount:         alpacadecimal.NewFromInt(4),
-		At:             setupAt,
-		Name:           "matching TOKENS grant for CTI",
-		Priority:       &matchingPriority,
-		FeatureFilters: creditpurchase.FeatureFilters{chargeFeature},
-		Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		Namespace:  ns,
+		Customer:   customer.GetID(),
+		Currency:   tokens,
+		Amount:     alpacadecimal.NewFromInt(4),
+		At:         setupAt,
+		Name:       "matching TOKENS grant for CTI",
+		Priority:   &matchingPriority,
+		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{chargeFeature}},
+		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
 	})
 	wrongCustomCredit := s.createCustomCurrencyCreditPurchase(ctx, customCurrencyCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Currency:       tokens,
-		Amount:         alpacadecimal.NewFromInt(2),
-		At:             setupAt,
-		Name:           "wrong-feature TOKENS grant for CTI",
-		Priority:       &wrongFeaturePriority,
-		FeatureFilters: creditpurchase.FeatureFilters{otherFeature},
-		Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		Namespace:  ns,
+		Customer:   customer.GetID(),
+		Currency:   tokens,
+		Amount:     alpacadecimal.NewFromInt(2),
+		At:         setupAt,
+		Name:       "wrong-feature TOKENS grant for CTI",
+		Priority:   &wrongFeaturePriority,
+		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
+		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
 	})
 	matchingFiatCredit := s.createSettledFiatCreditPurchase(ctx, settledFiatCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Amount:         alpacadecimal.NewFromInt(1),
-		At:             setupAt,
-		Priority:       &matchingPriority,
-		FeatureFilters: creditpurchase.FeatureFilters{chargeFeature},
+		Namespace: ns,
+		Customer:  customer.GetID(),
+		Amount:    alpacadecimal.NewFromInt(1),
+		At:        setupAt,
+		Priority:  &matchingPriority,
+		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{chargeFeature}},
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
 	})
 	wrongFiatCredit := s.createSettledFiatCreditPurchase(ctx, settledFiatCreditPurchaseInput{
-		Namespace:      ns,
-		Customer:       customer.GetID(),
-		Amount:         alpacadecimal.NewFromInt(2),
-		At:             setupAt,
-		Priority:       &wrongFeaturePriority,
-		FeatureFilters: creditpurchase.FeatureFilters{otherFeature},
+		Namespace: ns,
+		Customer:  customer.GetID(),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        setupAt,
+		Priority:  &wrongFeaturePriority,
+		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
@@ -1158,17 +1159,17 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyFlatFeeCharge(ctx conte
 }
 
 type customCurrencyCreditPurchaseInput struct {
-	Namespace      string
-	Customer       customer.CustomerID
-	Currency       currencies.Currency
-	Amount         alpacadecimal.Decimal
-	At             time.Time
-	Name           string
-	Priority       *int
-	FeatureFilters creditpurchase.FeatureFilters
-	Settlement     creditpurchase.Settlement
-	CostBasis      creditpurchase.CostBasis
-	TaxConfig      productcatalog.TaxCodeConfig
+	Namespace  string
+	Customer   customer.CustomerID
+	Currency   currencies.Currency
+	Amount     alpacadecimal.Decimal
+	At         time.Time
+	Name       string
+	Priority   *int
+	Filters    crediteligibility.Filters
+	Settlement creditpurchase.Settlement
+	CostBasis  creditpurchase.CostBasis
+	TaxConfig  productcatalog.TaxCodeConfig
 }
 
 func (i customCurrencyCreditPurchaseInput) Validate() error {
@@ -1201,8 +1202,10 @@ func (i customCurrencyCreditPurchaseInput) Validate() error {
 	if err := i.Settlement.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
-	if err := i.FeatureFilters.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("feature filters: %w", err))
+	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
+		if err := i.Filters.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filters: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -1229,11 +1232,11 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyCreditPurchase(ctx cont
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
 				},
-				CreditAmount:   input.Amount,
-				EffectiveAt:    &input.At,
-				Priority:       input.Priority,
-				FeatureFilters: input.FeatureFilters,
-				Settlement:     input.Settlement,
+				CreditAmount: input.Amount,
+				EffectiveAt:  &input.At,
+				Priority:     input.Priority,
+				Filters:      input.Filters,
+				Settlement:   input.Settlement,
 			},
 			CostBasis: input.CostBasis,
 		}),
@@ -1247,13 +1250,13 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyCreditPurchase(ctx cont
 }
 
 type settledFiatCreditPurchaseInput struct {
-	Namespace      string
-	Customer       customer.CustomerID
-	Amount         alpacadecimal.Decimal
-	At             time.Time
-	Priority       *int
-	FeatureFilters creditpurchase.FeatureFilters
-	TaxConfig      productcatalog.TaxCodeConfig
+	Namespace string
+	Customer  customer.CustomerID
+	Amount    alpacadecimal.Decimal
+	At        time.Time
+	Priority  *int
+	Filters   crediteligibility.Filters
+	TaxConfig productcatalog.TaxCodeConfig
 }
 
 func (i settledFiatCreditPurchaseInput) Validate() error {
@@ -1274,8 +1277,10 @@ func (i settledFiatCreditPurchaseInput) Validate() error {
 	if i.At.IsZero() {
 		errs = append(errs, errors.New("at is required"))
 	}
-	if err := i.FeatureFilters.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("feature filters: %w", err))
+	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
+		if err := i.Filters.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filters: %w", err))
+		}
 	}
 	if err := i.TaxConfig.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
@@ -1301,9 +1306,9 @@ func (s *CustomCurrencyCreditsSuite) createSettledFiatCreditPurchase(ctx context
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
-				CostBasis:      newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromInt(1)),
-				FeatureFilters: input.FeatureFilters,
-				TaxConfig:      input.TaxConfig,
+				CostBasis: newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromInt(1)),
+				Filters:   input.Filters,
+				TaxConfig: input.TaxConfig,
 			}),
 		),
 	})

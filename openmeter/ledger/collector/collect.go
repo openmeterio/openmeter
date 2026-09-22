@@ -54,19 +54,13 @@ func (c *accrualCollector) collectToAccrued(ctx context.Context, input CollectTo
 		// Credit-only: if the wallet didn't cover the full accrual, issue advance and
 		// move that slice through the advance-to-accrued path.
 		if shortfall := input.Amount.Sub(collectedInputs(inputs).collectedFBOAmount()); c.shouldAdvanceShortfall(input, shortfall) {
-			var features []string
-
-			if input.FeatureKey != "" {
-				features = []string{input.FeatureKey}
-			}
-
 			advanceInputs, err := c.advance.PlanIssue(ctx, advance.IssueInput{
 				CustomerID:  c.customerID(input),
 				ChargeID:    input.ChargeID,
 				At:          input.BookedAt,
 				Amount:      shortfall,
 				Currency:    input.Currency,
-				Features:    features,
+				Filters:     input.Filters,
 				TaxCode:     input.TaxCode,
 				TaxBehavior: input.TaxBehavior,
 			})
@@ -173,7 +167,7 @@ func (c *accrualCollector) resolveCoveredReceivableInputs(ctx context.Context, i
 		ctx,
 		customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
 		input.Currency,
-		input.FeatureKey,
+		ledger.Route{Filters: input.Filters},
 		input.Amount,
 		input.SourceBalanceAsOf,
 	)
@@ -229,7 +223,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, fmt.Errorf("currency: custom currency must be resolved")
 	}
 
-	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, input.FeatureKey, amount, input.SourceBalanceAsOf)
+	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, ledger.Route{Filters: input.Filters}, amount, input.SourceBalanceAsOf)
 	if err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("collect customer FBO: %w", err)
 	}

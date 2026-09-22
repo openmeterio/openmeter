@@ -23,6 +23,7 @@ import (
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -638,14 +639,14 @@ func TestCreditPurchaseReceivableOnlyAttributionPreservesLegacyFeatureRoutes(t *
 		env.createReceivableOnlyExposure(t, advanceExposureInput{
 			Currency: env.currency,
 			Amount:   alpacadecimal.NewFromInt(exposure.amount),
-			Features: exposure.features,
+			Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: exposure.features},
 		})
 	}
 
 	// When 25 of API-restricted credit arrives without any accrued or legacylineage.
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 	purchase := env.newExternalCharge(alpacadecimal.NewFromInt(25), costBasis)
-	purchase.Intent.FeatureFilters = creditpurchase.FeatureFilters{"api-calls"}
+	purchase.Intent.Filters.Features = creditpurchase.FeatureFilters{"api-calls"}
 	result, err := env.grantCredits(t, purchase)
 	require.NoError(t, err)
 
@@ -665,7 +666,7 @@ func (e *creditPurchaseHandlerTestEnv) createReceivableOnlyExposure(t *testing.T
 	inputs, err := transactions.ResolveTransactions(t.Context(), transactions.ResolverDependencies{
 		AccountService: e.Deps.ResolversService, AccountCatalog: e.Deps.AccountService, BalanceQuerier: e.Deps.HistoricalLedger,
 	}, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace}, transactions.IssueCustomerReceivableTemplate{
-		At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(), Features: input.Features, SpendChargeID: input.SpendChargeID,
+		At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(), Filters: input.Filters, SpendChargeID: input.SpendChargeID,
 	})
 	require.NoError(t, err)
 	_, err = e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))

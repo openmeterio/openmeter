@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -113,7 +114,7 @@ func newExpiredRecord(
 	fboSubAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       currencies.NewCurrencyReference(currency),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
-		Features:       features,
+		Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 	})
 	require.NoError(t, err)
 

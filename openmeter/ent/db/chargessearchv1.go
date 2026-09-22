@@ -53,6 +53,8 @@ type ChargesSearchV1 struct {
 	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
+	// SubscriptionPlan holds the value of the "subscription_plan" field.
+	SubscriptionPlan *meta.SubscriptionPlan `json:"subscription_plan,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
 	SubscriptionID *string `json:"subscription_id,omitempty"`
 	// SubscriptionPhaseID holds the value of the "subscription_phase_id" field.
@@ -97,6 +99,8 @@ func (*ChargesSearchV1) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case chargessearchv1.FieldBaseIntentDeletedAt, chargessearchv1.FieldServicePeriodFrom, chargessearchv1.FieldServicePeriodTo, chargessearchv1.FieldBillingPeriodFrom, chargessearchv1.FieldBillingPeriodTo, chargessearchv1.FieldFullServicePeriodFrom, chargessearchv1.FieldFullServicePeriodTo, chargessearchv1.FieldAdvanceAfter, chargessearchv1.FieldCreatedAt, chargessearchv1.FieldUpdatedAt, chargessearchv1.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case chargessearchv1.FieldSubscriptionPlan:
+			values[i] = chargessearchv1.ValueScanner.SubscriptionPlan.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -213,6 +217,12 @@ func (_m *ChargesSearchV1) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field managed_by", values[i])
 			} else if value.Valid {
 				_m.ManagedBy = billing.InvoiceLineManagedBy(value.String)
+			}
+		case chargessearchv1.FieldSubscriptionPlan:
+			if value, err := chargessearchv1.ValueScanner.SubscriptionPlan.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.SubscriptionPlan = value
 			}
 		case chargessearchv1.FieldSubscriptionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -402,6 +412,11 @@ func (_m *ChargesSearchV1) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))
+	builder.WriteString(", ")
+	if v := _m.SubscriptionPlan; v != nil {
+		builder.WriteString("subscription_plan=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.SubscriptionID; v != nil {
 		builder.WriteString("subscription_id=")

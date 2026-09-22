@@ -29,3 +29,11 @@ func MatchFeaturePredicate(column func(string) string, feature string) *sql.Pred
 		b.Ident(column("filters")).WriteString("->'features' @> ").Arg(string(encoded)).WriteString("::jsonb")
 	}))
 }
+
+// ExactFiltersPredicate compares complete normalized route restriction sets.
+func ExactFiltersPredicate(column func(string) string, filters crediteligibility.Filters) *sql.Predicate {
+	encoded, _ := json.Marshal(filters.Normalize())
+	return sql.P(func(b *sql.Builder) {
+		b.Ident(column("filters")).WriteString(" - 'schema_version' = ").Arg(string(encoded)).WriteString("::jsonb - 'schema_version'")
+	})
+}

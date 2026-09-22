@@ -117,7 +117,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 
 	customerID := charge.GetCustomerID()
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
-	featureFilters := charge.Intent.FeatureFilters.Normalize()
+	filters := charge.Intent.Filters.Normalize()
 
 	var templates []transactions.TransactionTemplate
 
@@ -129,7 +129,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			CostBasis:      paymentPosting.costBasis,
 			SourceCurrency: paymentPosting.currency,
 			TargetCurrency: charge.Intent.Currency.Reference(),
-			Features:       featureFilters,
+			Filters:        filters,
 			SourceChargeID: &charge.ID,
 		})
 	}
@@ -138,7 +138,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		Amount:         paymentPosting.amount,
 		Currency:       paymentPosting.currency,
 		CostBasis:      &paymentPosting.costBasis,
-		Features:       featureFilters,
+		Filters:        filters,
 		SourceChargeID: &charge.ID,
 	})
 
@@ -183,7 +183,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 
 	customerID := charge.GetCustomerID()
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
-	featureFilters := charge.Intent.FeatureFilters.Normalize()
+	filters := charge.Intent.Filters.Normalize()
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -197,7 +197,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			Amount:         paymentPosting.amount,
 			Currency:       paymentPosting.currency,
 			CostBasis:      &paymentPosting.costBasis,
-			Features:       featureFilters,
+			Filters:        filters,
 			SourceChargeID: &charge.ID,
 		},
 	)
@@ -256,7 +256,7 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 		}
 
 		annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
-		featureFilters := charge.Intent.FeatureFilters.Normalize()
+		filters := charge.Intent.Filters.Normalize()
 		effectiveAt := charge.Intent.ServicePeriod.To
 
 		// LedgerTransaction.CreatedAt retains recording time. For effective time,
@@ -285,7 +285,7 @@ func (h *creditPurchaseHandler) issueCreditPurchase(ctx context.Context, input c
 				At:                advanceAttributionEffectiveAt,
 				CostBasis:         *costBasis,
 				CostBasisCurrency: costBasisCurrency,
-				Features:          featureFilters,
+				Filters:           filters,
 				SourceChargeID:    charge.ID,
 				LegacyLineages:    input.AdvanceLineages,
 			})

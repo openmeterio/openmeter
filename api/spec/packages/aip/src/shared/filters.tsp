@@ -284,3 +284,34 @@ model QueryFilterDateTime {
   @maxItems(10)
   or?: QueryFilterDateTime[];
 }
+
+/**
+ * An integer version comparison. Exactly one operator must be provided.
+ */
+@friendlyName("VersionFilter")
+model VersionFilter {
+  /**
+   * Match this exact version.
+   */
+  @minValue(1)
+  eq?: int32;
+
+  /**
+   * Match one of these versions.
+   */
+  @minItems(1)
+  @maxItems(100)
+  in?: int32[];
+
+  /**
+   * Match this version and later versions.
+   */
+  @minValue(1)
+  gte?: int32;
+
+  /**
+   * Match this version and earlier versions.
+   */
+  @minValue(1)
+  lte?: int32;
+}

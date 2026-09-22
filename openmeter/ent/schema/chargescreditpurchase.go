@@ -75,6 +75,7 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 				return &crediteligibility.Filters{Version: crediteligibility.FiltersVersion1}
 			}).
 			Immutable(),
+		// Deprecated: unused legacy projection; application reads and writes filters.
 		field.Other("feature_filters", pq.StringArray{}).
 			Optional().
 			Immutable().

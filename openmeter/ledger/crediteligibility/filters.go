@@ -2,8 +2,13 @@
 package crediteligibility
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -11,15 +16,41 @@ import (
 
 type FiltersVersion int
 
-const FiltersVersion1 FiltersVersion = 1
+const (
+	FiltersVersion1 FiltersVersion = 1
+	FiltersVersion2 FiltersVersion = 2
+)
 
-// Filters stores versioned credit restrictions. Empty features impose no restriction.
+// Route exposes the filterable dimensions without coupling this package to the
+// ledger implementation. A concrete spend or advance has singleton dimensions.
+type Route interface {
+	CreditFilters() Filters
+}
+
+// Filters combines dimensions with AND and entries within a dimension with OR.
+// An empty dimension imposes no restriction. A restricted dimension does not
+// match a route whose corresponding dimension is absent.
 type Filters struct {
 	Version  FiltersVersion `json:"schema_version"`
 	Features []string       `json:"features,omitempty"`
+	Plans    []PlanFilter   `json:"plans,omitempty"`
 }
 
 type FeatureFilters []string
+
+type PlanFilter struct {
+	Key     string         `json:"key"`
+	Version *VersionFilter `json:"version,omitempty"`
+}
+
+// VersionFilter uses one integer comparison. Omission matches every version,
+// including versions published after the grant was created.
+type VersionFilter struct {
+	Eq  *int  `json:"eq,omitempty"`
+	In  []int `json:"in,omitempty"`
+	Gte *int  `json:"gte,omitempty"`
+	Lte *int  `json:"lte,omitempty"`
+}
 
 func (f FeatureFilters) Validate() error {
 	var errs []error
@@ -59,16 +90,165 @@ func (f FeatureFilters) ValidateAsFeatureFilter() error {
 
 func (f Filters) Validate() error {
 	var errs []error
-	if f.Version != FiltersVersion1 {
+	switch f.Version {
+	case FiltersVersion1:
+		if len(f.Plans) > 0 {
+			errs = append(errs, fmt.Errorf("credit filters schema version %d cannot represent plans", f.Version))
+		}
+	case FiltersVersion2:
+	default:
 		errs = append(errs, fmt.Errorf("unsupported credit filters schema version: %d", f.Version))
 	}
 	if err := FeatureFilters(f.Features).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("features: %w", err))
 	}
+	for i, plan := range f.Plans {
+		if plan.Key == "" {
+			errs = append(errs, fmt.Errorf("plans[%d]: key is required", i))
+		}
+		if plan.Version != nil {
+			if err := plan.Version.Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("plans[%d].version: %w", i, err))
+			}
+		}
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (f VersionFilter) Validate() error {
+	var errs []error
+	operators := 0
+	for _, value := range []*int{f.Eq, f.Gte, f.Lte} {
+		if value != nil {
+			operators++
+			if *value < 1 {
+				errs = append(errs, errors.New("version must be positive"))
+			}
+		}
+	}
+	if f.In != nil {
+		operators++
+		if len(f.In) == 0 || len(f.In) > 100 {
+			errs = append(errs, errors.New("in must contain between 1 and 100 versions"))
+		}
+		for _, value := range f.In {
+			if value < 1 {
+				errs = append(errs, errors.New("version must be positive"))
+			}
+		}
+	}
+	if operators != 1 {
+		errs = append(errs, errors.New("exactly one version operator is required"))
+	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (f Filters) Normalize() Filters {
-	f.Features = FeatureFilters(f.Features).Normalize()
-	return f
+	out := Filters{Version: f.Version, Features: FeatureFilters(f.Features).Normalize(), Plans: slices.Clone(f.Plans)}
+	for i, plan := range out.Plans {
+		if plan.Version == nil {
+			continue
+		}
+		v := *plan.Version
+		if v.Eq != nil {
+			v.Eq = lo.ToPtr(*v.Eq)
+		}
+		if v.Gte != nil {
+			v.Gte = lo.ToPtr(*v.Gte)
+		}
+		if v.Lte != nil {
+			v.Lte = lo.ToPtr(*v.Lte)
+		}
+		v.In = slicesx.Normalize(v.In)
+		if len(v.In) == 1 && v.Eq == nil && v.Gte == nil && v.Lte == nil {
+			v.Eq, v.In = lo.ToPtr(v.In[0]), nil
+		}
+		out.Plans[i].Version = &v
+	}
+	slices.SortFunc(out.Plans, func(a, b PlanFilter) int {
+		aJSON, _ := json.Marshal(a)
+		bJSON, _ := json.Marshal(b)
+		return bytes.Compare(aJSON, bJSON)
+	})
+	out.Plans = slices.CompactFunc(out.Plans, func(a, b PlanFilter) bool {
+		aJSON, _ := json.Marshal(a)
+		bJSON, _ := json.Marshal(b)
+		return bytes.Equal(aJSON, bJSON)
+	})
+	return out
+}
+
+func (f Filters) IsEmpty() bool { return len(f.Features) == 0 && len(f.Plans) == 0 }
+
+func (f Filters) Equal(other Filters) bool {
+	return f.String() == other.String()
+}
+
+// Matches compares restrictions with a route's recorded dimensions. This is
+// directional: unrestricted filters match an unattributed route, but a
+// restricted filter does not. It is not exact bucket equality.
+func (f Filters) Matches(route Route) bool {
+	values := route.CreditFilters()
+	if len(f.Features) > 0 && !slices.ContainsFunc(values.Features, func(key string) bool { return slices.Contains(f.Features, key) }) {
+		return false
+	}
+	if len(f.Plans) == 0 {
+		return true
+	}
+	return slices.ContainsFunc(f.Plans, func(filter PlanFilter) bool {
+		return slices.ContainsFunc(values.Plans, func(value PlanFilter) bool {
+			return filter.Key == value.Key && versionsOverlap(filter.Version, value.Version)
+		})
+	})
+}
+
+func versionsOverlap(a, b *VersionFilter) bool {
+	if a == nil || b == nil {
+		return true
+	}
+	if a.Eq != nil {
+		return b.matches(*a.Eq)
+	}
+	if b.Eq != nil {
+		return a.matches(*b.Eq)
+	}
+	if a.In != nil {
+		return slices.ContainsFunc(a.In, b.matches)
+	}
+	if b.In != nil {
+		return slices.ContainsFunc(b.In, a.matches)
+	}
+	if a.Gte != nil && b.Lte != nil {
+		return *a.Gte <= *b.Lte
+	}
+	if b.Gte != nil && a.Lte != nil {
+		return *b.Gte <= *a.Lte
+	}
+	return true
+}
+
+func (f VersionFilter) matches(version int) bool {
+	switch {
+	case f.Eq != nil:
+		return version == *f.Eq
+	case f.In != nil:
+		return slices.Contains(f.In, version)
+	case f.Gte != nil:
+		return version >= *f.Gte
+	case f.Lte != nil:
+		return version <= *f.Lte
+	default:
+		return false
+	}
+}
+
+// String returns a canonical identity for route pairing, independent of the
+// retained storage version. JSON encoding itself preserves the selected version.
+func (f Filters) String() string {
+	f.Version = FiltersVersion1
+	if len(f.Plans) > 0 {
+		f.Version = FiltersVersion2
+	}
+	encoded, _ := json.Marshal(f.Normalize())
+	return string(encoded)
 }

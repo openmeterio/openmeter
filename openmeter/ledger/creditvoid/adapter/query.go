@@ -10,7 +10,7 @@ import (
 )
 
 func voidRecordRoutePredicate(route ledger.RouteFilter) (predicate.LedgerCreditVoidRecord, error) {
-	if route.Currency.Code == "" && route.Features.IsAbsent() && route.MatchFeature == "" {
+	if route.Currency.Code == "" && route.CreditFilters.IsAbsent() && route.Features.IsAbsent() && route.MatchFeature == "" {
 		return nil, nil
 	}
 

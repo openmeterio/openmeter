@@ -42,6 +42,7 @@ import (
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -456,7 +457,7 @@ func (e *testEnv) bookFBOBalanceInCurrencyReferenceWithFeatures(t *testing.T, am
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
-			Features: features,
+			Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 		},
 	)
 	require.NoError(t, err)
@@ -499,13 +500,13 @@ func (e *testEnv) fundOpenReceivableInCurrencyReferenceWithFeatures(t *testing.T
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
-			Features: features,
+			Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
-			Features: features,
+			Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
 		},
 	)
 	require.NoError(t, err)
@@ -707,10 +708,10 @@ func (e *testEnv) createCreditPurchase(
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 				},
-				CreditAmount:   amount,
-				EffectiveAt:    effectiveAt,
-				FeatureFilters: features,
-				Settlement:     settlement,
+				CreditAmount: amount,
+				EffectiveAt:  effectiveAt,
+				Filters:      crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+				Settlement:   settlement,
 			},
 			CostBasis: costBasis,
 		},

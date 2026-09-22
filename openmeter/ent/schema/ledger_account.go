@@ -139,6 +139,7 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 				return &crediteligibility.Filters{Version: crediteligibility.FiltersVersion1}
 			}).
 			Immutable(),
+		// Deprecated: unused legacy projection; application reads and writes filters.
 		field.Other("features", pq.StringArray{}).
 			Optional().
 			Immutable().

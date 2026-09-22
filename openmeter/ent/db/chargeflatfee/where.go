@@ -832,6 +832,16 @@ func ManagedByNotIn(vs ...billing.InvoiceLineManagedBy) predicate.ChargeFlatFee 
 	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldManagedBy, v...))
 }
 
+// SubscriptionPlanIsNil applies the IsNil predicate on the "subscription_plan" field.
+func SubscriptionPlanIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldSubscriptionPlan))
+}
+
+// SubscriptionPlanNotNil applies the NotNil predicate on the "subscription_plan" field.
+func SubscriptionPlanNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldSubscriptionPlan))
+}
+
 // SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.
 func SubscriptionIDEQ(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSubscriptionID, v))

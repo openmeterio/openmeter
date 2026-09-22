@@ -137,6 +137,12 @@ func (_c *ChargeFlatFeeCreate) SetManagedBy(v billing.InvoiceLineManagedBy) *Cha
 	return _c
 }
 
+// SetSubscriptionPlan sets the "subscription_plan" field.
+func (_c *ChargeFlatFeeCreate) SetSubscriptionPlan(v *meta.SubscriptionPlan) *ChargeFlatFeeCreate {
+	_c.mutation.SetSubscriptionPlan(v)
+	return _c
+}
+
 // SetSubscriptionID sets the "subscription_id" field.
 func (_c *ChargeFlatFeeCreate) SetSubscriptionID(v string) *ChargeFlatFeeCreate {
 	_c.mutation.SetSubscriptionID(v)
@@ -646,6 +652,11 @@ func (_c *ChargeFlatFeeCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.SubscriptionPlan(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "subscription_plan", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.subscription_plan": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.TaxCodeID(); !ok {
 		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeFlatFee.tax_code_id"`)}
 	}
@@ -811,6 +822,14 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargeflatfee.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.SubscriptionPlan(); ok {
+		vv, err := chargeflatfee.ValueScanner.SubscriptionPlan.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeflatfee.FieldSubscriptionPlan, field.TypeString, vv)
+		_node.SubscriptionPlan = value
 	}
 	if value, ok := _c.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeflatfee.FieldAdvanceAfter, field.TypeTime, value)
@@ -1581,6 +1600,9 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargeflatfee.FieldManagedBy)
 		}
+		if _, exists := u.create.mutation.SubscriptionPlan(); exists {
+			s.SetIgnore(chargeflatfee.FieldSubscriptionPlan)
+		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeflatfee.FieldSubscriptionID)
 		}
@@ -2298,6 +2320,9 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			}
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargeflatfee.FieldManagedBy)
+			}
+			if _, exists := b.mutation.SubscriptionPlan(); exists {
+				s.SetIgnore(chargeflatfee.FieldSubscriptionPlan)
 			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeflatfee.FieldSubscriptionID)

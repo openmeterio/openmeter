@@ -45,6 +45,8 @@ const (
 	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
+	// FieldSubscriptionPlan holds the string denoting the subscription_plan field in the database.
+	FieldSubscriptionPlan = "subscription_plan"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
 	FieldSubscriptionID = "subscription_id"
 	// FieldSubscriptionPhaseID holds the string denoting the subscription_phase_id field in the database.
@@ -223,6 +225,7 @@ var Columns = []string{
 	FieldFiatCurrencyCode,
 	FieldCustomCurrencyID,
 	FieldManagedBy,
+	FieldSubscriptionPlan,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
@@ -294,7 +297,8 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
 	ValueScanner struct {
-		Filters field.TypeValueScanner[*crediteligibility.Filters]
+		SubscriptionPlan field.TypeValueScanner[*meta.SubscriptionPlan]
+		Filters          field.TypeValueScanner[*crediteligibility.Filters]
 	}
 )
 
@@ -424,6 +428,11 @@ func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
 // ByManagedBy orders the results by the managed_by field.
 func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
+}
+
+// BySubscriptionPlan orders the results by the subscription_plan field.
+func BySubscriptionPlan(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionPlan, opts...).ToFunc()
 }
 
 // BySubscriptionID orders the results by the subscription_id field.

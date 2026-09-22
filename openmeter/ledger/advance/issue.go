@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -19,7 +20,7 @@ type IssueInput struct {
 	At          time.Time
 	Amount      alpacadecimal.Decimal
 	Currency    currencies.CurrencyReference
-	Features    []string
+	Filters     crediteligibility.Filters
 	TaxCode     *string
 	TaxBehavior *ledger.TaxBehavior
 }
@@ -49,5 +50,10 @@ func (i IssueInput) Validate() error {
 		errs = append(errs, errors.New("custom currency must be resolved"))
 	}
 
+	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
+		if err := i.Filters.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filters: %w", err))
+		}
+	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

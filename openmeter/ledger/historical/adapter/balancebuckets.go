@@ -129,7 +129,7 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 			CostBasisCurrency:              nullableCurrencyCode(r.CostBasisCurrency),
 			TaxCode:                        nullableStringValue(r.TaxCode),
 			TaxBehavior:                    nullableTaxBehavior(r.TaxBehavior),
-			Features:                       filters.Features,
+			Filters:                        filters,
 			CostBasis:                      costBasis,
 			CreditPriority:                 nullableIntValue(r.CreditPriority),
 			TransactionAuthorizationStatus: nullableTransactionAuthorizationStatus(r.TransactionAuthorizationStatus),

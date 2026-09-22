@@ -10,14 +10,16 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Intent struct {
-	ManagedBy  billing.InvoiceLineManagedBy `json:"managedBy"`
-	CustomerID string                       `json:"customerID"`
+	SubscriptionPlan *SubscriptionPlan            `json:"subscriptionPlan,omitempty"`
+	ManagedBy        billing.InvoiceLineManagedBy `json:"managedBy"`
+	CustomerID       string                       `json:"customerID"`
 
 	Annotations models.Annotations `json:"annotations"`
 
@@ -30,6 +32,9 @@ type Intent struct {
 
 func (i Intent) Clone() Intent {
 	out := i
+	if i.SubscriptionPlan != nil {
+		out.SubscriptionPlan = lo.ToPtr(*i.SubscriptionPlan)
+	}
 
 	// Keep intent cloning infallible for developer ergonomics; annotations are
 	// only shallow-cloned here so GetEffectiveIntent does not need an error return.
@@ -53,6 +58,11 @@ func (i Intent) Clone() Intent {
 
 func (i Intent) Validate() error {
 	var errs []error
+	if i.SubscriptionPlan != nil {
+		if err := i.SubscriptionPlan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("subscription plan: %w", err))
+		}
+	}
 
 	if !slices.Contains(billing.InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
@@ -125,4 +135,20 @@ func (i IntentMutableFields) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// GetCreditFilters maps the charge's recorded attribution to concrete route dimensions.
+func (i Intent) GetCreditFilters(featureKey string) crediteligibility.Filters {
+	filters := crediteligibility.Filters{Version: crediteligibility.FiltersVersion1}
+	if featureKey != "" {
+		filters.Features = []string{featureKey}
+	}
+	if i.SubscriptionPlan != nil {
+		filters.Version = crediteligibility.FiltersVersion2
+		filters.Plans = []crediteligibility.PlanFilter{{
+			Key:     i.SubscriptionPlan.Key,
+			Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(i.SubscriptionPlan.Version)},
+		}}
+	}
+	return filters
 }

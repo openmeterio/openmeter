@@ -425,10 +425,11 @@ func (s *FlatFeeIntentOverrideAdapterSuite) createChargeForCustomer(namespace, c
 			{
 				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
-						ManagedBy:    billing.SubscriptionManagedLine,
-						CustomerID:   customerID,
-						Currency:     currenciestestutils.NewFiatCurrency(s.T(), "USD"),
-						Subscription: subscription,
+						SubscriptionPlan: &chargesmeta.SubscriptionPlan{Key: "pro", Version: 1},
+						ManagedBy:        billing.SubscriptionManagedLine,
+						CustomerID:       customerID,
+						Currency:         currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						Subscription:     subscription,
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},

@@ -75,7 +75,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),
 		ServicePeriod:     input.ServicePeriod,
-		FeatureKey:        intent.GetFeatureKey(),
+		Filters:           intent.GetCreditFilters(),
 		Amount:            input.PreTaxAmountToAllocate,
 	})
 	if err != nil {
@@ -240,7 +240,7 @@ func (h *flatFeeHandler) OnAllocateFiatOverageCredits(ctx context.Context, input
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.BookedAt,
 		Currency:          currencies.NewCurrencyReference(currencyx.Code(fiatCurrency.GetFiatCode())),
-		FeatureKey:        intent.GetFeatureKey(),
+		Filters:           intent.GetCreditFilters(),
 		ServicePeriod:     input.Run.ServicePeriod,
 		Amount:            input.AmountToAllocate,
 	})

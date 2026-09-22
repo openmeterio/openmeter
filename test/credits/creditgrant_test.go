@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -266,6 +267,7 @@ func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 		Amount:        alpacadecimal.NewFromInt(10),
 		FundingMethod: creditgrant.FundingMethodNone,
 		Filters: &creditgrant.GrantFilters{
+			Version:  crediteligibility.FiltersVersion1,
 			Features: []string{"api-calls"},
 		},
 	})
@@ -273,7 +275,7 @@ func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 
 	s.Equal(creditpurchase.SettlementTypePromotional, grant.Intent.Settlement.Type())
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
-	s.Equal(creditpurchase.FeatureFilters{"api-calls"}, grant.Intent.FeatureFilters)
+	s.Equal([]string{"api-calls"}, grant.Intent.Filters.Features)
 	s.NotNil(grant.Realizations.CreditGrantRealization)
 }
 
@@ -692,4 +694,26 @@ func (s *CreditGrantTestSuite) mustCreatePromotionalCreditGrant(ctx context.Cont
 	s.Require().NoError(err)
 
 	return grant
+}
+
+func (s *CreditGrantTestSuite) TestCreatePlanFilteredGrant() {
+	// given: a grant matches a feature and two versions of a plan.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-plan-filters")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	filters := crediteligibility.Filters{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{In: []int{3, 2, 3}}}}}
+	// when: creation persists and realizes the grant.
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace: ns, CustomerID: cust.ID, Name: "Plan restricted grant", Currency: USD,
+		Amount: alpacadecimal.NewFromInt(10), FundingMethod: creditgrant.FundingMethodNone, Filters: &filters,
+	})
+	s.Require().NoError(err)
+	// then: an independent read retains both dimensions and canonical versions.
+	loaded, err := s.CreditGrantService.Get(ctx, creditgrant.GetInput{Namespace: ns, CustomerID: cust.ID, ChargeID: grant.ID})
+	s.Require().NoError(err)
+	s.True(filters.Equal(loaded.Intent.Filters))
+	s.Require().Len(loaded.Intent.Filters.Plans, 1)
+	s.Equal([]int{2, 3}, loaded.Intent.Filters.Plans[0].Version.In)
+	s.NotNil(loaded.Realizations.CreditGrantRealization)
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -179,7 +180,7 @@ type IntentMutableFields struct {
 	ExpiresAt   *time.Time `json:"expiresAt"`
 	Priority    *int       `json:"priority"`
 
-	FeatureFilters FeatureFilters `json:"featureFilters,omitempty"`
+	Filters crediteligibility.Filters `json:"filters,omitempty"`
 
 	// Settlement intent
 	Settlement Settlement `json:"settlement"`
@@ -195,7 +196,10 @@ func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMuta
 	f.IntentMutableFields = f.IntentMutableFields.Normalized()
 	f.EffectiveAt = meta.NormalizeOptionalTimestamp(f.EffectiveAt)
 	f.ExpiresAt = meta.NormalizeOptionalTimestamp(f.ExpiresAt)
-	f.FeatureFilters = f.FeatureFilters.Normalize()
+	if f.Filters.Version == 0 && f.Filters.IsEmpty() {
+		f.Filters.Version = crediteligibility.FiltersVersion1
+	}
+	f.Filters = f.Filters.Normalize()
 
 	if f.EffectiveAt != nil {
 		period := timeutil.ClosedPeriod{
@@ -231,8 +235,10 @@ func (f IntentMutableFields) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
 
-	if err := f.FeatureFilters.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("feature filters: %w", err))
+	if f.Filters.Version != 0 || !f.Filters.IsEmpty() {
+		if err := f.Filters.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filters: %w", err))
+		}
 	}
 
 	switch f.Settlement.Type() {

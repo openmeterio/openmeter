@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -957,7 +958,7 @@ func (e *usageBasedHandlerTestEnv) customReceivableSubAccountForUsageBasedFeatur
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       customCurrency,
 		CostBasis:                      nil,
-		Features:                       []string{featureKey},
+		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{featureKey}},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)

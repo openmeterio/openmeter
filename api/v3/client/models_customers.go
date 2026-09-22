@@ -841,6 +841,18 @@ type CreateCreditGrantFilters struct {
 	// Limit the credit grant to specific features. If no features are specified, the
 	// credit grant can be used for any feature.
 	Features *[]string `json:"features,omitempty"`
+	// Limit credits to charges from these plans. Entries are alternatives; when
+	// features are also specified, both dimensions must match. Omission or an empty
+	// list leaves plans unrestricted.
+	Plans *[]CreateCreditGrantPlanFilter `json:"plans,omitempty"`
+}
+
+// A plan key and an optional version constraint for matching credit grants.
+type CreateCreditGrantPlanFilter struct {
+	// The plan key in the customer's namespace.
+	Key string `json:"key"`
+	// Omission matches all versions, including future versions.
+	Version *CreateVersionFilter `json:"version,omitempty"`
 }
 
 // Purchase and payment terms of the grant.
@@ -1106,6 +1118,18 @@ type CreateEntitlementStaticRequest struct {
 	UsagePeriod *RecurringPeriodInput `json:"usage_period,omitempty"`
 }
 
+// An integer version comparison. Exactly one operator must be provided.
+type CreateVersionFilter struct {
+	// Match this exact version.
+	Eq *int32 `json:"eq,omitempty"`
+	// Match one of these versions.
+	In *[]int32 `json:"in,omitempty"`
+	// Match this version and later versions.
+	Gte *int32 `json:"gte,omitempty"`
+	// Match this version and earlier versions.
+	Lte *int32 `json:"lte,omitempty"`
+}
+
 // A credit adjustment can be used to make manual adjustments to a customer's
 // credit balance.
 //
@@ -1266,6 +1290,10 @@ type CreditGrantFilters struct {
 	// Limit the credit grant to specific features. If no features are specified, the
 	// credit grant can be used for any feature.
 	Features []string `json:"features,omitempty"`
+	// Limit credits to charges from these plans. Entries are alternatives; when
+	// features are also specified, both dimensions must match. Omission or an empty
+	// list leaves plans unrestricted.
+	Plans []CreditGrantPlanFilter `json:"plans,omitempty"`
 }
 
 // Invoice references for the grant.
@@ -1284,6 +1312,14 @@ type CreditGrantInvoiceReferenceLine struct {
 type CreditGrantPagePaginatedResponse struct {
 	Data []CreditGrant `json:"data"`
 	Meta PaginatedMeta `json:"meta"`
+}
+
+// A plan key and an optional version constraint for matching credit grants.
+type CreditGrantPlanFilter struct {
+	// The plan key in the customer's namespace.
+	Key string `json:"key"`
+	// Omission matches all versions, including future versions.
+	Version *VersionFilter `json:"version,omitempty"`
 }
 
 // Purchase and payment terms of the grant.
@@ -1984,6 +2020,18 @@ type UpsertCustomerRequest struct {
 	Currency *string `json:"currency,omitempty"`
 	// The billing address of the customer. Used for tax and invoicing.
 	BillingAddress *Address `json:"billing_address,omitempty"`
+}
+
+// An integer version comparison. Exactly one operator must be provided.
+type VersionFilter struct {
+	// Match this exact version.
+	Eq *int32 `json:"eq,omitempty"`
+	// Match one of these versions.
+	In []int32 `json:"in,omitempty"`
+	// Match this version and later versions.
+	Gte *int32 `json:"gte,omitempty"`
+	// Match this version and earlier versions.
+	Lte *int32 `json:"lte,omitempty"`
 }
 
 // Request body for voiding a credit grant.

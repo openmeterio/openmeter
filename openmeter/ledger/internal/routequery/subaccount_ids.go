@@ -87,6 +87,9 @@ func (q SubAccountIDsByRoute) selectorPredicates(routeColumn func(string) string
 		}
 	}
 
+	if exact, ok := q.route.CreditFilters.Get(); ok {
+		predicates = append(predicates, ExactFiltersPredicate(routeColumn, exact))
+	}
 	if features, ok := q.route.Features.Get(); ok {
 		predicates = append(predicates, ExactFeaturesPredicate(routeColumn, features))
 	}

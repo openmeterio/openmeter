@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -286,7 +287,7 @@ type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	TaxBehavior        *ledger.TaxBehavior
 	CostBasisCurrency  *currencyx.Code
 	CostBasis          *alpacadecimal.Decimal
-	Features           []string
+	Filters            crediteligibility.Filters
 	SourceChargeID     *string
 	SpendChargeID      *string
 	CollectionOriginID *string
@@ -410,7 +411,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 		Currency:          t.Currency,
 		CostBasisCurrency: t.CostBasisCurrency,
 		CostBasis:         t.CostBasis,
-		Features:          t.Features,
+		Filters:           t.Filters,
 		CreditPriority:    priority,
 	})
 	if err != nil {

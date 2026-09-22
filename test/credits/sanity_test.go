@@ -28,6 +28,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -1008,13 +1009,13 @@ func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollect
 
 	// Given feature-restricted credit and general-purpose credit are both available.
 	restrictedFunding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
-		Namespace:      ns,
-		Customer:       cust.GetID(),
-		Amount:         alpacadecimal.NewFromInt(4),
-		At:             grantAt,
-		CostBasis:      costBasis,
-		Priority:       &restrictedPriority,
-		FeatureFilters: creditpurchase.FeatureFilters{featureKey},
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Amount:    alpacadecimal.NewFromInt(4),
+		At:        grantAt,
+		CostBasis: costBasis,
+		Priority:  &restrictedPriority,
+		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{featureKey}},
 	})
 	generalFunding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 		Namespace: ns,
@@ -1575,14 +1576,14 @@ func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input Cr
 		Namespace: input.Namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
-				Customer:       input.Customer,
-				Currency:       USD,
-				Amount:         input.Amount,
-				ExpiresAt:      input.ExpiresAt,
-				Priority:       input.Priority,
-				ServicePeriod:  timeutil.ClosedPeriod{From: input.At, To: input.At},
-				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-				FeatureFilters: input.FeatureFilters,
+				Customer:      input.Customer,
+				Currency:      USD,
+				Amount:        input.Amount,
+				ExpiresAt:     input.ExpiresAt,
+				Priority:      input.Priority,
+				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
+				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				Filters:       input.Filters,
 			}),
 		),
 	})
@@ -2028,8 +2029,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
-		CostBasis:      newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromFloat(0.5)),
-		FeatureFilters: creditpurchase.FeatureFilters{apiRequestsTotal.Feature.Key},
+		CostBasis: newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromFloat(0.5)),
+		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{apiRequestsTotal.Feature.Key}},
 	})
 
 	// When a later external credit purchase backfills part of that earlier advance-backed usage.
@@ -2225,8 +2226,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
-				CostBasis:      newFiatCreditPurchaseCostBasis(costBasis),
-				FeatureFilters: creditpurchase.FeatureFilters{apiRequestsFeature.Key},
+				CostBasis: newFiatCreditPurchaseCostBasis(costBasis),
+				Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{apiRequestsFeature.Key}},
 			}),
 		),
 	})
