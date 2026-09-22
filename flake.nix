@@ -120,8 +120,8 @@
                 src = fetchFromGitHub {
                   owner = "confluentinc";
                   repo = "librdkafka";
-                  rev = "v2.15.0";
-                  sha256 = "sha256-WW64fwh0xR4lEVwmrv00tP9mo6b49aCNgLLH/P0YS8k=";
+                  rev = "v2.15.1";
+                  sha256 = "sha256-74D1sMSA6advmirxeJiYzoqI0jjBqvbDtUqW8B8PieU=";
                 };
               }))
 
