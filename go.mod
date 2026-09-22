@@ -44,7 +44,7 @@ require (
 	github.com/huandu/go-sqlbuilder v1.43.0
 	github.com/invopop/gobl v0.505.0
 	github.com/invopop/yaml v0.3.1
-	github.com/jackc/pgx/v5 v5.10.0
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lib/pq v1.12.3
 	github.com/lmittmann/tint v1.2.0
