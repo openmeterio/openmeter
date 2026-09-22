@@ -91,7 +91,7 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 		s.Equal(billing.ValidationIssues{{
 			Severity:   billing.ValidationIssueSeverityCritical,
 			Code:       billing.ErrInvoiceLineFeatureNotFound.Code,
-			Message:    "feature[missing-feature]: invoice line: feature not found",
+			Message:    billing.ErrInvoiceLineFeatureNotFound.Message,
 			Component:  billing.ValidationComponentOpenMeterMetering,
 			Path:       fmt.Sprintf("/lines/%s", invoice.Lines.OrEmpty()[0].ID),
 			Attributes: models.Annotations{"feature_key": "missing-feature"},
@@ -136,7 +136,7 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceFeatureMeterValidation() {
 		s.Equal(billing.ValidationIssues{{
 			Severity:  billing.ValidationIssueSeverityCritical,
 			Code:      billing.ErrInvoiceLineFeatureHasNoMeters.Code,
-			Message:   "feature[meterless-feature]: usage based invoice line: feature has no meters",
+			Message:   billing.ErrInvoiceLineFeatureHasNoMeters.Message,
 			Component: billing.ValidationComponentOpenMeterMetering,
 			Path:      fmt.Sprintf("/lines/%s", invoice.Lines.OrEmpty()[0].ID),
 			Attributes: models.Annotations{
@@ -4990,7 +4990,10 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
 		s.Equal(fmt.Sprintf("/lines/%s", pendingLineID), issue.Path)
-		s.Equal("feature[snapshot-feature]: usage based invoice line: feature has no meters", issue.Message)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issue.Message)
+		s.Equal("snapshot-feature", issue.Attributes["feature_key"])
+		s.Equal(snapshotMeter.ID, issue.Attributes["meter_id"])
+		s.Equal(snapshotMeter.Key, issue.Attributes["meter_slug"])
 
 		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),

@@ -109,7 +109,8 @@ func (s *SubscriptionHandlerTestSuite) TestLegacyBackendCreatesGatheringLineBefo
 	s.Equal(billing.ValidationIssueSeverityCritical, issue.Severity)
 	s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice), issue.Component)
 	s.Equal(fmt.Sprintf("/lines/%s", lines[0].ID), issue.Path)
-	s.Contains(issue.Message, missingFeatureKey)
+	s.Equal(billing.ErrInvoiceLineFeatureNotFound.Message, issue.Message)
+	s.Equal(missingFeatureKey, issue.Attributes["feature_key"])
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {

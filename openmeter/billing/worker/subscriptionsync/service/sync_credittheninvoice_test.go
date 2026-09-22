@@ -251,7 +251,9 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMeterlessUsageC
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issues[0].Code)
 		s.Equal(billing.ValidationIssueSeverityCritical, issues[0].Severity)
 		s.Equal(billing.ValidationComponentProductCatalog, issues[0].Component)
-		s.Contains(issues[0].Message, meterlessFeature.Key)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issues[0].Message)
+		s.Equal(meterlessFeature.ID, issues[0].Attributes["feature_id"])
+		s.Equal(meterlessFeature.Key, issues[0].Attributes["feature_key"])
 
 		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 		lines := gatheringInvoice.Lines.OrEmpty()
@@ -443,7 +445,8 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMissingFeatureU
 		s.Equal(billing.ErrInvoiceLineFeatureNotFound.Code, issues[0].Code)
 		s.Equal(billing.ValidationIssueSeverityCritical, issues[0].Severity)
 		s.Equal(billing.ValidationComponentProductCatalog, issues[0].Component)
-		s.Contains(issues[0].Message, missingFeatureKey)
+		s.Equal(billing.ErrInvoiceLineFeatureNotFound.Message, issues[0].Message)
+		s.Equal(missingFeatureKey, issues[0].Attributes["feature_key"])
 
 		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 		lines := gatheringInvoice.Lines.OrEmpty()
