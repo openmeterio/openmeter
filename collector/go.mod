@@ -12,7 +12,7 @@ require (
 	github.com/openmeterio/openmeter v0.0.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/common v0.71.0
-	github.com/redpanda-data/benthos/v4 v4.79.0
+	github.com/redpanda-data/benthos/v4 v4.80.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.108.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.53.0
@@ -296,7 +296,7 @@ require (
 	github.com/jzelinskie/stringz v0.0.3 // indirect
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
-	github.com/klauspost/compress v1.19.2 // indirect
+	github.com/klauspost/compress v1.20.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
