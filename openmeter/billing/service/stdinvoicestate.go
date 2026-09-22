@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
@@ -75,6 +76,15 @@ func allocateStateMachine() *InvoiceStateMachine {
 		},
 		stateless.FiringImmediate,
 	)
+	stateMachine.OnUnhandledTrigger(func(_ context.Context, state stateless.State, trigger stateless.Trigger, _ []string) error {
+		return billing.ValidationWithAttributes(
+			models.Annotations{
+				billing.AttributeKeyInvoiceStatus:  state,
+				billing.AttributeKeyInvoiceTrigger: trigger,
+			},
+			billing.ErrInvoiceActionNotAvailable,
+		)
+	})
 
 	// Draft states
 

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -320,10 +321,13 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		}
 
 		if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-			return nil, fmt.Errorf(
-				"flat fee line[%s]: unsupported settlement mode for API edit: %s",
-				override.ExistingLine.GetID(),
-				charge.Intent.GetSettlementMode(),
+			return nil, billing.ValidationWithAttributes(
+				models.Annotations{
+					billing.AttributeKeyLineID:         override.ExistingLine.GetID(),
+					billing.AttributeKeyOperation:      "edit",
+					billing.AttributeKeySettlementMode: charge.Intent.GetSettlementMode(),
+				},
+				billing.ErrInvoiceLineUnsupportedSettlementMode,
 			)
 		}
 
@@ -419,10 +423,13 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		}
 
 		if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf(
-				"flat fee line[%s]: unsupported settlement mode for API delete: %s",
-				line.GetID(),
-				charge.Intent.GetSettlementMode(),
+			return billing.OnMutableInvoiceUpdateResult{}, billing.ValidationWithAttributes(
+				models.Annotations{
+					billing.AttributeKeyLineID:         line.GetID(),
+					billing.AttributeKeyOperation:      "delete",
+					billing.AttributeKeySettlementMode: charge.Intent.GetSettlementMode(),
+				},
+				billing.ErrInvoiceLineUnsupportedSettlementMode,
 			)
 		}
 

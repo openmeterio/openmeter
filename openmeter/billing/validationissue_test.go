@@ -139,6 +139,19 @@ func TestValidationWithAttributes(t *testing.T) {
 		}, issues[0].Attributes)
 	})
 
+	t.Run("includes attributes in deterministic error text", func(t *testing.T) {
+		err := ValidationWithAttributes(
+			models.Annotations{
+				"second": "two",
+				"first":  1,
+			},
+			baseIssue,
+		)
+
+		require.EqualError(t, err, "invoice line needs attention [first=1,second=two]")
+		require.ErrorIs(t, err, baseIssue)
+	})
+
 	t.Run("applies attributes to every joined issue", func(t *testing.T) {
 		attributes := models.Annotations{
 			"invoice": map[string]any{"id": "invoice-1"},
@@ -315,7 +328,7 @@ func TestValidationContextWrappersPreserveSystemErrors(t *testing.T) {
 		{
 			name: "message",
 			wrap: func(err error) error {
-				return ValidationWithMessagef(err, "loading invoice[%s]", "invoice-1")
+				return ValidationWithMessage(err, "retry after the database recovers")
 			},
 		},
 		{
@@ -327,7 +340,7 @@ func TestValidationContextWrappersPreserveSystemErrors(t *testing.T) {
 						"lines/line-1",
 						ValidationWithAttributes(
 							models.Annotations{"line_id": "line-1"},
-							ValidationWithMessagef(err, "loading invoice[%s]", "invoice-1"),
+							ValidationWithMessage(err, "retry after the database recovers"),
 						),
 					),
 				)
@@ -358,7 +371,7 @@ func TestWrapAsValidationIssue(t *testing.T) {
 					"lines/line-1",
 					ValidationWithAttributes(
 						models.Annotations{"line_id": "line-1"},
-						ValidationWithMessagef(errors.Join(systemErr, warning), "loading invoice[%s]", "invoice-1"),
+						ValidationWithMessage(errors.Join(systemErr, warning), "retry after restoring the database"),
 					),
 				),
 			),
@@ -370,14 +383,14 @@ func TestWrapAsValidationIssue(t *testing.T) {
 		require.Equal(t, ValidationIssues{
 			{
 				Severity:   ValidationIssueSeverityCritical,
-				Message:    "loading invoice[invoice-1]: database unavailable",
+				Message:    "retry after restoring the database: database unavailable",
 				Component:  "component",
 				Path:       "/lines/line-1",
 				Attributes: models.Annotations{"line_id": "line-1"},
 			},
 			{
 				Severity:   warning.Severity,
-				Message:    "loading invoice[invoice-1]: data is stale",
+				Message:    "retry after restoring the database: data is stale",
 				Code:       warning.Code,
 				Component:  "component",
 				Path:       "/lines/line-1",
@@ -463,7 +476,7 @@ func TestValidationIssueRecorder(t *testing.T) {
 		WithPath("lines/line-2"),
 	)
 	require.ErrorIs(t, err, systemErr)
-	require.EqualError(t, err, "lines/line-2: line-engine: rating service unavailable")
+	require.EqualError(t, err, "lines/line-2: line-engine: rating service unavailable [line_id=line-2]")
 	require.False(t, IsValidationIssueOnly(err))
 
 	issues, extractionErr := ToValidationIssues(recorder.ErrorsOrNil())
@@ -525,7 +538,7 @@ func TestAsError(t *testing.T) {
 	require.Equal(t, issues, validationIssues)
 }
 
-func TestValidationWithMessagef(t *testing.T) {
+func TestValidationWithMessage(t *testing.T) {
 	baseIssue := ValidationIssue{
 		Severity:  ValidationIssueSeverityWarning,
 		Message:   "canonical message",
@@ -534,10 +547,14 @@ func TestValidationWithMessagef(t *testing.T) {
 		Path:      "original/path",
 	}
 
-	t.Run("adds formatted context and preserves error identity", func(t *testing.T) {
-		err := ValidationWithMessagef(baseIssue, "feature[%s]", "requests")
+	t.Run("adds guidance and attributes while preserving error identity", func(t *testing.T) {
+		err := ValidationWithMessage(
+			baseIssue,
+			"resolve the feature configuration",
+			models.Attributes{"feature": "requests"},
+		)
 
-		require.EqualError(t, err, "feature[requests]: canonical message")
+		require.EqualError(t, err, "resolve the feature configuration: canonical message [feature=requests]")
 		require.ErrorIs(t, err, baseIssue)
 
 		issues, systemErr := ToValidationIssues(err)
@@ -545,24 +562,27 @@ func TestValidationWithMessagef(t *testing.T) {
 		require.Equal(t, ValidationIssues{
 			{
 				Severity:  baseIssue.Severity,
-				Message:   "feature[requests]: canonical message",
+				Message:   "resolve the feature configuration: canonical message",
 				Code:      baseIssue.Code,
 				Component: baseIssue.Component,
 				Path:      "/original/path",
+				Attributes: models.Annotations{
+					"feature": "requests",
+				},
 			},
 		}, issues)
 	})
 
 	t.Run("composes nested message component and field context", func(t *testing.T) {
-		err := ValidationWithMessagef(
+		err := ValidationWithMessage(
 			ValidationWithComponent(
 				"outer-component",
 				ValidationWithFieldPrefix(
 					"lines/line-1",
-					ValidationWithMessagef(baseIssue, "inner[%d]", 42),
+					ValidationWithMessage(baseIssue, "resolve the inner issue"),
 				),
 			),
-			"outer",
+			"resolve the outer issue",
 		)
 
 		issues, systemErr := ToValidationIssues(err)
@@ -570,7 +590,7 @@ func TestValidationWithMessagef(t *testing.T) {
 		require.Equal(t, ValidationIssues{
 			{
 				Severity:  baseIssue.Severity,
-				Message:   "outer: inner[42]: canonical message",
+				Message:   "resolve the outer issue: resolve the inner issue: canonical message",
 				Code:      baseIssue.Code,
 				Component: "outer-component",
 				Path:      "/lines/line-1/original/path",
@@ -580,21 +600,21 @@ func TestValidationWithMessagef(t *testing.T) {
 
 	t.Run("prefixes every validation issue in a joined error", func(t *testing.T) {
 		secondIssue := NewValidationError("second_code", "second message")
-		err := ValidationWithMessagef(errors.Join(baseIssue, secondIssue), "shared context")
+		err := ValidationWithMessage(errors.Join(baseIssue, secondIssue), "resolve the shared issue")
 
 		issues, systemErr := ToValidationIssues(err)
 		require.NoError(t, systemErr)
 		require.Equal(t, ValidationIssues{
 			{
 				Severity:  baseIssue.Severity,
-				Message:   "shared context: canonical message",
+				Message:   "resolve the shared issue: canonical message",
 				Code:      baseIssue.Code,
 				Component: baseIssue.Component,
 				Path:      "/original/path",
 			},
 			{
 				Severity: secondIssue.Severity,
-				Message:  "shared context: second message",
+				Message:  "resolve the shared issue: second message",
 				Code:     secondIssue.Code,
 			},
 		}, issues)
@@ -602,9 +622,13 @@ func TestValidationWithMessagef(t *testing.T) {
 
 	t.Run("does not promote a system error", func(t *testing.T) {
 		systemErr := errors.New("database unavailable")
-		err := ValidationWithMessagef(systemErr, "loading invoice[%s]", "invoice-1")
+		err := ValidationWithMessage(
+			systemErr,
+			"retry after the database recovers",
+			models.Attributes{"invoice_id": "invoice-1"},
+		)
 
-		require.EqualError(t, err, "loading invoice[invoice-1]: database unavailable")
+		require.EqualError(t, err, "retry after the database recovers: database unavailable [invoice_id=invoice-1]")
 		require.ErrorIs(t, err, systemErr)
 
 		issues, extractionErr := ToValidationIssues(err)
@@ -612,7 +636,26 @@ func TestValidationWithMessagef(t *testing.T) {
 		require.Equal(t, err, extractionErr)
 	})
 
+	t.Run("merges attribute maps with later precedence", func(t *testing.T) {
+		err := ValidationWithMessage(
+			baseIssue,
+			"resolve the conflicting values",
+			models.Attributes{"first": 1, "precedence": "first"},
+			models.Attributes{"second": 2, "precedence": "second"},
+		)
+
+		require.EqualError(t, err, "resolve the conflicting values: canonical message [first=1,precedence=second,second=2]")
+
+		issues, systemErr := ToValidationIssues(err)
+		require.NoError(t, systemErr)
+		require.Equal(t, models.Annotations{
+			"first":      1,
+			"precedence": "second",
+			"second":     2,
+		}, issues[0].Attributes)
+	})
+
 	t.Run("returns nil for a nil error", func(t *testing.T) {
-		require.NoError(t, ValidationWithMessagef(nil, "unused %s", "context"))
+		require.NoError(t, ValidationWithMessage(nil, "unused", models.Attributes{"unused": true}))
 	})
 }

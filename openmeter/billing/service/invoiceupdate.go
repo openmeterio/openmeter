@@ -930,7 +930,10 @@ func (s *Service) dispatchAPIStandardLineDeletions(ctx context.Context, invoice 
 
 		engineResult, err := engine.OnMutableInvoiceLinesEditedViaAPI(ctx, groupedInput)
 		if err != nil {
-			return billing.NewLineEngineValidationError(engine, err)
+			// Invoice deletion records cleanup failures on delete.failed so the failed transition
+			// remains visible and retryable. Ordinary API edits keep operational callback failures
+			// as system errors.
+			return billing.NewLineEngineValidationError(engine, billing.WrapAsValidationIssue(err))
 		}
 
 		if err := validateLineEngineResult(groupedInput.Created, engineResult.CreatedLines); err != nil {

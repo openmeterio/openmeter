@@ -668,9 +668,12 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, standardInvoi
 	}
 
 	if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", sourceLine.GetID(), usagebased.ErrActiveRealizationRunAlreadyExists),
-		}
+		return nil, billing.WrapAsValidationIssue(billing.ValidationWithAttributes(
+			models.Annotations{
+				billing.AttributeKeyLineID: sourceLine.GetID(),
+			},
+			usagebased.ErrActiveRealizationRunAlreadyExists,
+		))
 	}
 
 	if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
@@ -736,10 +739,13 @@ func (e *LineEngine) validateInvoiceLineDeleteViaAPI(ctx context.Context, invoic
 	}
 
 	if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-		return usagebased.Charge{}, fmt.Errorf(
-			"usage based line[%s]: unsupported settlement mode for API delete: %s",
-			line.GetID(),
-			charge.Intent.GetSettlementMode(),
+		return usagebased.Charge{}, billing.ValidationWithAttributes(
+			models.Annotations{
+				billing.AttributeKeyLineID:         line.GetID(),
+				billing.AttributeKeyOperation:      "delete",
+				billing.AttributeKeySettlementMode: charge.Intent.GetSettlementMode(),
+			},
+			billing.ErrInvoiceLineUnsupportedSettlementMode,
 		)
 	}
 

@@ -79,7 +79,8 @@ func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = config.FeatureMeters.Get(charge)
-		require.ErrorContains(t, err, "feature[feature-key]: invoice line: feature not found")
+		require.ErrorContains(t, err, "invoice line: feature not found")
+		require.ErrorContains(t, err, "[feature_key=feature-key]")
 	})
 }
 

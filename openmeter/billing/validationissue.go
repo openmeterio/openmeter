@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -160,18 +161,30 @@ func (m messageWrapper) Unwrap() error {
 	return m.err
 }
 
-// ValidationWithMessagef wraps an error with formatted context, if error is nil, it returns nil.
-// Message context does not change whether an error is a validation issue. When the wrapped error
-// contains validation issues, the context is added to each extracted issue's message.
-func ValidationWithMessagef(err error, format string, args ...any) error {
+// ValidationWithMessage adds human-readable guidance to an error and optional structured context.
+// Attribute maps are merged from left to right, with later values taking precedence. Message context
+// does not change whether an error is a validation issue. When the wrapped error contains validation
+// issues, the guidance and attributes are added to each extracted issue.
+func ValidationWithMessage(err error, prefix string, attributes ...models.Attributes) error {
 	if err == nil {
 		return nil
 	}
 
-	return messageWrapper{
-		prefix: fmt.Sprintf(format, args...),
+	wrapped := error(messageWrapper{
+		prefix: prefix,
 		err:    err,
+	})
+
+	mergedAttributes := models.Attributes{}
+	for _, attributeSet := range attributes {
+		mergedAttributes = mergedAttributes.Merge(attributeSet)
 	}
+
+	if len(mergedAttributes) == 0 {
+		return wrapped
+	}
+
+	return ValidationWithAttributes(models.Annotations(mergedAttributes.AsStringMap()), wrapped)
 }
 
 type fieldPrefixWrapper struct {
@@ -208,7 +221,22 @@ type attributesWrapper struct {
 }
 
 func (a attributesWrapper) Error() string {
-	return a.err.Error()
+	if len(a.attributes) == 0 {
+		return a.err.Error()
+	}
+
+	keys := make([]string, 0, len(a.attributes))
+	for key := range a.attributes {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+
+	attributes := make([]string, 0, len(keys))
+	for _, key := range keys {
+		attributes = append(attributes, fmt.Sprintf("%s=%v", key, a.attributes[key]))
+	}
+
+	return fmt.Sprintf("%s [%s]", a.err.Error(), strings.Join(attributes, ","))
 }
 
 func (a attributesWrapper) Unwrap() error {
