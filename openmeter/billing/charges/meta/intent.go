@@ -11,13 +11,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Intent struct {
-	ManagedBy  billing.InvoiceLineManagedBy `json:"managedBy"`
-	CustomerID string                       `json:"customerID"`
+	SubscriptionPlan *planhistory.PlanVersion     `json:"subscriptionPlan,omitempty"`
+	ManagedBy        billing.InvoiceLineManagedBy `json:"managedBy"`
+	CustomerID       string                       `json:"customerID"`
 
 	Annotations models.Annotations `json:"annotations"`
 
@@ -30,6 +32,9 @@ type Intent struct {
 
 func (i Intent) Clone() Intent {
 	out := i
+	if i.SubscriptionPlan != nil {
+		out.SubscriptionPlan = lo.ToPtr(*i.SubscriptionPlan)
+	}
 
 	// Keep intent cloning infallible for developer ergonomics; annotations are
 	// only shallow-cloned here so GetEffectiveIntent does not need an error return.
@@ -53,6 +58,11 @@ func (i Intent) Clone() Intent {
 
 func (i Intent) Validate() error {
 	var errs []error
+	if i.SubscriptionPlan != nil {
+		if err := i.SubscriptionPlan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("subscription plan: %w", err))
+		}
+	}
 
 	if !slices.Contains(billing.InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))

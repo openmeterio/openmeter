@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -36,6 +37,11 @@ func (Subscription) Fields() []ent.Field {
 		field.String("name").NotEmpty().Default("Subscription"),
 		field.String("description").Optional().Nillable(),
 		field.String("plan_id").Optional().Nillable(),
+		field.String("plan_history").
+			GoType(planhistory.History{}).
+			ValueScanner(entutils.JSONStringValueScanner[planhistory.History]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
+			Optional(),
 		field.String("customer_id").NotEmpty().Immutable(),
 		field.String("invoice_currency").
 			StorageKey("currency").

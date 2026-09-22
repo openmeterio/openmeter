@@ -205,3 +205,36 @@ func TestCancelIncludesMigrationCommittedBeforeLock(t *testing.T) {
 	require.Equal(t, &end, items[0].Entitlement.Entitlement.ActiveTo)
 	require.NoError(t, after.Validate(true))
 }
+
+func TestScheduledMigrationPersistsEffectivePlanHistory(t *testing.T) {
+	// given: a running subscription and a later version with unchanged pricing.
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+	db := subscriptiontestutils.SetupDBDeps(t)
+	defer db.Cleanup(t)
+	deps := subscriptiontestutils.NewService(t, db)
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+	p1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).Build())
+	before := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps, p1, start)
+	clock.FreezeTime(start.Add(10 * 24 * time.Hour))
+	p2 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).Build())
+
+	// when: migration changes the plan reference now but takes effect next cycle.
+	_, _, err := deps.WorkflowService.MigrateToPlan(t.Context(), subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+		SubscriptionID: before.Subscription.NamespacedID, Plan: p2,
+		Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingNextBillingCycle)},
+	})
+	require.NoError(t, err)
+	after, err := deps.SubscriptionService.Get(t.Context(), before.Subscription.NamespacedID)
+	require.NoError(t, err)
+
+	// then: persisted history resolves the old version until the effective boundary.
+	require.Equal(t, p2.ToCreateSubscriptionPlanInput().Plan, after.PlanRef)
+	require.Len(t, after.PlanHistory, 2)
+	boundary := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	require.True(t, after.PlanHistory[1].EffectiveAt.Equal(boundary))
+	require.Equal(t, before.Subscription.PlanRef.Version, after.PlanHistory.At(boundary.Add(-time.Second)).Version)
+	require.Equal(t, after.PlanRef.Version, after.PlanHistory.At(boundary).Version)
+	require.Equal(t, before.Subscription.PlanRef.Key, after.PlanHistory.At(start).Key)
+}

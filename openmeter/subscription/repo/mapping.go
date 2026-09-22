@@ -72,6 +72,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		},
 		Annotations:     annotations,
 		PlanRef:         ref,
+		PlanHistory:     sub.PlanHistory,
 		Name:            sub.Name,
 		Description:     sub.Description,
 		CustomerId:      sub.CustomerID,

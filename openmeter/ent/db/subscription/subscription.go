@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 )
 
 const (
@@ -39,6 +40,8 @@ const (
 	FieldDescription = "description"
 	// FieldPlanID holds the string denoting the plan_id field in the database.
 	FieldPlanID = "plan_id"
+	// FieldPlanHistory holds the string denoting the plan_history field in the database.
+	FieldPlanHistory = "plan_history"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldInvoiceCurrency holds the string denoting the invoice_currency field in the database.
@@ -179,6 +182,7 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldPlanID,
+	FieldPlanHistory,
 	FieldCustomerID,
 	FieldInvoiceCurrency,
 	FieldCostBasisMode,
@@ -221,6 +225,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all Subscription fields.
 	ValueScanner struct {
+		PlanHistory     field.TypeValueScanner[planhistory.History]
 		ProRatingConfig field.TypeValueScanner[productcatalog.ProRatingConfig]
 	}
 )
@@ -314,6 +319,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByPlanID orders the results by the plan_id field.
 func ByPlanID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPlanID, opts...).ToFunc()
+}
+
+// ByPlanHistory orders the results by the plan_history field.
+func ByPlanHistory(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlanHistory, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.

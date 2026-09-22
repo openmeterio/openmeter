@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -108,7 +109,8 @@ func (ChargesSearchV1) buildChargesSearchV1TableSelector(s *sql.Selector, table 
 		AppendSelectExprAs(baseIntentDeletedAt, "base_intent_deleted_at").
 		AppendSelectExprAs(sql.Raw("'"+string(chargeType)+"'"), "type").
 		AppendSelectExprAs(featureID, "feature_id").
-		AppendSelectExprAs(featureKey, "feature_key")
+		AppendSelectExprAs(featureKey, "feature_key").
+		AppendSelect("subscription_plan")
 }
 
 func (ChargesSearchV1) Fields() []ent.Field {
@@ -281,6 +283,14 @@ func (chargesMetaMixin) Fields() []ent.Field {
 
 		field.Enum("managed_by").
 			GoType(billing.InvoiceLineManagedBy("")).
+			Immutable(),
+
+		field.String("subscription_plan").
+			GoType(&planhistory.PlanVersion{}).
+			ValueScanner(entutils.JSONStringValueScanner[*planhistory.PlanVersion]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
+			Optional().
+			Nillable().
 			Immutable(),
 
 		// Subscriptions metadata

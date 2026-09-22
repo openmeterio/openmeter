@@ -58,6 +58,8 @@ type CreateSubscriptionCustomerInput struct {
 }
 
 type SubscriptionSpec struct {
+	// PlanEffectiveAt is set by migration when advancing the catalog reference.
+	PlanEffectiveAt                 *time.Time `json:"-"`
 	CreateSubscriptionPlanInput     `json:",inline"`
 	CreateSubscriptionCustomerInput `json:",inline"`
 

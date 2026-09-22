@@ -101,6 +101,7 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 
 	return charges.NewChargeIntent(chargesflatfee.Intent{
 		Intent: chargesmeta.Intent{
+			SubscriptionPlan:  target.Subscription.PlanHistory.At(target.GetServicePeriod().From),
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
 			Annotations:       annotations,

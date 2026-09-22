@@ -27,6 +27,7 @@ import (
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -60,6 +61,8 @@ type ChargeUsageBased struct {
 	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
+	// SubscriptionPlan holds the value of the "subscription_plan" field.
+	SubscriptionPlan *planhistory.PlanVersion `json:"subscription_plan,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
 	SubscriptionID *string `json:"subscription_id,omitempty"`
 	// SubscriptionPhaseID holds the value of the "subscription_phase_id" field.
@@ -303,6 +306,8 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldInvoiceAt, chargeusagebased.FieldIntentDeletedAt:
 			values[i] = new(sql.NullTime)
+		case chargeusagebased.FieldSubscriptionPlan:
+			values[i] = chargeusagebased.ValueScanner.SubscriptionPlan.ScanValue()
 		case chargeusagebased.FieldDiscounts:
 			values[i] = chargeusagebased.ValueScanner.Discounts.ScanValue()
 		case chargeusagebased.FieldPrice:
@@ -404,6 +409,12 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field managed_by", values[i])
 			} else if value.Valid {
 				_m.ManagedBy = billing.InvoiceLineManagedBy(value.String)
+			}
+		case chargeusagebased.FieldSubscriptionPlan:
+			if value, err := chargeusagebased.ValueScanner.SubscriptionPlan.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.SubscriptionPlan = value
 			}
 		case chargeusagebased.FieldSubscriptionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -726,6 +737,11 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))
+	builder.WriteString(", ")
+	if v := _m.SubscriptionPlan; v != nil {
+		builder.WriteString("subscription_plan=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.SubscriptionID; v != nil {
 		builder.WriteString("subscription_id=")

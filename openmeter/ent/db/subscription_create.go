@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -158,6 +159,12 @@ func (_c *SubscriptionCreate) SetNillablePlanID(v *string) *SubscriptionCreate {
 	if v != nil {
 		_c.SetPlanID(*v)
 	}
+	return _c
+}
+
+// SetPlanHistory sets the "plan_history" field.
+func (_c *SubscriptionCreate) SetPlanHistory(v planhistory.History) *SubscriptionCreate {
+	_c.mutation.SetPlanHistory(v)
 	return _c
 }
 
@@ -625,6 +632,14 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 		_spec.SetField(subscription.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
+	if value, ok := _c.mutation.PlanHistory(); ok {
+		vv, err := subscription.ValueScanner.PlanHistory.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscription.FieldPlanHistory, field.TypeString, vv)
+		_node.PlanHistory = value
+	}
 	if value, ok := _c.mutation.InvoiceCurrency(); ok {
 		_spec.SetField(subscription.FieldInvoiceCurrency, field.TypeString, value)
 		_node.InvoiceCurrency = value
@@ -1031,6 +1046,24 @@ func (u *SubscriptionUpsert) ClearPlanID() *SubscriptionUpsert {
 	return u
 }
 
+// SetPlanHistory sets the "plan_history" field.
+func (u *SubscriptionUpsert) SetPlanHistory(v planhistory.History) *SubscriptionUpsert {
+	u.Set(subscription.FieldPlanHistory, v)
+	return u
+}
+
+// UpdatePlanHistory sets the "plan_history" field to the value that was provided on create.
+func (u *SubscriptionUpsert) UpdatePlanHistory() *SubscriptionUpsert {
+	u.SetExcluded(subscription.FieldPlanHistory)
+	return u
+}
+
+// ClearPlanHistory clears the value of the "plan_history" field.
+func (u *SubscriptionUpsert) ClearPlanHistory() *SubscriptionUpsert {
+	u.SetNull(subscription.FieldPlanHistory)
+	return u
+}
+
 // SetBillingAnchor sets the "billing_anchor" field.
 func (u *SubscriptionUpsert) SetBillingAnchor(v time.Time) *SubscriptionUpsert {
 	u.Set(subscription.FieldBillingAnchor, v)
@@ -1287,6 +1320,27 @@ func (u *SubscriptionUpsertOne) UpdatePlanID() *SubscriptionUpsertOne {
 func (u *SubscriptionUpsertOne) ClearPlanID() *SubscriptionUpsertOne {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetPlanHistory sets the "plan_history" field.
+func (u *SubscriptionUpsertOne) SetPlanHistory(v planhistory.History) *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPlanHistory(v)
+	})
+}
+
+// UpdatePlanHistory sets the "plan_history" field to the value that was provided on create.
+func (u *SubscriptionUpsertOne) UpdatePlanHistory() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePlanHistory()
+	})
+}
+
+// ClearPlanHistory clears the value of the "plan_history" field.
+func (u *SubscriptionUpsertOne) ClearPlanHistory() *SubscriptionUpsertOne {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearPlanHistory()
 	})
 }
 
@@ -1722,6 +1776,27 @@ func (u *SubscriptionUpsertBulk) UpdatePlanID() *SubscriptionUpsertBulk {
 func (u *SubscriptionUpsertBulk) ClearPlanID() *SubscriptionUpsertBulk {
 	return u.Update(func(s *SubscriptionUpsert) {
 		s.ClearPlanID()
+	})
+}
+
+// SetPlanHistory sets the "plan_history" field.
+func (u *SubscriptionUpsertBulk) SetPlanHistory(v planhistory.History) *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.SetPlanHistory(v)
+	})
+}
+
+// UpdatePlanHistory sets the "plan_history" field to the value that was provided on create.
+func (u *SubscriptionUpsertBulk) UpdatePlanHistory() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.UpdatePlanHistory()
+	})
+}
+
+// ClearPlanHistory clears the value of the "plan_history" field.
+func (u *SubscriptionUpsertBulk) ClearPlanHistory() *SubscriptionUpsertBulk {
+	return u.Update(func(s *SubscriptionUpsert) {
+		s.ClearPlanHistory()
 	})
 }
 

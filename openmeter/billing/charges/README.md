@@ -55,6 +55,11 @@ projection. The type-specific detailed status is the lifecycle state.
 `AdvanceCharges` coordinates concrete services; it is not a second
 implementation of their state machines.
 
+Subscription-managed charges snapshot the plan key and version effective at their
+service-period start from [subscription history](../../subscription/README.md).
+That snapshot is immutable across overrides, corrections, and later subscription
+migrations. Charges without recorded attribution remain unattributed.
+
 ## Intent layers
 
 Flat-fee and usage-based charges have an immutable intent, a mutable base layer,

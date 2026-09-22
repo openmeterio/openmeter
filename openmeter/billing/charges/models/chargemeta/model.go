@@ -13,6 +13,7 @@ import (
 	currenciesadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -59,6 +60,7 @@ type Creator[T any] interface {
 	entutils.AnnotationsMixinSetter[T]
 	entutils.TimeMixinCreator[T]
 
+	SetSubscriptionPlan(*planhistory.PlanVersion) T
 	SetCustomerID(customerID string) T
 	SetNillableFiatCurrencyCode(currency *currencyx.Code) T
 	SetNillableCustomCurrencyID(customCurrencyID *string) T
@@ -147,6 +149,9 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		creator = creator.SetValidationIssues(in.ValidationIssues)
 	}
 
+	if in.Intent.SubscriptionPlan != nil {
+		creator = creator.SetSubscriptionPlan(in.Intent.SubscriptionPlan)
+	}
 	return creator.
 		SetNamespace(in.Namespace).
 		SetName(in.IntentMutableFields.Name).
@@ -228,6 +233,7 @@ type Getter[T any] interface {
 	GetMetadata() map[string]string
 	GetAnnotations() models.Annotations
 	GetManagedBy() billing.InvoiceLineManagedBy
+	GetSubscriptionPlan() *planhistory.PlanVersion
 	GetCustomerID() string
 	GetServicePeriodFrom() time.Time
 	GetServicePeriodTo() time.Time
@@ -300,10 +306,11 @@ func FromDBWithCurrency[T Getter[T]](entity T, currency currencies.Currency) (me
 			ID:           entity.GetID(),
 		},
 		Intent: meta.Intent{
-			ManagedBy:   entity.GetManagedBy(),
-			CustomerID:  entity.GetCustomerID(),
-			Annotations: entity.GetAnnotations(),
-			Currency:    currency,
+			SubscriptionPlan: entity.GetSubscriptionPlan(),
+			ManagedBy:        entity.GetManagedBy(),
+			CustomerID:       entity.GetCustomerID(),
+			Annotations:      entity.GetAnnotations(),
+			Currency:         currency,
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: entity.GetTaxCodeID(),
 				Behavior:  entity.GetTaxBehavior(),

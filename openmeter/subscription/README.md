@@ -53,6 +53,11 @@ The plan reference can advance to a later version of the same plan through
 their entitlements. Consumers must not treat a persisted phase, item, or
 entitlement ID as the durable identity of a logical spec path.
 
+Plan migrations persist an effective plan/version history. New charges snapshot
+the plan effective at their service-period start; existing charges keep their
+original attribution. Missing history stays unknown rather than being inferred
+from the current plan reference.
+
 Higher-level plan workflows create a spec from a plan and express running
 changes as patches. Addons also modify the spec, but an addon-bearing
 subscription cannot be edited through the general running-edit workflow; use

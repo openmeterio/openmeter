@@ -16,6 +16,7 @@ import (
 	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -59,7 +60,21 @@ func (r *subscriptionRepo) AdvancePlanReference(ctx context.Context, input subsc
 		if !exists {
 			return struct{}{}, models.NewGenericValidationError(errors.New("target plan reference does not exist in the subscription namespace"))
 		}
+		current, err := repo.db.Subscription.Query().Where(dbsubscription.ID(input.SubscriptionID.ID), dbsubscription.Namespace(input.SubscriptionID.Namespace)).Only(ctx)
+		if err != nil {
+			return struct{}{}, err
+		}
+		// A newer migration can supersede scheduled changes, but never changes
+		// the plan recorded before its effective boundary.
+		history := slices.DeleteFunc(slices.Clone(current.PlanHistory), func(change planhistory.Change) bool {
+			return !change.EffectiveAt.Before(input.EffectiveAt)
+		})
+		history = append(history, planhistory.Change{
+			EffectiveAt: input.EffectiveAt,
+			Plan:        planhistory.PlanVersion{Key: input.TargetPlan.Key, Version: input.TargetPlan.Version},
+		})
 		_, err = repo.db.Subscription.UpdateOneID(input.SubscriptionID.ID).
+			SetPlanHistory(history).
 			Where(dbsubscription.Namespace(input.SubscriptionID.Namespace), dbsubscription.PlanID(input.CurrentPlan.Id)).
 			SetPlanID(input.TargetPlan.Id).Save(ctx)
 		if db.IsNotFound(err) {
@@ -160,7 +175,7 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 		}
 
 		if sub.Plan != nil {
-			command = command.SetPlanID(sub.Plan.Id)
+			command = command.SetPlanID(sub.Plan.Id).SetPlanHistory(planhistory.History{{EffectiveAt: sub.ActiveFrom, Plan: planhistory.PlanVersion{Key: sub.Plan.Key, Version: sub.Plan.Version}}})
 		}
 
 		res, err := command.Save(ctx)

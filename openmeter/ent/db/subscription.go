@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -47,6 +48,8 @@ type Subscription struct {
 	Description *string `json:"description,omitempty"`
 	// PlanID holds the value of the "plan_id" field.
 	PlanID *string `json:"plan_id,omitempty"`
+	// PlanHistory holds the value of the "plan_history" field.
+	PlanHistory planhistory.History `json:"plan_history,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// InvoiceCurrency holds the value of the "invoice_currency" field.
@@ -223,6 +226,8 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo, subscription.FieldBillingAnchor:
 			values[i] = new(sql.NullTime)
+		case subscription.FieldPlanHistory:
+			values[i] = subscription.ValueScanner.PlanHistory.ScanValue()
 		case subscription.FieldProRatingConfig:
 			values[i] = subscription.ValueScanner.ProRatingConfig.ScanValue()
 		default:
@@ -319,6 +324,12 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.PlanID = new(string)
 				*_m.PlanID = value.String
+			}
+		case subscription.FieldPlanHistory:
+			if value, err := subscription.ValueScanner.PlanHistory.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.PlanHistory = value
 			}
 		case subscription.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -498,6 +509,9 @@ func (_m *Subscription) String() string {
 		builder.WriteString("plan_id=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("plan_history=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PlanHistory))
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(_m.CustomerID)

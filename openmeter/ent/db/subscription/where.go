@@ -655,6 +655,16 @@ func PlanIDContainsFold(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldContainsFold(FieldPlanID, v))
 }
 
+// PlanHistoryIsNil applies the IsNil predicate on the "plan_history" field.
+func PlanHistoryIsNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldIsNull(FieldPlanHistory))
+}
+
+// PlanHistoryNotNil applies the NotNil predicate on the "plan_history" field.
+func PlanHistoryNotNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotNull(FieldPlanHistory))
+}
+
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
 func CustomerIDEQ(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldCustomerID, v))

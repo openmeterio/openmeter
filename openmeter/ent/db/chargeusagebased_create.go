@@ -30,6 +30,7 @@ import (
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -135,6 +136,12 @@ func (_c *ChargeUsageBasedCreate) SetNillableCustomCurrencyID(v *string) *Charge
 // SetManagedBy sets the "managed_by" field.
 func (_c *ChargeUsageBasedCreate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedCreate {
 	_c.mutation.SetManagedBy(v)
+	return _c
+}
+
+// SetSubscriptionPlan sets the "subscription_plan" field.
+func (_c *ChargeUsageBasedCreate) SetSubscriptionPlan(v *planhistory.PlanVersion) *ChargeUsageBasedCreate {
+	_c.mutation.SetSubscriptionPlan(v)
 	return _c
 }
 
@@ -648,6 +655,11 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.SubscriptionPlan(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "subscription_plan", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.subscription_plan": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.TaxCodeID(); !ok {
 		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeUsageBased.tax_code_id"`)}
 	}
@@ -820,6 +832,14 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.SubscriptionPlan(); ok {
+		vv, err := chargeusagebased.ValueScanner.SubscriptionPlan.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldSubscriptionPlan, field.TypeString, vv)
+		_node.SubscriptionPlan = value
 	}
 	if value, ok := _c.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
@@ -1604,6 +1624,9 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargeusagebased.FieldManagedBy)
 		}
+		if _, exists := u.create.mutation.SubscriptionPlan(); exists {
+			s.SetIgnore(chargeusagebased.FieldSubscriptionPlan)
+		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionID)
 		}
@@ -2314,6 +2337,9 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			}
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargeusagebased.FieldManagedBy)
+			}
+			if _, exists := b.mutation.SubscriptionPlan(); exists {
+				s.SetIgnore(chargeusagebased.FieldSubscriptionPlan)
 			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionID)

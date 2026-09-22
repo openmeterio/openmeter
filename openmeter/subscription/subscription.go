@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,7 +21,8 @@ type Subscription struct {
 	Description *string `json:"description,omitempty"`
 
 	// References the plan (if the Subscription was created form one)
-	PlanRef *PlanRef `json:"planRef"`
+	PlanRef     *PlanRef            `json:"planRef"`
+	PlanHistory planhistory.History `json:"planHistory,omitempty"`
 
 	CustomerId string `json:"customerId,omitempty"`
 	// Keep the legacy JSON key because v1 subscription events embed this domain type.

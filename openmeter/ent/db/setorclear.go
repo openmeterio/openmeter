@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -6278,6 +6279,20 @@ func (u *SubscriptionUpdateOne) SetOrClearPlanID(value *string) *SubscriptionUpd
 		return u.ClearPlanID()
 	}
 	return u.SetPlanID(*value)
+}
+
+func (u *SubscriptionUpdate) SetOrClearPlanHistory(value *planhistory.History) *SubscriptionUpdate {
+	if value == nil {
+		return u.ClearPlanHistory()
+	}
+	return u.SetPlanHistory(*value)
+}
+
+func (u *SubscriptionUpdateOne) SetOrClearPlanHistory(value *planhistory.History) *SubscriptionUpdateOne {
+	if value == nil {
+		return u.ClearPlanHistory()
+	}
+	return u.SetPlanHistory(*value)
 }
 
 func (u *SubscriptionAddonUpdate) SetOrClearMetadata(value *map[string]string) *SubscriptionAddonUpdate {

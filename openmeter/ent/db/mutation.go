@@ -125,6 +125,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -40104,6 +40105,7 @@ type ChargeCreditPurchaseMutation struct {
 	unique_reference_id               *string
 	fiat_currency_code                *currencyx.Code
 	managed_by                        *billing.InvoiceLineManagedBy
+	subscription_plan                 **planhistory.PlanVersion
 	advance_after                     *time.Time
 	tax_behavior                      *productcatalog.TaxBehavior
 	annotations                       *models.Annotations
@@ -40733,6 +40735,55 @@ func (m *ChargeCreditPurchaseMutation) OldManagedBy(ctx context.Context) (v bill
 // ResetManagedBy resets all changes to the "managed_by" field.
 func (m *ChargeCreditPurchaseMutation) ResetManagedBy() {
 	m.managed_by = nil
+}
+
+// SetSubscriptionPlan sets the "subscription_plan" field.
+func (m *ChargeCreditPurchaseMutation) SetSubscriptionPlan(pv *planhistory.PlanVersion) {
+	m.subscription_plan = &pv
+}
+
+// SubscriptionPlan returns the value of the "subscription_plan" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) SubscriptionPlan() (r *planhistory.PlanVersion, exists bool) {
+	v := m.subscription_plan
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionPlan returns the old "subscription_plan" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldSubscriptionPlan(ctx context.Context) (v *planhistory.PlanVersion, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionPlan is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionPlan requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionPlan: %w", err)
+	}
+	return oldValue.SubscriptionPlan, nil
+}
+
+// ClearSubscriptionPlan clears the value of the "subscription_plan" field.
+func (m *ChargeCreditPurchaseMutation) ClearSubscriptionPlan() {
+	m.subscription_plan = nil
+	m.clearedFields[chargecreditpurchase.FieldSubscriptionPlan] = struct{}{}
+}
+
+// SubscriptionPlanCleared returns if the "subscription_plan" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) SubscriptionPlanCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldSubscriptionPlan]
+	return ok
+}
+
+// ResetSubscriptionPlan resets all changes to the "subscription_plan" field.
+func (m *ChargeCreditPurchaseMutation) ResetSubscriptionPlan() {
+	m.subscription_plan = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldSubscriptionPlan)
 }
 
 // SetSubscriptionID sets the "subscription_id" field.
@@ -42524,7 +42575,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 42)
+	fields := make([]string, 0, 43)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -42560,6 +42611,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	}
 	if m.managed_by != nil {
 		fields = append(fields, chargecreditpurchase.FieldManagedBy)
+	}
+	if m.subscription_plan != nil {
+		fields = append(fields, chargecreditpurchase.FieldSubscriptionPlan)
 	}
 	if m.subscription != nil {
 		fields = append(fields, chargecreditpurchase.FieldSubscriptionID)
@@ -42683,6 +42737,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomCurrencyID()
 	case chargecreditpurchase.FieldManagedBy:
 		return m.ManagedBy()
+	case chargecreditpurchase.FieldSubscriptionPlan:
+		return m.SubscriptionPlan()
 	case chargecreditpurchase.FieldSubscriptionID:
 		return m.SubscriptionID()
 	case chargecreditpurchase.FieldSubscriptionPhaseID:
@@ -42776,6 +42832,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldCustomCurrencyID(ctx)
 	case chargecreditpurchase.FieldManagedBy:
 		return m.OldManagedBy(ctx)
+	case chargecreditpurchase.FieldSubscriptionPlan:
+		return m.OldSubscriptionPlan(ctx)
 	case chargecreditpurchase.FieldSubscriptionID:
 		return m.OldSubscriptionID(ctx)
 	case chargecreditpurchase.FieldSubscriptionPhaseID:
@@ -42928,6 +42986,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetManagedBy(v)
+		return nil
+	case chargecreditpurchase.FieldSubscriptionPlan:
+		v, ok := value.(*planhistory.PlanVersion)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionPlan(v)
 		return nil
 	case chargecreditpurchase.FieldSubscriptionID:
 		v, ok := value.(string)
@@ -43205,6 +43270,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldCustomCurrencyID) {
 		fields = append(fields, chargecreditpurchase.FieldCustomCurrencyID)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldSubscriptionPlan) {
+		fields = append(fields, chargecreditpurchase.FieldSubscriptionPlan)
+	}
 	if m.FieldCleared(chargecreditpurchase.FieldSubscriptionID) {
 		fields = append(fields, chargecreditpurchase.FieldSubscriptionID)
 	}
@@ -43290,6 +43358,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
+		return nil
+	case chargecreditpurchase.FieldSubscriptionPlan:
+		m.ClearSubscriptionPlan()
 		return nil
 	case chargecreditpurchase.FieldSubscriptionID:
 		m.ClearSubscriptionID()
@@ -43397,6 +43468,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldManagedBy:
 		m.ResetManagedBy()
+		return nil
+	case chargecreditpurchase.FieldSubscriptionPlan:
+		m.ResetSubscriptionPlan()
 		return nil
 	case chargecreditpurchase.FieldSubscriptionID:
 		m.ResetSubscriptionID()
@@ -48325,6 +48399,7 @@ type ChargeFlatFeeMutation struct {
 	unique_reference_id       *string
 	fiat_currency_code        *currencyx.Code
 	managed_by                *billing.InvoiceLineManagedBy
+	subscription_plan         **planhistory.PlanVersion
 	advance_after             *time.Time
 	tax_behavior              *productcatalog.TaxBehavior
 	annotations               *models.Annotations
@@ -48951,6 +49026,55 @@ func (m *ChargeFlatFeeMutation) OldManagedBy(ctx context.Context) (v billing.Inv
 // ResetManagedBy resets all changes to the "managed_by" field.
 func (m *ChargeFlatFeeMutation) ResetManagedBy() {
 	m.managed_by = nil
+}
+
+// SetSubscriptionPlan sets the "subscription_plan" field.
+func (m *ChargeFlatFeeMutation) SetSubscriptionPlan(pv *planhistory.PlanVersion) {
+	m.subscription_plan = &pv
+}
+
+// SubscriptionPlan returns the value of the "subscription_plan" field in the mutation.
+func (m *ChargeFlatFeeMutation) SubscriptionPlan() (r *planhistory.PlanVersion, exists bool) {
+	v := m.subscription_plan
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionPlan returns the old "subscription_plan" field's value of the ChargeFlatFee entity.
+// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeMutation) OldSubscriptionPlan(ctx context.Context) (v *planhistory.PlanVersion, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionPlan is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionPlan requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionPlan: %w", err)
+	}
+	return oldValue.SubscriptionPlan, nil
+}
+
+// ClearSubscriptionPlan clears the value of the "subscription_plan" field.
+func (m *ChargeFlatFeeMutation) ClearSubscriptionPlan() {
+	m.subscription_plan = nil
+	m.clearedFields[chargeflatfee.FieldSubscriptionPlan] = struct{}{}
+}
+
+// SubscriptionPlanCleared returns if the "subscription_plan" field was cleared in this mutation.
+func (m *ChargeFlatFeeMutation) SubscriptionPlanCleared() bool {
+	_, ok := m.clearedFields[chargeflatfee.FieldSubscriptionPlan]
+	return ok
+}
+
+// ResetSubscriptionPlan resets all changes to the "subscription_plan" field.
+func (m *ChargeFlatFeeMutation) ResetSubscriptionPlan() {
+	m.subscription_plan = nil
+	delete(m.clearedFields, chargeflatfee.FieldSubscriptionPlan)
 }
 
 // SetSubscriptionID sets the "subscription_id" field.
@@ -50607,7 +50731,7 @@ func (m *ChargeFlatFeeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeMutation) Fields() []string {
-	fields := make([]string, 0, 40)
+	fields := make([]string, 0, 41)
 	if m.customer != nil {
 		fields = append(fields, chargeflatfee.FieldCustomerID)
 	}
@@ -50643,6 +50767,9 @@ func (m *ChargeFlatFeeMutation) Fields() []string {
 	}
 	if m.managed_by != nil {
 		fields = append(fields, chargeflatfee.FieldManagedBy)
+	}
+	if m.subscription_plan != nil {
+		fields = append(fields, chargeflatfee.FieldSubscriptionPlan)
 	}
 	if m.subscription != nil {
 		fields = append(fields, chargeflatfee.FieldSubscriptionID)
@@ -50760,6 +50887,8 @@ func (m *ChargeFlatFeeMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomCurrencyID()
 	case chargeflatfee.FieldManagedBy:
 		return m.ManagedBy()
+	case chargeflatfee.FieldSubscriptionPlan:
+		return m.SubscriptionPlan()
 	case chargeflatfee.FieldSubscriptionID:
 		return m.SubscriptionID()
 	case chargeflatfee.FieldSubscriptionPhaseID:
@@ -50849,6 +50978,8 @@ func (m *ChargeFlatFeeMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldCustomCurrencyID(ctx)
 	case chargeflatfee.FieldManagedBy:
 		return m.OldManagedBy(ctx)
+	case chargeflatfee.FieldSubscriptionPlan:
+		return m.OldSubscriptionPlan(ctx)
 	case chargeflatfee.FieldSubscriptionID:
 		return m.OldSubscriptionID(ctx)
 	case chargeflatfee.FieldSubscriptionPhaseID:
@@ -50997,6 +51128,13 @@ func (m *ChargeFlatFeeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetManagedBy(v)
+		return nil
+	case chargeflatfee.FieldSubscriptionPlan:
+		v, ok := value.(*planhistory.PlanVersion)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionPlan(v)
 		return nil
 	case chargeflatfee.FieldSubscriptionID:
 		v, ok := value.(string)
@@ -51233,6 +51371,9 @@ func (m *ChargeFlatFeeMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfee.FieldCustomCurrencyID) {
 		fields = append(fields, chargeflatfee.FieldCustomCurrencyID)
 	}
+	if m.FieldCleared(chargeflatfee.FieldSubscriptionPlan) {
+		fields = append(fields, chargeflatfee.FieldSubscriptionPlan)
+	}
 	if m.FieldCleared(chargeflatfee.FieldSubscriptionID) {
 		fields = append(fields, chargeflatfee.FieldSubscriptionID)
 	}
@@ -51303,6 +51444,9 @@ func (m *ChargeFlatFeeMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfee.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
+		return nil
+	case chargeflatfee.FieldSubscriptionPlan:
+		m.ClearSubscriptionPlan()
 		return nil
 	case chargeflatfee.FieldSubscriptionID:
 		m.ClearSubscriptionID()
@@ -51395,6 +51539,9 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfee.FieldManagedBy:
 		m.ResetManagedBy()
+		return nil
+	case chargeflatfee.FieldSubscriptionPlan:
+		m.ResetSubscriptionPlan()
 		return nil
 	case chargeflatfee.FieldSubscriptionID:
 		m.ResetSubscriptionID()
@@ -64485,6 +64632,7 @@ type ChargeUsageBasedMutation struct {
 	unique_reference_id       *string
 	fiat_currency_code        *currencyx.Code
 	managed_by                *billing.InvoiceLineManagedBy
+	subscription_plan         **planhistory.PlanVersion
 	advance_after             *time.Time
 	tax_behavior              *productcatalog.TaxBehavior
 	annotations               *models.Annotations
@@ -65113,6 +65261,55 @@ func (m *ChargeUsageBasedMutation) OldManagedBy(ctx context.Context) (v billing.
 // ResetManagedBy resets all changes to the "managed_by" field.
 func (m *ChargeUsageBasedMutation) ResetManagedBy() {
 	m.managed_by = nil
+}
+
+// SetSubscriptionPlan sets the "subscription_plan" field.
+func (m *ChargeUsageBasedMutation) SetSubscriptionPlan(pv *planhistory.PlanVersion) {
+	m.subscription_plan = &pv
+}
+
+// SubscriptionPlan returns the value of the "subscription_plan" field in the mutation.
+func (m *ChargeUsageBasedMutation) SubscriptionPlan() (r *planhistory.PlanVersion, exists bool) {
+	v := m.subscription_plan
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionPlan returns the old "subscription_plan" field's value of the ChargeUsageBased entity.
+// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedMutation) OldSubscriptionPlan(ctx context.Context) (v *planhistory.PlanVersion, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionPlan is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionPlan requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionPlan: %w", err)
+	}
+	return oldValue.SubscriptionPlan, nil
+}
+
+// ClearSubscriptionPlan clears the value of the "subscription_plan" field.
+func (m *ChargeUsageBasedMutation) ClearSubscriptionPlan() {
+	m.subscription_plan = nil
+	m.clearedFields[chargeusagebased.FieldSubscriptionPlan] = struct{}{}
+}
+
+// SubscriptionPlanCleared returns if the "subscription_plan" field was cleared in this mutation.
+func (m *ChargeUsageBasedMutation) SubscriptionPlanCleared() bool {
+	_, ok := m.clearedFields[chargeusagebased.FieldSubscriptionPlan]
+	return ok
+}
+
+// ResetSubscriptionPlan resets all changes to the "subscription_plan" field.
+func (m *ChargeUsageBasedMutation) ResetSubscriptionPlan() {
+	m.subscription_plan = nil
+	delete(m.clearedFields, chargeusagebased.FieldSubscriptionPlan)
 }
 
 // SetSubscriptionID sets the "subscription_id" field.
@@ -66787,7 +66984,7 @@ func (m *ChargeUsageBasedMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedMutation) Fields() []string {
-	fields := make([]string, 0, 39)
+	fields := make([]string, 0, 40)
 	if m.customer != nil {
 		fields = append(fields, chargeusagebased.FieldCustomerID)
 	}
@@ -66823,6 +67020,9 @@ func (m *ChargeUsageBasedMutation) Fields() []string {
 	}
 	if m.managed_by != nil {
 		fields = append(fields, chargeusagebased.FieldManagedBy)
+	}
+	if m.subscription_plan != nil {
+		fields = append(fields, chargeusagebased.FieldSubscriptionPlan)
 	}
 	if m.subscription != nil {
 		fields = append(fields, chargeusagebased.FieldSubscriptionID)
@@ -66937,6 +67137,8 @@ func (m *ChargeUsageBasedMutation) Field(name string) (ent.Value, bool) {
 		return m.CustomCurrencyID()
 	case chargeusagebased.FieldManagedBy:
 		return m.ManagedBy()
+	case chargeusagebased.FieldSubscriptionPlan:
+		return m.SubscriptionPlan()
 	case chargeusagebased.FieldSubscriptionID:
 		return m.SubscriptionID()
 	case chargeusagebased.FieldSubscriptionPhaseID:
@@ -67024,6 +67226,8 @@ func (m *ChargeUsageBasedMutation) OldField(ctx context.Context, name string) (e
 		return m.OldCustomCurrencyID(ctx)
 	case chargeusagebased.FieldManagedBy:
 		return m.OldManagedBy(ctx)
+	case chargeusagebased.FieldSubscriptionPlan:
+		return m.OldSubscriptionPlan(ctx)
 	case chargeusagebased.FieldSubscriptionID:
 		return m.OldSubscriptionID(ctx)
 	case chargeusagebased.FieldSubscriptionPhaseID:
@@ -67170,6 +67374,13 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetManagedBy(v)
+		return nil
+	case chargeusagebased.FieldSubscriptionPlan:
+		v, ok := value.(*planhistory.PlanVersion)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionPlan(v)
 		return nil
 	case chargeusagebased.FieldSubscriptionID:
 		v, ok := value.(string)
@@ -67399,6 +67610,9 @@ func (m *ChargeUsageBasedMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebased.FieldCustomCurrencyID) {
 		fields = append(fields, chargeusagebased.FieldCustomCurrencyID)
 	}
+	if m.FieldCleared(chargeusagebased.FieldSubscriptionPlan) {
+		fields = append(fields, chargeusagebased.FieldSubscriptionPlan)
+	}
 	if m.FieldCleared(chargeusagebased.FieldSubscriptionID) {
 		fields = append(fields, chargeusagebased.FieldSubscriptionID)
 	}
@@ -67469,6 +67683,9 @@ func (m *ChargeUsageBasedMutation) ClearField(name string) error {
 		return nil
 	case chargeusagebased.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
+		return nil
+	case chargeusagebased.FieldSubscriptionPlan:
+		m.ClearSubscriptionPlan()
 		return nil
 	case chargeusagebased.FieldSubscriptionID:
 		m.ClearSubscriptionID()
@@ -67561,6 +67778,9 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebased.FieldManagedBy:
 		m.ResetManagedBy()
+		return nil
+	case chargeusagebased.FieldSubscriptionPlan:
+		m.ResetSubscriptionPlan()
 		return nil
 	case chargeusagebased.FieldSubscriptionID:
 		m.ResetSubscriptionID()
@@ -119054,6 +119274,7 @@ type SubscriptionMutation struct {
 	active_to                              *time.Time
 	name                                   *string
 	description                            *string
+	plan_history                           *planhistory.History
 	invoice_currency                       *currencyx.Code
 	cost_basis_mode                        *subscription.CostBasisMode
 	billing_anchor                         *time.Time
@@ -119675,6 +119896,55 @@ func (m *SubscriptionMutation) PlanIDCleared() bool {
 func (m *SubscriptionMutation) ResetPlanID() {
 	m.plan = nil
 	delete(m.clearedFields, subscription.FieldPlanID)
+}
+
+// SetPlanHistory sets the "plan_history" field.
+func (m *SubscriptionMutation) SetPlanHistory(pl planhistory.History) {
+	m.plan_history = &pl
+}
+
+// PlanHistory returns the value of the "plan_history" field in the mutation.
+func (m *SubscriptionMutation) PlanHistory() (r planhistory.History, exists bool) {
+	v := m.plan_history
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanHistory returns the old "plan_history" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldPlanHistory(ctx context.Context) (v planhistory.History, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanHistory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanHistory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanHistory: %w", err)
+	}
+	return oldValue.PlanHistory, nil
+}
+
+// ClearPlanHistory clears the value of the "plan_history" field.
+func (m *SubscriptionMutation) ClearPlanHistory() {
+	m.plan_history = nil
+	m.clearedFields[subscription.FieldPlanHistory] = struct{}{}
+}
+
+// PlanHistoryCleared returns if the "plan_history" field was cleared in this mutation.
+func (m *SubscriptionMutation) PlanHistoryCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldPlanHistory]
+	return ok
+}
+
+// ResetPlanHistory resets all changes to the "plan_history" field.
+func (m *SubscriptionMutation) ResetPlanHistory() {
+	m.plan_history = nil
+	delete(m.clearedFields, subscription.FieldPlanHistory)
 }
 
 // SetCustomerID sets the "customer_id" field.
@@ -120542,7 +120812,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 19)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -120575,6 +120845,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.plan != nil {
 		fields = append(fields, subscription.FieldPlanID)
+	}
+	if m.plan_history != nil {
+		fields = append(fields, subscription.FieldPlanHistory)
 	}
 	if m.customer != nil {
 		fields = append(fields, subscription.FieldCustomerID)
@@ -120627,6 +120900,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case subscription.FieldPlanID:
 		return m.PlanID()
+	case subscription.FieldPlanHistory:
+		return m.PlanHistory()
 	case subscription.FieldCustomerID:
 		return m.CustomerID()
 	case subscription.FieldInvoiceCurrency:
@@ -120672,6 +120947,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDescription(ctx)
 	case subscription.FieldPlanID:
 		return m.OldPlanID(ctx)
+	case subscription.FieldPlanHistory:
+		return m.OldPlanHistory(ctx)
 	case subscription.FieldCustomerID:
 		return m.OldCustomerID(ctx)
 	case subscription.FieldInvoiceCurrency:
@@ -120772,6 +121049,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPlanID(v)
 		return nil
+	case subscription.FieldPlanHistory:
+		v, ok := value.(planhistory.History)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanHistory(v)
+		return nil
 	case subscription.FieldCustomerID:
 		v, ok := value.(string)
 		if !ok {
@@ -120869,6 +121153,9 @@ func (m *SubscriptionMutation) ClearedFields() []string {
 	if m.FieldCleared(subscription.FieldPlanID) {
 		fields = append(fields, subscription.FieldPlanID)
 	}
+	if m.FieldCleared(subscription.FieldPlanHistory) {
+		fields = append(fields, subscription.FieldPlanHistory)
+	}
 	return fields
 }
 
@@ -120900,6 +121187,9 @@ func (m *SubscriptionMutation) ClearField(name string) error {
 		return nil
 	case subscription.FieldPlanID:
 		m.ClearPlanID()
+		return nil
+	case subscription.FieldPlanHistory:
+		m.ClearPlanHistory()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription nullable field %s", name)
@@ -120941,6 +121231,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldPlanID:
 		m.ResetPlanID()
+		return nil
+	case subscription.FieldPlanHistory:
+		m.ResetPlanHistory()
 		return nil
 	case subscription.FieldCustomerID:
 		m.ResetCustomerID()

@@ -111,7 +111,7 @@ func (i buildMigratedSpecInput) Validate() error {
 		errs = append(errs, errors.New("custom subscriptions cannot be migrated"))
 	} else if err := (subscription.AdvancePlanReferenceInput{
 		SubscriptionID: i.Current.Subscription.NamespacedID,
-		CurrentPlan:    *i.Current.Spec.Plan, TargetPlan: *i.Target.Plan,
+		CurrentPlan:    *i.Current.Spec.Plan, TargetPlan: *i.Target.Plan, EffectiveAt: i.At,
 	}).Validate(); err != nil {
 		errs = append(errs, err)
 	}
@@ -147,6 +147,7 @@ func buildMigratedSpec(i buildMigratedSpecInput) (subscription.SubscriptionSpec,
 		return subscription.SubscriptionSpec{}, subscriptionworkflow.MapSubscriptionErrors(err)
 	}
 	spec.Plan = i.Target.Plan
+	spec.PlanEffectiveAt = lo.ToPtr(i.At)
 	if err := spec.ValidateAlignment(); err != nil {
 		return subscription.SubscriptionSpec{}, err
 	}

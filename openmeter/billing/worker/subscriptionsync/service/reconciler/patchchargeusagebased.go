@@ -113,6 +113,7 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 
 	return charges.NewChargeIntent(chargesusagebased.Intent{
 		Intent: chargesmeta.Intent{
+			SubscriptionPlan:  target.Subscription.PlanHistory.At(target.GetServicePeriod().From),
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
 			Annotations:       annotations,

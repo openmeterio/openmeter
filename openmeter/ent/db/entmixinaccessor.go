@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -1044,6 +1045,10 @@ func (e *ChargeCreditPurchase) GetManagedBy() billing.InvoiceLineManagedBy {
 	return e.ManagedBy
 }
 
+func (e *ChargeCreditPurchase) GetSubscriptionPlan() *planhistory.PlanVersion {
+	return e.SubscriptionPlan
+}
+
 func (e *ChargeCreditPurchase) GetSubscriptionID() *string {
 	return e.SubscriptionID
 }
@@ -1346,6 +1351,10 @@ func (e *ChargeFlatFee) GetCustomCurrencyID() *string {
 
 func (e *ChargeFlatFee) GetManagedBy() billing.InvoiceLineManagedBy {
 	return e.ManagedBy
+}
+
+func (e *ChargeFlatFee) GetSubscriptionPlan() *planhistory.PlanVersion {
+	return e.SubscriptionPlan
 }
 
 func (e *ChargeFlatFee) GetSubscriptionID() *string {
@@ -1930,6 +1939,10 @@ func (e *ChargeUsageBased) GetCustomCurrencyID() *string {
 
 func (e *ChargeUsageBased) GetManagedBy() billing.InvoiceLineManagedBy {
 	return e.ManagedBy
+}
+
+func (e *ChargeUsageBased) GetSubscriptionPlan() *planhistory.PlanVersion {
+	return e.SubscriptionPlan
 }
 
 func (e *ChargeUsageBased) GetSubscriptionID() *string {

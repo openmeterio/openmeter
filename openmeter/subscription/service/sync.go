@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -53,6 +56,7 @@ func (s *service) syncPrepared(ctx context.Context, view subscription.Subscripti
 				SubscriptionID: view.Subscription.NamespacedID,
 				CurrentPlan:    *view.Subscription.PlanRef,
 				TargetPlan:     *newSpec.Plan,
+				EffectiveAt:    lo.FromPtrOr(newSpec.PlanEffectiveAt, clock.Now()),
 			}); err != nil {
 				return def, err
 			}
@@ -74,6 +78,7 @@ func validateSyncTarget(view subscription.SubscriptionView, newSpec subscription
 			SubscriptionID: view.Subscription.NamespacedID,
 			CurrentPlan:    *view.Subscription.PlanRef,
 			TargetPlan:     *newSpec.Plan,
+			EffectiveAt:    lo.FromPtrOr(newSpec.PlanEffectiveAt, clock.Now()),
 		}).Validate(); err != nil {
 			return fmt.Errorf("cannot change plan: %w", err)
 		}

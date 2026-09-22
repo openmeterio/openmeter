@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -163,6 +164,18 @@ func (_u *SubscriptionUpdate) SetNillablePlanID(v *string) *SubscriptionUpdate {
 // ClearPlanID clears the value of the "plan_id" field.
 func (_u *SubscriptionUpdate) ClearPlanID() *SubscriptionUpdate {
 	_u.mutation.ClearPlanID()
+	return _u
+}
+
+// SetPlanHistory sets the "plan_history" field.
+func (_u *SubscriptionUpdate) SetPlanHistory(v planhistory.History) *SubscriptionUpdate {
+	_u.mutation.SetPlanHistory(v)
+	return _u
+}
+
+// ClearPlanHistory clears the value of the "plan_history" field.
+func (_u *SubscriptionUpdate) ClearPlanHistory() *SubscriptionUpdate {
+	_u.mutation.ClearPlanHistory()
 	return _u
 }
 
@@ -674,6 +687,16 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.PlanHistory(); ok {
+		vv, err := subscription.ValueScanner.PlanHistory.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(subscription.FieldPlanHistory, field.TypeString, vv)
+	}
+	if _u.mutation.PlanHistoryCleared() {
+		_spec.ClearField(subscription.FieldPlanHistory, field.TypeString)
 	}
 	if value, ok := _u.mutation.BillingAnchor(); ok {
 		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
@@ -1295,6 +1318,18 @@ func (_u *SubscriptionUpdateOne) ClearPlanID() *SubscriptionUpdateOne {
 	return _u
 }
 
+// SetPlanHistory sets the "plan_history" field.
+func (_u *SubscriptionUpdateOne) SetPlanHistory(v planhistory.History) *SubscriptionUpdateOne {
+	_u.mutation.SetPlanHistory(v)
+	return _u
+}
+
+// ClearPlanHistory clears the value of the "plan_history" field.
+func (_u *SubscriptionUpdateOne) ClearPlanHistory() *SubscriptionUpdateOne {
+	_u.mutation.ClearPlanHistory()
+	return _u
+}
+
 // SetBillingAnchor sets the "billing_anchor" field.
 func (_u *SubscriptionUpdateOne) SetBillingAnchor(v time.Time) *SubscriptionUpdateOne {
 	_u.mutation.SetBillingAnchor(v)
@@ -1833,6 +1868,16 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(subscription.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.PlanHistory(); ok {
+		vv, err := subscription.ValueScanner.PlanHistory.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(subscription.FieldPlanHistory, field.TypeString, vv)
+	}
+	if _u.mutation.PlanHistoryCleared() {
+		_spec.ClearField(subscription.FieldPlanHistory, field.TypeString)
 	}
 	if value, ok := _u.mutation.BillingAnchor(); ok {
 		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)

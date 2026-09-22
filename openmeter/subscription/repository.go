@@ -70,6 +70,7 @@ type SubscriptionRepository interface {
 }
 
 type AdvancePlanReferenceInput struct {
+	EffectiveAt    time.Time
 	SubscriptionID models.NamespacedID
 	CurrentPlan    PlanRef
 	TargetPlan     PlanRef
@@ -79,6 +80,9 @@ type AdvancePlanReferenceInput struct {
 // calling workflow. Sync and the repository both enforce this contract.
 func (i AdvancePlanReferenceInput) Validate() error {
 	var errs []error
+	if i.EffectiveAt.IsZero() {
+		errs = append(errs, errors.New("plan change effective time is required"))
+	}
 	if i.SubscriptionID.Namespace == "" || i.SubscriptionID.ID == "" {
 		errs = append(errs, errors.New("subscription namespace and ID are required"))
 	}

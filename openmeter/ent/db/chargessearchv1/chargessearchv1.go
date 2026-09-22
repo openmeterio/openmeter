@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/subscription/planhistory"
 )
 
 const (
@@ -47,6 +49,8 @@ const (
 	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
+	// FieldSubscriptionPlan holds the string denoting the subscription_plan field in the database.
+	FieldSubscriptionPlan = "subscription_plan"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
 	FieldSubscriptionID = "subscription_id"
 	// FieldSubscriptionPhaseID holds the string denoting the subscription_phase_id field in the database.
@@ -99,6 +103,7 @@ var Columns = []string{
 	FieldFiatCurrencyCode,
 	FieldCustomCurrencyID,
 	FieldManagedBy,
+	FieldSubscriptionPlan,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
@@ -145,6 +150,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// ValueScanner of all ChargesSearchV1 fields.
+	ValueScanner struct {
+		SubscriptionPlan field.TypeValueScanner[*planhistory.PlanVersion]
+	}
 )
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
@@ -258,6 +267,11 @@ func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
 // ByManagedBy orders the results by the managed_by field.
 func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
+}
+
+// BySubscriptionPlan orders the results by the subscription_plan field.
+func BySubscriptionPlan(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionPlan, opts...).ToFunc()
 }
 
 // BySubscriptionID orders the results by the subscription_id field.
