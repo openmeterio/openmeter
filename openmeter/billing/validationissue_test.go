@@ -159,21 +159,15 @@ func TestValidationWithAttributes(t *testing.T) {
 		require.Equal(t, "invoice-1", attributes["invoice"].(map[string]any)["id"])
 	})
 
-	t.Run("classifies an ordinary error as a validation issue", func(t *testing.T) {
+	t.Run("preserves an ordinary error as a system error", func(t *testing.T) {
 		err := ValidationWithAttributes(
 			models.Annotations{"invoice_id": "invoice-1"},
 			errors.New("invoice context unavailable"),
 		)
 
 		issues, systemErr := ToValidationIssues(err)
-		require.NoError(t, systemErr)
-		require.Equal(t, ValidationIssues{
-			{
-				Severity:   ValidationIssueSeverityCritical,
-				Message:    "invoice context unavailable",
-				Attributes: models.Annotations{"invoice_id": "invoice-1"},
-			},
-		}, issues)
+		require.Nil(t, issues)
+		require.Equal(t, err, systemErr)
 	})
 
 	t.Run("does not alias input attributes", func(t *testing.T) {
@@ -212,7 +206,7 @@ func TestValidationIssueParsing(t *testing.T) {
 		),
 		fmt.Errorf("app: %w",
 			ValidationWithComponent("app",
-				errors.Join(appCannotSyncErr, appMissingCountry))),
+				WrapAsValidationIssue(errors.Join(appCannotSyncErr, appMissingCountry)))),
 	)
 
 	mockError := fmt.Errorf("error: %w", fmt.Errorf("error2: %w", validationError))
@@ -291,6 +285,201 @@ func TestIsValidationIssueOnly(t *testing.T) {
 			require.Equal(t, test.expected, IsValidationIssueOnly(test.err))
 		})
 	}
+}
+
+func TestValidationContextWrappersPreserveSystemErrors(t *testing.T) {
+	systemErr := errors.New("database unavailable")
+
+	tests := []struct {
+		name string
+		wrap func(error) error
+	}{
+		{
+			name: "component",
+			wrap: func(err error) error {
+				return ValidationWithComponent("component", err)
+			},
+		},
+		{
+			name: "field prefix",
+			wrap: func(err error) error {
+				return ValidationWithFieldPrefix("lines/line-1", err)
+			},
+		},
+		{
+			name: "attributes",
+			wrap: func(err error) error {
+				return ValidationWithAttributes(models.Annotations{"line_id": "line-1"}, err)
+			},
+		},
+		{
+			name: "message",
+			wrap: func(err error) error {
+				return ValidationWithMessagef(err, "loading invoice[%s]", "invoice-1")
+			},
+		},
+		{
+			name: "combined",
+			wrap: func(err error) error {
+				return ValidationWithComponent(
+					"component",
+					ValidationWithFieldPrefix(
+						"lines/line-1",
+						ValidationWithAttributes(
+							models.Annotations{"line_id": "line-1"},
+							ValidationWithMessagef(err, "loading invoice[%s]", "invoice-1"),
+						),
+					),
+				)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := test.wrap(systemErr)
+
+			issues, extractionErr := ToValidationIssues(err)
+			require.Nil(t, issues)
+			require.Equal(t, err, extractionErr)
+			require.ErrorIs(t, err, systemErr)
+		})
+	}
+}
+
+func TestWrapAsValidationIssue(t *testing.T) {
+	t.Run("converts an ordinary error tree with context", func(t *testing.T) {
+		systemErr := errors.New("database unavailable")
+		warning := NewValidationWarning("stale_data", "data is stale")
+		err := WrapAsValidationIssue(
+			ValidationWithComponent(
+				"component",
+				ValidationWithFieldPrefix(
+					"lines/line-1",
+					ValidationWithAttributes(
+						models.Annotations{"line_id": "line-1"},
+						ValidationWithMessagef(errors.Join(systemErr, warning), "loading invoice[%s]", "invoice-1"),
+					),
+				),
+			),
+		)
+
+		issues, extractionErr := ToValidationIssues(err)
+		require.NoError(t, extractionErr)
+		require.ErrorIs(t, err, systemErr)
+		require.Equal(t, ValidationIssues{
+			{
+				Severity:   ValidationIssueSeverityCritical,
+				Message:    "loading invoice[invoice-1]: database unavailable",
+				Component:  "component",
+				Path:       "/lines/line-1",
+				Attributes: models.Annotations{"line_id": "line-1"},
+			},
+			{
+				Severity:   warning.Severity,
+				Message:    "loading invoice[invoice-1]: data is stale",
+				Code:       warning.Code,
+				Component:  "component",
+				Path:       "/lines/line-1",
+				Attributes: models.Annotations{"line_id": "line-1"},
+			},
+		}, issues)
+	})
+
+	t.Run("converts only the wrapped subtree", func(t *testing.T) {
+		convertedErr := errors.New("converted")
+		systemErr := errors.New("system")
+		err := errors.Join(WrapAsValidationIssue(convertedErr), systemErr)
+
+		issues, extractionErr := ToValidationIssues(err)
+		require.Nil(t, issues)
+		require.Equal(t, err, extractionErr)
+		require.False(t, IsValidationIssueOnly(err))
+	})
+
+	t.Run("converts ordinary errors with warning severity", func(t *testing.T) {
+		ordinaryErr := errors.New("provider cleanup skipped")
+		criticalIssue := NewValidationError("invalid_invoice", "invoice is invalid")
+		err := WrapAsValidationIssue(errors.Join(ordinaryErr, criticalIssue), WithWarningSeverity())
+
+		issues, extractionErr := ToValidationIssues(err)
+		require.NoError(t, extractionErr)
+		require.Equal(t, ValidationIssues{
+			{
+				Severity: ValidationIssueSeverityWarning,
+				Message:  ordinaryErr.Error(),
+			},
+			criticalIssue,
+		}, issues)
+	})
+
+	t.Run("outermost conversion controls ordinary error severity", func(t *testing.T) {
+		ordinaryErr := errors.New("provider cleanup skipped")
+		err := WrapAsValidationIssue(WrapAsValidationIssue(ordinaryErr), WithWarningSeverity())
+
+		issues, extractionErr := ToValidationIssues(err)
+		require.NoError(t, extractionErr)
+		require.Equal(t, ValidationIssues{{
+			Severity: ValidationIssueSeverityWarning,
+			Message:  ordinaryErr.Error(),
+		}}, issues)
+	})
+
+	t.Run("returns nil for a nil error", func(t *testing.T) {
+		require.NoError(t, WrapAsValidationIssue(nil))
+		require.NoError(t, WrapAsValidationIssue(nil, WithWarningSeverity()))
+	})
+}
+
+func TestValidationIssueRecorder(t *testing.T) {
+	recorder := ValidationIssueRecorder{}
+	warning := ValidationIssue{
+		Severity:  ValidationIssueSeverityWarning,
+		Message:   "rating warning",
+		Code:      "rating_warning",
+		Component: "original-component",
+		Path:      "amount",
+		Attributes: models.Annotations{
+			"source": "issue",
+			"keep":   true,
+		},
+	}
+
+	require.NoError(t, recorder.Record(
+		warning,
+		WithAttributes(models.Annotations{
+			AttributeKeyLineID: "line-1",
+			"source":           "recorder",
+		}),
+		WithComponent("line-engine"),
+		WithPath("lines/line-1"),
+	))
+
+	systemErr := errors.New("rating service unavailable")
+	err := recorder.Record(
+		systemErr,
+		WithAttributes(models.Annotations{AttributeKeyLineID: "line-2"}),
+		WithComponent("line-engine"),
+		WithPath("lines/line-2"),
+	)
+	require.ErrorIs(t, err, systemErr)
+	require.EqualError(t, err, "lines/line-2: line-engine: rating service unavailable")
+	require.False(t, IsValidationIssueOnly(err))
+
+	issues, extractionErr := ToValidationIssues(recorder.ErrorsOrNil())
+	require.NoError(t, extractionErr)
+	require.Equal(t, ValidationIssues{{
+		Severity:  warning.Severity,
+		Message:   warning.Message,
+		Code:      warning.Code,
+		Component: "line-engine",
+		Path:      "/lines/line-1/amount",
+		Attributes: models.Annotations{
+			AttributeKeyLineID: "line-1",
+			"source":           "recorder",
+			"keep":             true,
+		},
+	}}, issues)
 }
 
 func TestValidationWithComponentPrecedence(t *testing.T) {

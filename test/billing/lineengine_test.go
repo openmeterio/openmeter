@@ -699,9 +699,9 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 	s.Equal("preview callback line", previewInvoice.Lines.OrEmpty()[0].Name)
 }
 
-func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssues() {
+func (s *LineEngineTestSuite) TestCollectionCompletedSystemErrorsAbortCollection() {
 	var (
-		ctx          = context.Background()
+		ctx          = s.T().Context()
 		namespace    = s.GetUniqueNamespace("ns-line-engine-collection-completed-validation")
 		mockEngine   = &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeUsageBased}
 		invoice      ombilling.StandardInvoice
@@ -743,16 +743,18 @@ func (s *LineEngineTestSuite) TestCollectionCompletedErrorsBecomeValidationIssue
 		}
 
 		clock.SetTime(collectionAt.Add(time.Minute))
-		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
-		s.Require().NoError(err)
+		_, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+		s.Require().ErrorContains(err, "mock collection completed failure")
 	})
 
-	s.Run("Then the engine failure becomes a validation issue", func() {
-		s.Equal(ombilling.StandardInvoiceStatusDraftInvalidCreated, invoice.Status)
-		s.Len(invoice.ValidationIssues, 1)
-		s.Equal("mock collection completed failure", invoice.ValidationIssues[0].Message)
-		s.Equal(ombilling.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
-		s.Equal(ombilling.LineEngineValidationComponent(ombilling.LineEngineTypeChargeUsageBased), invoice.ValidationIssues[0].Component)
+	s.Run("Then collection is rolled back without recording a validation issue", func() {
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, ombilling.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+		})
+		s.Require().NoError(err)
+		s.Equal(ombilling.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.Empty(invoice.ValidationIssues)
+		s.Nil(invoice.QuantitySnapshotedAt)
 	})
 }
 

@@ -261,6 +261,16 @@ func TestLineEngineValidationErrorOwnsValidationIssues(t *testing.T) {
 	}, issues)
 }
 
+func TestLineEngineValidationErrorPreservesSystemErrors(t *testing.T) {
+	systemErr := errors.New("database unavailable")
+	wrappedErr := billing.NewLineEngineValidationError(&Engine{}, systemErr)
+
+	issues, extractionErr := billing.ToValidationIssues(wrappedErr)
+	require.Nil(t, issues)
+	require.Equal(t, wrappedErr, extractionErr)
+	require.ErrorIs(t, wrappedErr, systemErr)
+}
+
 func newQuantitySnapshotTestEngine(t *testing.T, features []feature.Feature, meters []meter.Meter, featureServiceErr error) (*Engine, *streamingtestutils.MockStreamingConnector) {
 	t.Helper()
 

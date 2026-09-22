@@ -75,6 +75,8 @@ var (
 
 const (
 	ImmutableInvoiceHandlingNotSupportedErrorCode = "immutable_invoice_handling_not_supported"
+
+	AttributeKeyLineID = "line_id"
 )
 
 var _ error = (*NotFoundError)(nil)

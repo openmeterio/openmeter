@@ -697,6 +697,11 @@ func TestWithLineEngineInvoiceLineChangesReturnsEngineError(t *testing.T) {
 		LineDiff:      lineDiff,
 	})
 	require.ErrorContains(t, err, errEngineFailed.Error())
+
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.Nil(t, issues)
+	require.Equal(t, err, systemErr)
+	require.ErrorIs(t, err, errEngineFailed)
 }
 
 func TestWithLineEngineInvoiceLineChangesPreallocatesCreatedLineID(t *testing.T) {

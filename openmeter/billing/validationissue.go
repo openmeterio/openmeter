@@ -135,6 +135,7 @@ func (c componentWrapper) Unwrap() error {
 // ValidationWithComponent wraps an error with a component name, if error is nil, it returns nil.
 // This can be used to add context to an error when we are crossing service boundaries. When
 // wrappers are nested, the outermost service boundary defines the extracted issue's component.
+// Component context does not change whether an error is a validation issue.
 func ValidationWithComponent(component ComponentName, err error) error {
 	if err == nil {
 		return nil
@@ -160,9 +161,8 @@ func (m messageWrapper) Unwrap() error {
 }
 
 // ValidationWithMessagef wraps an error with formatted context, if error is nil, it returns nil.
-// Unlike component and field wrappers, message context does not classify an ordinary error as a
-// validation issue. When the wrapped error contains validation issues, the context is added to each
-// extracted issue's message.
+// Message context does not change whether an error is a validation issue. When the wrapped error
+// contains validation issues, the context is added to each extracted issue's message.
 func ValidationWithMessagef(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
@@ -190,6 +190,7 @@ func (f fieldPrefixWrapper) Unwrap() error {
 // ValidationWithFieldPrefix wraps an error with a field prefix, if error is nil, it returns nil
 // This can be used to delegate validation duties to a sub-entity. (e.g. lines don't need to know about
 // the path in the invoice they are residing at)
+// Field context does not change whether an error is a validation issue.
 func ValidationWithFieldPrefix(prefix string, err error) error {
 	if err == nil {
 		return nil
@@ -216,6 +217,7 @@ func (a attributesWrapper) Unwrap() error {
 
 // ValidationWithAttributes adds contextual attributes to validation issues extracted from err.
 // When wrappers are nested, attributes from the outermost wrapper take precedence.
+// Attribute context does not change whether an error is a validation issue.
 func ValidationWithAttributes(attributes models.Annotations, err error) error {
 	if err == nil {
 		return nil
@@ -225,6 +227,55 @@ func ValidationWithAttributes(attributes models.Annotations, err error) error {
 		attributes: attributes,
 		err:        err,
 	}
+}
+
+type asValidationIssueWrapper struct {
+	err      error
+	severity ValidationIssueSeverity
+}
+
+func (w asValidationIssueWrapper) Error() string {
+	return w.err.Error()
+}
+
+func (w asValidationIssueWrapper) Unwrap() error {
+	return w.err
+}
+
+type WrapAsValidationIssueOption interface {
+	apply(*asValidationIssueWrapper)
+}
+
+type wrapAsValidationIssueOptionFunc func(*asValidationIssueWrapper)
+
+func (f wrapAsValidationIssueOptionFunc) apply(wrapper *asValidationIssueWrapper) {
+	f(wrapper)
+}
+
+func WithWarningSeverity() WrapAsValidationIssueOption {
+	return wrapAsValidationIssueOptionFunc(func(wrapper *asValidationIssueWrapper) {
+		wrapper.severity = ValidationIssueSeverityWarning
+	})
+}
+
+// WrapAsValidationIssue explicitly converts ordinary leaf errors in err into validation issues
+// when they are extracted. Converted errors are critical by default. Existing validation issues
+// retain their severity and metadata. When conversion wrappers are nested, the outermost wrapper
+// controls the severity of ordinary errors.
+func WrapAsValidationIssue(err error, options ...WrapAsValidationIssueOption) error {
+	if err == nil {
+		return nil
+	}
+
+	wrapper := asValidationIssueWrapper{
+		err:      err,
+		severity: ValidationIssueSeverityCritical,
+	}
+	for _, option := range options {
+		option.apply(&wrapper)
+	}
+
+	return wrapper
 }
 
 type ValidationIssues []ValidationIssue
@@ -243,17 +294,16 @@ func (v ValidationIssues) WithoutComponent(component ComponentName) ValidationIs
 	return issues
 }
 
-// ToValidationIssues converts an error into a list of validation issues
-// If the error is nil, it returns nil
-// If any error in the error tree is not wrapped in ValidationWithComponent,
-// ValidationWithFieldPrefix, or ValidationWithAttributes and not an instance of ValidationIssue,
-// it will return an error. This behavior allows us to have critical errors that are not validation issues.
+// ToValidationIssues extracts validation issues from an error tree. If the error is nil, it returns nil.
+// If any leaf error is neither a ValidationIssue nor explicitly wrapped by WrapAsValidationIssue, it
+// returns the original error tree. This behavior allows critical system errors to remain distinct from
+// validation issues.
 func ToValidationIssues(errIn error) (ValidationIssues, error) {
 	if errIn == nil {
 		return nil, nil
 	}
 
-	issues, err := toValidationIssue(errIn, "", "", "", nil, false)
+	issues, err := toValidationIssue(errIn, "", "", "", nil, "")
 	if err != nil {
 		return nil, errIn
 	}
@@ -348,7 +398,7 @@ func appendMessagePrefix(prefix string, message string) string {
 	return prefix + ": " + message
 }
 
-func toValidationIssue(err error, fieldPrefix string, component ComponentName, messagePrefix string, attributes models.Annotations, unknownAsValidationIssue bool) ([]ValidationIssue, error) {
+func toValidationIssue(err error, fieldPrefix string, component ComponentName, messagePrefix string, attributes models.Annotations, ordinaryErrorSeverity ValidationIssueSeverity) ([]ValidationIssue, error) {
 	if err == nil {
 		return nil, nil
 	}
@@ -356,24 +406,31 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 	// let's see if the current error requires special handling (as switch's
 	// ordering is non-deterministic, we first have a typeswitch for the special cases)
 	switch errT := err.(type) {
+	case asValidationIssueWrapper:
+		severity := ordinaryErrorSeverity
+		if severity == "" {
+			severity = errT.severity
+		}
+
+		return toValidationIssue(errT.err, fieldPrefix, component, messagePrefix, attributes, severity)
 	case componentWrapper:
 		issueComponent := component
 		if issueComponent == "" {
 			issueComponent = errT.component
 		}
 
-		return toValidationIssue(errT.err, fieldPrefix, issueComponent, messagePrefix, attributes, true)
+		return toValidationIssue(errT.err, fieldPrefix, issueComponent, messagePrefix, attributes, ordinaryErrorSeverity)
 	case fieldPrefixWrapper:
-		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, messagePrefix, attributes, true)
+		return toValidationIssue(errT.err, appendToPrefix(fieldPrefix, errT.prefix), component, messagePrefix, attributes, ordinaryErrorSeverity)
 	case messageWrapper:
-		return toValidationIssue(errT.err, fieldPrefix, component, appendMessagePrefix(messagePrefix, errT.prefix), attributes, unknownAsValidationIssue)
+		return toValidationIssue(errT.err, fieldPrefix, component, appendMessagePrefix(messagePrefix, errT.prefix), attributes, ordinaryErrorSeverity)
 	case attributesWrapper:
 		mergedAttributes, err := errT.attributes.Merge(attributes)
 		if err != nil {
 			return nil, fmt.Errorf("merging validation issue attributes: %w", err)
 		}
 
-		return toValidationIssue(errT.err, fieldPrefix, component, messagePrefix, mergedAttributes, true)
+		return toValidationIssue(errT.err, fieldPrefix, component, messagePrefix, mergedAttributes, ordinaryErrorSeverity)
 	case ValidationIssue:
 		issueComponent := component
 		if issueComponent == "" {
@@ -406,7 +463,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 	case errorsUnwrap:
 		var issues []ValidationIssue
 		for _, e := range errT.Unwrap() {
-			out, err := toValidationIssue(e, fieldPrefix, component, messagePrefix, attributes, unknownAsValidationIssue)
+			out, err := toValidationIssue(e, fieldPrefix, component, messagePrefix, attributes, ordinaryErrorSeverity)
 			if err != nil {
 				return nil, err
 			}
@@ -417,10 +474,9 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 
 		return issues, nil
 	case errorUnwrap:
-		return toValidationIssue(errT.Unwrap(), fieldPrefix, component, messagePrefix, attributes, unknownAsValidationIssue)
+		return toValidationIssue(errT.Unwrap(), fieldPrefix, component, messagePrefix, attributes, ordinaryErrorSeverity)
 	default:
-		// Non-validation errors get coded as critical
-		if unknownAsValidationIssue {
+		if ordinaryErrorSeverity != "" {
 			issueAttributes, cloneErr := attributes.Clone()
 			if cloneErr != nil {
 				return nil, fmt.Errorf("cloning validation issue attributes: %w", cloneErr)
@@ -428,7 +484,7 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 
 			return []ValidationIssue{
 				{
-					Severity:   ValidationIssueSeverityCritical,
+					Severity:   ordinaryErrorSeverity,
 					Message:    appendMessagePrefix(messagePrefix, err.Error()),
 					Path:       fieldPrefix,
 					Component:  component,
@@ -439,4 +495,100 @@ func toValidationIssue(err error, fieldPrefix string, component ComponentName, m
 			return nil, err
 		}
 	}
+}
+
+type ValidationIssueRecorder struct {
+	issues []error
+}
+
+type ValidationIssueRecorderOption interface {
+	apply(*validationIssueRecorderOptions)
+}
+
+type validationIssueRecorderOptions struct {
+	attributes models.Annotations
+	component  ComponentName
+	path       string
+}
+
+func (o validationIssueRecorderOptions) wrap(err error) error {
+	if len(o.attributes) > 0 {
+		err = ValidationWithAttributes(o.attributes, err)
+	}
+
+	if o.component != "" {
+		err = ValidationWithComponent(o.component, err)
+	}
+
+	if o.path != "" {
+		err = ValidationWithFieldPrefix(o.path, err)
+	}
+
+	return err
+}
+
+type validationIssueRecorderOptionFunc func(*validationIssueRecorderOptions)
+
+func (f validationIssueRecorderOptionFunc) apply(options *validationIssueRecorderOptions) {
+	f(options)
+}
+
+// WithAttributes adds attributes to errors handled by ValidationIssueRecorder.
+func WithAttributes(attributes models.Annotations) ValidationIssueRecorderOption {
+	return validationIssueRecorderOptionFunc(func(options *validationIssueRecorderOptions) {
+		options.attributes = attributes
+	})
+}
+
+// WithComponent assigns a component to errors handled by ValidationIssueRecorder.
+func WithComponent(component ComponentName) ValidationIssueRecorderOption {
+	return validationIssueRecorderOptionFunc(func(options *validationIssueRecorderOptions) {
+		options.component = component
+	})
+}
+
+// WithPath prefixes the path of errors handled by ValidationIssueRecorder.
+func WithPath(path string) ValidationIssueRecorderOption {
+	return validationIssueRecorderOptionFunc(func(options *validationIssueRecorderOptions) {
+		options.path = path
+	})
+}
+
+// Record adds an error to the recorder if it doesn't contain any system error. If a system
+// error is encountered, err is returned with the supplied context.
+//
+// Should be used in the following pattern:
+//
+//	_, err := calculateDetailedLines(stdLine)
+//	if err := validationRecorder.Record(
+//		err,
+//		WithAttributes(models.Annotations{AttributeKeyLineID: stdLine.ID}),
+//		WithComponent(ValidationComponentOpenMeter),
+//		WithPath("lines/"+stdLine.ID),
+//	); err != nil {
+//		return nil, fmt.Errorf("calculating detailed lines for line[%s]: %w", stdLine.ID, err)
+//	}
+func (r *ValidationIssueRecorder) Record(err error, options ...ValidationIssueRecorderOption) error {
+	if err == nil {
+		return nil
+	}
+
+	var appliedOptions validationIssueRecorderOptions
+	for _, option := range options {
+		option.apply(&appliedOptions)
+	}
+	err = appliedOptions.wrap(err)
+
+	if !IsValidationIssueOnly(err) {
+		return err
+	}
+
+	// At this point we know that the errors are all validation issues
+	r.issues = append(r.issues, err)
+	return nil
+}
+
+// ErrorsOrNil returns the recorded validation issues as a single error. If there are no issues, it returns nil.
+func (r *ValidationIssueRecorder) ErrorsOrNil() error {
+	return errors.Join(r.issues...)
 }
