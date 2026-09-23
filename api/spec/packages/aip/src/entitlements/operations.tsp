@@ -48,6 +48,9 @@ interface CustomerEntitlementsOperations {
   @route("/features/{featureKey}")
   @operationId("get-customer-entitlement-access")
   @summary("Get customer entitlement access")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
   get(
     @path customerId: Shared.ULID,
     @path featureKey: Shared.ResourceKey,
