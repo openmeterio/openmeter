@@ -2138,6 +2138,55 @@ paths:
       x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants:
+    post:
+      operationId: create-customer-entitlement-grant
+      summary: Create customer entitlement grant
+      description: |-
+        Issue a grant for a metered entitlement of the customer. Grants can only be
+        issued for metered entitlements; the request is rejected for boolean and static
+        entitlements.
+
+        Grants are immutable: the granted amount adds to the balance from
+        `effective_at`, which cannot be before the start of the current usage period.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: EntitlementGrant created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingEntitlementGrantCreateRequest'
+      x-internal: true
+      x-private: true
+      x-unstable: true
     get:
       operationId: list-customer-entitlement-grants
       summary: List customer entitlement grants
@@ -8241,7 +8290,7 @@ components:
             interval. The anchor defaults to `effective_at`.
           title: Recurrence
       additionalProperties: false
-      description: A grant created together with a metered entitlement.
+      description: A grant to issue for a metered entitlement.
     BillingEntitlementGrantUsage:
       type: object
       required:

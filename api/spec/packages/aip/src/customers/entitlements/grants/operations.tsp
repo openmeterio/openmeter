@@ -6,6 +6,7 @@ import "../../../common/error.tsp";
 import "../../../common/parameters.tsp";
 import "../../../common/pagination.tsp";
 import "../../../shared/index.tsp";
+import "../entitlement.tsp";
 import "./grant.tsp";
 
 using TypeSpec.Http;
@@ -15,6 +16,30 @@ namespace Customers;
 
 namespace Entitlements.Grants {
   interface CustomerEntitlementGrantsOperations {
+    /**
+     * Issue a grant for a metered entitlement of the customer. Grants can only be
+     * issued for metered entitlements; the request is rejected for boolean and static
+     * entitlements.
+     *
+     * Grants are immutable: the granted amount adds to the balance from
+     * `effective_at`, which cannot be before the start of the current usage period.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.PrivateExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @post
+    @operationId("create-customer-entitlement-grant")
+    @summary("Create customer entitlement grant")
+    create(
+      @path customerId: Shared.ULID,
+      @path entitlementId: Shared.ULID,
+      @body grant: EntitlementGrantCreate,
+    ):
+      | Shared.CreateResponse<EntitlementGrant>
+      | Common.NotFound
+      | Common.Conflict
+      | Common.ErrorResponses;
+
     /**
      * List the grants issued for an entitlement of the customer. Grants only exist for
      * metered entitlements, so the list of a boolean or static entitlement is empty.

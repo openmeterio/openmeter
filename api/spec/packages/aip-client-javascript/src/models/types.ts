@@ -3531,7 +3531,7 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
   termsOfService?: 'none' | 'required'
 }
 
-/** A grant created together with a metered entitlement. */
+/** A grant to issue for a metered entitlement. */
 export interface EntitlementGrantCreateRequest {
   /** The amount to grant, in the feature's unit. Must be positive. */
   amount: string

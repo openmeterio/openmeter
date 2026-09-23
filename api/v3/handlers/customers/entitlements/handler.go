@@ -13,6 +13,7 @@ type Handler interface {
 	GetCustomerEntitlement() GetCustomerEntitlementHandler
 	ListCustomerEntitlements() ListCustomerEntitlementsHandler
 	ListCustomerEntitlementGrants() ListCustomerEntitlementGrantsHandler
+	CreateCustomerEntitlementGrant() CreateCustomerEntitlementGrantHandler
 }
 
 type handler struct {

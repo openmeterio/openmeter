@@ -842,3 +842,158 @@ func TestCustomerEntitlementGrantAPI(t *testing.T) {
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
 }
+
+func TestCreateCustomerEntitlementGrantAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-create-customer-entitlement-grant-api"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     namespace,
+		Name:          "Meter 1",
+		Key:           "meter1",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	createMeterInPG(t, deps.dbClient, mtr)
+
+	createFeature := func(t *testing.T, key string, meterID *string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: namespace,
+			MeterID:   meterID,
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	createMeteredEntitlement := func(t *testing.T, cust *customer.Customer, featureKey string) *entitlement.Entitlement {
+		t.Helper()
+
+		ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       &featureKey,
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now,
+			})),
+		}, nil)
+		require.NoError(t, err)
+
+		return ent
+	}
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	customerID := customer.CustomerID{Namespace: namespace, ID: cust.ID}
+
+	meteredFeature := createFeature(t, "metered", lo.ToPtr(mtr.ID))
+	meteredEnt := createMeteredEntitlement(t, cust, meteredFeature.Key)
+
+	createInput := func(entitlementID string) entitlement.CreateCustomerEntitlementGrantInput {
+		return entitlement.CreateCustomerEntitlementGrantInput{
+			CustomerID:    customerID,
+			EntitlementID: entitlementID,
+			Grant: entitlement.CreateEntitlementGrantInputs{
+				CreateGrantInput: credit.CreateGrantInput{
+					Amount:           10,
+					Priority:         3,
+					EffectiveAt:      now.Add(time.Hour),
+					Expiration:       &grant.ExpirationPeriod{Count: 1, Duration: grant.ExpirationPeriodDurationWeek},
+					ResetMaxRollover: 10,
+					Metadata:         map[string]string{"source": "promo"},
+				},
+			},
+		}
+	}
+
+	t.Run("Create should reject an incomplete input", func(t *testing.T) {
+		input := createInput(meteredEnt.ID)
+		input.Grant.Amount = 0
+
+		_, err := conn.CreateCustomerEntitlementGrant(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("Create should issue a grant listed for the entitlement", func(t *testing.T) {
+		// when a grant is issued for the metered entitlement
+		created, err := conn.CreateCustomerEntitlementGrant(t.Context(), createInput(meteredEnt.ID))
+		require.NoError(t, err)
+
+		// then the grant is owned by the entitlement and carries the requested settings
+		require.NotEmpty(t, created.ID)
+		require.Equal(t, meteredEnt.ID, created.OwnerID)
+		require.Equal(t, 10.0, created.Amount)
+		require.Equal(t, uint8(3), created.Priority)
+		require.True(t, now.Add(time.Hour).Equal(created.EffectiveAt), "unexpected effective at: %s", created.EffectiveAt)
+		require.True(t, now.Add(time.Hour).AddDate(0, 0, 7).Equal(lo.FromPtr(created.ExpiresAt)), "unexpected expires at: %s", lo.FromPtr(created.ExpiresAt))
+		require.Equal(t, map[string]string{"source": "promo"}, created.Metadata)
+
+		// and it is part of the grant list of the entitlement
+		grants, err := conn.ListCustomerEntitlementGrants(t.Context(), entitlement.ListCustomerEntitlementGrantsInput{
+			CustomerID:    customerID,
+			EntitlementID: meteredEnt.ID,
+			Page:          pagination.NewPage(1, 10),
+		})
+		require.NoError(t, err)
+		require.Equal(t, 1, grants.TotalCount)
+		require.Equal(t, created.ID, grants.Items[0].ID)
+	})
+
+	t.Run("Create should reject a grant effective before the current usage period", func(t *testing.T) {
+		input := createInput(meteredEnt.ID)
+		input.Grant.EffectiveAt = now.Add(-time.Hour)
+
+		_, err := conn.CreateCustomerEntitlementGrant(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("Create should reject an entitlement that cannot own grants", func(t *testing.T) {
+		// given a boolean entitlement of the customer
+		booleanFeature := createFeature(t, "boolean", nil)
+		booleanEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       &booleanFeature.Key,
+			EntitlementType:  entitlement.EntitlementTypeBoolean,
+		}, nil)
+		require.NoError(t, err)
+
+		_, err = conn.CreateCustomerEntitlementGrant(t.Context(), createInput(booleanEnt.ID))
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.WrongTypeError{}))
+	})
+
+	t.Run("Create should report a missing entitlement as not found", func(t *testing.T) {
+		_, err := conn.CreateCustomerEntitlementGrant(t.Context(), createInput("01K5A4V2X8Q9Z7M3N6P1R4S8T2"))
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("Create should not reveal another customer's entitlement", func(t *testing.T) {
+		otherCust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+		otherEnt := createMeteredEntitlement(t, otherCust, meteredFeature.Key)
+
+		_, err := conn.CreateCustomerEntitlementGrant(t.Context(), createInput(otherEnt.ID))
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("Create should reject a deleted customer", func(t *testing.T) {
+		// given the customer gets deleted and time moves past the deletion
+		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
+		clock.SetTime(clock.Now().Add(time.Minute))
+
+		_, err := conn.CreateCustomerEntitlementGrant(t.Context(), createInput(meteredEnt.ID))
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
+	})
+}

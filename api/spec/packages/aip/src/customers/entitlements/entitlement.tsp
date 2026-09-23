@@ -57,7 +57,7 @@ model EntitlementIssueAfterReset {
 }
 
 /**
- * A grant created together with a metered entitlement.
+ * A grant to issue for a metered entitlement.
  */
 @friendlyName("BillingEntitlementGrantCreateRequest")
 model EntitlementGrantCreate {

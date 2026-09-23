@@ -30,7 +30,8 @@ const (
 )
 
 type fakeService struct {
-	history func(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error)
+	history     func(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error)
+	createGrant func(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error)
 }
 
 func (f fakeService) GetCustomerEntitlementHistory(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error) {
@@ -51,6 +52,10 @@ func (f fakeService) ListCustomerEntitlements(context.Context, entitlement.ListC
 
 func (f fakeService) ListCustomerEntitlementGrants(context.Context, entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
 	return pagination.Result[grant.Grant]{}, errors.New("not implemented")
+}
+
+func (f fakeService) CreateCustomerEntitlementGrant(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error) {
+	return f.createGrant(ctx, input)
 }
 
 func serveGetCustomerEntitlementHistory(t *testing.T, svc fakeService, params api.GetCustomerEntitlementHistoryParams) *httptest.ResponseRecorder {

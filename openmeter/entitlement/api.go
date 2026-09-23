@@ -74,6 +74,7 @@ type CustomerEntitlementAPIService interface {
 	GetCustomerEntitlement(ctx context.Context, input GetCustomerEntitlementInput) (*Entitlement, error)
 	ListCustomerEntitlements(ctx context.Context, input ListCustomerEntitlementsInput) (pagination.Result[Entitlement], error)
 	ListCustomerEntitlementGrants(ctx context.Context, input ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error)
+	CreateCustomerEntitlementGrant(ctx context.Context, input CreateCustomerEntitlementGrantInput) (grant.Grant, error)
 }
 
 // CreateCustomerEntitlementInput creates an entitlement for the customer referenced by ID.
@@ -295,6 +296,33 @@ func (i ListCustomerEntitlementGrantsInput) Validate() error {
 		errs = append(errs, errors.New("page is required"))
 	} else if err := i.Page.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("page: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// CreateCustomerEntitlementGrantInput issues a grant for the entitlement referenced
+// by ID within the customer referenced by ID. Only metered entitlements can own
+// grants.
+type CreateCustomerEntitlementGrantInput struct {
+	CustomerID    customer.CustomerID
+	EntitlementID string
+	Grant         CreateEntitlementGrantInputs
+}
+
+func (i CreateCustomerEntitlementGrantInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
+	}
+
+	if err := i.Grant.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("grant: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

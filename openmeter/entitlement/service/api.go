@@ -238,6 +238,24 @@ func (c *service) ListCustomerEntitlementGrants(ctx context.Context, input entit
 	}), nil
 }
 
+func (c *service) CreateCustomerEntitlementGrant(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error) {
+	if err := input.Validate(); err != nil {
+		return grant.Grant{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	if err != nil {
+		return grant.Grant{}, err
+	}
+
+	created, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.CustomerID, ent.ID, input.Grant)
+	if err != nil {
+		return grant.Grant{}, err
+	}
+
+	return created.Grant, nil
+}
+
 // historyWindowSize rejects the meter window sizes the balance history cannot be
 // calculated with; sub-hour windows are too expensive to compute.
 func historyWindowSize(size meter.WindowSize) (meteredentitlement.WindowSize, error) {
