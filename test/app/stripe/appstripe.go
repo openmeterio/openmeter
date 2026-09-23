@@ -2,6 +2,7 @@ package appstripe
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -594,6 +595,7 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	})
 	require.NoError(t, err, "Upsert customer data must not return error")
 
+	var missingPaymentMethodErr error = stripeclient.NewStripePaymentMethodNotFoundError(missingPaymentMethodID)
 	s.Env.StripeAppClient().Restore()
 	s.Env.StripeAppClient().
 		On("GetCustomer", stripeCustomerWithMissingPaymentMethodID).
@@ -602,7 +604,10 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 	s.Env.StripeAppClient().
 		On("GetPaymentMethod", missingPaymentMethodID).
 		Once().
-		Return(stripeclient.StripePaymentMethod{}, stripeclient.NewStripePaymentMethodNotFoundError(missingPaymentMethodID))
+		Return(
+			stripeclient.StripePaymentMethod{},
+			fmt.Errorf("getting payment method: %w", missingPaymentMethodErr),
+		)
 
 	err = customerApp.ValidateCustomer(ctx, customerWithMissingPaymentMethod, []app.CapabilityType{app.CapabilityTypeCollectPayments})
 	require.True(t, app.IsAppCustomerPreConditionError(err))
