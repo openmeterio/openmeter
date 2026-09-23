@@ -43,6 +43,17 @@ type InvoicingTestSuite struct {
 	BaseSuite
 }
 
+type countingAPIEditLineEngine struct {
+	billing.LineEngine
+	callCount int
+}
+
+func (e *countingAPIEditLineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	e.callCount++
+
+	return e.LineEngine.OnMutableInvoiceLinesEditedViaAPI(ctx, input)
+}
+
 func TestInvoicing(t *testing.T) {
 	suite.Run(t, new(InvoicingTestSuite))
 }
@@ -1628,6 +1639,48 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceIsDeletedInsteadOfIssued() {
 	s.Equal(billing.StandardInvoiceStatusDeleted, invoiceWithDeletedLines.Status)
 	s.Require().Len(invoiceWithDeletedLines.Lines.OrEmpty(), 1)
 	s.NotNil(invoiceWithDeletedLines.Lines.OrEmpty()[0].DeletedAt)
+}
+
+func (s *InvoicingTestSuite) TestDeleteInvoiceIsIdempotent() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("invoice-delete-idempotent")
+
+	// Given a deletable invoice and external integrations that record deletion calls.
+	lineEngine := &countingAPIEditLineEngine{LineEngine: s.LegacyBillingLineEngine}
+	s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeInvoice))
+	s.Require().NoError(s.BillingService.RegisterLineEngine(lineEngine))
+	s.T().Cleanup(func() {
+		s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeInvoice))
+		s.Require().NoError(s.BillingService.RegisterLineEngine(s.LegacyBillingLineEngine))
+	})
+
+	invoice := s.createManualApprovalInvoice(ctx, namespace, billing.Discounts{})
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+	mockApp.OnDeleteStandardInvoice(nil)
+
+	// When the invoice is deleted twice.
+	firstDelete, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+		Invoice:        invoice.GetInvoiceID(),
+		DeletionSource: billing.ChangeSourceAPIRequest,
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(firstDelete.DeletedAt)
+
+	secondDelete, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+		Invoice:        invoice.GetInvoiceID(),
+		DeletionSource: billing.ChangeSourceAPIRequest,
+	})
+
+	// Then the second delete succeeds without changing deletion history or repeating external cleanup.
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDeleted, secondDelete.Status)
+	s.Require().NotNil(secondDelete.DeletedAt)
+	s.Equal(*firstDelete.DeletedAt, *secondDelete.DeletedAt)
+	s.Equal(firstDelete.DeletionSource, secondDelete.DeletionSource)
+	s.Equal(1, lineEngine.callCount)
+	s.Equal(1, mockApp.DeleteInvoiceCallCount())
+	mockApp.AssertExpectations(s.T())
 }
 
 func (s *InvoicingTestSuite) TestEmptyInvoiceDeletionFailureCanBeRetried() {

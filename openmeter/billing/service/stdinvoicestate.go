@@ -234,7 +234,12 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress)
 
-	stateMachine.Configure(billing.StandardInvoiceStatusDeleted)
+	stateMachine.Configure(billing.StandardInvoiceStatusDeleted).
+		// Terminal delete replays are intentionally side-effect free, as deletion is
+		// idempotent.
+		InternalTransition(billing.TriggerDelete, statelessx.WithParameters(func(_ context.Context, _ billing.DeleteInvoiceTriggerInput) error {
+			return nil
+		}))
 
 	// Issuing state. Line finalization handlers can persist durable preparation
 	// before returning. Preparation failures remain retry-only, while invoice-app
