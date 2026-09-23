@@ -54,7 +54,7 @@ func (h *handler) CreateCustomerEntitlement() CreateCustomerEntitlementHandler {
 				return CreateCustomerEntitlementResponse{}, err
 			}
 
-			return toAPIEntitlement(created)
+			return ToAPIBillingEntitlement(created)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerEntitlementResponse](http.StatusCreated),
 		httptransport.AppendOptions(

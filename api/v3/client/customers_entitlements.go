@@ -42,7 +42,7 @@ func (p GetCustomerEntitlementHistoryParams) values() url.Values {
 	return q
 }
 
-type EntitlementFilter struct {
+type ListCustomerEntitlementsFilter struct {
 	// Filter entitlements by feature ID.
 	FeatureID *StringExactFilter
 	// Filter entitlements by feature key.
@@ -51,13 +51,13 @@ type EntitlementFilter struct {
 	Type *StringExactFilter
 }
 
-type EntitlementListParams struct {
+type ListCustomerEntitlementsParams struct {
 	Page   *PageParams
 	Sort   *Sort
-	Filter *EntitlementFilter
+	Filter *ListCustomerEntitlementsFilter
 }
 
-func (p EntitlementListParams) values() url.Values {
+func (p ListCustomerEntitlementsParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
@@ -168,7 +168,7 @@ func (s *CustomersEntitlementsService) Get(ctx context.Context, customerID strin
 // List the entitlements of the customer that are active at the time of the
 // request. For checking entitlement access, use the entitlement access endpoints
 // instead.
-func (s *CustomersEntitlementsService) List(ctx context.Context, customerID string, params EntitlementListParams) (*EntitlementPagePaginatedResponse, error) {
+func (s *CustomersEntitlementsService) List(ctx context.Context, customerID string, params ListCustomerEntitlementsParams) (*EntitlementPagePaginatedResponse, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
 	}
@@ -191,7 +191,7 @@ func (s *CustomersEntitlementsService) List(ctx context.Context, customerID stri
 }
 
 // ListAll returns an iterator over all Entitlement results, fetching pages of List transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *CustomersEntitlementsService) ListAll(ctx context.Context, customerID string, params EntitlementListParams) iter.Seq2[Entitlement, error] {
+func (s *CustomersEntitlementsService) ListAll(ctx context.Context, customerID string, params ListCustomerEntitlementsParams) iter.Seq2[Entitlement, error] {
 	return paginate(params.Page, func(page, size int) ([]Entitlement, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}

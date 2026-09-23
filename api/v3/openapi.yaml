@@ -2394,6 +2394,94 @@ paths:
       x-private: true
       x-internal: true
       x-unstable: true
+  /openmeter/entitlements:
+    get:
+      operationId: list-entitlements
+      summary: List entitlements
+      description: |-
+        List the entitlements of every customer in the namespace that are active at the
+        time of the request. Intended for administrative use; to list the entitlements
+        of a single customer, use the customer entitlements endpoints, and for checking
+        entitlement access, use the entitlement access endpoints instead.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort entitlements returned in the response. Supported sort attributes are:
+
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter entitlements returned in the response.
+
+            To filter entitlements by customer add the following query param:
+            `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
+          schema:
+            $ref: '#/components/schemas/ListEntitlementsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Entitlements
+      x-internal: true
+      x-private: true
+      x-unstable: true
+  /openmeter/entitlements/{entitlementId}:
+    get:
+      operationId: get-entitlement
+      summary: Get entitlement
+      description: |-
+        Get an entitlement by ID. For checking entitlement access, use the entitlement
+        access endpoints instead.
+      parameters:
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Entitlement response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
+      x-internal: true
+      x-private: true
+      x-unstable: true
   /openmeter/events:
     get:
       operationId: list-metering-events
@@ -14968,6 +15056,27 @@ components:
           $ref: '#/components/schemas/ULIDFieldFilter'
       additionalProperties: false
       description: Filter options for listing customers.
+    ListEntitlementsParamsFilter:
+      type: object
+      properties:
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter entitlements by feature ID.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by feature key.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilterExact'
+          description: Filter entitlements by type (`metered`, `static` or `boolean`).
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter entitlements by customer ID.
+      additionalProperties: false
+      description: Filter options for listing entitlements.
     ListEventsParamsFilter:
       type: object
       properties:

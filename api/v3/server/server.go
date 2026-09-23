@@ -27,6 +27,7 @@ import (
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	customersentitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
 	entitlementaccesshandler "github.com/openmeterio/openmeter/api/v3/handlers/entitlementaccess"
+	entitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/entitlements"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	featurecosthandler "github.com/openmeterio/openmeter/api/v3/handlers/featurecost"
 	featureshandler "github.com/openmeterio/openmeter/api/v3/handlers/features"
@@ -260,6 +261,7 @@ type Server struct {
 	customersEntitlementHandler  customersentitlementhandler.Handler
 	customersEntitlementsHandler customersentitlementshandler.Handler
 	entitlementAccessHandler     entitlementaccesshandler.Handler
+	entitlementsHandler          entitlementshandler.Handler
 	metersHandler                metershandler.Handler
 	subscriptionsHandler         subscriptionshandler.Handler
 	subscriptionAddonsHandler    subscriptionaddonshandler.Handler
@@ -344,6 +346,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
 	entitlementAccessHandler := entitlementaccesshandler.New(resolveNamespace, config.EntitlementAccessService, httptransport.WithErrorHandler(config.ErrorHandler))
+	entitlementsHandler := entitlementshandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {
@@ -380,6 +383,7 @@ func NewServer(config *Config) (*Server, error) {
 		featuresHandler:              featuresH,
 		featureCostHandler:           featureCostH,
 		entitlementAccessHandler:     entitlementAccessHandler,
+		entitlementsHandler:          entitlementsHandler,
 	}, nil
 }
 

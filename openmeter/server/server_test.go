@@ -664,6 +664,26 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusNoContent,
 			},
 		},
+		{
+			name: "list entitlements",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/entitlements?filter[customer_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV&sort=created_at%20desc",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "get entitlement",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
@@ -1196,6 +1216,16 @@ func (n NoopEntitlementConnector) ListCustomerEntitlements(ctx context.Context, 
 
 func (n NoopEntitlementConnector) DeleteCustomerEntitlement(ctx context.Context, input entitlement.DeleteCustomerEntitlementInput) error {
 	return nil
+}
+
+func (n NoopEntitlementConnector) GetEntitlementByID(ctx context.Context, input entitlement.GetEntitlementByIDInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{
+		GenericProperties: entitlement.GenericProperties{EntitlementType: entitlement.EntitlementTypeBoolean},
+	}, nil
+}
+
+func (n NoopEntitlementConnector) ListNamespaceEntitlements(ctx context.Context, input entitlement.ListNamespaceEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
+	return pagination.Result[entitlement.Entitlement]{}, nil
 }
 
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {

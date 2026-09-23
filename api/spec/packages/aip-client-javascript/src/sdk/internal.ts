@@ -14,7 +14,11 @@ import {
   listCustomerCharges,
   createCustomerCharges,
 } from '../funcs/customers.js'
-import { getCustomerEntitlementAccess } from '../funcs/entitlements.js'
+import {
+  getCustomerEntitlementAccess,
+  listEntitlements,
+  getEntitlement,
+} from '../funcs/entitlements.js'
 import {
   unscheduleSubscription,
   restoreSubscription,
@@ -72,6 +76,10 @@ import type {
 import type {
   GetCustomerEntitlementAccessRequest,
   GetCustomerEntitlementAccessResponse,
+  ListEntitlementsRequest,
+  ListEntitlementsResponse,
+  GetEntitlementRequest,
+  GetEntitlementResponse,
 } from '../models/operations/entitlements.js'
 import type {
   UnscheduleSubscriptionRequest,
@@ -480,6 +488,61 @@ export class InternalEntitlements {
     return unwrap(
       await getCustomerEntitlementAccess(this._client, request, options),
     )
+  }
+
+  /**
+   * List entitlements
+   *
+   * List the entitlements of every customer in the namespace that are active at the
+   * time of the request. Intended for administrative use; to list the entitlements
+   * of a single customer, use the customer entitlements endpoints, and for checking
+   * entitlement access, use the entitlement access endpoints instead.
+   *
+   * GET /openmeter/entitlements
+   */
+  async list(
+    request?: ListEntitlementsRequest,
+    options?: RequestOptions,
+  ): Promise<ListEntitlementsResponse> {
+    return unwrap(await listEntitlements(this._client, request, options))
+  }
+
+  /**
+   * List entitlements
+   *
+   * List the entitlements of every customer in the namespace that are active at the
+   * time of the request. Intended for administrative use; to list the entitlements
+   * of a single customer, use the customer entitlements endpoints, and for checking
+   * entitlement access, use the entitlement access endpoints instead.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/entitlements
+   */
+  listAll(
+    request?: ListEntitlementsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<Entitlement> {
+    return paginatePages(
+      (req, opts) => listEntitlements(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get entitlement
+   *
+   * Get an entitlement by ID. For checking entitlement access, use the entitlement
+   * access endpoints instead.
+   *
+   * GET /openmeter/entitlements/{entitlementId}
+   */
+  async get(
+    request: GetEntitlementRequest,
+    options?: RequestOptions,
+  ): Promise<GetEntitlementResponse> {
+    return unwrap(await getEntitlement(this._client, request, options))
   }
 }
 

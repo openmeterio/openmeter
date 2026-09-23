@@ -435,9 +435,11 @@ they can change or be removed without notice or semver consideration.
 
 ### Internal Entitlements
 
-| Method                                           | HTTP                                                                             | Description                                    |
-| ------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `client.internal.entitlements.getCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
+| Method                                           | HTTP                                                                             | Description                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.entitlements.getCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature.                                                                                                                                                                                                                                                                   |
+| `client.internal.entitlements.list`              | `GET /openmeter/entitlements`                                                    | List the entitlements of every customer in the namespace that are active at the time of the request. Intended for administrative use; to list the entitlements of a single customer, use the customer entitlements endpoints, and for checking entitlement access, use the entitlement access endpoints instead. |
+| `client.internal.entitlements.get`               | `GET /openmeter/entitlements/{entitlementId}`                                    | Get an entitlement by ID. For checking entitlement access, use the entitlement access endpoints instead.                                                                                                                                                                                                         |
 
 ### Internal Subscriptions
 

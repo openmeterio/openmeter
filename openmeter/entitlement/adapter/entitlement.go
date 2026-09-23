@@ -501,6 +501,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				query = query.Where(db_entitlement.FeatureKeyIn(params.FeatureKeys...))
 			}
 
+			query = filter.ApplyToQuery(query, params.CustomerID, db_entitlement.FieldCustomerID)
 			query = filter.ApplyToQuery(query, params.FeatureID, db_entitlement.FieldFeatureID)
 			query = filter.ApplyToQuery(query, params.FeatureKey, db_entitlement.FieldFeatureKey)
 			query = filter.ApplyToQuery(query, params.EntitlementType, db_entitlement.FieldEntitlementType)

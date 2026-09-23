@@ -5,6 +5,7 @@ package openmeter
 import (
 	"context"
 	"fmt"
+	"iter"
 	"net/http"
 	"net/url"
 	"strings"
@@ -27,6 +28,40 @@ func (p GetCustomerEntitlementAccessParams) values() url.Values {
 			expandValues = append(expandValues, string(value))
 		}
 		q.Set("expand", strings.Join(expandValues, ","))
+	}
+
+	return q
+}
+
+type ListEntitlementsFilter struct {
+	// Filter entitlements by feature ID.
+	FeatureID *StringExactFilter
+	// Filter entitlements by feature key.
+	FeatureKey *StringExactFilter
+	// Filter entitlements by type (`metered`, `static` or `boolean`).
+	Type *StringExactFilter
+	// Filter entitlements by customer ID.
+	CustomerID *StringExactFilter
+}
+
+type ListEntitlementsParams struct {
+	Page   *PageParams
+	Sort   *Sort
+	Filter *ListEntitlementsFilter
+}
+
+func (p ListEntitlementsParams) values() url.Values {
+	q := url.Values{}
+
+	addPageParams(q, p.Page)
+
+	addSort(q, "sort", p.Sort)
+
+	if p.Filter != nil {
+		addStringExactFilter(q, "filter[feature_id]", p.Filter.FeatureID)
+		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
+		addStringExactFilter(q, "filter[type]", p.Filter.Type)
+		addStringExactFilter(q, "filter[customer_id]", p.Filter.CustomerID)
 	}
 
 	return q
@@ -76,6 +111,65 @@ func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID 
 	}
 
 	var out EntitlementAccessResult
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// List the entitlements of every customer in the namespace that are active at the
+// time of the request. Intended for administrative use; to list the entitlements
+// of a single customer, use the customer entitlements endpoints, and for checking
+// entitlement access, use the entitlement access endpoints instead.
+func (s *EntitlementsService) List(ctx context.Context, params ListEntitlementsParams) (*EntitlementPagePaginatedResponse, error) {
+	path := "/openmeter/entitlements"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out EntitlementPagePaginatedResponse
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// ListAll returns an iterator over all Entitlement results, fetching pages of List transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *EntitlementsService) ListAll(ctx context.Context, params ListEntitlementsParams) iter.Seq2[Entitlement, error] {
+	return paginate(params.Page, func(page, size int) ([]Entitlement, int, error) {
+		pageParams := params
+		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+
+		resp, err := s.List(ctx, pageParams)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return resp.Data, resp.Meta.Page.Total, nil
+	})
+}
+
+// Get an entitlement by ID. For checking entitlement access, use the entitlement
+// access endpoints instead.
+func (s *EntitlementsService) Get(ctx context.Context, entitlementID string) (*Entitlement, error) {
+	if entitlementID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "entitlementID", ErrEmptyID)
+	}
+
+	path := "/openmeter/entitlements/{entitlementId}"
+
+	path = replacePathParam(path, "entitlementId", entitlementID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out Entitlement
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

@@ -241,26 +241,94 @@ func (i ListCustomerEntitlementsInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	if i.FeatureID != nil {
-		if err := i.FeatureID.Validate(); err != nil {
+	errs = append(errs, listEntitlementsQueryErrors(i.FeatureID, i.FeatureKey, i.Type, i.OrderBy, i.Page)...)
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// EntitlementAPIService is the API-facing facade for namespace-wide entitlement
+// operations that are not scoped to a single customer.
+type EntitlementAPIService interface {
+	GetEntitlementByID(ctx context.Context, input GetEntitlementByIDInput) (*Entitlement, error)
+	ListNamespaceEntitlements(ctx context.Context, input ListNamespaceEntitlementsInput) (pagination.Result[Entitlement], error)
+}
+
+type GetEntitlementByIDInput struct {
+	Namespace     string
+	EntitlementID string
+}
+
+func (i GetEntitlementByIDInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ListNamespaceEntitlementsInput lists the entitlements of every customer in the
+// namespace that are active at the time of the call. An unset OrderBy sorts by
+// creation time so pagination is stable.
+type ListNamespaceEntitlementsInput struct {
+	Namespace string
+
+	CustomerID *filter.FilterULID
+	FeatureID  *filter.FilterULID
+	FeatureKey *filter.FilterString
+	Type       *filter.FilterString
+
+	OrderBy ListEntitlementsOrderBy
+	Order   sortx.Order
+	Page    pagination.Page
+}
+
+func (i ListNamespaceEntitlementsInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer ID filter: %w", err))
+		}
+	}
+
+	errs = append(errs, listEntitlementsQueryErrors(i.FeatureID, i.FeatureKey, i.Type, i.OrderBy, i.Page)...)
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func listEntitlementsQueryErrors(featureID *filter.FilterULID, featureKey, entitlementType *filter.FilterString, orderBy ListEntitlementsOrderBy, page pagination.Page) []error {
+	var errs []error
+
+	if featureID != nil {
+		if err := featureID.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("feature ID filter: %w", err))
 		}
 	}
 
-	if i.FeatureKey != nil {
-		if err := i.FeatureKey.Validate(); err != nil {
+	if featureKey != nil {
+		if err := featureKey.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("feature key filter: %w", err))
 		}
 	}
 
-	if i.Type != nil {
-		if err := i.Type.Validate(); err != nil {
+	if entitlementType != nil {
+		if err := entitlementType.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("type filter: %w", err))
 		}
 
 		// The column is free text in the database, so an unknown type would silently
 		// match nothing instead of being reported.
-		values := append(lo.FromPtr(i.Type.In), lo.FromPtr(i.Type.Eq), lo.FromPtr(i.Type.Ne))
+		values := append(lo.FromPtr(entitlementType.In), lo.FromPtr(entitlementType.Eq), lo.FromPtr(entitlementType.Ne))
 		for _, value := range lo.Compact(values) {
 			if !slices.Contains(EntitlementType(value).Values(), EntitlementType(value)) {
 				errs = append(errs, fmt.Errorf("invalid entitlement type: %s", value))
@@ -268,17 +336,17 @@ func (i ListCustomerEntitlementsInput) Validate() error {
 		}
 	}
 
-	if i.OrderBy != "" && !slices.Contains(i.OrderBy.Values(), i.OrderBy) {
-		errs = append(errs, fmt.Errorf("invalid order by: %s, supported: %s", i.OrderBy, strings.Join(i.OrderBy.StrValues(), ", ")))
+	if orderBy != "" && !slices.Contains(orderBy.Values(), orderBy) {
+		errs = append(errs, fmt.Errorf("invalid order by: %s, supported: %s", orderBy, strings.Join(orderBy.StrValues(), ", ")))
 	}
 
-	if !i.Page.IsZero() {
-		if err := i.Page.Validate(); err != nil {
+	if !page.IsZero() {
+		if err := page.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("page: %w", err))
 		}
 	}
 
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
+	return errs
 }
 
 // ResetCustomerEntitlementUsageInput starts a new usage period for a metered

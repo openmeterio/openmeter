@@ -9,10 +9,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 )
 
-// errorEncoder maps entitlement domain errors to their HTTP responses and falls
+// ErrorEncoder maps entitlement domain errors to their HTTP responses and falls
 // back to the generic models errors the customer service wraps (not found,
 // conflict), which apierrors.GenericErrorEncoder does not handle.
-func errorEncoder() encoder.ErrorEncoder {
+func ErrorEncoder() encoder.ErrorEncoder {
 	generic := commonhttp.GenericErrorEncoder()
 
 	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
