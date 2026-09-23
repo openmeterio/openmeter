@@ -16,8 +16,8 @@ func errorEncoder() encoder.ErrorEncoder {
 		switch {
 		case models.IsGenericNotFoundError(err):
 			apierrors.NewNotFoundError(ctx, err, "entitlement").HandleAPIError(w, r)
-		case models.IsGenericPreConditionFailedError(err):
-			apierrors.NewPreconditionFailedError(ctx, err.Error()).HandleAPIError(w, r)
+		case models.IsGenericConflictError(err):
+			apierrors.NewConflictError(ctx, err, err.Error()).HandleAPIError(w, r)
 		default:
 			return false
 		}

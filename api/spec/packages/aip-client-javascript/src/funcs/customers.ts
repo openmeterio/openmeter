@@ -33,6 +33,8 @@ import type {
   CreateCustomerStripeCheckoutSessionResponse,
   CreateCustomerStripePortalSessionRequest,
   CreateCustomerStripePortalSessionResponse,
+  CreateCustomerEntitlementRequest,
+  CreateCustomerEntitlementResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -481,6 +483,54 @@ export function createCustomerStripePortalSession(
           )
         }
         return fromWire(data, schemas.createCustomerStripePortalSessionResponse)
+      })
+  })
+}
+
+/**
+ * Create customer entitlement
+ *
+ * Create an entitlement for the customer.
+ *
+ * A customer can have only one active entitlement per feature. The feature must be
+ * compatible with the entitlement type. Entitlements cannot be modified after
+ * creation, only deleted.
+ *
+ * POST /openmeter/customers/{customerId}/entitlements
+ */
+export function createCustomerEntitlement(
+  client: Client,
+  req: CreateCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateCustomerEntitlementResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.createCustomerEntitlementPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.createCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements`
+    const body = toWire(req.body, schemas.createCustomerEntitlementBody)
+    if (client._options.validate) {
+      assertValid(schemas.createCustomerEntitlementBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createCustomerEntitlementResponseWire, data)
+        }
+        return fromWire(data, schemas.createCustomerEntitlementResponse)
       })
   })
 }

@@ -4,6 +4,7 @@ import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import {
+  createCustomerEntitlement,
   voidCreditGrant,
   listCustomerCharges,
   createCustomerCharges,
@@ -43,6 +44,8 @@ import {
 import { listPlanAddons } from '../funcs/planAddons.js'
 import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
 import type {
+  CreateCustomerEntitlementRequest,
+  CreateCustomerEntitlementResponse,
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
   ListCustomerChargesRequest,
@@ -179,6 +182,13 @@ export class Internal {
 export class InternalCustomers {
   constructor(private readonly _client: Client) {}
 
+  private _entitlements?: InternalCustomersEntitlements
+  get entitlements(): InternalCustomersEntitlements {
+    return (this._entitlements ??= new InternalCustomersEntitlements(
+      this._client,
+    ))
+  }
+
   private _credits?: InternalCustomersCredits
   get credits(): InternalCustomersCredits {
     return (this._credits ??= new InternalCustomersCredits(this._client))
@@ -187,6 +197,30 @@ export class InternalCustomers {
   private _charges?: InternalCustomersCharges
   get charges(): InternalCustomersCharges {
     return (this._charges ??= new InternalCustomersCharges(this._client))
+  }
+}
+
+export class InternalCustomersEntitlements {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Create customer entitlement
+   *
+   * Create an entitlement for the customer.
+   *
+   * A customer can have only one active entitlement per feature. The feature must be
+   * compatible with the entitlement type. Entitlements cannot be modified after
+   * creation, only deleted.
+   *
+   * POST /openmeter/customers/{customerId}/entitlements
+   */
+  async create(
+    request: CreateCustomerEntitlementRequest,
+    options?: RequestOptions,
+  ): Promise<CreateCustomerEntitlementResponse> {
+    return unwrap(
+      await createCustomerEntitlement(this._client, request, options),
+    )
   }
 }
 

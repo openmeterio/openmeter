@@ -160,6 +160,22 @@ model RecurringPeriod {
 }
 
 /**
+ * Recurring period input. The anchor is optional; the owning resource defines the
+ * default, typically its creation time.
+ */
+@friendlyName("RecurringPeriodInput")
+model RecurringPeriodInput {
+  ...OmitProperties<RecurringPeriod, "anchor">;
+
+  /**
+   * A date-time anchor to base the recurring period on.
+   */
+  @summary("Anchor time")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  anchor?: DateTime;
+}
+
+/**
  * A period with defined start and end dates.
  *
  * The period is always inclusive at the start and exclusive at the end.

@@ -127,10 +127,10 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, response.Code)
 	})
 
-	t.Run("maps a deleted customer to 412", func(t *testing.T) {
-		response := serveGetCustomerEntitlementAccess(t, failing(models.NewGenericPreConditionFailedError(errors.New("customer is deleted"))))
+	t.Run("maps a deleted customer to 409", func(t *testing.T) {
+		response := serveGetCustomerEntitlementAccess(t, failing(models.NewGenericConflictError(errors.New("customer is deleted"))))
 
-		require.Equal(t, http.StatusPreconditionFailed, response.Code)
+		require.Equal(t, http.StatusConflict, response.Code)
 	})
 
 	t.Run("maps a validation error to 400", func(t *testing.T) {

@@ -946,6 +946,166 @@ type CreateCustomerRequest struct {
 	BillingAddress *Address `json:"billing_address,omitempty"`
 }
 
+// Boolean entitlement create request.
+type CreateEntitlementBooleanRequest struct {
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference   `json:"feature"`
+	Labels  *map[string]string `json:"labels,omitempty"`
+	// The usage period of the entitlement. The anchor defaults to the entitlement
+	// creation time.
+	UsagePeriod *RecurringPeriodInput `json:"usage_period,omitempty"`
+}
+
+// Metered entitlement create request.
+type CreateEntitlementMeteredRequest struct {
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference   `json:"feature"`
+	Labels  *map[string]string `json:"labels,omitempty"`
+	// If true, the customer keeps access to the feature after the balance is
+	// exhausted.
+	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
+	// Usage granted automatically after each reset. Cannot be combined with `grants`.
+	Issue *EntitlementIssueAfterReset `json:"issue,omitempty"`
+	// The amount granted automatically after each reset.
+	IssueAfterReset *Numeric `json:"issue_after_reset,omitempty"`
+	// The priority of the grant created after each reset.
+	IssueAfterResetPriority *uint8 `json:"issue_after_reset_priority,omitempty"`
+	// If true, the overage is preserved at reset. If false, the usage is reset to 0.
+	PreserveOverageAtReset *bool `json:"preserve_overage_at_reset,omitempty"`
+	// The usage period of the entitlement. The balance resets at the start of every
+	// period. The anchor defaults to the entitlement creation time.
+	UsagePeriod RecurringPeriodInput `json:"usage_period"`
+	// The time from which usage is measured. Defaults to the entitlement creation
+	// time.
+	MeasureUsageFrom *EntitlementMeasureUsageFrom `json:"measure_usage_from,omitempty"`
+	// Grants created together with the entitlement. Cannot be combined with `issue`.
+	Grants *[]EntitlementGrantCreateRequest `json:"grants,omitempty"`
+}
+
+// Entitlement create request.
+//
+// CreateEntitlementRequest is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the CreateEntitlementRequestFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type CreateEntitlementRequest struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *CreateEntitlementRequest) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u CreateEntitlementRequest) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u CreateEntitlementRequest) AsCreateEntitlementMeteredRequest() (*CreateEntitlementMeteredRequest, error) {
+	if u.Type != "metered" {
+		return nil, fmt.Errorf("CreateEntitlementRequest: expected type %q, got %q", "metered", u.Type)
+	}
+	var value CreateEntitlementMeteredRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func CreateEntitlementRequestFromCreateEntitlementMeteredRequest(value CreateEntitlementMeteredRequest) (CreateEntitlementRequest, error) {
+	value.Type = "metered"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return CreateEntitlementRequest{}, err
+	}
+	var result CreateEntitlementRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return CreateEntitlementRequest{}, err
+	}
+	return result, nil
+}
+
+func (u CreateEntitlementRequest) AsCreateEntitlementStaticRequest() (*CreateEntitlementStaticRequest, error) {
+	if u.Type != "static" {
+		return nil, fmt.Errorf("CreateEntitlementRequest: expected type %q, got %q", "static", u.Type)
+	}
+	var value CreateEntitlementStaticRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func CreateEntitlementRequestFromCreateEntitlementStaticRequest(value CreateEntitlementStaticRequest) (CreateEntitlementRequest, error) {
+	value.Type = "static"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return CreateEntitlementRequest{}, err
+	}
+	var result CreateEntitlementRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return CreateEntitlementRequest{}, err
+	}
+	return result, nil
+}
+
+func (u CreateEntitlementRequest) AsCreateEntitlementBooleanRequest() (*CreateEntitlementBooleanRequest, error) {
+	if u.Type != "boolean" {
+		return nil, fmt.Errorf("CreateEntitlementRequest: expected type %q, got %q", "boolean", u.Type)
+	}
+	var value CreateEntitlementBooleanRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func CreateEntitlementRequestFromCreateEntitlementBooleanRequest(value CreateEntitlementBooleanRequest) (CreateEntitlementRequest, error) {
+	value.Type = "boolean"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return CreateEntitlementRequest{}, err
+	}
+	var result CreateEntitlementRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return CreateEntitlementRequest{}, err
+	}
+	return result, nil
+}
+
+// Static entitlement create request.
+type CreateEntitlementStaticRequest struct {
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference   `json:"feature"`
+	Labels  *map[string]string `json:"labels,omitempty"`
+	// The entitlement configuration as a JSON value. Returned when checking
+	// entitlement access.
+	Config any `json:"config"`
+	// The usage period of the entitlement. The anchor defaults to the entitlement
+	// creation time.
+	UsagePeriod *RecurringPeriodInput `json:"usage_period,omitempty"`
+}
+
 // A credit adjustment can be used to make manual adjustments to a customer's
 // credit balance.
 //
@@ -1336,6 +1496,343 @@ type CustomerStripeCreateCheckoutSessionRequest struct {
 type CustomerStripeCreateCustomerPortalSessionRequest struct {
 	// Options for configuring the Stripe Customer Portal Session.
 	StripeOptions AppStripeCreateCustomerPortalSessionOptions `json:"stripe_options"`
+}
+
+// An entitlement grants a customer access to a feature.
+//
+// Entitlement is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the EntitlementFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type Entitlement struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *Entitlement) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u Entitlement) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u Entitlement) AsEntitlementMetered() (*EntitlementMetered, error) {
+	if u.Type != "metered" {
+		return nil, fmt.Errorf("Entitlement: expected type %q, got %q", "metered", u.Type)
+	}
+	var value EntitlementMetered
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func EntitlementFromEntitlementMetered(value EntitlementMetered) (Entitlement, error) {
+	value.Type = "metered"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	var result Entitlement
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return Entitlement{}, err
+	}
+	return result, nil
+}
+
+func (u Entitlement) AsEntitlementStatic() (*EntitlementStatic, error) {
+	if u.Type != "static" {
+		return nil, fmt.Errorf("Entitlement: expected type %q, got %q", "static", u.Type)
+	}
+	var value EntitlementStatic
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func EntitlementFromEntitlementStatic(value EntitlementStatic) (Entitlement, error) {
+	value.Type = "static"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	var result Entitlement
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return Entitlement{}, err
+	}
+	return result, nil
+}
+
+func (u Entitlement) AsEntitlementBoolean() (*EntitlementBoolean, error) {
+	if u.Type != "boolean" {
+		return nil, fmt.Errorf("Entitlement: expected type %q, got %q", "boolean", u.Type)
+	}
+	var value EntitlementBoolean
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func EntitlementFromEntitlementBoolean(value EntitlementBoolean) (Entitlement, error) {
+	value.Type = "boolean"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	var result Entitlement
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return Entitlement{}, err
+	}
+	return result, nil
+}
+
+// A boolean entitlement grants access to a feature.
+type EntitlementBoolean struct {
+	ID string `json:"id"`
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference `json:"feature"`
+	// The customer the entitlement belongs to.
+	Customer CustomerReference `json:"customer"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// The usage period of the entitlement.
+	UsagePeriod *RecurringPeriod `json:"usage_period,omitempty"`
+	// The current usage period of the entitlement.
+	CurrentUsagePeriod *ClosedPeriod `json:"current_usage_period,omitempty"`
+	// The time from which the entitlement is active.
+	ActiveFrom time.Time `json:"active_from"`
+	// The time until which the entitlement is active. If not set, the entitlement is
+	// active until deleted.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// The time the entitlement was created.
+	CreatedAt time.Time `json:"created_at"`
+	// The time the entitlement was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+	// The time the entitlement was deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+// A grant created together with a metered entitlement.
+type EntitlementGrantCreateRequest struct {
+	// The amount to grant, in the feature's unit. Must be positive.
+	Amount Numeric `json:"amount"`
+	// The priority of the grant. Lower values have higher priority. Grants are
+	// consumed in priority order, then by closest expiration, then by earliest
+	// creation.
+	Priority *uint8 `json:"priority,omitempty"`
+	// The time the grant becomes effective and the anchor for recurring grants. The
+	// value is rounded up to the next minute.
+	EffectiveAt time.Time `json:"effective_at"`
+	// The duration after which the grant expires, counted from `effective_at`. Only
+	// single-unit durations are accepted, such as `PT12H`, `P7D`, `P2W`, `P3M`, or
+	// `P1Y`. If omitted, the grant never expires.
+	ExpiresAfter *string `json:"expires_after,omitempty"`
+	// The maximum balance carried over at reset. The balance after a reset is
+	// `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+	// Defaults to `amount`.
+	MaxRolloverAmount *Numeric `json:"max_rollover_amount,omitempty"`
+	// The minimum balance carried over at reset. The balance after a reset is
+	// `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+	// Defaults to `0`.
+	MinRolloverAmount *Numeric           `json:"min_rollover_amount,omitempty"`
+	Labels            *map[string]string `json:"labels,omitempty"`
+	// The recurrence of the grant. When set, the amount is issued again every
+	// interval. The anchor defaults to `effective_at`.
+	Recurrence *RecurringPeriodInput `json:"recurrence,omitempty"`
+}
+
+// Usage granted automatically after each reset of a metered entitlement. The
+// balance returns to `amount` after every reset.
+type EntitlementIssueAfterReset struct {
+	// The amount granted after each reset, in the feature's unit.
+	Amount Numeric `json:"amount"`
+	// The priority of the grant created after each reset. Lower values have higher
+	// priority.
+	Priority *uint8 `json:"priority,omitempty"`
+}
+
+// The time from which usage is measured, as a preset or an explicit timestamp.
+//
+// EntitlementMeasureUsageFrom is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the EntitlementMeasureUsageFromFrom* constructors.
+type EntitlementMeasureUsageFrom struct {
+	raw json.RawMessage
+}
+
+func (u *EntitlementMeasureUsageFrom) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	return nil
+}
+
+func (u EntitlementMeasureUsageFrom) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u EntitlementMeasureUsageFrom) AsPreset() (*EntitlementMeasureUsageFromPreset, error) {
+	var value EntitlementMeasureUsageFromPreset
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	if !value.Valid() {
+		return nil, fmt.Errorf("EntitlementMeasureUsageFrom: value %q is not Preset", value)
+	}
+	return &value, nil
+}
+
+func EntitlementMeasureUsageFromFromPreset(value EntitlementMeasureUsageFromPreset) (EntitlementMeasureUsageFrom, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return EntitlementMeasureUsageFrom{}, err
+	}
+	var result EntitlementMeasureUsageFrom
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return EntitlementMeasureUsageFrom{}, err
+	}
+	return result, nil
+}
+
+func (u EntitlementMeasureUsageFrom) AsTime() (*time.Time, error) {
+	var value time.Time
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func EntitlementMeasureUsageFromFromTime(value time.Time) (EntitlementMeasureUsageFrom, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return EntitlementMeasureUsageFrom{}, err
+	}
+	var result EntitlementMeasureUsageFrom
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return EntitlementMeasureUsageFrom{}, err
+	}
+	return result, nil
+}
+
+// Preset for the time from which usage is measured.
+//
+// - `current_period_start`: the start of the current usage period.
+// - `now`: the entitlement creation time.
+type EntitlementMeasureUsageFromPreset string
+
+const (
+	EntitlementMeasureUsageFromPresetCurrentPeriodStart EntitlementMeasureUsageFromPreset = "current_period_start"
+	EntitlementMeasureUsageFromPresetNow                EntitlementMeasureUsageFromPreset = "now"
+)
+
+func (value EntitlementMeasureUsageFromPreset) Valid() bool {
+	switch value {
+	case EntitlementMeasureUsageFromPresetCurrentPeriodStart, EntitlementMeasureUsageFromPresetNow:
+		return true
+	default:
+		return false
+	}
+}
+
+// A metered entitlement grants a usage allowance for a feature. Access is
+// determined by the balance: the allowance provided by grants is burnt down by
+// usage.
+type EntitlementMetered struct {
+	ID string `json:"id"`
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference `json:"feature"`
+	// The customer the entitlement belongs to.
+	Customer CustomerReference `json:"customer"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// The time from which the entitlement is active.
+	ActiveFrom time.Time `json:"active_from"`
+	// The time until which the entitlement is active. If not set, the entitlement is
+	// active until deleted.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// The time the entitlement was created.
+	CreatedAt time.Time `json:"created_at"`
+	// The time the entitlement was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+	// The time the entitlement was deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The usage period of the entitlement. The balance resets at the start of every
+	// period.
+	UsagePeriod RecurringPeriod `json:"usage_period"`
+	// The current usage period of the entitlement.
+	CurrentUsagePeriod ClosedPeriod `json:"current_usage_period"`
+	// If true, the customer keeps access to the feature after the balance is
+	// exhausted.
+	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
+	// Usage granted automatically after each reset. Cannot be combined with `grants`.
+	Issue *EntitlementIssueAfterReset `json:"issue,omitempty"`
+	// The amount granted automatically after each reset.
+	IssueAfterReset *Numeric `json:"issue_after_reset,omitempty"`
+	// The priority of the grant created after each reset.
+	IssueAfterResetPriority *uint8 `json:"issue_after_reset_priority,omitempty"`
+	// If true, the overage is preserved at reset. If false, the usage is reset to 0.
+	PreserveOverageAtReset *bool `json:"preserve_overage_at_reset,omitempty"`
+	// The time from which usage is measured.
+	MeasureUsageFrom time.Time `json:"measure_usage_from"`
+	// The time of the last reset.
+	LastReset time.Time `json:"last_reset"`
+}
+
+// A static entitlement grants access to a feature together with a configuration.
+type EntitlementStatic struct {
+	ID string `json:"id"`
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature the customer is entitled to use.
+	Feature FeatureReference `json:"feature"`
+	// The customer the entitlement belongs to.
+	Customer CustomerReference `json:"customer"`
+	Labels   map[string]string `json:"labels,omitempty"`
+	// The usage period of the entitlement.
+	UsagePeriod *RecurringPeriod `json:"usage_period,omitempty"`
+	// The current usage period of the entitlement.
+	CurrentUsagePeriod *ClosedPeriod `json:"current_usage_period,omitempty"`
+	// The time from which the entitlement is active.
+	ActiveFrom time.Time `json:"active_from"`
+	// The time until which the entitlement is active. If not set, the entitlement is
+	// active until deleted.
+	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// The time the entitlement was created.
+	CreatedAt time.Time `json:"created_at"`
+	// The time the entitlement was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+	// The time the entitlement was deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The entitlement configuration as a JSON value. Returned when checking
+	// entitlement access.
+	Config any `json:"config"`
+}
+
+// Recurring period input. The anchor is optional; the owning resource defines the
+// default, typically its creation time.
+type RecurringPeriodInput struct {
+	// The interval duration in ISO 8601 format.
+	Interval string `json:"interval"`
+	// A date-time anchor to base the recurring period on.
+	Anchor *time.Time `json:"anchor,omitempty"`
 }
 
 // Request body for updating the external payment settlement status of a credit
