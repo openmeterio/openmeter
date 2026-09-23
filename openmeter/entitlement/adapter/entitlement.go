@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -499,6 +500,10 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 			if len(params.FeatureKeys) > 0 {
 				query = query.Where(db_entitlement.FeatureKeyIn(params.FeatureKeys...))
 			}
+
+			query = filter.ApplyToQuery(query, params.FeatureID, db_entitlement.FieldFeatureID)
+			query = filter.ApplyToQuery(query, params.FeatureKey, db_entitlement.FieldFeatureKey)
+			query = filter.ApplyToQuery(query, params.EntitlementType, db_entitlement.FieldEntitlementType)
 
 			if !params.IncludeDeleted {
 				query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(now), db_entitlement.DeletedAtIsNil()))

@@ -1876,6 +1876,12 @@ type EntitlementMetered struct {
 	LastReset time.Time `json:"last_reset"`
 }
 
+// Page paginated response.
+type EntitlementPagePaginatedResponse struct {
+	Data []Entitlement `json:"data"`
+	Meta PaginatedMeta `json:"meta"`
+}
+
 // A static entitlement grants access to a feature together with a configuration.
 type EntitlementStatic struct {
 	ID string `json:"id"`

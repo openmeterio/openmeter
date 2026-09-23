@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
@@ -94,6 +95,58 @@ func (c *service) CreateCustomerEntitlement(ctx context.Context, input entitleme
 	createInput.UsageAttribution = cus.GetUsageAttribution()
 
 	return c.CreateEntitlement(ctx, createInput, input.Grants)
+}
+
+func (c *service) GetCustomerEntitlement(ctx context.Context, input entitlement.GetCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return nil, err
+	}
+
+	entitlementID := models.NamespacedID{Namespace: cus.Namespace, ID: input.EntitlementID}
+
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, entitlementID)
+	if err != nil {
+		return nil, err
+	}
+
+	// The entitlement is addressed through the customer, so one owned by another
+	// customer must not be revealed.
+	if ent.CustomerID != cus.ID {
+		return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
+	}
+
+	return ent, nil
+}
+
+func (c *service) ListCustomerEntitlements(ctx context.Context, input entitlement.ListCustomerEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[entitlement.Entitlement]{}, err
+	}
+
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return pagination.Result[entitlement.Entitlement]{}, err
+	}
+
+	now := clock.Now()
+
+	return c.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		Namespaces:          []string{cus.Namespace},
+		CustomerIDs:         []string{cus.ID},
+		FeatureID:           input.FeatureID,
+		FeatureKey:          input.FeatureKey,
+		EntitlementType:     input.Type,
+		OrderBy:             lo.CoalesceOrEmpty(input.OrderBy, entitlement.ListEntitlementsOrderByCreatedAt),
+		Order:               input.Order,
+		Page:                input.Page,
+		ActiveAt:            &now,
+		IncludeDeletedAfter: now,
+	})
 }
 
 func (c *service) getActiveCustomer(ctx context.Context, customerID customer.CustomerID) (*customer.Customer, error) {
