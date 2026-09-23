@@ -632,3 +632,178 @@ func TestCustomerEntitlementAPI(t *testing.T) {
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
 }
+
+func TestCustomerEntitlementResetAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-customer-entitlement-reset"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     namespace,
+		Name:          "Meter 1",
+		Key:           "meter1",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	createMeterInPG(t, deps.dbClient, mtr)
+
+	createFeature := func(t *testing.T, key string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: namespace,
+			MeterID:   lo.ToPtr(mtr.ID),
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	createMeteredEntitlement := func(t *testing.T, cust *customer.Customer, feat feature.Feature) *entitlement.Entitlement {
+		t.Helper()
+
+		ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       &feat.Key,
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now,
+			})),
+			IssueAfterReset: lo.ToPtr(10.0),
+		}, nil)
+		require.NoError(t, err)
+
+		return ent
+	}
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	customerID := customer.CustomerID{Namespace: namespace, ID: cust.ID}
+
+	// given a metered entitlement with usage in the current period and a boolean entitlement
+	meteredFeature := createFeature(t, "metered")
+	meteredEnt := createMeteredEntitlement(t, cust, meteredFeature)
+
+	boolFeature := createFeature(t, "boolean")
+	boolEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureKey:       &boolFeature.Key,
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	}, nil)
+	require.NoError(t, err)
+
+	deps.streamingConnector.AddSimpleEvent(mtr.Key, 3, now.Add(time.Minute))
+
+	// when an hour passes
+	clock.SetTime(now.Add(time.Hour))
+
+	resetInput := func(entitlementID string) entitlement.ResetCustomerEntitlementUsageInput {
+		return entitlement.ResetCustomerEntitlementUsageInput{
+			CustomerID:    customerID,
+			EntitlementID: entitlementID,
+		}
+	}
+
+	meteredValue := func(t *testing.T) *meteredentitlement.MeteredEntitlementValue {
+		t.Helper()
+
+		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
+			CustomerID: customerID,
+			FeatureKey: meteredFeature.Key,
+		})
+		require.NoError(t, err)
+
+		value, ok := access.Value.(*meteredentitlement.MeteredEntitlementValue)
+		require.True(t, ok, "expected metered value, got %T", access.Value)
+
+		return value
+	}
+
+	t.Run("should reject an incomplete input", func(t *testing.T) {
+		input := resetInput(meteredEnt.ID)
+		input.EntitlementID = ""
+
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should reject a reset in the future", func(t *testing.T) {
+		input := resetInput(meteredEnt.ID)
+		input.EffectiveAt = lo.ToPtr(clock.Now().Add(time.Hour))
+
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should report a missing customer as not found", func(t *testing.T) {
+		input := resetInput(meteredEnt.ID)
+		input.CustomerID = customer.CustomerID{Namespace: namespace, ID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2"}
+
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), input)
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("should report a missing entitlement as not found", func(t *testing.T) {
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), resetInput("01K5A4V2X8Q9Z7M3N6P1R4S8T3"))
+
+		_, ok := lo.ErrorsAs[*entitlement.NotFoundError](err)
+		require.True(t, ok, "expected entitlement not found error, got: %v", err)
+	})
+
+	t.Run("should report an entitlement of another customer as not found", func(t *testing.T) {
+		other := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+		otherEnt := createMeteredEntitlement(t, other, createFeature(t, "metered-other"))
+
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), resetInput(otherEnt.ID))
+
+		_, ok := lo.ErrorsAs[*entitlement.NotFoundError](err)
+		require.True(t, ok, "expected entitlement not found error, got: %v", err)
+	})
+
+	t.Run("should reject a non-metered entitlement", func(t *testing.T) {
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), resetInput(boolEnt.ID))
+
+		_, ok := lo.ErrorsAs[*entitlement.WrongTypeError](err)
+		require.True(t, ok, "expected wrong type error, got: %v", err)
+	})
+
+	t.Run("should start a new usage period", func(t *testing.T) {
+		// given usage consumed the default grant in the current period
+		before := meteredValue(t)
+		require.Equal(t, 3.0, before.UsageInPeriod)
+		require.Equal(t, 7.0, before.Balance)
+
+		// when the usage is reset now
+		require.NoError(t, conn.ResetCustomerEntitlementUsage(t.Context(), resetInput(meteredEnt.ID)))
+
+		// then the new period starts without usage and the default grant is reissued
+		after := meteredValue(t)
+		require.Equal(t, 0.0, after.UsageInPeriod)
+		require.Equal(t, 10.0, after.Balance)
+		require.True(t, now.Add(time.Hour).Equal(after.StartOfPeriod), "expected period to start at %s, got %s", now.Add(time.Hour), after.StartOfPeriod)
+	})
+
+	t.Run("should reject a second reset at the same time", func(t *testing.T) {
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), resetInput(meteredEnt.ID))
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should reject a deleted customer", func(t *testing.T) {
+		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
+		clock.SetTime(clock.Now().Add(time.Minute))
+
+		err := conn.ResetCustomerEntitlementUsage(t.Context(), resetInput(meteredEnt.ID))
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
+	})
+}

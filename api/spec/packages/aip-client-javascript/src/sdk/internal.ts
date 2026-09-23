@@ -8,6 +8,7 @@ import {
   getCustomerEntitlementHistory,
   getCustomerEntitlement,
   listCustomerEntitlements,
+  resetCustomerEntitlementUsage,
   voidCreditGrant,
   listCustomerCharges,
   createCustomerCharges,
@@ -56,6 +57,8 @@ import type {
   GetCustomerEntitlementResponse,
   ListCustomerEntitlementsRequest,
   ListCustomerEntitlementsResponse,
+  ResetCustomerEntitlementUsageRequest,
+  ResetCustomerEntitlementUsageResponse,
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
   ListCustomerChargesRequest,
@@ -317,6 +320,27 @@ export class InternalCustomersEntitlements {
       (req, opts) => listCustomerEntitlements(this._client, req, opts),
       request,
       options,
+    )
+  }
+
+  /**
+   * Reset customer entitlement usage
+   *
+   * Reset the usage of a metered entitlement. The reset starts a new usage period:
+   * usage is zeroed and grants roll over according to their rollover settings.
+   *
+   * Usage is reset automatically at the end of each usage period. Use this operation
+   * to reset it earlier, for example to align the entitlement with the customer's
+   * billing period. The usage period anchor can be moved at the same time.
+   *
+   * POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/reset
+   */
+  async resetUsage(
+    request: ResetCustomerEntitlementUsageRequest,
+    options?: RequestOptions,
+  ): Promise<ResetCustomerEntitlementUsageResponse> {
+    return unwrap(
+      await resetCustomerEntitlementUsage(this._client, request, options),
     )
   }
 }

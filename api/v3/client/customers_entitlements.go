@@ -204,3 +204,33 @@ func (s *CustomersEntitlementsService) ListAll(ctx context.Context, customerID s
 		return resp.Data, resp.Meta.Page.Total, nil
 	})
 }
+
+// Reset the usage of a metered entitlement. The reset starts a new usage period:
+// usage is zeroed and grants roll over according to their rollover settings.
+//
+// Usage is reset automatically at the end of each usage period. Use this operation
+// to reset it earlier, for example to align the entitlement with the customer's
+// billing period. The usage period anchor can be moved at the same time.
+func (s *CustomersEntitlementsService) ResetUsage(ctx context.Context, customerID string, entitlementID string, request *ResetCustomerEntitlementUsageRequest) error {
+	if customerID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if entitlementID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "entitlementID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlements/{entitlementId}/reset"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "entitlementId", entitlementID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, optionalBody(request), "application/json", "")
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.doRaw(req)
+	return err
+}

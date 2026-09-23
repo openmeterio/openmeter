@@ -1921,6 +1921,19 @@ type RecurringPeriodInput struct {
 	Anchor *time.Time `json:"anchor,omitempty"`
 }
 
+// Request body for resetting the usage of a metered entitlement.
+type ResetCustomerEntitlementUsageRequest struct {
+	// The time the reset takes effect. Defaults to the current time and cannot be in
+	// the future. Truncated to the minute.
+	EffectiveAt *time.Time `json:"effective_at,omitempty"`
+	// Whether the usage period anchor is kept. When false, the anchor moves to
+	// `effective_at`.
+	RetainAnchor *bool `json:"retain_anchor,omitempty"`
+	// Whether overage carries over into the new usage period. Defaults to the
+	// entitlement's own setting.
+	PreserveOverage *bool `json:"preserve_overage,omitempty"`
+}
+
 // Request body for updating the external payment settlement status of a credit
 // grant.
 type UpdateCreditGrantExternalSettlementRequest struct {

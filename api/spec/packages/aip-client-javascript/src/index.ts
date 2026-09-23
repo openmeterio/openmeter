@@ -449,6 +449,7 @@ export type {
   UpdateBillingWorkflowPaymentSendInvoiceSettingsInput,
   EntitlementIssueAfterResetInput,
   EventInput,
+  ResetCustomerEntitlementUsageRequestInput,
   UnauthorizedInput,
   ForbiddenInput,
   NotFoundInput,

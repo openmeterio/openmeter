@@ -41,6 +41,8 @@ import type {
   GetCustomerEntitlementResponse,
   ListCustomerEntitlementsRequest,
   ListCustomerEntitlementsResponse,
+  ResetCustomerEntitlementUsageRequest,
+  ResetCustomerEntitlementUsageResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -716,6 +718,59 @@ export function listCustomerEntitlements(
         }
         return fromWire(data, schemas.listCustomerEntitlementsResponse)
       })
+  })
+}
+
+/**
+ * Reset customer entitlement usage
+ *
+ * Reset the usage of a metered entitlement. The reset starts a new usage period:
+ * usage is zeroed and grants roll over according to their rollover settings.
+ *
+ * Usage is reset automatically at the end of each usage period. Use this operation
+ * to reset it earlier, for example to align the entitlement with the customer's
+ * billing period. The usage period anchor can be moved at the same time.
+ *
+ * POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/reset
+ */
+export function resetCustomerEntitlementUsage(
+  client: Client,
+  req: ResetCustomerEntitlementUsageRequest,
+  options?: RequestOptions,
+): Promise<Result<ResetCustomerEntitlementUsageResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.resetCustomerEntitlementUsagePathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.resetCustomerEntitlementUsagePathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/reset`
+    const body = toWire(req.body, schemas.resetCustomerEntitlementUsageBody)
+    if (client._options.validate) {
+      assertValid(schemas.resetCustomerEntitlementUsageBodyWire, body)
+    }
+    await http(client).post(path, { ...options, json: body })
   })
 }
 

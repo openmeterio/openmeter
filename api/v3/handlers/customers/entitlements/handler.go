@@ -12,6 +12,7 @@ type Handler interface {
 	GetCustomerEntitlementHistory() GetCustomerEntitlementHistoryHandler
 	GetCustomerEntitlement() GetCustomerEntitlementHandler
 	ListCustomerEntitlements() ListCustomerEntitlementsHandler
+	ResetCustomerEntitlementUsage() ResetCustomerEntitlementUsageHandler
 }
 
 type handler struct {
