@@ -3902,13 +3902,12 @@ export interface EntitlementBoolean {
 }
 
 /**
- * A grant issued for a metered entitlement. Grants define the usage allowance the
- * entitlement's balance is burnt down from: each grant is in effect between its
- * effective time and its expiration, and grants are consumed in priority order.
+ * A grant issued for a metered entitlement. Each grant adds its amount to the
+ * entitlement's balance from its effective time until it expires, and usage is
+ * deducted from the grants in priority order.
  *
- * Grants are immutable once created, so the balance is deterministic regardless of
- * when it is queried. They can only be deleted, which ends them at the time of the
- * deletion.
+ * Grants are immutable, so the balance is deterministic regardless of when it is
+ * queried. Deleting a grant ends it at the time of the deletion.
  */
 export interface EntitlementGrant {
   id: string
@@ -3917,10 +3916,9 @@ export interface EntitlementGrant {
   /** The granted amount, in the feature's unit. */
   amount: string
   /**
-   * The priority of the grant. Lower values have higher priority: a priority of 1 is
-   * more urgent than a priority of 2. When several grants are available, the one
-   * with the highest priority is consumed first; among equal priorities the one
-   * closest to expiration wins, then the earliest created.
+   * The priority of the grant. Lower values are consumed first: a grant with
+   * priority 1 is consumed before one with priority 2. Among equal priorities, the
+   * grant closest to expiration is consumed first, then the earliest created.
    */
   priority: number
   /**
@@ -3936,22 +3934,18 @@ export interface EntitlementGrant {
   expiresAfter?: string
   /**
    * The time the grant expires, calculated from `effective_at` and `expires_after`.
-   * The grant is no longer in effect at this time. Absent when the grant never
+   * The grant is no longer in effect from this time. Absent when the grant never
    * expires.
    */
   expiresAt?: Date
   /**
-   * Grants are rolled over at reset, after which they can have a different balance
-   * compared to what they had before the reset. Balance after the reset is
-   * calculated as
-   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   * The maximum balance the grant carries over at reset. The balance after a reset
+   * is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
    */
   maxRolloverAmount: string
   /**
-   * Grants are rolled over at reset, after which they can have a different balance
-   * compared to what they had before the reset. Balance after the reset is
-   * calculated as
-   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   * The minimum balance the grant carries over at reset. The balance after a reset
+   * is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
    */
   minRolloverAmount: string
   /**
