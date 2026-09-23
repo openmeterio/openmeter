@@ -2043,6 +2043,12 @@ export const creditGrantInvoiceReference = z
   })
   .describe('Invoice references for the grant.')
 
+export const currencyCustomReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('CurrencyCustom reference.')
+
 export const subscriptionCostBasisPin = z
   .object({
     customCurrencyId: ulid,
@@ -3539,16 +3545,6 @@ export const creditAdjustment = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
-export const creditBalance = z
-  .object({
-    currency: billingCurrencyCode,
-    customCurrencyId: ulid.optional(),
-    live: numeric,
-    settled: numeric,
-    pending: numeric,
-  })
-  .describe('The credit balance by currency.')
-
 export const createCreditAdjustmentRequest = z
   .object({
     name: z
@@ -3577,41 +3573,6 @@ export const listCreditTransactionsParamsFilter = z
     featureKey: stringFieldFilter.optional(),
   })
   .describe('Filter options for listing credit transactions.')
-
-export const creditTransaction = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    bookedAt: dateTime,
-    type: creditTransactionType,
-    currency: billingCurrencyCode,
-    customCurrencyId: ulid.optional(),
-    amount: numeric,
-    availableBalance: z
-      .object({
-        before: numeric,
-        after: numeric,
-      })
-      .describe('The available balance before and after the transaction.'),
-  })
-
-  .describe(
-    "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
-  )
 
 export const currencyAmount = z
   .object({
@@ -3890,6 +3851,51 @@ export const updateOrganizationDefaultTaxCodesRequest = z
     creditGrantTaxCode: taxCodeReference.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
+
+export const creditBalance = z
+  .object({
+    currency: billingCurrencyCode,
+    customCurrency: currencyCustomReference.optional(),
+    live: numeric,
+    settled: numeric,
+    pending: numeric,
+  })
+  .describe('The credit balance by currency.')
+
+export const creditTransaction = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    bookedAt: dateTime,
+    type: creditTransactionType,
+    currency: billingCurrencyCode,
+    customCurrency: currencyCustomReference.optional(),
+    amount: numeric,
+    availableBalance: z
+      .object({
+        before: numeric,
+        after: numeric,
+      })
+      .describe('The available balance before and after the transaction.'),
+  })
+
+  .describe(
+    "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
+  )
 
 export const invoiceWorkflowAppsReferences = z
   .object({
@@ -4713,20 +4719,6 @@ export const upsertCustomerBillingDataRequest = z
   })
   .describe('CustomerBillingData upsert request.')
 
-export const creditBalances = z
-  .object({
-    retrievedAt: dateTime,
-    balances: z.array(creditBalance).describe('The balances by currencies.'),
-  })
-  .describe('The balances of the credits of a customer.')
-
-export const creditTransactionPaginatedResponse = z
-  .object({
-    data: z.array(creditTransaction),
-    meta: cursorMeta,
-  })
-  .describe('Cursor paginated response.')
-
 export const chargeFlatFeeSystemIntent = z
   .object({
     name: z
@@ -4926,6 +4918,20 @@ export const workflowTaxSettings = z
     defaultTaxConfig: taxConfig.optional(),
   })
   .describe('Tax settings for a billing workflow.')
+
+export const creditBalances = z
+  .object({
+    retrievedAt: dateTime,
+    balances: z.array(creditBalance).describe('The balances by currencies.'),
+  })
+  .describe('The balances of the credits of a customer.')
+
+export const creditTransactionPaginatedResponse = z
+  .object({
+    data: z.array(creditTransaction),
+    meta: cursorMeta,
+  })
+  .describe('Cursor paginated response.')
 
 export const planAddonPagePaginatedResponse = z
   .object({
@@ -10065,6 +10071,12 @@ export const creditGrantInvoiceReferenceWire = z
   })
   .describe('Invoice references for the grant.')
 
+export const currencyCustomReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+  })
+  .describe('CurrencyCustom reference.')
+
 export const subscriptionCostBasisPinWire = z
   .strictObject({
     custom_currency_id: ulidWire,
@@ -11547,16 +11559,6 @@ export const creditAdjustmentWire = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
-export const creditBalanceWire = z
-  .strictObject({
-    currency: billingCurrencyCodeWire,
-    custom_currency_id: ulidWire.optional(),
-    live: numericWire,
-    settled: numericWire,
-    pending: numericWire,
-  })
-  .describe('The credit balance by currency.')
-
 export const createCreditAdjustmentRequestWire = z
   .strictObject({
     name: z
@@ -11585,41 +11587,6 @@ export const listCreditTransactionsParamsFilterWire = z
     feature_key: stringFieldFilterWire.optional(),
   })
   .describe('Filter options for listing credit transactions.')
-
-export const creditTransactionWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    booked_at: dateTimeWire,
-    type: creditTransactionTypeWire,
-    currency: billingCurrencyCodeWire,
-    custom_currency_id: ulidWire.optional(),
-    amount: numericWire,
-    available_balance: z
-      .strictObject({
-        before: numericWire,
-        after: numericWire,
-      })
-      .describe('The available balance before and after the transaction.'),
-  })
-
-  .describe(
-    "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
-  )
 
 export const currencyAmountWire = z
   .strictObject({
@@ -11898,6 +11865,51 @@ export const updateOrganizationDefaultTaxCodesRequestWire = z
     credit_grant_tax_code: taxCodeReferenceWire.optional(),
   })
   .describe('OrganizationDefaultTaxCodes update request.')
+
+export const creditBalanceWire = z
+  .strictObject({
+    currency: billingCurrencyCodeWire,
+    custom_currency: currencyCustomReferenceWire.optional(),
+    live: numericWire,
+    settled: numericWire,
+    pending: numericWire,
+  })
+  .describe('The credit balance by currency.')
+
+export const creditTransactionWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    booked_at: dateTimeWire,
+    type: creditTransactionTypeWire,
+    currency: billingCurrencyCodeWire,
+    custom_currency: currencyCustomReferenceWire.optional(),
+    amount: numericWire,
+    available_balance: z
+      .strictObject({
+        before: numericWire,
+        after: numericWire,
+      })
+      .describe('The available balance before and after the transaction.'),
+  })
+
+  .describe(
+    "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
+  )
 
 export const invoiceWorkflowAppsReferencesWire = z
   .strictObject({
@@ -12723,22 +12735,6 @@ export const upsertCustomerBillingDataRequestWire = z
   })
   .describe('CustomerBillingData upsert request.')
 
-export const creditBalancesWire = z
-  .strictObject({
-    retrieved_at: dateTimeWire,
-    balances: z
-      .array(creditBalanceWire)
-      .describe('The balances by currencies.'),
-  })
-  .describe('The balances of the credits of a customer.')
-
-export const creditTransactionPaginatedResponseWire = z
-  .strictObject({
-    data: z.array(creditTransactionWire),
-    meta: cursorMetaWire,
-  })
-  .describe('Cursor paginated response.')
-
 export const chargeFlatFeeSystemIntentWire = z
   .strictObject({
     name: z
@@ -12935,6 +12931,22 @@ export const workflowTaxSettingsWire = z
     default_tax_config: taxConfigWire.optional(),
   })
   .describe('Tax settings for a billing workflow.')
+
+export const creditBalancesWire = z
+  .strictObject({
+    retrieved_at: dateTimeWire,
+    balances: z
+      .array(creditBalanceWire)
+      .describe('The balances by currencies.'),
+  })
+  .describe('The balances of the credits of a customer.')
+
+export const creditTransactionPaginatedResponseWire = z
+  .strictObject({
+    data: z.array(creditTransactionWire),
+    meta: cursorMetaWire,
+  })
+  .describe('Cursor paginated response.')
 
 export const planAddonPagePaginatedResponseWire = z
   .strictObject({

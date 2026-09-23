@@ -33,10 +33,10 @@ model CreditBalance {
   currency: Currencies.CurrencyCode;
 
   /**
-   * Immutable managed currency identifier. Present only for custom currencies.
+   * Managed currency reference. Present only for custom currencies.
    */
   @visibility(Lifecycle.Read)
-  custom_currency_id?: Shared.ULID;
+  custom_currency?: Shared.ResourceReference<Currencies.CurrencyCustom>;
 
   /**
    * Credits available after applying currently live charge impacts.
