@@ -2261,6 +2261,59 @@ paths:
       x-private: true
       x-internal: true
       x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/override:
+    put:
+      operationId: override-customer-entitlement
+      summary: Override customer entitlement
+      description: |-
+        Override an entitlement of the customer.
+
+        Overriding creates a new entitlement from the request and ends the referenced
+        entitlement at the same instant, so the customer keeps access without a gap. The
+        new entitlement must be for the same feature as the referenced one. Useful for
+        upgrades and downgrades.
+
+        Fails if the referenced entitlement does not exist, is deleted, or is no longer
+        active.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: Entitlement created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEntitlementRequest'
+      x-internal: true
+      x-private: true
+      x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/reset:
     post:
       operationId: reset-customer-entitlement-usage

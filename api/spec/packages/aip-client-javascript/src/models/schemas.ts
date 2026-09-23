@@ -7796,6 +7796,15 @@ export const createCustomerEntitlementBody = createEntitlementRequest
 
 export const createCustomerEntitlementResponse = entitlement
 
+export const overrideCustomerEntitlementPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const overrideCustomerEntitlementBody = createEntitlementRequest
+
+export const overrideCustomerEntitlementResponse = entitlement
+
 export const getCustomerEntitlementHistoryPathParams = z.object({
   customerId: ulid,
   entitlementId: ulid,
@@ -16574,6 +16583,15 @@ export const createCustomerEntitlementPathParamsWire = z.object({
 export const createCustomerEntitlementBodyWire = createEntitlementRequestWire
 
 export const createCustomerEntitlementResponseWire = entitlementWire
+
+export const overrideCustomerEntitlementPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const overrideCustomerEntitlementBodyWire = createEntitlementRequestWire
+
+export const overrideCustomerEntitlementResponseWire = entitlementWire
 
 export const getCustomerEntitlementHistoryPathParamsWire = z.object({
   customerId: ulidWire,

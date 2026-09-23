@@ -1086,3 +1086,151 @@ func TestNamespaceEntitlementAPI(t *testing.T) {
 		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 	})
 }
+
+func TestCustomerEntitlementOverrideAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-customer-entitlement-override-api"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	createFeature := func(t *testing.T, key string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: namespace,
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	createBooleanEntitlement := func(t *testing.T, customerID customer.CustomerID, feat feature.Feature) *entitlement.Entitlement {
+		t.Helper()
+
+		ent, err := conn.CreateCustomerEntitlement(t.Context(), entitlement.CreateCustomerEntitlementInput{
+			CustomerID: customerID,
+			Entitlement: entitlement.CreateEntitlementInputs{
+				FeatureID:       &feat.ID,
+				EntitlementType: entitlement.EntitlementTypeBoolean,
+			},
+		})
+		require.NoError(t, err)
+
+		return ent
+	}
+
+	overrideInput := func(customerID customer.CustomerID, entitlementID string, feat feature.Feature) entitlement.OverrideCustomerEntitlementInput {
+		return entitlement.OverrideCustomerEntitlementInput{
+			CustomerID:    customerID,
+			EntitlementID: entitlementID,
+			Entitlement: entitlement.CreateEntitlementInputs{
+				FeatureID:       &feat.ID,
+				EntitlementType: entitlement.EntitlementTypeBoolean,
+			},
+		}
+	}
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	customerID := customer.CustomerID{Namespace: namespace, ID: cust.ID}
+
+	otherCust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+	otherCustomerID := customer.CustomerID{Namespace: namespace, ID: otherCust.ID}
+
+	overriddenFeature := createFeature(t, "overridden")
+	deletedFeature := createFeature(t, "deleted")
+	otherFeature := createFeature(t, "other")
+
+	oldEnt := createBooleanEntitlement(t, customerID, overriddenFeature)
+	deletedEnt := createBooleanEntitlement(t, customerID, deletedFeature)
+	otherCustomerEnt := createBooleanEntitlement(t, otherCustomerID, otherFeature)
+
+	require.NoError(t, conn.DeleteEntitlement(t.Context(), namespace, deletedEnt.ID, clock.Now()))
+
+	clock.FreezeTime(now.Add(time.Minute))
+
+	t.Run("should reject an incomplete input", func(t *testing.T) {
+		input := overrideInput(customerID, "", overriddenFeature)
+
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should report a missing customer as not found", func(t *testing.T) {
+		input := overrideInput(customer.CustomerID{Namespace: namespace, ID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2"}, oldEnt.ID, overriddenFeature)
+
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), input)
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("should report a missing entitlement as not found", func(t *testing.T) {
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), overrideInput(customerID, "01K5A4V2X8Q9Z7M3N6P1R4S8T2", overriddenFeature))
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("should report a deleted entitlement as not found", func(t *testing.T) {
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), overrideInput(customerID, deletedEnt.ID, deletedFeature))
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("should report an entitlement of another customer as not found", func(t *testing.T) {
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), overrideInput(customerID, otherCustomerEnt.ID, otherFeature))
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("should reject a different feature", func(t *testing.T) {
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), overrideInput(customerID, oldEnt.ID, otherFeature))
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should replace the entitlement without a gap", func(t *testing.T) {
+		// when the entitlement is overridden with one for the same feature
+		newEnt, err := conn.OverrideCustomerEntitlement(t.Context(), overrideInput(customerID, oldEnt.ID, overriddenFeature))
+		require.NoError(t, err)
+
+		// then the new entitlement starts when the old one ends
+		require.NotEqual(t, oldEnt.ID, newEnt.ID)
+		require.Equal(t, overriddenFeature.ID, newEnt.FeatureID)
+		require.Equal(t, cust.ID, newEnt.CustomerID)
+		require.True(t, newEnt.ActiveFromTime().Equal(clock.Now()))
+
+		ended, err := conn.GetEntitlement(t.Context(), namespace, oldEnt.ID)
+		require.NoError(t, err)
+		require.NotNil(t, ended.ActiveTo)
+		require.True(t, ended.ActiveTo.Equal(clock.Now()))
+		require.Nil(t, ended.DeletedAt)
+
+		// and only the new entitlement is listed for the feature
+		result, err := conn.ListCustomerEntitlements(t.Context(), entitlement.ListCustomerEntitlementsInput{
+			CustomerID: customerID,
+			FeatureID:  &filter.FilterULID{Eq: lo.ToPtr(overriddenFeature.ID)},
+		})
+		require.NoError(t, err)
+		require.Len(t, result.Items, 1)
+		require.Equal(t, newEnt.ID, result.Items[0].ID)
+	})
+
+	t.Run("should reject an entitlement that already ended", func(t *testing.T) {
+		// given the overridden entitlement ended a minute ago
+		clock.FreezeTime(clock.Now().Add(time.Minute))
+
+		// when it is overridden again, then the override is rejected
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), overrideInput(customerID, oldEnt.ID, overriddenFeature))
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should reject a deleted customer", func(t *testing.T) {
+		// given the customer gets deleted and time moves past the deletion
+		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), otherCustomerID))
+		clock.FreezeTime(clock.Now().Add(time.Minute))
+
+		// then the override conflicts with the deleted state
+		_, err := conn.OverrideCustomerEntitlement(t.Context(), overrideInput(otherCustomerID, otherCustomerEnt.ID, otherFeature))
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
+	})
+}

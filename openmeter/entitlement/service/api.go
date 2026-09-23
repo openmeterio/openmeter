@@ -97,6 +97,34 @@ func (c *service) CreateCustomerEntitlement(ctx context.Context, input entitleme
 	return c.CreateEntitlement(ctx, createInput, input.Grants)
 }
 
+func (c *service) OverrideCustomerEntitlement(ctx context.Context, input entitlement.OverrideCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return nil, err
+	}
+
+	entitlementID := models.NamespacedID{Namespace: cus.Namespace, ID: input.EntitlementID}
+
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, entitlementID)
+	if err != nil {
+		return nil, err
+	}
+
+	if ent.CustomerID != cus.ID {
+		return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
+	}
+
+	createInput := input.Entitlement
+	createInput.Namespace = cus.Namespace
+	createInput.UsageAttribution = cus.GetUsageAttribution()
+
+	return c.OverrideEntitlement(ctx, cus.ID, ent.ID, createInput, input.Grants)
+}
+
 func (c *service) GetCustomerEntitlement(ctx context.Context, input entitlement.GetCustomerEntitlementInput) (*entitlement.Entitlement, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err

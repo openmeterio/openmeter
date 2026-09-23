@@ -684,6 +684,21 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 			},
 		},
+		{
+			name: "override customer entitlement",
+			req: testRequest{
+				method:      http.MethodPut,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/override",
+				body: map[string]any{
+					"type":    "boolean",
+					"feature": map[string]any{"id": "01ARZ3NDEKTSV4RRFFQ69G5FAX"},
+				},
+			},
+			res: testResponse{
+				status: http.StatusCreated,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
@@ -1204,6 +1219,10 @@ func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input e
 
 func (n NoopEntitlementConnector) CreateCustomerEntitlement(ctx context.Context, input entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) OverrideCustomerEntitlement(ctx context.Context, input entitlement.OverrideCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{GenericProperties: entitlement.GenericProperties{EntitlementType: entitlement.EntitlementTypeBoolean}}, nil
 }
 
 func (n NoopEntitlementConnector) GetCustomerEntitlement(ctx context.Context, input entitlement.GetCustomerEntitlementInput) (*entitlement.Entitlement, error) {

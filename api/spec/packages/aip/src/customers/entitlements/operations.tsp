@@ -59,6 +59,34 @@ namespace Entitlements {
       | Common.ErrorResponses;
 
     /**
+     * Override an entitlement of the customer.
+     *
+     * Overriding creates a new entitlement from the request and ends the referenced
+     * entitlement at the same instant, so the customer keeps access without a gap. The
+     * new entitlement must be for the same feature as the referenced one. Useful for
+     * upgrades and downgrades.
+     *
+     * Fails if the referenced entitlement does not exist, is deleted, or is no longer
+     * active.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.PrivateExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @put
+    @route("/{entitlementId}/override")
+    @operationId("override-customer-entitlement")
+    @summary("Override customer entitlement")
+    override(
+      @path customerId: Shared.ULID,
+      @path entitlementId: Shared.ULID,
+      @body entitlement: CreateEntitlement,
+    ):
+      | Shared.CreateResponse<Entitlement>
+      | Common.NotFound
+      | Common.Conflict
+      | Common.ErrorResponses;
+
+    /**
      * Get the balance and usage history of a metered entitlement. The queried range
      * may span multiple usage periods.
      *

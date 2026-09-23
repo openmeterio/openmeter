@@ -23,6 +23,10 @@ func (f fakeService) CreateCustomerEntitlement(context.Context, entitlement.Crea
 	return nil, errors.New("not implemented")
 }
 
+func (f fakeService) OverrideCustomerEntitlement(context.Context, entitlement.OverrideCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (f fakeService) GetCustomerEntitlementHistory(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error) {
 	return f.history(ctx, input)
 }

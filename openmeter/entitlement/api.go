@@ -70,6 +70,7 @@ func (i ListCustomerEntitlementAccessInput) Validate() error {
 // another customer as not found.
 type CustomerEntitlementAPIService interface {
 	CreateCustomerEntitlement(ctx context.Context, input CreateCustomerEntitlementInput) (*Entitlement, error)
+	OverrideCustomerEntitlement(ctx context.Context, input OverrideCustomerEntitlementInput) (*Entitlement, error)
 	GetCustomerEntitlementHistory(ctx context.Context, input GetCustomerEntitlementHistoryInput) (CustomerEntitlementHistory, error)
 	GetCustomerEntitlement(ctx context.Context, input GetCustomerEntitlementInput) (*Entitlement, error)
 	ListCustomerEntitlements(ctx context.Context, input ListCustomerEntitlementsInput) (pagination.Result[Entitlement], error)
@@ -117,6 +118,34 @@ func (i DeleteCustomerEntitlementInput) Validate() error {
 
 	if err := i.CustomerID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// OverrideCustomerEntitlementInput replaces the entitlement referenced by ID with a
+// new one created from Entitlement and Grants, following the same rules as
+// CreateCustomerEntitlementInput.
+type OverrideCustomerEntitlementInput struct {
+	CustomerID    customer.CustomerID
+	EntitlementID string
+	Entitlement   CreateEntitlementInputs
+	Grants        []CreateEntitlementGrantInputs
+}
+
+func (i OverrideCustomerEntitlementInput) Validate() error {
+	var errs []error
+
+	if err := (CreateCustomerEntitlementInput{
+		CustomerID:  i.CustomerID,
+		Entitlement: i.Entitlement,
+		Grants:      i.Grants,
+	}).Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if i.EntitlementID == "" {
