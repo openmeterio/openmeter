@@ -36,6 +36,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Defaults](#defaults)
 - [Internal Operations](#internal-operations)
   - [Internal Customers](#internal-customers)
+  - [Internal Entitlements](#internal-entitlements)
   - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Apps](#internal-apps)
   - [Internal Invoices](#internal-invoices)
@@ -305,10 +306,9 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Entitlements
 
-| Method                                   | HTTP                                                                             | Description                                    |
-| ---------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access`                       | List customer entitlement access               |
-| `client.entitlements.getCustomerAccess`  | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
+| Method                                   | HTTP                                                       | Description                      |
+| ---------------------------------------- | ---------------------------------------------------------- | -------------------------------- |
+| `client.entitlements.listCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access` | List customer entitlement access |
 
 ### Subscriptions
 
@@ -427,6 +427,12 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.customers.credits.grants.void` | `POST /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void` | Void a credit grant, forfeiting the remaining unused balance. Voiding is a forward-looking, irreversible operation. Credits already consumed by usage remain unaffected — only the remaining balance is forfeited. The grant reads as `voided` status afterwards. Payment state is not adjusted when `payment_adjustment` is `none`, so invoice-backed or externally collected payments may still collect the original amount. Only `active` grants can be voided; voiding a pending, expired, or fully consumed grant returns a conflict. Retrying a successful void is an idempotent success. |
 | `client.internal.customers.charges.list`        | `GET /openmeter/customers/{customerId}/charges`                              | List customer charges. Returns the customer's charges that are represented as either flat fee or usage-based charges.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `client.internal.customers.charges.create`      | `POST /openmeter/customers/{customerId}/charges`                             | Create customer charge.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+
+### Internal Entitlements
+
+| Method                                           | HTTP                                                                             | Description                                    |
+| ------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `client.internal.entitlements.getCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
 
 ### Internal Subscriptions
 

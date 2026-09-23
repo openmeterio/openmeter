@@ -9,6 +9,7 @@ import {
   listCustomerCharges,
   createCustomerCharges,
 } from '../funcs/customers.js'
+import { getCustomerEntitlementAccess } from '../funcs/entitlements.js'
 import {
   unscheduleSubscription,
   restoreSubscription,
@@ -53,6 +54,10 @@ import type {
   CreateCustomerChargesRequest,
   CreateCustomerChargesResponse,
 } from '../models/operations/customers.js'
+import type {
+  GetCustomerEntitlementAccessRequest,
+  GetCustomerEntitlementAccessResponse,
+} from '../models/operations/entitlements.js'
 import type {
   UnscheduleSubscriptionRequest,
   UnscheduleSubscriptionResponse,
@@ -139,6 +144,11 @@ export class Internal {
   private _customers?: InternalCustomers
   get customers(): InternalCustomers {
     return (this._customers ??= new InternalCustomers(this._client))
+  }
+
+  private _entitlements?: InternalEntitlements
+  get entitlements(): InternalEntitlements {
+    return (this._entitlements ??= new InternalEntitlements(this._client))
   }
 
   private _subscriptions?: InternalSubscriptions
@@ -314,6 +324,26 @@ export class InternalCustomersCharges {
     options?: RequestOptions,
   ): Promise<CreateCustomerChargesResponse> {
     return unwrap(await createCustomerCharges(this._client, request, options))
+  }
+}
+
+export class InternalEntitlements {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Get customer entitlement access
+   *
+   * Get the customer's access to a single feature.
+   *
+   * GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}
+   */
+  async getCustomerAccess(
+    request: GetCustomerEntitlementAccessRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementAccessResponse> {
+    return unwrap(
+      await getCustomerEntitlementAccess(this._client, request, options),
+    )
   }
 }
 

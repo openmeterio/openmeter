@@ -1988,6 +1988,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+      x-internal: true
+      x-private: true
+      x-unstable: true
   /openmeter/customers/{customerId}/entitlements:
     post:
       operationId: create-customer-entitlement
