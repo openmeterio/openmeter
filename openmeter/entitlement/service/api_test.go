@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
@@ -236,6 +237,169 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		_, err = conn.ListCustomerEntitlementAccess(t.Context(), entitlement.ListCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 		})
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
+	})
+}
+
+func TestCustomerEntitlementHistoryAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-customer-entitlement-history"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     namespace,
+		Name:          "Meter 1",
+		Key:           "meter1",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	createMeterInPG(t, deps.dbClient, mtr)
+
+	createFeature := func(t *testing.T, key string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: namespace,
+			MeterID:   lo.ToPtr(mtr.ID),
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	createMeteredEntitlement := func(t *testing.T, cust *customer.Customer, feat feature.Feature) *entitlement.Entitlement {
+		t.Helper()
+
+		ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       &feat.Key,
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now,
+			})),
+			IssueAfterReset: lo.ToPtr(10.0),
+		}, nil)
+		require.NoError(t, err)
+
+		return ent
+	}
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	customerID := customer.CustomerID{Namespace: namespace, ID: cust.ID}
+
+	// given a metered entitlement with usage in two consecutive hours and a boolean entitlement
+	meteredEnt := createMeteredEntitlement(t, cust, createFeature(t, "metered"))
+
+	boolFeature := createFeature(t, "boolean")
+	boolEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureKey:       &boolFeature.Key,
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	}, nil)
+	require.NoError(t, err)
+
+	deps.streamingConnector.AddSimpleEvent(mtr.Key, 1, now.Add(time.Minute))
+	deps.streamingConnector.AddSimpleEvent(mtr.Key, 2, now.Add(time.Hour+time.Minute))
+
+	// when two hours pass
+	clock.SetTime(now.Add(2 * time.Hour))
+
+	historyInput := func(entitlementID string) entitlement.GetCustomerEntitlementHistoryInput {
+		return entitlement.GetCustomerEntitlementHistoryInput{
+			CustomerID:    customerID,
+			EntitlementID: entitlementID,
+			WindowSize:    meter.WindowSizeHour,
+		}
+	}
+
+	t.Run("should reject an incomplete input", func(t *testing.T) {
+		input := historyInput(meteredEnt.ID)
+		input.WindowSize = ""
+
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should reject an unsupported window size", func(t *testing.T) {
+		input := historyInput(meteredEnt.ID)
+		input.WindowSize = meter.WindowSizeMinute
+
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("should report a missing customer as not found", func(t *testing.T) {
+		input := historyInput(meteredEnt.ID)
+		input.CustomerID = customer.CustomerID{Namespace: namespace, ID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2"}
+
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), input)
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("should report a missing entitlement as not found", func(t *testing.T) {
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), historyInput("01K5A4V2X8Q9Z7M3N6P1R4S8T3"))
+
+		_, ok := lo.ErrorsAs[*entitlement.NotFoundError](err)
+		require.True(t, ok, "expected entitlement not found error, got: %v", err)
+	})
+
+	t.Run("should report an entitlement of another customer as not found", func(t *testing.T) {
+		other := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+		otherEnt := createMeteredEntitlement(t, other, createFeature(t, "metered-other"))
+
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), historyInput(otherEnt.ID))
+
+		_, ok := lo.ErrorsAs[*entitlement.NotFoundError](err)
+		require.True(t, ok, "expected entitlement not found error, got: %v", err)
+	})
+
+	t.Run("should reject a non-metered entitlement", func(t *testing.T) {
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), historyInput(boolEnt.ID))
+
+		_, ok := lo.ErrorsAs[*entitlement.WrongTypeError](err)
+		require.True(t, ok, "expected wrong type error, got: %v", err)
+	})
+
+	t.Run("should return the windowed and burndown history", func(t *testing.T) {
+		history, err := conn.GetCustomerEntitlementHistory(t.Context(), historyInput(meteredEnt.ID))
+		require.NoError(t, err)
+
+		// then the windows cover each hour since the last reset
+		require.GreaterOrEqual(t, len(history.Windows), 2)
+		require.Equal(t, 3.0, lo.SumBy(history.Windows, func(w entitlement.BalanceHistoryWindow) float64 { return w.UsageInPeriod }))
+		require.True(t, now.Equal(history.Windows[0].From))
+		require.True(t, now.Add(time.Hour).Equal(history.Windows[0].To))
+		require.Equal(t, 1.0, history.Windows[0].UsageInPeriod)
+		require.Equal(t, 10.0, history.Windows[0].BalanceAtStart)
+		require.True(t, now.Add(time.Hour).Equal(history.Windows[1].From))
+		require.Equal(t, 2.0, history.Windows[1].UsageInPeriod)
+		require.Equal(t, 9.0, history.Windows[1].BalanceAtStart)
+
+		// then the burndown consumes the default grant
+		segments := history.Burndown.Segments()
+		require.NotEmpty(t, segments)
+		require.Equal(t, 10.0, segments[0].BalanceAtStart.Balance())
+		require.Equal(t, 7.0, segments[len(segments)-1].ApplyUsage().Balance())
+		require.Equal(t, 3.0, lo.SumBy(segments, func(s engine.GrantBurnDownHistorySegment) float64 { return s.TotalUsage }))
+	})
+
+	t.Run("should reject a deleted customer", func(t *testing.T) {
+		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
+		clock.SetTime(clock.Now().Add(time.Minute))
+
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), historyInput(meteredEnt.ID))
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
 }

@@ -5,6 +5,7 @@ import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import {
   createCustomerEntitlement,
+  getCustomerEntitlementHistory,
   voidCreditGrant,
   listCustomerCharges,
   createCustomerCharges,
@@ -47,6 +48,8 @@ import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
 import type {
   CreateCustomerEntitlementRequest,
   CreateCustomerEntitlementResponse,
+  GetCustomerEntitlementHistoryRequest,
+  GetCustomerEntitlementHistoryResponse,
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
   ListCustomerChargesRequest,
@@ -230,6 +233,28 @@ export class InternalCustomersEntitlements {
   ): Promise<CreateCustomerEntitlementResponse> {
     return unwrap(
       await createCustomerEntitlement(this._client, request, options),
+    )
+  }
+
+  /**
+   * Get customer entitlement history
+   *
+   * Get the balance and usage history of a metered entitlement. The queried range
+   * may span multiple usage periods.
+   *
+   * `windowed_history` groups usage into windows of the requested size and reports
+   * the balance at the start of each window. `burndown_history` lists the periods in
+   * which grants were consumed in a fixed order, together with the usage taken from
+   * each grant.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/history
+   */
+  async getHistory(
+    request: GetCustomerEntitlementHistoryRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementHistoryResponse> {
+    return unwrap(
+      await getCustomerEntitlementHistory(this._client, request, options),
     )
   }
 }

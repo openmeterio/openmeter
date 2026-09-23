@@ -526,6 +526,13 @@ export const entitlementMeasureUsageFromPreset = z
     'Preset for the time from which usage is measured. - `current_period_start`: the start of the current usage period. - `now`: the entitlement creation time.',
   )
 
+export const entitlementHistoryWindowSize = z
+  .union([z.literal('PT1H'), z.literal('P1D')])
+
+  .describe(
+    'The meter query granularities the usage history can be grouped into. Sub-hour windows are too expensive to compute and monthly windows are not supported.',
+  )
+
 export const createLabels = z
   .record(z.string(), z.string())
 
@@ -1720,6 +1727,30 @@ export const entitlementIssueAfterReset = z
     'Usage granted automatically after each reset of a metered entitlement. The balance returns to `amount` after every reset.',
   )
 
+export const entitlementBurndownBalance = z
+  .object({
+    start: numeric,
+    end: numeric,
+  })
+  .describe('Entitlement balance at the boundaries of a burndown segment.')
+
+export const entitlementBurndownGrantBalances = z
+  .object({
+    start: z
+      .record(z.string(), numeric)
+
+      .describe(
+        'The balance of each active grant at the start of the segment.',
+      ),
+    end: z
+      .record(z.string(), numeric)
+      .describe('The balance of each active grant at the end of the segment.'),
+  })
+
+  .describe(
+    'Grant balances at the boundaries of a burndown segment, keyed by grant ID.',
+  )
+
 export const createChargeCostBasisManual = z
   .object({
     type: z
@@ -2025,6 +2056,13 @@ export const featureReference = z
     id: ulid,
   })
   .describe('Feature reference.')
+
+export const entitlementGrantUsage = z
+  .object({
+    grantId: ulid,
+    usage: numeric,
+  })
+  .describe('Usage taken from a single grant.')
 
 export const createChargeCostBasisPinned = z
   .object({
@@ -4134,6 +4172,30 @@ export const meterQueryResult = z
   })
   .describe('Meter query result.')
 
+export const entitlementHistoryWindow = z
+  .object({
+    period: closedPeriod,
+    usage: numeric,
+    balanceAtStart: numeric,
+  })
+  .describe('Usage and balance of a single history window.')
+
+export const entitlementBurndownSegment = z
+  .object({
+    period: closedPeriod,
+    usage: numeric,
+    overage: numeric,
+    balance: entitlementBurndownBalance,
+    grantBalances: entitlementBurndownGrantBalances,
+    grantUsages: z
+      .array(entitlementGrantUsage)
+
+      .describe(
+        'The grants consumed in the segment and the usage taken from each.',
+      ),
+  })
+  .describe('A period in which grants were consumed in a fixed order.')
+
 export const chargeRealizationDetailedLineFlatFee = z
   .object({
     id: ulid,
@@ -5127,6 +5189,23 @@ export const ingestedEventPaginatedResponse = z
     meta: cursorMeta,
   })
   .describe('Cursor paginated response.')
+
+export const entitlementHistory = z
+  .object({
+    windowedHistory: z
+      .array(entitlementHistoryWindow)
+
+      .describe(
+        'Usage in half-open windows of the requested size, aligned to the requested time zone. Empty windows are included; windows before usage measurement began are omitted.',
+      ),
+    burndownHistory: z
+      .array(entitlementBurndownSegment)
+
+      .describe(
+        'Periods in which grants were consumed in a fixed order. A new segment starts whenever grant priorities change or a usage period starts.',
+      ),
+  })
+  .describe('Balance and usage history of a metered entitlement.')
 
 export const chargeRealizationDetailedLine = z
   .discriminatedUnion('type', [
@@ -7422,6 +7501,24 @@ export const createCustomerEntitlementBody = createEntitlementRequest
 
 export const createCustomerEntitlementResponse = entitlement
 
+export const getCustomerEntitlementHistoryPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const getCustomerEntitlementHistoryQueryParams = z.object({
+  from: dateTime.optional(),
+  to: dateTime.optional(),
+  windowSize: entitlementHistoryWindowSize,
+  timeZone: z.coerce
+    .string()
+    .optional()
+    .default('UTC')
+    .describe('The IANA time zone the windows are aligned to.'),
+})
+
+export const getCustomerEntitlementHistoryResponse = entitlementHistory
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -8808,6 +8905,13 @@ export const entitlementMeasureUsageFromPresetWire = z
     'Preset for the time from which usage is measured. - `current_period_start`: the start of the current usage period. - `now`: the entitlement creation time.',
   )
 
+export const entitlementHistoryWindowSizeWire = z
+  .union([z.literal('PT1H'), z.literal('P1D')])
+
+  .describe(
+    'The meter query granularities the usage history can be grouped into. Sub-hour windows are too expensive to compute and monthly windows are not supported.',
+  )
+
 export const createLabelsWire = z
   .record(z.string(), z.string())
 
@@ -9995,6 +10099,30 @@ export const entitlementIssueAfterResetWire = z
     'Usage granted automatically after each reset of a metered entitlement. The balance returns to `amount` after every reset.',
   )
 
+export const entitlementBurndownBalanceWire = z
+  .strictObject({
+    start: numericWire,
+    end: numericWire,
+  })
+  .describe('Entitlement balance at the boundaries of a burndown segment.')
+
+export const entitlementBurndownGrantBalancesWire = z
+  .strictObject({
+    start: z
+      .record(z.string(), numericWire)
+
+      .describe(
+        'The balance of each active grant at the start of the segment.',
+      ),
+    end: z
+      .record(z.string(), numericWire)
+      .describe('The balance of each active grant at the end of the segment.'),
+  })
+
+  .describe(
+    'Grant balances at the boundaries of a burndown segment, keyed by grant ID.',
+  )
+
 export const createChargeCostBasisManualWire = z
   .strictObject({
     type: z
@@ -10300,6 +10428,13 @@ export const featureReferenceWire = z
     id: ulidWire,
   })
   .describe('Feature reference.')
+
+export const entitlementGrantUsageWire = z
+  .strictObject({
+    grant_id: ulidWire,
+    usage: numericWire,
+  })
+  .describe('Usage taken from a single grant.')
 
 export const createChargeCostBasisPinnedWire = z
   .strictObject({
@@ -12395,6 +12530,30 @@ export const meterQueryResultWire = z
   })
   .describe('Meter query result.')
 
+export const entitlementHistoryWindowWire = z
+  .strictObject({
+    period: closedPeriodWire,
+    usage: numericWire,
+    balance_at_start: numericWire,
+  })
+  .describe('Usage and balance of a single history window.')
+
+export const entitlementBurndownSegmentWire = z
+  .strictObject({
+    period: closedPeriodWire,
+    usage: numericWire,
+    overage: numericWire,
+    balance: entitlementBurndownBalanceWire,
+    grant_balances: entitlementBurndownGrantBalancesWire,
+    grant_usages: z
+      .array(entitlementGrantUsageWire)
+
+      .describe(
+        'The grants consumed in the segment and the usage taken from each.',
+      ),
+  })
+  .describe('A period in which grants were consumed in a fixed order.')
+
 export const chargeRealizationDetailedLineFlatFeeWire = z
   .strictObject({
     id: ulidWire,
@@ -13386,6 +13545,23 @@ export const ingestedEventPaginatedResponseWire = z
     meta: cursorMetaWire,
   })
   .describe('Cursor paginated response.')
+
+export const entitlementHistoryWire = z
+  .strictObject({
+    windowed_history: z
+      .array(entitlementHistoryWindowWire)
+
+      .describe(
+        'Usage in half-open windows of the requested size, aligned to the requested time zone. Empty windows are included; windows before usage measurement began are omitted.',
+      ),
+    burndown_history: z
+      .array(entitlementBurndownSegmentWire)
+
+      .describe(
+        'Periods in which grants were consumed in a fixed order. A new segment starts whenever grant priorities change or a usage period starts.',
+      ),
+  })
+  .describe('Balance and usage history of a metered entitlement.')
 
 export const chargeRealizationDetailedLineWire = z
   .discriminatedUnion('type', [
@@ -15697,6 +15873,23 @@ export const createCustomerEntitlementPathParamsWire = z.object({
 export const createCustomerEntitlementBodyWire = createEntitlementRequestWire
 
 export const createCustomerEntitlementResponseWire = entitlementWire
+
+export const getCustomerEntitlementHistoryPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const getCustomerEntitlementHistoryQueryParamsWire = z.object({
+  from: dateTimeWire.optional(),
+  to: dateTimeWire.optional(),
+  window_size: entitlementHistoryWindowSizeWire,
+  time_zone: z.coerce
+    .string()
+    .optional()
+    .describe('The IANA time zone the windows are aligned to.'),
+})
+
+export const getCustomerEntitlementHistoryResponseWire = entitlementHistoryWire
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

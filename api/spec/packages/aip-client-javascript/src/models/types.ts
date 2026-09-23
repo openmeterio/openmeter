@@ -680,6 +680,22 @@ export interface EntitlementIssueAfterReset {
   priority: number
 }
 
+/** Entitlement balance at the boundaries of a burndown segment. */
+export interface EntitlementBurndownBalance {
+  /** The balance at the start of the segment. */
+  start: string
+  /** The balance at the end of the segment. */
+  end: string
+}
+
+/** Grant balances at the boundaries of a burndown segment, keyed by grant ID. */
+export interface EntitlementBurndownGrantBalances {
+  /** The balance of each active grant at the start of the segment. */
+  start: Record<string, string>
+  /** The balance of each active grant at the end of the segment. */
+  end: Record<string, string>
+}
+
 /** Cost basis with an explicit conversion rate supplied with the charge. */
 export interface CreateChargeCostBasisManual {
   /** Discriminator selecting the cost basis mode. */
@@ -962,6 +978,14 @@ export interface ProfileReference {
 /** Feature reference. */
 export interface FeatureReference {
   id: string
+}
+
+/** Usage taken from a single grant. */
+export interface EntitlementGrantUsage {
+  /** The ID of the grant. */
+  grantId: string
+  /** The usage taken from the grant. */
+  usage: string
 }
 
 /** Cost basis pinned to a specific cost basis resource of the custom currency. */
@@ -3167,6 +3191,35 @@ export interface MeterQueryResult {
   data: MeterQueryRow[]
 }
 
+/** Usage and balance of a single history window. */
+export interface EntitlementHistoryWindow {
+  /** The period the window covers. */
+  period: ClosedPeriod
+  /** The usage recorded in the window. */
+  usage: string
+  /** The entitlement balance at the start of the window. */
+  balanceAtStart: string
+}
+
+/** A period in which grants were consumed in a fixed order. */
+export interface EntitlementBurndownSegment {
+  /** The period the segment covers. */
+  period: ClosedPeriod
+  /** The usage recorded in the segment. */
+  usage: string
+  /** The usage in the segment not covered by any grant. */
+  overage: string
+  /** The entitlement balance at the start and at the end of the segment. */
+  balance: EntitlementBurndownBalance
+  /**
+   * The balance of each active grant at the start and at the end of the segment,
+   * keyed by grant ID.
+   */
+  grantBalances: EntitlementBurndownGrantBalances
+  /** The grants consumed in the segment and the usage taken from each. */
+  grantUsages: EntitlementGrantUsage[]
+}
+
 /** A detailed line produced by a flat fee charge's realization run. */
 export interface ChargeRealizationDetailedLineFlatFee {
   id: string
@@ -4297,6 +4350,21 @@ export interface PlanAddonPagePaginatedResponse {
 export interface IngestedEventPaginatedResponse {
   data: IngestedEvent[]
   meta: CursorMeta
+}
+
+/** Balance and usage history of a metered entitlement. */
+export interface EntitlementHistory {
+  /**
+   * Usage in half-open windows of the requested size, aligned to the requested time
+   * zone. Empty windows are included; windows before usage measurement began are
+   * omitted.
+   */
+  windowedHistory: EntitlementHistoryWindow[]
+  /**
+   * Periods in which grants were consumed in a fixed order. A new segment starts
+   * whenever grant priorities change or a usage period starts.
+   */
+  burndownHistory: EntitlementBurndownSegment[]
 }
 
 /** The list of parameters that failed validation. */
@@ -6972,6 +7040,12 @@ export type MeterAggregation =
  * format.
  */
 export type MeterQueryGranularity = 'PT1M' | 'PT1H' | 'P1D' | 'P1M'
+
+/**
+ * The meter query granularities the usage history can be grouped into. Sub-hour
+ * windows are too expensive to compute and monthly windows are not supported.
+ */
+export type EntitlementHistoryWindowSize = 'PT1H' | 'P1D'
 
 /**
  * Filters on the given string field value by exact match. All properties are

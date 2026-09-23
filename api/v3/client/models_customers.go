@@ -1630,6 +1630,39 @@ type EntitlementBoolean struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
+// Entitlement balance at the boundaries of a burndown segment.
+type EntitlementBurndownBalance struct {
+	// The balance at the start of the segment.
+	Start Numeric `json:"start"`
+	// The balance at the end of the segment.
+	End Numeric `json:"end"`
+}
+
+// Grant balances at the boundaries of a burndown segment, keyed by grant ID.
+type EntitlementBurndownGrantBalances struct {
+	// The balance of each active grant at the start of the segment.
+	Start map[string]Numeric `json:"start"`
+	// The balance of each active grant at the end of the segment.
+	End map[string]Numeric `json:"end"`
+}
+
+// A period in which grants were consumed in a fixed order.
+type EntitlementBurndownSegment struct {
+	// The period the segment covers.
+	Period ClosedPeriod `json:"period"`
+	// The usage recorded in the segment.
+	Usage Numeric `json:"usage"`
+	// The usage in the segment not covered by any grant.
+	Overage Numeric `json:"overage"`
+	// The entitlement balance at the start and at the end of the segment.
+	Balance EntitlementBurndownBalance `json:"balance"`
+	// The balance of each active grant at the start and at the end of the segment,
+	// keyed by grant ID.
+	GrantBalances EntitlementBurndownGrantBalances `json:"grant_balances"`
+	// The grants consumed in the segment and the usage taken from each.
+	GrantUsages []EntitlementGrantUsage `json:"grant_usages"`
+}
+
 // A grant created together with a metered entitlement.
 type EntitlementGrantCreateRequest struct {
 	// The amount to grant, in the feature's unit. Must be positive.
@@ -1657,6 +1690,53 @@ type EntitlementGrantCreateRequest struct {
 	// The recurrence of the grant. When set, the amount is issued again every
 	// interval. The anchor defaults to `effective_at`.
 	Recurrence *RecurringPeriodInput `json:"recurrence,omitempty"`
+}
+
+// Usage taken from a single grant.
+type EntitlementGrantUsage struct {
+	// The ID of the grant.
+	GrantID string `json:"grant_id"`
+	// The usage taken from the grant.
+	Usage Numeric `json:"usage"`
+}
+
+// Balance and usage history of a metered entitlement.
+type EntitlementHistory struct {
+	// Usage in half-open windows of the requested size, aligned to the requested time
+	// zone. Empty windows are included; windows before usage measurement began are
+	// omitted.
+	WindowedHistory []EntitlementHistoryWindow `json:"windowed_history"`
+	// Periods in which grants were consumed in a fixed order. A new segment starts
+	// whenever grant priorities change or a usage period starts.
+	BurndownHistory []EntitlementBurndownSegment `json:"burndown_history"`
+}
+
+// Usage and balance of a single history window.
+type EntitlementHistoryWindow struct {
+	// The period the window covers.
+	Period ClosedPeriod `json:"period"`
+	// The usage recorded in the window.
+	Usage Numeric `json:"usage"`
+	// The entitlement balance at the start of the window.
+	BalanceAtStart Numeric `json:"balance_at_start"`
+}
+
+// The meter query granularities the usage history can be grouped into. Sub-hour
+// windows are too expensive to compute and monthly windows are not supported.
+type EntitlementHistoryWindowSize string
+
+const (
+	EntitlementHistoryWindowSizeHour EntitlementHistoryWindowSize = "PT1H"
+	EntitlementHistoryWindowSizeDay  EntitlementHistoryWindowSize = "P1D"
+)
+
+func (value EntitlementHistoryWindowSize) Valid() bool {
+	switch value {
+	case EntitlementHistoryWindowSizeHour, EntitlementHistoryWindowSizeDay:
+		return true
+	default:
+		return false
+	}
 }
 
 // Usage granted automatically after each reset of a metered entitlement. The

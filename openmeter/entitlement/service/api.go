@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -108,4 +111,81 @@ func (c *service) getActiveCustomer(ctx context.Context, customerID customer.Cus
 	}
 
 	return cus, nil
+}
+
+func (c *service) GetCustomerEntitlementHistory(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error) {
+	if err := input.Validate(); err != nil {
+		return entitlement.CustomerEntitlementHistory{}, err
+	}
+
+	windowSize, err := historyWindowSize(input.WindowSize)
+	if err != nil {
+		return entitlement.CustomerEntitlementHistory{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	if err != nil {
+		return entitlement.CustomerEntitlementHistory{}, err
+	}
+
+	if ent.EntitlementType != entitlement.EntitlementTypeMetered {
+		return entitlement.CustomerEntitlementHistory{}, &entitlement.WrongTypeError{
+			Expected: entitlement.EntitlementTypeMetered,
+			Actual:   ent.EntitlementType,
+		}
+	}
+
+	windows, burndown, err := c.meteredEntitlementConnector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{
+		Namespace: ent.Namespace,
+		ID:        ent.ID,
+	}, meteredentitlement.BalanceHistoryParams{
+		From:           input.From,
+		To:             input.To,
+		WindowSize:     windowSize,
+		WindowTimeZone: *lo.CoalesceOrEmpty(input.TimeZone, time.UTC),
+	})
+	if err != nil {
+		return entitlement.CustomerEntitlementHistory{}, err
+	}
+
+	return entitlement.CustomerEntitlementHistory{
+		Windows:  windows,
+		Burndown: burndown,
+	}, nil
+}
+
+// historyWindowSize rejects the meter window sizes the balance history cannot be
+// calculated with; sub-hour windows are too expensive to compute.
+func historyWindowSize(size meter.WindowSize) (meteredentitlement.WindowSize, error) {
+	switch size {
+	case meter.WindowSizeHour:
+		return meteredentitlement.WindowSizeHour, nil
+	case meter.WindowSizeDay:
+		return meteredentitlement.WindowSizeDay, nil
+	default:
+		return "", models.NewGenericValidationError(fmt.Errorf("unsupported window size %q", size))
+	}
+}
+
+// getCustomerEntitlement resolves an entitlement addressed through its customer.
+// An entitlement owned by another customer is reported as not found so the
+// customer scope does not reveal it.
+func (c *service) getCustomerEntitlement(ctx context.Context, customerID customer.CustomerID, entitlementID string) (*entitlement.Entitlement, error) {
+	cus, err := c.getActiveCustomer(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	id := models.NamespacedID{Namespace: cus.Namespace, ID: entitlementID}
+
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if ent.CustomerID != cus.ID {
+		return nil, &entitlement.NotFoundError{EntitlementID: id}
+	}
+
+	return ent, nil
 }

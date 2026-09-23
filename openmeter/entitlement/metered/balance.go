@@ -35,13 +35,9 @@ type EntitlementBalance struct {
 	StartOfPeriod             time.Time          `json:"startOfPeriod"`
 }
 
-type EntitlementBalanceHistoryWindow struct {
-	From           time.Time
-	To             time.Time
-	UsageInPeriod  float64
-	BalanceAtStart float64
-	OverageAtStart float64
-}
+// EntitlementBalanceHistoryWindow lives in the entitlement package so the
+// customer-scoped API facade can return it without importing this package.
+type EntitlementBalanceHistoryWindow = entitlement.BalanceHistoryWindow
 
 type WindowSize string
 

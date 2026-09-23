@@ -6,10 +6,39 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"time"
 )
 
 type CustomersEntitlementsService struct {
 	client *Client
+}
+
+type GetCustomerEntitlementHistoryParams struct {
+	From       *time.Time
+	To         *time.Time
+	WindowSize EntitlementHistoryWindowSize
+	TimeZone   *string
+}
+
+func (p GetCustomerEntitlementHistoryParams) values() url.Values {
+	q := url.Values{}
+
+	if p.From != nil {
+		q.Set("from", (*p.From).Format(time.RFC3339Nano))
+	}
+
+	if p.To != nil {
+		q.Set("to", (*p.To).Format(time.RFC3339Nano))
+	}
+
+	q.Set("window_size", string(p.WindowSize))
+
+	if p.TimeZone != nil {
+		q.Set("time_zone", *p.TimeZone)
+	}
+
+	return q
 }
 
 // Create an entitlement for the customer.
@@ -32,6 +61,41 @@ func (s *CustomersEntitlementsService) Create(ctx context.Context, customerID st
 	}
 
 	var out Entitlement
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Get the balance and usage history of a metered entitlement. The queried range
+// may span multiple usage periods.
+//
+// `windowed_history` groups usage into windows of the requested size and reports
+// the balance at the start of each window. `burndown_history` lists the periods in
+// which grants were consumed in a fixed order, together with the usage taken from
+// each grant.
+func (s *CustomersEntitlementsService) GetHistory(ctx context.Context, customerID string, entitlementID string, params GetCustomerEntitlementHistoryParams) (*EntitlementHistory, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if entitlementID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "entitlementID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlements/{entitlementId}/history"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "entitlementId", entitlementID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out EntitlementHistory
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

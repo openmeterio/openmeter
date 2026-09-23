@@ -35,6 +35,8 @@ import type {
   CreateCustomerStripePortalSessionResponse,
   CreateCustomerEntitlementRequest,
   CreateCustomerEntitlementResponse,
+  GetCustomerEntitlementHistoryRequest,
+  GetCustomerEntitlementHistoryResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -531,6 +533,77 @@ export function createCustomerEntitlement(
           assertValid(schemas.createCustomerEntitlementResponseWire, data)
         }
         return fromWire(data, schemas.createCustomerEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement history
+ *
+ * Get the balance and usage history of a metered entitlement. The queried range
+ * may span multiple usage periods.
+ *
+ * `windowed_history` groups usage into windows of the requested size and reports
+ * the balance at the start of each window. `burndown_history` lists the periods in
+ * which grants were consumed in a fixed order, together with the usage taken from
+ * each grant.
+ *
+ * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/history
+ */
+export function getCustomerEntitlementHistory(
+  client: Client,
+  req: GetCustomerEntitlementHistoryRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementHistoryResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getCustomerEntitlementHistoryPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.getCustomerEntitlementHistoryPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/history`
+    const query = toWire(
+      {
+        from: req.from,
+        to: req.to,
+        windowSize: req.windowSize,
+        timeZone: req.timeZone,
+      },
+      schemas.getCustomerEntitlementHistoryQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerEntitlementHistoryQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomerEntitlementHistoryResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomerEntitlementHistoryResponse)
       })
   })
 }

@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -53,9 +56,12 @@ func (i ListCustomerEntitlementAccessInput) Validate() error {
 	return nil
 }
 
-// CustomerEntitlementAPIService is the API-facing facade for customer-scoped entitlement operations.
+// CustomerEntitlementAPIService is the API-facing facade for customer-scoped
+// entitlement operations. Every operation resolves the customer, rejects deleted
+// customers and reports an entitlement owned by another customer as not found.
 type CustomerEntitlementAPIService interface {
 	CreateCustomerEntitlement(ctx context.Context, input CreateCustomerEntitlementInput) (*Entitlement, error)
+	GetCustomerEntitlementHistory(ctx context.Context, input GetCustomerEntitlementHistoryInput) (CustomerEntitlementHistory, error)
 }
 
 // CreateCustomerEntitlementInput creates an entitlement for the customer referenced by ID.
@@ -80,6 +86,54 @@ func (i CreateCustomerEntitlementInput) Validate() error {
 
 	if i.Entitlement.IssueAfterReset != nil && len(i.Grants) > 0 {
 		errs = append(errs, errors.New("issue after reset and grants cannot be used together"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// BalanceHistoryWindow is the usage of a metered entitlement in a single window
+// together with the balance the window started with.
+type BalanceHistoryWindow struct {
+	From           time.Time
+	To             time.Time
+	UsageInPeriod  float64
+	BalanceAtStart float64
+	OverageAtStart float64
+}
+
+type CustomerEntitlementHistory struct {
+	Windows  []BalanceHistoryWindow
+	Burndown engine.GrantBurnDownHistory
+}
+
+// GetCustomerEntitlementHistoryInput queries the history of a metered entitlement.
+// From defaults to the last reset and To to the current time; TimeZone defaults to UTC.
+type GetCustomerEntitlementHistoryInput struct {
+	CustomerID    customer.CustomerID
+	EntitlementID string
+	From          *time.Time
+	To            *time.Time
+	WindowSize    meter.WindowSize
+	TimeZone      *time.Location
+}
+
+func (i GetCustomerEntitlementHistoryInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
+	}
+
+	if i.WindowSize == "" {
+		errs = append(errs, errors.New("window size is required"))
+	}
+
+	if i.From != nil && i.To != nil && !i.From.Before(*i.To) {
+		errs = append(errs, errors.New("from must be before to"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
