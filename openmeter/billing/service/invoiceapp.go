@@ -2,6 +2,7 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -20,6 +21,9 @@ func (s *Service) TriggerInvoice(ctx context.Context, input billing.InvoiceTrigg
 			InvoiceID: input.Invoice,
 			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
 				errOrValidationErrors := sm.HandleInvoiceTrigger(ctx, input.InvoiceTriggerInput)
+				if errors.Is(errOrValidationErrors, billing.ErrInvoiceActionNotAvailable) {
+					return errOrValidationErrors
+				}
 
 				op := billing.StandardInvoiceOpTriggerInvoice
 				if input.ValidationErrors != nil {

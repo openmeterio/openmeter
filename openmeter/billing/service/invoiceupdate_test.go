@@ -697,6 +697,95 @@ func TestWithLineEngineInvoiceLineChangesReturnsEngineError(t *testing.T) {
 		LineDiff:      lineDiff,
 	})
 	require.ErrorContains(t, err, errEngineFailed.Error())
+
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.Nil(t, issues)
+	require.Equal(t, err, systemErr)
+	require.ErrorIs(t, err, errEngineFailed)
+}
+
+func TestWithLineEngineInvoiceLineChangesReturnsEngineValidationIssue(t *testing.T) {
+	engineIssue := billing.NewValidationError("engine_validation_failed", "engine validation failed")
+	invoiceEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeInvoice,
+		},
+		changeErr: engineIssue,
+	}
+
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.adapter = preallocatingInvoiceLineAdapter{}
+
+	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
+
+	invoiceLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false)
+	updatedLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false)
+	updatedLine.Name = "edited-invoice-line"
+
+	invoice := billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			Namespace: "ns",
+			ID:        "invoice-1",
+		},
+		Lines: billing.NewStandardInvoiceLines(billing.StandardLines{invoiceLine}),
+	}
+
+	edited := invoice
+	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedLine})
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+
+	_, err = svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
+		EditedInvoice: edited,
+		LineDiff:      lineDiff,
+	})
+	require.ErrorIs(t, err, engineIssue)
+
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Equal(t, billing.ValidationIssues{
+		{
+			Severity:  billing.ValidationIssueSeverityCritical,
+			Code:      engineIssue.Code,
+			Message:   engineIssue.Message,
+			Component: billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice),
+		},
+	}, issues)
+}
+
+func TestDispatchAPIStandardLineDeletionsRecordsEngineErrorsAsValidationIssues(t *testing.T) {
+	errEngineFailed := errors.New("engine failed")
+	invoiceEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeInvoice,
+		},
+		changeErr: errEngineFailed,
+	}
+
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
+
+	invoice := billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			Namespace: "ns",
+			ID:        "invoice-1",
+		},
+	}
+	deletedLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true)
+
+	err := svc.dispatchAPIStandardLineDeletions(t.Context(), invoice, billing.StandardLines{deletedLine})
+	require.ErrorIs(t, err, errEngineFailed)
+
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Equal(t, billing.ValidationIssues{
+		{
+			Severity:  billing.ValidationIssueSeverityCritical,
+			Message:   errEngineFailed.Error(),
+			Component: billing.LineEngineValidationComponent(billing.LineEngineTypeInvoice),
+		},
+	}, issues)
 }
 
 func TestWithLineEngineInvoiceLineChangesPreallocatesCreatedLineID(t *testing.T) {

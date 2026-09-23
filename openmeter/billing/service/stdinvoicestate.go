@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
@@ -75,6 +76,15 @@ func allocateStateMachine() *InvoiceStateMachine {
 		},
 		stateless.FiringImmediate,
 	)
+	stateMachine.OnUnhandledTrigger(func(_ context.Context, state stateless.State, trigger stateless.Trigger, _ []string) error {
+		return billing.ValidationWithAttributes(
+			models.Annotations{
+				billing.AttributeKeyInvoiceStatus:  state,
+				billing.AttributeKeyInvoiceTrigger: trigger,
+			},
+			billing.ErrInvoiceActionNotAvailable,
+		)
+	})
 
 	// Draft states
 
@@ -674,8 +684,9 @@ func (m *InvoiceStateMachine) withInvoicingApp(op billing.StandardInvoiceOperati
 
 	component := billing.AppTypeCapabilityToComponent(invocingBase.GetType(), app.CapabilityTypeInvoiceCustomers, string(op))
 
-	// Anything returned by the validation is considered a validation issue, thus in case of an error
-	// we wouldn't roll back the state transitions.
+	// The component identifies the app boundary without changing error classification. Callbacks
+	// explicitly mark provider failures as validation issues while local preparation failures remain
+	// system errors and roll back the transition.
 	return m.Invoice.MergeValidationIssues(
 		billing.ValidationWithComponent(
 			component,
@@ -695,7 +706,9 @@ func (m *InvoiceStateMachine) triggerPostAdvanceHooks(ctx context.Context) error
 
 			res, err := hook.PostAdvanceStandardInvoiceHook(ctx, clonedInvoice)
 			if err != nil {
-				return nil, err
+				// Compatibility: post-advance hooks still return plain errors, which have historically
+				// been persisted on the stable invoice instead of rolling the completed transition back.
+				return nil, billing.WrapAsValidationIssue(err)
 			}
 
 			if res == nil {
@@ -751,7 +764,9 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 	}
 
 	if trigger.ValidationErrors != nil {
-		return errors.Join(trigger.ValidationErrors.Errors...)
+		// ValidationErrors accepts plain errors for compatibility with trigger producers, so
+		// classify them before returning from the transition they are intended to annotate.
+		return billing.WrapAsValidationIssue(errors.Join(trigger.ValidationErrors.Errors...))
 	}
 
 	return nil
@@ -773,7 +788,9 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 			return nil, err
 		}
 
-		return nil, app.ValidateStandardInvoice(ctx, clonedInvoice)
+		// The app validation interface returns error rather than typed validation issues, so
+		// explicitly classify plain validation failures as part of the draft validation result.
+		return nil, billing.WrapAsValidationIssue(app.ValidateStandardInvoice(ctx, clonedInvoice))
 	})
 }
 
@@ -809,7 +826,9 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 		results, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
-			return nil, err
+			// A provider sync failure is the result recorded by draft.sync_failed; classification
+			// prevents the activation error from rolling that retryable transition back.
+			return nil, billing.WrapAsValidationIssue(err)
 		}
 
 		if results == nil {
@@ -835,7 +854,9 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 		// First we sync the invoice
 		upsertResults, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
-			return nil, err
+			// Issuing sync is retried after line finalization has been persisted; classification
+			// preserves issuing.sync_failed instead of rolling back to the prior lifecycle state.
+			return nil, billing.WrapAsValidationIssue(err)
 		}
 
 		if upsertResults != nil {
@@ -861,7 +882,9 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 
 		results, err := app.FinalizeStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
-			return nil, err
+			// Provider finalization can be retried from issuing.sync_failed; classification keeps
+			// that failure state instead of rolling back the issuing transition.
+			return nil, billing.WrapAsValidationIssue(err)
 		}
 
 		if results != nil {
@@ -886,7 +909,9 @@ func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
 			return nil, err
 		}
 
-		return nil, app.DeleteStandardInvoice(ctx, clonedInvoice)
+		// Provider deletion is retried from delete.failed after local cleanup; classification
+		// preserves that state instead of rolling the deletion transition back.
+		return nil, billing.WrapAsValidationIssue(app.DeleteStandardInvoice(ctx, clonedInvoice))
 	})
 }
 
@@ -1082,17 +1107,21 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 
 		lines, err := grouped.Engine.OnInvoiceFinalizing(ctx, input)
 		if err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
+			// Line finalization is retry-only. The engine wrapper adds metadata but not
+			// classification, so mark the error to preserve issuing.line_finalization_failed.
+			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
 		}
 
 		if err := finalizedInvoice.Lines.ReplaceExact(billing.ReplaceExactLinesInput{
 			Existing:    grouped.Lines,
 			Replacement: lines,
 		}); err != nil {
-			return billing.NewLineEngineValidationError(
+			// Invalid engine output belongs to the same retry-only finalization boundary, so keep
+			// the invoice in issuing.line_finalization_failed instead of rolling the attempt back.
+			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(
 				grouped.Engine,
 				fmt.Errorf("replacing invoice finalizing lines: %w", err),
-			)
+			))
 		}
 	}
 
@@ -1121,7 +1150,9 @@ func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
 		}
 
 		if err := grouped.Engine.OnInvoiceIssued(ctx, input); err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
+			// Charge booking runs after provider finalization and is retry-only; classification
+			// preserves issuing.charge_booking_failed instead of rolling issuance back.
+			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
 		}
 	}
 
@@ -1144,7 +1175,9 @@ func (m *InvoiceStateMachine) onPaymentAuthorized(ctx context.Context) error {
 		}
 
 		if err := grouped.Engine.OnPaymentAuthorized(ctx, input); err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
+			// Payment authorization has already happened outside billing; classification preserves
+			// the booking-authorized failure state so only ledger booking is retried.
+			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
 		}
 	}
 
@@ -1175,7 +1208,9 @@ func (m *InvoiceStateMachine) onPaymentSettled(ctx context.Context) error {
 		}
 
 		if err := grouped.Engine.OnPaymentSettled(ctx, input); err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
+			// Payment settlement has already happened outside billing; classification preserves
+			// the booking-settled failure state so only ledger booking is retried.
+			return billing.WrapAsValidationIssue(billing.NewLineEngineValidationError(grouped.Engine, err))
 		}
 	}
 

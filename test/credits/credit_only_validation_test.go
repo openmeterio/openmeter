@@ -1,7 +1,6 @@
 package credits
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -134,10 +133,8 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		s.Require().NoError(systemErr)
 		s.Require().Len(issues, 1)
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issues[0].Code)
-		s.Equal(
-			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-			issues[0].Message,
-		)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issues[0].Message)
+		s.Equal(apiRequestsTotal.Feature.Key, issues[0].Attributes["feature_key"])
 
 		usageCharge := s.RequireUsageBasedChargeStatus(usageChargeID, usagebased.StatusActive)
 		s.Require().NotNil(usageCharge.State.AdvanceAfter)

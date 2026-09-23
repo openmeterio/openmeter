@@ -262,7 +262,10 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			Trigger:   billing.TriggerPaymentUncollectible,
 		})
 		s.Error(err, "failed to handle payment trigger")
-		s.ErrorAs(err, &billing.ValidationError{}, "error should be a validation error")
+		s.ErrorIs(err, billing.ErrInvoiceActionNotAvailable, "error should identify an unavailable invoice action")
+
+		var validationIssue billing.ValidationIssue
+		s.ErrorAs(err, &validationIssue, "error should be surfaced as a validation issue")
 	})
 }
 

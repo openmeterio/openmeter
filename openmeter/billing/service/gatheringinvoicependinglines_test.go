@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -163,6 +165,45 @@ func TestGateInvoiceAssignment(t *testing.T) {
 		require.ErrorContains(t, err, "validating result from engine invoicing")
 		require.ErrorContains(t, err, "unknown line ID: default/unknown")
 	})
+}
+
+func TestInvokeOnStandardInvoiceCreatedReturnsActiveRealizationRunAsRequestError(t *testing.T) {
+	// given
+	const lineID = "line-1"
+	gatheringLine := newGateTestGatheringLine(lineID, billing.LineEngineTypeChargeUsageBased).Line
+	standardLines, err := billing.GatheringLines{gatheringLine}.ToStandardLines("invoice-1")
+	require.NoError(t, err)
+
+	engine := &syntheticGateLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeChargeUsageBased},
+		onStandardInvoiceCreated: func(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
+			return input.Lines, usagebased.ErrActiveRealizationRunAlreadyExists.WithAttrs(models.Attributes{
+				billing.AttributeKeyLineID: lineID,
+			})
+		},
+	}
+	service := newGateTestService(t, engine)
+	invoice := billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{ID: "invoice-1"},
+		Lines:               billing.NewStandardInvoiceLines(standardLines),
+	}
+
+	// when
+	result, err := service.invokeOnStandardInvoiceCreated(t.Context(), invoice)
+
+	// then
+	require.ErrorIs(t, err, usagebased.ErrActiveRealizationRunAlreadyExists)
+	require.Equal(t, billing.StandardInvoice{}, result)
+	var requestValidationError billing.ValidationError
+	require.False(t, errors.As(err, &requestValidationError))
+
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Len(t, issues, 1)
+	require.Equal(t, billing.ValidationIssueSeverityCritical, issues[0].Severity)
+	require.Equal(t, usagebased.ErrActiveRealizationRunAlreadyExists.Message(), issues[0].Message)
+	require.Equal(t, string(usagebased.ErrActiveRealizationRunAlreadyExists.Code()), issues[0].Code)
+	require.Equal(t, lineID, issues[0].Attributes[billing.AttributeKeyLineID])
 }
 
 func TestResolvePendingLineCollectionCutoff(t *testing.T) {
@@ -325,8 +366,9 @@ func gatheringLineIDsForLimitTest(lines []gatheringLineWithBillablePeriod) []str
 type syntheticGateLineEngine struct {
 	billingtestutils.NoopLineEngine
 
-	gate   func(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error)
-	inputs []billing.GateInvoiceAssignmentInput
+	gate                     func(context.Context, billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error)
+	onStandardInvoiceCreated func(context.Context, billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error)
+	inputs                   []billing.GateInvoiceAssignmentInput
 }
 
 func (e *syntheticGateLineEngine) GateInvoiceAssignment(ctx context.Context, input billing.GateInvoiceAssignmentInput) (billing.GateInvoiceAssignmentResult, error) {
@@ -336,6 +378,14 @@ func (e *syntheticGateLineEngine) GateInvoiceAssignment(ctx context.Context, inp
 	}
 
 	return e.gate(ctx, input)
+}
+
+func (e *syntheticGateLineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
+	if e.onStandardInvoiceCreated == nil {
+		return input.Lines, nil
+	}
+
+	return e.onStandardInvoiceCreated(ctx, input)
 }
 
 func newGateTestService(t *testing.T, engines ...billing.LineEngine) *Service {

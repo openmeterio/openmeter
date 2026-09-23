@@ -2,6 +2,7 @@ package appstripe
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -565,6 +566,52 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 		app.CapabilityTypeCollectPayments,
 	})
 	require.NoError(t, err, "Validate customer must not return error")
+
+	// Validate a configured payment method that no longer exists in Stripe
+	customerWithMissingPaymentMethod, err := s.Env.Fixture().setupCustomer(ctx, s.namespace)
+	require.NoError(t, err, "setup customer must not return error")
+
+	stripeCustomerWithMissingPaymentMethodID := "cus_missing_pm"
+	missingPaymentMethodID := "pm_missing"
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", stripeCustomerWithMissingPaymentMethodID).
+		Once().
+		Return(stripeclient.StripeCustomer{StripeCustomerID: stripeCustomerWithMissingPaymentMethodID}, nil)
+	s.Env.StripeAppClient().
+		On("GetPaymentMethod", missingPaymentMethodID).
+		Once().
+		Return(stripeclient.StripePaymentMethod{
+			ID:               missingPaymentMethodID,
+			StripeCustomerID: lo.ToPtr(stripeCustomerWithMissingPaymentMethodID),
+		}, nil)
+
+	err = testApp.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
+		CustomerID: customerWithMissingPaymentMethod.GetID(),
+		Data: appstripe.CustomerData{
+			StripeCustomerID:             stripeCustomerWithMissingPaymentMethodID,
+			StripeDefaultPaymentMethodID: lo.ToPtr(missingPaymentMethodID),
+		},
+	})
+	require.NoError(t, err, "Upsert customer data must not return error")
+
+	var missingPaymentMethodErr error = stripeclient.NewStripePaymentMethodNotFoundError(missingPaymentMethodID)
+	s.Env.StripeAppClient().Restore()
+	s.Env.StripeAppClient().
+		On("GetCustomer", stripeCustomerWithMissingPaymentMethodID).
+		Once().
+		Return(stripeclient.StripeCustomer{StripeCustomerID: stripeCustomerWithMissingPaymentMethodID}, nil)
+	s.Env.StripeAppClient().
+		On("GetPaymentMethod", missingPaymentMethodID).
+		Once().
+		Return(
+			stripeclient.StripePaymentMethod{},
+			fmt.Errorf("getting payment method: %w", missingPaymentMethodErr),
+		)
+
+	err = customerApp.ValidateCustomer(ctx, customerWithMissingPaymentMethod, []app.CapabilityType{app.CapabilityTypeCollectPayments})
+	require.True(t, app.IsAppCustomerPreConditionError(err))
+	require.ErrorContains(t, err, "default payment method pm_missing not found")
 
 	// Validate the customer with an invalid capability
 	err = customerApp.ValidateCustomer(ctx, testCustomer, []app.CapabilityType{app.CapabilityTypeReportEvents})

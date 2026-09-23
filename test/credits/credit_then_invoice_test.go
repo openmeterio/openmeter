@@ -2,7 +2,6 @@ package credits
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -244,10 +243,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.ValidationComponentProductCatalog, issue.Component)
 		s.Equal("/charges/"+usageBasedChargeID.ID, issue.Path)
-		s.Equal(
-			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-			issue.Message,
-		)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issue.Message)
+		s.Equal(apiRequestsTotal.Feature.Key, issue.Attributes["feature_key"])
 		s.Len(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedChargeID.ID, false), 1)
 
 		invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
@@ -417,10 +414,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceWaitingForCo
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issue.Component)
 		s.Equal("/charges/"+usageBasedChargeID.ID, issue.Path)
-		s.Equal(
-			fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-			issue.Message,
-		)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issue.Message)
+		s.Equal(apiRequestsTotal.Feature.Key, issue.Attributes["feature_key"])
 
 		persistedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.GetInvoiceID(),
@@ -559,7 +554,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 	s.Require().NoError(err)
 	s.Empty(invoices)
 
-	issueMessages := make([]string, 0, len(created))
+	issueFeatureKeys := make([]string, 0, len(created))
 	for _, createdCharge := range created {
 		usageBasedCharge, err := createdCharge.AsUsageBasedCharge()
 		s.NoError(err)
@@ -571,13 +566,16 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceCollectionPe
 		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Code, issue.Code)
 		s.Equal(billing.ValidationComponentProductCatalog, issue.Component)
 		s.Equal("/charges/"+usageBasedCharge.ID, issue.Path)
-		issueMessages = append(issueMessages, issue.Message)
+		s.Equal(billing.ErrInvoiceLineFeatureHasNoMeters.Message, issue.Message)
+		featureKey, ok := issue.Attributes["feature_key"].(string)
+		s.Require().True(ok)
+		issueFeatureKeys = append(issueFeatureKeys, featureKey)
 		s.Len(s.mustGatheringLinesForCharge(ns, cust.ID, usageBasedCharge.ID, false), 1)
 	}
 	s.ElementsMatch([]string{
-		fmt.Sprintf("feature[%s]: %s", apiRequestsTotal.Feature.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-		fmt.Sprintf("feature[%s]: %s", aiTokens.Key, billing.ErrInvoiceLineFeatureHasNoMeters.Message),
-	}, issueMessages)
+		apiRequestsTotal.Feature.Key,
+		aiTokens.Key,
+	}, issueFeatureKeys)
 
 	invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		Namespace: ns,

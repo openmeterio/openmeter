@@ -75,20 +75,11 @@ func newFeatureNotFoundValidationIssue(reference billingfeaturemeter.FeatureRefe
 	setStringAttributeIfNotEmpty(attributes, "feature_id", featureRef.IDOrKey.ID)
 	setStringAttributeIfNotEmpty(attributes, "feature_key", featureRef.IDOrKey.Key)
 
-	referenceValue := featureRef.IDOrKey.ID
-	if referenceValue == "" {
-		referenceValue = featureRef.IDOrKey.Key
-	}
-
 	return newValidationIssueWithIdentity(
 		reference,
 		billing.ValidationWithAttributes(
 			attributes,
-			billing.ValidationWithMessagef(
-				billing.ErrInvoiceLineFeatureNotFound,
-				"feature[%s]",
-				referenceValue,
-			),
+			billing.ErrInvoiceLineFeatureNotFound,
 		),
 	)
 }
@@ -104,11 +95,7 @@ func newFeatureHasNoMetersValidationIssue(reference billingfeaturemeter.FeatureR
 		reference,
 		billing.ValidationWithAttributes(
 			attributes,
-			billing.ValidationWithMessagef(
-				billing.ErrInvoiceLineFeatureHasNoMeters,
-				"feature[%s]",
-				featureMeter.Feature.Key,
-			),
+			billing.ErrInvoiceLineFeatureHasNoMeters,
 		),
 	)
 }
