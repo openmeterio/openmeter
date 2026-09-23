@@ -1551,8 +1551,11 @@ func TestRateCardBillingCadenceMinimum(t *testing.T) {
 		cadence string
 		valid   bool
 	}{
-		{"PT23H59M59S", false}, {"PT1H", false}, {"P1D", true},
-		{"PT24H", true}, {"P1M", true},
+		{"PT23H59M59S", false},
+		{"PT1H", false},
+		{"P1D", true},
+		{"PT24H", true},
+		{"P1M", true},
 	} {
 		t.Run(tc.cadence, func(t *testing.T) {
 			cadence := datetime.MustParseDuration(t, tc.cadence)

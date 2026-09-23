@@ -1544,10 +1544,12 @@ func TestCatalogRateCardBillingCadenceAuthoring(t *testing.T) {
 		{"PT1H", false}, {"PT23H59M59S", false}, {"P1D", true}, {"PT24H", true},
 	} {
 		t.Run(tc.cadence, func(t *testing.T) {
+			// given: a plan and add-on with the candidate rate-card cadence
 			input := pctestutils.NewTestPlan(t, namespace)
 			input.Key = "cadence-" + tc.cadence
 			period := datetime.MustParseDuration(t, tc.cadence)
 			input.Phases[0].RateCards[0].(*productcatalog.FlatFeeRateCard).BillingCadence = &period
+			// when: draft authoring allows warning-only validation issues
 			input.IgnoreNonCriticalIssues = true
 			_, planErr := env.Plan.CreatePlan(t.Context(), input)
 			addInput := pctestutils.NewTestAddon(t, namespace, input.Phases[0].RateCards...)
@@ -1558,6 +1560,7 @@ func TestCatalogRateCardBillingCadenceAuthoring(t *testing.T) {
 			planUpdate.IgnoreNonCriticalIssues = true
 			addonUpdate := addon.UpdateAddonInput{NamespacedID: planUpdate.NamespacedID, RateCards: &addInput.RateCards}
 			addonUpdate.IgnoreNonCriticalIssues = true
+			// then: drafts accept the cadence, while strict validation rejects sub-day values
 			for _, err := range []error{planErr, addonErr, planUpdate.Validate(), addonUpdate.Validate()} {
 				require.NoError(t, err)
 			}
@@ -1573,8 +1576,8 @@ func TestCatalogRateCardBillingCadenceAuthoring(t *testing.T) {
 					err   error
 					field string
 				}{
-					{input.Plan.Validate(), fmt.Sprintf("phases[key=%s].rateCards[key=%s].billingCadence", input.Phases[0].Key, input.Phases[0].RateCards[0].Key())},
-					{addInput.Addon.Validate(), fmt.Sprintf("rateCards[key=%s].billingCadence", addInput.RateCards[0].Key())},
+					{input.Plan.Validate(), fmt.Sprintf("phases[key=%s].ratecards[key=%s].billingCadence", input.Phases[0].Key, input.Phases[0].RateCards[0].Key())},
+					{addInput.Addon.Validate(), fmt.Sprintf("ratecards[key=%s].billingCadence", addInput.RateCards[0].Key())},
 				} {
 					issues, err := models.AsValidationIssues(check.err)
 					require.NoError(t, err)

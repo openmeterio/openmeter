@@ -826,7 +826,7 @@ func ValidateRateCards() models.ValidatorFunc[RateCards] {
 
 		for _, rateCard := range ratecards {
 			fieldSelector := models.NewFieldSelectorGroup(
-				models.NewFieldSelector("rateCards").WithExpression(
+				models.NewFieldSelector("ratecards").WithExpression(
 					models.NewFieldAttrValue("key", rateCard.Key()),
 				),
 			)
