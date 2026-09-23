@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -110,7 +109,7 @@ type PlanIssuanceInput struct {
 	TaxBehavior       *ledger.TaxBehavior
 	CostBasis         *alpacadecimal.Decimal
 	CreditPriority    *int
-	Filters           crediteligibility.Filters
+	Filters           ledger.CreditFilters
 	ExpiresAt         time.Time
 	SourceChargeID    *string
 }

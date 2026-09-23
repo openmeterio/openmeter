@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -25,7 +24,7 @@ type ConvertCurrencyTemplate struct {
 
 	SourceCurrency currencies.CurrencyReference
 	TargetCurrency currencies.CurrencyReference
-	Filters        crediteligibility.Filters
+	Filters        ledger.CreditFilters
 	SourceChargeID *string
 	SpendChargeID  *string
 }

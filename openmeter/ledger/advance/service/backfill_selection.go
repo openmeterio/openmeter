@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 )
 
@@ -57,7 +56,7 @@ func (s *service) selectBackfill(ctx context.Context, input advance.BackfillInpu
 
 		if candidate.legacy != nil {
 			root := *candidate.legacy
-			receivableBuckets.requiredFilters = crediteligibility.Filters{Features: root.AdvanceFeatures}
+			receivableBuckets.requiredFilters = ledger.CreditFilters{Features: root.AdvanceFeatures}
 
 			spendKey, accruedBuckets, err = s.accruedBucketsForAdvance(ctx, input.CustomerID.Namespace, root, unattributedAccrued)
 			if err != nil {
@@ -153,11 +152,11 @@ type advanceBackfillCandidate struct {
 	legacy     *legacylineage.Lineage
 }
 
-func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattributedAccruedBalance, filters crediteligibility.Filters) []advanceBackfillCandidate {
+func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattributedAccruedBalance, filters ledger.CreditFilters) []advanceBackfillCandidate {
 	var candidates []advanceBackfillCandidate
 
 	for _, root := range sortedAdvanceBackfillLineages(roots) {
-		if !filters.Matches(ledger.Route{Filters: crediteligibility.Filters{Features: root.AdvanceFeatures}}) {
+		if !filters.Matches(ledger.Route{Filters: ledger.CreditFilters{Features: root.AdvanceFeatures}}) {
 			continue
 		}
 		candidates = append(candidates, advanceBackfillCandidate{

@@ -17,7 +17,6 @@ import (
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -546,7 +545,7 @@ func collectCustomerFBOForFeatureForTest(
 	t.Helper()
 
 	return transaction.Run(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) ([]transactions.PostingAmount, error) {
-		filters := crediteligibility.Filters{Version: crediteligibility.FiltersVersion1}
+		filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion1}
 		if featureKey != "" {
 			filters.Features = []string{featureKey}
 		}
@@ -625,7 +624,7 @@ func fundPriorityWithFeatures(
 
 func fundPriorityWithCostBasisAndFeatures(t *testing.T, env *ledgertestutils.IntegrationEnv, priority int, amount int64, costBasis *alpacadecimal.Decimal, features []string) ledger.SubAccount {
 	t.Helper()
-	return fundPriorityWithFilters(t, env, priority, amount, costBasis, crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features})
+	return fundPriorityWithFilters(t, env, priority, amount, costBasis, ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features})
 }
 
 func fundPriorityWithFilters(
@@ -634,7 +633,7 @@ func fundPriorityWithFilters(
 	priority int,
 	amount int64,
 	costBasis *alpacadecimal.Decimal,
-	filters crediteligibility.Filters,
+	filters ledger.CreditFilters,
 ) ledger.SubAccount {
 	t.Helper()
 
@@ -906,7 +905,7 @@ func bookExpiringCreditWithFeatures(
 			Currency:       env.CurrencyReference(),
 			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
-			Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		},
 	)
 	require.NoError(t, err)
@@ -916,7 +915,7 @@ func bookExpiringCreditWithFeatures(
 		Amount:         creditAmount,
 		Currency:       env.CurrencyReference(),
 		CreditPriority: &priority,
-		Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		ExpiresAt:      expiresAt,
 		SourceChargeID: sourceChargeID,
 	})
@@ -962,8 +961,8 @@ func TestCollectCustomerFBOMatchesPlanAndFeatureFilters(t *testing.T) {
 	// given: separate credit buckets for each plan/version, plus unrestricted credit.
 	env := ledgertestutils.NewIntegrationEnv(t, "collector-plans")
 	collector := newTestAccrualCollector(t, env)
-	plan := func(key string, version int) crediteligibility.Filters {
-		return crediteligibility.Filters{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: key, Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(version)}}}}
+	plan := func(key string, version int) ledger.CreditFilters {
+		return ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: key, Version: &ledger.VersionFilter{Eq: lo.ToPtr(version)}}}}
 	}
 	matching := fundPriorityWithFilters(t, env, 1, 30, nil, plan("pro", 2))
 	wrongVersion := fundPriorityWithFilters(t, env, 1, 40, nil, plan("pro", 1))
@@ -990,7 +989,7 @@ func TestCollectCustomerFBOMatchesPlanAndFeatureFilters(t *testing.T) {
 
 	// when: the same feature has no recorded plan, only unrestricted credit matches.
 	input.ChargeID = testChargeID(202)
-	input.Filters = crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}}
+	input.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}}
 	_, err = collector.collectToAccrued(t.Context(), input)
 	require.NoError(t, err)
 	require.Equal(t, float64(0), env.SumBalance(t, unrestricted).InexactFloat64())

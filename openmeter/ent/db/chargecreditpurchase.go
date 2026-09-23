@@ -27,7 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -111,7 +111,7 @@ type ChargeCreditPurchase struct {
 	// Priority holds the value of the "priority" field.
 	Priority *int `json:"priority,omitempty"`
 	// Filters holds the value of the "filters" field.
-	Filters *crediteligibility.Filters `json:"filters,omitempty"`
+	Filters *ledger.CreditFilters `json:"filters,omitempty"`
 	// FeatureFilters holds the value of the "feature_filters" field.
 	FeatureFilters pq.StringArray `json:"feature_filters,omitempty"`
 	// Settlement holds the value of the "settlement" field.

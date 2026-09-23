@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
 const (
@@ -111,12 +111,12 @@ var (
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultFilters holds the default value on creation for the "filters" field.
-	DefaultFilters func() *crediteligibility.Filters
+	DefaultFilters func() *ledger.CreditFilters
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all LedgerSubAccountRoute fields.
 	ValueScanner struct {
-		Filters field.TypeValueScanner[*crediteligibility.Filters]
+		Filters field.TypeValueScanner[*ledger.CreditFilters]
 	}
 )
 

@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -151,7 +150,7 @@ func TestBuildRoutingKeyV1_WithTaxCodeAndFeatures(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:  lo.ToPtr("VAT20"),
-		Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"feat-b", "feat-a"}},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{"feat-b", "feat-a"}},
 	})
 	require.NoError(t, err)
 	// Features are sorted canonically
@@ -161,7 +160,7 @@ func TestBuildRoutingKeyV1_WithTaxCodeAndFeatures(t *testing.T) {
 func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{}},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{}},
 	})
 	require.NoError(t, err)
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
@@ -170,12 +169,12 @@ func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 func TestRouteValidateRejectsInvalidFeatures(t *testing.T) {
 	require.Error(t, Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{""}},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{""}},
 	}.Validate())
 
 	require.Error(t, Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls", "api-calls"}},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{"api-calls", "api-calls"}},
 	}.Validate())
 }
 
@@ -403,7 +402,7 @@ func TestRouteMatches(t *testing.T) {
 		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
-		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"storage", "api-calls"}},
+		Filters:                        CreditFilters{Version: CreditFiltersVersion1, Features: []string{"storage", "api-calls"}},
 		CostBasis:                      &costBasis,
 		CreditPriority:                 &priority,
 		TransactionAuthorizationStatus: &authStatus,
@@ -751,7 +750,7 @@ func TestBuildRoutingKeyV2_WithTaxBehaviorAndTaxCode(t *testing.T) {
 }
 
 func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
-	route := Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: crediteligibility.Filters{Features: []string{"api-calls"}}}
+	route := Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: CreditFilters{Features: []string{"api-calls"}}}
 	legacy, err := BuildRoutingKey(route)
 	require.NoError(t, err)
 	require.Equal(t, RoutingKeyVersionV1, legacy.Version())
@@ -759,7 +758,7 @@ func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, explicitLegacy, legacy)
 
-	route.Filters.Plans = []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{In: []int{3, 2, 3}}}}
+	route.Filters.Plans = []PlanFilter{{Key: "pro", Version: &VersionFilter{In: []int{3, 2, 3}}}}
 	key, err := BuildRoutingKey(route)
 	require.NoError(t, err)
 	require.Equal(t, RoutingKeyVersionV5, key.Version())
@@ -773,7 +772,7 @@ func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
 		require.ErrorContains(t, err, "V5")
 	}
 	different := route
-	different.Filters = crediteligibility.Filters{Features: route.Filters.Features, Plans: []crediteligibility.PlanFilter{{Key: "starter"}}}
+	different.Filters = CreditFilters{Features: route.Filters.Features, Plans: []PlanFilter{{Key: "starter"}}}
 	other, err := BuildRoutingKey(different)
 	require.NoError(t, err)
 	require.NotEqual(t, key, other)

@@ -239,5 +239,5 @@ breakage records without ledger entries
 billing allocations pointing at incomplete ledger work
 ```
 
-Credit sources match the charge route using [shared credit filters](../crediteligibility/README.md).
+Credit sources match the charge route using [shared credit filters](../README.md#route-invariants).
 Corrections preserve the original routes and collection provenance.

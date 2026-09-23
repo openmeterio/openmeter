@@ -1,5 +1,5 @@
 package creditpurchase
 
-import "github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+import "github.com/openmeterio/openmeter/openmeter/ledger"
 
-type FeatureFilters = crediteligibility.FeatureFilters
+type FeatureFilters = ledger.FeatureFilters

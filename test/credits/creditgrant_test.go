@@ -27,7 +27,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -267,7 +266,7 @@ func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 		Amount:        alpacadecimal.NewFromInt(10),
 		FundingMethod: creditgrant.FundingMethodNone,
 		Filters: &creditgrant.GrantFilters{
-			Version:  crediteligibility.FiltersVersion1,
+			Version:  ledger.CreditFiltersVersion1,
 			Features: []string{"api-calls"},
 		},
 	})
@@ -702,7 +701,7 @@ func (s *CreditGrantTestSuite) TestCreatePlanFilteredGrant() {
 	ns := s.GetUniqueNamespace("creditgrant-plan-filters")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
-	filters := crediteligibility.Filters{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{In: []int{3, 2, 3}}}}}
+	filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{In: []int{3, 2, 3}}}}}
 	// when: creation persists and realizes the grant.
 	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
 		Namespace: ns, CustomerID: cust.ID, Name: "Plan restricted grant", Currency: USD,

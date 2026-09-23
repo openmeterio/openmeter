@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -355,14 +354,14 @@ func TestRepoFilterStorageCutover(t *testing.T) {
 	require.NoError(t, err)
 	// Given a route created by a writer that populates the JSON representation.
 	input := ledgeraccount.CreateSubAccountInput{Namespace: ns, AccountID: account.ID.ID, Route: ledger.Route{
-		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"output", "input"}},
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"output", "input"}},
 	}}
 	sub, err := env.repo.EnsureSubAccount(ctx, input)
 	require.NoError(t, err)
 	stored, err := env.client.LedgerSubAccountRoute.Query().Where(ledgersubaccountroutedb.ID(sub.RouteMeta.ID)).Only(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, stored.Filters)
-	require.Equal(t, crediteligibility.FiltersVersion1, stored.Filters.Version)
+	require.Equal(t, ledger.CreditFiltersVersion1, stored.Filters.Version)
 	require.Equal(t, []string{"input", "output"}, stored.Filters.Features)
 	require.Empty(t, stored.Features)
 	// When the unused legacy column is stale, lookup still preserves identity and filters.
@@ -382,11 +381,11 @@ func TestRepoExactFiltersSeparateFeatureAndPlanRoutes(t *testing.T) {
 	namespace := testNamespace()
 	account, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{Namespace: namespace, Type: ledger.AccountTypeCustomerFBO})
 	require.NoError(t, err)
-	featureRoute := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}}}
+	featureRoute := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}}}
 	feature, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{Namespace: namespace, AccountID: account.ID.ID, Route: featureRoute})
 	require.NoError(t, err)
 	planRoute := featureRoute
-	planRoute.Filters = crediteligibility.Filters{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro"}}}
+	planRoute.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro"}}}
 	plan, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{Namespace: namespace, AccountID: account.ID.ID, Route: planRoute})
 	require.NoError(t, err)
 
@@ -409,5 +408,5 @@ func TestRepoExactFiltersSeparateFeatureAndPlanRoutes(t *testing.T) {
 	again, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{Namespace: namespace, AccountID: account.ID.ID, Route: featureRoute})
 	require.NoError(t, err)
 	require.Equal(t, feature.ID, again.ID)
-	require.Equal(t, crediteligibility.FiltersVersion2, again.Route.Filters.Version)
+	require.Equal(t, ledger.CreditFiltersVersion2, again.Route.Filters.Version)
 }

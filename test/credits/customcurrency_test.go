@@ -25,7 +25,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -91,7 +90,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 		At:         setupAt,
 		Name:       "matching TOKENS grant",
 		Priority:   &matchingPriority,
-		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
+		Filters:    ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
@@ -118,7 +117,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 		At:         setupAt,
 		Name:       "other-feature TOKENS grant",
 		Priority:   &wrongFeaturePriority,
-		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
+		Filters:    ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
@@ -255,7 +254,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyAllocatesEligibleBu
 		Amount:    alpacadecimal.NewFromInt(8),
 		At:        backfillAt,
 		Name:      "TOKENS advance backfill purchase",
-		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
+		Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
@@ -599,7 +598,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		Amount:    alpacadecimal.NewFromInt(4),
 		At:        clock.Now(),
 		Name:      "wrong-feature TOKENS purchase",
-		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
+		Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
@@ -657,7 +656,7 @@ func (s *CustomCurrencyCreditsSuite) TestUsageBasedCreditOnlyBackfillRespectsFea
 		Amount:    alpacadecimal.NewFromInt(6),
 		At:        clock.Now(),
 		Name:      "partial matching TOKENS purchase",
-		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
+		Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{usageFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
@@ -765,7 +764,7 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNative
 		At:         setupAt,
 		Name:       "matching TOKENS grant for CTI",
 		Priority:   &matchingPriority,
-		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{chargeFeature}},
+		Filters:    ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{chargeFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
@@ -779,7 +778,7 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNative
 		At:         setupAt,
 		Name:       "wrong-feature TOKENS grant for CTI",
 		Priority:   &wrongFeaturePriority,
-		Filters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
+		Filters:    ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
@@ -791,7 +790,7 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNative
 		Amount:    alpacadecimal.NewFromInt(1),
 		At:        setupAt,
 		Priority:  &matchingPriority,
-		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{chargeFeature}},
+		Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{chargeFeature}},
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
@@ -802,7 +801,7 @@ func (s *CustomCurrencyCreditsSuite) TestFlatFeeCreditThenInvoiceAllocatesNative
 		Amount:    alpacadecimal.NewFromInt(2),
 		At:        setupAt,
 		Priority:  &wrongFeaturePriority,
-		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
+		Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{otherFeature}},
 		TaxConfig: productcatalog.TaxCodeConfig{
 			TaxCodeID: defaults.CreditGrantTaxCodeID,
 		},
@@ -1166,7 +1165,7 @@ type customCurrencyCreditPurchaseInput struct {
 	At         time.Time
 	Name       string
 	Priority   *int
-	Filters    crediteligibility.Filters
+	Filters    ledger.CreditFilters
 	Settlement creditpurchase.Settlement
 	CostBasis  creditpurchase.CostBasis
 	TaxConfig  productcatalog.TaxCodeConfig
@@ -1255,7 +1254,7 @@ type settledFiatCreditPurchaseInput struct {
 	Amount    alpacadecimal.Decimal
 	At        time.Time
 	Priority  *int
-	Filters   crediteligibility.Filters
+	Filters   ledger.CreditFilters
 	TaxConfig productcatalog.TaxCodeConfig
 }
 

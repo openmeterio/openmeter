@@ -134,7 +134,25 @@ result is a transaction view, not necessarily a complete balanced transaction.
 
 ## Route invariants
 
-[Credit filters](crediteligibility/README.md) define shared matching and plan attribution.
+`CreditFilters` holds credit restrictions and matches them against a concrete
+`Route`. Feature and plan dimensions combine with AND; entries within a dimension
+combine with OR. Empty dimensions impose no restriction. Restricted dimensions
+do not match routes without recorded attribution.
+
+Plans use a catalog key and an optional version comparison: exactly one of `eq`,
+`in`, `gte`, or `lte`. Omission matches all versions, including future versions.
+Spend routes use the immutable plan snapshot on [charges](../billing/charges/README.md)
+and carry an exact version. Credit-source routes carry the grant's restrictions.
+Collection, advance backfill, and live balance allocation share `Matches`;
+`Equal` compares complete normalized filter sets for bucket identity.
+
+JSON storage uses v1 for features and v2 for plans. Omitted in-memory versions
+are selected during validation, normalization, and encoding; explicit versions
+are preserved. Stored JSON requires a supported version and rejects unknown
+fields. Storage versions do not affect equality or exact route lookup.
+Legacy grant and route feature columns remain present but unused. Deprecated
+lineage retains its feature storage; plan-restricted grants cannot match its
+unattributed advances.
 
 Routes carry currency, credit filters (features and plans), cost basis, credit
 priority, receivable authorization status, tax code, and tax behavior. These

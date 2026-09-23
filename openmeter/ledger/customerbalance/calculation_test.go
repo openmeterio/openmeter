@@ -8,14 +8,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 )
 
 func TestLiveBalanceConsumesOnlyMatchingPlanSources(t *testing.T) {
 	// given: the same feature has credits for two distinct plan versions.
-	plans := []crediteligibility.Filters{
-		{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(1)}}}},
-		{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(2)}}}},
+	plans := []ledger.CreditFilters{
+		{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(1)}}}},
+		{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(2)}}}},
 	}
 	sources := []liveBalanceSource{
 		{route: ledger.Route{Filters: plans[0]}, amount: alpacadecimal.NewFromInt(40)},

@@ -28,7 +28,6 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -1015,7 +1014,7 @@ func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollect
 		At:        grantAt,
 		CostBasis: costBasis,
 		Priority:  &restrictedPriority,
-		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{featureKey}},
+		Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{featureKey}},
 	})
 	generalFunding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 		Namespace: ns,
@@ -2030,7 +2029,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
 		CostBasis: newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromFloat(0.5)),
-		Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{apiRequestsTotal.Feature.Key}},
+		Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{apiRequestsTotal.Feature.Key}},
 	})
 
 	// When a later external credit purchase backfills part of that earlier advance-backed usage.
@@ -2227,7 +2226,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
 				CostBasis: newFiatCreditPurchaseCostBasis(costBasis),
-				Filters:   crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: creditpurchase.FeatureFilters{apiRequestsFeature.Key}},
+				Filters:   ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters{apiRequestsFeature.Key}},
 			}),
 		),
 	})

@@ -19,7 +19,6 @@ import (
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector/correction"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -133,7 +132,7 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 		Currency:          env.CurrencyReference(),
 		SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
 		ServicePeriod:     servicePeriod,
-		Filters:           crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}},
+		Filters:           ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 		Amount:            alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
 	})
 	require.NoError(t, err)
@@ -200,7 +199,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 		Currency:          env.CurrencyReference(),
 		SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
 		ServicePeriod:     servicePeriod,
-		Filters:           crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}},
+		Filters:           ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 		Amount:            alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
 	})
 	require.NoError(t, err)

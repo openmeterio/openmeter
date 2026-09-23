@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -138,15 +138,15 @@ func (i IntentMutableFields) Validate() error {
 }
 
 // GetCreditFilters maps the charge's recorded attribution to concrete route dimensions.
-func (i Intent) GetCreditFilters(featureKey string) crediteligibility.Filters {
-	filters := crediteligibility.Filters{}
+func (i Intent) GetCreditFilters(featureKey string) ledger.CreditFilters {
+	filters := ledger.CreditFilters{}
 	if featureKey != "" {
 		filters.Features = []string{featureKey}
 	}
 	if i.SubscriptionPlan != nil {
-		filters.Plans = []crediteligibility.PlanFilter{{
+		filters.Plans = []ledger.PlanFilter{{
 			Key:     i.SubscriptionPlan.Key,
-			Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(i.SubscriptionPlan.Version)},
+			Version: &ledger.VersionFilter{Eq: lo.ToPtr(i.SubscriptionPlan.Version)},
 		}}
 	}
 	return filters

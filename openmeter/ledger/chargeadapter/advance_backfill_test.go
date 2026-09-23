@@ -23,7 +23,6 @@ import (
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -630,11 +629,11 @@ func TestCreditPurchaseReceivableOnlyAttributionPreservesLegacyFeatureRoutes(t *
 	// Given nil-spend receivable of 20 for API, 30 for storage, and 10 unrestricted.
 	for _, exposure := range []struct {
 		amount  int64
-		filters crediteligibility.Filters
+		filters ledger.CreditFilters
 	}{
-		{20, crediteligibility.Filters{Features: []string{"api-calls"}}},
-		{30, crediteligibility.Filters{Features: []string{"storage"}}},
-		{10, crediteligibility.Filters{}},
+		{20, ledger.CreditFilters{Features: []string{"api-calls"}}},
+		{30, ledger.CreditFilters{Features: []string{"storage"}}},
+		{10, ledger.CreditFilters{}},
 	} {
 		env.createReceivableOnlyExposure(t, advanceExposureInput{
 			Currency: env.currency,
@@ -646,7 +645,7 @@ func TestCreditPurchaseReceivableOnlyAttributionPreservesLegacyFeatureRoutes(t *
 	// When 25 of API-restricted credit arrives without any accrued or legacylineage.
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 	purchase := env.newExternalCharge(alpacadecimal.NewFromInt(25), costBasis)
-	purchase.Intent.Filters = crediteligibility.Filters{Features: []string{"api-calls"}}
+	purchase.Intent.Filters = ledger.CreditFilters{Features: []string{"api-calls"}}
 	result, err := env.grantCredits(t, purchase)
 	require.NoError(t, err)
 

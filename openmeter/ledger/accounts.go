@@ -7,7 +7,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -33,7 +32,7 @@ type CustomerFBORouteParams struct {
 	Currency          currencies.CurrencyReference
 	CostBasisCurrency *currencyx.Code
 	CreditPriority    int
-	Filters           crediteligibility.Filters
+	Filters           CreditFilters
 	CostBasis         *alpacadecimal.Decimal
 }
 
@@ -74,7 +73,7 @@ type CustomerReceivableRouteParams struct {
 	Currency                       currencies.CurrencyReference
 	CostBasisCurrency              *currencyx.Code
 	TaxCode                        *string
-	Filters                        crediteligibility.Filters
+	Filters                        CreditFilters
 	CostBasis                      *alpacadecimal.Decimal
 	TransactionAuthorizationStatus TransactionAuthorizationStatus
 }

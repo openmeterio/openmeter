@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -21,7 +20,7 @@ type advanceAttribution struct {
 	collectionOriginID *string
 	taxCode            *string
 	taxBehavior        *ledger.TaxBehavior
-	advanceFilters     crediteligibility.Filters
+	advanceFilters     ledger.CreditFilters
 	spendChargeID      *string
 	advanceAmount      alpacadecimal.Decimal
 	accruedAmount      alpacadecimal.Decimal

@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -344,11 +343,11 @@ func (s *VoidGrantTestSuite) TestVoidAlreadyExpiredGrantReturnsConflict() {
 func (s *VoidGrantTestSuite) TestVoidFilteredGrantPreservesProvenance() {
 	for _, withPlan := range []bool{false, true} {
 		name := "features"
-		filters := crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api_requests_total"}}
+		filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api_requests_total"}}
 		if withPlan {
 			name = "features and plans"
-			filters.Version = crediteligibility.FiltersVersion2
-			filters.Plans = []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{Gte: lo.ToPtr(2)}}}
+			filters.Version = ledger.CreditFiltersVersion2
+			filters.Plans = []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Gte: lo.ToPtr(2)}}}
 		}
 		s.Run(name, func() {
 			// given:

@@ -8,15 +8,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 )
 
 func TestPlanFiltersMatchRecordedChargeAttribution(t *testing.T) {
 	// given: a grant restricted to a feature and one concrete plan version.
-	grant := crediteligibility.Filters{
-		Version:  crediteligibility.FiltersVersion2,
+	grant := ledger.CreditFilters{
+		Version:  ledger.CreditFiltersVersion2,
 		Features: []string{"input_tokens"},
-		Plans:    []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(2)}}},
+		Plans:    []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(2)}}},
 	}
 	for _, tc := range []struct {
 		name    string

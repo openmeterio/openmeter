@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/legacylineage"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -172,7 +171,7 @@ func (b advanceReceivableBalance) Compare(other advanceReceivableBalance) int {
 // rows have no spend charge, so each route bucket remains separate inside the
 // same spend group and is consumed in deterministic route order.
 type advanceReceivableBuckets struct {
-	requiredFilters crediteligibility.Filters
+	requiredFilters ledger.CreditFilters
 	bySpendChargeID map[string][]advanceReceivableBalance
 }
 
@@ -268,7 +267,7 @@ func (b *advanceReceivableBuckets) attributeRemaining(amount alpacadecimal.Decim
 // whose routes match the purchase filters. Buckets are grouped by spend charge
 // for provenance matching, while the original route buckets remain ordered inside
 // the group so legacy nil-spend entries cannot overwrite each other.
-func newAdvanceReceivableBuckets(advanceReceivables []advanceReceivableBalance, filters crediteligibility.Filters) advanceReceivableBuckets {
+func newAdvanceReceivableBuckets(advanceReceivables []advanceReceivableBalance, filters ledger.CreditFilters) advanceReceivableBuckets {
 	buckets := advanceReceivableBuckets{
 		bySpendChargeID: make(map[string][]advanceReceivableBalance, len(advanceReceivables)),
 	}

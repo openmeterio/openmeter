@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -26,7 +25,7 @@ type IssueCustomerReceivableTemplate struct {
 	CostBasisCurrency  *currencyx.Code
 	TaxCode            *string
 	CostBasis          *alpacadecimal.Decimal
-	Filters            crediteligibility.Filters
+	Filters            ledger.CreditFilters
 	SourceChargeID     *string
 	SpendChargeID      *string
 	CollectionOriginID *string
@@ -209,7 +208,7 @@ type SettleCustomerReceivableFromPaymentTemplate struct {
 	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	CostBasis         *alpacadecimal.Decimal
-	Filters           crediteligibility.Filters
+	Filters           ledger.CreditFilters
 	SourceChargeID    *string
 	SpendChargeID     *string
 }
@@ -324,7 +323,7 @@ type AuthorizeCustomerReceivablePaymentTemplate struct {
 	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	CostBasis         *alpacadecimal.Decimal
-	Filters           crediteligibility.Filters
+	Filters           ledger.CreditFilters
 	SourceChargeID    *string
 	SpendChargeID     *string
 }
@@ -436,8 +435,8 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	CostBasisCurrency  *currencyx.Code
 	TaxCode            *string
 	CostBasis          *alpacadecimal.Decimal
-	AdvanceFilters     crediteligibility.Filters
-	AttributedFilters  crediteligibility.Filters
+	AdvanceFilters     ledger.CreditFilters
+	AttributedFilters  ledger.CreditFilters
 	SourceChargeID     *string
 	SpendChargeID      *string
 	CollectionOriginID *string

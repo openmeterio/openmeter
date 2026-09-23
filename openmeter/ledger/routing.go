@@ -15,7 +15,6 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -193,7 +192,7 @@ type Route struct {
 	// Customer FBO routes do not carry tax dimensions; credit sources are
 	// attributed to charge tax configuration when they accrue.
 	TaxBehavior                    *TaxBehavior
-	Filters                        crediteligibility.Filters
+	Filters                        CreditFilters
 	CostBasis                      *alpacadecimal.Decimal
 	CreditPriority                 *int
 	TransactionAuthorizationStatus *TransactionAuthorizationStatus
@@ -253,7 +252,7 @@ func (r Route) validateDimensionsOnly() error {
 		}
 	}
 
-	if err := r.CreditFilters().Validate(); err != nil {
+	if err := r.Filters.Validate(); err != nil {
 		return fmt.Errorf("filters: %w", err)
 	}
 
@@ -264,7 +263,7 @@ func (r Route) validateDimensionsOnly() error {
 // All present route fields are pinned as exact-match filters (including nil values).
 func (r Route) Filter() RouteFilter {
 	return RouteFilter{
-		CreditFilters:                  mo.Some(r.CreditFilters()),
+		CreditFilters:                  mo.Some(r.Filters),
 		Currency:                       r.Currency.Clone(),
 		CostBasisCurrency:              mo.Some(r.CostBasisCurrency),
 		TaxCode:                        mo.Some(r.TaxCode),
@@ -364,7 +363,7 @@ func (r Route) Normalize() (Route, error) {
 	if normalized.CostBasisCurrency != nil && *normalized.CostBasisCurrency == "" {
 		normalized.CostBasisCurrency = nil
 	}
-	normalized.Filters = r.CreditFilters().Normalize()
+	normalized.Filters = r.Filters.Normalize()
 	normalized.Version = selectRoutingKeyVersion(normalized)
 
 	return normalized, nil
@@ -405,7 +404,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		CostBasisCurrency:              costBasisCurrency,
 		TaxCode:                        taxCode,
 		TaxBehavior:                    taxBehavior,
-		Filters:                        crediteligibility.Filters{Features: features},
+		Filters:                        CreditFilters{Features: features},
 		CostBasis:                      costBasis,
 		CreditPriority:                 f.CreditPriority,
 		TransactionAuthorizationStatus: f.TransactionAuthorizationStatus,
@@ -808,8 +807,4 @@ func optionalDecimalValue(v *alpacadecimal.Decimal) string {
 		return "null"
 	}
 	return v.String()
-}
-
-func (r Route) CreditFilters() crediteligibility.Filters {
-	return r.Filters
 }

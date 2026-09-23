@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -20,7 +19,7 @@ type IssueInput struct {
 	At          time.Time
 	Amount      alpacadecimal.Decimal
 	Currency    currencies.CurrencyReference
-	Filters     crediteligibility.Filters
+	Filters     ledger.CreditFilters
 	TaxCode     *string
 	TaxBehavior *ledger.TaxBehavior
 }

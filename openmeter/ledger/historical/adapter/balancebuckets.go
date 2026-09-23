@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -107,7 +106,7 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s routing key: %w", r.SubAccountID, err)
 	}
 
-	var filters crediteligibility.Filters
+	var filters ledger.CreditFilters
 	if err := json.Unmarshal([]byte(r.Filters), &filters); err != nil {
 		return ledger.BalanceBucket{}, fmt.Errorf("decode route filters: %w", err)
 	}

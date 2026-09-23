@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -292,13 +292,13 @@ var (
 	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
 	DefaultSchemaLevel int
 	// DefaultFilters holds the default value on creation for the "filters" field.
-	DefaultFilters func() *crediteligibility.Filters
+	DefaultFilters func() *ledger.CreditFilters
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
 	ValueScanner struct {
 		SubscriptionPlan field.TypeValueScanner[*meta.SubscriptionPlan]
-		Filters          field.TypeValueScanner[*crediteligibility.Filters]
+		Filters          field.TypeValueScanner[*ledger.CreditFilters]
 	}
 )
 

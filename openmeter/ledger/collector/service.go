@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector/correction"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -88,7 +87,7 @@ type CollectToAccruedInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencies.CurrencyReference
-	Filters           crediteligibility.Filters
+	Filters           ledger.CreditFilters
 	SettlementMode    productcatalog.SettlementMode
 	ServicePeriod     timeutil.ClosedPeriod
 	Amount            alpacadecimal.Decimal
@@ -106,7 +105,7 @@ type CollectToReceivableInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencies.CurrencyReference
-	Filters           crediteligibility.Filters
+	Filters           ledger.CreditFilters
 	ServicePeriod     timeutil.ClosedPeriod
 	Amount            alpacadecimal.Decimal
 }

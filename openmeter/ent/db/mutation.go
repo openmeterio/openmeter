@@ -118,7 +118,6 @@ import (
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -40127,7 +40126,7 @@ type ChargeCreditPurchaseMutation struct {
 	expires_at                        *time.Time
 	priority                          *int
 	addpriority                       *int
-	filters                           **crediteligibility.Filters
+	filters                           **ledger.CreditFilters
 	feature_filters                   *pq.StringArray
 	settlement                        *string
 	status_detailed                   *creditpurchase.Status
@@ -41879,12 +41878,12 @@ func (m *ChargeCreditPurchaseMutation) ResetPriority() {
 }
 
 // SetFilters sets the "filters" field.
-func (m *ChargeCreditPurchaseMutation) SetFilters(c *crediteligibility.Filters) {
-	m.filters = &c
+func (m *ChargeCreditPurchaseMutation) SetFilters(lf *ledger.CreditFilters) {
+	m.filters = &lf
 }
 
 // Filters returns the value of the "filters" field in the mutation.
-func (m *ChargeCreditPurchaseMutation) Filters() (r *crediteligibility.Filters, exists bool) {
+func (m *ChargeCreditPurchaseMutation) Filters() (r *ledger.CreditFilters, exists bool) {
 	v := m.filters
 	if v == nil {
 		return
@@ -41895,7 +41894,7 @@ func (m *ChargeCreditPurchaseMutation) Filters() (r *crediteligibility.Filters, 
 // OldFilters returns the old "filters" field's value of the ChargeCreditPurchase entity.
 // If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseMutation) OldFilters(ctx context.Context) (v *crediteligibility.Filters, err error) {
+func (m *ChargeCreditPurchaseMutation) OldFilters(ctx context.Context) (v *ledger.CreditFilters, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldFilters is only allowed on UpdateOne operations")
 	}
@@ -43155,7 +43154,7 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		m.SetPriority(v)
 		return nil
 	case chargecreditpurchase.FieldFilters:
-		v, ok := value.(*crediteligibility.Filters)
+		v, ok := value.(*ledger.CreditFilters)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -103536,7 +103535,7 @@ type LedgerSubAccountRouteMutation struct {
 	cost_basis_currency              *currencyx.Code
 	tax_code                         *string
 	tax_behavior                     *ledger.TaxBehavior
-	filters                          **crediteligibility.Filters
+	filters                          **ledger.CreditFilters
 	features                         *pq.StringArray
 	cost_basis                       *alpacadecimal.Decimal
 	credit_priority                  *int
@@ -104106,12 +104105,12 @@ func (m *LedgerSubAccountRouteMutation) ResetTaxBehavior() {
 }
 
 // SetFilters sets the "filters" field.
-func (m *LedgerSubAccountRouteMutation) SetFilters(c *crediteligibility.Filters) {
-	m.filters = &c
+func (m *LedgerSubAccountRouteMutation) SetFilters(lf *ledger.CreditFilters) {
+	m.filters = &lf
 }
 
 // Filters returns the value of the "filters" field in the mutation.
-func (m *LedgerSubAccountRouteMutation) Filters() (r *crediteligibility.Filters, exists bool) {
+func (m *LedgerSubAccountRouteMutation) Filters() (r *ledger.CreditFilters, exists bool) {
 	v := m.filters
 	if v == nil {
 		return
@@ -104122,7 +104121,7 @@ func (m *LedgerSubAccountRouteMutation) Filters() (r *crediteligibility.Filters,
 // OldFilters returns the old "filters" field's value of the LedgerSubAccountRoute entity.
 // If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountRouteMutation) OldFilters(ctx context.Context) (v *crediteligibility.Filters, err error) {
+func (m *LedgerSubAccountRouteMutation) OldFilters(ctx context.Context) (v *ledger.CreditFilters, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldFilters is only allowed on UpdateOne operations")
 	}
@@ -104690,7 +104689,7 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		m.SetTaxBehavior(v)
 		return nil
 	case ledgersubaccountroute.FieldFilters:
-		v, ok := value.(*crediteligibility.Filters)
+		v, ok := value.(*ledger.CreditFilters)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

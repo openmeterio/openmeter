@@ -100,7 +100,7 @@ import (
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -1089,8 +1089,8 @@ func init() {
 	// chargecreditpurchaseDescFilters is the schema descriptor for filters field.
 	chargecreditpurchaseDescFilters := chargecreditpurchaseFields[8].Descriptor()
 	// chargecreditpurchase.DefaultFilters holds the default value on creation for the filters field.
-	chargecreditpurchase.DefaultFilters = chargecreditpurchaseDescFilters.Default.(func() *crediteligibility.Filters)
-	chargecreditpurchase.ValueScanner.Filters = chargecreditpurchaseDescFilters.ValueScanner.(field.TypeValueScanner[*crediteligibility.Filters])
+	chargecreditpurchase.DefaultFilters = chargecreditpurchaseDescFilters.Default.(func() *ledger.CreditFilters)
+	chargecreditpurchase.ValueScanner.Filters = chargecreditpurchaseDescFilters.ValueScanner.(field.TypeValueScanner[*ledger.CreditFilters])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[20].Descriptor()
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
@@ -2602,8 +2602,8 @@ func init() {
 	// ledgersubaccountrouteDescFilters is the schema descriptor for filters field.
 	ledgersubaccountrouteDescFilters := ledgersubaccountrouteFields[7].Descriptor()
 	// ledgersubaccountroute.DefaultFilters holds the default value on creation for the filters field.
-	ledgersubaccountroute.DefaultFilters = ledgersubaccountrouteDescFilters.Default.(func() *crediteligibility.Filters)
-	ledgersubaccountroute.ValueScanner.Filters = ledgersubaccountrouteDescFilters.ValueScanner.(field.TypeValueScanner[*crediteligibility.Filters])
+	ledgersubaccountroute.DefaultFilters = ledgersubaccountrouteDescFilters.Default.(func() *ledger.CreditFilters)
+	ledgersubaccountroute.ValueScanner.Filters = ledgersubaccountrouteDescFilters.ValueScanner.(field.TypeValueScanner[*ledger.CreditFilters])
 	// ledgersubaccountrouteDescID is the schema descriptor for id field.
 	ledgersubaccountrouteDescID := ledgersubaccountrouteMixinFields0[0].Descriptor()
 	// ledgersubaccountroute.DefaultID holds the default value on creation for the id field.

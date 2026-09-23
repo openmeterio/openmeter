@@ -31,7 +31,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -360,8 +360,8 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 			Amount:            alpacadecimal.NewFromInt(40),
 			Currency:          currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			CostBasis:         lo.ToPtr(alpacadecimal.NewFromInt(1)),
-			AdvanceFilters:    crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}},
-			AttributedFilters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}},
+			AdvanceFilters:    ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
+			AttributedFilters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 			SourceChargeID:    lo.ToPtr(ulid.Make().String()),
 		},
 	)

@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -46,7 +45,7 @@ func TestRepoGetBalancesAtBoundariesPreservesScopeAndCursor(t *testing.T) {
 	} {
 		sub, err := env.accountRepo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 			Namespace: namespace, AccountID: account.ID.ID,
-			Route: ledger.Route{Currency: posting.currency, Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: posting.features}, CreditPriority: lo.ToPtr(1)},
+			Route: ledger.Route{Currency: posting.currency, Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: posting.features}, CreditPriority: lo.ToPtr(1)},
 		})
 		require.NoError(t, err)
 		counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, ledger.Route{Currency: posting.currency})

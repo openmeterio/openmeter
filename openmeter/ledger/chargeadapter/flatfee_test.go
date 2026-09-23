@@ -28,7 +28,6 @@ import (
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -857,7 +856,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: priority,
-		Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 	})
 	require.NoError(t, err)
 
@@ -878,7 +877,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
-			Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 			SourceChargeID: sourceChargeID,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
@@ -886,7 +885,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
-			Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 			SourceChargeID: sourceChargeID,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
@@ -894,7 +893,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeaturesAndSource(t *testing.T, 
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
-			Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 			SourceChargeID: sourceChargeID,
 		},
 	)

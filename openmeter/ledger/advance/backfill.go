@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -27,7 +26,7 @@ type BackfillInput struct {
 	SourceChargeID    string
 	CostBasis         alpacadecimal.Decimal
 	CostBasisCurrency *currencyx.Code
-	Filters           crediteligibility.Filters
+	Filters           ledger.CreditFilters
 	LegacyLineages    []legacylineage.Lineage
 }
 

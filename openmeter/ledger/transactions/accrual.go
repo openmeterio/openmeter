@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -287,7 +286,7 @@ type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	TaxBehavior        *ledger.TaxBehavior
 	CostBasisCurrency  *currencyx.Code
 	CostBasis          *alpacadecimal.Decimal
-	Filters            crediteligibility.Filters
+	Filters            ledger.CreditFilters
 	SourceChargeID     *string
 	SpendChargeID      *string
 	CollectionOriginID *string

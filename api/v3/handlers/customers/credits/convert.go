@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -202,7 +201,7 @@ func toAPITaxCodeConfig(charge creditpurchase.Charge) *api.TaxCodeConfig {
 	return tc
 }
 
-func toAPIBillingCreditGrantFilters(filters crediteligibility.Filters) *api.BillingCreditGrantFilters {
+func toAPIBillingCreditGrantFilters(filters ledger.CreditFilters) *api.BillingCreditGrantFilters {
 	if filters.IsEmpty() {
 		return nil
 	}
@@ -212,7 +211,7 @@ func toAPIBillingCreditGrantFilters(filters crediteligibility.Filters) *api.Bill
 		result.Features = lo.ToPtr(filters.Features)
 	}
 	if len(filters.Plans) > 0 {
-		result.Plans = lo.ToPtr(lo.Map(filters.Plans, func(plan crediteligibility.PlanFilter, _ int) api.BillingCreditGrantPlanFilter {
+		result.Plans = lo.ToPtr(lo.Map(filters.Plans, func(plan ledger.PlanFilter, _ int) api.BillingCreditGrantPlanFilter {
 			mapped := api.BillingCreditGrantPlanFilter{Key: plan.Key}
 			if v := plan.Version; v != nil {
 				mapped.Version = &api.VersionFilter{}
@@ -280,10 +279,10 @@ func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*c
 	}
 	result := &creditgrant.GrantFilters{Features: lo.FromPtr(filters.Features)}
 	if filters.Plans != nil {
-		result.Plans = lo.Map(*filters.Plans, func(plan api.CreateCreditGrantPlanFilter, _ int) crediteligibility.PlanFilter {
-			mapped := crediteligibility.PlanFilter{Key: plan.Key}
+		result.Plans = lo.Map(*filters.Plans, func(plan api.CreateCreditGrantPlanFilter, _ int) ledger.PlanFilter {
+			mapped := ledger.PlanFilter{Key: plan.Key}
 			if v := plan.Version; v != nil {
-				mapped.Version = &crediteligibility.VersionFilter{}
+				mapped.Version = &ledger.VersionFilter{}
 				if v.Eq != nil {
 					mapped.Version.Eq = lo.ToPtr(int(*v.Eq))
 				}

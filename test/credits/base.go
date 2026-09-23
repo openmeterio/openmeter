@@ -33,7 +33,6 @@ import (
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
@@ -869,7 +868,7 @@ type CreateCreditPurchaseIntentInput struct {
 	ServicePeriod timeutil.ClosedPeriod
 	Settlement    creditpurchase.Settlement
 	CostBasis     creditpurchase.CostBasis
-	Filters       crediteligibility.Filters
+	Filters       ledger.CreditFilters
 	TaxConfig     productcatalog.TaxCodeConfig
 }
 
@@ -940,7 +939,7 @@ type CreatePromotionalCreditFundingInput struct {
 	ExpiresAt *time.Time
 	CostBasis alpacadecimal.Decimal
 	Priority  *int
-	Filters   crediteligibility.Filters
+	Filters   ledger.CreditFilters
 	TaxConfig productcatalog.TaxCodeConfig
 }
 

@@ -33,7 +33,6 @@ import (
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -770,7 +769,7 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
-					Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1},
+					Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1},
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "Promotional Credit Purchase",
 						ServicePeriod:     servicePeriod,
@@ -814,7 +813,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
-					Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1},
+					Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1},
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "External Credit Purchase",
 						ServicePeriod:     servicePeriod,
@@ -854,7 +853,7 @@ func (e *creditPurchaseHandlerTestEnv) fboSubAccountWithFeatures(t *testing.T, c
 		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
-		Filters:        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 	})
 	require.NoError(t, err)
 
@@ -872,7 +871,7 @@ func (e *creditPurchaseHandlerTestEnv) unknownReceivableSubAccountWithFeatures(t
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.CurrencyReference(),
-		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -916,7 +915,7 @@ func (e *creditPurchaseHandlerTestEnv) receivableSubAccountWithFeatures(t *testi
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.CurrencyReference(),
-		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -997,13 +996,13 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureWithFeatures(t *test
 
 func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureForSpend(t *testing.T, amount alpacadecimal.Decimal, features []string, spendChargeID *string) {
 	t.Helper()
-	e.createAdvance(t, advanceExposureInput{Currency: e.currency, Amount: amount, Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features}, SpendChargeID: spendChargeID})
+	e.createAdvance(t, advanceExposureInput{Currency: e.currency, Amount: amount, Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features}, SpendChargeID: spendChargeID})
 }
 
 type advanceExposureInput struct {
 	Currency      currencies.Currency
 	Amount        alpacadecimal.Decimal
-	Filters       crediteligibility.Filters
+	Filters       ledger.CreditFilters
 	SpendChargeID *string
 	TaxCode       *string
 }
@@ -1323,9 +1322,9 @@ func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 func TestCreditPurchaseBackfillsOnlyMatchingPlanVersion(t *testing.T) {
 	// given: otherwise identical advances belong to different plan versions.
 	env := newCreditPurchaseHandlerTestEnv(t)
-	plans := []crediteligibility.Filters{
-		{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(1)}}}},
-		{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(2)}}}},
+	plans := []ledger.CreditFilters{
+		{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(1)}}}},
+		{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(2)}}}},
 	}
 	advanceService := advancetestutils.NewService(t, env.Deps, env.breakage)
 	for _, filters := range plans {
@@ -1339,7 +1338,7 @@ func TestCreditPurchaseBackfillsOnlyMatchingPlanVersion(t *testing.T) {
 	}
 	costBasis := mustDecimal(t, "0.5")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
-	charge.Intent.Filters = crediteligibility.Filters{Version: crediteligibility.FiltersVersion2, Features: []string{"api-calls"}, Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{Gte: lo.ToPtr(2)}}}}
+	charge.Intent.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Gte: lo.ToPtr(2)}}}}
 
 	// when: purchased credit matches v2 and later versions.
 	result, err := env.grantCredits(t, charge)

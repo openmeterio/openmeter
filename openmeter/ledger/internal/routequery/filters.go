@@ -5,12 +5,12 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
 // ExactFeaturesPredicate compares only the feature dimension of a route.
 func ExactFeaturesPredicate(column func(string) string, features []string) *sql.Predicate {
-	features = crediteligibility.FeatureFilters(features).Normalize()
+	features = ledger.FeatureFilters(features).Normalize()
 	encoded, _ := json.Marshal(features)
 	return sql.P(func(b *sql.Builder) {
 		b.Ident(column("filters")).WriteString("->'features'")
@@ -31,7 +31,7 @@ func MatchFeaturePredicate(column func(string) string, feature string) *sql.Pred
 }
 
 // ExactFiltersPredicate compares complete normalized route restriction sets.
-func ExactFiltersPredicate(column func(string) string, filters crediteligibility.Filters) *sql.Predicate {
+func ExactFiltersPredicate(column func(string) string, filters ledger.CreditFilters) *sql.Predicate {
 	encoded, _ := json.Marshal(filters.Normalize())
 	return sql.P(func(b *sql.Builder) {
 		b.Ident(column("filters")).WriteString(" - 'schema_version' = ").Arg(string(encoded)).WriteString("::jsonb - 'schema_version'")

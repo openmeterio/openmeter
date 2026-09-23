@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/advance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -215,7 +214,7 @@ type backfilledCreditReissueRouteResult struct {
 	costBasisCurrency *currencyx.Code
 	costBasis         *alpacadecimal.Decimal
 	creditPriority    *int
-	filters           crediteligibility.Filters
+	filters           ledger.CreditFilters
 	sourceChargeID    *string
 }
 
@@ -228,7 +227,7 @@ func (s *service) backfilledCreditReissueRoute(group ledger.TransactionGroup) (b
 	var fallbackCurrency currencies.CurrencyReference
 	var fallbackCostBasisCurrency *currencyx.Code
 	var fallbackCostBasis *alpacadecimal.Decimal
-	var fallbackFilters crediteligibility.Filters
+	var fallbackFilters ledger.CreditFilters
 	var sourceChargeID *string
 
 	for _, transaction := range group.Transactions() {

@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -180,7 +180,7 @@ type IntentMutableFields struct {
 	ExpiresAt   *time.Time `json:"expiresAt"`
 	Priority    *int       `json:"priority"`
 
-	Filters crediteligibility.Filters `json:"filters,omitempty"`
+	Filters ledger.CreditFilters `json:"filters,omitempty"`
 
 	// Settlement intent
 	Settlement Settlement `json:"settlement"`

@@ -29,7 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -412,7 +412,7 @@ func (_c *ChargeCreditPurchaseCreate) SetNillablePriority(v *int) *ChargeCreditP
 }
 
 // SetFilters sets the "filters" field.
-func (_c *ChargeCreditPurchaseCreate) SetFilters(v *crediteligibility.Filters) *ChargeCreditPurchaseCreate {
+func (_c *ChargeCreditPurchaseCreate) SetFilters(v *ledger.CreditFilters) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetFilters(v)
 	return _c
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -399,7 +398,7 @@ func TestDefaultValidator_AllowsReceivableCostBasisAttributionAcrossFeatures(t *
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-advance", ledger.Route{
 				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
-				Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}},
+				Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(20),
@@ -552,7 +551,7 @@ func TestDefaultValidator_RejectsFeaturesOnAccrued(t *testing.T) {
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-feature", ledger.Route{
 				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-				Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}},
+				Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},

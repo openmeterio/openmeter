@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 )
 
@@ -41,9 +41,9 @@ func TestCreditFilterStorageCutover(t *testing.T) {
 			err = conn.QueryRowContext(t.Context(), fmt.Sprintf(`SELECT %s::text, routing_key FROM %s WHERE id=$1`, tc.filters, tc.table), i+1).Scan(&filters, &key)
 			require.NoError(t, err)
 			require.JSONEq(t, want, filters)
-			var decoded crediteligibility.Filters
+			var decoded ledger.CreditFilters
 			require.NoError(t, json.Unmarshal([]byte(filters), &decoded))
-			require.Equal(t, crediteligibility.FiltersVersion1, decoded.Version)
+			require.Equal(t, ledger.CreditFiltersVersion1, decoded.Version)
 			require.Equal(t, "unchanged", key)
 		}
 		_, err = conn.ExecContext(t.Context(), fmt.Sprintf(`INSERT INTO %s (id,%s) VALUES (5,'{"schema_version":1,"features":["new"]}')`, tc.table, tc.filters))

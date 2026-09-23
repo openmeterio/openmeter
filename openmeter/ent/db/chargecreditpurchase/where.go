@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -211,7 +211,7 @@ func Priority(v int) predicate.ChargeCreditPurchase {
 }
 
 // Filters applies equality check predicate on the "filters" field. It's identical to FiltersEQ.
-func Filters(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func Filters(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	return predicate.ChargeCreditPurchaseOrErr(sql.FieldEQ(FieldFilters, vc), err)
 }
@@ -1966,19 +1966,19 @@ func PriorityNotNil() predicate.ChargeCreditPurchase {
 }
 
 // FiltersEQ applies the EQ predicate on the "filters" field.
-func FiltersEQ(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersEQ(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	return predicate.ChargeCreditPurchaseOrErr(sql.FieldEQ(FieldFilters, vc), err)
 }
 
 // FiltersNEQ applies the NEQ predicate on the "filters" field.
-func FiltersNEQ(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersNEQ(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	return predicate.ChargeCreditPurchaseOrErr(sql.FieldNEQ(FieldFilters, vc), err)
 }
 
 // FiltersIn applies the In predicate on the "filters" field.
-func FiltersIn(vs ...*crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersIn(vs ...*ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	var (
 		err error
 		v   = make([]any, len(vs))
@@ -1992,7 +1992,7 @@ func FiltersIn(vs ...*crediteligibility.Filters) predicate.ChargeCreditPurchase 
 }
 
 // FiltersNotIn applies the NotIn predicate on the "filters" field.
-func FiltersNotIn(vs ...*crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersNotIn(vs ...*ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	var (
 		err error
 		v   = make([]any, len(vs))
@@ -2006,31 +2006,31 @@ func FiltersNotIn(vs ...*crediteligibility.Filters) predicate.ChargeCreditPurcha
 }
 
 // FiltersGT applies the GT predicate on the "filters" field.
-func FiltersGT(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersGT(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	return predicate.ChargeCreditPurchaseOrErr(sql.FieldGT(FieldFilters, vc), err)
 }
 
 // FiltersGTE applies the GTE predicate on the "filters" field.
-func FiltersGTE(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersGTE(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	return predicate.ChargeCreditPurchaseOrErr(sql.FieldGTE(FieldFilters, vc), err)
 }
 
 // FiltersLT applies the LT predicate on the "filters" field.
-func FiltersLT(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersLT(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	return predicate.ChargeCreditPurchaseOrErr(sql.FieldLT(FieldFilters, vc), err)
 }
 
 // FiltersLTE applies the LTE predicate on the "filters" field.
-func FiltersLTE(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersLTE(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	return predicate.ChargeCreditPurchaseOrErr(sql.FieldLTE(FieldFilters, vc), err)
 }
 
 // FiltersContains applies the Contains predicate on the "filters" field.
-func FiltersContains(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersContains(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	vcs, ok := vc.(string)
 	if err == nil && !ok {
@@ -2040,7 +2040,7 @@ func FiltersContains(v *crediteligibility.Filters) predicate.ChargeCreditPurchas
 }
 
 // FiltersHasPrefix applies the HasPrefix predicate on the "filters" field.
-func FiltersHasPrefix(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersHasPrefix(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	vcs, ok := vc.(string)
 	if err == nil && !ok {
@@ -2050,7 +2050,7 @@ func FiltersHasPrefix(v *crediteligibility.Filters) predicate.ChargeCreditPurcha
 }
 
 // FiltersHasSuffix applies the HasSuffix predicate on the "filters" field.
-func FiltersHasSuffix(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersHasSuffix(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	vcs, ok := vc.(string)
 	if err == nil && !ok {
@@ -2060,7 +2060,7 @@ func FiltersHasSuffix(v *crediteligibility.Filters) predicate.ChargeCreditPurcha
 }
 
 // FiltersEqualFold applies the EqualFold predicate on the "filters" field.
-func FiltersEqualFold(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersEqualFold(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	vcs, ok := vc.(string)
 	if err == nil && !ok {
@@ -2070,7 +2070,7 @@ func FiltersEqualFold(v *crediteligibility.Filters) predicate.ChargeCreditPurcha
 }
 
 // FiltersContainsFold applies the ContainsFold predicate on the "filters" field.
-func FiltersContainsFold(v *crediteligibility.Filters) predicate.ChargeCreditPurchase {
+func FiltersContainsFold(v *ledger.CreditFilters) predicate.ChargeCreditPurchase {
 	vc, err := ValueScanner.Filters.Value(v)
 	vcs, ok := vc.(string)
 	if err == nil && !ok {
