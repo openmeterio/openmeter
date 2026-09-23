@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -207,7 +208,8 @@ func (s *service) validateCancel(ctx context.Context, view subscription.Subscrip
 
 	spec.ActiveTo = lo.ToPtr(cancelTime)
 
-	if err := spec.Validate(); err != nil {
+	// Existing subscriptions with a subscription or item billing period under 24 hours must remain cancellable.
+	if err := spec.Validate(); err != nil && !errorsx.IsOnly(err, subscription.LegacySpecValidationErrors...) {
 		return fmt.Errorf("spec is invalid after setting cancelation time: %w", err)
 	}
 

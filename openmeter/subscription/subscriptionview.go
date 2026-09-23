@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -481,7 +482,8 @@ func NewSubscriptionView(
 		return nil, fmt.Errorf("unvisited items: %v", unvisitedItems)
 	}
 
-	if err := spec.Validate(); err != nil {
+	// Persisted short subscription or item cadences must remain readable for cancellation.
+	if err := spec.Validate(); err != nil && !errorsx.IsOnly(err, LegacySpecValidationErrors...) {
 		return nil, models.ErrorWithComponent("subscriptionspec", err)
 	}
 

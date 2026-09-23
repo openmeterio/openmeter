@@ -340,6 +340,9 @@ func (s *SubscriptionSpec) Validate() error {
 	if err := s.validateCurrencies(); err != nil {
 		errs = append(errs, err)
 	}
+	if duration, _ := s.BillingCadence.Duration(); duration < 24*time.Hour {
+		errs = append(errs, ErrSubscriptionBillingCadenceTooShort)
+	}
 
 	// Let's validate the billing anchor
 	// - is present

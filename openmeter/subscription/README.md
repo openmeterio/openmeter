@@ -83,6 +83,8 @@ are clipped to phase and subscription boundaries. The plan workflow defaults
 the anchor to `ActiveFrom`, but the stored anchor is an explicit subscription
 fact and must be carried through replacements and plan changes.
 
+Subscription specs enforce the [product catalog rate-card minimum](../productcatalog/README.md), including for existing items. Cancellation permits legacy short cadences when the spec has no other validation errors; unrelated updates remain blocked until the cadences are changed.
+
 `Timing` describes when a command should take effect. It contains exactly one
 of a custom timestamp or a supported enum. `immediate` resolves from the
 subscription clock; `next_billing_cycle` resolves to the end of the aligned

@@ -44,6 +44,9 @@ annotations intended for correlation, not persisted child IDs.
 
 ## Boundaries and invariants
 
+- Spec validation requires the subscription billing cadence to convert to at
+  least 24 hours, without changing its stored ISO representation. Cancellation
+  ignores only legacy short-cadence validation errors.
 - The target spec must keep the existing customer, subscription start, and
   settlement mode. Its plan reference may advance to a later version of the
   same plan in the same namespace; that write shares the materialization
