@@ -726,12 +726,11 @@ export function listCustomerEntitlements(
 /**
  * Create customer entitlement grant
  *
- * Issue a grant for a metered entitlement of the customer. Grants can only be
- * issued for metered entitlements; the request is rejected for boolean and static
- * entitlements.
+ * Issue a grant for a metered entitlement of the customer. Boolean and static
+ * entitlements cannot have grants, so the request is rejected for them.
  *
- * Grants are immutable: the granted amount adds to the balance from
- * `effective_at`, which cannot be before the start of the current usage period.
+ * Grants are immutable. The amount is added to the balance from `effective_at`,
+ * which cannot be earlier than the start of the current usage period.
  *
  * POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
  */
@@ -788,7 +787,7 @@ export function createCustomerEntitlementGrant(
  * List customer entitlement grants
  *
  * List the grants issued for an entitlement of the customer. Grants only exist for
- * metered entitlements, so the list of a boolean or static entitlement is empty.
+ * metered entitlements, so the list is empty for boolean and static entitlements.
  *
  * Deleted grants are excluded unless `include_deleted` is set. Voided and expired
  * grants are always included, as they are part of the balance history.

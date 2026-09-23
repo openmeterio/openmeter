@@ -2142,12 +2142,11 @@ paths:
       operationId: create-customer-entitlement-grant
       summary: Create customer entitlement grant
       description: |-
-        Issue a grant for a metered entitlement of the customer. Grants can only be
-        issued for metered entitlements; the request is rejected for boolean and static
-        entitlements.
+        Issue a grant for a metered entitlement of the customer. Boolean and static
+        entitlements cannot have grants, so the request is rejected for them.
 
-        Grants are immutable: the granted amount adds to the balance from
-        `effective_at`, which cannot be before the start of the current usage period.
+        Grants are immutable. The amount is added to the balance from `effective_at`,
+        which cannot be earlier than the start of the current usage period.
       parameters:
         - name: customerId
           in: path
@@ -2192,7 +2191,7 @@ paths:
       summary: List customer entitlement grants
       description: |-
         List the grants issued for an entitlement of the customer. Grants only exist for
-        metered entitlements, so the list of a boolean or static entitlement is empty.
+        metered entitlements, so the list is empty for boolean and static entitlements.
 
         Deleted grants are excluded unless `include_deleted` is set. Voided and expired
         grants are always included, as they are part of the balance history.
@@ -8109,10 +8108,9 @@ components:
           type: integer
           format: uint8
           description: |-
-            The priority of the grant. Lower values have higher priority: a priority of 1 is
-            more urgent than a priority of 2. When several grants are available, the one
-            with the highest priority is consumed first; among equal priorities the one
-            closest to expiration wins, then the earliest created.
+            The priority of the grant. Lower values are consumed first: a grant with
+            priority 1 is consumed before one with priority 2. Among equal priorities, the
+            grant closest to expiration is consumed first, then the earliest created.
           title: Priority
           example: 1
           readOnly: true
@@ -8140,7 +8138,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: |-
             The time the grant expires, calculated from `effective_at` and `expires_after`.
-            The grant is no longer in effect at this time. Absent when the grant never
+            The grant is no longer in effect from this time. Absent when the grant never
             expires.
           title: Expires at
           example: '2023-02-01T01:01:01.001Z'
@@ -8149,10 +8147,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Grants are rolled over at reset, after which they can have a different balance
-            compared to what they had before the reset. Balance after the reset is
-            calculated as
-            `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+            The maximum balance the grant carries over at reset. The balance after a reset
+            is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
           title: Max rollover amount
           example: '100'
           readOnly: true
@@ -8160,10 +8156,8 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Grants are rolled over at reset, after which they can have a different balance
-            compared to what they had before the reset. Balance after the reset is
-            calculated as
-            `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+            The minimum balance the grant carries over at reset. The balance after a reset
+            is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
           title: Min rollover amount
           example: '0'
           readOnly: true
@@ -8213,13 +8207,12 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        A grant issued for a metered entitlement. Grants define the usage allowance the
-        entitlement's balance is burnt down from: each grant is in effect between its
-        effective time and its expiration, and grants are consumed in priority order.
+        A grant issued for a metered entitlement. Each grant adds its amount to the
+        entitlement's balance from its effective time until it expires, and usage is
+        deducted from the grants in priority order.
 
-        Grants are immutable once created, so the balance is deterministic regardless of
-        when it is queried. They can only be deleted, which ends them at the time of the
-        deletion.
+        Grants are immutable, so the balance is deterministic regardless of when it is
+        queried. Deleting a grant ends it at the time of the deletion.
     BillingEntitlementGrantCreateRequest:
       type: object
       required:
