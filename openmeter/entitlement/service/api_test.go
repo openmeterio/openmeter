@@ -226,16 +226,16 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
 		clock.SetTime(clock.Now().Add(time.Minute))
 
-		// then both facade operations fail the precondition
+		// then both facade operations conflict with the deleted state
 		_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: boolFeature.Key,
 		})
-		require.True(t, models.IsGenericPreConditionFailedError(err), "expected precondition failed error, got: %v", err)
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 
 		_, err = conn.ListCustomerEntitlementAccess(t.Context(), entitlement.ListCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 		})
-		require.True(t, models.IsGenericPreConditionFailedError(err), "expected precondition failed error, got: %v", err)
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
 }

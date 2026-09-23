@@ -108,7 +108,7 @@ func TestV3GetCustomerEntitlementAccess(t *testing.T) {
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
-	t.Run("Should return 412 for a deleted customer", func(t *testing.T) {
+	t.Run("Should return 409 for a deleted customer", func(t *testing.T) {
 		deleted, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 			Key:  uniqueKey("ent_access_deleted"),
 			Name: "Deleted Customer",
@@ -123,6 +123,6 @@ func TestV3GetCustomerEntitlementAccess(t *testing.T) {
 		c.requireStatus(http.StatusNoContent, err)
 
 		_, err = c.Entitlements.GetCustomerAccess(t.Context(), deleted.ID, feature.Key, v3sdk.GetCustomerEntitlementAccessParams{})
-		requireProblem(t, err, http.StatusPreconditionFailed)
+		requireProblem(t, err, http.StatusConflict)
 	})
 }

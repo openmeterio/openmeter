@@ -61,6 +61,7 @@ type Service interface {
 
 	// Facade interfaces provide convenience helpers for the API layer.
 	CustomerEntitlementAccessAPIService
+	CustomerEntitlementAPIService
 
 	// Meant for API use primarily
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)

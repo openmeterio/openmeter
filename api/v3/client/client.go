@@ -80,6 +80,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.Defaults = &DefaultsService{client: c}
 	c.EntitlementAccess = &EntitlementAccessService{client: c}
 	c.Customers.Billing = &CustomersBillingService{client: c}
+	c.Customers.Entitlements = &CustomersEntitlementsService{client: c}
 	c.Customers.Credits = &CustomersCreditsService{client: c}
 	c.Customers.Charges = &CustomersChargesService{client: c}
 	c.Customers.Credits.Grants = &CustomersCreditsGrantsService{client: c}

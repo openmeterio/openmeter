@@ -1988,6 +1988,50 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
+  /openmeter/customers/{customerId}/entitlements:
+    post:
+      operationId: create-customer-entitlement
+      summary: Create customer entitlement
+      description: |-
+        Create an entitlement for the customer.
+
+        A customer can have only one active entitlement per feature. The feature must be
+        compatible with the entitlement type. Entitlements cannot be modified after
+        creation, only deleted.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: Entitlement created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlement'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEntitlementRequest'
+      x-internal: true
+      x-private: true
+      x-unstable: true
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes
@@ -7445,6 +7489,19 @@ components:
       description: |-
         Mapping to attribute metered usage to the customer. One customer can have zero
         or more subjects, but one subject can only belong to one customer.
+    BillingEntitlement:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingEntitlementMetered'
+        - $ref: '#/components/schemas/BillingEntitlementStatic'
+        - $ref: '#/components/schemas/BillingEntitlementBoolean'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/BillingEntitlementMetered'
+          static: '#/components/schemas/BillingEntitlementStatic'
+          boolean: '#/components/schemas/BillingEntitlementBoolean'
+      description: An entitlement grants a customer access to a feature.
     BillingEntitlementAccessExpand:
       type: string
       enum:
@@ -7543,6 +7600,419 @@ components:
         total_available_grant_amount: '100'
         grant_balances:
           additional_property: '1'
+    BillingEntitlementBoolean:
+      type: object
+      required:
+        - id
+        - type
+        - feature
+        - customer
+        - active_from
+        - created_at
+        - updated_at
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - boolean
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer the entitlement belongs to.
+          title: Customer
+          readOnly: true
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: The usage period of the entitlement.
+          title: Usage period
+          readOnly: true
+        current_usage_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The current usage period of the entitlement.
+          title: Current usage period
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which the entitlement is active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time until which the entitlement is active. If not set, the entitlement is
+            active until deleted.
+          title: Active to
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was last updated.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was deleted.
+          readOnly: true
+      additionalProperties: false
+      description: A boolean entitlement grants access to a feature.
+    BillingEntitlementGrantCreateRequest:
+      type: object
+      required:
+        - amount
+        - effective_at
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount to grant, in the feature's unit. Must be positive.
+          title: Amount
+          example: '100'
+        priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: |-
+            The priority of the grant. Lower values have higher priority. Grants are
+            consumed in priority order, then by closest expiration, then by earliest
+            creation.
+          title: Priority
+          example: 1
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time the grant becomes effective and the anchor for recurring grants. The
+            value is rounded up to the next minute.
+          title: Effective at
+          example: '2023-01-01T01:01:01.001Z'
+        expires_after:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration after which the grant expires, counted from `effective_at`. Only
+            single-unit durations are accepted, such as `PT12H`, `P7D`, `P2W`, `P3M`, or
+            `P1Y`. If omitted, the grant never expires.
+          title: Expires after
+          example: P1M
+        max_rollover_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The maximum balance carried over at reset. The balance after a reset is
+            `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+            Defaults to `amount`.
+          title: Max rollover amount
+          example: '100'
+        min_rollover_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The minimum balance carried over at reset. The balance after a reset is
+            `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+            Defaults to `0`.
+          title: Min rollover amount
+          example: '0'
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        recurrence:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The recurrence of the grant. When set, the amount is issued again every
+            interval. The anchor defaults to `effective_at`.
+          title: Recurrence
+      additionalProperties: false
+      description: A grant created together with a metered entitlement.
+    BillingEntitlementIssueAfterReset:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount granted after each reset, in the feature's unit.
+          title: Initial grant amount
+          example: '100'
+        priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: |-
+            The priority of the grant created after each reset. Lower values have higher
+            priority.
+          title: Issue grant after reset priority
+          default: 1
+      additionalProperties: false
+      description: |-
+        Usage granted automatically after each reset of a metered entitlement. The
+        balance returns to `amount` after every reset.
+    BillingEntitlementMeasureUsageFrom:
+      oneOf:
+        - $ref: '#/components/schemas/BillingEntitlementMeasureUsageFromPreset'
+        - $ref: '#/components/schemas/DateTime'
+      description: The time from which usage is measured, as a preset or an explicit timestamp.
+      example: current_period_start
+    BillingEntitlementMeasureUsageFromPreset:
+      type: string
+      enum:
+        - current_period_start
+        - now
+      description: |-
+        Preset for the time from which usage is measured.
+
+        - `current_period_start`: the start of the current usage period.
+        - `now`: the entitlement creation time.
+    BillingEntitlementMetered:
+      type: object
+      required:
+        - id
+        - type
+        - feature
+        - customer
+        - active_from
+        - created_at
+        - updated_at
+        - usage_period
+        - current_usage_period
+        - measure_usage_from
+        - last_reset
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - metered
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer the entitlement belongs to.
+          title: Customer
+          readOnly: true
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which the entitlement is active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time until which the entitlement is active. If not set, the entitlement is
+            active until deleted.
+          title: Active to
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was last updated.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was deleted.
+          readOnly: true
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: |-
+            The usage period of the entitlement. The balance resets at the start of every
+            period.
+          title: Usage period
+          readOnly: true
+        current_usage_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The current usage period of the entitlement.
+          title: Current usage period
+          readOnly: true
+        is_soft_limit:
+          type: boolean
+          description: |-
+            If true, the customer keeps access to the feature after the balance is
+            exhausted.
+          title: Soft limit
+          default: false
+        issue:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementIssueAfterReset'
+          description: Usage granted automatically after each reset. Cannot be combined with `grants`.
+          title: Issue after reset
+        issue_after_reset:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount granted automatically after each reset.
+          title: Initial grant amount
+          deprecated: true
+          example: '100'
+        issue_after_reset_priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: The priority of the grant created after each reset.
+          title: Issue grant after reset priority
+          deprecated: true
+          default: 1
+        preserve_overage_at_reset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+          default: false
+        measure_usage_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which usage is measured.
+          title: Measure usage from
+          readOnly: true
+        last_reset:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time of the last reset.
+          title: Last reset
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A metered entitlement grants a usage allowance for a feature. Access is
+        determined by the balance: the allowance provided by grants is burnt down by
+        usage.
+    BillingEntitlementStatic:
+      type: object
+      required:
+        - id
+        - type
+        - feature
+        - customer
+        - active_from
+        - created_at
+        - updated_at
+        - config
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - static
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/CustomerReference'
+          description: The customer the entitlement belongs to.
+          title: Customer
+          readOnly: true
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriod'
+          description: The usage period of the entitlement.
+          title: Usage period
+          readOnly: true
+        current_usage_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The current usage period of the entitlement.
+          title: Current usage period
+          readOnly: true
+        active_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time from which the entitlement is active.
+          title: Active from
+          readOnly: true
+        active_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The time until which the entitlement is active. If not set, the entitlement is
+            active until deleted.
+          title: Active to
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was last updated.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The time the entitlement was deleted.
+          readOnly: true
+        config:
+          description: |-
+            The entitlement configuration as a JSON value. Returned when checking
+            entitlement access.
+          title: Config
+          example:
+            integrations:
+              - github
+          x-go-type: json.RawMessage
+      additionalProperties: false
+      description: A static entitlement grants access to a feature together with a configuration.
     BillingEntitlementType:
       type: string
       enum:
@@ -12439,6 +12909,166 @@ components:
           title: Billing Address
       additionalProperties: false
       description: Customer create request.
+    CreateEntitlementBooleanRequest:
+      type: object
+      required:
+        - type
+        - feature
+      properties:
+        type:
+          type: string
+          enum:
+            - boolean
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The usage period of the entitlement. The anchor defaults to the entitlement
+            creation time.
+          title: Usage period
+      additionalProperties: false
+      description: Boolean entitlement create request.
+    CreateEntitlementMeteredRequest:
+      type: object
+      required:
+        - type
+        - feature
+        - usage_period
+      properties:
+        type:
+          type: string
+          enum:
+            - metered
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        is_soft_limit:
+          type: boolean
+          description: |-
+            If true, the customer keeps access to the feature after the balance is
+            exhausted.
+          title: Soft limit
+          default: false
+        issue:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementIssueAfterReset'
+          description: Usage granted automatically after each reset. Cannot be combined with `grants`.
+          title: Issue after reset
+        issue_after_reset:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount granted automatically after each reset.
+          title: Initial grant amount
+          deprecated: true
+          example: '100'
+        issue_after_reset_priority:
+          type: integer
+          format: uint8
+          minimum: 1
+          maximum: 255
+          description: The priority of the grant created after each reset.
+          title: Issue grant after reset priority
+          deprecated: true
+          default: 1
+        preserve_overage_at_reset:
+          type: boolean
+          description: If true, the overage is preserved at reset. If false, the usage is reset to 0.
+          title: Preserve overage at reset
+          default: false
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The usage period of the entitlement. The balance resets at the start of every
+            period. The anchor defaults to the entitlement creation time.
+          title: Usage period
+        measure_usage_from:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementMeasureUsageFrom'
+          description: |-
+            The time from which usage is measured. Defaults to the entitlement creation
+            time.
+          title: Measure usage from
+        grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementGrantCreateRequest'
+          description: Grants created together with the entitlement. Cannot be combined with `issue`.
+          title: Grants
+      additionalProperties: false
+      description: Metered entitlement create request.
+    CreateEntitlementRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/CreateEntitlementMeteredRequest'
+        - $ref: '#/components/schemas/CreateEntitlementStaticRequest'
+        - $ref: '#/components/schemas/CreateEntitlementBooleanRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/CreateEntitlementMeteredRequest'
+          static: '#/components/schemas/CreateEntitlementStaticRequest'
+          boolean: '#/components/schemas/CreateEntitlementBooleanRequest'
+      description: Entitlement create request.
+    CreateEntitlementStaticRequest:
+      type: object
+      required:
+        - type
+        - feature
+        - config
+      properties:
+        type:
+          type: string
+          enum:
+            - static
+          description: The type of the entitlement.
+          title: Type
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: The feature the customer is entitled to use.
+          title: Feature
+        labels:
+          allOf:
+            - $ref: '#/components/schemas/Labels'
+          title: Labels
+        config:
+          description: |-
+            The entitlement configuration as a JSON value. Returned when checking
+            entitlement access.
+          title: Config
+          example:
+            integrations:
+              - github
+          x-go-type: json.RawMessage
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/RecurringPeriodInput'
+          description: |-
+            The usage period of the entitlement. The anchor defaults to the entitlement
+            creation time.
+          title: Usage period
+      additionalProperties: false
+      description: Static entitlement create request.
     CreateFeatureRequest:
       type: object
       required:
@@ -14661,6 +15291,27 @@ components:
           example: P1M
       additionalProperties: false
       description: Recurring period with an anchor and an interval.
+    RecurringPeriodInput:
+      type: object
+      required:
+        - interval
+      properties:
+        interval:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: The interval duration in ISO 8601 format.
+          title: Interval in ISO 8601 duration format
+          example: P1M
+        anchor:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: A date-time anchor to base the recurring period on.
+          title: Anchor time
+          example: '2023-01-01T01:01:01.001Z'
+      additionalProperties: false
+      description: |-
+        Recurring period input. The anchor is optional; the owning resource defines the
+        default, typically its creation time.
     ResourceKey:
       type: string
       minLength: 1

@@ -666,6 +666,20 @@ export interface EntitlementAccessValue {
   grantBalances: Record<string, string>
 }
 
+/**
+ * Usage granted automatically after each reset of a metered entitlement. The
+ * balance returns to `amount` after every reset.
+ */
+export interface EntitlementIssueAfterReset {
+  /** The amount granted after each reset, in the feature's unit. */
+  amount: string
+  /**
+   * The priority of the grant created after each reset. Lower values have higher
+   * priority.
+   */
+  priority: number
+}
+
 /** Cost basis with an explicit conversion rate supplied with the charge. */
 export interface CreateChargeCostBasisManual {
   /** Discriminator selecting the cost basis mode. */
@@ -945,6 +959,11 @@ export interface ProfileReference {
   id: string
 }
 
+/** Feature reference. */
+export interface FeatureReference {
+  id: string
+}
+
 /** Cost basis pinned to a specific cost basis resource of the custom currency. */
 export interface CreateChargeCostBasisPinned {
   /** Discriminator selecting the cost basis mode. */
@@ -996,11 +1015,6 @@ export interface SubscriptionCostBasisPin {
   invoiceCurrency: string
   /** The pinned cost basis resource ID. */
   costBasisId: string
-}
-
-/** Feature reference. */
-export interface FeatureReference {
-  id: string
 }
 
 /**
@@ -1191,25 +1205,6 @@ export interface AppStripeCreateCustomerPortalSessionResult {
 }
 
 /**
- * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
- * cost basis is resolved; dynamic cost bases are exposed only after the service
- * period has started.
- */
-export interface ChargeResolvedCostBasis {
-  /** The fiat currency the charge amount is converted into for invoicing. */
-  fiatCurrency: string
-  /** Fiat amount per one unit of the custom currency. */
-  rate: string
-  /**
-   * ID of the custom currency's cost basis resource the rate was taken from. Absent
-   * for manual cost bases.
-   */
-  costBasisId?: string
-  /** When the rate was resolved. */
-  resolvedAt: Date
-}
-
-/**
  * A period with defined start and end dates.
  *
  * The period is always inclusive at the start and exclusive at the end.
@@ -1227,6 +1222,25 @@ export interface ClosedPeriod {
    * The period is exclusive at the end.
    */
   to: Date
+}
+
+/**
+ * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
+ * cost basis is resolved; dynamic cost bases are exposed only after the service
+ * period has started.
+ */
+export interface ChargeResolvedCostBasis {
+  /** The fiat currency the charge amount is converted into for invoicing. */
+  fiatCurrency: string
+  /** Fiat amount per one unit of the custom currency. */
+  rate: string
+  /**
+   * ID of the custom currency's cost basis resource the rate was taken from. Absent
+   * for manual cost bases.
+   */
+  costBasisId?: string
+  /** When the rate was resolved. */
+  resolvedAt: Date
 }
 
 /** A subscription add-on event. */
@@ -1928,6 +1942,25 @@ export interface CustomerStripeCreateCustomerPortalSessionRequest {
   stripeOptions: AppStripeCreateCustomerPortalSessionOptions
 }
 
+/**
+ * Recurring period input. The anchor is optional; the owning resource defines the
+ * default, typically its creation time.
+ */
+export interface RecurringPeriodInput {
+  /** The interval duration in ISO 8601 format. */
+  interval: string
+  /** A date-time anchor to base the recurring period on. */
+  anchor?: Date
+}
+
+/** Recurring period with an anchor and an interval. */
+export interface RecurringPeriod {
+  /** A date-time anchor to base the recurring period on. */
+  anchor: Date
+  /** The interval duration in ISO 8601 format. */
+  interval: string
+}
+
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlement {
   /** The type of the entitlement template. */
@@ -1979,14 +2012,6 @@ export interface SubscriptionEditStretchPhase {
   phaseKey: string
   /** The ISO-8601 duration to extend the phase by. */
   extendBy: string
-}
-
-/** Recurring period with an anchor and an interval. */
-export interface RecurringPeriod {
-  /** A date-time anchor to base the recurring period on. */
-  anchor: Date
-  /** The interval duration in ISO 8601 format. */
-  interval: string
 }
 
 /**
@@ -3443,15 +3468,194 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
   termsOfService?: 'none' | 'required'
 }
 
+/** A grant created together with a metered entitlement. */
+export interface EntitlementGrantCreateRequest {
+  /** The amount to grant, in the feature's unit. Must be positive. */
+  amount: string
+  /**
+   * The priority of the grant. Lower values have higher priority. Grants are
+   * consumed in priority order, then by closest expiration, then by earliest
+   * creation.
+   */
+  priority?: number
+  /**
+   * The time the grant becomes effective and the anchor for recurring grants. The
+   * value is rounded up to the next minute.
+   */
+  effectiveAt: Date
+  /**
+   * The duration after which the grant expires, counted from `effective_at`. Only
+   * single-unit durations are accepted, such as `PT12H`, `P7D`, `P2W`, `P3M`, or
+   * `P1Y`. If omitted, the grant never expires.
+   */
+  expiresAfter?: string
+  /**
+   * The maximum balance carried over at reset. The balance after a reset is
+   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   * Defaults to `amount`.
+   */
+  maxRolloverAmount?: string
+  /**
+   * The minimum balance carried over at reset. The balance after a reset is
+   * `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   * Defaults to `0`.
+   */
+  minRolloverAmount?: string
+  labels?: Labels
+  /**
+   * The recurrence of the grant. When set, the amount is issued again every
+   * interval. The anchor defaults to `effective_at`.
+   */
+  recurrence?: RecurringPeriodInput
+}
+
+/** Static entitlement create request. */
+export interface CreateEntitlementStaticRequest {
+  /** The type of the entitlement. */
+  type: 'static'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * The entitlement configuration as a JSON value. Returned when checking
+   * entitlement access.
+   */
+  config: unknown
+  /**
+   * The usage period of the entitlement. The anchor defaults to the entitlement
+   * creation time.
+   */
+  usagePeriod?: RecurringPeriodInput
+}
+
+/** Boolean entitlement create request. */
+export interface CreateEntitlementBooleanRequest {
+  /** The type of the entitlement. */
+  type: 'boolean'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * The usage period of the entitlement. The anchor defaults to the entitlement
+   * creation time.
+   */
+  usagePeriod?: RecurringPeriodInput
+}
+
 /**
- * Add a new phase to the subscription. The phase is created without items; use
- * add-item operations to populate it.
+ * A metered entitlement grants a usage allowance for a feature. Access is
+ * determined by the balance: the allowance provided by grants is burnt down by
+ * usage.
  */
-export interface SubscriptionEditAddPhase {
-  /** Discriminator for the add-phase operation. */
-  type: 'add_phase'
-  /** The phase to add. */
-  phase: SubscriptionPhaseCreate
+export interface EntitlementMetered {
+  id: string
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period.
+   */
+  usagePeriod: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod: ClosedPeriod
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterReset
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset: boolean
+  /** The time from which usage is measured. */
+  measureUsageFrom: Date
+  /** The time of the last reset. */
+  lastReset: Date
+}
+
+/** A static entitlement grants access to a feature together with a configuration. */
+export interface EntitlementStatic {
+  id: string
+  /** The type of the entitlement. */
+  type: 'static'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The usage period of the entitlement. */
+  usagePeriod?: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod?: ClosedPeriod
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
+  /**
+   * The entitlement configuration as a JSON value. Returned when checking
+   * entitlement access.
+   */
+  config: unknown
+}
+
+/** A boolean entitlement grants access to a feature. */
+export interface EntitlementBoolean {
+  id: string
+  /** The type of the entitlement. */
+  type: 'boolean'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The usage period of the entitlement. */
+  usagePeriod?: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod?: ClosedPeriod
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
 }
 
 /**
@@ -3463,6 +3667,17 @@ export interface WorkflowCollectionAlignmentAnchored {
   type: 'anchored'
   /** The recurring period for the alignment. */
   recurringPeriod: RecurringPeriod
+}
+
+/**
+ * Add a new phase to the subscription. The phase is created without items; use
+ * add-item operations to populate it.
+ */
+export interface SubscriptionEditAddPhase {
+  /** Discriminator for the add-phase operation. */
+  type: 'add_phase'
+  /** The phase to add. */
+  phase: SubscriptionPhaseCreate
 }
 
 /** Subscription fields without phases or the current billing period. */
@@ -4267,6 +4482,40 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
   redirectOnCompletion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollection
+}
+
+/** Metered entitlement create request. */
+export interface CreateEntitlementMeteredRequest {
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterReset
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset: boolean
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period. The anchor defaults to the entitlement creation time.
+   */
+  usagePeriod: RecurringPeriodInput
+  /**
+   * The time from which usage is measured. Defaults to the entitlement creation
+   * time.
+   */
+  measureUsageFrom?: EntitlementMeasureUsageFrom
+  /** Grants created together with the entitlement. Cannot be combined with `issue`. */
+  grants?: EntitlementGrantCreateRequest[]
 }
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
@@ -6754,6 +7003,9 @@ export type UlidFieldFilter =
 export type DateTimeFieldFilter =
   Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
 
+/** The time from which usage is measured, as a preset or an explicit timestamp. */
+export type EntitlementMeasureUsageFrom = 'current_period_start' | 'now' | Date
+
 /** Payment settings for a billing workflow. */
 export type WorkflowPaymentSettings =
   | WorkflowPaymentChargeAutomaticallySettings
@@ -6844,6 +7096,10 @@ export type Currency = CurrencyFiat | CurrencyCustom
 /** Customer or reference. */
 export type CustomerOrReference = Customer | CustomerReference
 
+/** An entitlement grants a customer access to a feature. */
+export type Entitlement =
+  EntitlementMetered | EntitlementStatic | EntitlementBoolean
+
 /**
  * The alignment for collecting the pending line items into an invoice.
  *
@@ -6873,6 +7129,12 @@ export type UpdatePrice =
   | UpdatePriceUnit
   | UpdatePriceGraduated
   | UpdatePriceVolume
+
+/** Entitlement create request. */
+export type CreateEntitlementRequest =
+  | CreateEntitlementMeteredRequest
+  | CreateEntitlementStaticRequest
+  | CreateEntitlementBooleanRequest
 
 /** Installed application. */
 export type App = AppStripe | AppSandbox | AppExternalInvoicing
@@ -7027,6 +7289,20 @@ export interface UpdateBillingWorkflowPaymentSendInvoiceSettingsInput {
    * applicable for manual collection method.
    */
   dueAfter?: string
+}
+
+/**
+ * Usage granted automatically after each reset of a metered entitlement. The
+ * balance returns to `amount` after every reset.
+ */
+export interface EntitlementIssueAfterResetInput {
+  /** The amount granted after each reset, in the feature's unit. */
+  amount: string
+  /**
+   * The priority of the grant created after each reset. Lower values have higher
+   * priority.
+   */
+  priority?: number
 }
 
 /** Metering event following the CloudEvents specification. */
@@ -7265,6 +7541,59 @@ export interface IngestedEventInput {
   storedAt: Date
   /** The validation errors of the ingested event. */
   validationErrors?: IngestedEventValidationError[]
+}
+
+/**
+ * A metered entitlement grants a usage allowance for a feature. Access is
+ * determined by the balance: the allowance provided by grants is burnt down by
+ * usage.
+ */
+export interface EntitlementMeteredInput {
+  id: string
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  /** The customer the entitlement belongs to. */
+  customer: CustomerReference
+  labels?: Labels
+  /** The time from which the entitlement is active. */
+  activeFrom: Date
+  /**
+   * The time until which the entitlement is active. If not set, the entitlement is
+   * active until deleted.
+   */
+  activeTo?: Date
+  /** The time the entitlement was created. */
+  createdAt: Date
+  /** The time the entitlement was last updated. */
+  updatedAt: Date
+  /** The time the entitlement was deleted. */
+  deletedAt?: Date
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period.
+   */
+  usagePeriod: RecurringPeriod
+  /** The current usage period of the entitlement. */
+  currentUsagePeriod: ClosedPeriod
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit?: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterResetInput
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority?: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset?: boolean
+  /** The time from which usage is measured. */
+  measureUsageFrom: Date
+  /** The time of the last reset. */
+  lastReset: Date
 }
 
 /** Subscription fields without phases or the current billing period. */
@@ -7631,6 +7960,40 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
   redirectOnCompletion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollectionInput
+}
+
+/** Metered entitlement create request. */
+export interface CreateEntitlementMeteredRequestInput {
+  /** The type of the entitlement. */
+  type: 'metered'
+  /** The feature the customer is entitled to use. */
+  feature: FeatureReference
+  labels?: Labels
+  /**
+   * If true, the customer keeps access to the feature after the balance is
+   * exhausted.
+   */
+  isSoftLimit?: boolean
+  /** Usage granted automatically after each reset. Cannot be combined with `grants`. */
+  issue?: EntitlementIssueAfterResetInput
+  /** The amount granted automatically after each reset. */
+  issueAfterReset?: string
+  /** The priority of the grant created after each reset. */
+  issueAfterResetPriority?: number
+  /** If true, the overage is preserved at reset. If false, the usage is reset to 0. */
+  preserveOverageAtReset?: boolean
+  /**
+   * The usage period of the entitlement. The balance resets at the start of every
+   * period. The anchor defaults to the entitlement creation time.
+   */
+  usagePeriod: RecurringPeriodInput
+  /**
+   * The time from which usage is measured. Defaults to the entitlement creation
+   * time.
+   */
+  measureUsageFrom?: EntitlementMeasureUsageFrom
+  /** Grants created together with the entitlement. Cannot be combined with `issue`. */
+  grants?: EntitlementGrantCreateRequest[]
 }
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
@@ -9529,6 +9892,16 @@ export type RateCardEntitlementInput =
   | RateCardMeteredEntitlementInput
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
+
+/** An entitlement grants a customer access to a feature. */
+export type EntitlementInput =
+  EntitlementMeteredInput | EntitlementStatic | EntitlementBoolean
+
+/** Entitlement create request. */
+export type CreateEntitlementRequestInput =
+  | CreateEntitlementMeteredRequestInput
+  | CreateEntitlementStaticRequest
+  | CreateEntitlementBooleanRequest
 
 /** ChargeRealizationInvoice or reference. */
 export type ChargeRealizationInvoiceOrReferenceInput =
