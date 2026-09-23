@@ -22,6 +22,7 @@ const (
 	ValidationComponentOpenMeter         ComponentName = "openmeter"
 	ValidationComponentOpenMeterMetering ComponentName = "openmeter.metering"
 	ValidationComponentProductCatalog    ComponentName = "product_catalog"
+	ValidationComponentBillingRating     ComponentName = "billing.rating"
 
 	ValidationIssueCodeLineEngineCollectionCompletedFailed = "line_engine_collection_completed_failed"
 )

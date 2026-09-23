@@ -107,6 +107,16 @@ result. API-originated line edits and system-originated reconciliation are
 different change sources: API edits may change manual ownership, while system
 edits preserve the ownership contract of their source.
 
+## Validation issues alongside successful results
+
+Rating and line-engine callbacks can return a usable result with validation
+issues. At a boundary that supports this contract, pass the returned error to
+`ValidationIssueRecorder.Record`. If it returns nil, keep processing the result
+and return `ErrorsOrNil()` alongside the completed result so the invoice can
+retain the issues. A system error remains fatal, including when joined with a
+validation issue. Recorder options can add component, path, or attribute context
+but do not reclassify a system error as a validation issue.
+
 ## Invoice lifecycle and failure
 
 The standard invoice state machine coordinates:
