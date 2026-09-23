@@ -278,11 +278,8 @@ func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*c
 	if filters == nil {
 		return nil, nil
 	}
-	result := &creditgrant.GrantFilters{Version: crediteligibility.FiltersVersion1, Features: lo.FromPtr(filters.Features)}
+	result := &creditgrant.GrantFilters{Features: lo.FromPtr(filters.Features)}
 	if filters.Plans != nil {
-		if len(*filters.Plans) > 0 {
-			result.Version = crediteligibility.FiltersVersion2
-		}
 		result.Plans = lo.Map(*filters.Plans, func(plan api.CreateCreditGrantPlanFilter, _ int) crediteligibility.PlanFilter {
 			mapped := crediteligibility.PlanFilter{Key: plan.Key}
 			if v := plan.Version; v != nil {

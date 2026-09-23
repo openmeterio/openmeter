@@ -405,7 +405,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		CostBasisCurrency:              costBasisCurrency,
 		TaxCode:                        taxCode,
 		TaxBehavior:                    taxBehavior,
-		Filters:                        crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: features},
+		Filters:                        crediteligibility.Filters{Features: features},
 		CostBasis:                      costBasis,
 		CreditPriority:                 f.CreditPriority,
 		TransactionAuthorizationStatus: f.TransactionAuthorizationStatus,
@@ -810,10 +810,6 @@ func optionalDecimalValue(v *alpacadecimal.Decimal) string {
 	return v.String()
 }
 
-// CreditFilters supplies v1 for an omitted, unrestricted route dimension.
 func (r Route) CreditFilters() crediteligibility.Filters {
-	if r.Filters.Version == 0 && r.Filters.IsEmpty() {
-		return crediteligibility.Filters{Version: crediteligibility.FiltersVersion1}
-	}
 	return r.Filters
 }

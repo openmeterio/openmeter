@@ -113,10 +113,8 @@ type CollectToReceivableInput struct {
 
 func (i CollectToReceivableInput) Validate() error {
 	var errs []error
-	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
-		if err := i.Filters.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("filters: %w", err))
-		}
+	if err := i.Filters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("filters: %w", err))
 	}
 
 	if err := (models.NamespacedID{Namespace: i.Namespace, ID: i.ChargeID}).Validate(); err != nil {

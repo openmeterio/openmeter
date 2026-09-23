@@ -90,7 +90,7 @@ func (f FeatureFilters) ValidateAsFeatureFilter() error {
 
 func (f Filters) Validate() error {
 	var errs []error
-	switch f.Version {
+	switch f.effectiveVersion() {
 	case FiltersVersion1:
 		if len(f.Plans) > 0 {
 			errs = append(errs, fmt.Errorf("credit filters schema version %d cannot represent plans", f.Version))
@@ -143,8 +143,20 @@ func (f VersionFilter) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// effectiveVersion selects the oldest format that represents new filters.
+// Explicit versions are retained so stored filters keep their encoding contract.
+func (f Filters) effectiveVersion() FiltersVersion {
+	if f.Version != 0 {
+		return f.Version
+	}
+	if len(f.Plans) > 0 {
+		return FiltersVersion2
+	}
+	return FiltersVersion1
+}
+
 func (f Filters) Normalize() Filters {
-	out := Filters{Version: f.Version, Features: FeatureFilters(f.Features).Normalize(), Plans: slices.Clone(f.Plans)}
+	out := Filters{Version: f.effectiveVersion(), Features: FeatureFilters(f.Features).Normalize(), Plans: slices.Clone(f.Plans)}
 	for i, plan := range out.Plans {
 		if plan.Version == nil {
 			continue
@@ -245,10 +257,7 @@ func (f VersionFilter) matches(version int) bool {
 // String returns a canonical identity for route pairing, independent of the
 // retained storage version. JSON encoding itself preserves the selected version.
 func (f Filters) String() string {
-	f.Version = FiltersVersion1
-	if len(f.Plans) > 0 {
-		f.Version = FiltersVersion2
-	}
+	f.Version = 0
 	encoded, _ := json.Marshal(f.Normalize())
 	return string(encoded)
 }

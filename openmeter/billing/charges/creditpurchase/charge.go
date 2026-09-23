@@ -196,9 +196,6 @@ func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMuta
 	f.IntentMutableFields = f.IntentMutableFields.Normalized()
 	f.EffectiveAt = meta.NormalizeOptionalTimestamp(f.EffectiveAt)
 	f.ExpiresAt = meta.NormalizeOptionalTimestamp(f.ExpiresAt)
-	if f.Filters.Version == 0 && f.Filters.IsEmpty() {
-		f.Filters.Version = crediteligibility.FiltersVersion1
-	}
 	f.Filters = f.Filters.Normalize()
 
 	if f.EffectiveAt != nil {
@@ -235,10 +232,8 @@ func (f IntentMutableFields) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
 
-	if f.Filters.Version != 0 || !f.Filters.IsEmpty() {
-		if err := f.Filters.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("filters: %w", err))
-		}
+	if err := f.Filters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("filters: %w", err))
 	}
 
 	switch f.Settlement.Type() {

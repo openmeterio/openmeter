@@ -629,24 +629,24 @@ func TestCreditPurchaseReceivableOnlyAttributionPreservesLegacyFeatureRoutes(t *
 
 	// Given nil-spend receivable of 20 for API, 30 for storage, and 10 unrestricted.
 	for _, exposure := range []struct {
-		amount   int64
-		features []string
+		amount  int64
+		filters crediteligibility.Filters
 	}{
-		{20, []string{"api-calls"}},
-		{30, []string{"storage"}},
-		{10, nil},
+		{20, crediteligibility.Filters{Features: []string{"api-calls"}}},
+		{30, crediteligibility.Filters{Features: []string{"storage"}}},
+		{10, crediteligibility.Filters{}},
 	} {
 		env.createReceivableOnlyExposure(t, advanceExposureInput{
 			Currency: env.currency,
 			Amount:   alpacadecimal.NewFromInt(exposure.amount),
-			Filters:  crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: exposure.features},
+			Filters:  exposure.filters,
 		})
 	}
 
 	// When 25 of API-restricted credit arrives without any accrued or legacylineage.
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 	purchase := env.newExternalCharge(alpacadecimal.NewFromInt(25), costBasis)
-	purchase.Intent.Filters.Features = creditpurchase.FeatureFilters{"api-calls"}
+	purchase.Intent.Filters = crediteligibility.Filters{Features: []string{"api-calls"}}
 	result, err := env.grantCredits(t, purchase)
 	require.NoError(t, err)
 

@@ -751,7 +751,7 @@ func TestBuildRoutingKeyV2_WithTaxBehaviorAndTaxCode(t *testing.T) {
 }
 
 func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
-	route := Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: []string{"api-calls"}}}
+	route := Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: crediteligibility.Filters{Features: []string{"api-calls"}}}
 	legacy, err := BuildRoutingKey(route)
 	require.NoError(t, err)
 	require.Equal(t, RoutingKeyVersionV1, legacy.Version())
@@ -759,7 +759,6 @@ func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, explicitLegacy, legacy)
 
-	route.Filters.Version = crediteligibility.FiltersVersion2
 	route.Filters.Plans = []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{In: []int{3, 2, 3}}}}
 	key, err := BuildRoutingKey(route)
 	require.NoError(t, err)
@@ -774,7 +773,7 @@ func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
 		require.ErrorContains(t, err, "V5")
 	}
 	different := route
-	different.Filters = crediteligibility.Filters{Version: crediteligibility.FiltersVersion2, Features: route.Filters.Features, Plans: []crediteligibility.PlanFilter{{Key: "starter"}}}
+	different.Filters = crediteligibility.Filters{Features: route.Filters.Features, Plans: []crediteligibility.PlanFilter{{Key: "starter"}}}
 	other, err := BuildRoutingKey(different)
 	require.NoError(t, err)
 	require.NotEqual(t, key, other)

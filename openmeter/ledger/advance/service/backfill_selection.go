@@ -57,7 +57,7 @@ func (s *service) selectBackfill(ctx context.Context, input advance.BackfillInpu
 
 		if candidate.legacy != nil {
 			root := *candidate.legacy
-			receivableBuckets.requiredFilters = crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: root.AdvanceFeatures}
+			receivableBuckets.requiredFilters = crediteligibility.Filters{Features: root.AdvanceFeatures}
 
 			spendKey, accruedBuckets, err = s.accruedBucketsForAdvance(ctx, input.CustomerID.Namespace, root, unattributedAccrued)
 			if err != nil {
@@ -157,7 +157,7 @@ func advanceBackfillCandidates(roots []legacylineage.Lineage, balances []unattri
 	var candidates []advanceBackfillCandidate
 
 	for _, root := range sortedAdvanceBackfillLineages(roots) {
-		if !filters.Matches(ledger.Route{Filters: crediteligibility.Filters{Version: crediteligibility.FiltersVersion1, Features: root.AdvanceFeatures}}) {
+		if !filters.Matches(ledger.Route{Filters: crediteligibility.Filters{Features: root.AdvanceFeatures}}) {
 			continue
 		}
 		candidates = append(candidates, advanceBackfillCandidate{

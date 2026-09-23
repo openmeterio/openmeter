@@ -18,8 +18,10 @@ do not match plan-restricted credits.
 
 `Filters.Version` is retained by Ent, normalization, and JSON round trips.
 Readers and writers switch on it: v1 supports features; v2 adds plans.
-New feature-only filters use v1; new plan filters use v2. Encoding honors the
-selected version, and v1 rejects plans. Unknown versions and fields fail decoding.
+Callers can omit the version: validation, normalization, and encoding select v1
+for feature-only filters or v2 when plans are present. Explicit versions remain
+unchanged, and v1 rejects plans. Stored JSON requires an explicit supported
+version; missing versions and unknown fields fail decoding.
 
 Adding a dimension requires a new storage version, its validation, normalization,
 and matching semantics, plus any route attribution it needs. Storage versions

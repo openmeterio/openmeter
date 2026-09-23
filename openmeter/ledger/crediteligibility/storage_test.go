@@ -51,7 +51,7 @@ func TestFiltersRejectUnsupportedVersions(t *testing.T) {
 		var stored crediteligibility.Filters
 		require.Error(t, json.Unmarshal([]byte(input), &stored), input)
 	}
-	for _, version := range []crediteligibility.FiltersVersion{0, 99} {
+	for _, version := range []crediteligibility.FiltersVersion{-1, 99} {
 		filters := crediteligibility.Filters{Version: version}
 		require.Equal(t, version, filters.Normalize().Version)
 		require.Error(t, filters.Validate())
@@ -88,8 +88,8 @@ func TestFiltersPreserveSelectedVersion(t *testing.T) {
 }
 
 func TestPlanFiltersRequireVersion2(t *testing.T) {
-	// Given a plan restriction, its creator explicitly selects v2.
-	filters := crediteligibility.Filters{Version: crediteligibility.FiltersVersion2, Features: []string{"input"}, Plans: []crediteligibility.PlanFilter{{Key: "pro"}}}
+	// Given a new plan restriction, its creator can omit the storage version.
+	filters := crediteligibility.Filters{Features: []string{"input"}, Plans: []crediteligibility.PlanFilter{{Key: "pro"}}}
 	encoded, err := json.Marshal(filters)
 	require.NoError(t, err)
 	require.JSONEq(t, `{"schema_version":2,"features":["input"],"plans":[{"key":"pro"}]}`, string(encoded))
@@ -103,4 +103,47 @@ func TestPlanFiltersRequireVersion2(t *testing.T) {
 	_, err = json.Marshal(filters)
 	require.ErrorContains(t, err, "cannot represent plans")
 	require.Error(t, json.Unmarshal([]byte(`{"schema_version":1,"plans":[{"key":"pro"}]}`), &stored))
+}
+
+func TestFiltersDefaultVersion(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		filters crediteligibility.Filters
+		version crediteligibility.FiltersVersion
+	}{
+		{"unrestricted", crediteligibility.Filters{}, crediteligibility.FiltersVersion1},
+		{"features", crediteligibility.Filters{Features: []string{"input"}}, crediteligibility.FiltersVersion1},
+		{"plans", crediteligibility.Filters{Plans: []crediteligibility.PlanFilter{{Key: "pro"}}}, crediteligibility.FiltersVersion2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: application filters omit the storage version.
+			require.NoError(t, tc.filters.Validate())
+			normalized := tc.filters.Normalize()
+			require.Equal(t, tc.version, normalized.Version)
+			require.Equal(t, normalized, normalized.Normalize())
+
+			// when: encoded directly, the writer supplies the same default.
+			encoded, err := json.Marshal(tc.filters)
+			require.NoError(t, err)
+			var decoded crediteligibility.Filters
+			require.NoError(t, json.Unmarshal(encoded, &decoded))
+
+			// then: persisted data is explicitly versioned without mutating the caller.
+			require.Equal(t, normalized, decoded)
+			require.Zero(t, tc.filters.Version)
+		})
+	}
+}
+
+func TestFiltersDefaultVersionStillValidatesDimensions(t *testing.T) {
+	for _, filters := range []crediteligibility.Filters{
+		{Features: []string{""}},
+		{Features: []string{"input", "input"}},
+		{Plans: []crediteligibility.PlanFilter{{Key: ""}}},
+		{Plans: []crediteligibility.PlanFilter{{Key: "pro", Version: &crediteligibility.VersionFilter{}}}},
+	} {
+		require.Error(t, filters.Validate())
+		_, err := json.Marshal(filters)
+		require.Error(t, err)
+	}
 }

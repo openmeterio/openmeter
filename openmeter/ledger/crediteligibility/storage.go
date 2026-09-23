@@ -11,7 +11,7 @@ func (f Filters) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	filters := f.Normalize()
-	switch f.Version {
+	switch filters.Version {
 	case FiltersVersion1:
 		return json.Marshal(filtersV1{Version: filters.Version, Features: filters.Features})
 	case FiltersVersion2:

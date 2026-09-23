@@ -50,10 +50,8 @@ func (i IssueInput) Validate() error {
 		errs = append(errs, errors.New("custom currency must be resolved"))
 	}
 
-	if i.Filters.Version != 0 || !i.Filters.IsEmpty() {
-		if err := i.Filters.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("filters: %w", err))
-		}
+	if err := i.Filters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("filters: %w", err))
 	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

@@ -139,12 +139,11 @@ func (i IntentMutableFields) Validate() error {
 
 // GetCreditFilters maps the charge's recorded attribution to concrete route dimensions.
 func (i Intent) GetCreditFilters(featureKey string) crediteligibility.Filters {
-	filters := crediteligibility.Filters{Version: crediteligibility.FiltersVersion1}
+	filters := crediteligibility.Filters{}
 	if featureKey != "" {
 		filters.Features = []string{featureKey}
 	}
 	if i.SubscriptionPlan != nil {
-		filters.Version = crediteligibility.FiltersVersion2
 		filters.Plans = []crediteligibility.PlanFilter{{
 			Key:     i.SubscriptionPlan.Key,
 			Version: &crediteligibility.VersionFilter{Eq: lo.ToPtr(i.SubscriptionPlan.Version)},
