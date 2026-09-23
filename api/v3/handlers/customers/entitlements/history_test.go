@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -37,6 +38,14 @@ func (f fakeService) GetCustomerEntitlementHistory(ctx context.Context, input en
 
 func (f fakeService) CreateCustomerEntitlement(context.Context, entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
 	return nil, errors.New("not implemented")
+}
+
+func (f fakeService) GetCustomerEntitlement(context.Context, entitlement.GetCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (f fakeService) ListCustomerEntitlements(context.Context, entitlement.ListCustomerEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
+	return pagination.Result[entitlement.Entitlement]{}, errors.New("not implemented")
 }
 
 func serveGetCustomerEntitlementHistory(t *testing.T, svc fakeService, params api.GetCustomerEntitlementHistoryParams) *httptest.ResponseRecorder {

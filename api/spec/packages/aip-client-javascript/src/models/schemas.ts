@@ -533,6 +533,32 @@ export const entitlementHistoryWindowSize = z
     'The meter query granularities the usage history can be grouped into. Sub-hour windows are too expensive to compute and monthly windows are not supported.',
   )
 
+export const stringFieldFilterExact = z
+  .union([
+    z.string(),
+    z.object({
+      eq: z
+        .string()
+        .optional()
+        .describe('Value strictly equals the given string value.'),
+      oeq: z
+        .array(z.string())
+        .optional()
+
+        .describe(
+          'Returns entities that exact match any of the comma-delimited phrases in the filter string.',
+        ),
+      neq: z
+        .string()
+        .optional()
+        .describe('Value does not equal the given string value.'),
+    }),
+  ])
+
+  .describe(
+    'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
+  )
+
 export const createLabels = z
   .record(z.string(), z.string())
 
@@ -578,32 +604,6 @@ export const creditGrantStatus = z
 export const validationIssueSeverity = z
   .enum(['critical', 'warning'])
   .describe('Severity level of a billing validation issue.')
-
-export const stringFieldFilterExact = z
-  .union([
-    z.string(),
-    z.object({
-      eq: z
-        .string()
-        .optional()
-        .describe('Value strictly equals the given string value.'),
-      oeq: z
-        .array(z.string())
-        .optional()
-
-        .describe(
-          'Returns entities that exact match any of the comma-delimited phrases in the filter string.',
-        ),
-      neq: z
-        .string()
-        .optional()
-        .describe('Value does not equal the given string value.'),
-    }),
-  ])
-
-  .describe(
-    'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
-  )
 
 export const creditGrantVoidPaymentAdjustment = z
   .enum(['none'])
@@ -3167,6 +3167,22 @@ export const entitlementMeasureUsageFrom = z
     'The time from which usage is measured, as a preset or an explicit timestamp.',
   )
 
+export const getCreditBalanceParamsFilter = z
+  .object({
+    currency: stringFieldFilterExact.optional(),
+    featureKey: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for getting a credit balance.')
+
+export const listPlansParamsFilter = z
+  .object({
+    key: stringFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+    status: stringFieldFilterExact.optional(),
+    currency: stringFieldFilterExact.optional(),
+  })
+  .describe('Filter options for listing plans.')
+
 export const updateCreditGrantExternalSettlementRequest = z
   .object({
     status: creditPurchasePaymentSettlementStatus,
@@ -3206,22 +3222,6 @@ export const validationIssue = z
       .describe('Component that reported the validation issue, if applicable.'),
   })
   .describe('A validation issue found while processing a billing resource.')
-
-export const getCreditBalanceParamsFilter = z
-  .object({
-    currency: stringFieldFilterExact.optional(),
-    featureKey: stringFieldFilter.optional(),
-  })
-  .describe('Filter options for getting a credit balance.')
-
-export const listPlansParamsFilter = z
-  .object({
-    key: stringFieldFilter.optional(),
-    name: stringFieldFilter.optional(),
-    status: stringFieldFilterExact.optional(),
-    currency: stringFieldFilterExact.optional(),
-  })
-  .describe('Filter options for listing plans.')
 
 export const voidCreditGrantRequest = z
   .object({
@@ -3807,6 +3807,14 @@ export const listCustomersParamsFilter = z
     billingProfileId: ulidFieldFilter.optional(),
   })
   .describe('Filter options for listing customers.')
+
+export const listCustomerEntitlementsParamsFilter = z
+  .object({
+    featureId: ulidFieldFilter.optional(),
+    featureKey: stringFieldFilterExact.optional(),
+    type: stringFieldFilterExact.optional(),
+  })
+  .describe('Filter options for listing customer entitlements.')
 
 export const listSubscriptionsParamsFilter = z
   .object({
@@ -6013,6 +6021,13 @@ export const createEntitlementRequest = z
   ])
   .describe('Entitlement create request.')
 
+export const entitlementPagePaginatedResponse = z
+  .object({
+    data: z.array(entitlement),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
 export const workflowCollectionSettings = z
   .object({
     alignment: workflowCollectionAlignment.optional().default({
@@ -7519,6 +7534,38 @@ export const getCustomerEntitlementHistoryQueryParams = z.object({
 
 export const getCustomerEntitlementHistoryResponse = entitlementHistory
 
+export const getCustomerEntitlementPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const getCustomerEntitlementResponse = entitlement
+
+export const listCustomerEntitlementsPathParams = z.object({
+  customerId: ulid,
+})
+
+export const listCustomerEntitlementsQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listCustomerEntitlementsParamsFilter.optional(),
+})
+
+export const listCustomerEntitlementsResponse = z.object({
+  data: z.array(entitlement),
+  meta: paginatedMeta,
+})
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -8912,6 +8959,32 @@ export const entitlementHistoryWindowSizeWire = z
     'The meter query granularities the usage history can be grouped into. Sub-hour windows are too expensive to compute and monthly windows are not supported.',
   )
 
+export const stringFieldFilterExactWire = z
+  .union([
+    z.string(),
+    z.strictObject({
+      eq: z
+        .string()
+        .optional()
+        .describe('Value strictly equals the given string value.'),
+      oeq: z
+        .array(z.string())
+        .optional()
+
+        .describe(
+          'Returns entities that exact match any of the comma-delimited phrases in the filter string.',
+        ),
+      neq: z
+        .string()
+        .optional()
+        .describe('Value does not equal the given string value.'),
+    }),
+  ])
+
+  .describe(
+    'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
+  )
+
 export const createLabelsWire = z
   .record(z.string(), z.string())
 
@@ -8957,32 +9030,6 @@ export const creditGrantStatusWire = z
 export const validationIssueSeverityWire = z
   .enum(['critical', 'warning'])
   .describe('Severity level of a billing validation issue.')
-
-export const stringFieldFilterExactWire = z
-  .union([
-    z.string(),
-    z.strictObject({
-      eq: z
-        .string()
-        .optional()
-        .describe('Value strictly equals the given string value.'),
-      oeq: z
-        .array(z.string())
-        .optional()
-
-        .describe(
-          'Returns entities that exact match any of the comma-delimited phrases in the filter string.',
-        ),
-      neq: z
-        .string()
-        .optional()
-        .describe('Value does not equal the given string value.'),
-    }),
-  ])
-
-  .describe(
-    'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
-  )
 
 export const creditGrantVoidPaymentAdjustmentWire = z
   .enum(['none'])
@@ -11533,6 +11580,22 @@ export const entitlementMeasureUsageFromWire = z
     'The time from which usage is measured, as a preset or an explicit timestamp.',
   )
 
+export const getCreditBalanceParamsFilterWire = z
+  .strictObject({
+    currency: stringFieldFilterExactWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
+  })
+  .describe('Filter options for getting a credit balance.')
+
+export const listPlansParamsFilterWire = z
+  .strictObject({
+    key: stringFieldFilterWire.optional(),
+    name: stringFieldFilterWire.optional(),
+    status: stringFieldFilterExactWire.optional(),
+    currency: stringFieldFilterExactWire.optional(),
+  })
+  .describe('Filter options for listing plans.')
+
 export const updateCreditGrantExternalSettlementRequestWire = z
   .strictObject({
     status: creditPurchasePaymentSettlementStatusWire,
@@ -11572,22 +11635,6 @@ export const validationIssueWire = z
       .describe('Component that reported the validation issue, if applicable.'),
   })
   .describe('A validation issue found while processing a billing resource.')
-
-export const getCreditBalanceParamsFilterWire = z
-  .strictObject({
-    currency: stringFieldFilterExactWire.optional(),
-    feature_key: stringFieldFilterWire.optional(),
-  })
-  .describe('Filter options for getting a credit balance.')
-
-export const listPlansParamsFilterWire = z
-  .strictObject({
-    key: stringFieldFilterWire.optional(),
-    name: stringFieldFilterWire.optional(),
-    status: stringFieldFilterExactWire.optional(),
-    currency: stringFieldFilterExactWire.optional(),
-  })
-  .describe('Filter options for listing plans.')
 
 export const voidCreditGrantRequestWire = z
   .strictObject({
@@ -12165,6 +12212,14 @@ export const listCustomersParamsFilterWire = z
     billing_profile_id: ulidFieldFilterWire.optional(),
   })
   .describe('Filter options for listing customers.')
+
+export const listCustomerEntitlementsParamsFilterWire = z
+  .strictObject({
+    feature_id: ulidFieldFilterWire.optional(),
+    feature_key: stringFieldFilterExactWire.optional(),
+    type: stringFieldFilterExactWire.optional(),
+  })
+  .describe('Filter options for listing customer entitlements.')
 
 export const listSubscriptionsParamsFilterWire = z
   .strictObject({
@@ -14367,6 +14422,13 @@ export const createEntitlementRequestWire = z
   ])
   .describe('Entitlement create request.')
 
+export const entitlementPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(entitlementWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
 export const workflowCollectionSettingsWire = z
   .strictObject({
     alignment: workflowCollectionAlignmentWire.optional(),
@@ -15890,6 +15952,44 @@ export const getCustomerEntitlementHistoryQueryParamsWire = z.object({
 })
 
 export const getCustomerEntitlementHistoryResponseWire = entitlementHistoryWire
+
+export const getCustomerEntitlementPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const getCustomerEntitlementResponseWire = entitlementWire
+
+export const listCustomerEntitlementsPathParamsWire = z.object({
+  customerId: ulidWire,
+})
+
+export const listCustomerEntitlementsQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort entitlements returned in the response. Supported sort attributes are: - `created_at` (default) - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listCustomerEntitlementsParamsFilterWire.optional(),
+})
+
+export const listCustomerEntitlementsResponseWire = z.strictObject({
+  data: z.array(entitlementWire),
+  meta: paginatedMetaWire,
+})
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

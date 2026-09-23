@@ -632,6 +632,16 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 			},
 		},
+		{
+			name: "list customer entitlements",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements?filter[type]=metered&sort=created_at%20desc",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
@@ -1156,6 +1166,14 @@ func (n NoopEntitlementConnector) CreateEntitlement(ctx context.Context, input e
 
 func (n NoopEntitlementConnector) CreateCustomerEntitlement(ctx context.Context, input entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) GetCustomerEntitlement(ctx context.Context, input entitlement.GetCustomerEntitlementInput) (*entitlement.Entitlement, error) {
+	return &entitlement.Entitlement{}, nil
+}
+
+func (n NoopEntitlementConnector) ListCustomerEntitlements(ctx context.Context, input entitlement.ListCustomerEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
+	return pagination.Result[entitlement.Entitlement]{}, nil
 }
 
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
