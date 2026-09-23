@@ -95,6 +95,8 @@ func (s *negativeUsageSuite) TestLegacyProgressiveBillingClampsNegativeUsageAndP
 	s.requireUsageQuantities(line, 8, 8, -5, 0)
 	s.Equal(float64(8), line.Totals.Amount.InexactFloat64())
 	s.Equal(float64(8), line.Totals.Total.InexactFloat64())
+	s.Equal(float64(8), invoices[0].Totals.Amount.InexactFloat64())
+	s.Equal(float64(8), invoices[0].Totals.Total.InexactFloat64())
 	s.requireNegativeUsageWarning(invoices[0], billing.WarnNegativePreLinePeriodMeteredQuantityClamped.Code, "8", "-5")
 }
 
