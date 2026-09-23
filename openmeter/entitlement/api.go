@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -136,5 +139,28 @@ func (i GetCustomerEntitlementHistoryInput) Validate() error {
 		errs = append(errs, errors.New("from must be before to"))
 	}
 
+	if i.From != nil {
+		to := lo.FromPtrOr(i.To, clock.Now())
+
+		if window := historyWindowDuration(i.WindowSize); window > 0 && to.Sub(*i.From) > maxHistoryWindows*window {
+			errs = append(errs, fmt.Errorf("range must not span more than %d windows", maxHistoryWindows))
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// FIXME: a flat window cap is a stopgap against expensive history queries; the
+// limit should follow the actual cost of the calculation instead.
+const maxHistoryWindows = 1000
+
+func historyWindowDuration(size meter.WindowSize) time.Duration {
+	switch size {
+	case meter.WindowSizeHour:
+		return time.Hour
+	case meter.WindowSizeDay:
+		return 24 * time.Hour
+	default:
+		return 0
+	}
 }

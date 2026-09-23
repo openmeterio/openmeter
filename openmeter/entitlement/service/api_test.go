@@ -332,6 +332,15 @@ func TestCustomerEntitlementHistoryAPI(t *testing.T) {
 		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 	})
 
+	t.Run("should reject a range spanning more than the maximum windows", func(t *testing.T) {
+		input := historyInput(meteredEnt.ID)
+		input.From = lo.ToPtr(clock.Now().Add(-1001 * time.Hour))
+
+		_, err := conn.GetCustomerEntitlementHistory(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+		require.ErrorContains(t, err, "1000 windows")
+	})
+
 	t.Run("should reject an unsupported window size", func(t *testing.T) {
 		input := historyInput(meteredEnt.ID)
 		input.WindowSize = meter.WindowSizeMinute

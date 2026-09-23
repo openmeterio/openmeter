@@ -58,7 +58,7 @@ namespace Entitlements {
 
       /**
        * The start of the queried range. Defaults to the last reset. Truncated to the
-       * minute.
+       * minute. The range may span at most 1000 windows.
        */
       @query
       from?: Shared.DateTime,

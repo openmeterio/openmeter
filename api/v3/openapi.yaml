@@ -2063,7 +2063,7 @@ paths:
           required: false
           description: |-
             The start of the queried range. Defaults to the last reset. Truncated to the
-            minute.
+            minute. The range may span at most 1000 windows.
           schema:
             $ref: '#/components/schemas/DateTime'
           explode: false

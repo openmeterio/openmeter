@@ -1460,6 +1460,61 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.Equal(t, 6700.0, windowedHistory[1].BalanceAtStart)
 			},
 		},
+		{
+			name: "Should align windows to the requested time zone",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := t.Context()
+				startTime := getAnchor(t)
+
+				randName := testutils.NameGenerator.Generate()
+
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
+
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     ent.ID,
+					Namespace:   namespace,
+					Amount:      10000,
+					Priority:    1,
+					EffectiveAt: startTime,
+					ExpiresAt:   lo.ToPtr(startTime.AddDate(0, 0, 3)),
+				})
+				require.NoError(t, err)
+
+				// given the range is given in UTC while windows are requested in a UTC+9 zone
+				// without DST, so local midnights fall at 15:00 UTC
+				tokyo, err := time.LoadLocation("Asia/Tokyo")
+				require.NoError(t, err)
+
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour*16))
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 300, startTime.Add(time.Hour*40))
+
+				queryTime := startTime.AddDate(0, 0, 2)
+
+				// when querying daily windows in that zone
+				windowedHistory, _, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
+					From:           &startTime,
+					To:             &queryTime,
+					WindowTimeZone: *tokyo,
+					WindowSize:     meteredentitlement.WindowSizeDay,
+				})
+				require.NoError(t, err)
+
+				// then windows start at local midnight and the local day before measurement began is dropped
+				require.Len(t, windowedHistory, 2)
+				assert.True(t, startTime.Add(time.Hour*15).Equal(windowedHistory[0].From))
+				assert.True(t, startTime.Add(time.Hour*39).Equal(windowedHistory[0].To))
+				assert.Equal(t, 100.0, windowedHistory[0].UsageInPeriod)
+				assert.Equal(t, 10000.0, windowedHistory[0].BalanceAtStart)
+				assert.True(t, startTime.Add(time.Hour*39).Equal(windowedHistory[1].From))
+				assert.Equal(t, 300.0, windowedHistory[1].UsageInPeriod)
+				assert.Equal(t, 9900.0, windowedHistory[1].BalanceAtStart)
+			},
+		},
 	}
 
 	for _, tc := range tt {
