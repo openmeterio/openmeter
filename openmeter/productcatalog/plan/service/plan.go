@@ -320,6 +320,10 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			)
 		}
 
+		if planStatus == productcatalog.PlanStatusScheduled {
+			params.IgnoreNonCriticalIssues = false
+		}
+
 		logger.Debug("updating plan")
 
 		// NOTE(chrisgacsal): we only allow updating the state of the Plan via Publish/Archive,

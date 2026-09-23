@@ -925,6 +925,57 @@ func TestPlanCustomCurrencyIntegration(t *testing.T) {
 	require.Equal(t, customCurrency, storedRateCard.EffectiveCurrency(stored.Currency).GetCode())
 }
 
+func TestUpdateScheduledPlanRejectsWarnings(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	// given: a draft plan with a monthly rate card cadence
+	created, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(t, pctestutils.NewTestNamespace(t)))
+	require.NoError(t, err)
+	week := datetime.MustParseDuration(t, "P1W")
+	month := datetime.MustParseDuration(t, "P1M")
+
+	// when: a draft update ignores the cadence alignment warning
+	updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+		NamespacedID:            created.NamespacedID,
+		BillingCadence:          &week,
+		IgnoreNonCriticalIssues: true,
+	})
+
+	// then: the draft update still succeeds
+	require.NoError(t, err)
+	require.Equal(t, week, updated.BillingCadence)
+
+	_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+		NamespacedID:   created.NamespacedID,
+		BillingCadence: &month,
+	})
+	require.NoError(t, err)
+
+	publishAt := time.Now().Add(24 * time.Hour).Truncate(time.Microsecond)
+	scheduled, err := env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+		NamespacedID: created.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: &publishAt,
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, productcatalog.PlanStatusScheduled, scheduled.Status())
+
+	// when: the same update is requested for the scheduled plan
+	_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+		NamespacedID:            created.NamespacedID,
+		BillingCadence:          &week,
+		IgnoreNonCriticalIssues: true,
+	})
+
+	// then: the warning blocks the update and leaves the stored cadence intact
+	require.ErrorContains(t, err, productcatalog.ErrRateCardBillingCadenceUnaligned.Error())
+	stored, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{NamespacedID: created.NamespacedID})
+	require.NoError(t, err)
+	require.Equal(t, month, stored.BillingCadence)
+}
+
 func TestUpdatePlanValidatesCurrenciesUsingUpdatedSettlementMode(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
