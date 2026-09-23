@@ -25,7 +25,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 		return errors.New("line engines are nil")
 	}
 
-	var outErr error
+	validationRecorder := billing.ValidationIssueRecorder{}
 	groupedLines := make(map[billing.LineEngineType]billing.StandardLines)
 
 	for _, line := range invoice.Lines.OrEmpty() {
@@ -62,7 +62,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 		}
 
 		updatedLines, err := lineCalculator.CalculateLines(input)
-		if err != nil {
+		if err := validationRecorder.Record(err); err != nil {
 			return fmt.Errorf("calculating lines for engine[%s]: %w", lineEngineType, err)
 		}
 
@@ -74,7 +74,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps St
 		}
 	}
 
-	return errors.Join(outErr, RecalculateTotals(invoice))
+	return errors.Join(validationRecorder.ErrorsOrNil(), RecalculateTotals(invoice))
 }
 
 // RecalculateTotals aggregates already-calculated standard lines without

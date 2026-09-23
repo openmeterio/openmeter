@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -21,15 +22,18 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 		return stdLines, fmt.Errorf("snapshotting line quantities: %w", err)
 	}
 
+	recorder := billing.ValidationIssueRecorder{}
+
 	stdLines, err = e.CalculateLines(billing.CalculateLinesInput{
 		Invoice: input.Invoice,
 		Lines:   stdLines,
 	})
-	if err != nil {
+
+	if err := recorder.Record(err); err != nil {
 		return nil, fmt.Errorf("calculating standard invoice lines: %w", err)
 	}
 
-	return stdLines, nil
+	return stdLines, recorder.ErrorsOrNil()
 }
 
 func (e *Engine) BuildStandardLinesForGatheringPreview(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
@@ -75,10 +79,14 @@ func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.Stan
 		return nil, fmt.Errorf("lines are required")
 	}
 
+	validationRecorder := billing.ValidationIssueRecorder{}
+
 	for _, stdLine := range input.Lines {
 		generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(stdLine)
-		if err != nil {
-			return nil, fmt.Errorf("generating detailed lines for line[%s]: %w", stdLine.ID, err)
+		if err := validationRecorder.Record(err, billing.WithAttributes(models.Annotations{
+			billing.AttributeKeyLineID: stdLine.ID,
+		})); err != nil {
+			return nil, fmt.Errorf("calculating detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 
 		if err := invoicecalc.MergeGeneratedDetailedLines(stdLine, generatedDetailedLines); err != nil {
@@ -90,7 +98,7 @@ func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.Stan
 		}
 	}
 
-	return input.Lines, nil
+	return input.Lines, validationRecorder.ErrorsOrNil()
 }
 
 func (e *Engine) AreLinesBillableAsOf(ctx context.Context, input billing.AreLinesBillableAsOfInput) ([]billing.IsLineBillableAsOfResult, error) {

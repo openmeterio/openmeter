@@ -44,40 +44,43 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("validating billable line: %w", err)
 	}
 
-	currency, err := in.GetCurrencyCalculator()
+	clamped, err := rating.NewClampedStandardLineAccessor(in)
+	if err != nil {
+		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("clamping metered quantities: %w", err)
+	}
+
+	currency, err := clamped.GetCurrencyCalculator()
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting currency calculator: %w", err)
 	}
 
 	generateOpts := rating.NewGenerateDetailedLinesOptions(opts...)
 
-	linePricer, err := getPricerFor(in, generateOpts, s.unitConfigEnabled)
+	linePricer, err := getPricerFor(clamped, generateOpts, s.unitConfigEnabled)
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("creating pricer: %w", err)
 	}
 
-	fullProgressivelyBilledServicePeriod, err := in.GetProgressivelyBilledServicePeriod()
+	fullProgressivelyBilledServicePeriod, err := clamped.GetProgressivelyBilledServicePeriod()
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting progressively billed service period: %w", err)
 	}
 
 	input := rate.PricerCalculateInput{
-		StandardLineAccessor:                 in,
+		StandardLineAccessor:                 clamped,
 		CurrencyCalculator:                   currency,
 		FullProgressivelyBilledServicePeriod: fullProgressivelyBilledServicePeriod,
-		StandardLineDiscounts:                in.GetStandardLineDiscounts(),
+		StandardLineDiscounts:                clamped.GetStandardLineDiscounts(),
 	}
-
 	if in.GetPrice().Type() != productcatalog.FlatPriceType {
-		meteredQuantity, err := in.GetMeteredQuantity()
+		meteredQuantity, err := clamped.GetMeteredQuantity()
 		if err != nil {
 			return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting metered usage: %w", err)
 		}
 		if meteredQuantity == nil {
 			return rating.GenerateDetailedLinesResult{}, errors.New("metered quantity is required")
 		}
-
-		preLinePeriodMeteredQuantity, err := in.GetMeteredPreLinePeriodQuantity()
+		preLinePeriodMeteredQuantity, err := clamped.GetMeteredPreLinePeriodQuantity()
 		if err != nil {
 			return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting pre line period metered usage: %w", err)
 		}
@@ -102,7 +105,7 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 
 	outWithTotals := getTotalsFromDetailedLines(out, currency)
 
-	return outWithTotals, nil
+	return outWithTotals, clamped.GetValidationWarnings()
 }
 
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
