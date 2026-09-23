@@ -4771,7 +4771,7 @@ export const entitlementGrantCreateRequest = z
     labels: labels.optional(),
     recurrence: recurringPeriodInput.optional(),
   })
-  .describe('A grant created together with a metered entitlement.')
+  .describe('A grant to issue for a metered entitlement.')
 
 export const createEntitlementStaticRequest = z
   .object({
@@ -7933,6 +7933,15 @@ export const getEntitlementPathParams = z.object({
 })
 
 export const getEntitlementResponse = entitlement
+
+export const createCustomerEntitlementGrantPathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const createCustomerEntitlementGrantBody = entitlementGrantCreateRequest
+
+export const createCustomerEntitlementGrantResponse = entitlementGrant
 
 export const listCustomerEntitlementGrantsPathParams = z.object({
   customerId: ulid,
@@ -13612,7 +13621,7 @@ export const entitlementGrantCreateRequestWire = z
     labels: labelsWire.optional(),
     recurrence: recurringPeriodInputWire.optional(),
   })
-  .describe('A grant created together with a metered entitlement.')
+  .describe('A grant to issue for a metered entitlement.')
 
 export const createEntitlementStaticRequestWire = z
   .strictObject({
@@ -16800,6 +16809,16 @@ export const getEntitlementPathParamsWire = z.object({
 })
 
 export const getEntitlementResponseWire = entitlementWire
+
+export const createCustomerEntitlementGrantPathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const createCustomerEntitlementGrantBodyWire =
+  entitlementGrantCreateRequestWire
+
+export const createCustomerEntitlementGrantResponseWire = entitlementGrantWire
 
 export const listCustomerEntitlementGrantsPathParamsWire = z.object({
   customerId: ulidWire,

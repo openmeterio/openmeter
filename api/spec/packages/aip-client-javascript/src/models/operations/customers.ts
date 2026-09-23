@@ -26,6 +26,8 @@ import type {
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
   Entitlement,
+  EntitlementGrant,
+  EntitlementGrantCreateRequest,
   EntitlementGrantPagePaginatedResponse,
   EntitlementHistory,
   EntitlementHistoryWindowSize,
@@ -203,6 +205,13 @@ export type DeleteCustomerEntitlementRequest = {
   entitlementId: string
 }
 export type DeleteCustomerEntitlementResponse = void
+
+export type CreateCustomerEntitlementGrantRequest = AcceptDateStrings<{
+  customerId: string
+  entitlementId: string
+  body: EntitlementGrantCreateRequest
+}>
+export type CreateCustomerEntitlementGrantResponse = EntitlementGrant
 
 export interface ListCustomerEntitlementGrantsQuery {
   /** Determines which page of the collection to retrieve. */

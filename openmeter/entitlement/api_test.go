@@ -2,6 +2,7 @@ package entitlement
 
 import (
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -347,5 +349,50 @@ func TestListCustomerEntitlementGrantsInputValidate(t *testing.T) {
 		input.Page = pagination.NewPage(0, 20)
 
 		require.ErrorContains(t, input.Validate(), "page:")
+	})
+}
+
+func TestCreateCustomerEntitlementGrantInputValidate(t *testing.T) {
+	valid := CreateCustomerEntitlementGrantInput{
+		CustomerID:    customer.CustomerID{Namespace: "ns", ID: "01K4WAQ0J99ZZ0MD75HXR112H8"},
+		EntitlementID: "01K4WAQ0J99ZZ0MD75HXR112H9",
+		Grant: CreateEntitlementGrantInputs{
+			CreateGrantInput: credit.CreateGrantInput{
+				Amount:      100,
+				EffectiveAt: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+		},
+	}
+
+	require.NoError(t, valid.Validate())
+
+	t.Run("requires customer id", func(t *testing.T) {
+		input := valid
+		input.CustomerID = customer.CustomerID{Namespace: "ns"}
+
+		require.ErrorContains(t, input.Validate(), "customer ID")
+	})
+
+	t.Run("requires entitlement id", func(t *testing.T) {
+		input := valid
+		input.EntitlementID = ""
+
+		require.ErrorContains(t, input.Validate(), "entitlement ID is required")
+	})
+
+	t.Run("requires a positive amount", func(t *testing.T) {
+		input := valid
+		input.Grant.Amount = 0
+
+		require.ErrorContains(t, input.Validate(), "amount must be positive")
+	})
+
+	t.Run("requires effective at", func(t *testing.T) {
+		input := valid
+		input.Grant.EffectiveAt = time.Time{}
+
+		err := input.Validate()
+		require.ErrorContains(t, err, "effective at must be set")
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 	})
 }

@@ -1623,7 +1623,7 @@ type EntitlementGrant struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
-// A grant created together with a metered entitlement.
+// A grant to issue for a metered entitlement.
 type EntitlementGrantCreateRequest struct {
 	// The amount to grant, in the feature's unit. Must be positive.
 	Amount Numeric `json:"amount"`

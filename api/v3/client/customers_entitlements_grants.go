@@ -35,6 +35,40 @@ func (p EntitlementGrantListParams) values() url.Values {
 	return q
 }
 
+// Issue a grant for a metered entitlement of the customer. Grants can only be
+// issued for metered entitlements; the request is rejected for boolean and static
+// entitlements.
+//
+// Grants are immutable: the granted amount adds to the balance from
+// `effective_at`, which cannot be before the start of the current usage period.
+func (s *CustomersEntitlementsGrantsService) Create(ctx context.Context, customerID string, entitlementID string, request EntitlementGrantCreateRequest) (*EntitlementGrant, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if entitlementID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "entitlementID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlements/{entitlementId}/grants"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "entitlementId", entitlementID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out EntitlementGrant
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // List the grants issued for an entitlement of the customer. Grants only exist for
 // metered entitlements, so the list of a boolean or static entitlement is empty.
 //

@@ -11,6 +11,7 @@ import {
   listCustomerEntitlements,
   resetCustomerEntitlementUsage,
   deleteCustomerEntitlement,
+  createCustomerEntitlementGrant,
   listCustomerEntitlementGrants,
   voidCreditGrant,
   listCustomerCharges,
@@ -77,6 +78,8 @@ import type {
   ResetCustomerEntitlementUsageResponse,
   DeleteCustomerEntitlementRequest,
   DeleteCustomerEntitlementResponse,
+  CreateCustomerEntitlementGrantRequest,
+  CreateCustomerEntitlementGrantResponse,
   ListCustomerEntitlementGrantsRequest,
   ListCustomerEntitlementGrantsResponse,
   VoidCreditGrantRequest,
@@ -442,6 +445,27 @@ export class InternalCustomersEntitlements {
 
 export class InternalCustomersEntitlementsGrants {
   constructor(private readonly _client: Client) {}
+
+  /**
+   * Create customer entitlement grant
+   *
+   * Issue a grant for a metered entitlement of the customer. Grants can only be
+   * issued for metered entitlements; the request is rejected for boolean and static
+   * entitlements.
+   *
+   * Grants are immutable: the granted amount adds to the balance from
+   * `effective_at`, which cannot be before the start of the current usage period.
+   *
+   * POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
+   */
+  async create(
+    request: CreateCustomerEntitlementGrantRequest,
+    options?: RequestOptions,
+  ): Promise<CreateCustomerEntitlementGrantResponse> {
+    return unwrap(
+      await createCustomerEntitlementGrant(this._client, request, options),
+    )
+  }
 
   /**
    * List customer entitlement grants

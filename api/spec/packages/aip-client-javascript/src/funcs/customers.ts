@@ -47,6 +47,8 @@ import type {
   ResetCustomerEntitlementUsageResponse,
   DeleteCustomerEntitlementRequest,
   DeleteCustomerEntitlementResponse,
+  CreateCustomerEntitlementGrantRequest,
+  CreateCustomerEntitlementGrantResponse,
   ListCustomerEntitlementGrantsRequest,
   ListCustomerEntitlementGrantsResponse,
   CreateCreditGrantRequest,
@@ -881,6 +883,67 @@ export function deleteCustomerEntitlement(
       return encodeURIComponent(String(pathParams.entitlementId))
     })()}`
     await http(client).delete(path, options)
+  })
+}
+
+/**
+ * Create customer entitlement grant
+ *
+ * Issue a grant for a metered entitlement of the customer. Grants can only be
+ * issued for metered entitlements; the request is rejected for boolean and static
+ * entitlements.
+ *
+ * Grants are immutable: the granted amount adds to the balance from
+ * `effective_at`, which cannot be before the start of the current usage period.
+ *
+ * POST /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants
+ */
+export function createCustomerEntitlementGrant(
+  client: Client,
+  req: CreateCustomerEntitlementGrantRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateCustomerEntitlementGrantResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.createCustomerEntitlementGrantPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.createCustomerEntitlementGrantPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/grants`
+    const body = toWire(req.body, schemas.createCustomerEntitlementGrantBody)
+    if (client._options.validate) {
+      assertValid(schemas.createCustomerEntitlementGrantBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createCustomerEntitlementGrantResponseWire, data)
+        }
+        return fromWire(data, schemas.createCustomerEntitlementGrantResponse)
+      })
   })
 }
 

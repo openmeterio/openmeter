@@ -16,8 +16,9 @@ const (
 )
 
 type fakeService struct {
-	history func(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error)
-	reset   func(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error
+	history     func(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error)
+	reset       func(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error
+	createGrant func(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error)
 }
 
 func (f fakeService) CreateCustomerEntitlement(context.Context, entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
@@ -50,4 +51,8 @@ func (f fakeService) DeleteCustomerEntitlement(context.Context, entitlement.Dele
 
 func (f fakeService) ListCustomerEntitlementGrants(context.Context, entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
 	return pagination.Result[grant.Grant]{}, errors.New("not implemented")
+}
+
+func (f fakeService) CreateCustomerEntitlementGrant(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error) {
+	return f.createGrant(ctx, input)
 }
