@@ -148,7 +148,7 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
-	t.Run("Should return 412 for a deleted customer", func(t *testing.T) {
+	t.Run("Should return 409 for a deleted customer", func(t *testing.T) {
 		deleted, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 			Key:  uniqueKey("ent_value_deleted"),
 			Name: "Deleted Customer",
@@ -163,7 +163,7 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 		c.requireStatus(http.StatusNoContent, err)
 
 		_, err = c.Entitlements.GetCustomerValue(t.Context(), deleted.ID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{})
-		requireProblem(t, err, http.StatusPreconditionFailed)
+		requireProblem(t, err, http.StatusConflict)
 	})
 
 	t.Run("Should return 404 for a deleted entitlement at any time", func(t *testing.T) {
