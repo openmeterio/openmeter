@@ -208,7 +208,8 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 	rows := make([]meter.MeterQueryRow, 0)
 
 	if params.WindowSize != nil && params.WindowTimeZone != nil {
-		// TODO: windowtimezone will be ignored
+		from = from.In(params.WindowTimeZone)
+		to = to.In(params.WindowTimeZone)
 
 		windowingStart, _ := params.WindowSize.Truncate(from) // The first truncated time that from query falls into
 		windowingEnd, _ := params.WindowSize.Truncate(to)     // The last truncated time that to query falls into
@@ -246,7 +247,12 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 		effectiveWindowSize := lo.FromPtrOr(params.WindowSize, streaming.MinimumWindowSize)
 
 		for _, event := range events {
-			eventWindowStart, err := effectiveWindowSize.Truncate(event.Time)
+			eventTime := event.Time
+			if params.WindowTimeZone != nil {
+				eventTime = eventTime.In(params.WindowTimeZone)
+			}
+
+			eventWindowStart, err := effectiveWindowSize.Truncate(eventTime)
 			if err != nil {
 				return nil, fmt.Errorf("failed to truncate by windowsize in event aggregation")
 			}

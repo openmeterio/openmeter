@@ -26,6 +26,8 @@ import type {
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
   Entitlement,
+  EntitlementHistory,
+  EntitlementHistoryWindowSize,
   GetCreditBalanceParamsFilter,
   ListCreditGrantsParamsFilter,
   ListCreditTransactionsParamsFilter,
@@ -119,6 +121,31 @@ export type CreateCustomerEntitlementRequest = AcceptDateStrings<{
   body: CreateEntitlementRequestInput
 }>
 export type CreateCustomerEntitlementResponse = Entitlement
+
+export interface GetCustomerEntitlementHistoryQuery {
+  /**
+   * The start of the queried range. Defaults to the last reset. Truncated to the
+   * minute. The range may span at most 1000 windows.
+   */
+  from?: Date
+  /**
+   * The end of the queried range. Defaults to the current time. Truncated to the
+   * minute unless it is the current time.
+   */
+  to?: Date
+  /** The size of the windows the usage is grouped into. */
+  windowSize: EntitlementHistoryWindowSize
+  /** The IANA time zone the windows are aligned to. */
+  timeZone?: string
+}
+
+export type GetCustomerEntitlementHistoryRequest = AcceptDateStrings<
+  GetCustomerEntitlementHistoryQuery & {
+    customerId: string
+    entitlementId: string
+  }
+>
+export type GetCustomerEntitlementHistoryResponse = EntitlementHistory
 
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string

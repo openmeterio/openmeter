@@ -14,12 +14,14 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -440,4 +442,63 @@ func toAPIClosedPeriod(p timeutil.ClosedPeriod) api.ClosedPeriod {
 		From: p.From,
 		To:   p.To,
 	}
+}
+
+func mapHistoryWindowSize(size api.BillingEntitlementHistoryWindowSize) (meter.WindowSize, error) {
+	switch size {
+	case api.BillingEntitlementHistoryWindowSizePT1H:
+		return meter.WindowSizeHour, nil
+	case api.BillingEntitlementHistoryWindowSizeP1D:
+		return meter.WindowSizeDay, nil
+	default:
+		return "", fmt.Errorf("unsupported window size %q", size)
+	}
+}
+
+func mapHistoryToAPI(history entitlement.CustomerEntitlementHistory) api.BillingEntitlementHistory {
+	return api.BillingEntitlementHistory{
+		WindowedHistory: lo.Map(history.Windows, func(window entitlement.BalanceHistoryWindow, _ int) api.BillingEntitlementHistoryWindow {
+			return api.BillingEntitlementHistoryWindow{
+				Period:         mapPeriodToAPI(window.From, window.To),
+				Usage:          alpacadecimal.NewFromFloat(window.UsageInPeriod).String(),
+				BalanceAtStart: alpacadecimal.NewFromFloat(window.BalanceAtStart).String(),
+			}
+		}),
+		BurndownHistory: lo.Map(history.Burndown.Segments(), func(segment engine.GrantBurnDownHistorySegment, _ int) api.BillingEntitlementBurndownSegment {
+			return mapBurndownSegmentToAPI(segment)
+		}),
+	}
+}
+
+func mapBurndownSegmentToAPI(segment engine.GrantBurnDownHistorySegment) api.BillingEntitlementBurndownSegment {
+	balancesAtEnd := segment.ApplyUsage()
+	numeric := func(balance float64, _ string) api.Numeric {
+		return alpacadecimal.NewFromFloat(balance).String()
+	}
+
+	return api.BillingEntitlementBurndownSegment{
+		Period:  mapPeriodToAPI(segment.From, segment.To),
+		Usage:   alpacadecimal.NewFromFloat(segment.TotalUsage).String(),
+		Overage: alpacadecimal.NewFromFloat(segment.Overage).String(),
+		Balance: api.BillingEntitlementBurndownBalance{
+			Start: alpacadecimal.NewFromFloat(segment.BalanceAtStart.Balance()).String(),
+			End:   alpacadecimal.NewFromFloat(balancesAtEnd.Balance()).String(),
+		},
+		GrantBalances: api.BillingEntitlementBurndownGrantBalances{
+			Start: lo.MapValues(segment.BalanceAtStart, numeric),
+			End:   lo.MapValues(balancesAtEnd, numeric),
+		},
+		GrantUsages: lo.Map(segment.GrantUsages, func(usage engine.GrantUsage, _ int) api.BillingEntitlementGrantUsage {
+			return api.BillingEntitlementGrantUsage{
+				GrantId: usage.GrantID,
+				Usage:   alpacadecimal.NewFromFloat(usage.Usage).String(),
+			}
+		}),
+	}
+}
+
+// mapPeriodToAPI renders period bounds in UTC as AIP-142 requires, regardless of
+// the location the calculation ran in.
+func mapPeriodToAPI(from, to time.Time) api.ClosedPeriod {
+	return api.ClosedPeriod{From: from.UTC(), To: to.UTC()}
 }

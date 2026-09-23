@@ -105,6 +105,16 @@ func (s *Server) GetCustomerEntitlementAccess(w http.ResponseWriter, r *http.Req
 	}).ServeHTTP(w, r)
 }
 
+// Customers Entitlements
+
+func (s *Server) GetCustomerEntitlementHistory(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID, params api.GetCustomerEntitlementHistoryParams) {
+	s.customersEntitlementsHandler.GetCustomerEntitlementHistory().With(customersentitlementshandler.GetCustomerEntitlementHistoryParams{
+		CustomerID:    customerId,
+		EntitlementID: entitlementId,
+		Params:        params,
+	}).ServeHTTP(w, r)
+}
+
 // Subscriptions
 
 func (s *Server) CreateSubscription(w http.ResponseWriter, r *http.Request) {

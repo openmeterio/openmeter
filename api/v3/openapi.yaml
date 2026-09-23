@@ -2035,6 +2035,88 @@ paths:
       x-internal: true
       x-private: true
       x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/history:
+    get:
+      operationId: get-customer-entitlement-history
+      summary: Get customer entitlement history
+      description: |-
+        Get the balance and usage history of a metered entitlement. The queried range
+        may span multiple usage periods.
+
+        `windowed_history` groups usage into windows of the requested size and reports
+        the balance at the start of each window. `burndown_history` lists the periods in
+        which grants were consumed in a fixed order, together with the usage taken from
+        each grant.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: from
+          in: query
+          required: false
+          description: |-
+            The start of the queried range. Defaults to the last reset. Truncated to the
+            minute. The range may span at most 1000 windows.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+        - name: to
+          in: query
+          required: false
+          description: |-
+            The end of the queried range. Defaults to the current time. Truncated to the
+            minute unless it is the current time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+        - name: window_size
+          in: query
+          required: true
+          description: The size of the windows the usage is grouped into.
+          schema:
+            $ref: '#/components/schemas/BillingEntitlementHistoryWindowSize'
+          explode: false
+          style: form
+        - name: time_zone
+          in: query
+          required: false
+          description: The IANA time zone the windows are aligned to.
+          schema:
+            type: string
+            default: UTC
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: EntitlementHistory response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementHistory'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/defaults/tax-codes:
     get:
       operationId: get-organization-default-tax-codes
@@ -7682,6 +7764,97 @@ components:
           readOnly: true
       additionalProperties: false
       description: A boolean entitlement grants access to a feature.
+    BillingEntitlementBurndownBalance:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The balance at the start of the segment.
+          example: '100'
+          readOnly: true
+        end:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The balance at the end of the segment.
+          example: '50'
+          readOnly: true
+      additionalProperties: false
+      description: Entitlement balance at the boundaries of a burndown segment.
+    BillingEntitlementBurndownGrantBalances:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Numeric'
+          description: The balance of each active grant at the start of the segment.
+          example:
+            01G65Z755AFWAKHE12NY0CQ9FH: '100'
+          readOnly: true
+        end:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Numeric'
+          description: The balance of each active grant at the end of the segment.
+          example:
+            01G65Z755AFWAKHE12NY0CQ9FH: '50'
+          readOnly: true
+      additionalProperties: false
+      description: Grant balances at the boundaries of a burndown segment, keyed by grant ID.
+    BillingEntitlementBurndownSegment:
+      type: object
+      required:
+        - period
+        - usage
+        - overage
+        - balance
+        - grant_balances
+        - grant_usages
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The period the segment covers.
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage recorded in the segment.
+          example: '100'
+          readOnly: true
+        overage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage in the segment not covered by any grant.
+          example: '0'
+          readOnly: true
+        balance:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementBurndownBalance'
+          description: The entitlement balance at the start and at the end of the segment.
+          readOnly: true
+        grant_balances:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementBurndownGrantBalances'
+          description: |-
+            The balance of each active grant at the start and at the end of the segment,
+            keyed by grant ID.
+          readOnly: true
+        grant_usages:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementGrantUsage'
+          description: The grants consumed in the segment and the usage taken from each.
+          readOnly: true
+      additionalProperties: false
+      description: A period in which grants were consumed in a fixed order.
     BillingEntitlementGrantCreateRequest:
       type: object
       required:
@@ -7753,6 +7926,85 @@ components:
           title: Recurrence
       additionalProperties: false
       description: A grant created together with a metered entitlement.
+    BillingEntitlementGrantUsage:
+      type: object
+      required:
+        - grant_id
+        - usage
+      properties:
+        grant_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the grant.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage taken from the grant.
+          example: '50'
+          readOnly: true
+      additionalProperties: false
+      description: Usage taken from a single grant.
+    BillingEntitlementHistory:
+      type: object
+      required:
+        - windowed_history
+        - burndown_history
+      properties:
+        windowed_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementHistoryWindow'
+          description: |-
+            Usage in half-open windows of the requested size, aligned to the requested time
+            zone. Empty windows are included; windows before usage measurement began are
+            omitted.
+          readOnly: true
+        burndown_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingEntitlementBurndownSegment'
+          description: |-
+            Periods in which grants were consumed in a fixed order. A new segment starts
+            whenever grant priorities change or a usage period starts.
+          readOnly: true
+      additionalProperties: false
+      description: Balance and usage history of a metered entitlement.
+    BillingEntitlementHistoryWindow:
+      type: object
+      required:
+        - period
+        - usage
+        - balance_at_start
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The period the window covers.
+          readOnly: true
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The usage recorded in the window.
+          example: '100'
+          readOnly: true
+        balance_at_start:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The entitlement balance at the start of the window.
+          example: '100'
+          readOnly: true
+      additionalProperties: false
+      description: Usage and balance of a single history window.
+    BillingEntitlementHistoryWindowSize:
+      type: string
+      enum:
+        - PT1H
+        - P1D
+      description: |-
+        The meter query granularities the usage history can be grouped into. Sub-hour
+        windows are too expensive to compute and monthly windows are not supported.
     BillingEntitlementIssueAfterReset:
       type: object
       required:
