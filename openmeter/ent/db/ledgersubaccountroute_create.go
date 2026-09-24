@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -145,7 +144,7 @@ func (_c *LedgerSubAccountRouteCreate) SetNillableTaxBehavior(v *ledger.TaxBehav
 }
 
 // SetFilters sets the "filters" field.
-func (_c *LedgerSubAccountRouteCreate) SetFilters(v *crediteligibility.Filters) *LedgerSubAccountRouteCreate {
+func (_c *LedgerSubAccountRouteCreate) SetFilters(v *ledger.CreditFilters) *LedgerSubAccountRouteCreate {
 	_c.mutation.SetFilters(v)
 	return _c
 }

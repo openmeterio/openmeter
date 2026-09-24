@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -31,6 +32,9 @@ const (
 	// RoutingKeyVersionV4 extends V3 by storing the complete custom currency
 	// reference snapshot in the currency segment.
 	RoutingKeyVersionV4 RoutingKeyVersion = "v4"
+	// V5 adds the complete versioned filter set. Feature-only routes retain
+	// their previous key so existing balances are never split by the upgrade.
+	RoutingKeyVersionV5 RoutingKeyVersion = "v5"
 )
 
 type TransactionAuthorizationStatus string
@@ -62,7 +66,7 @@ func (s TransactionAuthorizationStatus) Validate() error {
 
 func (v RoutingKeyVersion) Validate() error {
 	switch v {
-	case RoutingKeyVersionV1, RoutingKeyVersionV2, RoutingKeyVersionV3, RoutingKeyVersionV4:
+	case RoutingKeyVersionV1, RoutingKeyVersionV2, RoutingKeyVersionV3, RoutingKeyVersionV4, RoutingKeyVersionV5:
 		return nil
 	default:
 		return ErrRoutingKeyVersionInvalid.WithAttrs(models.Attributes{
@@ -188,7 +192,7 @@ type Route struct {
 	// Customer FBO routes do not carry tax dimensions; credit sources are
 	// attributed to charge tax configuration when they accrue.
 	TaxBehavior                    *TaxBehavior
-	Features                       []string
+	Filters                        CreditFilters
 	CostBasis                      *alpacadecimal.Decimal
 	CreditPriority                 *int
 	TransactionAuthorizationStatus *TransactionAuthorizationStatus
@@ -248,8 +252,8 @@ func (r Route) validateDimensionsOnly() error {
 		}
 	}
 
-	if err := validateFeatures(r.Features); err != nil {
-		return fmt.Errorf("features: %w", err)
+	if err := r.Filters.Validate(); err != nil {
+		return fmt.Errorf("filters: %w", err)
 	}
 
 	return nil
@@ -259,11 +263,12 @@ func (r Route) validateDimensionsOnly() error {
 // All present route fields are pinned as exact-match filters (including nil values).
 func (r Route) Filter() RouteFilter {
 	return RouteFilter{
+		CreditFilters:                  mo.Some(r.Filters),
 		Currency:                       r.Currency.Clone(),
 		CostBasisCurrency:              mo.Some(r.CostBasisCurrency),
 		TaxCode:                        mo.Some(r.TaxCode),
 		TaxBehavior:                    mo.Some(r.TaxBehavior),
-		Features:                       mo.Some(r.Features),
+		Features:                       mo.Some(r.Filters.Features),
 		CostBasis:                      mo.Some(r.CostBasis),
 		CreditPriority:                 r.CreditPriority,
 		TransactionAuthorizationStatus: r.TransactionAuthorizationStatus,
@@ -271,6 +276,9 @@ func (r Route) Filter() RouteFilter {
 }
 
 func (r Route) Matches(filter RouteFilter) bool {
+	if exact, ok := filter.CreditFilters.Get(); ok && !r.Filters.Equal(exact) {
+		return false
+	}
 	if filter.Currency.Code != "" && r.Currency.Code != filter.Currency.Code {
 		return false
 	}
@@ -312,12 +320,12 @@ func (r Route) Matches(filter RouteFilter) bool {
 	}
 	if filter.Features.IsPresent() {
 		features, _ := filter.Features.Get()
-		if !slices.Equal(SortedFeatures(r.Features), SortedFeatures(features)) {
+		if !slices.Equal(SortedFeatures(r.Filters.Features), SortedFeatures(features)) {
 			return false
 		}
 	}
 	if filter.MatchFeature != "" {
-		if len(r.Features) > 0 && !slices.Contains(r.Features, filter.MatchFeature) {
+		if len(r.Filters.Features) > 0 && !slices.Contains(r.Filters.Features, filter.MatchFeature) {
 			return false
 		}
 	}
@@ -355,7 +363,7 @@ func (r Route) Normalize() (Route, error) {
 	if normalized.CostBasisCurrency != nil && *normalized.CostBasisCurrency == "" {
 		normalized.CostBasisCurrency = nil
 	}
-	normalized.Features = SortedFeatures(r.Features)
+	normalized.Filters = r.Filters.Normalize()
 	normalized.Version = selectRoutingKeyVersion(normalized)
 
 	return normalized, nil
@@ -363,6 +371,12 @@ func (r Route) Normalize() (Route, error) {
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
+	if exact, ok := f.CreditFilters.Get(); ok {
+		if err := exact.Validate(); err != nil {
+			return RouteFilter{}, err
+		}
+		f.CreditFilters = mo.Some(exact.Normalize())
+	}
 	if f.Currency.Code == "" && f.CostBasisCurrency.IsAbsent() && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
 		return f, nil
 	}
@@ -390,7 +404,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		CostBasisCurrency:              costBasisCurrency,
 		TaxCode:                        taxCode,
 		TaxBehavior:                    taxBehavior,
-		Features:                       features,
+		Filters:                        CreditFilters{Features: features},
 		CostBasis:                      costBasis,
 		CreditPriority:                 f.CreditPriority,
 		TransactionAuthorizationStatus: f.TransactionAuthorizationStatus,
@@ -402,7 +416,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		route.CostBasisCurrency = nil
 	}
 	normalized := route
-	normalized.Features = SortedFeatures(route.Features)
+	normalized.Filters.Features = SortedFeatures(route.Filters.Features)
 
 	normalizedCostBasis := mo.None[*alpacadecimal.Decimal]()
 	if f.CostBasis.IsPresent() {
@@ -426,10 +440,11 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 
 	normalizedFeatures := mo.None[[]string]()
 	if f.Features.IsPresent() {
-		normalizedFeatures = mo.Some(normalized.Features)
+		normalizedFeatures = mo.Some(normalized.Filters.Features)
 	}
 
 	return RouteFilter{
+		CreditFilters:                  f.CreditFilters,
 		Currency:                       f.Currency.Clone(),
 		CostBasisCurrency:              normalizedCostBasisCurrency,
 		TaxCode:                        normalizedTaxCode,
@@ -455,6 +470,7 @@ type routingVersionRequirement struct {
 // routingVersionRequirements lists versions above V1 with the conditions that trigger them.
 // Ordered highest to lowest; selectRoutingKeyVersion returns the first match, V1 otherwise.
 var routingVersionRequirements = []routingVersionRequirement{
+	{version: RoutingKeyVersionV5, requires: func(r Route) bool { return len(r.Filters.Plans) > 0 }},
 	{version: RoutingKeyVersionV4, requires: func(r Route) bool { return r.Currency.IsCustom() }},
 	{version: RoutingKeyVersionV3, requires: func(r Route) bool { return r.CostBasisCurrency != nil }},
 	{version: RoutingKeyVersionV2, requires: func(r Route) bool { return r.TaxBehavior != nil }},
@@ -489,6 +505,16 @@ func BuildRoutingKey(route Route) (RoutingKey, error) {
 		return buildRoutingKeyV3Normalized(normalizedRoute)
 	case RoutingKeyVersionV4:
 		return buildRoutingKeyV4Normalized(normalizedRoute)
+	case RoutingKeyVersionV5:
+		base, err := buildRoutingKeyV4Normalized(normalizedRoute)
+		if err != nil {
+			return RoutingKey{}, err
+		}
+		filters, err := json.Marshal(normalizedRoute.Filters)
+		if err != nil {
+			return RoutingKey{}, fmt.Errorf("marshal filters: %w", err)
+		}
+		return NewRoutingKey(RoutingKeyVersionV5, base.Value()+"|filters:"+string(filters))
 	default:
 		return RoutingKey{}, ErrRoutingKeyVersionUnsupported.WithAttrs(models.Attributes{
 			"routing_key_version": normalizedRoute.Version,
@@ -500,6 +526,9 @@ func BuildRoutingKey(route Route) (RoutingKey, error) {
 // Returns an error if route.TaxBehavior is non-nil; use BuildRoutingKey to
 // select the correct version automatically based on route fields.
 func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
+	if len(route.Filters.Plans) > 0 {
+		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
+	}
 	if route.TaxBehavior != nil {
 		return RoutingKey{}, fmt.Errorf("TaxBehavior requires a V2 routing key; use BuildRoutingKey to select the version automatically")
 	}
@@ -515,6 +544,9 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 
 // BuildRoutingKeyV2 encodes route as a V2 routing key.
 func BuildRoutingKeyV2(route Route) (RoutingKey, error) {
+	if len(route.Filters.Plans) > 0 {
+		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
+	}
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
 		return RoutingKey{}, err
@@ -527,6 +559,9 @@ func BuildRoutingKeyV2(route Route) (RoutingKey, error) {
 
 // BuildRoutingKeyV3 encodes route as a V3 routing key.
 func BuildRoutingKeyV3(route Route) (RoutingKey, error) {
+	if len(route.Filters.Plans) > 0 {
+		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
+	}
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
 		return RoutingKey{}, err
@@ -539,6 +574,9 @@ func BuildRoutingKeyV3(route Route) (RoutingKey, error) {
 
 // BuildRoutingKeyV4 encodes route as a V4 routing key.
 func BuildRoutingKeyV4(route Route) (RoutingKey, error) {
+	if len(route.Filters.Plans) > 0 {
+		return RoutingKey{}, errors.New("plan filters require a V5 routing key; use BuildRoutingKey")
+	}
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
 		return RoutingKey{}, err
@@ -551,7 +589,7 @@ func buildRoutingKeyV1Normalized(route Route) (RoutingKey, error) {
 	value := strings.Join([]string{
 		"currency:" + string(route.Currency.Code),
 		"tax_code:" + optionalStringValue(route.TaxCode),
-		"features:" + canonicalFeatures(route.Features),
+		"features:" + canonicalFeatures(route.Filters.Features),
 		"cost_basis:" + optionalDecimalValue(route.CostBasis),
 		"credit_priority:" + optionalIntValue(route.CreditPriority),
 		"transaction_authorization_status:" + string(lo.FromPtrOr(route.TransactionAuthorizationStatus, "null")),
@@ -566,7 +604,7 @@ func buildRoutingKeyV2Normalized(route Route) (RoutingKey, error) {
 		"currency:" + string(route.Currency.Code),
 		"tax_code:" + optionalStringValue(route.TaxCode),
 		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		"features:" + canonicalFeatures(route.Features),
+		"features:" + canonicalFeatures(route.Filters.Features),
 		"cost_basis:" + optionalDecimalValue(route.CostBasis),
 		"credit_priority:" + optionalIntValue(route.CreditPriority),
 		"transaction_authorization_status:" + string(lo.FromPtrOr(route.TransactionAuthorizationStatus, "null")),
@@ -581,7 +619,7 @@ func buildRoutingKeyV3Normalized(route Route) (RoutingKey, error) {
 		"cost_basis_currency:" + string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code("null"))),
 		"tax_code:" + optionalStringValue(route.TaxCode),
 		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		"features:" + canonicalFeatures(route.Features),
+		"features:" + canonicalFeatures(route.Filters.Features),
 		"cost_basis:" + optionalDecimalValue(route.CostBasis),
 		"credit_priority:" + optionalIntValue(route.CreditPriority),
 		"transaction_authorization_status:" + string(lo.FromPtrOr(route.TransactionAuthorizationStatus, "null")),
@@ -601,7 +639,7 @@ func buildRoutingKeyV4Normalized(route Route) (RoutingKey, error) {
 		"cost_basis_currency:" + string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code("null"))),
 		"tax_code:" + optionalStringValue(route.TaxCode),
 		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		"features:" + canonicalFeatures(route.Features),
+		"features:" + canonicalFeatures(route.Filters.Features),
 		"cost_basis:" + optionalDecimalValue(route.CostBasis),
 		"credit_priority:" + optionalIntValue(route.CreditPriority),
 		"transaction_authorization_status:" + string(lo.FromPtrOr(route.TransactionAuthorizationStatus, "null")),

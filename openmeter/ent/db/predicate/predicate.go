@@ -324,6 +324,17 @@ type ChargeUsageBasedRuns func(*sql.Selector)
 // ChargesSearchV1 is the predicate function for chargessearchv1 builders.
 type ChargesSearchV1 func(*sql.Selector)
 
+// ChargesSearchV1OrErr calls the predicate only if the error is not nit.
+func ChargesSearchV1OrErr(p ChargesSearchV1, err error) ChargesSearchV1 {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // CreditRealizationLineage is the predicate function for creditrealizationlineage builders.
 type CreditRealizationLineage func(*sql.Selector)
 

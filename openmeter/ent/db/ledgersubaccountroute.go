@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -46,7 +45,7 @@ type LedgerSubAccountRoute struct {
 	// TaxBehavior holds the value of the "tax_behavior" field.
 	TaxBehavior *ledger.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Filters holds the value of the "filters" field.
-	Filters *crediteligibility.Filters `json:"filters,omitempty"`
+	Filters *ledger.CreditFilters `json:"filters,omitempty"`
 	// Features holds the value of the "features" field.
 	Features pq.StringArray `json:"features,omitempty"`
 	// CostBasis holds the value of the "cost_basis" field.

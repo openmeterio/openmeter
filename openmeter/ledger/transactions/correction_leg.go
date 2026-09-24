@@ -18,7 +18,7 @@ type routePairingKey struct {
 	costBasisCurrency  mo.Option[currencyx.Code]
 	taxCode            mo.Option[string]
 	taxBehavior        mo.Option[ledger.TaxBehavior]
-	features           string
+	filters            string
 	costBasis          mo.Option[string]
 	sourceChargeID     mo.Option[string]
 	spendChargeID      mo.Option[string]
@@ -27,12 +27,12 @@ type routePairingKey struct {
 
 func (k routePairingKey) String() string {
 	return fmt.Sprintf(
-		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,features=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s,collection_origin_id=%s",
+		"currency=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,filters=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s,collection_origin_id=%s",
 		k.currency,
 		k.costBasisCurrency.OrElse("null"),
 		k.taxCode.OrElse("null"),
 		k.taxBehavior.OrElse("null"),
-		k.features,
+		k.filters,
 		k.costBasis.OrElse("null"),
 		k.sourceChargeID.OrElse("null"),
 		k.spendChargeID.OrElse("null"),

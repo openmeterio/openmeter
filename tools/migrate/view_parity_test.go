@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	createViewRE        = regexp.MustCompile(`(?is)CREATE\s+VIEW\s+"([^"]+)"\s+AS\s*(.+?);`)
-	viewMigrationStmtRE = regexp.MustCompile(`(?im)\b(?:CREATE|DROP)\s+(?:MATERIALIZED\s+)?VIEW\b`)
+	createViewRE        = regexp.MustCompile(`(?is)CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+"([^"]+)"\s+AS\s*(.+?);`)
+	viewMigrationStmtRE = regexp.MustCompile(`(?im)\b(?:CREATE(?:\s+OR\s+REPLACE)?|DROP)\s+(?:MATERIALIZED\s+)?VIEW\b`)
 	whitespaceRE        = regexp.MustCompile(`\s+`)
 )
 

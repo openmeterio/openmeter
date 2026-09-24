@@ -168,6 +168,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	})
 	s.Require().NoError(err)
 	s.Require().NotNil(fetched.Intent.GetOverrideLayerMutableFields())
+	// Plan attribution survives persistence and mutable intent overrides.
+	s.Equal(&chargesmeta.SubscriptionPlan{Key: "pro", Version: 1}, fetched.Intent.GetBaseIntent().SubscriptionPlan)
+	s.Equal(fetched.Intent.GetBaseIntent().SubscriptionPlan, fetched.Intent.GetEffectiveIntent().SubscriptionPlan)
 	s.Nil(fetched.Intent.GetOverrideLayerMutableFields().Description)
 	s.Nil(fetched.Intent.GetOverrideLayerMutableFields().Metadata)
 	s.Equal(updated.Intent.GetBaseIntent().TaxConfig, fetched.Intent.GetTaxConfig())
@@ -514,10 +517,11 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createChargeForCustomer(namespace
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
-						ManagedBy:    billing.SubscriptionManagedLine,
-						CustomerID:   customerID,
-						Currency:     currenciestestutils.NewFiatCurrency(s.T(), "USD"),
-						Subscription: subscription,
+						SubscriptionPlan: &chargesmeta.SubscriptionPlan{Key: "pro", Version: 1},
+						ManagedBy:        billing.SubscriptionManagedLine,
+						CustomerID:       customerID,
+						Currency:         currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						Subscription:     subscription,
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},

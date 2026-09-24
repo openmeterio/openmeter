@@ -859,17 +859,17 @@ func (s *BaseSuite) RequireFlatFeeChargeStatus(chargeID meta.ChargeID, status fl
 }
 
 type CreateCreditPurchaseIntentInput struct {
-	Customer       customer.CustomerID
-	Currency       currencyx.Code
-	Amount         alpacadecimal.Decimal
-	EffectiveAt    *time.Time
-	ExpiresAt      *time.Time
-	Priority       *int
-	ServicePeriod  timeutil.ClosedPeriod
-	Settlement     creditpurchase.Settlement
-	CostBasis      creditpurchase.CostBasis
-	FeatureFilters creditpurchase.FeatureFilters
-	TaxConfig      productcatalog.TaxCodeConfig
+	Customer      customer.CustomerID
+	Currency      currencyx.Code
+	Amount        alpacadecimal.Decimal
+	EffectiveAt   *time.Time
+	ExpiresAt     *time.Time
+	Priority      *int
+	ServicePeriod timeutil.ClosedPeriod
+	Settlement    creditpurchase.Settlement
+	CostBasis     creditpurchase.CostBasis
+	Filters       ledger.CreditFilters
+	TaxConfig     productcatalog.TaxCodeConfig
 }
 
 func newFiatCreditPurchaseCostBasis(rate alpacadecimal.Decimal) creditpurchase.CostBasis {
@@ -920,27 +920,27 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 				BillingPeriod:     input.ServicePeriod,
 				FullServicePeriod: input.ServicePeriod,
 			},
-			CreditAmount:   input.Amount,
-			EffectiveAt:    input.EffectiveAt,
-			ExpiresAt:      input.ExpiresAt,
-			Priority:       input.Priority,
-			Settlement:     input.Settlement,
-			FeatureFilters: input.FeatureFilters,
+			CreditAmount: input.Amount,
+			EffectiveAt:  input.EffectiveAt,
+			ExpiresAt:    input.ExpiresAt,
+			Priority:     input.Priority,
+			Settlement:   input.Settlement,
+			Filters:      input.Filters,
 		},
 		CostBasis: input.CostBasis,
 	})
 }
 
 type CreatePromotionalCreditFundingInput struct {
-	Namespace      string
-	Customer       customer.CustomerID
-	Amount         alpacadecimal.Decimal
-	At             time.Time
-	ExpiresAt      *time.Time
-	CostBasis      alpacadecimal.Decimal
-	Priority       *int
-	FeatureFilters creditpurchase.FeatureFilters
-	TaxConfig      productcatalog.TaxCodeConfig
+	Namespace string
+	Customer  customer.CustomerID
+	Amount    alpacadecimal.Decimal
+	At        time.Time
+	ExpiresAt *time.Time
+	CostBasis alpacadecimal.Decimal
+	Priority  *int
+	Filters   ledger.CreditFilters
+	TaxConfig productcatalog.TaxCodeConfig
 }
 
 type CreatePromotionalCreditFundingResult struct {
@@ -955,15 +955,15 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 		Namespace: input.Namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
-				Customer:       input.Customer,
-				Currency:       USD,
-				Amount:         input.Amount,
-				ExpiresAt:      input.ExpiresAt,
-				Priority:       input.Priority,
-				ServicePeriod:  timeutil.ClosedPeriod{From: input.At, To: input.At},
-				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-				FeatureFilters: input.FeatureFilters,
-				TaxConfig:      input.TaxConfig,
+				Customer:      input.Customer,
+				Currency:      USD,
+				Amount:        input.Amount,
+				ExpiresAt:     input.ExpiresAt,
+				Priority:      input.Priority,
+				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
+				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				Filters:       input.Filters,
+				TaxConfig:     input.TaxConfig,
 			}),
 		),
 	})

@@ -71,7 +71,7 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 		OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
 		HasActiveSegments: true,
 		SegmentState:      lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
-		FeatureFilters:    charge.Intent.FeatureFilters.Normalize(),
+		FeatureFilters:    charge.Intent.Filters.Normalize().Features,
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, err
@@ -99,7 +99,7 @@ func (s *Service) GrantPromotionalCredits(ctx context.Context, charge creditpurc
 			Amount:                    charge.Intent.CreditAmount,
 			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
 			Allocations:               ledgerTransactionGroupReference.BackfillAllocations,
-			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
+			FeatureFilters:            charge.Intent.Filters.Normalize().Features,
 		}); err != nil {
 			return creditpurchase.Charge{}, err
 		}
@@ -130,7 +130,7 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 		OriginKind:        lo.ToPtr(creditrealization.LineageOriginKindAdvance),
 		HasActiveSegments: true,
 		SegmentState:      lo.ToPtr(creditrealization.LineageSegmentStateAdvanceUncovered),
-		FeatureFilters:    charge.Intent.FeatureFilters.Normalize(),
+		FeatureFilters:    charge.Intent.Filters.Normalize().Features,
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, err
@@ -158,7 +158,7 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 			Amount:                    charge.Intent.CreditAmount,
 			BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
 			Allocations:               ledgerTransactionGroupReference.BackfillAllocations,
-			FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
+			FeatureFilters:            charge.Intent.Filters.Normalize().Features,
 		}); err != nil {
 			return creditpurchase.Charge{}, err
 		}

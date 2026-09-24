@@ -408,7 +408,7 @@ func toIntent(input creditgrant.CreateInput, currency currencies.Currency) (cred
 	}
 
 	if input.Filters != nil {
-		intent.FeatureFilters = creditpurchase.FeatureFilters(input.Filters.Features).Normalize()
+		intent.Filters = input.Filters.Normalize()
 	}
 
 	if input.Priority != nil {

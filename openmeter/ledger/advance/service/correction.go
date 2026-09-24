@@ -128,7 +128,7 @@ func (s *service) correctBackfill(ctx context.Context, input advance.CorrectionI
 		Currency:          route.Currency,
 		CostBasisCurrency: route.CostBasisCurrency,
 		CostBasis:         route.CostBasis,
-		Features:          route.Features,
+		Filters:           route.Filters,
 		CreditPriority:    &priority,
 		SourceChargeID:    backfill.Receivable.NegativeEntry.Provenance().SourceChargeID,
 	})

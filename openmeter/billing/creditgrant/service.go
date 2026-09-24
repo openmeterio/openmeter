@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -115,9 +116,7 @@ type CreateInput struct {
 	Key *string
 }
 
-type GrantFilters struct {
-	Features []string
-}
+type GrantFilters = ledger.CreditFilters
 
 func (i CreateInput) Validate() error {
 	var errs []error
@@ -170,7 +169,7 @@ func (i CreateInput) Validate() error {
 	}
 
 	if i.Filters != nil {
-		if err := creditpurchase.FeatureFilters(i.Filters.Features).Validate(); err != nil {
+		if err := i.Filters.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("filters.features: %w", err))
 		}
 	}

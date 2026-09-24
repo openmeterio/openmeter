@@ -714,6 +714,9 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.FiatCurrencyCodeCleared() {
 		_spec.ClearField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString)
 	}
+	if _u.mutation.SubscriptionPlanCleared() {
+		_spec.ClearField(chargeusagebased.FieldSubscriptionPlan, field.TypeString)
+	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
 	}
@@ -1763,6 +1766,9 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.FiatCurrencyCodeCleared() {
 		_spec.ClearField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString)
+	}
+	if _u.mutation.SubscriptionPlanCleared() {
+		_spec.ClearField(chargeusagebased.FieldSubscriptionPlan, field.TypeString)
 	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)

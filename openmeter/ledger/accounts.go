@@ -32,7 +32,7 @@ type CustomerFBORouteParams struct {
 	Currency          currencies.CurrencyReference
 	CostBasisCurrency *currencyx.Code
 	CreditPriority    int
-	Features          []string
+	Filters           CreditFilters
 	CostBasis         *alpacadecimal.Decimal
 }
 
@@ -52,7 +52,7 @@ func (p CustomerFBORouteParams) Route() Route {
 	return Route{
 		Currency:          p.Currency,
 		CostBasisCurrency: p.CostBasisCurrency,
-		Features:          p.Features,
+		Filters:           p.Filters,
 		CostBasis:         p.CostBasis,
 		CreditPriority:    &p.CreditPriority,
 	}
@@ -73,7 +73,7 @@ type CustomerReceivableRouteParams struct {
 	Currency                       currencies.CurrencyReference
 	CostBasisCurrency              *currencyx.Code
 	TaxCode                        *string
-	Features                       []string
+	Filters                        CreditFilters
 	CostBasis                      *alpacadecimal.Decimal
 	TransactionAuthorizationStatus TransactionAuthorizationStatus
 }
@@ -91,7 +91,7 @@ func (p CustomerReceivableRouteParams) Route() Route {
 		Currency:                       p.Currency,
 		CostBasisCurrency:              p.CostBasisCurrency,
 		TaxCode:                        p.TaxCode,
-		Features:                       p.Features,
+		Filters:                        p.Filters,
 		CostBasis:                      p.CostBasis,
 		TransactionAuthorizationStatus: &p.TransactionAuthorizationStatus,
 	}

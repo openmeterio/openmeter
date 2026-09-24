@@ -24,7 +24,7 @@ type ConvertCurrencyTemplate struct {
 
 	SourceCurrency currencies.CurrencyReference
 	TargetCurrency currencies.CurrencyReference
-	Features       []string
+	Filters        ledger.CreditFilters
 	SourceChargeID *string
 	SpendChargeID  *string
 }
@@ -191,7 +191,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	sourceAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.SourceCurrency,
 		CostBasis:                      &costBasis,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
@@ -202,7 +202,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 		Currency:                       t.TargetCurrency,
 		CostBasisCurrency:              &targetCostBasisCurrency,
 		CostBasis:                      &costBasis,
-		Features:                       t.Features,
+		Filters:                        t.Filters,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {

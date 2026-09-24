@@ -398,7 +398,7 @@ func TestDefaultValidator_AllowsReceivableCostBasisAttributionAcrossFeatures(t *
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-advance", ledger.Route{
 				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
-				Features:                       []string{"api-calls"},
+				Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(20),
@@ -551,7 +551,7 @@ func TestDefaultValidator_RejectsFeaturesOnAccrued(t *testing.T) {
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-feature", ledger.Route{
 				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-				Features: []string{"api-calls"},
+				Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},

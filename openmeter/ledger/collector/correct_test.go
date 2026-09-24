@@ -132,7 +132,7 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 		Currency:          env.CurrencyReference(),
 		SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
 		ServicePeriod:     servicePeriod,
-		FeatureKey:        "api-calls",
+		Filters:           ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 		Amount:            alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
 	})
 	require.NoError(t, err)
@@ -199,7 +199,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 		Currency:          env.CurrencyReference(),
 		SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
 		ServicePeriod:     servicePeriod,
-		FeatureKey:        "api-calls",
+		Filters:           ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}},
 		Amount:            alpacadecimal.NewFromInt(restrictedAmount + unrestrictedAmount),
 	})
 	require.NoError(t, err)

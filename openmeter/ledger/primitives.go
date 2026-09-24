@@ -45,6 +45,9 @@ type SubAccount interface {
 
 // RouteFilter is the set of route fields that can be used to filter sub-accounts and query balances.
 type RouteFilter struct {
+	// CreditFilters pins the complete restriction set, including unrestricted
+	// dimensions. Features and MatchFeature remain feature-scoped query views.
+	CreditFilters     mo.Option[CreditFilters]
 	Currency          currencies.CurrencyReference
 	CostBasisCurrency mo.Option[*currencyx.Code]
 

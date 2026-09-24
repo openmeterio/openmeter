@@ -21,7 +21,7 @@ type creditPurchaseIssuance struct {
 
 func (i creditPurchaseIssuance) buildTemplates() ([]transactions.TransactionTemplate, error) {
 	charge := i.charge
-	featureFilters := charge.Intent.FeatureFilters.Normalize()
+	filters := charge.Intent.Filters.Normalize()
 
 	issuableAmount := charge.Intent.CreditAmount.Sub(i.backfillPlan.Amount)
 	if issuableAmount.IsNegative() {
@@ -37,7 +37,7 @@ func (i creditPurchaseIssuance) buildTemplates() ([]transactions.TransactionTemp
 			Currency:          charge.Intent.Currency.Reference(),
 			CostBasisCurrency: i.costBasisCurrency,
 			CostBasis:         i.costBasis,
-			Features:          featureFilters,
+			Filters:           filters,
 			SourceChargeID:    &charge.ID,
 			CreditPriority:    charge.Intent.Priority,
 		})
@@ -53,7 +53,7 @@ func (i creditPurchaseIssuance) buildTemplates() ([]transactions.TransactionTemp
 				Amount:         charge.Intent.CreditAmount,
 				Currency:       charge.Intent.Currency.Reference(),
 				CostBasis:      i.costBasis,
-				Features:       featureFilters,
+				Filters:        filters,
 				SourceChargeID: &charge.ID,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
@@ -61,7 +61,7 @@ func (i creditPurchaseIssuance) buildTemplates() ([]transactions.TransactionTemp
 				Amount:         charge.Intent.CreditAmount,
 				Currency:       charge.Intent.Currency.Reference(),
 				CostBasis:      i.costBasis,
-				Features:       featureFilters,
+				Filters:        filters,
 				SourceChargeID: &charge.ID,
 			},
 		)
@@ -101,7 +101,7 @@ func (i creditPurchaseIssuance) mapBreakageInput() *breakage.PlanIssuanceInput {
 		CostBasisCurrency: i.costBasisCurrency,
 		CostBasis:         i.costBasis,
 		CreditPriority:    i.charge.Intent.Priority,
-		Features:          i.charge.Intent.FeatureFilters.Normalize(),
+		Filters:           i.charge.Intent.Filters.Normalize(),
 		ExpiresAt:         *i.charge.Intent.ExpiresAt,
 		SourceChargeID:    &i.charge.ID,
 	}

@@ -957,7 +957,7 @@ func (e *usageBasedHandlerTestEnv) customReceivableSubAccountForUsageBasedFeatur
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       customCurrency,
 		CostBasis:                      nil,
-		Features:                       []string{featureKey},
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{featureKey}},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	require.NoError(t, err)

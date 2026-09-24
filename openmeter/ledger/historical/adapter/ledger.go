@@ -70,7 +70,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 				CostBasisCurrency:              route.CostBasisCurrency,
 				TaxCode:                        route.TaxCode,
 				TaxBehavior:                    route.TaxBehavior,
-				Features:                       route.Filters.Features,
+				Filters:                        *route.Filters,
 				CostBasis:                      route.CostBasis,
 				CreditPriority:                 route.CreditPriority,
 				TransactionAuthorizationStatus: route.TransactionAuthorizationStatus,
@@ -498,6 +498,9 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 		}
 	}
 
+	if exact, ok := route.CreditFilters.Get(); ok {
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
+	}
 	if features, ok := route.Features.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 	}
@@ -686,6 +689,9 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]
 		}
 	}
 
+	if exact, ok := route.CreditFilters.Get(); ok {
+		predicates = append(predicates, routequery.ExactFiltersPredicate(routeColumn, exact))
+	}
 	if features, ok := route.Features.Get(); ok {
 		predicates = append(predicates, routequery.ExactFeaturesPredicate(routeColumn, features))
 	}

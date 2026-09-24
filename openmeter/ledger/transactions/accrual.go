@@ -286,7 +286,7 @@ type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	TaxBehavior        *ledger.TaxBehavior
 	CostBasisCurrency  *currencyx.Code
 	CostBasis          *alpacadecimal.Decimal
-	Features           []string
+	Filters            ledger.CreditFilters
 	SourceChargeID     *string
 	SpendChargeID      *string
 	CollectionOriginID *string
@@ -410,7 +410,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 		Currency:          t.Currency,
 		CostBasisCurrency: t.CostBasisCurrency,
 		CostBasis:         t.CostBasis,
-		Features:          t.Features,
+		Filters:           t.Filters,
 		CreditPriority:    priority,
 	})
 	if err != nil {

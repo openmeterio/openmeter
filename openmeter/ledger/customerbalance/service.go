@@ -397,8 +397,8 @@ func (s liveBalanceSource) Compare(other liveBalanceSource) int {
 		return c
 	}
 
-	leftRestricted := len(s.route.Features) > 0
-	rightRestricted := len(other.route.Features) > 0
+	leftRestricted := !s.route.Filters.IsEmpty()
+	rightRestricted := !other.route.Filters.IsEmpty()
 	if leftRestricted != rightRestricted {
 		if leftRestricted {
 			return -1
@@ -625,7 +625,7 @@ func (s *service) getPendingGrantCurrencies(
 			continue
 		}
 
-		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.FeatureFilters) {
+		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.Filters.Features) {
 			continue
 		}
 
@@ -674,7 +674,7 @@ func (s *service) getPendingGrantAmount(
 			continue
 		}
 
-		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.FeatureFilters) {
+		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.Filters.Features) {
 			continue
 		}
 

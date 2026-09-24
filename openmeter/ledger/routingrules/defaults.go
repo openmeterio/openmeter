@@ -6,7 +6,7 @@ var DefaultValidator = Validator{
 	Rules: []RoutingRule{
 		RequireUniqueSubAccountsRule{},
 		RequireTaxDimensionScopeRule{},
-		RequireFeatureDimensionScopeRule{},
+		RequireFilterDimensionScopeRule{},
 		AllowedAccountSetsRule{
 			Sets: [][]ledger.AccountType{
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable},
@@ -58,7 +58,7 @@ var DefaultValidator = Validator{
 			Right: ledger.AccountTypeCustomerReceivable,
 			Fields: []RouteField{
 				RouteFieldCurrency,
-				RouteFieldFeatures,
+				RouteFieldFilters,
 				RouteFieldCostBasis,
 				RouteFieldCostBasisCurrency,
 			},

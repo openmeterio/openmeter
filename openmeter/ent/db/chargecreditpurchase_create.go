@@ -29,7 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -136,6 +136,12 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableCustomCurrencyID(v *string) *Ch
 // SetManagedBy sets the "managed_by" field.
 func (_c *ChargeCreditPurchaseCreate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetManagedBy(v)
+	return _c
+}
+
+// SetSubscriptionPlan sets the "subscription_plan" field.
+func (_c *ChargeCreditPurchaseCreate) SetSubscriptionPlan(v *meta.SubscriptionPlan) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetSubscriptionPlan(v)
 	return _c
 }
 
@@ -406,7 +412,7 @@ func (_c *ChargeCreditPurchaseCreate) SetNillablePriority(v *int) *ChargeCreditP
 }
 
 // SetFilters sets the "filters" field.
-func (_c *ChargeCreditPurchaseCreate) SetFilters(v *crediteligibility.Filters) *ChargeCreditPurchaseCreate {
+func (_c *ChargeCreditPurchaseCreate) SetFilters(v *ledger.CreditFilters) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetFilters(v)
 	return _c
 }
@@ -715,6 +721,11 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.SubscriptionPlan(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "subscription_plan", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.subscription_plan": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.TaxCodeID(); !ok {
 		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeCreditPurchase.tax_code_id"`)}
 	}
@@ -861,6 +872,14 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargecreditpurchase.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.SubscriptionPlan(); ok {
+		vv, err := chargecreditpurchase.ValueScanner.SubscriptionPlan.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargecreditpurchase.FieldSubscriptionPlan, field.TypeString, vv)
+		_node.SubscriptionPlan = value
 	}
 	if value, ok := _c.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime, value)
@@ -1617,6 +1636,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldManagedBy)
 		}
+		if _, exists := u.create.mutation.SubscriptionPlan(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldSubscriptionPlan)
+		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
 		}
@@ -2332,6 +2354,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldManagedBy)
+			}
+			if _, exists := b.mutation.SubscriptionPlan(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldSubscriptionPlan)
 			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)

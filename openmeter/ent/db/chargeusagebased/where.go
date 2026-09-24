@@ -815,6 +815,16 @@ func ManagedByNotIn(vs ...billing.InvoiceLineManagedBy) predicate.ChargeUsageBas
 	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldManagedBy, v...))
 }
 
+// SubscriptionPlanIsNil applies the IsNil predicate on the "subscription_plan" field.
+func SubscriptionPlanIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldSubscriptionPlan))
+}
+
+// SubscriptionPlanNotNil applies the NotNil predicate on the "subscription_plan" field.
+func SubscriptionPlanNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldSubscriptionPlan))
+}
+
 // SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.
 func SubscriptionIDEQ(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldSubscriptionID, v))

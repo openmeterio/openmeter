@@ -19,7 +19,7 @@ type IssueInput struct {
 	At          time.Time
 	Amount      alpacadecimal.Decimal
 	Currency    currencies.CurrencyReference
-	Features    []string
+	Filters     ledger.CreditFilters
 	TaxCode     *string
 	TaxBehavior *ledger.TaxBehavior
 }
@@ -49,5 +49,8 @@ func (i IssueInput) Validate() error {
 		errs = append(errs, errors.New("custom currency must be resolved"))
 	}
 
+	if err := i.Filters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("filters: %w", err))
+	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

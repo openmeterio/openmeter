@@ -152,6 +152,30 @@ export interface AppStripeCreateCustomerPortalSessionOptions {
  */
 export type CreateLabels = Record<string, string>
 
+/** An integer version comparison. Exactly one operator must be provided. */
+export interface CreateVersionFilter {
+  /** Match this exact version. */
+  eq?: number
+  /** Match one of these versions. */
+  in?: number[]
+  /** Match this version and later versions. */
+  gte?: number
+  /** Match this version and earlier versions. */
+  lte?: number
+}
+
+/** An integer version comparison. Exactly one operator must be provided. */
+export interface VersionFilter {
+  /** Match this exact version. */
+  eq?: number
+  /** Match one of these versions. */
+  in?: number[]
+  /** Match this version and later versions. */
+  gte?: number
+  /** Match this version and earlier versions. */
+  lte?: number
+}
+
 /** Free price. */
 export interface PriceFree {
   /** The type of the price. */
@@ -1588,24 +1612,6 @@ export interface NotImplemented extends BaseError {}
 /** Not Available. */
 export interface NotAvailable extends BaseError {}
 
-/** Filters for the credit grant. */
-export interface CreateCreditGrantFilters {
-  /**
-   * Limit the credit grant to specific features. If no features are specified, the
-   * credit grant can be used for any feature.
-   */
-  features?: string[]
-}
-
-/** Filters for the credit grant. */
-export interface CreditGrantFilters {
-  /**
-   * Limit the credit grant to specific features. If no features are specified, the
-   * credit grant can be used for any feature.
-   */
-  features?: string[]
-}
-
 /**
  * A reference to the plan a subscription was created from, pinned to an exact
  * revision.
@@ -2079,6 +2085,14 @@ export interface ListPlansParamsFilter {
   currency?: StringFieldFilterExact
 }
 
+/** A plan key and an optional version constraint for matching credit grants. */
+export interface CreateCreditGrantPlanFilter {
+  /** The plan key in the customer's namespace. */
+  key: string
+  /** Omission matches all versions, including future versions. */
+  version?: CreateVersionFilter
+}
+
 /**
  * Request body for updating the external payment settlement status of a credit
  * grant.
@@ -2086,6 +2100,14 @@ export interface ListPlansParamsFilter {
 export interface UpdateCreditGrantExternalSettlementRequest {
   /** The new payment settlement status. */
   status: 'pending' | 'authorized' | 'settled'
+}
+
+/** A plan key and an optional version constraint for matching credit grants. */
+export interface CreditGrantPlanFilter {
+  /** The plan key in the customer's namespace. */
+  key: string
+  /** Omission matches all versions, including future versions. */
+  version?: VersionFilter
 }
 
 /** Filter options for listing credit grants. */
@@ -3760,6 +3782,36 @@ export interface SubscriptionEditAddPhase {
   type: 'add_phase'
   /** The phase to add. */
   phase: SubscriptionPhaseCreate
+}
+
+/** Filters for the credit grant. */
+export interface CreateCreditGrantFilters {
+  /**
+   * Limit the credit grant to specific features. If no features are specified, the
+   * credit grant can be used for any feature.
+   */
+  features?: string[]
+  /**
+   * Limit credits to charges from these plans. Entries are alternatives; when
+   * features are also specified, both dimensions must match. Omission or an empty
+   * list leaves plans unrestricted.
+   */
+  plans?: CreateCreditGrantPlanFilter[]
+}
+
+/** Filters for the credit grant. */
+export interface CreditGrantFilters {
+  /**
+   * Limit the credit grant to specific features. If no features are specified, the
+   * credit grant can be used for any feature.
+   */
+  features?: string[]
+  /**
+   * Limit credits to charges from these plans. Entries are alternatives; when
+   * features are also specified, both dimensions must match. Omission or an empty
+   * list leaves plans unrestricted.
+   */
+  plans?: CreditGrantPlanFilter[]
 }
 
 /** Subscription fields without phases or the current billing period. */

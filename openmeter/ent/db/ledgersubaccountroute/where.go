@@ -3,6 +3,7 @@
 package ledgersubaccountroute
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -125,6 +126,12 @@ func TaxCode(v string) predicate.LedgerSubAccountRoute {
 func TaxBehavior(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
 	vc := string(v)
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// Filters applies equality check predicate on the "filters" field. It's identical to FiltersEQ.
+func Filters(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldEQ(FieldFilters, vc), err)
 }
 
 // Features applies equality check predicate on the "features" field. It's identical to FeaturesEQ.
@@ -883,6 +890,120 @@ func TaxBehaviorEqualFold(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute 
 func TaxBehaviorContainsFold(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
 	vc := string(v)
 	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTaxBehavior, vc))
+}
+
+// FiltersEQ applies the EQ predicate on the "filters" field.
+func FiltersEQ(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldEQ(FieldFilters, vc), err)
+}
+
+// FiltersNEQ applies the NEQ predicate on the "filters" field.
+func FiltersNEQ(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldNEQ(FieldFilters, vc), err)
+}
+
+// FiltersIn applies the In predicate on the "filters" field.
+func FiltersIn(vs ...*ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Filters.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldIn(FieldFilters, v...), err)
+}
+
+// FiltersNotIn applies the NotIn predicate on the "filters" field.
+func FiltersNotIn(vs ...*ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Filters.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldNotIn(FieldFilters, v...), err)
+}
+
+// FiltersGT applies the GT predicate on the "filters" field.
+func FiltersGT(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldGT(FieldFilters, vc), err)
+}
+
+// FiltersGTE applies the GTE predicate on the "filters" field.
+func FiltersGTE(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldGTE(FieldFilters, vc), err)
+}
+
+// FiltersLT applies the LT predicate on the "filters" field.
+func FiltersLT(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldLT(FieldFilters, vc), err)
+}
+
+// FiltersLTE applies the LTE predicate on the "filters" field.
+func FiltersLTE(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldLTE(FieldFilters, vc), err)
+}
+
+// FiltersContains applies the Contains predicate on the "filters" field.
+func FiltersContains(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("filters value is not a string: %T", vc)
+	}
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldContains(FieldFilters, vcs), err)
+}
+
+// FiltersHasPrefix applies the HasPrefix predicate on the "filters" field.
+func FiltersHasPrefix(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("filters value is not a string: %T", vc)
+	}
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldHasPrefix(FieldFilters, vcs), err)
+}
+
+// FiltersHasSuffix applies the HasSuffix predicate on the "filters" field.
+func FiltersHasSuffix(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("filters value is not a string: %T", vc)
+	}
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldHasSuffix(FieldFilters, vcs), err)
+}
+
+// FiltersEqualFold applies the EqualFold predicate on the "filters" field.
+func FiltersEqualFold(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("filters value is not a string: %T", vc)
+	}
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldEqualFold(FieldFilters, vcs), err)
+}
+
+// FiltersContainsFold applies the ContainsFold predicate on the "filters" field.
+func FiltersContainsFold(v *ledger.CreditFilters) predicate.LedgerSubAccountRoute {
+	vc, err := ValueScanner.Filters.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("filters value is not a string: %T", vc)
+	}
+	return predicate.LedgerSubAccountRouteOrErr(sql.FieldContainsFold(FieldFilters, vcs), err)
 }
 
 // FeaturesEQ applies the EQ predicate on the "features" field.

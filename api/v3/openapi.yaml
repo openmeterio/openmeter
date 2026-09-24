@@ -7172,6 +7172,14 @@ components:
           example:
             - input_tokens
             - output_tokens
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCreditGrantPlanFilter'
+          description: |-
+            Limit credits to charges from these plans. Entries are alternatives; when
+            features are also specified, both dimensions must match. Omission or an empty
+            list leaves plans unrestricted.
       additionalProperties: false
       description: Filters for the credit grant.
     BillingCreditGrantInvoiceReference:
@@ -7194,6 +7202,21 @@ components:
           readOnly: true
       additionalProperties: false
       description: Invoice references for the grant.
+    BillingCreditGrantPlanFilter:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The plan key in the customer's namespace.
+        version:
+          allOf:
+            - $ref: '#/components/schemas/VersionFilter'
+          description: Omission matches all versions, including future versions.
+      additionalProperties: false
+      description: A plan key and an optional version constraint for matching credit grants.
     BillingCreditGrantPurchase:
       type: object
       required:
@@ -13072,8 +13095,31 @@ components:
           example:
             - input_tokens
             - output_tokens
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateCreditGrantPlanFilter'
+          description: |-
+            Limit credits to charges from these plans. Entries are alternatives; when
+            features are also specified, both dimensions must match. Omission or an empty
+            list leaves plans unrestricted.
       additionalProperties: false
       description: Filters for the credit grant.
+    CreateCreditGrantPlanFilter:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The plan key in the customer's namespace.
+        version:
+          allOf:
+            - $ref: '#/components/schemas/CreateVersionFilter'
+          description: Omission matches all versions, including future versions.
+      additionalProperties: false
+      description: A plan key and an optional version constraint for matching credit grants.
     CreateCreditGrantPurchase:
       type: object
       required:
@@ -13792,6 +13838,34 @@ components:
           title: App type to tax code mappings
       additionalProperties: false
       description: TaxCode create request.
+    CreateVersionFilter:
+      type: object
+      properties:
+        eq:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this exact version.
+        in:
+          type: array
+          items:
+            type: integer
+            format: int32
+          minItems: 1
+          maxItems: 100
+          description: Match one of these versions.
+        gte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and later versions.
+        lte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and earlier versions.
+      additionalProperties: false
+      description: An integer version comparison. Exactly one operator must be provided.
     CreditBalance:
       type: object
       required:
@@ -17248,6 +17322,34 @@ components:
       type: string
       minLength: 1
       description: Subject key.
+    VersionFilter:
+      type: object
+      properties:
+        eq:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this exact version.
+        in:
+          type: array
+          items:
+            type: integer
+            format: int32
+          minItems: 1
+          maxItems: 100
+          description: Match one of these versions.
+        gte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and later versions.
+        lte:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Match this version and earlier versions.
+      additionalProperties: false
+      description: An integer version comparison. Exactly one operator must be provided.
     VoidCreditGrantRequest:
       type: object
       properties:

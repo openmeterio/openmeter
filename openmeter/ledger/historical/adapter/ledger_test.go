@@ -733,15 +733,15 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
 	featureA := env.createSubAccount(t, namespace, ledger.Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Features: []string{"feature-a"},
+		Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"feature-a"}},
 	})
 	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Features: []string{"feature-a", "feature-b"},
+		Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"feature-a", "feature-b"}},
 	})
 	featureB := env.createSubAccount(t, namespace, ledger.Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Features: []string{"feature-b"},
+		Filters:  ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"feature-b"}},
 	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
@@ -1248,7 +1248,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	subAccountFeatures := env.createSubAccount(t, namespace, ledger.Route{
 		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: lo.ToPtr(1),
-		Features:       []string{"storage", "api-calls"},
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"storage", "api-calls"}},
 	})
 	subAccountUnrestricted := env.createSubAccount(t, namespace, ledger.Route{
 		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
@@ -1302,8 +1302,8 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 	ctx := t.Context()
 	namespace := testNamespace()
 	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
-	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a"}})
-	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a", "feature-b"}})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"feature-a"}}})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"feature-a", "feature-b"}}})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,

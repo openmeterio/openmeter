@@ -55,6 +55,13 @@ projection. The type-specific detailed status is the lifecycle state.
 `AdvanceCharges` coordinates concrete services; it is not a second
 implementation of their state machines.
 
+Subscription-managed charges snapshot the current subscription plan key and
+version when created. A scheduled migration advances that reference immediately,
+so new charges can use the target version before its pricing takes effect,
+including charges created later for earlier service. Existing charges retain
+their snapshot across overrides, corrections, and later migrations. Charges
+without recorded attribution remain unattributed.
+
 ## Intent layers
 
 Flat-fee and usage-based charges have an immutable intent, a mutable base layer,

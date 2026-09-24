@@ -17,14 +17,14 @@ import (
 // FBO Sources for Prioritization
 
 type fboCollectionSource struct {
-	address           ledger.PostingAddress
-	sourceChargeID    *string
-	available         alpacadecimal.Decimal
-	creditPriority    int
-	featureRestricted bool
-	expiresAt         *time.Time
-	cursor            string
-	breakagePlan      *breakage.Plan
+	address        ledger.PostingAddress
+	sourceChargeID *string
+	available      alpacadecimal.Decimal
+	creditPriority int
+	restricted     bool
+	expiresAt      *time.Time
+	cursor         string
+	breakagePlan   *breakage.Plan
 }
 
 var _ cmpx.Comparable[fboCollectionSource] = fboCollectionSource{}
@@ -36,8 +36,8 @@ func (s fboCollectionSource) Compare(other fboCollectionSource) int {
 		return c
 	}
 
-	if s.featureRestricted != other.featureRestricted {
-		if s.featureRestricted {
+	if s.restricted != other.restricted {
+		if s.restricted {
 			return -1
 		}
 

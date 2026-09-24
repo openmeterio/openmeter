@@ -45,7 +45,7 @@ func TestRepoGetBalancesAtBoundariesPreservesScopeAndCursor(t *testing.T) {
 	} {
 		sub, err := env.accountRepo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 			Namespace: namespace, AccountID: account.ID.ID,
-			Route: ledger.Route{Currency: posting.currency, Features: posting.features, CreditPriority: lo.ToPtr(1)},
+			Route: ledger.Route{Currency: posting.currency, Filters: ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: posting.features}, CreditPriority: lo.ToPtr(1)},
 		})
 		require.NoError(t, err)
 		counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, ledger.Route{Currency: posting.currency})

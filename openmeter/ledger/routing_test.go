@@ -150,7 +150,7 @@ func TestBuildRoutingKeyV1_WithTaxCodeAndFeatures(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:  lo.ToPtr("VAT20"),
-		Features: []string{"feat-b", "feat-a"},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{"feat-b", "feat-a"}},
 	})
 	require.NoError(t, err)
 	// Features are sorted canonically
@@ -160,7 +160,7 @@ func TestBuildRoutingKeyV1_WithTaxCodeAndFeatures(t *testing.T) {
 func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Features: []string{},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{}},
 	})
 	require.NoError(t, err)
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
@@ -169,12 +169,12 @@ func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 func TestRouteValidateRejectsInvalidFeatures(t *testing.T) {
 	require.Error(t, Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Features: []string{""},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{""}},
 	}.Validate())
 
 	require.Error(t, Route{
 		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
-		Features: []string{"api-calls", "api-calls"},
+		Filters:  CreditFilters{Version: CreditFiltersVersion1, Features: []string{"api-calls", "api-calls"}},
 	}.Validate())
 }
 
@@ -402,7 +402,7 @@ func TestRouteMatches(t *testing.T) {
 		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
-		Features:                       []string{"storage", "api-calls"},
+		Filters:                        CreditFilters{Version: CreditFiltersVersion1, Features: []string{"storage", "api-calls"}},
 		CostBasis:                      &costBasis,
 		CreditPriority:                 &priority,
 		TransactionAuthorizationStatus: &authStatus,
@@ -747,4 +747,35 @@ func TestBuildRoutingKeyV2_WithTaxBehaviorAndTaxCode(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, RoutingKeyVersionV2, key.Version())
 	require.Equal(t, "currency:USD|tax_code:GST10|tax_behavior:exclusive|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
+}
+
+func TestPlanFiltersUseDistinctCanonicalRoutingKeys(t *testing.T) {
+	route := Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Filters: CreditFilters{Features: []string{"api-calls"}}}
+	legacy, err := BuildRoutingKey(route)
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV1, legacy.Version())
+	explicitLegacy, err := BuildRoutingKeyV1(route)
+	require.NoError(t, err)
+	require.Equal(t, explicitLegacy, legacy)
+
+	route.Filters.Plans = []PlanFilter{{Key: "pro", Version: &VersionFilter{In: []int{3, 2, 3}}}}
+	key, err := BuildRoutingKey(route)
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV5, key.Version())
+	normalized := route.Filters.Normalize()
+	route.Filters = normalized
+	reordered, err := BuildRoutingKey(route)
+	require.NoError(t, err)
+	require.Equal(t, key, reordered)
+	for _, build := range []func(Route) (RoutingKey, error){BuildRoutingKeyV1, BuildRoutingKeyV2, BuildRoutingKeyV3, BuildRoutingKeyV4} {
+		_, err := build(route)
+		require.ErrorContains(t, err, "V5")
+	}
+	different := route
+	different.Filters = CreditFilters{Features: route.Filters.Features, Plans: []PlanFilter{{Key: "starter"}}}
+	other, err := BuildRoutingKey(different)
+	require.NoError(t, err)
+	require.NotEqual(t, key, other)
+	require.False(t, different.Matches(route.Filter()))
+	require.True(t, route.Matches(route.Filter()))
 }

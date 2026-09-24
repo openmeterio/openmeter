@@ -59,6 +59,7 @@ type Creator[T any] interface {
 	entutils.AnnotationsMixinSetter[T]
 	entutils.TimeMixinCreator[T]
 
+	SetSubscriptionPlan(*meta.SubscriptionPlan) T
 	SetCustomerID(customerID string) T
 	SetNillableFiatCurrencyCode(currency *currencyx.Code) T
 	SetNillableCustomCurrencyID(customCurrencyID *string) T
@@ -147,6 +148,9 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		creator = creator.SetValidationIssues(in.ValidationIssues)
 	}
 
+	if in.Intent.SubscriptionPlan != nil {
+		creator = creator.SetSubscriptionPlan(in.Intent.SubscriptionPlan)
+	}
 	return creator.
 		SetNamespace(in.Namespace).
 		SetName(in.IntentMutableFields.Name).
@@ -228,6 +232,7 @@ type Getter[T any] interface {
 	GetMetadata() map[string]string
 	GetAnnotations() models.Annotations
 	GetManagedBy() billing.InvoiceLineManagedBy
+	GetSubscriptionPlan() *meta.SubscriptionPlan
 	GetCustomerID() string
 	GetServicePeriodFrom() time.Time
 	GetServicePeriodTo() time.Time
@@ -300,10 +305,11 @@ func FromDBWithCurrency[T Getter[T]](entity T, currency currencies.Currency) (me
 			ID:           entity.GetID(),
 		},
 		Intent: meta.Intent{
-			ManagedBy:   entity.GetManagedBy(),
-			CustomerID:  entity.GetCustomerID(),
-			Annotations: entity.GetAnnotations(),
-			Currency:    currency,
+			SubscriptionPlan: entity.GetSubscriptionPlan(),
+			ManagedBy:        entity.GetManagedBy(),
+			CustomerID:       entity.GetCustomerID(),
+			Annotations:      entity.GetAnnotations(),
+			Currency:         currency,
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: entity.GetTaxCodeID(),
 				Behavior:  entity.GetTaxBehavior(),

@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -45,6 +45,8 @@ const (
 	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
+	// FieldSubscriptionPlan holds the string denoting the subscription_plan field in the database.
+	FieldSubscriptionPlan = "subscription_plan"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
 	FieldSubscriptionID = "subscription_id"
 	// FieldSubscriptionPhaseID holds the string denoting the subscription_phase_id field in the database.
@@ -223,6 +225,7 @@ var Columns = []string{
 	FieldFiatCurrencyCode,
 	FieldCustomCurrencyID,
 	FieldManagedBy,
+	FieldSubscriptionPlan,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
@@ -289,12 +292,13 @@ var (
 	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
 	DefaultSchemaLevel int
 	// DefaultFilters holds the default value on creation for the "filters" field.
-	DefaultFilters func() *crediteligibility.Filters
+	DefaultFilters func() *ledger.CreditFilters
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
 	ValueScanner struct {
-		Filters field.TypeValueScanner[*crediteligibility.Filters]
+		SubscriptionPlan field.TypeValueScanner[*meta.SubscriptionPlan]
+		Filters          field.TypeValueScanner[*ledger.CreditFilters]
 	}
 )
 
@@ -424,6 +428,11 @@ func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
 // ByManagedBy orders the results by the managed_by field.
 func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
+}
+
+// BySubscriptionPlan orders the results by the subscription_plan field.
+func BySubscriptionPlan(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionPlan, opts...).ToFunc()
 }
 
 // BySubscriptionID orders the results by the subscription_id field.

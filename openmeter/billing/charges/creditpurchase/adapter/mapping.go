@@ -54,7 +54,7 @@ func fromDBBase(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge) (c
 				EffectiveAt:         convert.SafeToUTC(dbEntity.EffectiveAt),
 				ExpiresAt:           convert.SafeToUTC(dbEntity.ExpiresAt),
 				Priority:            dbEntity.Priority,
-				FeatureFilters:      creditpurchase.FeatureFilters(dbEntity.Filters.Features).Normalize(),
+				Filters:             dbEntity.Filters.Normalize(),
 				Settlement:          mappedSettlement,
 			},
 			CostBasis: mappedCostBasis.CostBasis,

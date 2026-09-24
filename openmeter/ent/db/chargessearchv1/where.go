@@ -1038,6 +1038,16 @@ func ManagedByNotIn(vs ...billing.InvoiceLineManagedBy) predicate.ChargesSearchV
 	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldManagedBy, v...))
 }
 
+// SubscriptionPlanIsNil applies the IsNil predicate on the "subscription_plan" field.
+func SubscriptionPlanIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldSubscriptionPlan))
+}
+
+// SubscriptionPlanNotNil applies the NotNil predicate on the "subscription_plan" field.
+func SubscriptionPlanNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldSubscriptionPlan))
+}
+
 // SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.
 func SubscriptionIDEQ(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldSubscriptionID, v))

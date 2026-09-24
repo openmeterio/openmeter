@@ -32,7 +32,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
-		Features:                       []string{"feature-a", "feature-b"},
+		Filters:                        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"feature-a", "feature-b"}},
 		CostBasis:                      &costBasis,
 		CreditPriority:                 &priority,
 		TransactionAuthorizationStatus: &authStatus,

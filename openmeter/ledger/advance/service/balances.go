@@ -171,17 +171,17 @@ func (b advanceReceivableBalance) Compare(other advanceReceivableBalance) int {
 // rows have no spend charge, so each route bucket remains separate inside the
 // same spend group and is consumed in deterministic route order.
 type advanceReceivableBuckets struct {
-	requiredFeatures []string
-	bySpendChargeID  map[string][]advanceReceivableBalance
+	requiredFilters ledger.CreditFilters
+	bySpendChargeID map[string][]advanceReceivableBalance
 }
 
-// availableForSpend applies the same feature restriction as consume, so a
+// availableForSpend applies the same route filters as consume, so a
 // lineage occurrence cannot borrow capacity from another receivable route.
 func (b *advanceReceivableBuckets) availableForSpend(spendChargeID string) alpacadecimal.Decimal {
 	available := alpacadecimal.Zero
 
 	for _, balance := range b.bySpendChargeID[spendChargeID] {
-		if !slices.Equal(b.requiredFeatures, balance.address.Route().Route().Features) {
+		if !b.requiredFilters.Equal(balance.address.Route().Route().Filters) {
 			continue
 		}
 
@@ -192,7 +192,7 @@ func (b *advanceReceivableBuckets) availableForSpend(spendChargeID string) alpac
 }
 
 // consume removes up to amount from the concrete receivable buckets for one
-// spend key and the current occurrence's feature route.
+// spend key and the current occurrence's route filters.
 func (b *advanceReceivableBuckets) consume(spendChargeID string, amount alpacadecimal.Decimal, attributionFor func(advanceReceivableBalance, alpacadecimal.Decimal) advanceAttribution) ([]advanceAttribution, alpacadecimal.Decimal) {
 	remainingAmount := amount
 	advanceReceivables := b.bySpendChargeID[spendChargeID]
@@ -205,7 +205,7 @@ func (b *advanceReceivableBuckets) consume(spendChargeID string, amount alpacade
 		}
 
 		advanceReceivable := advanceReceivables[i]
-		if !slices.Equal(b.requiredFeatures, advanceReceivable.address.Route().Route().Features) {
+		if !b.requiredFilters.Equal(advanceReceivable.address.Route().Route().Filters) {
 			continue
 		}
 
@@ -230,7 +230,7 @@ func (b *advanceReceivableBuckets) consume(spendChargeID string, amount alpacade
 }
 
 // attributeRemaining uses the purchase remainder against eligible receivable
-// before issuing new credit. It preserves each original spend/feature route,
+// before issuing new credit. It preserves each original spend route,
 // but does not imply that accrued was translated or a lineage segment funded.
 func (b *advanceReceivableBuckets) attributeRemaining(amount alpacadecimal.Decimal) []advanceAttribution {
 	var attributions []advanceAttribution
@@ -250,7 +250,7 @@ func (b *advanceReceivableBuckets) attributeRemaining(amount alpacadecimal.Decim
 
 			attributed := legacylineage.MinDecimal(amount, balance.remaining)
 			attributions = append(attributions, advanceAttribution{
-				advanceFeatures:    balance.address.Route().Route().Features,
+				advanceFilters:     balance.address.Route().Route().Filters,
 				spendChargeID:      balance.spendChargeID,
 				collectionOriginID: balance.collectionOriginID,
 				advanceAmount:      attributed,
@@ -263,18 +263,17 @@ func (b *advanceReceivableBuckets) attributeRemaining(amount alpacadecimal.Decim
 	return attributions
 }
 
-// newAdvanceReceivableBuckets selects open source-less advance receivable that
-// this creditpurchase is allowed to backfill. Buckets are grouped by spend charge
+// newAdvanceReceivableBuckets selects open source-less advance receivable
+// whose routes match the purchase filters. Buckets are grouped by spend charge
 // for provenance matching, while the original route buckets remain ordered inside
 // the group so legacy nil-spend entries cannot overwrite each other.
-func newAdvanceReceivableBuckets(advanceReceivables []advanceReceivableBalance, creditFeatures []string) advanceReceivableBuckets {
+func newAdvanceReceivableBuckets(advanceReceivables []advanceReceivableBalance, filters ledger.CreditFilters) advanceReceivableBuckets {
 	buckets := advanceReceivableBuckets{
 		bySpendChargeID: make(map[string][]advanceReceivableBalance, len(advanceReceivables)),
 	}
 
 	for _, advanceReceivable := range advanceReceivables {
-		advanceFeatures := advanceReceivable.address.Route().Route().Features
-		if !legacylineage.FeatureFiltersMatchAdvance(creditFeatures, advanceFeatures) {
+		if !filters.Matches(advanceReceivable.address.Route().Route()) {
 			continue
 		}
 

@@ -27,7 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -62,6 +62,8 @@ type ChargeCreditPurchase struct {
 	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
+	// SubscriptionPlan holds the value of the "subscription_plan" field.
+	SubscriptionPlan *meta.SubscriptionPlan `json:"subscription_plan,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
 	SubscriptionID *string `json:"subscription_id,omitempty"`
 	// SubscriptionPhaseID holds the value of the "subscription_phase_id" field.
@@ -109,7 +111,7 @@ type ChargeCreditPurchase struct {
 	// Priority holds the value of the "priority" field.
 	Priority *int `json:"priority,omitempty"`
 	// Filters holds the value of the "filters" field.
-	Filters *crediteligibility.Filters `json:"filters,omitempty"`
+	Filters *ledger.CreditFilters `json:"filters,omitempty"`
 	// FeatureFilters holds the value of the "feature_filters" field.
 	FeatureFilters pq.StringArray `json:"feature_filters,omitempty"`
 	// Settlement holds the value of the "settlement" field.
@@ -299,6 +301,8 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt, chargecreditpurchase.FieldVoidedAt:
 			values[i] = new(sql.NullTime)
+		case chargecreditpurchase.FieldSubscriptionPlan:
+			values[i] = chargecreditpurchase.ValueScanner.SubscriptionPlan.ScanValue()
 		case chargecreditpurchase.FieldFilters:
 			values[i] = chargecreditpurchase.ValueScanner.Filters.ScanValue()
 		default:
@@ -396,6 +400,12 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field managed_by", values[i])
 			} else if value.Valid {
 				_m.ManagedBy = billing.InvoiceLineManagedBy(value.String)
+			}
+		case chargecreditpurchase.FieldSubscriptionPlan:
+			if value, err := chargecreditpurchase.ValueScanner.SubscriptionPlan.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.SubscriptionPlan = value
 			}
 		case chargecreditpurchase.FieldSubscriptionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -732,6 +742,11 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))
+	builder.WriteString(", ")
+	if v := _m.SubscriptionPlan; v != nil {
+		builder.WriteString("subscription_plan=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.SubscriptionID; v != nil {
 		builder.WriteString("subscription_id=")

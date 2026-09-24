@@ -333,6 +333,29 @@ model CreditGrantFilters {
    */
   @example(#["input_tokens", "output_tokens"])
   features?: Shared.ResourceKey[];
+
+  /**
+   * Limit credits to charges from these plans. Entries are alternatives; when
+   * features are also specified, both dimensions must match. Omission or an empty
+   * list leaves plans unrestricted.
+   */
+  plans?: CreditGrantPlanFilter[];
+}
+
+/**
+ * A plan key and an optional version constraint for matching credit grants.
+ */
+@friendlyName("BillingCreditGrantPlanFilter")
+model CreditGrantPlanFilter {
+  /**
+   * The plan key in the customer's namespace.
+   */
+  key: Shared.ResourceKey;
+
+  /**
+   * Omission matches all versions, including future versions.
+   */
+  version?: Shared.VersionFilter;
 }
 
 /**

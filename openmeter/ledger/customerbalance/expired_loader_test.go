@@ -201,7 +201,7 @@ func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
 			CustomerID: env.CustomerID,
 			Amount:     amount,
 			Currency:   env.CurrencyReference(),
-			Features:   spec.features,
+			Filters:    ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: spec.features},
 			ExpiresAt:  expiresAt,
 		})
 		require.NoError(t, err)
@@ -739,10 +739,10 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 				},
-				CreditAmount:   amount,
-				ExpiresAt:      &expiresAt,
-				FeatureFilters: creditpurchase.FeatureFilters(features),
-				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				CreditAmount: amount,
+				ExpiresAt:    &expiresAt,
+				Filters:      ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: creditpurchase.FeatureFilters(features)},
+				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 			},
 		},
 	})

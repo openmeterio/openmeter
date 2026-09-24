@@ -26,7 +26,7 @@ type BackfillInput struct {
 	SourceChargeID    string
 	CostBasis         alpacadecimal.Decimal
 	CostBasisCurrency *currencyx.Code
-	Features          []string
+	Filters           ledger.CreditFilters
 	LegacyLineages    []legacylineage.Lineage
 }
 
@@ -61,6 +61,9 @@ func (i BackfillInput) Validate() error {
 		errs = append(errs, fmt.Errorf("cost basis currency: %w", err))
 	}
 
+	if err := i.Filters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("filters: %w", err))
+	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 

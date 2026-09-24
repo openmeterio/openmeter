@@ -66,7 +66,7 @@ func TestCollectCustomerFBOSeparatesManagedCurrenciesWithSameCode(t *testing.T) 
 			FBOAddress: betaFBO.Address(),
 		},
 		env.CurrencyReference(),
-		"",
+		ledger.Route{},
 	))
 
 	// when: collection targets only the alpha managed currency.
@@ -186,9 +186,9 @@ func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, sources, 2)
 
-	require.Equal(t, []string{"api-calls"}, sources[0].Address.Route().Route().Features)
+	require.Equal(t, []string{"api-calls"}, sources[0].Address.Route().Route().Filters.Features)
 	require.True(t, alpacadecimal.NewFromInt(30).Equal(sources[0].Amount), "restricted source amount: %s", sources[0].Amount)
-	require.Empty(t, sources[1].Address.Route().Route().Features)
+	require.Empty(t, sources[1].Address.Route().Route().Filters.Features)
 	require.True(t, alpacadecimal.NewFromInt(10).Equal(sources[1].Amount), "unrestricted source amount: %s", sources[1].Amount)
 
 	unattributedSources, err := collectCustomerFBOForFeatureForTest(
@@ -201,7 +201,7 @@ func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Len(t, unattributedSources, 1)
-	require.Empty(t, unattributedSources[0].Address.Route().Route().Features)
+	require.Empty(t, unattributedSources[0].Address.Route().Route().Filters.Features)
 	require.True(t, alpacadecimal.NewFromInt(10).Equal(unattributedSources[0].Amount), "unrestricted source amount: %s", unattributedSources[0].Amount)
 }
 
@@ -545,7 +545,11 @@ func collectCustomerFBOForFeatureForTest(
 	t.Helper()
 
 	return transaction.Run(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) ([]transactions.PostingAmount, error) {
-		selections, err := collector.collectCustomerFBOSelections(ctx, env.CustomerID, env.CurrencyReference(), featureKey, target, asOf)
+		filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion1}
+		if featureKey != "" {
+			filters.Features = []string{featureKey}
+		}
+		selections, err := collector.collectCustomerFBOSelections(ctx, env.CustomerID, env.CurrencyReference(), ledger.Route{Filters: filters}, target, asOf)
 		if err != nil {
 			return nil, err
 		}
@@ -618,13 +622,18 @@ func fundPriorityWithFeatures(
 	return fundPriorityWithCostBasisAndFeatures(t, env, priority, amount, nil, features)
 }
 
-func fundPriorityWithCostBasisAndFeatures(
+func fundPriorityWithCostBasisAndFeatures(t *testing.T, env *ledgertestutils.IntegrationEnv, priority int, amount int64, costBasis *alpacadecimal.Decimal, features []string) ledger.SubAccount {
+	t.Helper()
+	return fundPriorityWithFilters(t, env, priority, amount, costBasis, ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features})
+}
+
+func fundPriorityWithFilters(
 	t *testing.T,
 	env *ledgertestutils.IntegrationEnv,
 	priority int,
 	amount int64,
 	costBasis *alpacadecimal.Decimal,
-	features []string,
+	filters ledger.CreditFilters,
 ) ledger.SubAccount {
 	t.Helper()
 
@@ -632,7 +641,7 @@ func fundPriorityWithCostBasisAndFeatures(
 		Currency:       env.CurrencyReference(),
 		CostBasis:      costBasis,
 		CreditPriority: priority,
-		Features:       features,
+		Filters:        filters,
 	})
 	require.NoError(t, err)
 
@@ -653,21 +662,21 @@ func fundPriorityWithCostBasisAndFeatures(
 			Currency:       env.CurrencyReference(),
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
-			Features:       features,
+			Filters:        filters,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  env.CurrencyReference(),
 			CostBasis: costBasis,
-			Features:  features,
+			Filters:   filters,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  env.CurrencyReference(),
 			CostBasis: costBasis,
-			Features:  features,
+			Filters:   filters,
 		},
 	)
 	require.NoError(t, err)
@@ -896,7 +905,7 @@ func bookExpiringCreditWithFeatures(
 			Currency:       env.CurrencyReference(),
 			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
-			Features:       features,
+			Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		},
 	)
 	require.NoError(t, err)
@@ -906,7 +915,7 @@ func bookExpiringCreditWithFeatures(
 		Amount:         creditAmount,
 		Currency:       env.CurrencyReference(),
 		CreditPriority: &priority,
-		Features:       features,
+		Filters:        ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
 		ExpiresAt:      expiresAt,
 		SourceChargeID: sourceChargeID,
 	})
@@ -946,4 +955,58 @@ func bookFutureFBOCollection(t *testing.T, env *ledgertestutils.IntegrationEnv, 
 
 	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
 	require.NoError(t, err)
+}
+
+func TestCollectCustomerFBOMatchesPlanAndFeatureFilters(t *testing.T) {
+	// given: separate credit buckets for each plan/version, plus unrestricted credit.
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-plans")
+	collector := newTestAccrualCollector(t, env)
+	plan := func(key string, version int) ledger.CreditFilters {
+		return ledger.CreditFilters{Version: ledger.CreditFiltersVersion2, Features: []string{"api-calls"}, Plans: []ledger.PlanFilter{{Key: key, Version: &ledger.VersionFilter{Eq: lo.ToPtr(version)}}}}
+	}
+	matching := fundPriorityWithFilters(t, env, 1, 30, nil, plan("pro", 2))
+	wrongVersion := fundPriorityWithFilters(t, env, 1, 40, nil, plan("pro", 1))
+	wrongPlan := fundPriorityWithFilters(t, env, 1, 50, nil, plan("starter", 2))
+	storageFilters := plan("pro", 2)
+	storageFilters.Features = []string{"storage"}
+	wrongFeature := fundPriorityWithFilters(t, env, 1, 60, nil, storageFilters)
+	unrestricted := fundPriority(t, env, 1, 10)
+	require.NotEqual(t, matching.Address().SubAccountID(), wrongVersion.Address().SubAccountID())
+
+	// when: a pro v2 charge consumes more than its matching restricted balance.
+	spendChargeID := testChargeID(201)
+	input := collectToAccruedInputForTest(env, spendChargeID, alpacadecimal.NewFromInt(35), productcatalog.CreditThenInvoiceSettlementMode)
+	input.Filters = plan("pro", 2)
+	allocations, err := collector.collectToAccrued(t.Context(), input)
+	require.NoError(t, err)
+
+	// then: matching restricted credit is used first; all other plan/feature buckets survive.
+	require.Equal(t, float64(0), env.SumBalance(t, matching).InexactFloat64())
+	require.Equal(t, float64(5), env.SumBalance(t, unrestricted).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, wrongVersion).InexactFloat64())
+	require.Equal(t, float64(50), env.SumBalance(t, wrongPlan).InexactFloat64())
+	require.Equal(t, float64(60), env.SumBalance(t, wrongFeature).InexactFloat64())
+
+	// when: the same feature has no recorded plan, only unrestricted credit matches.
+	input.ChargeID = testChargeID(202)
+	input.Filters = ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api-calls"}}
+	_, err = collector.collectToAccrued(t.Context(), input)
+	require.NoError(t, err)
+	require.Equal(t, float64(0), env.SumBalance(t, unrestricted).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, wrongVersion).InexactFloat64())
+
+	// when: the original allocation is corrected after another spend.
+	realized := realizationsFromAllocations(env, allocations)
+	fiat, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).WithCode(env.Currency).Build()
+	require.NoError(t, err)
+	corrections, err := realized.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), fiat)
+	require.NoError(t, err)
+	_, err = newTestAccrualCorrector(t, env, collector.breakage).Correct(t.Context(), CorrectCollectedAccruedInput{
+		Namespace: env.Namespace, ChargeID: spendChargeID, CustomerID: env.CustomerID.ID, AllocateAt: env.Now(), Corrections: corrections,
+	})
+	require.NoError(t, err)
+	// then: value returns to the original v2 bucket, preserving its filters.
+	require.Equal(t, float64(30), env.SumBalance(t, matching).InexactFloat64())
+	require.Equal(t, float64(5), env.SumBalance(t, unrestricted).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, wrongVersion).InexactFloat64())
 }

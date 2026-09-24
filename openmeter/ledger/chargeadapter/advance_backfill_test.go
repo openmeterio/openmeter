@@ -628,24 +628,24 @@ func TestCreditPurchaseReceivableOnlyAttributionPreservesLegacyFeatureRoutes(t *
 
 	// Given nil-spend receivable of 20 for API, 30 for storage, and 10 unrestricted.
 	for _, exposure := range []struct {
-		amount   int64
-		features []string
+		amount  int64
+		filters ledger.CreditFilters
 	}{
-		{20, []string{"api-calls"}},
-		{30, []string{"storage"}},
-		{10, nil},
+		{20, ledger.CreditFilters{Features: []string{"api-calls"}}},
+		{30, ledger.CreditFilters{Features: []string{"storage"}}},
+		{10, ledger.CreditFilters{}},
 	} {
 		env.createReceivableOnlyExposure(t, advanceExposureInput{
 			Currency: env.currency,
 			Amount:   alpacadecimal.NewFromInt(exposure.amount),
-			Features: exposure.features,
+			Filters:  exposure.filters,
 		})
 	}
 
 	// When 25 of API-restricted credit arrives without any accrued or legacylineage.
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 	purchase := env.newExternalCharge(alpacadecimal.NewFromInt(25), costBasis)
-	purchase.Intent.FeatureFilters = creditpurchase.FeatureFilters{"api-calls"}
+	purchase.Intent.Filters = ledger.CreditFilters{Features: []string{"api-calls"}}
 	result, err := env.grantCredits(t, purchase)
 	require.NoError(t, err)
 
@@ -665,7 +665,7 @@ func (e *creditPurchaseHandlerTestEnv) createReceivableOnlyExposure(t *testing.T
 	inputs, err := transactions.ResolveTransactions(t.Context(), transactions.ResolverDependencies{
 		AccountService: e.Deps.ResolversService, AccountCatalog: e.Deps.AccountService, BalanceQuerier: e.Deps.HistoricalLedger,
 	}, transactions.ResolutionScope{CustomerID: e.CustomerID, Namespace: e.Namespace}, transactions.IssueCustomerReceivableTemplate{
-		At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(), Features: input.Features, SpendChargeID: input.SpendChargeID,
+		At: e.Now(), Amount: input.Amount, Currency: input.Currency.Reference(), Filters: input.Filters, SpendChargeID: input.SpendChargeID,
 	})
 	require.NoError(t, err)
 	_, err = e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))

@@ -340,55 +340,66 @@ func (s *VoidGrantTestSuite) TestVoidAlreadyExpiredGrantReturnsConflict() {
 	s.requireCreditTransactionAmountsByType(cust.GetID(), lo.ToPtr(customerbalance.CreditTransactionTypeVoided), map[customerbalance.CreditTransactionType]float64{})
 }
 
-func (s *VoidGrantTestSuite) TestVoidFeatureRestrictedGrantPreservesProvenance() {
-	// given:
-	// - a feature-restricted promotional grant of 100
-	// when:
-	// - the grant is voided
-	// then:
-	// - the feature-routed FBO bucket empties and the void transaction carries
-	//   the grant's source charge provenance
-	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("voidgrant-features")
-	cust := s.setupVoidTestCustomer(ctx, ns)
+func (s *VoidGrantTestSuite) TestVoidFilteredGrantPreservesProvenance() {
+	for _, withPlan := range []bool{false, true} {
+		name := "features"
+		filters := ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: []string{"api_requests_total"}}
+		if withPlan {
+			name = "features and plans"
+			filters.Version = ledger.CreditFiltersVersion2
+			filters.Plans = []ledger.PlanFilter{{Key: "pro", Version: &ledger.VersionFilter{Gte: lo.ToPtr(2)}}}
+		}
+		s.Run(name, func() {
+			// given:
+			// - a feature-restricted promotional grant of 100
+			// when:
+			// - the grant is voided
+			// then:
+			// - the feature-routed FBO bucket empties and the void transaction carries
+			//   the grant's source charge provenance
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("voidgrant-features")
+			cust := s.setupVoidTestCustomer(ctx, ns)
 
-	fundedAt := datetime.MustParseTimeInLocation(s.T(), "2026-03-01T00:00:00Z", time.UTC).AsTime()
-	clock.FreezeTime(fundedAt)
-	defer clock.UnFreeze()
+			fundedAt := datetime.MustParseTimeInLocation(s.T(), "2026-03-01T00:00:00Z", time.UTC).AsTime()
+			clock.FreezeTime(fundedAt)
+			defer clock.UnFreeze()
 
-	funding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
-		Namespace:      ns,
-		Customer:       cust.GetID(),
-		Amount:         alpacadecimal.NewFromInt(100),
-		At:             fundedAt,
-		CostBasis:      alpacadecimal.Zero,
-		FeatureFilters: creditpurchase.FeatureFilters{"api_requests_total"},
-	})
+			funding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+				Namespace: ns,
+				Customer:  cust.GetID(),
+				Amount:    alpacadecimal.NewFromInt(100),
+				At:        fundedAt,
+				CostBasis: alpacadecimal.Zero,
+				Filters:   filters,
+			})
 
-	voidedAt := fundedAt.Add(time.Hour)
-	clock.FreezeTime(voidedAt)
+			voidedAt := fundedAt.Add(time.Hour)
+			clock.FreezeTime(voidedAt)
 
-	_, err := s.CreditGrantService.Void(ctx, creditgrant.VoidInput{
-		Namespace:  ns,
-		CustomerID: cust.ID,
-		ChargeID:   funding.Charge.ID,
-	})
-	s.Require().NoError(err)
+			_, err := s.CreditGrantService.Void(ctx, creditgrant.VoidInput{
+				Namespace:  ns,
+				CustomerID: cust.ID,
+				ChargeID:   funding.Charge.ID,
+			})
+			s.Require().NoError(err)
 
-	s.Equal(float64(0), s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), mo.Some([]string{"api_requests_total"})).InexactFloat64())
-	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
+			s.Equal(float64(0), s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), mo.Some([]string{"api_requests_total"})).InexactFloat64())
+			s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
 
-	voidedType := customerbalance.CreditTransactionTypeVoided
-	result, err := s.CustomerBalanceSvc.ListCreditTransactions(ctx, customerbalance.ListCreditTransactionsInput{
-		CustomerID:    cust.GetID(),
-		Limit:         20,
-		Type:          &voidedType,
-		FeatureFilter: customerbalance.NewFeatureFilter([]string{"api_requests_total"}),
-	})
-	s.Require().NoError(err)
-	s.Require().Len(result.Items, 1)
-	s.Equal(float64(-100), result.Items[0].Amount.InexactFloat64())
-	s.Equal(funding.Charge.ID, result.Items[0].Annotations[ledger.AnnotationChargeID])
+			voidedType := customerbalance.CreditTransactionTypeVoided
+			result, err := s.CustomerBalanceSvc.ListCreditTransactions(ctx, customerbalance.ListCreditTransactionsInput{
+				CustomerID:    cust.GetID(),
+				Limit:         20,
+				Type:          &voidedType,
+				FeatureFilter: customerbalance.NewFeatureFilter([]string{"api_requests_total"}),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(result.Items, 1)
+			s.Equal(float64(-100), result.Items[0].Amount.InexactFloat64())
+			s.Equal(funding.Charge.ID, result.Items[0].Annotations[ledger.AnnotationChargeID])
+		})
+	}
 }
 
 func (s *VoidGrantTestSuite) TestVoidedStatusDerivationInReads() {

@@ -87,7 +87,7 @@ type CollectToAccruedInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencies.CurrencyReference
-	FeatureKey        string
+	Filters           ledger.CreditFilters
 	SettlementMode    productcatalog.SettlementMode
 	ServicePeriod     timeutil.ClosedPeriod
 	Amount            alpacadecimal.Decimal
@@ -105,13 +105,16 @@ type CollectToReceivableInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencies.CurrencyReference
-	FeatureKey        string
+	Filters           ledger.CreditFilters
 	ServicePeriod     timeutil.ClosedPeriod
 	Amount            alpacadecimal.Decimal
 }
 
 func (i CollectToReceivableInput) Validate() error {
 	var errs []error
+	if err := i.Filters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("filters: %w", err))
+	}
 
 	if err := (models.NamespacedID{Namespace: i.Namespace, ID: i.ChargeID}).Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
