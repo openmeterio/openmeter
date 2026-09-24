@@ -1433,20 +1433,22 @@ type CreditTransactionPaginatedResponse struct {
 //
 // - `funded`: Credit granted and available for consumption.
 // - `consumed`: Credit consumed by usage or fees.
+// - `correction`: A balance adjustment reversing previously recorded usage.
 // - `expired`: Credit removed because it expired before being used.
 // - `voided`: Credit removed because the grant was voided before being used.
 type CreditTransactionType string
 
 const (
-	CreditTransactionTypeFunded   CreditTransactionType = "funded"
-	CreditTransactionTypeConsumed CreditTransactionType = "consumed"
-	CreditTransactionTypeExpired  CreditTransactionType = "expired"
-	CreditTransactionTypeVoided   CreditTransactionType = "voided"
+	CreditTransactionTypeFunded     CreditTransactionType = "funded"
+	CreditTransactionTypeConsumed   CreditTransactionType = "consumed"
+	CreditTransactionTypeCorrection CreditTransactionType = "correction"
+	CreditTransactionTypeExpired    CreditTransactionType = "expired"
+	CreditTransactionTypeVoided     CreditTransactionType = "voided"
 )
 
 func (value CreditTransactionType) Valid() bool {
 	switch value {
-	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeExpired, CreditTransactionTypeVoided:
+	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeCorrection, CreditTransactionTypeExpired, CreditTransactionTypeVoided:
 		return true
 	default:
 		return false

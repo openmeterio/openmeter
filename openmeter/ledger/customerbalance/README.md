@@ -78,6 +78,7 @@ Visible types:
 
 - `funded`: credit became available.
 - `consumed`: credit was used.
+- `correction`: a balance adjustment reversing previously recorded usage.
 - `expired`: unused credit expired.
 - `voided`: unused credit was forfeited by voiding its grant.
 
@@ -94,6 +95,7 @@ The visible amount is the customer balance impact:
 ```text
 funded   => positive FBO issuance + positive nil-cost-basis receivable attribution
 consumed => negative FBO impact
+correction => net FBO + nil-cost-basis receivable impact of a correction batch
 expired  => negative FBO impact
 ```
 
@@ -101,8 +103,16 @@ In a mixed-currency listing, `available_balance` is reconstructed independently
 for each currency identity even though the rows share one chronological stream.
 Custom-currency rows carry both their display code and `custom_currency.id`.
 
-Balances are resolved independently at each row's persisted boundary. Funded
-and consumed rows use their last contributing ledger transaction. Expired and
+Corrections are grouped by ledger transaction group, booked time, and currency
+identity. This combines advance and backfill reversals into their net customer
+balance effect. Zero-impact groups, breakage, and internal accounting movements
+are excluded. Legacy and origin-tracked corrections are both included; no link
+to the original activity is exposed. Rows retain the last contributing ledger
+transaction's ID, creation time, and annotations. Booking time may precede
+creation time when a fee is corrected against an earlier service period.
+
+Balances are resolved independently at each row's persisted boundary. Funded,
+consumed, and correction rows use their last contributing ledger transaction. Expired and
 voided rows are net projections at their booked timestamp: they include all
 postings at that timestamp, with later siblings of the same type and currency
 removed to retain stable balances within each terminal group. Across different

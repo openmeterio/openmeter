@@ -8,6 +8,7 @@ namespace Customers;
  *
  * - `funded`: Credit granted and available for consumption.
  * - `consumed`: Credit consumed by usage or fees.
+ * - `correction`: A balance adjustment reversing previously recorded usage.
  * - `expired`: Credit removed because it expired before being used.
  * - `voided`: Credit removed because the grant was voided before being used.
  */
@@ -18,6 +19,9 @@ enum CreditTransactionType {
 
   // Credit consumed by usage or fees.
   Consumed: "consumed",
+
+  // A balance adjustment reversing previously recorded usage.
+  Correction: "correction",
 
   // Credit removed because it expired before being used.
   Expired: "expired",

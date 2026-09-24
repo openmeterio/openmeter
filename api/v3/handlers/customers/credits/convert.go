@@ -529,6 +529,8 @@ func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionTyp
 		txType = customerbalance.CreditTransactionTypeFunded
 	case api.BillingCreditTransactionTypeConsumed:
 		txType = customerbalance.CreditTransactionTypeConsumed
+	case api.BillingCreditTransactionTypeCorrection:
+		txType = customerbalance.CreditTransactionTypeCorrection
 	case api.BillingCreditTransactionTypeExpired:
 		txType = customerbalance.CreditTransactionTypeExpired
 	case api.BillingCreditTransactionTypeVoided:
@@ -589,6 +591,8 @@ func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionT
 	switch txType {
 	case customerbalance.CreditTransactionTypeFunded:
 		return api.BillingCreditTransactionTypeFunded
+	case customerbalance.CreditTransactionTypeCorrection:
+		return api.BillingCreditTransactionTypeCorrection
 	case customerbalance.CreditTransactionTypeExpired:
 		return api.BillingCreditTransactionTypeExpired
 	case customerbalance.CreditTransactionTypeVoided:
