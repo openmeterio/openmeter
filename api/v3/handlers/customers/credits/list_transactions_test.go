@@ -32,6 +32,26 @@ func TestFromAPIBillingCreditTransactionType_Expired(t *testing.T) {
 	require.Equal(t, customerbalance.CreditTransactionTypeExpired, *txType)
 }
 
+func TestCreditTransactionCorrectionMapping(t *testing.T) {
+	filter := api.BillingCreditTransactionTypeCorrection
+	txType := fromAPIBillingCreditTransactionType(&filter)
+	require.NotNil(t, txType)
+	require.Equal(t, customerbalance.CreditTransactionTypeCorrection, *txType)
+
+	createdAt := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	tx := toAPIBillingCreditTransaction(customerbalance.CreditTransaction{
+		ID:   models.NamespacedID{Namespace: "ns", ID: "correction-id"},
+		Type: *txType, Amount: alpacadecimal.NewFromInt(9), Currency: "USD",
+		CreatedAt: createdAt, BookedAt: createdAt.Add(-time.Hour),
+		Annotations: models.Annotations{ledger.AnnotationChargeID: "charge-id", ledger.AnnotationSubscriptionItemID: "item-id"},
+	})
+	require.Equal(t, filter, tx.Type)
+	require.Equal(t, api.Numeric("9"), tx.Amount)
+	require.Equal(t, createdAt, tx.CreatedAt)
+	require.Equal(t, createdAt.Add(-time.Hour), tx.BookedAt)
+	require.Equal(t, api.Labels{"charge_id": "charge-id", "subscription_item_id": "item-id"}, *tx.Labels)
+}
+
 func TestToAPIBillingCreditTransaction(t *testing.T) {
 	createdAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
 	bookedAt := createdAt.Add(time.Second)

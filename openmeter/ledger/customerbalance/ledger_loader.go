@@ -42,6 +42,7 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 
 			CreditMovement: l.movement,
 			ExcludeAnnotationFilters: map[string]string{
+				ledger.AnnotationTransactionDirection:      string(ledger.TransactionDirectionCorrection),
 				ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
 				ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
 			},
