@@ -616,7 +616,7 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 	second := createGrant(t, cust.ID, entitlementID, 50, effectiveAt.Add(time.Minute))
 
 	t.Run("list", func(t *testing.T) {
-		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.ListCustomerEntitlementGrantsParams{
 			Sort: &v3sdk.Sort{By: "effective_at", Order: v3sdk.SortOrderAsc},
 		})
 		c.requireStatus(http.StatusOK, err)
@@ -645,7 +645,7 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 	})
 
 	t.Run("list paginated and sorted descending", func(t *testing.T) {
-		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.ListCustomerEntitlementGrantsParams{
 			Page: &v3sdk.PageParams{Number: lo.ToPtr(2), Size: lo.ToPtr(1)},
 			Sort: &v3sdk.Sort{By: "effective_at", Order: v3sdk.SortOrderDesc},
 		})
@@ -659,7 +659,7 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 	})
 
 	t.Run("list including deleted", func(t *testing.T) {
-		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.ListCustomerEntitlementGrantsParams{
 			IncludeDeleted: lo.ToPtr(true),
 		})
 		c.requireStatus(http.StatusOK, err)
@@ -667,7 +667,7 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 	})
 
 	t.Run("list with unsupported sort field", func(t *testing.T) {
-		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.ListCustomerEntitlementGrantsParams{
 			Sort: &v3sdk.Sort{By: "owner_id"},
 		})
 		requireProblem(t, err, http.StatusBadRequest)
@@ -694,7 +694,7 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 		booleanEnt, err := created.JSON201.AsEntitlementBooleanV2()
 		require.NoError(t, err)
 
-		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, booleanEnt.Id, v3sdk.EntitlementGrantListParams{})
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, booleanEnt.Id, v3sdk.ListCustomerEntitlementGrantsParams{})
 		c.requireStatus(http.StatusOK, err)
 		require.Equal(t, 0, res.Meta.Page.Total)
 		require.Empty(t, res.Data)
@@ -705,17 +705,17 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 		otherEntitlementID := createMeteredEntitlement(t, other.ID, f.ID)
 		createGrant(t, other.ID, otherEntitlementID, 10, effectiveAt)
 
-		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, otherEntitlementID, v3sdk.EntitlementGrantListParams{})
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, otherEntitlementID, v3sdk.ListCustomerEntitlementGrantsParams{})
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
 	t.Run("unknown entitlement", func(t *testing.T) {
-		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, "01K4WAQ0J99ZZ0MD75HXR112H9", v3sdk.EntitlementGrantListParams{})
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, "01K4WAQ0J99ZZ0MD75HXR112H9", v3sdk.ListCustomerEntitlementGrantsParams{})
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
 	t.Run("unknown customer", func(t *testing.T) {
-		_, err := c.Customers.Entitlements.Grants.List(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", entitlementID, v3sdk.EntitlementGrantListParams{})
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", entitlementID, v3sdk.ListCustomerEntitlementGrantsParams{})
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
@@ -723,7 +723,7 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 		deleted := createCustomer(t, "ent_grants_deleted_customer")
 		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
 
-		_, err := c.Customers.Entitlements.Grants.List(t.Context(), deleted.ID, entitlementID, v3sdk.EntitlementGrantListParams{})
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), deleted.ID, entitlementID, v3sdk.ListCustomerEntitlementGrantsParams{})
 		requireProblem(t, err, http.StatusConflict)
 	})
 }
@@ -799,7 +799,7 @@ func TestV3CreateCustomerEntitlementGrant(t *testing.T) {
 		require.Equal(t, "e2e", g.Labels["source"])
 
 		// and the grant is listed for the entitlement
-		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{})
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.ListCustomerEntitlementGrantsParams{})
 		c.requireStatus(http.StatusOK, err)
 		require.Equal(t, 1, res.Meta.Page.Total)
 		require.Equal(t, g.ID, res.Data[0].ID)

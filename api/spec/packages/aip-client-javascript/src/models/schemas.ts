@@ -4062,6 +4062,13 @@ export const listEntitlementsParamsFilter = z
   })
   .describe('Filter options for listing entitlements.')
 
+export const listGrantsParamsFilter = z
+  .object({
+    customerId: ulidFieldFilter.optional(),
+    feature: stringFieldFilterExact.optional(),
+  })
+  .describe('Filter options for listing grants.')
+
 export const listSubscriptionsParamsFilter = z
   .object({
     id: ulidFieldFilter.optional(),
@@ -8001,6 +8008,39 @@ export const getCustomerEntitlementValueQueryParams = z.object({
 })
 
 export const getCustomerEntitlementValueResponse = entitlementValueResult
+
+export const listGrantsQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listGrantsParamsFilter.optional(),
+  includeDeleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listGrantsResponse = z.object({
+  data: z.array(entitlementGrant),
+  meta: paginatedMeta,
+})
+
+export const voidGrantPathParams = z.object({
+  grantId: ulid,
+})
+
+export const voidGrantQueryParams = z.object({
+  voidedAt: dateTime.optional(),
+})
 
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
@@ -12942,6 +12982,13 @@ export const listEntitlementsParamsFilterWire = z
   })
   .describe('Filter options for listing entitlements.')
 
+export const listGrantsParamsFilterWire = z
+  .strictObject({
+    customer_id: ulidFieldFilterWire.optional(),
+    feature: stringFieldFilterExactWire.optional(),
+  })
+  .describe('Filter options for listing grants.')
+
 export const listSubscriptionsParamsFilterWire = z
   .strictObject({
     id: ulidFieldFilterWire.optional(),
@@ -16915,6 +16962,45 @@ export const getCustomerEntitlementValueQueryParamsWire = z.object({
 
 export const getCustomerEntitlementValueResponseWire =
   entitlementValueResultWire
+
+export const listGrantsQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort grants returned in the response. Supported sort attributes are: - `created_at` (default) - `updated_at` - `effective_at` - `expires_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listGrantsParamsFilterWire.optional(),
+  include_deleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listGrantsResponseWire = z.strictObject({
+  data: z.array(entitlementGrantWire),
+  meta: paginatedMetaWire,
+})
+
+export const voidGrantPathParamsWire = z.object({
+  grantId: ulidWire,
+})
+
+export const voidGrantQueryParamsWire = z.object({
+  voided_at: dateTimeWire.optional(),
+})
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

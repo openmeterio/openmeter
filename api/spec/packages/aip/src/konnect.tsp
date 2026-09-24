@@ -14,6 +14,7 @@ import "./billing/index.tsp";
 import "./tax/index.tsp";
 import "./defaults/index.tsp";
 import "./entitlement-access/index.tsp";
+import "./grants/index.tsp";
 import "./invoices/index.tsp";
 import "./charges/index.tsp";
 import "./notifications/index.tsp";
@@ -113,6 +114,10 @@ interface CustomerEntitlementGrantsEndpoints
 @tag(Shared.EntitlementsTag)
 interface CustomerEntitlementValueEndpoints
   extends Entitlements.CustomerEntitlementValueOperations {}
+
+@route("/openmeter/grants")
+@tag(Shared.EntitlementsTag)
+interface GrantsEndpoints extends Grants.GrantsOperations {}
 
 @route("/openmeter/customers/{customerId}/credits/grants")
 @tag(Shared.CustomersTag)

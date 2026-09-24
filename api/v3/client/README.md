@@ -21,6 +21,7 @@ TypeSpec definitions and ships typed request and response models.
   - [Meters](#meters)
   - [Customers](#customers)
   - [Entitlements](#entitlements)
+  - [Grants](#grants)
   - [Subscriptions](#subscriptions)
   - [Apps](#apps)
   - [Billing](#billing)
@@ -196,6 +197,13 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Entitlements.List` | `GET /openmeter/entitlements` | List the active entitlements of all customers. Intended for administrative use. To list the entitlements of a single customer, use the customer entitlements endpoints; to check entitlement access, use the entitlement access endpoints. |
 | `om.Entitlements.Get` | `GET /openmeter/entitlements/{entitlementId}` | Get an entitlement by ID. To check entitlement access, use the entitlement access endpoints instead. |
 | `om.Entitlements.GetCustomerValue` | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value` | Get the customer's access through a single entitlement, optionally evaluated at a point in time. |
+
+### Grants
+
+| Method | HTTP | Description |
+| --- | --- | --- |
+| `om.Grants.List` | `GET /openmeter/grants` | List the grants of all customers and entitlements. To list the grants of a single entitlement, use the customer entitlement grants endpoint. Deleted grants are excluded unless `include_deleted` is set. Voided and expired grants are always included, as they are part of the balance history. |
+| `om.Grants.Void` | `DELETE /openmeter/grants/{grantId}` | Void a grant so it no longer adds to the balance. Usage already deducted from the grant is kept. |
 
 ### Subscriptions
 

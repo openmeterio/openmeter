@@ -13,6 +13,7 @@ import (
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	customersentitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
 	entitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/entitlements"
+	grantshandler "github.com/openmeterio/openmeter/api/v3/handlers/grants"
 	planhandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 	subscriptionhandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
@@ -173,6 +174,19 @@ func (s *Server) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 		EntitlementID: entitlementId,
 		Expand:        lo.FromPtr(params.Expand),
 		At:            params.At,
+	}).ServeHTTP(w, r)
+}
+
+// Grants
+
+func (s *Server) ListGrants(w http.ResponseWriter, r *http.Request, params api.ListGrantsParams) {
+	s.grantsHandler.ListGrants().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) VoidGrant(w http.ResponseWriter, r *http.Request, grantId api.ULID, params api.VoidGrantParams) {
+	s.grantsHandler.VoidGrant().With(grantshandler.VoidGrantParams{
+		GrantID: grantId,
+		Params:  params,
 	}).ServeHTTP(w, r)
 }
 
