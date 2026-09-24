@@ -561,10 +561,6 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 		return cust
 	}
 
-	// The usage period is anchored to the past so that grants effective at the
-	// anchor are inside the current usage period regardless of the wall clock.
-	anchor := time.Now().UTC().Truncate(time.Hour)
-
 	// The v3 create endpoint is not available yet, so entitlements and grants are
 	// seeded through the legacy v2 customer entitlement endpoints.
 	createMeteredEntitlement := func(t *testing.T, customerID string, featureID string) string {
@@ -579,7 +575,6 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 			FeatureId: lo.ToPtr(featureID),
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Interval: interval,
-				Anchor:   lo.ToPtr(anchor),
 			},
 		}))
 
@@ -613,8 +608,12 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 	f := createMeteredFeature(t, c, "ent_grants")
 	entitlementID := createMeteredEntitlement(t, cust.ID, f.ID)
 
-	first := createGrant(t, cust.ID, entitlementID, 100, anchor)
-	second := createGrant(t, cust.ID, entitlementID, 50, anchor.Add(time.Minute))
+	// The first usage period starts at the entitlement's creation minute, so the
+	// effective date must be taken after the entitlement exists.
+	effectiveAt := time.Now().UTC().Truncate(time.Minute)
+
+	first := createGrant(t, cust.ID, entitlementID, 100, effectiveAt)
+	second := createGrant(t, cust.ID, entitlementID, 50, effectiveAt.Add(time.Minute))
 
 	t.Run("list", func(t *testing.T) {
 		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
@@ -631,9 +630,9 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 		require.Equal(t, entitlementID, g.EntitlementID)
 		require.Equal(t, "100", g.Amount)
 		require.Equal(t, uint8(2), g.Priority)
-		require.True(t, anchor.Equal(g.EffectiveAt), "effective at %s != %s", g.EffectiveAt, anchor)
+		require.True(t, effectiveAt.Equal(g.EffectiveAt), "effective at %s != %s", g.EffectiveAt, effectiveAt)
 		require.Equal(t, "P1M", lo.FromPtr(g.ExpiresAfter))
-		require.True(t, anchor.AddDate(0, 1, 0).Equal(lo.FromPtr(g.ExpiresAt)))
+		require.True(t, effectiveAt.AddDate(0, 1, 0).Equal(lo.FromPtr(g.ExpiresAt)))
 		require.Equal(t, "100", g.MaxRolloverAmount)
 		require.Equal(t, "0", g.MinRolloverAmount)
 		require.Nil(t, g.Recurrence)
@@ -704,7 +703,7 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 	t.Run("entitlement of another customer", func(t *testing.T) {
 		other := createCustomer(t, "ent_grants_other_customer")
 		otherEntitlementID := createMeteredEntitlement(t, other.ID, f.ID)
-		createGrant(t, other.ID, otherEntitlementID, 10, anchor)
+		createGrant(t, other.ID, otherEntitlementID, 10, effectiveAt)
 
 		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, otherEntitlementID, v3sdk.EntitlementGrantListParams{})
 		requireProblem(t, err, http.StatusNotFound)
@@ -722,12 +721,9 @@ func TestV3CustomerEntitlementGrants(t *testing.T) {
 
 	t.Run("deleted customer", func(t *testing.T) {
 		deleted := createCustomer(t, "ent_grants_deleted_customer")
-		deletedEntitlementID := createMeteredEntitlement(t, deleted.ID, f.ID)
-		createGrant(t, deleted.ID, deletedEntitlementID, 10, anchor)
-
 		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
 
-		_, err := c.Customers.Entitlements.Grants.List(t.Context(), deleted.ID, deletedEntitlementID, v3sdk.EntitlementGrantListParams{})
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), deleted.ID, entitlementID, v3sdk.EntitlementGrantListParams{})
 		requireProblem(t, err, http.StatusConflict)
 	})
 }
@@ -752,16 +748,12 @@ func TestV3CreateCustomerEntitlementGrant(t *testing.T) {
 		return cust
 	}
 
-	// The usage period is anchored to the past so that grants effective at the
-	// anchor are inside the current usage period regardless of the wall clock.
-	anchor := time.Now().UTC().Truncate(time.Hour)
-
 	createMeteredEntitlement := func(t *testing.T, customerID string, featureID string) string {
 		t.Helper()
 
 		created, err := c.Customers.Entitlements.Create(t.Context(), customerID, lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
 			Feature:     v3sdk.FeatureReference{ID: featureID},
-			UsagePeriod: v3sdk.RecurringPeriodInput{Interval: "P1M", Anchor: lo.ToPtr(anchor)},
+			UsagePeriod: v3sdk.RecurringPeriodInput{Interval: "P1M"},
 		})))
 		c.requireStatus(http.StatusCreated, err)
 
@@ -771,17 +763,21 @@ func TestV3CreateCustomerEntitlementGrant(t *testing.T) {
 		return metered.ID
 	}
 
-	grantRequest := v3sdk.EntitlementGrantCreateRequest{
-		Amount:       "100",
-		Priority:     lo.ToPtr(uint8(2)),
-		EffectiveAt:  anchor,
-		ExpiresAfter: lo.ToPtr("P1M"),
-		Labels:       lo.ToPtr(map[string]string{"source": "e2e"}),
-	}
-
 	cust := createCustomer(t, "ent_create_grant_customer")
 	f := createMeteredFeature(t, c, "ent_create_grant")
 	entitlementID := createMeteredEntitlement(t, cust.ID, f.ID)
+
+	// The first usage period starts at the entitlement's creation minute, so the
+	// effective date must be taken after the entitlement exists.
+	effectiveAt := time.Now().UTC().Truncate(time.Minute)
+
+	grantRequest := v3sdk.EntitlementGrantCreateRequest{
+		Amount:       "100",
+		Priority:     lo.ToPtr(uint8(2)),
+		EffectiveAt:  effectiveAt,
+		ExpiresAfter: lo.ToPtr("P1M"),
+		Labels:       lo.ToPtr(map[string]string{"source": "e2e"}),
+	}
 
 	t.Run("metered entitlement", func(t *testing.T) {
 		// when a grant is issued for the metered entitlement
@@ -794,9 +790,9 @@ func TestV3CreateCustomerEntitlementGrant(t *testing.T) {
 		require.Equal(t, entitlementID, g.EntitlementID)
 		require.Equal(t, "100", g.Amount)
 		require.Equal(t, uint8(2), g.Priority)
-		require.True(t, anchor.Equal(g.EffectiveAt), "effective at %s != %s", g.EffectiveAt, anchor)
+		require.True(t, effectiveAt.Equal(g.EffectiveAt), "effective at %s != %s", g.EffectiveAt, effectiveAt)
 		require.Equal(t, "P1M", lo.FromPtr(g.ExpiresAfter))
-		require.True(t, anchor.AddDate(0, 1, 0).Equal(lo.FromPtr(g.ExpiresAt)))
+		require.True(t, effectiveAt.AddDate(0, 1, 0).Equal(lo.FromPtr(g.ExpiresAt)))
 		require.Equal(t, "100", g.MaxRolloverAmount)
 		require.Equal(t, "0", g.MinRolloverAmount)
 		require.Nil(t, g.Recurrence)
@@ -811,7 +807,7 @@ func TestV3CreateCustomerEntitlementGrant(t *testing.T) {
 
 	t.Run("effective before the current usage period", func(t *testing.T) {
 		req := grantRequest
-		req.EffectiveAt = anchor.Add(-time.Hour)
+		req.EffectiveAt = effectiveAt.Add(-time.Hour)
 
 		_, err := c.Customers.Entitlements.Grants.Create(t.Context(), cust.ID, entitlementID, req)
 		requireProblem(t, err, http.StatusBadRequest)
@@ -851,11 +847,9 @@ func TestV3CreateCustomerEntitlementGrant(t *testing.T) {
 
 	t.Run("deleted customer", func(t *testing.T) {
 		deleted := createCustomer(t, "ent_create_grant_deleted_customer")
-		deletedEntitlementID := createMeteredEntitlement(t, deleted.ID, f.ID)
-
 		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
 
-		_, err := c.Customers.Entitlements.Grants.Create(t.Context(), deleted.ID, deletedEntitlementID, grantRequest)
+		_, err := c.Customers.Entitlements.Grants.Create(t.Context(), deleted.ID, entitlementID, grantRequest)
 		requireProblem(t, err, http.StatusConflict)
 	})
 }
