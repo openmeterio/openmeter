@@ -209,7 +209,6 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 				CustomerDeletedAt:            customerDeletedAt,
 				SubscriptionEndProrationMode: subscriptionEndProrationMode,
 				Currency:                     cur,
-				DryRun:                       options.DryRun,
 			})
 			if err != nil {
 				return nil, err

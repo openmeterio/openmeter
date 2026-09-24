@@ -1025,6 +1025,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 			ID:        subs.ID,
 		})
 		s.NoError(err)
+		discountedPhase = s.getPhaseByKey(s.T(), subsView, "discounted-phase")
 
 		// Subscription has set the cancellation date, and the view's subscription items are updated to have the cadence
 		// set properly up to the cancellation date.
@@ -1080,6 +1081,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 			ID:        subs.ID,
 		})
 		s.NoError(err)
+		discountedPhase = s.getPhaseByKey(s.T(), subsView, "discounted-phase")
 
 		// If we are now resyncing the subscription, the gathering invoice should be updated to reflect the original cadence
 
@@ -4182,6 +4184,9 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 		s.True(found, "line should be found")
 		expectedLine := updatedLine
 		expectedLine.ManagedBy = billing.ManuallyManagedLine
+		expectedLine.Subscription.ItemID = s.getPhaseByKey(s.T(), canceledSubsView, "first-phase").ItemsByKey["in-arrears"][0].SubscriptionItem.ID
+		expectedLine.UpdatedAt = invoiceLine.UpdatedAt
+		s.Equal(expectedLine.Subscription.ItemID, invoiceLine.Subscription.ItemID)
 		s.True(invoiceLine.GatheringLineBase.Equal(expectedLine.GatheringLineBase), "line should keep the API-edited override values")
 
 		s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after cancellation sync", updatedLine, expectedFlatFeeIntent{

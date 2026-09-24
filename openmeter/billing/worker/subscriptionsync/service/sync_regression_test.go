@@ -33,8 +33,10 @@ type cancellationRegressionChargeSnapshot struct {
 }
 
 type cancellationRegressionTestCase struct {
-	chargeType     chargesmeta.ChargeType
-	settlementMode productcatalog.SettlementMode
+	chargeType         chargesmeta.ChargeType
+	settlementMode     productcatalog.SettlementMode
+	flatFeePaymentTerm productcatalog.PaymentTermType
+	disableProRating   bool
 }
 
 func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceDirection() {
@@ -47,16 +49,28 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 			name:    "flat fee credits only",
 			planKey: "period-direction-flat-fee-credits-only",
 			cancellationRegressionTestCase: cancellationRegressionTestCase{
-				chargeType:     chargesmeta.ChargeTypeFlatFee,
-				settlementMode: productcatalog.CreditOnlySettlementMode,
+				chargeType:         chargesmeta.ChargeTypeFlatFee,
+				settlementMode:     productcatalog.CreditOnlySettlementMode,
+				flatFeePaymentTerm: productcatalog.InAdvancePaymentTerm,
 			},
 		},
 		{
 			name:    "flat fee credit then invoice",
 			planKey: "period-direction-flat-fee-credit-then-invoice",
 			cancellationRegressionTestCase: cancellationRegressionTestCase{
-				chargeType:     chargesmeta.ChargeTypeFlatFee,
-				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				chargeType:         chargesmeta.ChargeTypeFlatFee,
+				settlementMode:     productcatalog.CreditThenInvoiceSettlementMode,
+				flatFeePaymentTerm: productcatalog.InAdvancePaymentTerm,
+			},
+		},
+		{
+			name:    "flat fee credit then invoice with disabled proration in arrears",
+			planKey: "period-direction-flat-fee-disabled-proration",
+			cancellationRegressionTestCase: cancellationRegressionTestCase{
+				chargeType:         chargesmeta.ChargeTypeFlatFee,
+				settlementMode:     productcatalog.CreditThenInvoiceSettlementMode,
+				flatFeePaymentTerm: productcatalog.InArrearsPaymentTerm,
+				disableProRating:   true,
 			},
 		},
 		{
@@ -101,23 +115,28 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 					"charge-item",
 					s.APIRequestsTotalFeature.Key,
 					s.APIRequestsTotalFeature.ID,
+					tc.flatFeePaymentTerm,
 				)
+				proRatingConfig := productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				}
+				if tc.disableProRating {
+					proRatingConfig = productcatalog.ProRatingConfig{}
+				}
 				subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: s.Namespace,
 					},
 					Plan: productcatalog.Plan{
 						PlanMeta: productcatalog.PlanMeta{
-							Name:           tc.name,
-							Key:            tc.planKey,
-							Version:        1,
-							Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
-							SettlementMode: tc.settlementMode,
-							BillingCadence: datetime.MustParseDuration(s.T(), "P1Y"),
-							ProRatingConfig: productcatalog.ProRatingConfig{
-								Enabled: true,
-								Mode:    productcatalog.ProRatingModeProratePrices,
-							},
+							Name:            tc.name,
+							Key:             tc.planKey,
+							Version:         1,
+							Currency:        currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+							SettlementMode:  tc.settlementMode,
+							BillingCadence:  datetime.MustParseDuration(s.T(), "P1Y"),
+							ProRatingConfig: proRatingConfig,
 						},
 						Phases: []productcatalog.Phase{
 							{
@@ -147,11 +166,17 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 
 				switch tc.chargeType {
 				case chargesmeta.ChargeTypeFlatFee:
-					// A one-time in-advance fee starts as an instant while retaining the
-					// subscription-aligned annual billing period.
-					s.Equal(timeutil.ClosedPeriod{From: start, To: start}, initial.ServicePeriod)
-					s.Equal(timeutil.ClosedPeriod{From: start, To: start}, initial.FullServicePeriod)
-					s.Equal(start, initial.InvoiceAt)
+					if tc.flatFeePaymentTerm == productcatalog.InArrearsPaymentTerm {
+						s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, initial.ServicePeriod)
+						s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, initial.FullServicePeriod)
+						s.Equal(billingPeriodEnd, initial.InvoiceAt)
+					} else {
+						// A one-time in-advance fee starts as an instant while retaining the
+						// subscription-aligned annual billing period.
+						s.Equal(timeutil.ClosedPeriod{From: start, To: start}, initial.ServicePeriod)
+						s.Equal(timeutil.ClosedPeriod{From: start, To: start}, initial.FullServicePeriod)
+						s.Equal(start, initial.InvoiceAt)
+					}
 				case chargesmeta.ChargeTypeUsageBased:
 					s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, initial.ServicePeriod)
 					s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, initial.FullServicePeriod)
@@ -177,15 +202,19 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 			})
 
 			s.Run("then", func() {
-				// Then flat fees extend service while shrinking billing, whereas usage
-				// charges follow their normal service shrink path. Both converge to the
-				// canceled subscription state without replacing the charge.
+				// Then the charge converges to the canceled subscription state without
+				// replacing its identity, whether service extends or shrinks.
 				s.Equal(initial.ID, updated.ID)
 				s.Equal(timeutil.ClosedPeriod{From: start, To: cancelAt}, updated.ServicePeriod)
 				s.Equal(timeutil.ClosedPeriod{From: start, To: cancelAt}, updated.BillingPeriod)
 				if tc.chargeType == chargesmeta.ChargeTypeFlatFee {
-					s.Equal(timeutil.ClosedPeriod{From: start, To: cancelAt}, updated.FullServicePeriod)
-					s.Equal(start, updated.InvoiceAt)
+					if tc.flatFeePaymentTerm == productcatalog.InArrearsPaymentTerm {
+						s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, updated.FullServicePeriod)
+						s.Equal(cancelAt, updated.InvoiceAt)
+					} else {
+						s.Equal(timeutil.ClosedPeriod{From: start, To: cancelAt}, updated.FullServicePeriod)
+						s.Equal(start, updated.InvoiceAt)
+					}
 				} else {
 					s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, updated.FullServicePeriod)
 					s.Equal(cancelAt, updated.InvoiceAt)
@@ -202,21 +231,26 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 	}
 }
 
-func cancellationRegressionRateCard(t *testing.T, chargeType chargesmeta.ChargeType, itemKey, featureKey, featureID string) productcatalog.RateCard {
+func cancellationRegressionRateCard(t *testing.T, chargeType chargesmeta.ChargeType, itemKey, featureKey, featureID string, flatFeePaymentTerm productcatalog.PaymentTermType) productcatalog.RateCard {
 	t.Helper()
 
 	switch chargeType {
 	case chargesmeta.ChargeTypeFlatFee:
-		return &productcatalog.FlatFeeRateCard{
+		rateCard := &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
 				Key:  itemKey,
 				Name: itemKey,
 				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(5),
-					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					PaymentTerm: flatFeePaymentTerm,
 				}),
 			},
 		}
+		if flatFeePaymentTerm == productcatalog.InArrearsPaymentTerm {
+			rateCard.BillingCadence = lo.ToPtr(datetime.MustParseDuration(t, "P1Y"))
+		}
+
+		return rateCard
 	case chargesmeta.ChargeTypeUsageBased:
 		return &productcatalog.UsageBasedRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{

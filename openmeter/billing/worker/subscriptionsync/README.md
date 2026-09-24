@@ -89,6 +89,31 @@ charge. Credit-then-invoice usage reconciliation may preserve a missing feature
 or meter as a product-catalog issue on a newly created charge; invoice assignment
 keeps its gathering line pending until the dependency is repaired.
 
+When an existing flat-fee or usage-based charge's physical phase or item reference changes,
+the charge-specific comparison checks the target against the subscription-owned
+base intent while excluding the reference and reconciliation periods. The root
+subscription ID is the reconciliation boundary and cannot change. Plan key and
+version are also excluded: they are best-effort creation-time attribution, so a
+different snapshot does not establish that the physical item was replaced. This
+comparison is an approximation of item identity. A change to another source
+base-intent field means that the logical child reference now describes a
+replacement charge, so sync emits delete/create patches. Expanded currency
+data is not source intent; currency is compared by its stable reference. Flat-fee
+comparison treats disabled proration modes as equivalent and ignores the
+period-derived realized amount, but retains the unprorated source price as a
+replacement signal. If only the physical phase or item reference changed, sync
+repairs that reference and lets normal period reconciliation add a compatible
+shrink or extend. A changed period start also requires replacement because
+shrink and extend only move the period end. This start mismatch can remain from
+the legacy repair path, which silently overwrote a matched charge's subscription
+reference even when the referenced replacement item began at a different time.
+
+This decision always follows system intent. Manual overrides remain associated
+with the retired or repaired charge and do not participate in comparison; users
+remain responsible for managing them. Charge deletion remains observable, while
+economic corrections for already realized credits or invoice history remain the
+responsibility of the downstream charge lifecycle rather than subscription sync.
+
 ## Deletion, cancellation, and retries
 
 Cancellation syncs through the subscription end so artifacts are shortened or

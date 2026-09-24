@@ -2,6 +2,7 @@ package meta
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
@@ -22,6 +23,31 @@ type PatchUpdateSubscriptionReference struct {
 type NewPatchUpdateSubscriptionReferenceInput struct {
 	PhaseID            *string
 	SubscriptionItemID *string
+}
+
+// AsPatchUpdateSubscriptionReference expresses reassignment within a subscription.
+// A charge may follow a replacement phase or item, but changing the root subscription
+// would move the charge between independently reconciled ownership boundaries.
+func (r SubscriptionReference) AsPatchUpdateSubscriptionReference(existing SubscriptionReference) (PatchUpdateSubscriptionReference, error) {
+	if err := r.Validate(); err != nil {
+		return PatchUpdateSubscriptionReference{}, fmt.Errorf("target subscription reference: %w", err)
+	}
+	if err := existing.Validate(); err != nil {
+		return PatchUpdateSubscriptionReference{}, fmt.Errorf("existing subscription reference: %w", err)
+	}
+	if r.SubscriptionID != existing.SubscriptionID {
+		return PatchUpdateSubscriptionReference{}, errors.New("subscription ID cannot be updated")
+	}
+
+	input := NewPatchUpdateSubscriptionReferenceInput{}
+	if r.PhaseID != existing.PhaseID {
+		input.PhaseID = lo.ToPtr(r.PhaseID)
+	}
+	if r.ItemID != existing.ItemID {
+		input.SubscriptionItemID = lo.ToPtr(r.ItemID)
+	}
+
+	return NewPatchUpdateSubscriptionReference(input)
 }
 
 func NewPatchUpdateSubscriptionReference(input NewPatchUpdateSubscriptionReferenceInput) (PatchUpdateSubscriptionReference, error) {

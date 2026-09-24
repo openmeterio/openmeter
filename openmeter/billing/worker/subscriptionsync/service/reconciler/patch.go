@@ -9,9 +9,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -45,6 +47,58 @@ type InvoicePatchCollection interface {
 type ChargePatchCollection interface {
 	Patches() charges.ApplyPatchesInput
 	IsEmpty() bool
+}
+
+// ChargeReferencePatches is kept separate from ordinary charge patches so the same
+// charge can first repair its physical subscription ownership and then receive one
+// compatible lifecycle patch. The map key enforces one reference repair per charge.
+type ChargeReferencePatches map[chargesmeta.ChargeID]chargesmeta.PatchUpdateSubscriptionReference
+
+func (p ChargeReferencePatches) IsEmpty() bool {
+	return len(p) == 0
+}
+
+func (p ChargeReferencePatches) add(chargeID chargesmeta.ChargeID, patch chargesmeta.PatchUpdateSubscriptionReference) error {
+	if p == nil {
+		return fmt.Errorf("charge reference patches are required")
+	}
+
+	if err := chargeID.Validate(); err != nil {
+		return fmt.Errorf("invalid charge ID: %w", err)
+	}
+	if err := patch.Validate(); err != nil {
+		return fmt.Errorf("invalid subscription reference patch: %w", err)
+	}
+
+	if _, exists := p[chargeID]; exists {
+		return fmt.Errorf("subscription reference patch for charge ID %s already exists", chargeID.ID)
+	}
+
+	p[chargeID] = patch
+
+	return nil
+}
+
+func (p ChargeReferencePatches) asApplyPatchesInput(customerID customer.CustomerID) (charges.ApplyPatchesInput, error) {
+	patchesByChargeID := make(map[string]charges.Patch, len(p))
+	for chargeID, patch := range p {
+		if err := chargeID.Validate(); err != nil {
+			return charges.ApplyPatchesInput{}, fmt.Errorf("invalid charge ID: %w", err)
+		}
+		if chargeID.Namespace != customerID.Namespace {
+			return charges.ApplyPatchesInput{}, fmt.Errorf("charge[%s] namespace does not match customer namespace", chargeID.ID)
+		}
+		if err := patch.Validate(); err != nil {
+			return charges.ApplyPatchesInput{}, fmt.Errorf("invalid subscription reference patch for charge[%s]: %w", chargeID.ID, err)
+		}
+
+		patchesByChargeID[chargeID.ID] = patch
+	}
+
+	return charges.ApplyPatchesInput{
+		CustomerID:        customerID,
+		PatchesByChargeID: patchesByChargeID,
+	}, nil
 }
 
 type PatchCollection interface {
