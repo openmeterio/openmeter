@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 func TestCreateCustomerEntitlementInputValidate(t *testing.T) {
@@ -230,4 +231,58 @@ func TestCreateCustomerEntitlementGrantInputValidate(t *testing.T) {
 		require.ErrorContains(t, err, "effective at must be set")
 		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 	})
+}
+
+func TestListNamespaceGrantsInputValidate(t *testing.T) {
+	valid := ListNamespaceGrantsInput{
+		Namespace: "ns",
+		OrderBy:   grant.OrderByEffectiveAt,
+		PageSize:  20,
+	}
+
+	require.NoError(t, valid.Validate())
+
+	t.Run("requires namespace", func(t *testing.T) {
+		input := valid
+		input.Namespace = ""
+
+		require.ErrorContains(t, input.Validate(), "namespace is required")
+	})
+
+	t.Run("rejects an order by that cannot key the cursor", func(t *testing.T) {
+		input := valid
+		input.OrderBy = grant.OrderByUpdatedAt
+
+		require.ErrorContains(t, input.Validate(), "invalid order by")
+	})
+
+	t.Run("rejects a page size out of range", func(t *testing.T) {
+		for _, size := range []int{0, MaxGrantsPageSize + 1} {
+			input := valid
+			input.PageSize = size
+
+			require.ErrorContains(t, input.Validate(), "page size")
+		}
+	})
+
+	t.Run("rejects an invalid cursor", func(t *testing.T) {
+		input := valid
+		input.Cursor = &paginationv2.Cursor{ID: "01K4WAQ0J99ZZ0MD75HXR112H8"}
+
+		require.ErrorContains(t, input.Validate(), "cursor")
+	})
+
+	t.Run("rejects an invalid filter", func(t *testing.T) {
+		input := valid
+		input.CustomerID = &filter.FilterULID{FilterString: filter.FilterString{Eq: lo.ToPtr("a"), Ne: lo.ToPtr("b")}}
+
+		err := input.Validate()
+		require.True(t, models.IsGenericValidationError(err))
+		require.ErrorContains(t, err, "customer ID filter")
+	})
+}
+
+func TestVoidGrantInputValidate(t *testing.T) {
+	require.NoError(t, VoidGrantInput{GrantID: models.NamespacedID{Namespace: "ns", ID: "01K4WAQ0J99ZZ0MD75HXR112H8"}}.Validate())
+	require.ErrorContains(t, VoidGrantInput{GrantID: models.NamespacedID{Namespace: "ns"}}.Validate(), "grant ID")
 }
