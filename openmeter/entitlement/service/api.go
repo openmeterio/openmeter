@@ -404,13 +404,13 @@ func (c *service) ListNamespaceGrants(ctx context.Context, input entitlement.Lis
 	}
 
 	return c.grantRepo.ListGrants(ctx, grant.ListParams{
-		Namespace:        input.Namespace,
-		IncludeDeleted:   input.IncludeDeleted,
-		CustomerIDs:      input.CustomerIDs,
-		FeatureIdsOrKeys: input.FeatureIDsOrKeys,
-		OrderBy:          lo.CoalesceOrEmpty(input.OrderBy, grant.OrderByCreatedAt),
-		Order:            input.Order,
-		Page:             input.Page,
+		Namespace:      input.Namespace,
+		IncludeDeleted: input.IncludeDeleted,
+		CustomerID:     input.CustomerID,
+		FeatureID:      input.FeatureID,
+		OrderBy:        lo.CoalesceOrEmpty(input.OrderBy, grant.OrderByCreatedAt),
+		Order:          input.Order,
+		Page:           input.Page,
 	})
 }
 

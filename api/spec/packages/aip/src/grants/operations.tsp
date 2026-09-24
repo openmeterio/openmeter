@@ -19,16 +19,14 @@ namespace Grants;
 @friendlyName("ListGrantsParamsFilter")
 model ListGrantsParamsFilter {
   /**
-   * Filter grants by the ID of the customer that owns the entitlement. Only the `eq`
-   * and `oeq` operators are supported.
+   * Filter grants by the ID of the customer that owns the entitlement.
    */
   customer_id?: Common.ULIDFieldFilter;
 
   /**
-   * Filter grants by the ID or the key of the entitlement's feature. Only the `eq`
-   * and `oeq` operators are supported.
+   * Filter grants by the ID of the entitlement's feature.
    */
-  feature?: Common.StringFieldFilterExact;
+  feature_id?: Common.ULIDFieldFilter;
 }
 
 interface GrantsOperations {

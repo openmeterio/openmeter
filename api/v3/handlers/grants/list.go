@@ -10,6 +10,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	customersentitlements "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
@@ -75,18 +76,14 @@ func (h *handler) ListGrants() ListGrantsHandler {
 			}
 
 			if params.Filter != nil {
-				if f := params.Filter.CustomerId; f != nil {
-					req.CustomerIDs, err = fromAPIFilterValues(f.Eq, f.Oeq, f.Neq)
-					if err != nil {
-						return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "filter[customer_id]", err)
-					}
+				req.CustomerID, err = filters.FromAPIFilterULID(params.Filter.CustomerId)
+				if err != nil {
+					return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "filter[customer_id]", err)
 				}
 
-				if f := params.Filter.Feature; f != nil {
-					req.FeatureIDsOrKeys, err = fromAPIFilterValues(f.Eq, f.Oeq, f.Neq)
-					if err != nil {
-						return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "filter[feature]", err)
-					}
+				req.FeatureID, err = filters.FromAPIFilterULID(params.Filter.FeatureId)
+				if err != nil {
+					return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "filter[feature]", err)
 				}
 			}
 

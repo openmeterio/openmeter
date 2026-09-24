@@ -17,12 +17,10 @@ type GrantsService struct {
 }
 
 type ListGrantsFilter struct {
-	// Filter grants by the ID of the customer that owns the entitlement. Only the `eq`
-	// and `oeq` operators are supported.
+	// Filter grants by the ID of the customer that owns the entitlement.
 	CustomerID *StringExactFilter
-	// Filter grants by the ID or the key of the entitlement's feature. Only the `eq`
-	// and `oeq` operators are supported.
-	Feature *StringExactFilter
+	// Filter grants by the ID of the entitlement's feature.
+	FeatureID *StringExactFilter
 }
 
 type ListGrantsParams struct {
@@ -41,7 +39,7 @@ func (p ListGrantsParams) values() url.Values {
 
 	if p.Filter != nil {
 		addStringExactFilter(q, "filter[customer_id]", p.Filter.CustomerID)
-		addStringExactFilter(q, "filter[feature]", p.Filter.Feature)
+		addStringExactFilter(q, "filter[feature_id]", p.Filter.FeatureID)
 	}
 
 	if p.IncludeDeleted != nil {

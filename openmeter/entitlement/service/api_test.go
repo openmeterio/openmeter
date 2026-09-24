@@ -1876,25 +1876,31 @@ func TestGrantAPI(t *testing.T) {
 			want   []string
 		}{
 			{
-				name:   "customer ID",
-				modify: func(i *entitlement.ListNamespaceGrantsInput) { i.CustomerIDs = []string{cust2.ID} },
-				want:   []string{grant4},
+				name: "customer ID",
+				modify: func(i *entitlement.ListNamespaceGrantsInput) {
+					i.CustomerID = &filter.FilterULID{Eq: lo.ToPtr(cust2.ID)}
+				},
+				want: []string{grant4},
 			},
 			{
-				name:   "feature ID",
-				modify: func(i *entitlement.ListNamespaceGrantsInput) { i.FeatureIDsOrKeys = []string{featureB.ID} },
-				want:   []string{grant3},
+				name: "feature ID",
+				modify: func(i *entitlement.ListNamespaceGrantsInput) {
+					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureB.ID)}
+				},
+				want: []string{grant3},
 			},
 			{
-				name:   "feature key",
-				modify: func(i *entitlement.ListNamespaceGrantsInput) { i.FeatureIDsOrKeys = []string{featureA.Key} },
-				want:   []string{grant1, grant2, grant4},
+				name: "feature key",
+				modify: func(i *entitlement.ListNamespaceGrantsInput) {
+					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureA.Key)}
+				},
+				want: []string{grant1, grant2, grant4},
 			},
 			{
 				name: "customer ID and feature key",
 				modify: func(i *entitlement.ListNamespaceGrantsInput) {
-					i.CustomerIDs = []string{cust1.ID}
-					i.FeatureIDsOrKeys = []string{featureA.Key}
+					i.CustomerID = &filter.FilterULID{Eq: lo.ToPtr(cust1.ID)}
+					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureA.Key)}
 				},
 				want: []string{grant1, grant2},
 			},

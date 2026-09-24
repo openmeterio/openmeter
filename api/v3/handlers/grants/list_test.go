@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -79,20 +80,20 @@ func TestListGrantsHandler(t *testing.T) {
 			Sort: lo.ToPtr("effective_at desc"),
 			Filter: &api.ListGrantsParamsFilter{
 				CustomerId: &filters.FilterULID{Eq: lo.ToPtr("01K4WAQ0J99ZZ0MD75HXR112H8")},
-				Feature:    &filters.FilterStringExact{Oeq: []string{"a", "01K4WAQ0J99ZZ0MD75HXR112H9"}},
+				FeatureId:  &filters.FilterULID{Oeq: []string{"a", "01K4WAQ0J99ZZ0MD75HXR112H9"}},
 			},
 			IncludeDeleted: lo.ToPtr(true),
 		})
 
 		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 		require.Equal(t, entitlement.ListNamespaceGrantsInput{
-			Namespace:        testNamespace,
-			IncludeDeleted:   true,
-			CustomerIDs:      []string{"01K4WAQ0J99ZZ0MD75HXR112H8"},
-			FeatureIDsOrKeys: []string{"a", "01K4WAQ0J99ZZ0MD75HXR112H9"},
-			OrderBy:          grant.OrderByEffectiveAt,
-			Order:            sortx.OrderDesc,
-			Page:             pagination.NewPage(2, 5),
+			Namespace:      testNamespace,
+			IncludeDeleted: true,
+			CustomerID:     &filter.FilterULID{Eq: lo.ToPtr("01K4WAQ0J99ZZ0MD75HXR112H8")},
+			FeatureID:      &filter.FilterULID{In: lo.ToPtr([]string{"a", "01K4WAQ0J99ZZ0MD75HXR112H9"})},
+			OrderBy:        grant.OrderByEffectiveAt,
+			Order:          sortx.OrderDesc,
+			Page:           pagination.NewPage(2, 5),
 		}, received)
 
 		var body response.PagePaginationResponse[api.BillingEntitlementGrant]
@@ -111,7 +112,7 @@ func TestListGrantsHandler(t *testing.T) {
 		{name: "rejects an invalid page", params: api.ListGrantsParams{Page: &api.PagePaginationQuery{Number: lo.ToPtr(0)}}, field: "page"},
 		{name: "rejects an unsupported sort field", params: api.ListGrantsParams{Sort: lo.ToPtr("owner_id")}, field: "sort"},
 		{name: "rejects a negated customer filter", params: api.ListGrantsParams{Filter: &api.ListGrantsParamsFilter{CustomerId: &filters.FilterULID{Neq: lo.ToPtr("01K4WAQ0J99ZZ0MD75HXR112H8")}}}, field: "filter[customer_id]"},
-		{name: "rejects a feature filter with both eq and oeq", params: api.ListGrantsParams{Filter: &api.ListGrantsParamsFilter{Feature: &filters.FilterStringExact{Eq: lo.ToPtr("a"), Oeq: []string{"b"}}}}, field: "filter[feature]"},
+		{name: "rejects a feature filter with both eq and oeq", params: api.ListGrantsParams{Filter: &api.ListGrantsParamsFilter{FeatureId: &filters.FilterULID{Eq: lo.ToPtr("a"), Oeq: []string{"b"}}}}, field: "filter[feature]"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			res := serveListGrants(t, fakeService{

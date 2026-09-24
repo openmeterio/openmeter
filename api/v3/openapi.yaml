@@ -15882,15 +15882,11 @@ components:
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULIDFieldFilter'
-          description: |-
-            Filter grants by the ID of the customer that owns the entitlement. Only the `eq`
-            and `oeq` operators are supported.
-        feature:
+          description: Filter grants by the ID of the customer that owns the entitlement.
+        feature_id:
           allOf:
-            - $ref: '#/components/schemas/StringFieldFilterExact'
-          description: |-
-            Filter grants by the ID or the key of the entitlement's feature. Only the `eq`
-            and `oeq` operators are supported.
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter grants by the ID of the entitlement's feature.
       additionalProperties: false
       description: Filter options for listing grants.
     ListInvoicesParamsFilter:

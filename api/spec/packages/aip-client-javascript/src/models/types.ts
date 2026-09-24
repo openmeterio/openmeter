@@ -2953,16 +2953,10 @@ export interface ListEntitlementsParamsFilter {
 
 /** Filter options for listing grants. */
 export interface ListGrantsParamsFilter {
-  /**
-   * Filter grants by the ID of the customer that owns the entitlement. Only the `eq`
-   * and `oeq` operators are supported.
-   */
+  /** Filter grants by the ID of the customer that owns the entitlement. */
   customerId?: UlidFieldFilter
-  /**
-   * Filter grants by the ID or the key of the entitlement's feature. Only the `eq`
-   * and `oeq` operators are supported.
-   */
-  feature?: StringFieldFilterExact
+  /** Filter grants by the ID of the entitlement's feature. */
+  featureId?: UlidFieldFilter
 }
 
 /** Filter options for listing subscriptions. */

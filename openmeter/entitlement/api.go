@@ -504,8 +504,8 @@ type ListNamespaceGrantsInput struct {
 	Namespace      string
 	IncludeDeleted bool
 
-	CustomerIDs      []string
-	FeatureIDsOrKeys []string
+	CustomerID *filter.FilterULID
+	FeatureID  *filter.FilterULID
 
 	OrderBy grant.OrderBy
 	Order   sortx.Order
@@ -521,6 +521,18 @@ func (i ListNamespaceGrantsInput) Validate() error {
 
 	if i.OrderBy != "" && !slices.Contains(i.OrderBy.Values(), i.OrderBy) {
 		errs = append(errs, fmt.Errorf("invalid order by: %s", i.OrderBy))
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer ID filter: %w", err))
+		}
+	}
+
+	if i.FeatureID != nil {
+		if err := i.FeatureID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer ID filter: %w", err))
+		}
 	}
 
 	// The limit/offset mode of the grant list is not exposed, so a page is always required.

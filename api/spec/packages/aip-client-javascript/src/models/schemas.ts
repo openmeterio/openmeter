@@ -4065,7 +4065,7 @@ export const listEntitlementsParamsFilter = z
 export const listGrantsParamsFilter = z
   .object({
     customerId: ulidFieldFilter.optional(),
-    feature: stringFieldFilterExact.optional(),
+    featureId: ulidFieldFilter.optional(),
   })
   .describe('Filter options for listing grants.')
 
@@ -12985,7 +12985,7 @@ export const listEntitlementsParamsFilterWire = z
 export const listGrantsParamsFilterWire = z
   .strictObject({
     customer_id: ulidFieldFilterWire.optional(),
-    feature: stringFieldFilterExactWire.optional(),
+    feature_id: ulidFieldFilterWire.optional(),
   })
   .describe('Filter options for listing grants.')
 
