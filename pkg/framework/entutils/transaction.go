@@ -77,20 +77,32 @@ func (sp txSavepoint) String() string {
 // retains its callbacks; rolling it back discards callbacks registered within it.
 type txCallbacks struct {
 	callbacks []func()
-	marks     []int
+	marks     map[txSavepoint]int
 }
 
-func (c *txCallbacks) SavePoint() {
-	c.marks = append(c.marks, len(c.callbacks))
+func (c *txCallbacks) SavePoint(stage txSavepoint) {
+	if c.marks == nil {
+		c.marks = make(map[txSavepoint]int)
+	}
+	c.marks[stage] = len(c.callbacks)
 }
 
-func (c *txCallbacks) ReleaseSavepoint() {
-	c.marks = c.marks[:len(c.marks)-1]
+func (c *txCallbacks) Release(stage txSavepoint) {
+	for checkpoint := range c.marks {
+		if checkpoint >= stage {
+			delete(c.marks, checkpoint)
+		}
+	}
 }
 
-func (c *txCallbacks) RollbackSavepoint() {
-	c.callbacks = c.callbacks[:c.marks[len(c.marks)-1]]
-	c.ReleaseSavepoint()
+// RollbackTo retains the target checkpoint, like PostgreSQL, so it can be reused.
+func (c *txCallbacks) RollbackTo(stage txSavepoint) {
+	c.callbacks = c.callbacks[:c.marks[stage]]
+	for checkpoint := range c.marks {
+		if checkpoint > stage {
+			delete(c.marks, checkpoint)
+		}
+	}
 }
 
 type TxDriver struct {
@@ -141,7 +153,7 @@ func (t *TxDriver) commit() ([]func(), error) {
 
 	if t.currentSavepoint != txSavepointNone {
 		if err := t.driver.Release(t.currentSavepoint.String()); err == nil {
-			t.afterCommit.ReleaseSavepoint()
+			t.afterCommit.Release(t.currentSavepoint)
 			t.currentSavepoint = t.currentSavepoint.Prev()
 		} else {
 			t.err = err
@@ -172,7 +184,7 @@ func (t *TxDriver) Rollback() error {
 	if t.currentSavepoint != txSavepointNone {
 		// If we're not at the top level, we rollback to the savepoint
 		if err := t.driver.RollbackTo(t.currentSavepoint.String()); err == nil {
-			t.afterCommit.RollbackSavepoint()
+			t.afterCommit.RollbackTo(t.currentSavepoint)
 			t.currentSavepoint = t.currentSavepoint.Prev()
 		} else {
 			t.err = err
@@ -210,7 +222,7 @@ func (t *TxDriver) SavePoint() error {
 		}
 
 		t.currentSavepoint = next
-		t.afterCommit.SavePoint()
+		t.afterCommit.SavePoint(next)
 	}
 
 	return nil
