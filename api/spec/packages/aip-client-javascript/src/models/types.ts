@@ -2542,7 +2542,7 @@ export interface CreateCreditAdjustmentRequest {
 /** Filter options for listing credit transactions. */
 export interface ListCreditTransactionsParamsFilter {
   /** Filter credit transactions by type. */
-  type?: 'funded' | 'consumed' | 'expired' | 'voided'
+  type?: 'funded' | 'consumed' | 'correction' | 'expired' | 'voided'
   /**
    * Filter credit transactions by currency code. Custom-currency rows retain their
    * managed currency identifier.
@@ -2955,7 +2955,7 @@ export interface CreditTransaction {
   /** The date and time the transaction was booked. */
   bookedAt: Date
   /** The type of credit transaction. */
-  type: 'funded' | 'consumed' | 'expired' | 'voided'
+  type: 'funded' | 'consumed' | 'correction' | 'expired' | 'voided'
   /** Currency of the balance affected by the transaction. */
   currency: BillingCurrencyCode
   /** Managed currency reference. Present only for custom currencies. */

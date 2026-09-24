@@ -37,6 +37,9 @@ import (
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
+	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -63,6 +66,7 @@ type testDeps struct {
 	subscriptionSyncService     subscriptionsync.Service
 	billingService              billing.Service
 	chargesService              charges.Service
+	customerBalanceService      customerbalance.Service
 	ledgerDeps                  ledgertestutils.Deps
 	lineageService              legacylineage.Service
 	sandboxApp                  app.App
@@ -178,6 +182,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 	billingService = billingService.WithInvoiceCalculator(invoiceCalculator)
 
 	var chargesService charges.Service
+	var customerBalanceService customerbalance.Service
 	var ledgerDeps ledgertestutils.Deps
 
 	var lineageService legacylineage.Service
@@ -258,6 +263,30 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		require.NoError(t, err)
 
 		chargesService = stack.ChargesService
+
+		creditVoidAdapter, err := creditvoidadapter.New(creditvoidadapter.Config{Client: deps.DBDeps.DBClient})
+		require.NoError(t, err)
+		creditVoidService, err := creditvoid.NewService(creditvoid.Config{
+			Adapter:            creditVoidAdapter,
+			Ledger:             ledgerDeps.HistoricalLedger,
+			Dependencies:       resolverDeps,
+			Breakage:           breakageService,
+			AccountLocker:      ledgerDeps.AccountService,
+			TransactionManager: transactionManager,
+		})
+		require.NoError(t, err)
+		customerBalanceService, err = customerbalance.New(customerbalance.Config{
+			AccountResolver:   ledgerDeps.ResolversService,
+			SubAccountService: ledgerDeps.AccountService,
+			ChargesService:    stack.ChargesService,
+			UsageBasedService: stack.UsageBasedService,
+			Currencies:        stack.CurrencyService,
+			Ledger:            ledgerDeps.HistoricalLedger,
+			BalanceQuerier:    ledgerDeps.HistoricalLedger,
+			Breakage:          breakageService,
+			CreditVoid:        creditVoidService,
+		})
+		require.NoError(t, err)
 	}
 
 	subscriptionSyncAdapter, err := subscriptionsyncadapter.New(subscriptionsyncadapter.Config{
@@ -332,6 +361,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		subscriptionSyncService:     subscriptionSyncService,
 		billingService:              billingService,
 		chargesService:              chargesService,
+		customerBalanceService:      customerBalanceService,
 		ledgerDeps:                  ledgerDeps,
 		lineageService:              lineageService,
 		sandboxApp:                  sandboxApp,
