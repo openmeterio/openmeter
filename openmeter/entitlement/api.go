@@ -531,7 +531,7 @@ func (i ListNamespaceGrantsInput) Validate() error {
 
 	if i.FeatureID != nil {
 		if err := i.FeatureID.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("customer ID filter: %w", err))
+			errs = append(errs, fmt.Errorf("feature ID filter: %w", err))
 		}
 	}
 
