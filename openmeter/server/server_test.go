@@ -1280,6 +1280,14 @@ func (n NoopEntitlementConnector) CreateCustomerEntitlementGrant(ctx context.Con
 	return grant.Grant{}, nil
 }
 
+func (n NoopEntitlementConnector) ListNamespaceGrants(ctx context.Context, input entitlement.ListNamespaceGrantsInput) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, nil
+}
+
+func (n NoopEntitlementConnector) VoidGrant(ctx context.Context, input entitlement.VoidGrantInput) error {
+	return nil
+}
+
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
 }
