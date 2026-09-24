@@ -180,19 +180,22 @@ affects normalization, routing-key versions, schema persistence, filters,
 account-specific route parameters, transaction rules, corrections, and
 historical data—not only the `Route` struct.
 
-## Feature-restricted balances
+## Filtered balances
 
 Public balance filtering and source allocability are related but distinct:
 
-- no feature filter means the whole credit portfolio
-- an unrestricted-only filter selects routes with no feature restriction
-- filtering for one feature includes unrestricted routes and routes containing
-  that feature
-- unrestricted credit can fund any charge; restricted credit can fund only a
-  matching feature
+- omitting a dimension includes its entire portfolio
+- selecting no restriction on a dimension does not remove other restrictions
+- selecting one feature or plan includes routes unrestricted on that dimension
+  and routes matching the selection; an optional plan version is an exact value
+  matched against each grant's version constraint
+- feature and plan selections combine with AND
 
 Public filtering cannot be implemented as exact route equality, and a public
 balance result is not necessarily the set of sources allocable to every charge.
+The same selection applies to pending grants, live charge impacts, transaction
+amounts, and before/after balances. Actual allocation still matches all charge
+dimensions against each credit source.
 
 ## Time and balance boundaries
 

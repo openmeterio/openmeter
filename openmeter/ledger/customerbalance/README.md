@@ -19,6 +19,14 @@ balance(asOf=T) =
 The receivable term represents credit-only advance: usage already consumed
 before purchased credit was available.
 
+Balance and transaction queries support one feature key and one plan key, with
+an optional exact plan version. Each selection includes credits unrestricted on
+that dimension; feature and plan selections combine with AND. `exists=false`
+selects no restriction on that dimension only. For example, feature-unrestricted
+credits can still be plan-restricted. Querying a plan without a version includes
+all its versions. The selection applies to pending/live balances and transaction
+amounts and before/after balances before pagination; responses remain per currency.
+
 Fiat currencies are identified by code. Custom-currency balance rows also
 carry `custom_currency.id`; balances remain separate when historical managed
 currencies reuse a display code. A code filter selects every matching identity.

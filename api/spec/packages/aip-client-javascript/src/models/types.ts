@@ -2096,20 +2096,6 @@ export interface SubscriptionEditStretchPhase {
   extendBy: string
 }
 
-/** Filter options for getting a credit balance. */
-export interface GetCreditBalanceParamsFilter {
-  /**
-   * Filter credit balance by currency code. When historical custom currencies reuse
-   * a code, each managed currency is returned as a separate balance row.
-   */
-  currency?: StringFieldFilterExact
-  /**
-   * Filter credit balance by feature key. Omit to return the total portfolio value.
-   * Use `exists=false` to return only unrestricted balance.
-   */
-  featureKey?: StringFieldFilter
-}
-
 /** Filter options for listing plans. */
 export interface ListPlansParamsFilter {
   key?: StringFieldFilter
@@ -2167,6 +2153,35 @@ export interface ValidationIssue {
   field?: string
   /** Component that reported the validation issue, if applicable. */
   component?: string
+}
+
+/** Filter options for getting a credit balance. */
+export interface GetCreditBalanceParamsFilter {
+  /**
+   * Filter credit balance by currency code. When historical custom currencies reuse
+   * a code, each managed currency is returned as a separate balance row.
+   */
+  currency?: StringFieldFilterExact
+  /**
+   * Filter credit balance by feature key. Omit to return the total portfolio value.
+   * Use `exists=false` to return only credits without feature restrictions; those
+   * credits may still have plan restrictions.
+   */
+  featureKey?: StringFieldFilter
+  /**
+   * Select credits matching one plan key, including credits without plan
+   * restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and a
+   * single-value `oeq`. Omit to include all plans. Use `exists=false` for credits
+   * without plan restrictions. Feature and plan selections combine with AND.
+   */
+  planKey?: StringFieldFilter
+  /**
+   * Select one positive integer plan version using `eq` (or shorthand). Requires a
+   * concrete `plan_key`. Credits whose version constraints match this version, and
+   * credits without plan restrictions, are included. Omit to include every version
+   * of the selected plan.
+   */
+  planVersion?: NumericFieldFilter
 }
 
 /** Request body for voiding a credit grant. */
@@ -2722,10 +2737,24 @@ export interface ListCreditTransactionsParamsFilter {
   currency?: BillingCurrencyCode
   /**
    * Filter credit transactions by feature key. Omit to return all credit
-   * transactions. Use `exists=false` to return only unrestricted credit
-   * transactions.
+   * transactions. Use `exists=false` to return only movements on routes without
+   * feature restrictions; those routes may still have plan restrictions.
    */
   featureKey?: StringFieldFilter
+  /**
+   * Select credits matching one plan key, including credits without plan
+   * restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and a
+   * single-value `oeq`. Omit to include all plans. Use `exists=false` for credits
+   * without plan restrictions. Feature and plan selections combine with AND.
+   */
+  planKey?: StringFieldFilter
+  /**
+   * Select one positive integer plan version using `eq` (or shorthand). Requires a
+   * concrete `plan_key`. Credits whose version constraints match this version, and
+   * credits without plan restrictions, are included. Omit to include every version
+   * of the selected plan.
+   */
+  planVersion?: NumericFieldFilter
 }
 
 /** Monetary amount in a fiat or custom currency. */
@@ -3411,17 +3440,7 @@ export interface ResourceFilters {
 /** Field filters with all supported types. */
 export interface FieldFilters {
   boolean?: BooleanFieldFilter
-  numeric?:
-    | number
-    | {
-        eq?: number
-        neq?: number
-        oeq?: number[]
-        lt?: number
-        lte?: number
-        gt?: number
-        gte?: number
-      }
+  numeric?: NumericFieldFilter
   string?: StringFieldFilter
   stringExact?: StringFieldFilterExact
   ulid?: UlidFieldFilter
@@ -7429,6 +7448,22 @@ export type EntitlementHistoryWindowSize = 'PT1H' | 'P1D'
  */
 export type StringFieldFilterExact =
   string | { eq?: string; oeq?: string[]; neq?: string }
+
+/**
+ * Filter by a numeric value. All properties are optional; provide exactly one to
+ * specify the comparison.
+ */
+export type NumericFieldFilter =
+  | number
+  | {
+      eq?: number
+      neq?: number
+      oeq?: number[]
+      lt?: number
+      lte?: number
+      gt?: number
+      gte?: number
+    }
 
 /** The payment term of a flat price. */
 export type PricePaymentTerm = 'in_advance' | 'in_arrears'

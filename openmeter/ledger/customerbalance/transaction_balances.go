@@ -18,6 +18,7 @@ type resolveCreditTransactionBalancesInput struct {
 	CustomerID    customer.CustomerID
 	Accounts      customerBalanceAccounts
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	PlanFilter    mo.Option[*ledger.PlanFilter]
 	Items         []CreditTransaction
 }
 
@@ -31,6 +32,10 @@ func (i resolveCreditTransactionBalancesInput) Validate() error {
 	}
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if err := ValidatePlanFilter(i.PlanFilter); err != nil {
+		errs = append(errs, fmt.Errorf("plan filter: %w", err))
 	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
@@ -52,6 +57,7 @@ func (s *service) resolveCreditTransactionBalances(ctx context.Context, input re
 			CustomerID:    input.CustomerID,
 			Currency:      item.CurrencyReference(),
 			FeatureFilter: input.FeatureFilter,
+			PlanFilter:    input.PlanFilter,
 			BalanceQuery:  item.balanceQuery(),
 		}
 		for _, scope := range []struct {

@@ -108,7 +108,7 @@ func (l *fundedCreditTransactionLoader) listCandidatePage(
 		EntryFilter: ledger.TransactionEntryFilter{
 			AccountIDs: accountIDs,
 			Currency:   input.Currency,
-			Route:      featureFilterRoute(input.FeatureFilter),
+			Route:      creditFilterRoute(input.FeatureFilter, input.PlanFilter),
 		},
 		ReturnOnlyMatchingEntries: true,
 
@@ -339,10 +339,11 @@ func (l *fundedCreditTransactionLoader) resolveBalances(
 
 	// Calculate the impacts visible in the requested balance projection.
 	impacts := unfilteredImpacts
-	if input.FeatureFilter.IsPresent() {
+	if input.FeatureFilter.IsPresent() || input.PlanFilter.IsPresent() {
 		impacts, err = fundedCreditTransactionBalanceImpacts(group, GetBalanceServiceInput{
 			Currency:      item.CurrencyReference(),
 			FeatureFilter: input.FeatureFilter,
+			PlanFilter:    input.PlanFilter,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("resolve funded credit transaction group %s filtered balance impacts: %w", item.fundedTransactionGroupID, err)

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -24,6 +25,7 @@ type (
 		CustomerID     customer.CustomerID
 		Currencies     customerbalance.CurrencyFilter
 		FeatureFilter  mo.Option[creditpurchase.FeatureFilters]
+		PlanFilter     mo.Option[*ledger.PlanFilter]
 		RetrievedAt    time.Time
 		HistoricalAsOf *time.Time
 	}
@@ -89,6 +91,13 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				}
 
 				request.FeatureFilter = featureFilter
+
+				planFilter, err := fromAPICustomerCreditPlanFilter(args.Params.Filter.PlanKey, args.Params.Filter.PlanVersion)
+				if err != nil {
+					return GetCustomerCreditBalanceRequest{}, newPlanFilterBadRequest(ctx, err)
+				}
+
+				request.PlanFilter = planFilter
 			}
 
 			return request, nil
@@ -105,6 +114,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				CustomerID:    request.CustomerID,
 				Currencies:    request.Currencies,
 				FeatureFilter: request.FeatureFilter,
+				PlanFilter:    request.PlanFilter,
 				AsOf:          request.HistoricalAsOf,
 			})
 			if err != nil {

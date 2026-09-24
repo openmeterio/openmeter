@@ -10,7 +10,7 @@ import (
 )
 
 func expiredRecordRoutePredicate(route ledger.RouteFilter) (predicate.LedgerBreakageRecord, error) {
-	if route.Currency.Code == "" && route.CreditFilters.IsAbsent() && route.Features.IsAbsent() && route.MatchFeature == "" {
+	if route.Currency.Code == "" && route.CreditFilters.IsAbsent() && route.Features.IsAbsent() && route.MatchFeature == "" && route.MatchPlan.IsAbsent() {
 		return nil, nil
 	}
 

@@ -58,7 +58,10 @@ type RouteFilter struct {
 	Features mo.Option[[]string]
 	// MatchFeature matches unrestricted routes and routes containing this single feature key.
 	MatchFeature string
-	CostBasis    mo.Option[*alpacadecimal.Decimal]
+	// MatchPlan includes routes unrestricted by plan and routes matching this plan.
+	// Absent means all routes; a present nil selects only routes without plan restrictions.
+	MatchPlan mo.Option[*PlanFilter]
+	CostBasis mo.Option[*alpacadecimal.Decimal]
 
 	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int
@@ -340,6 +343,12 @@ func validateListTransactionsRouteFilter(route RouteFilter) error {
 
 	if route.TransactionAuthorizationStatus != nil {
 		errs = append(errs, errors.New("transaction authorization status filter is not supported"))
+	}
+
+	if plan, ok := route.MatchPlan.Get(); ok && plan != nil {
+		if err := plan.ValidateAsPlanFilter(); err != nil {
+			errs = append(errs, fmt.Errorf("match plan: %w", err))
+		}
 	}
 
 	if route.Features.IsPresent() && route.MatchFeature != "" {
