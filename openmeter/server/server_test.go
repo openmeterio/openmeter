@@ -74,6 +74,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/log"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/servicehooks"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -1209,6 +1210,14 @@ func (n NoopEntitlementConnector) CreateCustomerEntitlementGrant(ctx context.Con
 	return grant.Grant{}, nil
 }
 
+func (n NoopEntitlementConnector) ListNamespaceGrants(ctx context.Context, input entitlement.ListNamespaceGrantsInput) (paginationv2.Result[grant.Grant], error) {
+	return paginationv2.Result[grant.Grant]{}, nil
+}
+
+func (n NoopEntitlementConnector) VoidGrant(ctx context.Context, input entitlement.VoidGrantInput) error {
+	return nil
+}
+
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	return &entitlement.Entitlement{}, nil
 }
@@ -1300,6 +1309,14 @@ func (n NoopEntitlementBalanceConnector) CreateGrant(ctx context.Context, namesp
 
 func (n NoopEntitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, namespace string, params meteredentitlement.ListEntitlementGrantsParams) (pagination.Result[meteredentitlement.EntitlementGrant], error) {
 	return pagination.Result[meteredentitlement.EntitlementGrant]{}, nil
+}
+
+func (n NoopEntitlementBalanceConnector) ListGrants(ctx context.Context, params grant.ListByCursorParams) (paginationv2.Result[grant.Grant], error) {
+	return paginationv2.Result[grant.Grant]{}, nil
+}
+
+func (n NoopEntitlementBalanceConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID, at *time.Time) error {
+	return nil
 }
 
 func (n NoopEntitlementBalanceConnector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
@@ -1893,6 +1910,10 @@ func (n NoopGrantRepo) DeleteOwnerGrants(ctx context.Context, ownerID models.Nam
 
 func (n NoopGrantRepo) ListGrants(ctx context.Context, params grant.ListParams) (pagination.Result[grant.Grant], error) {
 	return pagination.Result[grant.Grant]{}, nil
+}
+
+func (n NoopGrantRepo) ListGrantsByCursor(ctx context.Context, params grant.ListByCursorParams) (paginationv2.Result[grant.Grant], error) {
+	return paginationv2.Result[grant.Grant]{}, nil
 }
 
 func (n NoopGrantRepo) ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {

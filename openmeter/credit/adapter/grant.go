@@ -2,9 +2,11 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -16,9 +18,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -97,13 +102,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	}
 
 	if !params.IncludeDeleted {
-		query = query.Where(
-			db_grant.Or(db_grant.DeletedAtIsNil(), db_grant.DeletedAtGT(now)),
-			db_grant.HasEntitlementWith(db_entitlement.Or(
-				db_entitlement.DeletedAtIsNil(),
-				db_entitlement.DeletedAtGT(now),
-			)),
-		)
+		query = query.Where(notDeletedGrantPredicates(now)...)
 	}
 
 	if len(params.CustomerIDs) > 0 {
@@ -224,6 +223,84 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	response.TotalCount = paged.TotalCount
 
 	return response, nil
+}
+
+func (g *grantDBADapter) ListGrantsByCursor(ctx context.Context, params grant.ListByCursorParams) (paginationv2.Result[grant.Grant], error) {
+	var column string
+	switch params.OrderBy {
+	case grant.OrderByCreatedAt:
+		column = db_grant.FieldCreatedAt
+	case grant.OrderByEffectiveAt:
+		column = db_grant.FieldEffectiveAt
+	default:
+		return paginationv2.Result[grant.Grant]{}, fmt.Errorf("unsupported cursor order by: %s", params.OrderBy)
+	}
+
+	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
+
+	if !params.IncludeDeleted {
+		query = query.Where(notDeletedGrantPredicates(clock.Now())...)
+	}
+
+	var entitlementPredicates []predicate.Entitlement
+	entitlementPredicates = filter.ApplyToPredicate(entitlementPredicates, params.CustomerID, db_entitlement.FieldCustomerID)
+	entitlementPredicates = filter.ApplyToPredicate(entitlementPredicates, params.FeatureID, db_entitlement.FieldFeatureID)
+	entitlementPredicates = filter.ApplyToPredicate(entitlementPredicates, params.FeatureKey, db_entitlement.FieldFeatureKey)
+	if len(entitlementPredicates) > 0 {
+		query = query.Where(db_grant.HasEntitlementWith(entitlementPredicates...))
+	}
+
+	after, order := sql.GT, sql.OrderAsc()
+	if params.Order == sortx.OrderDesc {
+		after, order = sql.LT, sql.OrderDesc()
+	}
+
+	if params.Cursor != nil {
+		cursor := *params.Cursor
+		query = query.Where(func(s *sql.Selector) {
+			s.Where(sql.Or(
+				after(s.C(column), cursor.Time),
+				sql.And(sql.EQ(s.C(column), cursor.Time), after(s.C(db_grant.FieldID), cursor.ID)),
+			))
+		})
+	}
+
+	entities, err := query.
+		Order(sql.OrderByField(column, order).ToFunc(), db_grant.ByID(order)).
+		Limit(params.Limit).
+		All(ctx)
+	if err != nil {
+		return paginationv2.Result[grant.Grant]{}, err
+	}
+
+	result := paginationv2.Result[grant.Grant]{
+		Items: lo.Map(entities, func(e *db.Grant, _ int) grant.Grant { return mapGrantEntity(e) }),
+	}
+
+	if len(result.Items) > 0 && len(result.Items) == params.Limit {
+		last := result.Items[len(result.Items)-1]
+
+		cursorTime := last.CreatedAt
+		if params.OrderBy == grant.OrderByEffectiveAt {
+			cursorTime = last.EffectiveAt
+		}
+
+		result.NextCursor = lo.ToPtr(paginationv2.NewCursor(cursorTime, last.ID))
+	}
+
+	return result, nil
+}
+
+// notDeletedGrantPredicates excludes deleted grants and the grants of deleted
+// entitlements.
+func notDeletedGrantPredicates(now time.Time) []predicate.Grant {
+	return []predicate.Grant{
+		db_grant.Or(db_grant.DeletedAtIsNil(), db_grant.DeletedAtGT(now)),
+		db_grant.HasEntitlementWith(db_entitlement.Or(
+			db_entitlement.DeletedAtIsNil(),
+			db_entitlement.DeletedAtGT(now),
+		)),
+	}
 }
 
 func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {

@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -43,6 +44,10 @@ type Connector interface {
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 	CreateGrant(ctx context.Context, namespace string, customerID string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
 	ListEntitlementGrants(ctx context.Context, namespace string, params ListEntitlementGrantsParams) (pagination.Result[EntitlementGrant], error)
+	// ListGrants lists the grants of every entitlement in the namespace.
+	ListGrants(ctx context.Context, params grant.ListByCursorParams) (paginationv2.Result[grant.Grant], error)
+	// VoidGrant voids the grant at the given time, or now when at is nil.
+	VoidGrant(ctx context.Context, grantID models.NamespacedID, at *time.Time) error
 }
 
 type MeteredEntitlementValue struct {

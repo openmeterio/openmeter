@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -149,6 +150,14 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 		}
 		return *g, nil
 	})
+}
+
+func (e *connector) ListGrants(ctx context.Context, params grant.ListByCursorParams) (paginationv2.Result[grant.Grant], error) {
+	return e.grantRepo.ListGrantsByCursor(ctx, params)
+}
+
+func (e *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, at *time.Time) error {
+	return e.grantConnector.VoidGrant(ctx, grantID, at)
 }
 
 type EntitlementGrant struct {

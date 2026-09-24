@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -17,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
@@ -254,6 +256,37 @@ func (c *service) CreateCustomerEntitlementGrant(ctx context.Context, input enti
 	}
 
 	return created.Grant, nil
+}
+
+func (c *service) ListNamespaceGrants(ctx context.Context, input entitlement.ListNamespaceGrantsInput) (paginationv2.Result[grant.Grant], error) {
+	if err := input.Validate(); err != nil {
+		return paginationv2.Result[grant.Grant]{}, err
+	}
+
+	return c.meteredEntitlementConnector.ListGrants(ctx, grant.ListByCursorParams{
+		Namespace:      input.Namespace,
+		IncludeDeleted: input.IncludeDeleted,
+		CustomerID:     input.CustomerID,
+		FeatureID:      input.FeatureID,
+		FeatureKey:     input.FeatureKey,
+		OrderBy:        lo.CoalesceOrEmpty(input.OrderBy, grant.OrderByCreatedAt),
+		Order:          input.Order,
+		Cursor:         input.Cursor,
+		Limit:          input.PageSize,
+	})
+}
+
+func (c *service) VoidGrant(ctx context.Context, input entitlement.VoidGrantInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	err := c.meteredEntitlementConnector.VoidGrant(ctx, input.GrantID, input.At)
+	if _, ok := lo.ErrorsAs[*credit.GrantNotFoundError](err); ok {
+		return models.NewGenericNotFoundError(err)
+	}
+
+	return err
 }
 
 // historyWindowSize rejects the meter window sizes the balance history cannot be

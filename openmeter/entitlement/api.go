@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -326,4 +327,88 @@ func (i CreateCustomerEntitlementGrantInput) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// GrantAPIService is the API-facing facade for grant operations that are not
+// scoped to a single customer entitlement.
+type GrantAPIService interface {
+	ListNamespaceGrants(ctx context.Context, input ListNamespaceGrantsInput) (paginationv2.Result[grant.Grant], error)
+	VoidGrant(ctx context.Context, input VoidGrantInput) error
+}
+
+const MaxGrantsPageSize = 100
+
+// ListNamespaceGrantsInput lists the grants of every entitlement in the namespace.
+// Deleted grants and the grants of deleted entitlements are excluded unless
+// IncludeDeleted is set; voided and expired grants are always listed. An unset
+// OrderBy sorts by creation time.
+type ListNamespaceGrantsInput struct {
+	Namespace      string
+	IncludeDeleted bool
+
+	CustomerID *filter.FilterULID
+	FeatureID  *filter.FilterULID
+	FeatureKey *filter.FilterString
+
+	OrderBy  grant.OrderBy
+	Order    sortx.Order
+	Cursor   *paginationv2.Cursor
+	PageSize int
+}
+
+func (i ListNamespaceGrantsInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer ID filter: %w", err))
+		}
+	}
+
+	if i.FeatureID != nil {
+		if err := i.FeatureID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature ID filter: %w", err))
+		}
+	}
+
+	if i.FeatureKey != nil {
+		if err := i.FeatureKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature key filter: %w", err))
+		}
+	}
+
+	if i.OrderBy != "" && !slices.Contains(grant.CursorOrderByValues, i.OrderBy) {
+		errs = append(errs, fmt.Errorf("invalid order by: %s", i.OrderBy))
+	}
+
+	if i.Cursor != nil {
+		if err := i.Cursor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cursor: %w", err))
+		}
+	}
+
+	if i.PageSize < 1 || i.PageSize > MaxGrantsPageSize {
+		errs = append(errs, fmt.Errorf("page size must be between 1 and %d", MaxGrantsPageSize))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// VoidGrantInput voids a grant from At, or from the time of the call when At is
+// unset. Usage already deducted from the grant is kept.
+type VoidGrantInput struct {
+	GrantID models.NamespacedID
+	At      *time.Time
+}
+
+func (i VoidGrantInput) Validate() error {
+	if err := i.GrantID.Validate(); err != nil {
+		return models.NewNillableGenericValidationError(fmt.Errorf("grant ID: %w", err))
+	}
+
+	return nil
 }
