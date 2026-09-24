@@ -41,9 +41,13 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			AsOf: &input.AsOf,
 
 			CreditMovement: l.movement,
+			// Corrections are listed as net refunds. Their individual transactions
+			// can reduce FBO without reducing the customer balance, e.g. when an
+			// advance is canceled.
 			ExcludeAnnotationFilters: map[string]string{
 				ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
 				ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+				ledger.AnnotationTransactionDirection:      string(ledger.TransactionDirectionCorrection),
 			},
 		})
 		if err != nil {

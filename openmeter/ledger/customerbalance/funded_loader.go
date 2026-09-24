@@ -21,127 +21,21 @@ type fundedCreditTransactionLoader struct {
 	service *service
 }
 
-type fundedCandidatePage struct {
-	items        []ledger.Transaction
-	resumeCursor ledger.TransactionCursor
-	hasMore      bool
-}
-
 func newFundedCreditTransactionLoader(s *service) creditTransactionLoader {
 	return &fundedCreditTransactionLoader{service: s}
 }
 
 func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {
-	items := make([]CreditTransaction, 0, input.Limit+1)
-	after := input.After
-	before := input.Before
-
-	// Traverse the customer balance ledger so effective-time rows are ordered
-	// and paged by their final transaction cursors. Charges are only used to
-	// identify and hydrate the credit purchases behind those candidates.
-	for len(items) <= input.Limit {
-		page, err := l.listCandidatePage(ctx, input, after, before)
+	// Charges are only used to identify and hydrate the credit purchases behind
+	// ledger candidates.
+	return l.service.loadCandidateCreditTransactions(ctx, input, nil, func(ctx context.Context, candidates []ledger.Transaction, limit int) ([]CreditTransaction, error) {
+		chargesByID, err := l.hydrateCandidateCharges(ctx, input.CustomerID.Namespace, candidates)
 		if err != nil {
-			return creditTransactionLoaderResult{}, err
-		}
-		if len(page.items) == 0 {
-			break
+			return nil, err
 		}
 
-		chargesByID, err := l.hydrateCandidateCharges(ctx, input.CustomerID.Namespace, page.items)
-		if err != nil {
-			return creditTransactionLoaderResult{}, err
-		}
-
-		pageItems, err := l.resolveCandidatePage(
-			ctx,
-			input,
-			page.items,
-			chargesByID,
-			input.Limit+1-len(items),
-		)
-		if err != nil {
-			return creditTransactionLoaderResult{}, err
-		}
-		items = append(items, pageItems...)
-
-		if len(items) > input.Limit || !page.hasMore {
-			break
-		}
-
-		if before != nil {
-			before = &page.resumeCursor
-		} else {
-			after = &page.resumeCursor
-		}
-	}
-
-	hasMore := len(items) > input.Limit
-	if hasMore {
-		items = items[:input.Limit]
-	}
-	if input.Before != nil {
-		slices.Reverse(items)
-	}
-
-	return creditTransactionLoaderResult{
-		Items:   items,
-		HasMore: hasMore,
-	}, nil
-}
-
-func (l *fundedCreditTransactionLoader) listCandidatePage(
-	ctx context.Context,
-	input creditTransactionLoaderInput,
-	after, before *ledger.TransactionCursor,
-) (fundedCandidatePage, error) {
-	accountIDs := []string{input.AccountID}
-	if input.ReceivableAccountID != "" {
-		accountIDs = append(accountIDs, input.ReceivableAccountID)
-	}
-
-	result, err := l.service.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{
-		Namespace: input.CustomerID.Namespace,
-		Cursor:    after,
-		Before:    before,
-		Limit:     max(chargeListPageSize, input.Limit+1),
-		EntryFilter: ledger.TransactionEntryFilter{
-			AccountIDs: accountIDs,
-			Currency:   input.Currency,
-			Route:      featureFilterRoute(input.FeatureFilter),
-		},
-		ReturnOnlyMatchingEntries: true,
-
-		AsOf: &input.AsOf,
-
-		ExcludeAnnotationFilters: map[string]string{
-			ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
-			ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
-		},
+		return l.resolveCandidatePage(ctx, input, candidates, chargesByID, limit)
 	})
-	if err != nil {
-		return fundedCandidatePage{}, err
-	}
-
-	page := fundedCandidatePage{
-		items:   result.Items,
-		hasMore: result.NextCursor != nil,
-	}
-	if len(page.items) == 0 {
-		return page, nil
-	}
-
-	if before != nil {
-		// The ledger returns before-pages newest-first. Scan the nearest newer
-		// candidate first, then resume from the page's newest edge.
-		page.resumeCursor = page.items[0].Cursor()
-		page.items = slices.Clone(page.items)
-		slices.Reverse(page.items)
-	} else {
-		page.resumeCursor = page.items[len(page.items)-1].Cursor()
-	}
-
-	return page, nil
 }
 
 func (l *fundedCreditTransactionLoader) hydrateCandidateCharges(
@@ -386,7 +280,7 @@ func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input 
 			continue
 		}
 
-		impact, currencyReference, err := fundedCreditTransactionImpact(tx, input)
+		impact, currencyReference, err := creditTransactionBalanceImpact(tx, input)
 		if err != nil {
 			return nil, err
 		}
@@ -426,7 +320,9 @@ func fundedCreditTransactionBalanceImpacts(group ledger.TransactionGroup, input 
 	return impacts, nil
 }
 
-func fundedCreditTransactionImpact(tx ledger.Transaction, input GetBalanceServiceInput) (alpacadecimal.Decimal, currencies.CurrencyReference, error) {
+// creditTransactionBalanceImpact sums a transaction's entries that make up the
+// customer balance: FBO and advance.
+func creditTransactionBalanceImpact(tx ledger.Transaction, input GetBalanceServiceInput) (alpacadecimal.Decimal, currencies.CurrencyReference, error) {
 	bookedFilter := ledger.ImpactFilter{
 		AccountType: ledger.AccountTypeCustomerFBO,
 		Route:       input.bookedRoute(),
