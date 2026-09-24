@@ -9,6 +9,7 @@ import (
 	chargesusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -76,6 +77,11 @@ func usageBasedIntentsMatchIgnoringPeriodsAndSubscriptionReference(existing, tar
 func flatFeeIntentWithoutPeriodsAndSubscriptionReference(intent chargesflatfee.Intent) chargesflatfee.Intent {
 	intent.Intent, intent.IntentMutableFields.IntentMutableFields = chargeIntentWithoutPeriodsAndSubscriptionReference(intent.Intent, intent.IntentMutableFields.IntentMutableFields)
 	intent.InvoiceAt = time.Time{}
+	if !intent.ProRating.Enabled {
+		// Persistence supplies the default mode when reading disabled proration,
+		// while subscription intent may leave that economically inert mode empty.
+		intent.ProRating.Mode = productcatalog.ProRatingModeProratePrices
+	}
 	if intent.PercentageDiscounts != nil {
 		intent.PercentageDiscounts = intent.PercentageDiscounts.CloneOrNil()
 		intent.PercentageDiscounts.CorrelationID = ""
@@ -108,6 +114,8 @@ func chargeIntentWithoutPeriodsAndSubscriptionReference(intent chargesmeta.Inten
 		mutable.Metadata = nil
 	}
 	intent.Subscription = nil
+	// Plan attribution is a best-effort snapshot, not evidence that the underlying item changed.
+	intent.SubscriptionPlan = nil
 
 	mutable.ServicePeriod = timeutil.ClosedPeriod{}
 	mutable.FullServicePeriod = timeutil.ClosedPeriod{}

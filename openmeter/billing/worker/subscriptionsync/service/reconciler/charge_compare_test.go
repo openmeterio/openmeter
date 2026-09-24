@@ -40,6 +40,30 @@ func TestFlatFeeIntentsMatchIgnoringPeriodsAndSubscriptionReference(t *testing.T
 			expectedMatch: true,
 		},
 		{
+			name: "subscription plan attribution changed",
+			update: func(existing *chargesflatfee.Intent, target *chargesflatfee.Intent) {
+				existing.SubscriptionPlan = &chargesmeta.SubscriptionPlan{Key: "old", Version: 1}
+				target.SubscriptionPlan = &chargesmeta.SubscriptionPlan{Key: "new", Version: 2}
+			},
+			expectedMatch: true,
+		},
+		{
+			name: "disabled proration mode is defaulted on persistence read",
+			update: func(existing *chargesflatfee.Intent, target *chargesflatfee.Intent) {
+				existing.ProRating = productcatalog.ProRatingConfig{Enabled: false, Mode: productcatalog.ProRatingModeProratePrices}
+				target.ProRating = productcatalog.ProRatingConfig{}
+			},
+			expectedMatch: true,
+		},
+		{
+			name: "enabling proration is a source intent change",
+			update: func(existing *chargesflatfee.Intent, target *chargesflatfee.Intent) {
+				existing.ProRating = productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices}
+				target.ProRating = productcatalog.ProRatingConfig{}
+			},
+			expectedMatch: false,
+		},
+		{
 			name: "timestamps changed",
 			update: func(existing *chargesflatfee.Intent, _ *chargesflatfee.Intent) {
 				existing.ServicePeriod.To = existing.ServicePeriod.To.AddDate(0, 1, 0)
@@ -77,6 +101,15 @@ func TestFlatFeeIntentsMatchIgnoringPeriodsAndSubscriptionReference(t *testing.T
 			name: "price and physical subscription reference changes require replacement",
 			update: func(existing *chargesflatfee.Intent, _ *chargesflatfee.Intent) {
 				existing.Subscription.ItemID = "old-item-id"
+				existing.AmountBeforeProration = alpacadecimal.NewFromInt(20)
+			},
+			expectedMatch: false,
+		},
+		{
+			name: "source price change still replaces with disabled proration",
+			update: func(existing *chargesflatfee.Intent, target *chargesflatfee.Intent) {
+				existing.ProRating = productcatalog.ProRatingConfig{Enabled: false, Mode: productcatalog.ProRatingModeProratePrices}
+				target.ProRating = productcatalog.ProRatingConfig{}
 				existing.AmountBeforeProration = alpacadecimal.NewFromInt(20)
 			},
 			expectedMatch: false,
@@ -135,6 +168,16 @@ func TestFlatFeeIntentsMatchIgnoringPeriodsAndSubscriptionReference(t *testing.T
 	}
 }
 
+func TestChargeIntentComparisonClearsSubscriptionPlan(t *testing.T) {
+	intent := newFlatFeeComparisonTestIntent(t).Intent
+	intent.SubscriptionPlan = &chargesmeta.SubscriptionPlan{Key: "plan", Version: 1}
+
+	comparable, _ := chargeIntentWithoutPeriodsAndSubscriptionReference(intent, chargesmeta.IntentMutableFields{})
+
+	require.Nil(t, comparable.SubscriptionPlan)
+	require.Equal(t, &chargesmeta.SubscriptionPlan{Key: "plan", Version: 1}, intent.SubscriptionPlan)
+}
+
 func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 	t.Run("matching reference leaves reconciliation to the existing flow", func(t *testing.T) {
 		target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestFlatRateCard())
@@ -191,6 +234,43 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		require.Len(t, chargePatches.PatchesByChargeID, 1)
 		_, ok := chargePatches.PatchesByChargeID["flat-fee-charge"].(chargesmeta.PatchShrink)
 		require.True(t, ok)
+	})
+
+	t.Run("disabled proration persistence default and derived amount preserve charge identity", func(t *testing.T) {
+		target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestFlatRateCard())
+		target.Subscription.ProRatingConfig = productcatalog.ProRatingConfig{}
+		targetIntent := newFlatFeeComparisonTestIntentFromTarget(t, target)
+		existingIntent := cloneFlatFeeComparisonTestIntent(targetIntent)
+		existingIntent.Subscription.ItemID = "old-item-id"
+		existingIntent.ProRating.Mode = productcatalog.ProRatingModeProratePrices
+		existingIntent.ServicePeriod.To = existingIntent.ServicePeriod.To.AddDate(0, 1, 0)
+		existingIntent.FullServicePeriod.To = existingIntent.FullServicePeriod.To.AddDate(0, 1, 0)
+		existingIntent.BillingPeriod.To = existingIntent.BillingPeriod.To.AddDate(0, 1, 0)
+
+		existingCharge := chargesflatfee.Charge{
+			ChargeBase: chargesflatfee.ChargeBase{
+				ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, "flat-fee-charge"),
+				Intent:          existingIntent.AsOverridableIntent(),
+				Status:          chargesflatfee.StatusActive,
+				State: chargesflatfee.State{
+					AmountAfterProration: alpacadecimal.NewFromInt(1),
+				},
+			},
+		}
+		require.NotEqual(t, targetIntent.AmountBeforeProration, existingCharge.State.AmountAfterProration)
+		existing, err := persistedstate.NewChargeItemFromChargeType(chargesmeta.ChargeTypeFlatFee, nil, &existingCharge)
+		require.NoError(t, err)
+		collection := newFlatFeeChargeCollection(1)
+		referencePatches := make(ChargeReferencePatches, 1)
+
+		require.NoError(t, (&Service{}).diffItem(&target, existing, collection, referencePatches))
+
+		require.Len(t, referencePatches, 1)
+		chargePatches := collection.Patches()
+		require.Len(t, chargePatches.PatchesByChargeID, 1)
+		_, ok := chargePatches.PatchesByChargeID["flat-fee-charge"].(chargesmeta.PatchShrink)
+		require.True(t, ok)
+		require.Empty(t, chargePatches.Creates)
 	})
 
 	t.Run("service period start change replaces the charge", func(t *testing.T) {
@@ -266,6 +346,14 @@ func TestUsageBasedIntentsMatchIgnoringPeriodsAndSubscriptionReference(t *testin
 				existing.FullServicePeriod.To = existing.FullServicePeriod.To.AddDate(0, 1, 0)
 				existing.BillingPeriod.To = existing.BillingPeriod.To.AddDate(0, 1, 0)
 				existing.InvoiceAt = existing.InvoiceAt.AddDate(0, 1, 0)
+			},
+			expectedMatch: true,
+		},
+		{
+			name: "subscription plan attribution changed",
+			update: func(existing *chargesusagebased.Intent, target *chargesusagebased.Intent) {
+				existing.SubscriptionPlan = &chargesmeta.SubscriptionPlan{Key: "old", Version: 1}
+				target.SubscriptionPlan = &chargesmeta.SubscriptionPlan{Key: "new", Version: 2}
 			},
 			expectedMatch: true,
 		},
