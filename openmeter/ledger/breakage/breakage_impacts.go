@@ -211,6 +211,12 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 func ValidateExpiredRouteFilter(route ledger.RouteFilter) error {
 	var errs []error
 
+	if plan, ok := route.MatchPlan.Get(); ok && plan != nil {
+		if err := plan.ValidateAsPlanFilter(); err != nil {
+			errs = append(errs, fmt.Errorf("match plan: %w", err))
+		}
+	}
+
 	if route.Features.IsPresent() && route.MatchFeature != "" {
 		errs = append(errs, errors.New("features and match feature filters cannot be combined"))
 	}

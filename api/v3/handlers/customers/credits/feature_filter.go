@@ -26,7 +26,7 @@ func fromAPICustomerCreditFeatureFilter(f *api.StringFieldFilter) (mo.Option[cre
 		return customerbalance.AllFeatureFilter(), errors.New("exists=true operator is not supported")
 	}
 
-	if op := unsupportedCustomerCreditFeatureKeyOperator(f); op != "" {
+	if op := unsupportedCustomerCreditKeyOperator(f); op != "" {
 		return customerbalance.AllFeatureFilter(), fmt.Errorf("%s operator is not supported", op)
 	}
 
@@ -48,7 +48,7 @@ func fromAPICustomerCreditFeatureFilter(f *api.StringFieldFilter) (mo.Option[cre
 	return featureFilter, nil
 }
 
-func unsupportedCustomerCreditFeatureKeyOperator(f *api.StringFieldFilter) string {
+func unsupportedCustomerCreditKeyOperator(f *api.StringFieldFilter) string {
 	switch {
 	case f.Neq != nil:
 		return "neq"

@@ -14505,7 +14505,24 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: |-
             Filter credit balance by feature key. Omit to return the total portfolio value.
-            Use `exists=false` to return only unrestricted balance.
+            Use `exists=false` to return only credits without feature restrictions;
+            those credits may still have plan restrictions.
+        plan_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: |-
+            Select credits matching one plan key, including credits without plan restrictions.
+            Keys are case-sensitive. Supports `eq` (or shorthand) and a single-value `oeq`.
+            Omit to include all plans. Use `exists=false` for credits without plan restrictions.
+            Feature and plan selections combine with AND.
+        plan_version:
+          allOf:
+            - $ref: '#/components/schemas/NumericFieldFilter'
+          description: |-
+            Select one positive integer plan version using `eq` (or shorthand).
+            Requires a concrete `plan_key`. Credits whose version constraints match this
+            version, and credits without plan restrictions, are included. Omit to include
+            every version of the selected plan.
       additionalProperties: false
       description: Filter options for getting a credit balance.
     ISO8601Duration:
@@ -14833,8 +14850,24 @@ components:
             - $ref: '#/components/schemas/StringFieldFilter'
           description: |-
             Filter credit transactions by feature key. Omit to return all credit
-            transactions. Use `exists=false` to return only unrestricted credit
-            transactions.
+            transactions. Use `exists=false` to return only movements on routes without
+            feature restrictions; those routes may still have plan restrictions.
+        plan_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: |-
+            Select credits matching one plan key, including credits without plan restrictions.
+            Keys are case-sensitive. Supports `eq` (or shorthand) and a single-value `oeq`.
+            Omit to include all plans. Use `exists=false` for credits without plan restrictions.
+            Feature and plan selections combine with AND.
+        plan_version:
+          allOf:
+            - $ref: '#/components/schemas/NumericFieldFilter'
+          description: |-
+            Select one positive integer plan version using `eq` (or shorthand).
+            Requires a concrete `plan_key`. Credits whose version constraints match this
+            version, and credits without plan restrictions, are included. Omit to include
+            every version of the selected plan.
       additionalProperties: false
       description: Filter options for listing credit transactions.
     ListCurrenciesParamsFilter:
@@ -15499,6 +15532,47 @@ components:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
       description: Numeric represents an arbitrary precision number.
+    NumericFieldFilter:
+      anyOf:
+        - type: number
+          format: double
+        - type: object
+          properties:
+            eq:
+              type: number
+              format: double
+              description: Value strictly equals the given numeric value.
+            neq:
+              type: number
+              format: double
+              description: Value does not equal the given numeric value.
+            oeq:
+              type: string
+              description: Returns entities that match any of the comma-delimited numeric values.
+            lt:
+              type: number
+              format: double
+              description: Value is less than the given numeric value.
+            lte:
+              type: number
+              format: double
+              description: Value is less than or equal to the given numeric value.
+            gt:
+              type: number
+              format: double
+              description: Value is greater than the given numeric value.
+            gte:
+              type: number
+              format: double
+              description: Value is greater than or equal to the given numeric value.
+          additionalProperties: false
+      description: |-
+        Filter by a numeric value. All properties are optional; provide exactly one to
+        specify the comparison.
+      title: Numeric Field Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterNumeric
     OrganizationDefaultTaxCodes:
       type: object
       required:

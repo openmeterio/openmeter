@@ -571,18 +571,18 @@ func TestFlatFeeCustomCurrencyLiveImpactUsesManagedIdentity(t *testing.T) {
 	})
 
 	// The exact managed identity and a code-only filter both select the charge.
-	impact, err := getFlatFeeChargePendingBalanceImpact(charge, customCurrency.Reference(), AllFeatureFilter())
+	impact, err := getFlatFeeChargePendingBalanceImpact(charge, customCurrency.Reference(), ledger.RouteFilter{})
 	require.NoError(t, err)
 	require.NotNil(t, impact)
 	require.Equal(t, float64(30), impact.UnboundedAmount().InexactFloat64())
 
-	impact, err = getFlatFeeChargePendingBalanceImpact(charge, currencies.NewCurrencyReference("CREDITS"), AllFeatureFilter())
+	impact, err = getFlatFeeChargePendingBalanceImpact(charge, currencies.NewCurrencyReference("CREDITS"), ledger.RouteFilter{})
 	require.NoError(t, err)
 	require.NotNil(t, impact)
 
 	// Reusing the display code does not let another managed currency's charge
 	// affect this balance identity.
-	impact, err = getFlatFeeChargePendingBalanceImpact(charge, otherCurrency.Reference(), AllFeatureFilter())
+	impact, err = getFlatFeeChargePendingBalanceImpact(charge, otherCurrency.Reference(), ledger.RouteFilter{})
 	require.NoError(t, err)
 	require.Nil(t, impact)
 }

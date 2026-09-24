@@ -21,9 +21,19 @@ type CreditTransactionFilter struct {
 	// managed currency identifier.
 	Currency *BillingCurrencyCode
 	// Filter credit transactions by feature key. Omit to return all credit
-	// transactions. Use `exists=false` to return only unrestricted credit
-	// transactions.
+	// transactions. Use `exists=false` to return only movements on routes without
+	// feature restrictions; those routes may still have plan restrictions.
 	FeatureKey *StringFilter
+	// Select credits matching one plan key, including credits without plan restrictions.
+	// Keys are case-sensitive. Supports `eq` (or shorthand) and a single-value `oeq`.
+	// Omit to include all plans. Use `exists=false` for credits without plan restrictions.
+	// Feature and plan selections combine with AND.
+	PlanKey *StringFilter
+	// Select one positive integer plan version using `eq` (or shorthand).
+	// Requires a concrete `plan_key`. Credits whose version constraints match this
+	// version, and credits without plan restrictions, are included. Omit to include
+	// every version of the selected plan.
+	PlanVersion *NumericFilter
 }
 
 type CreditTransactionListParams struct {
@@ -44,6 +54,8 @@ func (p CreditTransactionListParams) values() url.Values {
 			q.Set("filter[currency]", string(*p.Filter.Currency))
 		}
 		addStringFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
+		addStringFilter(q, "filter[plan_key]", p.Filter.PlanKey)
+		addNumericFilter(q, "filter[plan_version]", p.Filter.PlanVersion)
 	}
 
 	return q

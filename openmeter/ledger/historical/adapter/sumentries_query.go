@@ -167,6 +167,9 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	if exact, ok := normalizedRoute.CreditFilters.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFiltersPredicate(s.C, exact)) })
 	}
+	if plan, ok := normalizedRoute.MatchPlan.Get(); ok {
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.MatchPlanPredicate(s.C, plan)) })
+	}
 	if features, ok := normalizedRoute.Features.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(routequery.ExactFeaturesPredicate(s.C, features)) })
 	}

@@ -34,7 +34,7 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			EntryFilter: ledger.TransactionEntryFilter{
 				AccountIDs: []string{input.AccountID},
 				Currency:   input.Currency,
-				Route:      featureFilterRoute(input.FeatureFilter),
+				Route:      creditFilterRoute(input.FeatureFilter, input.PlanFilter),
 			},
 			ReturnOnlyMatchingEntries: true,
 

@@ -19,8 +19,19 @@ type GetCustomerCreditBalanceFilter struct {
 	// a code, each managed currency is returned as a separate balance row.
 	Currency *StringExactFilter
 	// Filter credit balance by feature key. Omit to return the total portfolio value.
-	// Use `exists=false` to return only unrestricted balance.
+	// Use `exists=false` to return only credits without feature restrictions;
+	// those credits may still have plan restrictions.
 	FeatureKey *StringFilter
+	// Select credits matching one plan key, including credits without plan restrictions.
+	// Keys are case-sensitive. Supports `eq` (or shorthand) and a single-value `oeq`.
+	// Omit to include all plans. Use `exists=false` for credits without plan restrictions.
+	// Feature and plan selections combine with AND.
+	PlanKey *StringFilter
+	// Select one positive integer plan version using `eq` (or shorthand).
+	// Requires a concrete `plan_key`. Credits whose version constraints match this
+	// version, and credits without plan restrictions, are included. Omit to include
+	// every version of the selected plan.
+	PlanVersion *NumericFilter
 }
 
 type GetCustomerCreditBalanceParams struct {
@@ -38,6 +49,8 @@ func (p GetCustomerCreditBalanceParams) values() url.Values {
 	if p.Filter != nil {
 		addStringExactFilter(q, "filter[currency]", p.Filter.Currency)
 		addStringFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
+		addStringFilter(q, "filter[plan_key]", p.Filter.PlanKey)
+		addNumericFilter(q, "filter[plan_version]", p.Filter.PlanVersion)
 	}
 
 	return q
