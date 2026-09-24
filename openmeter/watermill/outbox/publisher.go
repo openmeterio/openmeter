@@ -50,7 +50,7 @@ func (c Config) Validate() error {
 }
 
 // Publisher persists system events in the caller's transaction. Each successful
-// commit wakes a bounded drain of the shared queue; there is no periodic retry.
+// commit wakes a bounded drain of the shared queue; a minute tick retries idle work.
 type Publisher struct {
 	cfg     Config
 	ctx     context.Context
@@ -125,17 +125,20 @@ func (p *Publisher) signal() {
 
 func (p *Publisher) run() {
 	defer p.workers.Done()
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-p.ctx.Done():
 			return
 		case <-p.wake:
-			ctx, cancel := context.WithTimeout(p.ctx, drainTimeout)
-			err := p.drain(ctx)
-			cancel()
-			if err != nil && p.ctx.Err() == nil {
-				p.cfg.Logger.WarnContext(p.ctx, "system event delivery deferred until the next publish", "error", err)
-			}
+		case <-ticker.C:
+		}
+		ctx, cancel := context.WithTimeout(p.ctx, drainTimeout)
+		err := p.drain(ctx)
+		cancel()
+		if err != nil && p.ctx.Err() == nil {
+			p.cfg.Logger.WarnContext(p.ctx, "system event delivery deferred until the next publish or retry tick", "error", err)
 		}
 	}
 }

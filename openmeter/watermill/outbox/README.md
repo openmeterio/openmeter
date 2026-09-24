@@ -7,8 +7,8 @@ standalone transaction). Outer and savepoint rollbacks discard their events.
 ## Delivery
 
 After commit, a small fixed set of workers drains the shared queue, including
-older pending events. Productive batches continue draining. There is no timer or
-startup sweep: after a failure or restart, pending events may wait for new traffic.
+older pending events. Productive batches continue draining. Workers also retry
+every minute, so pending events recover after a failure or restart without new traffic.
 
 Rows are deleted after broker acknowledgment. Delivery is **at least once**:
 failed deletion or commit can resend the original ID, payload, headers, topic,
