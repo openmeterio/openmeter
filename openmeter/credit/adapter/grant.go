@@ -108,7 +108,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 	}
 
 	if params.CustomerID != nil {
-		if p := filter.SelectPredicate[predicate.Entitlement](filter.Filter(*params.CustomerID), customerdb.FieldID); p != nil {
+		if p := filter.SelectPredicate[predicate.Entitlement](filter.Filter(*params.CustomerID), db_entitlement.FieldCustomerID); p != nil {
 			query = query.Where(db_grant.HasEntitlementWith(*p))
 		}
 	}
