@@ -8,7 +8,9 @@ standalone transaction). Outer and savepoint rollbacks discard their events.
 
 After commit, a small fixed set of workers drains the shared queue, including
 older pending events. Productive batches continue draining. Workers also retry
-every minute, so pending events recover after a failure or restart without new traffic.
+periodically (one minute by default), so pending events recover after a failure
+or restart without new traffic. Drain limit, timeout, concurrency, and retry
+interval are configured under `events.outbox`.
 
 Rows are deleted after broker acknowledgment. Delivery is **at least once**:
 failed deletion or commit can resend the original ID, payload, headers, topic,

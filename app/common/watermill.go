@@ -85,10 +85,14 @@ func NewEventBusPublisher(
 	logger *slog.Logger,
 ) (eventbus.Publisher, func(), error) {
 	outboxPublisher, err := outbox.NewPublisher(ctx, outbox.Config{
-		DB:        db,
-		Publisher: publisher,
-		Topic:     conf.SystemEvents.Topic,
-		Logger:    logger,
+		DB:               db,
+		Publisher:        publisher,
+		Topic:            conf.SystemEvents.Topic,
+		Logger:           logger,
+		DrainLimit:       conf.Outbox.DrainLimit,
+		DrainTimeout:     conf.Outbox.DrainTimeout,
+		DrainConcurrency: conf.Outbox.DrainConcurrency,
+		RetryInterval:    conf.Outbox.RetryInterval,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize system event outbox: %w", err)

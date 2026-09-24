@@ -18,7 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-const testTopic = "system-events"
+const (
+	testTopic  = "system-events"
+	drainLimit = 100
+)
 
 type publishedMessage struct {
 	topic    string
@@ -112,10 +115,14 @@ func newTestPublisher(t *testing.T, raw *recordingPublisher) (*Publisher, *db.Cl
 		testDB.Close(t)
 	})
 	p, err := NewPublisher(t.Context(), Config{
-		DB:        client,
-		Publisher: raw,
-		Topic:     testTopic,
-		Logger:    testutils.NewDiscardLogger(t),
+		DB:               client,
+		Publisher:        raw,
+		Topic:            testTopic,
+		Logger:           testutils.NewDiscardLogger(t),
+		DrainLimit:       drainLimit,
+		DrainTimeout:     30 * time.Second,
+		DrainConcurrency: 2,
+		RetryInterval:    time.Minute,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, p.Close()) })
@@ -360,10 +367,14 @@ func TestConcurrentPublishersSkipClaimedRowForSameKey(t *testing.T) {
 	})
 	p1, client := newTestPublisher(t, raw)
 	p2, err := NewPublisher(t.Context(), Config{
-		DB:        client,
-		Publisher: raw,
-		Topic:     testTopic,
-		Logger:    testutils.NewDiscardLogger(t),
+		DB:               client,
+		Publisher:        raw,
+		Topic:            testTopic,
+		Logger:           testutils.NewDiscardLogger(t),
+		DrainLimit:       drainLimit,
+		DrainTimeout:     30 * time.Second,
+		DrainConcurrency: 2,
+		RetryInterval:    time.Minute,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, p2.Close()) })

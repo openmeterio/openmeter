@@ -15,6 +15,7 @@ type EventsConfiguration struct {
 	SystemEvents        EventSubsystemConfiguration
 	IngestEvents        EventSubsystemConfiguration
 	BalanceWorkerEvents EventSubsystemConfiguration
+	Outbox              OutboxConfiguration
 }
 
 func (c EventsConfiguration) Validate() error {
@@ -31,6 +32,9 @@ func (c EventsConfiguration) Validate() error {
 	if err := c.BalanceWorkerEvents.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "balance worker events"))
 	}
+	if err := c.Outbox.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "outbox"))
+	}
 
 	// Validate topic uniqueness
 	uniqueTopics := lo.Uniq([]string{c.SystemEvents.Topic, c.IngestEvents.Topic, c.BalanceWorkerEvents.Topic})
@@ -38,6 +42,30 @@ func (c EventsConfiguration) Validate() error {
 		errs = append(errs, errors.New("topic names must be unique"))
 	}
 
+	return errors.Join(errs...)
+}
+
+type OutboxConfiguration struct {
+	DrainLimit       int
+	DrainTimeout     time.Duration
+	DrainConcurrency int
+	RetryInterval    time.Duration
+}
+
+func (c OutboxConfiguration) Validate() error {
+	var errs []error
+	if c.DrainLimit <= 0 {
+		errs = append(errs, errors.New("drain limit must be greater than 0"))
+	}
+	if c.DrainTimeout <= 0 {
+		errs = append(errs, errors.New("drain timeout must be greater than 0"))
+	}
+	if c.DrainConcurrency <= 0 {
+		errs = append(errs, errors.New("drain concurrency must be greater than 0"))
+	}
+	if c.RetryInterval <= 0 {
+		errs = append(errs, errors.New("retry interval must be greater than 0"))
+	}
 	return errors.Join(errs...)
 }
 
@@ -230,6 +258,10 @@ func ConfigureEvents(v *viper.Viper) {
 	v.SetDefault("events.systemEvents.topic", "om_sys.api_events")
 	v.SetDefault("events.systemEvents.autoProvision.enabled", true)
 	v.SetDefault("events.systemEvents.autoProvision.partitions", 4)
+	v.SetDefault("events.outbox.drainLimit", 100)
+	v.SetDefault("events.outbox.drainTimeout", 30*time.Second)
+	v.SetDefault("events.outbox.drainConcurrency", 2)
+	v.SetDefault("events.outbox.retryInterval", time.Minute)
 
 	v.SetDefault("events.ingestEvents.topic", "om_sys.ingest_events")
 	v.SetDefault("events.ingestEvents.autoProvision.enabled", true)

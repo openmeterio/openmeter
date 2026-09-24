@@ -19,17 +19,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-const (
-	drainLimit       = 100
-	drainTimeout     = 30 * time.Second
-	drainConcurrency = 2
-)
-
 type Config struct {
-	DB        *db.Client
-	Publisher message.Publisher
-	Topic     string
-	Logger    *slog.Logger
+	DB               *db.Client
+	Publisher        message.Publisher
+	Topic            string
+	Logger           *slog.Logger
+	DrainLimit       int
+	DrainTimeout     time.Duration
+	DrainConcurrency int
+	RetryInterval    time.Duration
 }
 
 func (c Config) Validate() error {
@@ -45,6 +43,18 @@ func (c Config) Validate() error {
 	}
 	if c.Logger == nil {
 		errs = append(errs, errors.New("logger is required"))
+	}
+	if c.DrainLimit <= 0 {
+		errs = append(errs, errors.New("drain limit must be greater than 0"))
+	}
+	if c.DrainTimeout <= 0 {
+		errs = append(errs, errors.New("drain timeout must be greater than 0"))
+	}
+	if c.DrainConcurrency <= 0 {
+		errs = append(errs, errors.New("drain concurrency must be greater than 0"))
+	}
+	if c.RetryInterval <= 0 {
+		errs = append(errs, errors.New("retry interval must be greater than 0"))
 	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
@@ -68,8 +78,8 @@ func NewPublisher(ctx context.Context, cfg Config) (*Publisher, error) {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	p := &Publisher{cfg: cfg, ctx: ctx, cancel: cancel, wake: make(chan struct{}, drainConcurrency)}
-	for range drainConcurrency {
+	p := &Publisher{cfg: cfg, ctx: ctx, cancel: cancel, wake: make(chan struct{}, cfg.DrainConcurrency)}
+	for range cfg.DrainConcurrency {
 		p.workers.Add(1)
 		go p.run()
 	}
@@ -115,7 +125,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 }
 
 func (p *Publisher) signal() {
-	for range drainConcurrency {
+	for range p.cfg.DrainConcurrency {
 		select {
 		case p.wake <- struct{}{}:
 		default:
@@ -125,7 +135,7 @@ func (p *Publisher) signal() {
 
 func (p *Publisher) run() {
 	defer p.workers.Done()
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(p.cfg.RetryInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -134,7 +144,7 @@ func (p *Publisher) run() {
 		case <-p.wake:
 		case <-ticker.C:
 		}
-		ctx, cancel := context.WithTimeout(p.ctx, drainTimeout)
+		ctx, cancel := context.WithTimeout(p.ctx, p.cfg.DrainTimeout)
 		err := p.drain(ctx)
 		cancel()
 		if err != nil && p.ctx.Err() == nil {
@@ -147,7 +157,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 	var failedIDs []int64
 	var errs []error
 	delivered := false
-	for range drainLimit {
+	for range p.cfg.DrainLimit {
 		var claimedID int64
 		var claimed bool
 		sent, err := transaction.Run(ctx, enttx.NewCreator(p.cfg.DB), func(ctx context.Context) (bool, error) {
