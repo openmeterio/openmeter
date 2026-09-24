@@ -18,9 +18,11 @@ and Kafka message key. Consumers must tolerate duplicates.
 
 ## Concurrency and shutdown
 
-There is no delivery ordering guarantee, including within one Kafka message key.
-Workers claim individual rows with `FOR UPDATE SKIP LOCKED`; locked or failed rows
-do not hold back other events. Enqueueing does not take advisory locks.
+Workers claim only the oldest committed row for each topic/Kafka message key.
+`FOR UPDATE SKIP LOCKED` lets other keys progress while a send is in flight;
+a locked or failed head holds back later rows with its key. Unkeyed events share
+one lane. Enqueueing takes no advisory lock, so an older uncommitted row is
+invisible and can still be overtaken. This is not a commit-order guarantee.
 Domain transactions never wait for Kafka, and workers use the application context.
 
 `Close` cancels workers and waits for them; it does not flush the backlog. Pending

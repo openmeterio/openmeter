@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -60,7 +61,7 @@ func (c Config) Validate() error {
 }
 
 // Publisher persists system events in the caller's transaction. Each successful
-// commit wakes a bounded drain of the shared queue; a minute tick retries idle work.
+// commit wakes a bounded drain of the shared queue; a periodic tick retries idle work.
 type Publisher struct {
 	cfg     Config
 	ctx     context.Context
@@ -99,6 +100,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 		if msg == nil {
 			return errors.New("outbox message is nil")
 		}
+		deliveryKey := msg.Metadata.Get(kafka.PartitionKeyMetadataKey)
 		// Run joins the caller's transaction, or commits a standalone enqueue for
 		// system events whose producer does not have a database transaction.
 		err := transaction.RunWithNoValue(msg.Context(), enttx.NewCreator(p.cfg.DB), func(ctx context.Context) error {
@@ -110,6 +112,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 			_, err = client.EventOutbox.Create().
 				SetMessageID(msg.UUID).
 				SetTopic(topic).
+				SetDeliveryKey(deliveryKey).
 				SetPayload(msg.Payload).
 				SetMetadata(map[string]string(msg.Metadata)).Save(ctx)
 			if err != nil {
@@ -154,11 +157,11 @@ func (p *Publisher) run() {
 }
 
 func (p *Publisher) drain(ctx context.Context) error {
-	var failedIDs []int64
+	var failedKeys []string
 	var errs []error
 	delivered := false
 	for range p.cfg.DrainLimit {
-		var claimedID int64
+		var deliveryKey string
 		var claimed bool
 		sent, err := transaction.Run(ctx, enttx.NewCreator(p.cfg.DB), func(ctx context.Context) (bool, error) {
 			tx, err := entutils.GetDriverFromContext(ctx)
@@ -166,13 +169,11 @@ func (p *Publisher) drain(ctx context.Context) error {
 				return false, err
 			}
 			client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
-			// Claim one row without waiting for other workers' broker sends.
+			// Only a key's oldest committed row is eligible. A locked or failed
+			// head remains a barrier for later rows with the same key.
+			query := pendingQuery{Topic: p.cfg.Topic, ExcludedKeys: failedKeys}
 			row, err := client.EventOutbox.Query().
-				Where(
-					eventoutbox.TopicEQ(p.cfg.Topic),
-					eventoutbox.DeletedAtIsNil(),
-					eventoutbox.IDNotIn(failedIDs...),
-				).
+				Where(query.Apply).
 				Order(eventoutbox.ByID()).
 				ForUpdate(sql.WithLockAction(sql.SkipLocked)).First(ctx)
 			if db.IsNotFound(err) {
@@ -181,7 +182,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 			if err != nil {
 				return false, err
 			}
-			claimedID = row.ID
+			deliveryKey = row.DeliveryKey
 			claimed = true
 			msg := message.NewMessage(row.MessageID, row.Payload)
 			msg.Metadata = message.Metadata(row.Metadata)
@@ -201,9 +202,8 @@ func (p *Publisher) drain(ctx context.Context) error {
 			if !claimed || ctx.Err() != nil {
 				return errors.Join(errs...)
 			}
-			// Skip this row for the rest of this pass so a failed send cannot
-			// prevent other events, including the same Kafka key, from progressing.
-			failedIDs = append(failedIDs, claimedID)
+			// Retry this key on a later wake while unrelated keys can progress.
+			failedKeys = append(failedKeys, deliveryKey)
 			continue
 		}
 		if !sent {

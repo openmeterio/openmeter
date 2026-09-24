@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -263,7 +264,7 @@ func TestPublisherFailureDoesNotBlockAnotherKey(t *testing.T) {
 		"next publish should retry pending rows")
 }
 
-func TestPublisherFailureDoesNotBlockSameKeyAndRetriesOnPublish(t *testing.T) {
+func TestPublisherFailedHeadBlocksSameKeyUntilRetry(t *testing.T) {
 	// Given a pending event whose broker send keeps failing.
 	raw := newRecordingPublisher()
 	var fail atomic.Bool
@@ -278,17 +279,18 @@ func TestPublisherFailureDoesNotBlockSameKeyAndRetriesOnPublish(t *testing.T) {
 	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "failed", "customer-1")))
 	require.Equal(t, "failed", nextAttempt(t, raw).id)
 
-	// When another event with the same key arrives, it can pass the failed row.
+	// When another event with the same key arrives, the pending head blocks it.
 	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "later", "customer-1")))
-	require.Eventually(t, func() bool { return len(raw.deliveredIDs()) == 1 }, 5*time.Second, 20*time.Millisecond)
-	require.Equal(t, []string{"later"}, raw.deliveredIDs())
-	eventuallyRowCount(t, client, 1)
+	eventuallyRowCount(t, client, 2)
+	require.Never(t, func() bool { return len(raw.attemptsFor("later")) > 0 }, 200*time.Millisecond, 10*time.Millisecond)
 
-	// Then new traffic after recovery retries the original pending event.
+	// Then new traffic after recovery retries the head before its follower.
 	fail.Store(false)
 	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "wake", "customer-2")))
 	eventuallyRowCount(t, client, 0)
-	require.ElementsMatch(t, []string{"later", "failed", "wake"}, raw.deliveredIDs())
+	ids := raw.deliveredIDs()
+	require.ElementsMatch(t, []string{"failed", "later", "wake"}, ids)
+	require.Less(t, slices.Index(ids, "failed"), slices.Index(ids, "later"))
 	require.GreaterOrEqual(t, len(raw.attemptsFor("failed")), 2)
 }
 
@@ -352,7 +354,7 @@ func TestConcurrentEnqueueDoesNotSerializeMessageKey(t *testing.T) {
 	eventuallyRowCount(t, client, 0)
 }
 
-func TestConcurrentPublishersSkipClaimedRowForSameKey(t *testing.T) {
+func TestConcurrentPublishersWaitForClaimedHeadOnSameKey(t *testing.T) {
 	// Given two relay instances and a blocked broker send holding one row lock.
 	raw := newRecordingPublisher()
 	releaseFirst := make(chan struct{})
@@ -381,18 +383,17 @@ func TestConcurrentPublishersSkipClaimedRowForSameKey(t *testing.T) {
 
 	require.NoError(t, p1.Publish(testTopic, testMessage(t.Context(), "first", "customer-1")))
 	require.Equal(t, "first", nextAttempt(t, raw).id)
-	// When the other relay publishes the same key, its event can be delivered
-	// while the first send remains blocked.
+	// When the other relay publishes the same key, the locked head keeps its
+	// follower pending even though another worker is free.
 	require.NoError(t, p2.Publish(testTopic, testMessage(t.Context(), "second", "customer-1")))
-	require.Equal(t, "second", nextAttempt(t, raw).id)
-	require.Eventually(t, func() bool { return len(raw.deliveredIDs()) == 1 }, 5*time.Second, 20*time.Millisecond)
-	require.Equal(t, []string{"second"}, raw.deliveredIDs())
-
-	// Then the claimed row was not sent twice, and completes when released.
 	noAttempt(t, raw)
 	require.Len(t, raw.attemptsFor("first"), 1)
+
+	// Then the follower is sent only after the head completes.
 	release()
+	require.Equal(t, "second", nextAttempt(t, raw).id)
 	eventuallyRowCount(t, client, 0)
+	require.Equal(t, []string{"first", "second"}, raw.deliveredIDs())
 }
 
 func TestPublisherDrainsBeyondOneBoundedPass(t *testing.T) {
@@ -411,14 +412,14 @@ func TestPublisherDrainsBeyondOneBoundedPass(t *testing.T) {
 	require.NoError(t, err)
 
 	// When the commit wakes the drainer, it schedules continuation itself.
-	// Then every event is delivered without another publish.
+	// Then every event is delivered in key order without another publish.
 	require.Eventually(t, func() bool { return len(raw.deliveredIDs()) == eventCount }, 20*time.Second, 20*time.Millisecond)
 	eventuallyRowCount(t, client, 0)
 	expected := make([]string, eventCount)
 	for i := range expected {
 		expected[i] = fmt.Sprintf("event-%03d", i)
 	}
-	require.ElementsMatch(t, expected, raw.deliveredIDs())
+	require.Equal(t, expected, raw.deliveredIDs())
 }
 
 var _ message.Publisher = (*recordingPublisher)(nil)

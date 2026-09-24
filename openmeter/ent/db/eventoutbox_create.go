@@ -76,6 +76,12 @@ func (_c *EventOutboxCreate) SetTopic(v string) *EventOutboxCreate {
 	return _c
 }
 
+// SetDeliveryKey sets the "delivery_key" field.
+func (_c *EventOutboxCreate) SetDeliveryKey(v string) *EventOutboxCreate {
+	_c.mutation.SetDeliveryKey(v)
+	return _c
+}
+
 // SetPayload sets the "payload" field.
 func (_c *EventOutboxCreate) SetPayload(v []byte) *EventOutboxCreate {
 	_c.mutation.SetPayload(v)
@@ -163,6 +169,9 @@ func (_c *EventOutboxCreate) check() error {
 			return &ValidationError{Name: "topic", err: fmt.Errorf(`db: validator failed for field "EventOutbox.topic": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.DeliveryKey(); !ok {
+		return &ValidationError{Name: "delivery_key", err: errors.New(`db: missing required field "EventOutbox.delivery_key"`)}
+	}
 	if _, ok := _c.mutation.Payload(); !ok {
 		return &ValidationError{Name: "payload", err: errors.New(`db: missing required field "EventOutbox.payload"`)}
 	}
@@ -224,6 +233,10 @@ func (_c *EventOutboxCreate) createSpec() (*EventOutbox, *sqlgraph.CreateSpec, e
 	if value, ok := _c.mutation.Topic(); ok {
 		_spec.SetField(eventoutbox.FieldTopic, field.TypeString, value)
 		_node.Topic = value
+	}
+	if value, ok := _c.mutation.DeliveryKey(); ok {
+		_spec.SetField(eventoutbox.FieldDeliveryKey, field.TypeString, value)
+		_node.DeliveryKey = value
 	}
 	if value, ok := _c.mutation.Payload(); ok {
 		_spec.SetField(eventoutbox.FieldPayload, field.TypeBytes, value)
@@ -344,6 +357,9 @@ func (u *EventOutboxUpsertOne) UpdateNewValues() *EventOutboxUpsertOne {
 		}
 		if _, exists := u.create.mutation.Topic(); exists {
 			s.SetIgnore(eventoutbox.FieldTopic)
+		}
+		if _, exists := u.create.mutation.DeliveryKey(); exists {
+			s.SetIgnore(eventoutbox.FieldDeliveryKey)
 		}
 		if _, exists := u.create.mutation.Payload(); exists {
 			s.SetIgnore(eventoutbox.FieldPayload)
@@ -610,6 +626,9 @@ func (u *EventOutboxUpsertBulk) UpdateNewValues() *EventOutboxUpsertBulk {
 			}
 			if _, exists := b.mutation.Topic(); exists {
 				s.SetIgnore(eventoutbox.FieldTopic)
+			}
+			if _, exists := b.mutation.DeliveryKey(); exists {
+				s.SetIgnore(eventoutbox.FieldDeliveryKey)
 			}
 			if _, exists := b.mutation.Payload(); exists {
 				s.SetIgnore(eventoutbox.FieldPayload)

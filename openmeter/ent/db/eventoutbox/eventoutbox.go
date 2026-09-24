@@ -24,6 +24,8 @@ const (
 	FieldMessageID = "message_id"
 	// FieldTopic holds the string denoting the topic field in the database.
 	FieldTopic = "topic"
+	// FieldDeliveryKey holds the string denoting the delivery_key field in the database.
+	FieldDeliveryKey = "delivery_key"
 	// FieldPayload holds the string denoting the payload field in the database.
 	FieldPayload = "payload"
 	// FieldMetadata holds the string denoting the metadata field in the database.
@@ -40,6 +42,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldMessageID,
 	FieldTopic,
+	FieldDeliveryKey,
 	FieldPayload,
 	FieldMetadata,
 }
@@ -102,6 +105,11 @@ func ByMessageID(opts ...sql.OrderTermOption) OrderOption {
 // ByTopic orders the results by the topic field.
 func ByTopic(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTopic, opts...).ToFunc()
+}
+
+// ByDeliveryKey orders the results by the delivery_key field.
+func ByDeliveryKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeliveryKey, opts...).ToFunc()
 }
 
 // ByMetadata orders the results by the metadata field.

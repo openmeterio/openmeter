@@ -91055,6 +91055,7 @@ type EventOutboxMutation struct {
 	deleted_at    *time.Time
 	message_id    *string
 	topic         *string
+	delivery_key  *string
 	payload       *[]byte
 	metadata      *map[string]string
 	clearedFields map[string]struct{}
@@ -91360,6 +91361,42 @@ func (m *EventOutboxMutation) ResetTopic() {
 	m.topic = nil
 }
 
+// SetDeliveryKey sets the "delivery_key" field.
+func (m *EventOutboxMutation) SetDeliveryKey(s string) {
+	m.delivery_key = &s
+}
+
+// DeliveryKey returns the value of the "delivery_key" field in the mutation.
+func (m *EventOutboxMutation) DeliveryKey() (r string, exists bool) {
+	v := m.delivery_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeliveryKey returns the old "delivery_key" field's value of the EventOutbox entity.
+// If the EventOutbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EventOutboxMutation) OldDeliveryKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeliveryKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeliveryKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeliveryKey: %w", err)
+	}
+	return oldValue.DeliveryKey, nil
+}
+
+// ResetDeliveryKey resets all changes to the "delivery_key" field.
+func (m *EventOutboxMutation) ResetDeliveryKey() {
+	m.delivery_key = nil
+}
+
 // SetPayload sets the "payload" field.
 func (m *EventOutboxMutation) SetPayload(b []byte) {
 	m.payload = &b
@@ -91466,7 +91503,7 @@ func (m *EventOutboxMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EventOutboxMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, eventoutbox.FieldCreatedAt)
 	}
@@ -91481,6 +91518,9 @@ func (m *EventOutboxMutation) Fields() []string {
 	}
 	if m.topic != nil {
 		fields = append(fields, eventoutbox.FieldTopic)
+	}
+	if m.delivery_key != nil {
+		fields = append(fields, eventoutbox.FieldDeliveryKey)
 	}
 	if m.payload != nil {
 		fields = append(fields, eventoutbox.FieldPayload)
@@ -91506,6 +91546,8 @@ func (m *EventOutboxMutation) Field(name string) (ent.Value, bool) {
 		return m.MessageID()
 	case eventoutbox.FieldTopic:
 		return m.Topic()
+	case eventoutbox.FieldDeliveryKey:
+		return m.DeliveryKey()
 	case eventoutbox.FieldPayload:
 		return m.Payload()
 	case eventoutbox.FieldMetadata:
@@ -91529,6 +91571,8 @@ func (m *EventOutboxMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldMessageID(ctx)
 	case eventoutbox.FieldTopic:
 		return m.OldTopic(ctx)
+	case eventoutbox.FieldDeliveryKey:
+		return m.OldDeliveryKey(ctx)
 	case eventoutbox.FieldPayload:
 		return m.OldPayload(ctx)
 	case eventoutbox.FieldMetadata:
@@ -91576,6 +91620,13 @@ func (m *EventOutboxMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTopic(v)
+		return nil
+	case eventoutbox.FieldDeliveryKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeliveryKey(v)
 		return nil
 	case eventoutbox.FieldPayload:
 		v, ok := value.([]byte)
@@ -91663,6 +91714,9 @@ func (m *EventOutboxMutation) ResetField(name string) error {
 		return nil
 	case eventoutbox.FieldTopic:
 		m.ResetTopic()
+		return nil
+	case eventoutbox.FieldDeliveryKey:
+		m.ResetDeliveryKey()
 		return nil
 	case eventoutbox.FieldPayload:
 		m.ResetPayload()

@@ -79,6 +79,11 @@ func Topic(v string) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldEQ(FieldTopic, v))
 }
 
+// DeliveryKey applies equality check predicate on the "delivery_key" field. It's identical to DeliveryKeyEQ.
+func DeliveryKey(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldDeliveryKey, v))
+}
+
 // Payload applies equality check predicate on the "payload" field. It's identical to PayloadEQ.
 func Payload(v []byte) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldEQ(FieldPayload, v))
@@ -342,6 +347,71 @@ func TopicEqualFold(v string) predicate.EventOutbox {
 // TopicContainsFold applies the ContainsFold predicate on the "topic" field.
 func TopicContainsFold(v string) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldContainsFold(FieldTopic, v))
+}
+
+// DeliveryKeyEQ applies the EQ predicate on the "delivery_key" field.
+func DeliveryKeyEQ(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyNEQ applies the NEQ predicate on the "delivery_key" field.
+func DeliveryKeyNEQ(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNEQ(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyIn applies the In predicate on the "delivery_key" field.
+func DeliveryKeyIn(vs ...string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldIn(FieldDeliveryKey, vs...))
+}
+
+// DeliveryKeyNotIn applies the NotIn predicate on the "delivery_key" field.
+func DeliveryKeyNotIn(vs ...string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNotIn(FieldDeliveryKey, vs...))
+}
+
+// DeliveryKeyGT applies the GT predicate on the "delivery_key" field.
+func DeliveryKeyGT(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGT(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyGTE applies the GTE predicate on the "delivery_key" field.
+func DeliveryKeyGTE(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGTE(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyLT applies the LT predicate on the "delivery_key" field.
+func DeliveryKeyLT(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLT(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyLTE applies the LTE predicate on the "delivery_key" field.
+func DeliveryKeyLTE(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLTE(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyContains applies the Contains predicate on the "delivery_key" field.
+func DeliveryKeyContains(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldContains(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyHasPrefix applies the HasPrefix predicate on the "delivery_key" field.
+func DeliveryKeyHasPrefix(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldHasPrefix(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyHasSuffix applies the HasSuffix predicate on the "delivery_key" field.
+func DeliveryKeyHasSuffix(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldHasSuffix(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyEqualFold applies the EqualFold predicate on the "delivery_key" field.
+func DeliveryKeyEqualFold(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEqualFold(FieldDeliveryKey, v))
+}
+
+// DeliveryKeyContainsFold applies the ContainsFold predicate on the "delivery_key" field.
+func DeliveryKeyContainsFold(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldContainsFold(FieldDeliveryKey, v))
 }
 
 // PayloadEQ applies the EQ predicate on the "payload" field.

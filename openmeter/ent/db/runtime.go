@@ -2241,7 +2241,7 @@ func init() {
 	// eventoutbox.TopicValidator is a validator for the "topic" field. It is called by the builders before save.
 	eventoutbox.TopicValidator = eventoutboxDescTopic.Validators[0].(func(string) error)
 	// eventoutboxDescMetadata is the schema descriptor for metadata field.
-	eventoutboxDescMetadata := eventoutboxFields[4].Descriptor()
+	eventoutboxDescMetadata := eventoutboxFields[5].Descriptor()
 	eventoutbox.ValueScanner.Metadata = eventoutboxDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	dbfeatureMixin := schema.Feature{}.Mixin()
 	dbfeatureMixinFields0 := dbfeatureMixin[0].Fields()
