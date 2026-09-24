@@ -9,6 +9,7 @@ import {
   getCustomerEntitlement,
   listCustomerEntitlements,
   resetCustomerEntitlementUsage,
+  deleteCustomerEntitlement,
   voidCreditGrant,
   listCustomerCharges,
   createCustomerCharges,
@@ -59,6 +60,8 @@ import type {
   ListCustomerEntitlementsResponse,
   ResetCustomerEntitlementUsageRequest,
   ResetCustomerEntitlementUsageResponse,
+  DeleteCustomerEntitlementRequest,
+  DeleteCustomerEntitlementResponse,
   VoidCreditGrantRequest,
   VoidCreditGrantResponse,
   ListCustomerChargesRequest,
@@ -341,6 +344,28 @@ export class InternalCustomersEntitlements {
   ): Promise<ResetCustomerEntitlementUsageResponse> {
     return unwrap(
       await resetCustomerEntitlementUsage(this._client, request, options),
+    )
+  }
+
+  /**
+   * Delete customer entitlement
+   *
+   * Deletes the entitlement and revokes access to its feature. A customer can hold
+   * only one active entitlement per feature, so migrating a feature requires
+   * deleting the previous entitlement first.
+   *
+   * Deletion sets the `deleted_at` timestamp instead of removing history. Access and
+   * status queries for earlier points in time still treat the entitlement as active,
+   * so access changes are never retroactive.
+   *
+   * DELETE /openmeter/customers/{customerId}/entitlements/{entitlementId}
+   */
+  async delete(
+    request: DeleteCustomerEntitlementRequest,
+    options?: RequestOptions,
+  ): Promise<DeleteCustomerEntitlementResponse> {
+    return unwrap(
+      await deleteCustomerEntitlement(this._client, request, options),
     )
   }
 }

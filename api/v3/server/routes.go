@@ -126,6 +126,13 @@ func (s *Server) ResetCustomerEntitlementUsage(w http.ResponseWriter, r *http.Re
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) DeleteCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID) {
+	s.customersEntitlementsHandler.DeleteCustomerEntitlement().With(customersentitlementshandler.DeleteCustomerEntitlementParams{
+		CustomerID:    customerId,
+		EntitlementID: entitlementId,
+	}).ServeHTTP(w, r)
+}
+
 // Customers Entitlements
 
 func (s *Server) GetCustomerEntitlementHistory(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID, params api.GetCustomerEntitlementHistoryParams) {

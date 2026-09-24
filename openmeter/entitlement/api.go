@@ -74,6 +74,7 @@ type CustomerEntitlementAPIService interface {
 	GetCustomerEntitlement(ctx context.Context, input GetCustomerEntitlementInput) (*Entitlement, error)
 	ListCustomerEntitlements(ctx context.Context, input ListCustomerEntitlementsInput) (pagination.Result[Entitlement], error)
 	ResetCustomerEntitlementUsage(ctx context.Context, input ResetCustomerEntitlementUsageInput) error
+	DeleteCustomerEntitlement(ctx context.Context, input DeleteCustomerEntitlementInput) error
 }
 
 // CreateCustomerEntitlementInput creates an entitlement for the customer referenced by ID.
@@ -98,6 +99,28 @@ func (i CreateCustomerEntitlementInput) Validate() error {
 
 	if i.Entitlement.IssueAfterReset != nil && len(i.Grants) > 0 {
 		errs = append(errs, errors.New("issue after reset and grants cannot be used together"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// DeleteCustomerEntitlementInput addresses an entitlement by ID within the customer
+// referenced by ID. An entitlement that belongs to another customer is reported
+// as not found.
+type DeleteCustomerEntitlementInput struct {
+	CustomerID    customer.CustomerID
+	EntitlementID string
+}
+
+func (i DeleteCustomerEntitlementInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

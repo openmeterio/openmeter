@@ -2137,6 +2137,46 @@ paths:
       x-internal: true
       x-private: true
       x-unstable: true
+    delete:
+      operationId: delete-customer-entitlement
+      summary: Delete customer entitlement
+      description: |-
+        Deletes the entitlement and revokes access to its feature. A customer can hold
+        only one active entitlement per feature, so migrating a feature requires
+        deleting the previous entitlement first.
+
+        Deletion sets the `deleted_at` timestamp instead of removing history. Access and
+        status queries for earlier points in time still treat the entitlement as active,
+        so access changes are never retroactive.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Entitlements
+      x-internal: true
+      x-private: true
+      x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/history:
     get:
       operationId: get-customer-entitlement-history

@@ -38,3 +38,7 @@ func (f fakeService) ListCustomerEntitlements(context.Context, entitlement.ListC
 func (f fakeService) ResetCustomerEntitlementUsage(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error {
 	return f.reset(ctx, input)
 }
+
+func (f fakeService) DeleteCustomerEntitlement(context.Context, entitlement.DeleteCustomerEntitlementInput) error {
+	return errors.New("not implemented")
+}

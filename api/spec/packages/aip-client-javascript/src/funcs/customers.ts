@@ -43,6 +43,8 @@ import type {
   ListCustomerEntitlementsResponse,
   ResetCustomerEntitlementUsageRequest,
   ResetCustomerEntitlementUsageResponse,
+  DeleteCustomerEntitlementRequest,
+  DeleteCustomerEntitlementResponse,
   CreateCreditGrantRequest,
   CreateCreditGrantResponse,
   GetCreditGrantRequest,
@@ -771,6 +773,50 @@ export function resetCustomerEntitlementUsage(
       assertValid(schemas.resetCustomerEntitlementUsageBodyWire, body)
     }
     await http(client).post(path, { ...options, json: body })
+  })
+}
+
+/**
+ * Delete customer entitlement
+ *
+ * Deletes the entitlement and revokes access to its feature. A customer can hold
+ * only one active entitlement per feature, so migrating a feature requires
+ * deleting the previous entitlement first.
+ *
+ * Deletion sets the `deleted_at` timestamp instead of removing history. Access and
+ * status queries for earlier points in time still treat the entitlement as active,
+ * so access changes are never retroactive.
+ *
+ * DELETE /openmeter/customers/{customerId}/entitlements/{entitlementId}
+ */
+export function deleteCustomerEntitlement(
+  client: Client,
+  req: DeleteCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<DeleteCustomerEntitlementResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.deleteCustomerEntitlementPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.deleteCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}`
+    await http(client).delete(path, options)
   })
 }
 

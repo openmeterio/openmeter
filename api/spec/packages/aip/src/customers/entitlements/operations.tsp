@@ -193,5 +193,26 @@ namespace Entitlements {
       | Common.NotFound
       | Common.Conflict
       | Common.ErrorResponses;
+
+    /**
+     * Deletes the entitlement and revokes access to its feature. A customer can hold
+     * only one active entitlement per feature, so migrating a feature requires
+     * deleting the previous entitlement first.
+     *
+     * Deletion sets the `deleted_at` timestamp instead of removing history. Access and
+     * status queries for earlier points in time still treat the entitlement as active,
+     * so access changes are never retroactive.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.PrivateExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @delete
+    @operationId("delete-customer-entitlement")
+    @summary("Delete customer entitlement")
+    delete(@path customerId: Shared.ULID, @path entitlementId: Shared.ULID):
+      | Shared.DeleteResponse
+      | Common.NotFound
+      | Common.Conflict
+      | Common.ErrorResponses;
   }
 }

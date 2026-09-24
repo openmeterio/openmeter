@@ -352,3 +352,88 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 		requireProblem(t, err, http.StatusConflict)
 	})
 }
+
+func TestV3DeleteCustomerEntitlement(t *testing.T) {
+	c := newV3Client(t)
+	v1 := initClient(t)
+
+	customerKey := uniqueKey("ent_delete_customer")
+	cust, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:  customerKey,
+		Name: "Entitlement Customer " + customerKey,
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
+			SubjectKeys: []string{customerKey},
+		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, cust)
+
+	featureKey := uniqueKey("ent_delete_boolean")
+	f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+		Key:  featureKey,
+		Name: "Boolean Feature " + featureKey,
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	createBooleanEntitlement := func(t *testing.T, customerID string) string {
+		t.Helper()
+
+		req := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementBooleanRequest(v3sdk.CreateEntitlementBooleanRequest{
+			Feature: v3sdk.FeatureReference{ID: f.ID},
+		}))
+
+		created, err := c.Customers.Entitlements.Create(t.Context(), customerID, req)
+		c.requireStatus(http.StatusCreated, err)
+
+		boolean, err := created.AsEntitlementBoolean()
+		require.NoError(t, err)
+
+		return boolean.ID
+	}
+
+	entitlementID := createBooleanEntitlement(t, cust.ID)
+
+	t.Run("delete entitlement of another customer", func(t *testing.T) {
+		otherKey := uniqueKey("ent_delete_other_customer")
+		other, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:  otherKey,
+			Name: "Other Customer " + otherKey,
+			UsageAttribution: &v3sdk.CustomerUsageAttribution{
+				SubjectKeys: []string{otherKey},
+			},
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		otherEntitlementID := createBooleanEntitlement(t, other.ID)
+
+		err = c.Customers.Entitlements.Delete(t.Context(), cust.ID, otherEntitlementID)
+		requireProblem(t, err, http.StatusNotFound)
+
+		// The other customer's entitlement is left untouched.
+		res, err := v1.GetCustomerEntitlementV2WithResponse(t.Context(), other.ID, otherEntitlementID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode(), "Invalid status code [response_body=%s]", string(res.Body))
+	})
+
+	t.Run("delete unknown entitlement", func(t *testing.T) {
+		err := c.Customers.Entitlements.Delete(t.Context(), cust.ID, "01K4WAQ0J99ZZ0MD75HXR112H9")
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		c.requireStatus(http.StatusNoContent, c.Customers.Entitlements.Delete(t.Context(), cust.ID, entitlementID))
+
+		res, err := v1.GetCustomerEntitlementV2WithResponse(t.Context(), cust.ID, entitlementID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNotFound, res.StatusCode(), "Invalid status code [response_body=%s]", string(res.Body))
+
+		// A soft-deleted entitlement is reported as not found on a repeated delete.
+		err = c.Customers.Entitlements.Delete(t.Context(), cust.ID, entitlementID)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("unknown customer", func(t *testing.T) {
+		err := c.Customers.Entitlements.Delete(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", entitlementID)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+}

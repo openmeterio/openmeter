@@ -807,3 +807,131 @@ func TestCustomerEntitlementResetAPI(t *testing.T) {
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
 }
+
+func TestDeleteCustomerEntitlementAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-delete-customer-entitlement-api"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	createFeature := func(t *testing.T, key string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: namespace,
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	customerID := customer.CustomerID{Namespace: namespace, ID: cust.ID}
+
+	otherCust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+
+	// given two boolean entitlements on the customer and one on another customer
+	// for the same feature
+	feat := createFeature(t, "boolean")
+	ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureKey:       &feat.Key,
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	}, nil)
+	require.NoError(t, err)
+
+	keptFeature := createFeature(t, "kept")
+	keptEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureKey:       &keptFeature.Key,
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	}, nil)
+	require.NoError(t, err)
+
+	otherEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		UsageAttribution: otherCust.GetUsageAttribution(),
+		FeatureKey:       &feat.Key,
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+	}, nil)
+	require.NoError(t, err)
+
+	t.Run("Delete should reject an incomplete input", func(t *testing.T) {
+		err := conn.DeleteCustomerEntitlement(t.Context(), entitlement.DeleteCustomerEntitlementInput{
+			CustomerID: customerID,
+		})
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("Delete should report a missing customer as not found", func(t *testing.T) {
+		err := conn.DeleteCustomerEntitlement(t.Context(), entitlement.DeleteCustomerEntitlementInput{
+			CustomerID:    customer.CustomerID{Namespace: namespace, ID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2"},
+			EntitlementID: ent.ID,
+		})
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("Delete should report a missing entitlement as not found", func(t *testing.T) {
+		err := conn.DeleteCustomerEntitlement(t.Context(), entitlement.DeleteCustomerEntitlementInput{
+			CustomerID:    customerID,
+			EntitlementID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2",
+		})
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("Delete should not reveal another customer's entitlement", func(t *testing.T) {
+		err := conn.DeleteCustomerEntitlement(t.Context(), entitlement.DeleteCustomerEntitlementInput{
+			CustomerID:    customerID,
+			EntitlementID: otherEnt.ID,
+		})
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+
+		// then the other customer's entitlement is left untouched
+		_, err = conn.GetEntitlement(t.Context(), namespace, otherEnt.ID)
+		require.NoError(t, err)
+	})
+
+	t.Run("Delete should soft delete the entitlement of the customer", func(t *testing.T) {
+		// when the entitlement gets deleted
+		require.NoError(t, conn.DeleteCustomerEntitlement(t.Context(), entitlement.DeleteCustomerEntitlementInput{
+			CustomerID:    customerID,
+			EntitlementID: ent.ID,
+		}))
+
+		// then it can no longer be resolved and the customer's other entitlement is kept
+		_, err := conn.GetEntitlement(t.Context(), namespace, ent.ID)
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+
+		ents, err := conn.GetEntitlementsOfCustomer(t.Context(), namespace, cust.ID, clock.Now())
+		require.NoError(t, err)
+		require.Equal(t, []string{keptEnt.ID}, lo.Map(ents, func(item entitlement.Entitlement, _ int) string { return item.ID }))
+
+		// then deleting it again is reported as not found
+		err = conn.DeleteCustomerEntitlement(t.Context(), entitlement.DeleteCustomerEntitlementInput{
+			CustomerID:    customerID,
+			EntitlementID: ent.ID,
+		})
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("Delete should reject a deleted customer", func(t *testing.T) {
+		// given the customer gets deleted and time moves past the deletion
+		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
+		clock.SetTime(clock.Now().Add(time.Minute))
+
+		// then the facade operation conflicts with the deleted state
+		err := conn.DeleteCustomerEntitlement(t.Context(), entitlement.DeleteCustomerEntitlementInput{
+			CustomerID:    customerID,
+			EntitlementID: keptEnt.ID,
+		})
+		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
+	})
+}

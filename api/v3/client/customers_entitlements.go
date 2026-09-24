@@ -234,3 +234,34 @@ func (s *CustomersEntitlementsService) ResetUsage(ctx context.Context, customerI
 	_, err = s.client.doRaw(req)
 	return err
 }
+
+// Deletes the entitlement and revokes access to its feature. A customer can hold
+// only one active entitlement per feature, so migrating a feature requires
+// deleting the previous entitlement first.
+//
+// Deletion sets the `deleted_at` timestamp instead of removing history. Access and
+// status queries for earlier points in time still treat the entitlement as active,
+// so access changes are never retroactive.
+func (s *CustomersEntitlementsService) Delete(ctx context.Context, customerID string, entitlementID string) error {
+	if customerID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if entitlementID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "entitlementID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlements/{entitlementId}"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "entitlementId", entitlementID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodDelete, path, nil, nil, "", "")
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.doRaw(req)
+	return err
+}
