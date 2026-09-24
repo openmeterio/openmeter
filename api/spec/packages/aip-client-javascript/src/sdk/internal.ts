@@ -493,10 +493,9 @@ export class InternalEntitlements {
   /**
    * List entitlements
    *
-   * List the entitlements of every customer in the namespace that are active at the
-   * time of the request. Intended for administrative use; to list the entitlements
-   * of a single customer, use the customer entitlements endpoints, and for checking
-   * entitlement access, use the entitlement access endpoints instead.
+   * List the active entitlements of all customers. Intended for administrative use.
+   * To list the entitlements of a single customer, use the customer entitlements
+   * endpoints; to check entitlement access, use the entitlement access endpoints.
    *
    * GET /openmeter/entitlements
    */
@@ -510,10 +509,9 @@ export class InternalEntitlements {
   /**
    * List entitlements
    *
-   * List the entitlements of every customer in the namespace that are active at the
-   * time of the request. Intended for administrative use; to list the entitlements
-   * of a single customer, use the customer entitlements endpoints, and for checking
-   * entitlement access, use the entitlement access endpoints instead.
+   * List the active entitlements of all customers. Intended for administrative use.
+   * To list the entitlements of a single customer, use the customer entitlements
+   * endpoints; to check entitlement access, use the entitlement access endpoints.
    *
    * Iterates every item across all pages, fetching more as the returned iterable is consumed.
    *
@@ -533,7 +531,7 @@ export class InternalEntitlements {
   /**
    * Get entitlement
    *
-   * Get an entitlement by ID. For checking entitlement access, use the entitlement
+   * Get an entitlement by ID. To check entitlement access, use the entitlement
    * access endpoints instead.
    *
    * GET /openmeter/entitlements/{entitlementId}

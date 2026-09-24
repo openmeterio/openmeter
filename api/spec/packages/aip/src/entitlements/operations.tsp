@@ -89,10 +89,9 @@ model ListEntitlementsParamsFilter {
 
 interface EntitlementsOperations {
   /**
-   * List the entitlements of every customer in the namespace that are active at the
-   * time of the request. Intended for administrative use; to list the entitlements
-   * of a single customer, use the customer entitlements endpoints, and for checking
-   * entitlement access, use the entitlement access endpoints instead.
+   * List the active entitlements of all customers. Intended for administrative use.
+   * To list the entitlements of a single customer, use the customer entitlements
+   * endpoints; to check entitlement access, use the entitlement access endpoints.
    */
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.PrivateExtension, true)
@@ -118,7 +117,7 @@ interface EntitlementsOperations {
     /**
      * Filter entitlements returned in the response.
      *
-     * To filter entitlements by customer add the following query param:
+     * To filter entitlements by customer, add the following query param:
      * `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
      */
     @query(#{ style: "deepObject", explode: true })
@@ -128,7 +127,7 @@ interface EntitlementsOperations {
     | Common.ErrorResponses;
 
   /**
-   * Get an entitlement by ID. For checking entitlement access, use the entitlement
+   * Get an entitlement by ID. To check entitlement access, use the entitlement
    * access endpoints instead.
    */
   @extension(Shared.UnstableExtension, true)

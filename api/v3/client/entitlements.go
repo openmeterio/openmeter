@@ -118,10 +118,9 @@ func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID 
 	return &out, nil
 }
 
-// List the entitlements of every customer in the namespace that are active at the
-// time of the request. Intended for administrative use; to list the entitlements
-// of a single customer, use the customer entitlements endpoints, and for checking
-// entitlement access, use the entitlement access endpoints instead.
+// List the active entitlements of all customers. Intended for administrative use.
+// To list the entitlements of a single customer, use the customer entitlements
+// endpoints; to check entitlement access, use the entitlement access endpoints.
 func (s *EntitlementsService) List(ctx context.Context, params ListEntitlementsParams) (*EntitlementPagePaginatedResponse, error) {
 	path := "/openmeter/entitlements"
 
@@ -153,7 +152,7 @@ func (s *EntitlementsService) ListAll(ctx context.Context, params ListEntitlemen
 	})
 }
 
-// Get an entitlement by ID. For checking entitlement access, use the entitlement
+// Get an entitlement by ID. To check entitlement access, use the entitlement
 // access endpoints instead.
 func (s *EntitlementsService) Get(ctx context.Context, entitlementID string) (*Entitlement, error) {
 	if entitlementID == "" {

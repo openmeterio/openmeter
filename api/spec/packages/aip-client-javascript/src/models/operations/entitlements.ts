@@ -51,7 +51,7 @@ export interface ListEntitlementsQuery {
   /**
    * Filter entitlements returned in the response.
    *
-   * To filter entitlements by customer add the following query param:
+   * To filter entitlements by customer, add the following query param:
    * `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
    */
   filter?: ListEntitlementsParamsFilter
