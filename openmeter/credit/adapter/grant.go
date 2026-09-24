@@ -172,6 +172,10 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 		case grant.OrderByOwner:
 			query = query.Order(db_grant.ByOwnerID(order...))
 		}
+		// Offset pagination needs a total order; the other sort columns can tie.
+		if params.OrderBy != grant.OrderByID {
+			query = query.Order(db_grant.ByID(order...))
+		}
 	}
 
 	response := pagination.Result[grant.Grant]{
