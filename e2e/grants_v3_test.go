@@ -74,9 +74,9 @@ func TestV3Grants(t *testing.T) {
 		require.Equal(t, 3, res.Meta.Page.Total)
 	})
 
-	t.Run("list filtered by feature key", func(t *testing.T) {
+	t.Run("list filtered by feature ID", func(t *testing.T) {
 		res, err := c.Grants.List(t.Context(), v3sdk.ListGrantsParams{
-			Filter: &v3sdk.ListGrantsFilter{Feature: &v3sdk.StringExactFilter{Eq: lo.ToPtr(f.Key)}},
+			Filter: &v3sdk.ListGrantsFilter{FeatureID: &v3sdk.StringExactFilter{Eq: lo.ToPtr(f.ID)}},
 		})
 		c.requireStatus(http.StatusOK, err)
 		require.Len(t, res.Data, 3)

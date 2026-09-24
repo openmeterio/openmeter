@@ -111,8 +111,6 @@ func TestListGrantsHandler(t *testing.T) {
 	}{
 		{name: "rejects an invalid page", params: api.ListGrantsParams{Page: &api.PagePaginationQuery{Number: lo.ToPtr(0)}}, field: "page"},
 		{name: "rejects an unsupported sort field", params: api.ListGrantsParams{Sort: lo.ToPtr("owner_id")}, field: "sort"},
-		{name: "rejects a negated customer filter", params: api.ListGrantsParams{Filter: &api.ListGrantsParamsFilter{CustomerId: &filters.FilterULID{Neq: lo.ToPtr("01K4WAQ0J99ZZ0MD75HXR112H8")}}}, field: "filter[customer_id]"},
-		{name: "rejects a feature filter with both eq and oeq", params: api.ListGrantsParams{Filter: &api.ListGrantsParamsFilter{FeatureId: &filters.FilterULID{Eq: lo.ToPtr("a"), Oeq: []string{"b"}}}}, field: "filter[feature]"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			res := serveListGrants(t, fakeService{

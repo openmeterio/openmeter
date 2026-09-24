@@ -1890,17 +1890,10 @@ func TestGrantAPI(t *testing.T) {
 				want: []string{grant3},
 			},
 			{
-				name: "feature key",
-				modify: func(i *entitlement.ListNamespaceGrantsInput) {
-					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureA.Key)}
-				},
-				want: []string{grant1, grant2, grant4},
-			},
-			{
-				name: "customer ID and feature key",
+				name: "customer ID and feature ID",
 				modify: func(i *entitlement.ListNamespaceGrantsInput) {
 					i.CustomerID = &filter.FilterULID{Eq: lo.ToPtr(cust1.ID)}
-					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureA.Key)}
+					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureA.ID)}
 				},
 				want: []string{grant1, grant2},
 			},

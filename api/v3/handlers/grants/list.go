@@ -2,7 +2,6 @@ package grants
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -48,7 +47,13 @@ func (h *handler) ListGrants() ListGrantsHandler {
 			}
 
 			if err := page.Validate(); err != nil {
-				return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "page", err)
+				return ListGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+					{
+						Field:  "page",
+						Reason: err.Error(),
+						Source: apierrors.InvalidParamSourceQuery,
+					},
+				})
 			}
 
 			orderBy := grant.OrderByCreatedAt
@@ -56,7 +61,13 @@ func (h *handler) ListGrants() ListGrantsHandler {
 			if params.Sort != nil {
 				sort, err := request.ParseSortBy(*params.Sort)
 				if err != nil {
-					return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "sort", err)
+					return ListGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "sort",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
 				}
 
 				orderBy, err = customersentitlements.FromAPIEntitlementGrantSortField(ctx, sort.Field)
@@ -78,12 +89,24 @@ func (h *handler) ListGrants() ListGrantsHandler {
 			if params.Filter != nil {
 				req.CustomerID, err = filters.FromAPIFilterULID(params.Filter.CustomerId)
 				if err != nil {
-					return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "filter[customer_id]", err)
+					return ListGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[customer_id]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
 				}
 
 				req.FeatureID, err = filters.FromAPIFilterULID(params.Filter.FeatureId)
 				if err != nil {
-					return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "filter[feature]", err)
+					return ListGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[feature_id]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
 				}
 			}
 
@@ -117,29 +140,4 @@ func (h *handler) ListGrants() ListGrantsHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
-}
-
-// fromAPIFilterValues maps an exact match filter to the values the grant list
-// matches any of, which cannot express a negation.
-func fromAPIFilterValues(eq *string, oeq []string, neq *string) ([]string, error) {
-	switch {
-	case neq != nil:
-		return nil, errors.New("the neq operator is not supported")
-	case eq != nil && len(oeq) > 0:
-		return nil, errors.New("only one of eq and oeq can be set")
-	case eq != nil:
-		return []string{*eq}, nil
-	default:
-		return oeq, nil
-	}
-}
-
-func newInvalidQueryParamError(ctx context.Context, field string, err error) error {
-	return apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-		{
-			Field:  field,
-			Reason: err.Error(),
-			Source: apierrors.InvalidParamSourceQuery,
-		},
-	})
 }
