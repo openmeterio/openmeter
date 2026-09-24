@@ -37,6 +37,33 @@ type lateEventRatingPhase struct {
 	mutateBookedDetailedLines func(usagebased.DetailedLines) usagebased.DetailedLines
 }
 
+func TestRatePreservesNegativeSnapshotWarning(t *testing.T) {
+	// Given a negative cumulative meter snapshot for a unit-priced charge.
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	intent := ratingtestutils.NewIntentForTest(t, period, *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromInt(1),
+	}), productcatalog.Discounts{})
+
+	// When period-preserving rating calculates the usable zero-priced result.
+	out, err := New(billingratingservice.New(billingratingservice.Config{})).Rate(t.Context(), Input{
+		Intent: intent,
+		CurrentPeriod: CurrentPeriod{
+			MeteredQuantity: alpacadecimal.NewFromInt(-5),
+			ServicePeriod:   period,
+		},
+	})
+
+	// Then the warning accompanies the successful result.
+	require.Empty(t, out.DetailedLines)
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Len(t, issues, 1)
+	require.Equal(t, billing.WarnNegativeMeteredQuantityClamped.Code, issues[0].Code)
+}
+
 func TestLateEventRatingUnitPrice(t *testing.T) {
 	t.Parallel()
 

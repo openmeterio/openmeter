@@ -119,4 +119,43 @@ func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBas
 	s.True(alpacadecimal.NewFromInt(14).Equal(realtimeByReference[doubleRateReference]))
 	s.True(alpacadecimal.Zero.Equal(bookedByReference[standardRateReference]))
 	s.True(alpacadecimal.Zero.Equal(bookedByReference[doubleRateReference]))
+
+	// A negative live snapshot remains readable and surfaces its warning on each expanded charge.
+	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotal.Feature.Key, -12, secondUsageAt.Add(time.Minute))
+
+	result, err = s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Page:        pagination.NewPage(1, 20),
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+		ChargeTypes: []meta.ChargeType{meta.ChargeTypeUsageBased},
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+			meta.ExpandRealtimeUsage,
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Items, 2)
+	for _, item := range result.Items {
+		charge, err := item.AsUsageBasedCharge()
+		s.Require().NoError(err)
+		s.Require().NotNil(charge.Expands.RealtimeUsage)
+		s.Zero(charge.Expands.RealtimeUsage.Total.InexactFloat64())
+		s.Require().Len(charge.ValidationIssues, 1)
+		s.Equal(billing.WarnNegativeMeteredQuantityClamped.Code, charge.ValidationIssues[0].Code)
+		s.Equal("-5", charge.ValidationIssues[0].Attributes["original_metered_quantity"])
+	}
+
+	unexpanded, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Page:        pagination.NewPage(1, 20),
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+		ChargeTypes: []meta.ChargeType{meta.ChargeTypeUsageBased},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(unexpanded.Items, 2)
+	for _, item := range unexpanded.Items {
+		charge, err := item.AsUsageBasedCharge()
+		s.Require().NoError(err)
+		s.Empty(charge.ValidationIssues)
+	}
 }

@@ -1,6 +1,7 @@
 package delta
 
 import (
+	"errors"
 	"strconv"
 	"testing"
 	"time"
@@ -80,6 +81,58 @@ func TestRateKeepsDetailedLineChildUniqueReferenceIDsWithoutServicePeriodSuffix(
 	})
 	require.False(t, ratingService.lastOpts.IgnoreMinimumCommitment)
 	require.True(t, ratingService.lastOpts.DisableCreditsMutator)
+}
+
+func TestRatePreservesValidationWarningWithSuccessfulResult(t *testing.T) {
+	// Given billing rating produced usable zero-priced details and a warning for
+	// a negative cumulative meter snapshot.
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	ratingService := &stubRatingService{err: billing.WarnNegativeMeteredQuantityClamped}
+
+	// When delta rating reconciles the snapshot.
+	out, err := New(ratingService).Rate(t.Context(), Input{
+		Intent: newIntentForTest(t, servicePeriod),
+		CurrentPeriod: CurrentPeriod{
+			MeteredQuantity: alpacadecimal.NewFromInt(-5),
+			ServicePeriod:   servicePeriod,
+		},
+	})
+
+	// Then the usable result is returned alongside a typed warning.
+	require.Empty(t, out.DetailedLines)
+	issues, systemErr := billing.ToValidationIssues(err)
+	require.NoError(t, systemErr)
+	require.Len(t, issues, 1)
+	require.Equal(t, billing.WarnNegativeMeteredQuantityClamped.Code, issues[0].Code)
+	require.Equal(t, billing.ValidationIssueSeverityWarning, issues[0].Severity)
+}
+
+func TestRateTreatsMixedValidationAndSystemErrorsAsFatal(t *testing.T) {
+	// Given billing rating returned an operational failure joined with a warning.
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	ratingService := &stubRatingService{err: errors.Join(
+		billing.WarnNegativeMeteredQuantityClamped,
+		errors.New("metering unavailable"),
+	)}
+
+	// When delta rating receives that result, it must not mistake the system
+	// failure for a recoverable validation warning.
+	_, err := New(ratingService).Rate(t.Context(), Input{
+		Intent: newIntentForTest(t, servicePeriod),
+		CurrentPeriod: CurrentPeriod{
+			MeteredQuantity: alpacadecimal.NewFromInt(-5),
+			ServicePeriod:   servicePeriod,
+		},
+	})
+
+	// Then the failure aborts rating.
+	require.ErrorContains(t, err, "metering unavailable")
 }
 
 func TestRateIgnoresMinimumCommitmentForPartialRun(t *testing.T) {
@@ -338,6 +391,7 @@ func newIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod) usageba
 
 type stubRatingService struct {
 	result   billingrating.GenerateDetailedLinesResult
+	err      error
 	lastOpts billingrating.GenerateDetailedLinesOptions
 }
 
@@ -347,5 +401,5 @@ func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillab
 
 func (s *stubRatingService) GenerateDetailedLines(in billingrating.StandardLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
 	s.lastOpts = billingrating.NewGenerateDetailedLinesOptions(opts...)
-	return s.result, nil
+	return s.result, s.err
 }

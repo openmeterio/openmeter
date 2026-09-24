@@ -190,6 +190,8 @@ type GetCurrentTotalsResult struct {
 	// MeteredQuantity is the cumulative live metered quantity the due totals
 	// were rated from.
 	MeteredQuantity alpacadecimal.Decimal
+	// ValidationIssues are non-blocking issues from this live rating, not persisted charge issues.
+	ValidationIssues billing.ValidationIssues
 }
 
 func validateExpands(expands meta.Expands) error {

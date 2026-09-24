@@ -1110,11 +1110,17 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 		InvoiceID:          lo.ToPtr(input.InvoiceID),
 		CurrencyCalculator: s.CurrencyCalculator,
 	})
+	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 	if err != nil {
 		return err
 	}
 
 	s.Charge = result.Charge
+	s.Charge.ValidationIssues, _ = replaceValidationIssueComponent(
+		s.Charge.ValidationIssues,
+		billing.ValidationComponentBillingRating,
+		ratingIssues,
+	)
 	return nil
 }
 
@@ -1165,6 +1171,7 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 		Customer:        s.CustomerOverride,
 		FeatureMeter:    featureMeter,
 	})
+	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 	if err != nil {
 		return fmt.Errorf("get detailed rating for usage: %w", err)
 	}
@@ -1181,6 +1188,11 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	}
 
 	s.Charge = reconciled.Charge
+	s.Charge.ValidationIssues, _ = replaceValidationIssueComponent(
+		s.Charge.ValidationIssues,
+		billing.ValidationComponentBillingRating,
+		ratingIssues,
+	)
 
 	return nil
 }

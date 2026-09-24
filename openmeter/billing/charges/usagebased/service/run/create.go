@@ -131,6 +131,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
+	recorder := billing.ValidationIssueRecorder{}
 	ratingResult, err := s.rater.GetDetailedRatingForUsage(ctx, usagebasedrating.GetDetailedRatingForUsageInput{
 		Charge:          in.Charge,
 		StoredAtLT:      in.StoredAtLT,
@@ -138,7 +139,7 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		Customer:        in.CustomerOverride,
 		FeatureMeter:    in.FeatureMeter,
 	})
-	if err != nil {
+	if err := recorder.RecordWarnings(err); err != nil {
 		return CreateRatedRunResult{}, fmt.Errorf("get detailed rating for usage: %w", err)
 	}
 
@@ -188,5 +189,5 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		Charge: reconciled.Charge,
 		Run:    reconciled.Run,
 		Rating: ratingResult,
-	}, nil
+	}, recorder.ErrorsOrNil()
 }

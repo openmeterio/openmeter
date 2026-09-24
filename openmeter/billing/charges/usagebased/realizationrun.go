@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -57,18 +58,19 @@ const (
 	CurrentRealizationRunSchemaLevel = 2
 )
 
-// BillingMeteredQuantity maps a cumulative charge run quantity to the quantity
-// semantics expected by billing.StandardLine. RealizationRun.MeteredQuantity is
-// cumulative from the charge service-period start to the run's ServicePeriodTo,
-// while standard invoice lines need the current line-period quantity plus the
-// quantity already represented by earlier billed lines.
+// BillingMeteredQuantity preserves the signed meter difference between raw
+// cumulative charge run snapshots for a standard invoice line. Warning: these
+// values can be negative; rating clamps negative cumulative snapshots to zero
+// before deriving billable usage.
 type BillingMeteredQuantity struct {
-	// PreLinePeriod is the cumulative quantity already represented by earlier
-	// billed runs.
+	// PreLinePeriod is the prior run's raw cumulative meter snapshot.
 	PreLinePeriod alpacadecimal.Decimal
-	// LinePeriod is the quantity represented by the current standard invoice
-	// line.
+	// LinePeriod is the raw difference between current and prior snapshots.
 	LinePeriod alpacadecimal.Decimal
+
+	// BillableUsage is the difference between clamped cumulative snapshots. Its
+	// line-period quantity can be negative when earlier usage is corrected.
+	BillableUsage billingrating.Usage
 }
 
 type CreateRealizationRunInput struct {
@@ -107,10 +109,6 @@ func (r CreateRealizationRunInput) Validate() error {
 
 	if r.StoredAtLT.IsZero() {
 		errs = append(errs, fmt.Errorf("stored at lt must be set"))
-	}
-
-	if r.MeteredQuantity.IsNegative() {
-		errs = append(errs, fmt.Errorf("metered quantity must be zero or positive"))
 	}
 
 	if err := r.Totals.Validate(); err != nil {
@@ -186,10 +184,6 @@ func (r UpdateRealizationRunInput) Validate() error {
 		}
 	}
 
-	if r.MeteredQuantity.IsPresent() && r.MeteredQuantity.OrEmpty().IsNegative() {
-		errs = append(errs, fmt.Errorf("metered quantity must be zero or positive"))
-	}
-
 	if r.Totals.IsPresent() {
 		if err := r.Totals.OrEmpty().Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("totals: %w", err))
@@ -216,6 +210,8 @@ type RealizationRunBase struct {
 	// for the first run.
 	PriorRunID *RealizationRunID `json:"priorRunId,omitempty"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
+	// Warning: this raw value can be negative. Rating clamps negative cumulative
+	// quantities to zero before deriving billable usage.
 	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
 	// Totals includes credit allocations and excludes taxes.
 	Totals                    totals.Totals `json:"totals"`
@@ -277,10 +273,6 @@ func (r RealizationRunBase) Validate() error {
 
 	if r.StoredAtLT.IsZero() {
 		errs = append(errs, fmt.Errorf("stored at lt must be set"))
-	}
-
-	if r.MeteredQuantity.IsNegative() {
-		errs = append(errs, fmt.Errorf("metered quantity must be zero or positive"))
 	}
 
 	if err := r.Totals.Validate(); err != nil {
@@ -396,23 +388,32 @@ func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) 
 		// persisted cumulative quantity. That value may have been captured with
 		// an older StoredAtLT than the current run. Period-preserving rating may
 		// still freshly snapshot prior event-time periods with the current
-		// StoredAtLT for correction calculation, but invoice line quantities
-		// should reflect what was previously billed.
+		// StoredAtLT for correction calculation, but the invoice line's raw
+		// metered fields retain the persisted prior snapshot.
 		preLinePeriod = priorRun.MeteredQuantity
 	}
 
-	linePeriod := currentRun.MeteredQuantity.Sub(preLinePeriod)
-	if linePeriod.IsNegative() {
-		return BillingMeteredQuantity{}, fmt.Errorf(
-			"line period metered quantity is negative: current=%s pre_line=%s",
-			currentRun.MeteredQuantity.String(),
-			preLinePeriod.String(),
-		)
-	}
+	clampedCurrent := alpacadecimal.Max(alpacadecimal.Zero, currentRun.MeteredQuantity)
+	clampedPreLinePeriod := alpacadecimal.Max(alpacadecimal.Zero, preLinePeriod)
 
 	return BillingMeteredQuantity{
 		PreLinePeriod: preLinePeriod,
-		LinePeriod:    linePeriod,
+		LinePeriod:    currentRun.MeteredQuantity.Sub(preLinePeriod),
+		// The invoice retains the signed meter interval, while its billable quantity
+		// reflects the difference between clamped cumulative snapshots.
+		//
+		// Example:
+		// - PreLinePeriod: -5
+		// - MeteredQuantity: 8
+		// - LinePeriod: 8 - (-5) = 13
+		//
+		// BillableUsage will be:
+		// - Quantity: 8 - 0 = 8
+		// - PreLinePeriodQuantity: 0
+		BillableUsage: billingrating.Usage{
+			Quantity:              clampedCurrent.Sub(clampedPreLinePeriod),
+			PreLinePeriodQuantity: clampedPreLinePeriod,
+		},
 	}, nil
 }
 

@@ -309,6 +309,12 @@ func WrapAsValidationIssue(err error, options ...WrapAsValidationIssueOption) er
 
 type ValidationIssues []ValidationIssue
 
+func (v ValidationIssues) AllWarnings() bool {
+	return len(v) > 0 && !slices.ContainsFunc(v, func(issue ValidationIssue) bool {
+		return issue.Severity != ValidationIssueSeverityWarning
+	})
+}
+
 func (v ValidationIssues) HasComponent(component ComponentName) bool {
 	return slices.ContainsFunc(v, func(issue ValidationIssue) bool {
 		return issue.Component == component
@@ -323,17 +329,48 @@ func (v ValidationIssues) WithoutComponent(component ComponentName) ValidationIs
 	return issues
 }
 
+type ToValidationIssuesOption interface {
+	apply(*toValidationIssuesOptions)
+}
+
+type toValidationIssuesOptions struct {
+	requireWarningsOnly bool
+}
+
+type toValidationIssuesOptionFunc func(*toValidationIssuesOptions)
+
+func (f toValidationIssuesOptionFunc) apply(options *toValidationIssuesOptions) {
+	f(options)
+}
+
+// RequireWarningsOnly rejects an error tree containing any non-warning issue.
+func RequireWarningsOnly() ToValidationIssuesOption {
+	return toValidationIssuesOptionFunc(func(options *toValidationIssuesOptions) {
+		options.requireWarningsOnly = true
+	})
+}
+
 // ToValidationIssues extracts validation issues from an error tree. If the error is nil, it returns nil.
 // If any leaf error is neither a billing or models ValidationIssue nor explicitly wrapped by
 // WrapAsValidationIssue, it returns the original error tree. This behavior allows critical system
-// errors to remain distinct from validation issues.
-func ToValidationIssues(errIn error) (ValidationIssues, error) {
+// errors to remain distinct from validation issues. RequireWarningsOnly() also
+// rejects critical validation issues, returning the original error tree.
+func ToValidationIssues(errIn error, options ...ToValidationIssuesOption) (ValidationIssues, error) {
 	if errIn == nil {
 		return nil, nil
 	}
 
+	var appliedOptions toValidationIssuesOptions
+	for _, option := range options {
+		option.apply(&appliedOptions)
+	}
+
 	issues, err := toValidationIssue(errIn, "", "", "", nil, "")
 	if err != nil {
+		return nil, errIn
+	}
+
+	if appliedOptions.requireWarningsOnly && !ValidationIssues(issues).AllWarnings() {
 		return nil, errIn
 	}
 
@@ -654,6 +691,20 @@ func (r *ValidationIssueRecorder) Record(err error, options ...ValidationIssueRe
 	// At this point we know that the errors are all validation issues
 	r.issues = append(r.issues, err)
 	return nil
+}
+
+// RecordWarnings records an error only when every issue is a warning. A critical
+// validation issue or system error is returned unchanged and nothing is recorded.
+func (r *ValidationIssueRecorder) RecordWarnings(err error, options ...ValidationIssueRecorderOption) error {
+	if err == nil {
+		return nil
+	}
+
+	if _, err := ToValidationIssues(err, RequireWarningsOnly()); err != nil {
+		return err
+	}
+
+	return r.Record(err, options...)
 }
 
 // ErrorsOrNil returns the recorded validation issues as a single error. If there are no issues, it returns nil.

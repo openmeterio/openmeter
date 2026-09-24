@@ -67,6 +67,50 @@ func TestValidationIssuesHasComponent(t *testing.T) {
 	require.False(t, issues.HasComponent("other"))
 }
 
+func TestValidationIssuesAllWarnings(t *testing.T) {
+	warning := NewValidationWarning("warning", "warning")
+	critical := NewValidationError("critical", "critical")
+
+	require.False(t, ValidationIssues(nil).AllWarnings())
+	require.True(t, ValidationIssues{warning, warning}.AllWarnings())
+	require.False(t, ValidationIssues{warning, critical}.AllWarnings())
+}
+
+func TestToValidationIssuesRequireWarningsOnly(t *testing.T) {
+	warning := NewValidationWarning("warning", "warning")
+	critical := NewValidationError("critical", "critical")
+	systemErr := errors.New("system error")
+
+	issues, err := ToValidationIssues(nil, RequireWarningsOnly())
+	require.NoError(t, err)
+	require.Nil(t, issues)
+
+	issues, err = ToValidationIssues(errors.Join(warning, warning), RequireWarningsOnly())
+	require.NoError(t, err)
+	require.Len(t, issues, 2)
+	require.True(t, issues.AllWarnings())
+
+	for _, test := range []struct {
+		name string
+		err  error
+	}{
+		{name: "critical validation issue", err: errors.Join(critical)},
+		{name: "mixed validation issues", err: errors.Join(warning, critical)},
+		{name: "system error", err: systemErr},
+		{name: "warning joined with system error", err: errors.Join(warning, systemErr)},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			issues, err := ToValidationIssues(test.err, RequireWarningsOnly())
+			require.Nil(t, issues)
+			require.Same(t, test.err, err)
+		})
+	}
+
+	issues, err = ToValidationIssues(critical)
+	require.NoError(t, err)
+	require.Equal(t, ValidationIssues{critical}, issues)
+}
+
 func TestValidationIssuesWithoutComponent(t *testing.T) {
 	issue := ValidationIssue{
 		Severity:  ValidationIssueSeverityCritical,
@@ -628,6 +672,40 @@ func TestValidationIssueRecorder(t *testing.T) {
 			"keep":             true,
 		},
 	}}, issues)
+}
+
+func TestValidationIssueRecorderRecordWarnings(t *testing.T) {
+	warning := NewValidationWarning("rating_warning", "rating warning")
+	critical := NewValidationError("rating_blocked", "rating blocked")
+	systemErr := errors.New("rating unavailable")
+
+	recorder := ValidationIssueRecorder{}
+	require.NoError(t, recorder.RecordWarnings(nil))
+	require.NoError(t, recorder.RecordWarnings(errors.Join(warning, warning), WithComponent("rating")))
+
+	for _, test := range []struct {
+		name string
+		err  error
+	}{
+		{name: "critical validation issue", err: errors.Join(critical)},
+		{name: "mixed validation issues", err: errors.Join(warning, critical)},
+		{name: "system error", err: systemErr},
+		{name: "warning joined with system error", err: errors.Join(warning, systemErr)},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := recorder.RecordWarnings(test.err, WithComponent("rating"))
+			require.Same(t, test.err, err)
+		})
+	}
+
+	issues, err := ToValidationIssues(recorder.ErrorsOrNil())
+	require.NoError(t, err)
+	require.Len(t, issues, 2)
+	for _, issue := range issues {
+		require.Equal(t, warning.Code, issue.Code)
+		require.Equal(t, ValidationIssueSeverityWarning, issue.Severity)
+		require.Equal(t, ComponentName("rating"), issue.Component)
+	}
 }
 
 func TestValidationWithComponentPrecedence(t *testing.T) {

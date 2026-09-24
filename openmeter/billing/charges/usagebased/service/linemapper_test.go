@@ -205,6 +205,44 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 	require.Equal(t, float64(10), reason.Quantity.InexactFloat64())
 }
 
+func TestPopulateUsageBasedStandardLineFromRunReconcilesNegativePriorSnapshot(t *testing.T) {
+	// Given a prior run with a negative raw cumulative snapshot and a later
+	// run whose cumulative snapshot has recovered to three.
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	line := newUsageBasedStandardLineForTest(period)
+	priorRun := usagebased.RealizationRun{RealizationRunBase: usagebased.RealizationRunBase{
+		ID:              usagebased.RealizationRunID{Namespace: line.Namespace, ID: "prior-run"},
+		MeteredQuantity: alpacadecimal.NewFromInt(-5),
+	}}
+	run := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID:              usagebased.RealizationRunID{Namespace: line.Namespace, ID: "current-run"},
+			PriorRunID:      lo.ToPtr(priorRun.ID),
+			StoredAtLT:      period.To,
+			MeteredQuantity: alpacadecimal.NewFromInt(3),
+		},
+		DetailedLines: mo.Some(usagebased.DetailedLines{}),
+	}
+
+	// When the charge run is projected onto its standard invoice line.
+	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Charge: usagebased.Charge{Realizations: usagebased.RealizationRuns{priorRun, run}},
+		Run:    run,
+		Stage:  standardLinePopulationStageInvoiceCreated,
+	})
+	require.NoError(t, err)
+
+	// Then audit quantities remain raw while the billable quantity reconciles
+	// the nonnegative cumulative snapshots.
+	require.Equal(t, float64(8), line.UsageBased.MeteredQuantity.InexactFloat64())
+	require.Equal(t, float64(-5), line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+	require.Equal(t, float64(3), line.UsageBased.Quantity.InexactFloat64())
+	require.Equal(t, float64(0), line.UsageBased.PreLinePeriodQuantity.InexactFloat64())
+}
+
 func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing.T) {
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),

@@ -758,6 +758,75 @@ func (s *LineEngineTestSuite) TestCollectionCompletedSystemErrorsAbortCollection
 	})
 }
 
+func (s *LineEngineTestSuite) TestCollectionCompletedValidationIssuesRespectSeverity() {
+	for _, tc := range []struct {
+		name        string
+		issue       ombilling.ValidationIssue
+		replaceLine bool
+	}{
+		{
+			name:        "warning replaces lines",
+			issue:       ombilling.NewValidationWarning("collection_warning", "collection warning"),
+			replaceLine: true,
+		},
+		{
+			name:  "critical issue keeps prior lines",
+			issue: ombilling.NewValidationError("collection_critical", "collection critical"),
+		},
+	} {
+		s.Run(tc.name, func() {
+			ctx := s.T().Context()
+			namespace := s.GetUniqueNamespace("ns-line-engine-collection-completed-issue")
+			mockEngine := &mockCollectionCompletedLineEngine{engineType: ombilling.LineEngineTypeChargeUsageBased}
+
+			clock.SetTime(lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z")))
+			defer clock.ResetTime()
+			defer func() { _ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) }()
+			defer s.MockStreamingConnector.Reset()
+			s.registerMockLineEngine(s.T(), mockEngine)
+			defer s.unregisterLineEngine(s.T(), mockEngine)
+
+			// Given a draft invoice whose line engine returns a complete line and a validation issue.
+			mockEngine.buildStandardInvoiceLines = func(_ context.Context, input ombilling.BuildStandardInvoiceLinesInput) (ombilling.StandardLines, error) {
+				return mustAsNewStandardLines(input), nil
+			}
+			invoice, collectionAt := s.createMeteredDraftInvoiceWaitingForCollection(
+				ctx,
+				namespace,
+				mockEngine.GetLineEngineType(),
+				"UBP - collection validation issue",
+			)
+			mockEngine.onCollectionCompleted = func(_ context.Context, input ombilling.OnCollectionCompletedInput) (ombilling.StandardLines, error) {
+				line, err := input.Lines[0].Clone()
+				s.Require().NoError(err)
+				if line.UsageBased == nil {
+					line.UsageBased = &ombilling.UsageBasedLine{}
+				}
+				line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(7))
+				return ombilling.StandardLines{line}, tc.issue
+			}
+
+			// When collection completes, only a warning can accompany replacement lines.
+			clock.SetTime(collectionAt.Add(time.Minute))
+			invoice, err := s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+			s.Require().NoError(err)
+
+			// Then the issue is retained while line replacement follows its severity.
+			s.Require().Len(invoice.ValidationIssues, 1)
+			s.Equal(tc.issue.Code, invoice.ValidationIssues[0].Code)
+			s.Equal(tc.issue.Severity, invoice.ValidationIssues[0].Severity)
+			s.Require().Len(invoice.Lines.OrEmpty(), 1)
+			if tc.replaceLine {
+				s.NotNil(invoice.QuantitySnapshotedAt)
+				s.Equal(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.Quantity))
+			} else {
+				s.Nil(invoice.QuantitySnapshotedAt)
+				s.NotEqual(alpacadecimal.NewFromInt(7), lo.FromPtr(invoice.Lines.OrEmpty()[0].UsageBased.Quantity))
+			}
+		})
+	}
+}
+
 func (s *LineEngineTestSuite) TestCollectionCompletedCustomSnapshotIsPreserved() {
 	var (
 		ctx          = context.Background()

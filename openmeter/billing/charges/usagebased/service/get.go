@@ -24,6 +24,11 @@ const (
 	defaultMaxParallelRatingsPerRequest = 5
 )
 
+type realtimeUsageRating struct {
+	Usage            usagebasedrating.GetTotalsForUsageResult
+	ValidationIssues billing.ValidationIssues
+}
+
 func (s *service) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) ([]usagebased.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
@@ -74,6 +79,7 @@ func (s *service) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 
 		charge.Expands.RealtimeUsage = &totals.DueTotals
 		charge.Expands.RealtimeQuantity = &totals.MeteredQuantity
+		charge = withRealtimeValidationIssues(charge, totals.ValidationIssues)
 	}
 
 	return charge, nil
@@ -151,12 +157,16 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				StoredAtLT:              storedAt,
 				IgnoreMinimumCommitment: storedAt.Before(charge.Intent.GetEffectiveServicePeriod().To),
 			})
+			issues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 			if err != nil {
 				err = fmt.Errorf("get totals for charge %s: %w", charge.ID, err)
 				return
 			}
 
-			ratingResults.Store(charge.GetChargeID(), ratedUsage)
+			ratingResults.Store(charge.GetChargeID(), realtimeUsageRating{
+				Usage:            ratedUsage,
+				ValidationIssues: issues,
+			})
 		})
 	}
 
@@ -182,13 +192,24 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 			return charge, fmt.Errorf("totals result not found for charge %s", charge.ID)
 		}
 
-		rated, ok := ratedAny.(usagebasedrating.GetTotalsForUsageResult)
+		rated, ok := ratedAny.(realtimeUsageRating)
 		if !ok {
 			return charge, fmt.Errorf("invalid totals type for charge %s", charge.ID)
 		}
 
-		charge.Expands.RealtimeUsage = &rated.Totals
-		charge.Expands.RealtimeQuantity = &rated.MeteredQuantity
-		return charge, nil
+		charge.Expands.RealtimeUsage = &rated.Usage.Totals
+		charge.Expands.RealtimeQuantity = &rated.Usage.MeteredQuantity
+		return withRealtimeValidationIssues(charge, rated.ValidationIssues), nil
 	})
+}
+
+// Realtime warnings describe this read's metered snapshot, not persisted charge state.
+func withRealtimeValidationIssues(charge usagebased.Charge, issues billing.ValidationIssues) usagebased.Charge {
+	charge.ValidationIssues, _ = replaceValidationIssueComponent(
+		charge.ValidationIssues,
+		billing.ValidationComponentBillingRating,
+		issues,
+	)
+
+	return charge
 }

@@ -130,7 +130,8 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 			},
 			AlreadyBilledDetailedLines: alreadyBilledDetailedLines,
 		})
-		if err != nil {
+		recorder := billing.ValidationIssueRecorder{}
+		if err := recorder.Record(err); err != nil {
 			return GetDetailedRatingForUsageResult{}, err
 		}
 
@@ -138,7 +139,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 			Totals:        out.DetailedLines.SumTotals(),
 			DetailedLines: out.DetailedLines,
 			Quantity:      currentQuantity,
-		}, nil
+		}, recorder.ErrorsOrNil()
 	case usagebased.RatingEnginePeriodPreserving:
 		return s.ratePeriodPreservingDetails(ctx, ratePeriodPreservingDetailsInput{
 			Input:                   in,
@@ -283,7 +284,8 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 		},
 		PriorPeriods: priorPeriods,
 	})
-	if err != nil {
+	recorder := billing.ValidationIssueRecorder{}
+	if err := recorder.Record(err); err != nil {
 		return GetDetailedRatingForUsageResult{}, err
 	}
 
@@ -291,5 +293,5 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 		Totals:        out.DetailedLines.SumTotals(),
 		DetailedLines: out.DetailedLines,
 		Quantity:      in.CurrentQuantity,
-	}, nil
+	}, recorder.ErrorsOrNil()
 }
