@@ -110,6 +110,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultFilters holds the default value on creation for the "filters" field.
+	DefaultFilters func() *crediteligibility.Filters
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all LedgerSubAccountRoute fields.

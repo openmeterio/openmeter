@@ -4,9 +4,8 @@ Credit restrictions use a versioned JSON envelope. An empty feature list imposes
 no restriction. Unknown versions and fields fail decoding so a newer restriction
 cannot silently disappear in an older reader.
 
-During the storage transition, writers populate both the JSON envelope and the
-legacy feature columns. Readers still use the legacy columns. Deploy these
-writers everywhere before backfilling and switching readers to JSON.
+Readers use JSON exclusively. Writers maintain the legacy feature columns for
+compatibility with older readers.
 
 `Filters.Version` is retained by Ent, normalization, and JSON round trips.
 Writers explicitly choose v1 when creating filters; encoding honors that version.

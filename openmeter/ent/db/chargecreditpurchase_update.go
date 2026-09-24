@@ -754,9 +754,6 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
 	}
-	if _u.mutation.FiltersCleared() {
-		_spec.ClearField(chargecreditpurchase.FieldFilters, field.TypeString)
-	}
 	if _u.mutation.FeatureFiltersCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther)
 	}
@@ -1712,9 +1709,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if _u.mutation.PriorityCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
-	}
-	if _u.mutation.FiltersCleared() {
-		_spec.ClearField(chargecreditpurchase.FieldFilters, field.TypeString)
 	}
 	if _u.mutation.FeatureFiltersCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther)

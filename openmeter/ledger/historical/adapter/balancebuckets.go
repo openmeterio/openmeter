@@ -3,16 +3,17 @@ package adapter
 import (
 	"context"
 	stdsql "database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/lib/pq"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/crediteligibility"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -32,7 +33,7 @@ type balanceBucketRow struct {
 	CostBasisCurrency              stdsql.NullString
 	TaxCode                        stdsql.NullString
 	TaxBehavior                    stdsql.NullString
-	Features                       pq.StringArray
+	Filters                        string
 	CostBasis                      stdsql.NullString
 	CreditPriority                 stdsql.NullInt64
 	TransactionAuthorizationStatus stdsql.NullString
@@ -88,7 +89,7 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.CostBasisCurrency,
 		&r.TaxCode,
 		&r.TaxBehavior,
-		&r.Features,
+		&r.Filters,
 		&r.CostBasis,
 		&r.CreditPriority,
 		&r.TransactionAuthorizationStatus,
@@ -106,6 +107,10 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s routing key: %w", r.SubAccountID, err)
 	}
 
+	var filters crediteligibility.Filters
+	if err := json.Unmarshal([]byte(r.Filters), &filters); err != nil {
+		return ledger.BalanceBucket{}, fmt.Errorf("decode route filters: %w", err)
+	}
 	costBasis, err := nullableDecimalValue(r.CostBasis)
 	if err != nil {
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s cost basis: %w", r.SubAccountID, err)
@@ -124,7 +129,7 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 			CostBasisCurrency:              nullableCurrencyCode(r.CostBasisCurrency),
 			TaxCode:                        nullableStringValue(r.TaxCode),
 			TaxBehavior:                    nullableTaxBehavior(r.TaxBehavior),
-			Features:                       []string(r.Features),
+			Features:                       filters.Features,
 			CostBasis:                      costBasis,
 			CreditPriority:                 nullableIntValue(r.CreditPriority),
 			TransactionAuthorizationStatus: nullableTransactionAuthorizationStatus(r.TransactionAuthorizationStatus),

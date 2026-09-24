@@ -1084,6 +1084,8 @@ func init() {
 	chargecreditpurchase.DefaultSchemaLevel = chargecreditpurchaseDescSchemaLevel.Default.(int)
 	// chargecreditpurchaseDescFilters is the schema descriptor for filters field.
 	chargecreditpurchaseDescFilters := chargecreditpurchaseFields[8].Descriptor()
+	// chargecreditpurchase.DefaultFilters holds the default value on creation for the filters field.
+	chargecreditpurchase.DefaultFilters = chargecreditpurchaseDescFilters.Default.(func() *crediteligibility.Filters)
 	chargecreditpurchase.ValueScanner.Filters = chargecreditpurchaseDescFilters.ValueScanner.(field.TypeValueScanner[*crediteligibility.Filters])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[19].Descriptor()
@@ -2586,6 +2588,8 @@ func init() {
 	ledgersubaccountroute.UpdateDefaultUpdatedAt = ledgersubaccountrouteDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// ledgersubaccountrouteDescFilters is the schema descriptor for filters field.
 	ledgersubaccountrouteDescFilters := ledgersubaccountrouteFields[7].Descriptor()
+	// ledgersubaccountroute.DefaultFilters holds the default value on creation for the filters field.
+	ledgersubaccountroute.DefaultFilters = ledgersubaccountrouteDescFilters.Default.(func() *crediteligibility.Filters)
 	ledgersubaccountroute.ValueScanner.Filters = ledgersubaccountrouteDescFilters.ValueScanner.(field.TypeValueScanner[*crediteligibility.Filters])
 	// ledgersubaccountrouteDescID is the schema descriptor for id field.
 	ledgersubaccountrouteDescID := ledgersubaccountrouteMixinFields0[0].Descriptor()

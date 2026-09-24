@@ -170,9 +170,6 @@ func (_u *LedgerSubAccountRouteUpdate) sqlSave(ctx context.Context) (_node int, 
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldTaxBehavior, field.TypeString)
 	}
-	if _u.mutation.FiltersCleared() {
-		_spec.ClearField(ledgersubaccountroute.FieldFilters, field.TypeString)
-	}
 	if _u.mutation.FeaturesCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldFeatures, field.TypeOther)
 	}
@@ -420,9 +417,6 @@ func (_u *LedgerSubAccountRouteUpdateOne) sqlSave(ctx context.Context) (_node *L
 	}
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldTaxBehavior, field.TypeString)
-	}
-	if _u.mutation.FiltersCleared() {
-		_spec.ClearField(ledgersubaccountroute.FieldFilters, field.TypeString)
 	}
 	if _u.mutation.FeaturesCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldFeatures, field.TypeOther)

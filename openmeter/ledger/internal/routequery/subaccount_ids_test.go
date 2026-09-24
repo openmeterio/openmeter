@@ -3,7 +3,6 @@ package routequery
 import (
 	"testing"
 
-	"github.com/lib/pq"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
@@ -25,10 +24,10 @@ func TestSubAccountIDsByRouteSQL(t *testing.T) {
 				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features: mo.Some([]string{"feature-b", "feature-a"}),
 			},
-			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND "lsar"."features" = $2`,
+			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND "lsar"."filters"->'features' = $2::jsonb`,
 			wantArgs: []any{
 				"USD",
-				pq.StringArray{"feature-a", "feature-b"},
+				`["feature-a","feature-b"]`,
 			},
 		},
 		{
@@ -37,7 +36,7 @@ func TestSubAccountIDsByRouteSQL(t *testing.T) {
 				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features: mo.Some[[]string](nil),
 			},
-			wantSQL:  `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND "lsar"."features" IS NULL`,
+			wantSQL:  `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND "lsar"."filters"->'features' IS NULL`,
 			wantArgs: []any{"USD"},
 		},
 		{
@@ -46,10 +45,10 @@ func TestSubAccountIDsByRouteSQL(t *testing.T) {
 				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 				MatchFeature: "feature-a",
 			},
-			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND ("lsar"."features" IS NULL OR "lsar"."features" @> $2)`,
+			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND ("lsar"."filters"->'features' IS NULL OR "lsar"."filters"->'features' @> $2::jsonb)`,
 			wantArgs: []any{
 				"USD",
-				pq.StringArray{"feature-a"},
+				`["feature-a"]`,
 			},
 		},
 		{

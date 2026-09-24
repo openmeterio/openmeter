@@ -41859,22 +41859,9 @@ func (m *ChargeCreditPurchaseMutation) OldFilters(ctx context.Context) (v *credi
 	return oldValue.Filters, nil
 }
 
-// ClearFilters clears the value of the "filters" field.
-func (m *ChargeCreditPurchaseMutation) ClearFilters() {
-	m.filters = nil
-	m.clearedFields[chargecreditpurchase.FieldFilters] = struct{}{}
-}
-
-// FiltersCleared returns if the "filters" field was cleared in this mutation.
-func (m *ChargeCreditPurchaseMutation) FiltersCleared() bool {
-	_, ok := m.clearedFields[chargecreditpurchase.FieldFilters]
-	return ok
-}
-
 // ResetFilters resets all changes to the "filters" field.
 func (m *ChargeCreditPurchaseMutation) ResetFilters() {
 	m.filters = nil
-	delete(m.clearedFields, chargecreditpurchase.FieldFilters)
 }
 
 // SetFeatureFilters sets the "feature_filters" field.
@@ -43266,9 +43253,6 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldPriority) {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
-	if m.FieldCleared(chargecreditpurchase.FieldFilters) {
-		fields = append(fields, chargecreditpurchase.FieldFilters)
-	}
 	if m.FieldCleared(chargecreditpurchase.FieldFeatureFilters) {
 		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
 	}
@@ -43354,9 +43338,6 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ClearPriority()
-		return nil
-	case chargecreditpurchase.FieldFilters:
-		m.ClearFilters()
 		return nil
 	case chargecreditpurchase.FieldFeatureFilters:
 		m.ClearFeatureFilters()
@@ -103936,22 +103917,9 @@ func (m *LedgerSubAccountRouteMutation) OldFilters(ctx context.Context) (v *cred
 	return oldValue.Filters, nil
 }
 
-// ClearFilters clears the value of the "filters" field.
-func (m *LedgerSubAccountRouteMutation) ClearFilters() {
-	m.filters = nil
-	m.clearedFields[ledgersubaccountroute.FieldFilters] = struct{}{}
-}
-
-// FiltersCleared returns if the "filters" field was cleared in this mutation.
-func (m *LedgerSubAccountRouteMutation) FiltersCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccountroute.FieldFilters]
-	return ok
-}
-
 // ResetFilters resets all changes to the "filters" field.
 func (m *LedgerSubAccountRouteMutation) ResetFilters() {
 	m.filters = nil
-	delete(m.clearedFields, ledgersubaccountroute.FieldFilters)
 }
 
 // SetFeatures sets the "features" field.
@@ -104594,9 +104562,6 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccountroute.FieldTaxBehavior) {
 		fields = append(fields, ledgersubaccountroute.FieldTaxBehavior)
 	}
-	if m.FieldCleared(ledgersubaccountroute.FieldFilters) {
-		fields = append(fields, ledgersubaccountroute.FieldFilters)
-	}
 	if m.FieldCleared(ledgersubaccountroute.FieldFeatures) {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
 	}
@@ -104634,9 +104599,6 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldTaxBehavior:
 		m.ClearTaxBehavior()
-		return nil
-	case ledgersubaccountroute.FieldFilters:
-		m.ClearFilters()
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ClearFeatures()
