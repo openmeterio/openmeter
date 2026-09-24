@@ -30,7 +30,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-chi/render v1.0.3
 	github.com/go-co-op/gocron/v2 v2.22.0
-	github.com/go-openapi/inflect v1.0.0
+	github.com/go-openapi/inflect v1.0.1
 	github.com/go-slog/otelslog v0.3.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/golang-cz/devslog v0.0.17
