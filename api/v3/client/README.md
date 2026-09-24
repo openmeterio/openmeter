@@ -21,6 +21,7 @@ TypeSpec definitions and ships typed request and response models.
   - [Meters](#meters)
   - [Customers](#customers)
   - [Entitlements](#entitlements)
+  - [Grants](#grants)
   - [Subscriptions](#subscriptions)
   - [Apps](#apps)
   - [Billing](#billing)
@@ -189,6 +190,13 @@ The full call path, HTTP route, and a short description are listed below.
 | --- | --- | --- |
 | `om.Entitlements.ListCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access` |  |
 | `om.Entitlements.GetCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
+
+### Grants
+
+| Method | HTTP | Description |
+| --- | --- | --- |
+| `om.Grants.List` | `GET /openmeter/grants` | List the grants of all customers and entitlements. Intended for administrative use; to list the grants of a single entitlement, use the customer entitlement grants endpoint. |
+| `om.Grants.Void` | `DELETE /openmeter/grants/{grantId}` | Void a grant so it no longer adds to the balance. Usage already deducted from the grant is kept. |
 
 ### Subscriptions
 

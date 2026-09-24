@@ -2748,6 +2748,16 @@ export interface ListCustomerEntitlementsParamsFilter {
   type?: StringFieldFilterExact
 }
 
+/** Filter options for listing grants. */
+export interface ListGrantsParamsFilter {
+  /** Filter grants by the ID of the customer that owns the entitlement. */
+  customerId?: UlidFieldFilter
+  /** Filter grants by the ID of the entitlement's feature. */
+  featureId?: UlidFieldFilter
+  /** Filter grants by the key of the entitlement's feature. */
+  featureKey?: StringFieldFilterExact
+}
+
 /** Filter options for listing subscriptions. */
 export interface ListSubscriptionsParamsFilter {
   id?: UlidFieldFilter
@@ -4668,6 +4678,12 @@ export interface CreateEntitlementMeteredRequest {
 export interface EntitlementGrantPagePaginatedResponse {
   data: EntitlementGrant[]
   meta: PaginatedMeta
+}
+
+/** Cursor paginated response. */
+export interface EntitlementGrantPaginatedResponse {
+  data: EntitlementGrant[]
+  meta: CursorMeta
 }
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */

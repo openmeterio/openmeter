@@ -18,6 +18,7 @@ type Client struct {
 	Meters            *MetersService
 	Customers         *CustomersService
 	Entitlements      *EntitlementsService
+	Grants            *GrantsService
 	Subscriptions     *SubscriptionsService
 	Apps              *AppsService
 	Billing           *BillingService
@@ -65,6 +66,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	c.Meters = &MetersService{client: c}
 	c.Customers = &CustomersService{client: c}
 	c.Entitlements = &EntitlementsService{client: c}
+	c.Grants = &GrantsService{client: c}
 	c.Subscriptions = &SubscriptionsService{client: c}
 	c.Apps = &AppsService{client: c}
 	c.Billing = &BillingService{client: c}

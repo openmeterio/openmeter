@@ -37,6 +37,7 @@ TypeSpec definitions and ships fully-typed request and response models.
 - [Internal Operations](#internal-operations)
   - [Internal Customers](#internal-customers)
   - [Internal Entitlements](#internal-entitlements)
+  - [Internal Grants](#internal-grants)
   - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Apps](#internal-apps)
   - [Internal Invoices](#internal-invoices)
@@ -438,6 +439,13 @@ they can change or be removed without notice or semver consideration.
 | Method                                           | HTTP                                                                             | Description                                    |
 | ------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `client.internal.entitlements.getCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
+
+### Internal Grants
+
+| Method                        | HTTP                                 | Description                                                                                                                                                                   |
+| ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.grants.list` | `GET /openmeter/grants`              | List the grants of all customers and entitlements. Intended for administrative use; to list the grants of a single entitlement, use the customer entitlement grants endpoint. |
+| `client.internal.grants.void` | `DELETE /openmeter/grants/{grantId}` | Void a grant so it no longer adds to the balance. Usage already deducted from the grant is kept.                                                                              |
 
 ### Internal Subscriptions
 

@@ -3816,6 +3816,14 @@ export const listCustomerEntitlementsParamsFilter = z
   })
   .describe('Filter options for listing customer entitlements.')
 
+export const listGrantsParamsFilter = z
+  .object({
+    customerId: ulidFieldFilter.optional(),
+    featureId: ulidFieldFilter.optional(),
+    featureKey: stringFieldFilterExact.optional(),
+  })
+  .describe('Filter options for listing grants.')
+
 export const listSubscriptionsParamsFilter = z
   .object({
     id: ulidFieldFilter.optional(),
@@ -5478,6 +5486,13 @@ export const entitlementGrantPagePaginatedResponse = z
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
+
+export const entitlementGrantPaginatedResponse = z
+  .object({
+    data: z.array(entitlementGrant),
+    meta: cursorMeta,
+  })
+  .describe('Cursor paginated response.')
 
 export const workflowCollectionAlignment = z
   .discriminatedUnion('type', [
@@ -7641,6 +7656,29 @@ export const listCustomerEntitlementGrantsQueryParams = z.object({
 export const listCustomerEntitlementGrantsResponse = z.object({
   data: z.array(entitlementGrant),
   meta: paginatedMeta,
+})
+
+export const listGrantsQueryParams = z.object({
+  page: cursorPaginationQueryPage.optional(),
+  sort: sortQuery.optional(),
+  filter: listGrantsParamsFilter.optional(),
+  includeDeleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listGrantsResponse = z.object({
+  data: z.array(entitlementGrant),
+  meta: cursorMeta,
+})
+
+export const voidGrantPathParams = z.object({
+  grantId: ulid,
+})
+
+export const voidGrantQueryParams = z.object({
+  voidedAt: dateTime.optional(),
 })
 
 export const createCreditGrantPathParams = z.object({
@@ -12298,6 +12336,14 @@ export const listCustomerEntitlementsParamsFilterWire = z
   })
   .describe('Filter options for listing customer entitlements.')
 
+export const listGrantsParamsFilterWire = z
+  .strictObject({
+    customer_id: ulidFieldFilterWire.optional(),
+    feature_id: ulidFieldFilterWire.optional(),
+    feature_key: stringFieldFilterExactWire.optional(),
+  })
+  .describe('Filter options for listing grants.')
+
 export const listSubscriptionsParamsFilterWire = z
   .strictObject({
     id: ulidFieldFilterWire.optional(),
@@ -13954,6 +14000,13 @@ export const entitlementGrantPagePaginatedResponseWire = z
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
+
+export const entitlementGrantPaginatedResponseWire = z
+  .strictObject({
+    data: z.array(entitlementGrantWire),
+    meta: cursorMetaWire,
+  })
+  .describe('Cursor paginated response.')
 
 export const workflowCollectionAlignmentWire = z
   .discriminatedUnion('type', [
@@ -16150,6 +16203,35 @@ export const listCustomerEntitlementGrantsQueryParamsWire = z.object({
 export const listCustomerEntitlementGrantsResponseWire = z.strictObject({
   data: z.array(entitlementGrantWire),
   meta: paginatedMetaWire,
+})
+
+export const listGrantsQueryParamsWire = z.object({
+  page: cursorPaginationQueryPageWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort grants returned in the response. Supported sort attributes are: - `created_at` (default) - `effective_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listGrantsParamsFilterWire.optional(),
+  include_deleted: z.coerce
+    .boolean()
+    .optional()
+    .describe('Include deleted grants in the response.'),
+})
+
+export const listGrantsResponseWire = z.strictObject({
+  data: z.array(entitlementGrantWire),
+  meta: cursorMetaWire,
+})
+
+export const voidGrantPathParamsWire = z.object({
+  grantId: ulidWire,
+})
+
+export const voidGrantQueryParamsWire = z.object({
+  voided_at: dateTimeWire.optional(),
 })
 
 export const createCreditGrantPathParamsWire = z.object({

@@ -2,7 +2,7 @@
 
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import { paginatePages } from '../lib/paginate.js'
+import { paginateCursor, paginatePages } from '../lib/paginate.js'
 import {
   createCustomerEntitlement,
   getCustomerEntitlementHistory,
@@ -15,6 +15,7 @@ import {
   createCustomerCharges,
 } from '../funcs/customers.js'
 import { getCustomerEntitlementAccess } from '../funcs/entitlements.js'
+import { listGrants, voidGrant } from '../funcs/grants.js'
 import {
   unscheduleSubscription,
   restoreSubscription,
@@ -73,6 +74,12 @@ import type {
   GetCustomerEntitlementAccessRequest,
   GetCustomerEntitlementAccessResponse,
 } from '../models/operations/entitlements.js'
+import type {
+  ListGrantsRequest,
+  ListGrantsResponse,
+  VoidGrantRequest,
+  VoidGrantResponse,
+} from '../models/operations/grants.js'
 import type {
   UnscheduleSubscriptionRequest,
   UnscheduleSubscriptionResponse,
@@ -166,6 +173,11 @@ export class Internal {
   private _entitlements?: InternalEntitlements
   get entitlements(): InternalEntitlements {
     return (this._entitlements ??= new InternalEntitlements(this._client))
+  }
+
+  private _grants?: InternalGrants
+  get grants(): InternalGrants {
+    return (this._grants ??= new InternalGrants(this._client))
   }
 
   private _subscriptions?: InternalSubscriptions
@@ -513,6 +525,63 @@ export class InternalEntitlements {
     return unwrap(
       await getCustomerEntitlementAccess(this._client, request, options),
     )
+  }
+}
+
+export class InternalGrants {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List grants
+   *
+   * List the grants of all customers and entitlements. Intended for administrative
+   * use; to list the grants of a single entitlement, use the customer entitlement
+   * grants endpoint.
+   *
+   * GET /openmeter/grants
+   */
+  async list(
+    request?: ListGrantsRequest,
+    options?: RequestOptions,
+  ): Promise<ListGrantsResponse> {
+    return unwrap(await listGrants(this._client, request, options))
+  }
+
+  /**
+   * List grants
+   *
+   * List the grants of all customers and entitlements. Intended for administrative
+   * use; to list the grants of a single entitlement, use the customer entitlement
+   * grants endpoint.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/grants
+   */
+  listAll(
+    request?: ListGrantsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<EntitlementGrant> {
+    return paginateCursor(
+      (req, opts) => listGrants(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Void grant
+   *
+   * Void a grant so it no longer adds to the balance. Usage already deducted from
+   * the grant is kept.
+   *
+   * DELETE /openmeter/grants/{grantId}
+   */
+  async void(
+    request: VoidGrantRequest,
+    options?: RequestOptions,
+  ): Promise<VoidGrantResponse> {
+    return unwrap(await voidGrant(this._client, request, options))
   }
 }
 
