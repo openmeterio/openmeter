@@ -25,7 +25,7 @@ func (l *expiredCreditTransactionLoader) Load(ctx context.Context, input creditT
 		After:      input.After,
 		Before:     input.Before,
 		Limit:      input.Limit,
-		Route:      featureFilterRoute(input.FeatureFilter),
+		Route:      creditFilterRoute(input.FeatureFilter, input.PlanFilter),
 	})
 	if err != nil {
 		return creditTransactionLoaderResult{}, fmt.Errorf("list expired breakage impacts: %w", err)

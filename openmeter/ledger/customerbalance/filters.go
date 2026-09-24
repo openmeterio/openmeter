@@ -9,8 +9,8 @@ import (
 
 // Feature filters are represented as a tri-state option:
 // - None: all credit routes / total portfolio balance.
-// - Some(nil): unrestricted routes only.
-// - Some(one feature): unrestricted routes plus restricted routes containing that feature.
+// - Some(nil): routes without feature restrictions.
+// - Some(one feature): routes without feature restrictions plus routes containing that feature.
 func AllFeatureFilter() mo.Option[creditpurchase.FeatureFilters] {
 	return mo.None[creditpurchase.FeatureFilters]()
 }
@@ -49,15 +49,29 @@ func normalizeFeatureFilter(filter mo.Option[creditpurchase.FeatureFilters]) mo.
 	return mo.Some(features.Normalize())
 }
 
-func featureFilterRoute(featureFilter mo.Option[creditpurchase.FeatureFilters]) ledger.RouteFilter {
+func ValidatePlanFilter(filter mo.Option[*ledger.PlanFilter]) error {
+	if plan, ok := filter.Get(); ok && plan != nil {
+		return plan.ValidateAsPlanFilter()
+	}
+
+	return nil
+}
+
+// creditFilterRoute defines the queried balance view, including shared-credit
+// exposure on each selected dimension. Actual credit matching is checked
+// separately when live impacts are applied to concrete credit sources.
+func creditFilterRoute(featureFilter mo.Option[creditpurchase.FeatureFilters], planFilter mo.Option[*ledger.PlanFilter]) ledger.RouteFilter {
+	route := ledger.RouteFilter{MatchPlan: planFilter}
 	if featureFilter.IsAbsent() {
-		return ledger.RouteFilter{}
+		return route
 	}
 
 	features := featureFilter.OrEmpty()
 	if features == nil {
-		return ledger.RouteFilter{Features: mo.Some[[]string](nil)}
+		route.Features = mo.Some[[]string](nil)
+		return route
 	}
 
-	return ledger.RouteFilter{MatchFeature: features[0]}
+	route.MatchFeature = features[0]
+	return route
 }

@@ -675,6 +675,48 @@ export const validationIssueSeverity = z
   .enum(['critical', 'warning'])
   .describe('Severity level of a billing validation issue.')
 
+export const numericFieldFilter = z
+  .union([
+    z.number(),
+    z.object({
+      eq: z
+        .number()
+        .optional()
+        .describe('Value strictly equals the given numeric value.'),
+      neq: z
+        .number()
+        .optional()
+        .describe('Value does not equal the given numeric value.'),
+      oeq: z
+        .array(z.number())
+        .optional()
+
+        .describe(
+          'Returns entities that match any of the comma-delimited numeric values.',
+        ),
+      lt: z
+        .number()
+        .optional()
+        .describe('Value is less than the given numeric value.'),
+      lte: z
+        .number()
+        .optional()
+        .describe('Value is less than or equal to the given numeric value.'),
+      gt: z
+        .number()
+        .optional()
+        .describe('Value is greater than the given numeric value.'),
+      gte: z
+        .number()
+        .optional()
+        .describe('Value is greater than or equal to the given numeric value.'),
+    }),
+  ])
+
+  .describe(
+    'Filter by a numeric value. All properties are optional; provide exactly one to specify the comparison.',
+  )
+
 export const creditGrantVoidPaymentAdjustment = z
   .enum(['none'])
 
@@ -1463,48 +1505,6 @@ export const booleanFieldFilter = z
     }),
   ])
   .describe('Filter by a boolean value (true/false).')
-
-export const numericFieldFilter = z
-  .union([
-    z.number(),
-    z.object({
-      eq: z
-        .number()
-        .optional()
-        .describe('Value strictly equals the given numeric value.'),
-      neq: z
-        .number()
-        .optional()
-        .describe('Value does not equal the given numeric value.'),
-      oeq: z
-        .array(z.number())
-        .optional()
-
-        .describe(
-          'Returns entities that match any of the comma-delimited numeric values.',
-        ),
-      lt: z
-        .number()
-        .optional()
-        .describe('Value is less than the given numeric value.'),
-      lte: z
-        .number()
-        .optional()
-        .describe('Value is less than or equal to the given numeric value.'),
-      gt: z
-        .number()
-        .optional()
-        .describe('Value is greater than the given numeric value.'),
-      gte: z
-        .number()
-        .optional()
-        .describe('Value is greater than or equal to the given numeric value.'),
-    }),
-  ])
-
-  .describe(
-    'Filter by a numeric value. All properties are optional; provide exactly one to specify the comparison.',
-  )
 
 export const chargeCostBasisType = z
   .enum(['dynamic', 'pinned', 'manual'])
@@ -3234,13 +3234,6 @@ export const entitlementMeasureUsageFrom = z
     'The time from which usage is measured, as a preset or an explicit timestamp.',
   )
 
-export const getCreditBalanceParamsFilter = z
-  .object({
-    currency: stringFieldFilterExact.optional(),
-    featureKey: stringFieldFilter.optional(),
-  })
-  .describe('Filter options for getting a credit balance.')
-
 export const listPlansParamsFilter = z
   .object({
     key: stringFieldFilter.optional(),
@@ -3309,6 +3302,15 @@ export const validationIssue = z
       .describe('Component that reported the validation issue, if applicable.'),
   })
   .describe('A validation issue found while processing a billing resource.')
+
+export const getCreditBalanceParamsFilter = z
+  .object({
+    currency: stringFieldFilterExact.optional(),
+    featureKey: stringFieldFilter.optional(),
+    planKey: stringFieldFilter.optional(),
+    planVersion: numericFieldFilter.optional(),
+  })
+  .describe('Filter options for getting a credit balance.')
 
 export const voidCreditGrantRequest = z
   .object({
@@ -3740,6 +3742,8 @@ export const listCreditTransactionsParamsFilter = z
     type: creditTransactionType.optional(),
     currency: billingCurrencyCode.optional(),
     featureKey: stringFieldFilter.optional(),
+    planKey: stringFieldFilter.optional(),
+    planVersion: numericFieldFilter.optional(),
   })
   .describe('Filter options for listing credit transactions.')
 
@@ -9234,6 +9238,48 @@ export const validationIssueSeverityWire = z
   .enum(['critical', 'warning'])
   .describe('Severity level of a billing validation issue.')
 
+export const numericFieldFilterWire = z
+  .union([
+    z.number(),
+    z.strictObject({
+      eq: z
+        .number()
+        .optional()
+        .describe('Value strictly equals the given numeric value.'),
+      neq: z
+        .number()
+        .optional()
+        .describe('Value does not equal the given numeric value.'),
+      oeq: z
+        .array(z.number())
+        .optional()
+
+        .describe(
+          'Returns entities that match any of the comma-delimited numeric values.',
+        ),
+      lt: z
+        .number()
+        .optional()
+        .describe('Value is less than the given numeric value.'),
+      lte: z
+        .number()
+        .optional()
+        .describe('Value is less than or equal to the given numeric value.'),
+      gt: z
+        .number()
+        .optional()
+        .describe('Value is greater than the given numeric value.'),
+      gte: z
+        .number()
+        .optional()
+        .describe('Value is greater than or equal to the given numeric value.'),
+    }),
+  ])
+
+  .describe(
+    'Filter by a numeric value. All properties are optional; provide exactly one to specify the comparison.',
+  )
+
 export const creditGrantVoidPaymentAdjustmentWire = z
   .enum(['none'])
 
@@ -10016,48 +10062,6 @@ export const booleanFieldFilterWire = z
     }),
   ])
   .describe('Filter by a boolean value (true/false).')
-
-export const numericFieldFilterWire = z
-  .union([
-    z.number(),
-    z.strictObject({
-      eq: z
-        .number()
-        .optional()
-        .describe('Value strictly equals the given numeric value.'),
-      neq: z
-        .number()
-        .optional()
-        .describe('Value does not equal the given numeric value.'),
-      oeq: z
-        .array(z.number())
-        .optional()
-
-        .describe(
-          'Returns entities that match any of the comma-delimited numeric values.',
-        ),
-      lt: z
-        .number()
-        .optional()
-        .describe('Value is less than the given numeric value.'),
-      lte: z
-        .number()
-        .optional()
-        .describe('Value is less than or equal to the given numeric value.'),
-      gt: z
-        .number()
-        .optional()
-        .describe('Value is greater than the given numeric value.'),
-      gte: z
-        .number()
-        .optional()
-        .describe('Value is greater than or equal to the given numeric value.'),
-    }),
-  ])
-
-  .describe(
-    'Filter by a numeric value. All properties are optional; provide exactly one to specify the comparison.',
-  )
 
 export const chargeCostBasisTypeWire = z
   .enum(['dynamic', 'pinned', 'manual'])
@@ -11779,13 +11783,6 @@ export const entitlementMeasureUsageFromWire = z
     'The time from which usage is measured, as a preset or an explicit timestamp.',
   )
 
-export const getCreditBalanceParamsFilterWire = z
-  .strictObject({
-    currency: stringFieldFilterExactWire.optional(),
-    feature_key: stringFieldFilterWire.optional(),
-  })
-  .describe('Filter options for getting a credit balance.')
-
 export const listPlansParamsFilterWire = z
   .strictObject({
     key: stringFieldFilterWire.optional(),
@@ -11854,6 +11851,15 @@ export const validationIssueWire = z
       .describe('Component that reported the validation issue, if applicable.'),
   })
   .describe('A validation issue found while processing a billing resource.')
+
+export const getCreditBalanceParamsFilterWire = z
+  .strictObject({
+    currency: stringFieldFilterExactWire.optional(),
+    feature_key: stringFieldFilterWire.optional(),
+    plan_key: stringFieldFilterWire.optional(),
+    plan_version: numericFieldFilterWire.optional(),
+  })
+  .describe('Filter options for getting a credit balance.')
 
 export const voidCreditGrantRequestWire = z
   .strictObject({
@@ -12277,6 +12283,8 @@ export const listCreditTransactionsParamsFilterWire = z
     type: creditTransactionTypeWire.optional(),
     currency: billingCurrencyCodeWire.optional(),
     feature_key: stringFieldFilterWire.optional(),
+    plan_key: stringFieldFilterWire.optional(),
+    plan_version: numericFieldFilterWire.optional(),
   })
   .describe('Filter options for listing credit transactions.')
 

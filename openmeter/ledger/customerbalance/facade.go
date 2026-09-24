@@ -35,6 +35,7 @@ type GetBalancesInput struct {
 	CustomerID    customer.CustomerID
 	Currencies    CurrencyFilter
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	PlanFilter    mo.Option[*ledger.PlanFilter]
 	AsOf          *time.Time
 }
 
@@ -42,6 +43,7 @@ type GetBalanceInput struct {
 	CustomerID    customer.CustomerID
 	Currency      currencyx.Code
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	PlanFilter    mo.Option[*ledger.PlanFilter]
 	After         *ledger.TransactionCursor
 	AsOf          *time.Time
 }
@@ -59,6 +61,10 @@ func (i GetBalancesInput) Validate() error {
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if err := ValidatePlanFilter(i.PlanFilter); err != nil {
+		errs = append(errs, fmt.Errorf("plan filter: %w", err))
 	}
 
 	if i.AsOf != nil && i.AsOf.IsZero() {
@@ -81,6 +87,10 @@ func (i GetBalanceInput) Validate() error {
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if err := ValidatePlanFilter(i.PlanFilter); err != nil {
+		errs = append(errs, fmt.Errorf("plan filter: %w", err))
 	}
 
 	if i.After != nil {
@@ -149,6 +159,7 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 		CustomerID:    input.CustomerID,
 		Currencies:    CurrencyFilter{Codes: codes},
 		FeatureFilter: input.FeatureFilter,
+		PlanFilter:    input.PlanFilter,
 		AsOf:          input.AsOf,
 	})
 	if err != nil {
@@ -161,6 +172,7 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 			CustomerID:    input.CustomerID,
 			Currency:      reference,
 			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+			PlanFilter:    input.PlanFilter,
 			BalanceQuery: ledger.BalanceQuery{
 				AsOf: input.AsOf,
 			},
@@ -192,6 +204,7 @@ func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacad
 		CustomerID:    input.CustomerID,
 		Currency:      currencies.NewCurrencyReference(input.Currency),
 		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+		PlanFilter:    input.PlanFilter,
 		BalanceQuery: ledger.BalanceQuery{
 			After: input.After,
 			AsOf:  input.AsOf,
