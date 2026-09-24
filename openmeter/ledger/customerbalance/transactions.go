@@ -28,11 +28,12 @@ const (
 	CreditTransactionTypeConsumed CreditTransactionType = "consumed"
 	CreditTransactionTypeExpired  CreditTransactionType = "expired"
 	CreditTransactionTypeVoided   CreditTransactionType = "voided"
+	CreditTransactionTypeRefunded CreditTransactionType = "refunded"
 )
 
 func (t CreditTransactionType) Validate() error {
 	switch t {
-	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeExpired, CreditTransactionTypeVoided:
+	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeExpired, CreditTransactionTypeVoided, CreditTransactionTypeRefunded:
 		return nil
 	default:
 		return fmt.Errorf("invalid credit transaction type: %s", t)

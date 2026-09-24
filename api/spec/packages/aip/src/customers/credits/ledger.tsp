@@ -10,6 +10,8 @@ namespace Customers;
  * - `consumed`: Credit consumed by usage or fees.
  * - `expired`: Credit removed because it expired before being used.
  * - `voided`: Credit removed because the grant was voided before being used.
+ * - `refunded`: Previously consumed credit returned because the usage or fee that
+ *   consumed it was corrected.
  */
 @friendlyName("BillingCreditTransactionType")
 enum CreditTransactionType {
@@ -24,6 +26,9 @@ enum CreditTransactionType {
 
   // Credit removed because the grant was voided before being used.
   Voided: "voided",
+
+  // Previously consumed credit returned because the usage or fee that consumed it was corrected.
+  Refunded: "refunded",
 }
 
 // /**

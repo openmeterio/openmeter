@@ -40,6 +40,7 @@ var creditTransactionLoaderOrder = []CreditTransactionType{
 	CreditTransactionTypeConsumed,
 	CreditTransactionTypeExpired,
 	CreditTransactionTypeVoided,
+	CreditTransactionTypeRefunded,
 }
 
 var creditTransactionLoaderFactories = map[CreditTransactionType]creditTransactionLoaderFactory{
@@ -47,8 +48,9 @@ var creditTransactionLoaderFactories = map[CreditTransactionType]creditTransacti
 	CreditTransactionTypeConsumed: func(s *service) creditTransactionLoader {
 		return newLedgerCreditTransactionLoader(s, ledger.ListTransactionsCreditMovementNegative)
 	},
-	CreditTransactionTypeExpired: newExpiredCreditTransactionLoader,
-	CreditTransactionTypeVoided:  newVoidedCreditTransactionLoader,
+	CreditTransactionTypeExpired:  newExpiredCreditTransactionLoader,
+	CreditTransactionTypeVoided:   newVoidedCreditTransactionLoader,
+	CreditTransactionTypeRefunded: newRefundedCreditTransactionLoader,
 }
 
 func (s *service) creditTransactionLoaders(txType *CreditTransactionType) ([]creditTransactionLoader, error) {

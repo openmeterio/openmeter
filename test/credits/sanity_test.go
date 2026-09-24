@@ -1154,6 +1154,7 @@ type createCreditOnlyFlatFeeChargeInput struct {
 	amount        alpacadecimal.Decimal
 	name          string
 	featureKey    string
+	proRating     productcatalog.ProRatingConfig
 }
 
 type createdCreditOnlyFlatFeeCharge struct {
@@ -1541,6 +1542,7 @@ func (s *SanitySuite) createAndAdvanceCreditOnlyFlatFeeCharge(input createCredit
 				ManagedBy:         billing.SubscriptionManagedLine,
 				UniqueReferenceID: input.name,
 				FeatureKey:        input.featureKey,
+				ProRating:         input.proRating,
 			}),
 		),
 	})

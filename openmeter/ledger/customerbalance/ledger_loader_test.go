@@ -60,6 +60,7 @@ func TestLedgerCreditTransactionLoaderDoesNotRetainHasMoreAfterHiddenFinalPage(t
 	require.Equal(t, map[string]string{
 		ledger.AnnotationCollectionType:            ledger.CollectionTypeBreakage,
 		ledger.AnnotationCustomerBalanceVisibility: ledger.CustomerBalanceVisibilityInternal,
+		ledger.AnnotationTransactionDirection:      string(ledger.TransactionDirectionCorrection),
 	}, fakeLedger.inputs[0].ExcludeAnnotationFilters)
 }
 

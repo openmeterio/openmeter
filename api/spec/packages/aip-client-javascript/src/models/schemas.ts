@@ -613,10 +613,10 @@ export const creditGrantVoidPaymentAdjustment = z
   )
 
 export const creditTransactionType = z
-  .enum(['funded', 'consumed', 'expired', 'voided'])
+  .enum(['funded', 'consumed', 'expired', 'voided', 'refunded'])
 
   .describe(
-    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
+    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used. - `refunded`: Previously consumed credit returned because the usage or fee that consumed it was corrected.',
   )
 
 export const chargesExpand = z
@@ -9068,10 +9068,10 @@ export const creditGrantVoidPaymentAdjustmentWire = z
   )
 
 export const creditTransactionTypeWire = z
-  .enum(['funded', 'consumed', 'expired', 'voided'])
+  .enum(['funded', 'consumed', 'expired', 'voided', 'refunded'])
 
   .describe(
-    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
+    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used. - `refunded`: Previously consumed credit returned because the usage or fee that consumed it was corrected.',
   )
 
 export const chargesExpandWire = z

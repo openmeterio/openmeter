@@ -80,6 +80,8 @@ Visible types:
 - `consumed`: credit was used.
 - `expired`: unused credit expired.
 - `voided`: unused credit was forfeited by voiding its grant.
+- `refunded`: consumed credit was returned by correcting the usage or fee that
+  consumed it.
 
 The temporary issuance and consumption used to construct a custom-currency
 `credit_then_invoice` overage are internal accounting movements, not customer
@@ -95,14 +97,15 @@ The visible amount is the customer balance impact:
 funded   => positive FBO issuance + positive nil-cost-basis receivable attribution
 consumed => negative FBO impact
 expired  => negative FBO impact
+refunded => net FBO + advance impact of one correction
 ```
 
 In a mixed-currency listing, `available_balance` is reconstructed independently
 for each currency identity even though the rows share one chronological stream.
 Custom-currency rows carry both their display code and `custom_currency.id`.
 
-Balances are resolved independently at each row's persisted boundary. Funded
-and consumed rows use their last contributing ledger transaction. Expired and
+Balances are resolved independently at each row's persisted boundary. Funded,
+consumed, and refunded rows use their last contributing ledger transaction. Expired and
 voided rows are net projections at their booked timestamp: they include all
 postings at that timestamp, with later siblings of the same type and currency
 removed to retain stable balances within each terminal group. Across different
@@ -119,6 +122,43 @@ part affects the balance:
 @T1 funded +40  (advance attribution)
 @T2 funded +60  (scheduled FBO issuance)
 ```
+
+## Refunded Credit
+
+Usage corrections, such as deleting or shrinking a charge after a subscription
+edit, are listed as `refunded` rows instead of changing the original `consumed`
+row. The history stays immutable and the rows sum to the current balance.
+Refunds carry the corrected charge's labels (`charge_id`, subscription and
+feature references), so clients can relate them to the consumption they undo.
+
+The [collector](../collector/correction/README.md) books a correction at the
+original collection time, so the refund sorts directly after the consumption it
+corrects. Its `created_at` records when the correction happened.
+
+One correction can write several offsetting ledger transactions. Correcting
+advance-backed usage cancels the advance (`FBO -x`, advance `+x`), which lowers
+FBO without changing the balance. Correcting backfilled advance also unwinds the
+purchase attribution and re-issues the purchased credit. Correction transactions
+are therefore never listed as `consumed`. Their balance impact is summed per
+ledger transaction group, booked time, and currency, and zero sums are hidden:
+
+```text
+@T1 consumed -8   (advance-backed usage)
+@T2 funded   +12  (grant backfills the advance)
+
+correct the T1 usage (booked @T1):
+  advance attribution unwind  -8
+  purchased credit re-issue   +8
+  advance collection reversal +8
+  advance cancellation         0
+
+listing:
+T2 funded   +12
+T1 refunded +8
+T1 consumed -8
+```
+
+Credit voids are ledger corrections too; they are listed as `voided`.
 
 ## Listing Example: Funded, Consumed, Expired
 
