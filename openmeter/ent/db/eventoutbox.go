@@ -27,8 +27,6 @@ type EventOutbox struct {
 	MessageID string `json:"message_id,omitempty"`
 	// Topic holds the value of the "topic" field.
 	Topic string `json:"topic,omitempty"`
-	// DeliveryKey holds the value of the "delivery_key" field.
-	DeliveryKey string `json:"delivery_key,omitempty"`
 	// Payload holds the value of the "payload" field.
 	Payload []byte `json:"payload,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -45,7 +43,7 @@ func (*EventOutbox) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case eventoutbox.FieldID:
 			values[i] = new(sql.NullInt64)
-		case eventoutbox.FieldMessageID, eventoutbox.FieldTopic, eventoutbox.FieldDeliveryKey:
+		case eventoutbox.FieldMessageID, eventoutbox.FieldTopic:
 			values[i] = new(sql.NullString)
 		case eventoutbox.FieldCreatedAt, eventoutbox.FieldUpdatedAt, eventoutbox.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -102,12 +100,6 @@ func (_m *EventOutbox) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field topic", values[i])
 			} else if value.Valid {
 				_m.Topic = value.String
-			}
-		case eventoutbox.FieldDeliveryKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field delivery_key", values[i])
-			} else if value.Valid {
-				_m.DeliveryKey = value.String
 			}
 		case eventoutbox.FieldPayload:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -173,9 +165,6 @@ func (_m *EventOutbox) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("topic=")
 	builder.WriteString(_m.Topic)
-	builder.WriteString(", ")
-	builder.WriteString("delivery_key=")
-	builder.WriteString(_m.DeliveryKey)
 	builder.WriteString(", ")
 	builder.WriteString("payload=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Payload))

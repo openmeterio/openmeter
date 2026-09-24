@@ -4064,7 +4064,6 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "message_id", Type: field.TypeString},
 		{Name: "topic", Type: field.TypeString},
-		{Name: "delivery_key", Type: field.TypeString},
 		{Name: "payload", Type: field.TypeBytes},
 		{Name: "metadata", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 	}
@@ -4078,14 +4077,6 @@ var (
 				Name:    "eventoutbox_topic_id",
 				Unique:  false,
 				Columns: []*schema.Column{EventOutboxesColumns[5], EventOutboxesColumns[0]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at IS NULL",
-				},
-			},
-			{
-				Name:    "eventoutbox_topic_delivery_key_id",
-				Unique:  false,
-				Columns: []*schema.Column{EventOutboxesColumns[5], EventOutboxesColumns[6], EventOutboxesColumns[0]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},

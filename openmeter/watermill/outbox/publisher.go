@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
-	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -90,7 +89,6 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 		if msg == nil {
 			return errors.New("outbox message is nil")
 		}
-		deliveryKey := msg.Metadata.Get(kafka.PartitionKeyMetadataKey)
 		// Run joins the caller's transaction, or commits a standalone enqueue for
 		// system events whose producer does not have a database transaction.
 		err := transaction.RunWithNoValue(msg.Context(), enttx.NewCreator(p.cfg.DB), func(ctx context.Context) error {
@@ -99,23 +97,9 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 				return err
 			}
 			client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
-			// IDs are allocated before commit. Serialize enqueueing for this key
-			// until the outer transaction ends so a later row cannot commit and
-			// be delivered while its predecessor is still invisible to the relay.
-			lockKey := fmt.Sprintf("openmeter/event-outbox/%d:%s/%s", len(topic), topic, deliveryKey)
-			rows, err := client.QueryContext(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", lockKey)
-			if err != nil {
-				return fmt.Errorf("lock event delivery key: %w", err)
-			}
-			for rows.Next() {
-			}
-			if err := errors.Join(rows.Err(), rows.Close()); err != nil {
-				return fmt.Errorf("lock event delivery key: %w", err)
-			}
 			_, err = client.EventOutbox.Create().
 				SetMessageID(msg.UUID).
 				SetTopic(topic).
-				SetDeliveryKey(deliveryKey).
 				SetPayload(msg.Payload).
 				SetMetadata(map[string]string(msg.Metadata)).Save(ctx)
 			if err != nil {
@@ -157,11 +141,11 @@ func (p *Publisher) run() {
 }
 
 func (p *Publisher) drain(ctx context.Context) error {
-	var failedKeys []string
+	var failedIDs []int64
 	var errs []error
 	delivered := false
 	for range drainLimit {
-		var deliveryKey string
+		var claimedID int64
 		var claimed bool
 		sent, err := transaction.Run(ctx, enttx.NewCreator(p.cfg.DB), func(ctx context.Context) (bool, error) {
 			tx, err := entutils.GetDriverFromContext(ctx)
@@ -169,11 +153,13 @@ func (p *Publisher) drain(ctx context.Context) error {
 				return false, err
 			}
 			client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
-			// Claim only a key's oldest pending row. SKIP LOCKED lets other
-			// drainers progress without overtaking that key's in-flight event.
-			query := pendingQuery{Topic: p.cfg.Topic, ExcludedKeys: failedKeys}
+			// Claim one row without waiting for other workers' broker sends.
 			row, err := client.EventOutbox.Query().
-				Where(query.Apply).
+				Where(
+					eventoutbox.TopicEQ(p.cfg.Topic),
+					eventoutbox.DeletedAtIsNil(),
+					eventoutbox.IDNotIn(failedIDs...),
+				).
 				Order(eventoutbox.ByID()).
 				ForUpdate(sql.WithLockAction(sql.SkipLocked)).First(ctx)
 			if db.IsNotFound(err) {
@@ -182,7 +168,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 			if err != nil {
 				return false, err
 			}
-			deliveryKey = row.DeliveryKey
+			claimedID = row.ID
 			claimed = true
 			msg := message.NewMessage(row.MessageID, row.Payload)
 			msg.Metadata = message.Metadata(row.Metadata)
@@ -202,9 +188,9 @@ func (p *Publisher) drain(ctx context.Context) error {
 			if !claimed || ctx.Err() != nil {
 				return errors.Join(errs...)
 			}
-			// A failing customer must not stall unrelated events. Its later
-			// events remain behind the pending head until future activity retries it.
-			failedKeys = append(failedKeys, deliveryKey)
+			// Skip this row for the rest of this pass so a failed send cannot
+			// prevent other events, including the same Kafka key, from progressing.
+			failedIDs = append(failedIDs, claimedID)
 			continue
 		}
 		if !sent {

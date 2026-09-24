@@ -14,16 +14,12 @@ Rows are deleted after broker acknowledgment. Delivery is **at least once**:
 failed deletion or commit can resend the original ID, payload, headers, topic,
 and Kafka message key. Consumers must tolerate duplicates.
 
-## Ordering and shutdown
+## Concurrency and shutdown
 
-Ordering is per topic/Kafka message key; unkeyed events share one lane.
-Transaction-scoped advisory locks serialize enqueueing until commit, preventing
-later events from overtaking uncommitted predecessors. Multi-key transactions
-must acquire keys consistently to avoid deadlocks.
-
-Workers claim only each key's oldest row with `FOR UPDATE SKIP LOCKED`. Failed
-heads hold back their key; unrelated keys can progress. Domain transactions never
-wait for Kafka, and workers use the application context, not the request context.
+There is no delivery ordering guarantee, including within one Kafka message key.
+Workers claim individual rows with `FOR UPDATE SKIP LOCKED`; locked or failed rows
+do not hold back other events. Enqueueing does not take advisory locks.
+Domain transactions never wait for Kafka, and workers use the application context.
 
 `Close` cancels workers and waits for them; it does not flush the backlog. Pending
 rows remain durable. Drain passes have message/time limits, but synchronous

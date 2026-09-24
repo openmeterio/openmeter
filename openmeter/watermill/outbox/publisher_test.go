@@ -177,8 +177,7 @@ func TestPublisherDeliversOnlyAfterOuterCommit(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	require.Equal(t, "outer", nextAttempt(t, raw).id)
-	require.Equal(t, "nested", nextAttempt(t, raw).id)
+	require.ElementsMatch(t, []string{"outer", "nested"}, []string{nextAttempt(t, raw).id, nextAttempt(t, raw).id})
 	eventuallyRowCount(t, client, 0)
 }
 
@@ -257,54 +256,33 @@ func TestPublisherFailureDoesNotBlockAnotherKey(t *testing.T) {
 		"next publish should retry pending rows")
 }
 
-func TestPublisherRetriesFailedHeadBeforeLaterSameKeyEvent(t *testing.T) {
-	// Given a broker failure for the first event on one message key.
+func TestPublisherFailureDoesNotBlockSameKeyAndRetriesOnPublish(t *testing.T) {
+	// Given a pending event whose broker send keeps failing.
 	raw := newRecordingPublisher()
-	var failHead atomic.Bool
-	failHead.Store(true)
+	var fail atomic.Bool
+	fail.Store(true)
 	raw.setOnSend(func(attempt publishedMessage) error {
-		if attempt.id == "head" && failHead.Load() {
+		if attempt.id == "failed" && fail.Load() {
 			return errors.New("injected broker failure")
 		}
 		return nil
 	})
 	p, client := newTestPublisher(t, raw)
-	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "head", "customer-1")))
-	require.Equal(t, "head", nextAttempt(t, raw).id)
+	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "failed", "customer-1")))
+	require.Equal(t, "failed", nextAttempt(t, raw).id)
+
+	// When another event with the same key arrives, it can pass the failed row.
+	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "later", "customer-1")))
+	require.Eventually(t, func() bool { return len(raw.deliveredIDs()) == 1 }, 5*time.Second, 20*time.Millisecond)
+	require.Equal(t, []string{"later"}, raw.deliveredIDs())
 	eventuallyRowCount(t, client, 1)
 
-	// When a later same-key event and an unrelated event are committed, the
-	// unrelated event can pass while the same-key event remains pending.
-	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "follower", "customer-1")))
-	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "unrelated", "customer-2")))
-	require.Eventually(t, func() bool {
-		for _, id := range raw.deliveredIDs() {
-			if id == "unrelated" {
-				return true
-			}
-		}
-		return false
-	}, 5*time.Second, 20*time.Millisecond)
-	require.Empty(t, raw.attemptsFor("follower"))
-	eventuallyRowCount(t, client, 2)
-
-	// Then a later publish retries the head and delivers the follower after it.
-	failHead.Store(false)
-	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "wake", "customer-3")))
-	require.Eventually(t, func() bool {
-		ids := raw.deliveredIDs()
-		for i := range ids {
-			if ids[i] == "head" {
-				for _, later := range ids[i+1:] {
-					if later == "follower" {
-						return true
-					}
-				}
-			}
-		}
-		return false
-	}, 5*time.Second, 20*time.Millisecond)
+	// Then new traffic after recovery retries the original pending event.
+	fail.Store(false)
+	require.NoError(t, p.Publish(testTopic, testMessage(t.Context(), "wake", "customer-2")))
 	eventuallyRowCount(t, client, 0)
+	require.ElementsMatch(t, []string{"later", "failed", "wake"}, raw.deliveredIDs())
+	require.GreaterOrEqual(t, len(raw.attemptsFor("failed")), 2)
 }
 
 func TestPublisherResendsSameMessageAfterDeleteFailure(t *testing.T) {
@@ -343,96 +321,32 @@ func TestPublisherResendsSameMessageAfterDeleteFailure(t *testing.T) {
 	eventuallyRowCount(t, client, 0)
 }
 
-func TestConcurrentEnqueuePreservesMessageKeyOrder(t *testing.T) {
-	for _, rollbackFirst := range []bool{false, true} {
-		name := "first commits"
-		if rollbackFirst {
-			name = "first rolls back"
-		}
-		t.Run(name, func(t *testing.T) {
-			// Given an uncommitted event and a second writer for its message key.
-			raw := newRecordingPublisher()
-			p, client := newTestPublisher(t, raw)
-			creator := enttx.NewCreator(client)
-			firstEnqueued := make(chan struct{})
-			releaseFirst := make(chan struct{})
-			var releaseOnce sync.Once
-			release := func() { releaseOnce.Do(func() { close(releaseFirst) }) }
-			defer release()
-			firstDone := make(chan error, 1)
-			secondDone := make(chan error, 1)
-			rollback := errors.New("rollback first writer")
+func TestConcurrentEnqueueDoesNotSerializeMessageKey(t *testing.T) {
+	// Given an uncommitted event for a Kafka key.
+	raw := newRecordingPublisher()
+	p, client := newTestPublisher(t, raw)
+	creator := enttx.NewCreator(client)
+	err := transaction.RunWithNoValue(t.Context(), creator, func(ctx context.Context) error {
+		require.NoError(t, p.Publish(testTopic, testMessage(ctx, "first", "customer-1")))
 
-			go func() {
-				firstDone <- transaction.RunWithNoValue(t.Context(), creator, func(ctx context.Context) error {
-					if err := p.Publish(testTopic, testMessage(ctx, "same-key-first", "customer-1")); err != nil {
-						return err
-					}
-					close(firstEnqueued)
-					<-releaseFirst
-					if rollbackFirst {
-						return rollback
-					}
-					return nil
-				})
-			}()
-			select {
-			case <-firstEnqueued:
-			case err := <-firstDone:
-				t.Fatalf("first enqueue failed: %v", err)
-			case <-time.After(5 * time.Second):
-				t.Fatal("first enqueue did not complete")
-			}
-			secondStarted := make(chan struct{})
-			go func() {
-				secondDone <- transaction.RunWithNoValue(t.Context(), creator, func(ctx context.Context) error {
-					close(secondStarted)
-					return p.Publish(testTopic, testMessage(ctx, "same-key-second", "customer-1"))
-				})
-			}()
-			<-secondStarted
-			select {
-			case err := <-secondDone:
-				t.Fatalf("same-key enqueue passed the uncommitted predecessor: %v", err)
-			case <-time.After(100 * time.Millisecond):
-			}
+		// When a separate transaction publishes the same key, it commits and
+		// delivers while the first transaction is still open.
+		independent, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+		require.NoError(t, p.Publish(testTopic, testMessage(independent, "second", "customer-1")))
+		require.Equal(t, "second", nextAttempt(t, raw).id)
+		noAttempt(t, raw)
+		return nil
+	})
 
-			// When a different message key is published, it can commit and deliver
-			// while the first writer is still open.
-			otherDone := make(chan error, 1)
-			go func() {
-				otherDone <- p.Publish(testTopic, testMessage(t.Context(), "other-key", "customer-2"))
-			}()
-			select {
-			case err := <-otherDone:
-				require.NoError(t, err)
-			case <-time.After(5 * time.Second):
-				t.Fatal("different-key enqueue blocked by the first writer")
-			}
-			require.Equal(t, "other-key", nextAttempt(t, raw).id)
-			noAttempt(t, raw)
-
-			release()
-			// Then the second same-key event follows a committed first event, or
-			// becomes the only event when the first writer rolls back.
-			firstErr := <-firstDone
-			if rollbackFirst {
-				require.ErrorIs(t, firstErr, rollback)
-			} else {
-				require.NoError(t, firstErr)
-			}
-			require.NoError(t, <-secondDone)
-			if !rollbackFirst {
-				require.Equal(t, "same-key-first", nextAttempt(t, raw).id)
-			}
-			require.Equal(t, "same-key-second", nextAttempt(t, raw).id)
-			eventuallyRowCount(t, client, 0)
-		})
-	}
+	// Then the first event becomes eligible only after its own commit.
+	require.NoError(t, err)
+	require.Equal(t, "first", nextAttempt(t, raw).id)
+	eventuallyRowCount(t, client, 0)
 }
 
-func TestConcurrentPublishersKeepEachMessageKeyInOrder(t *testing.T) {
-	// Given two relay instances and a blocked broker send for the first key.
+func TestConcurrentPublishersSkipClaimedRowForSameKey(t *testing.T) {
+	// Given two relay instances and a blocked broker send holding one row lock.
 	raw := newRecordingPublisher()
 	releaseFirst := make(chan struct{})
 	var releaseOnce sync.Once
@@ -456,16 +370,17 @@ func TestConcurrentPublishersKeepEachMessageKeyInOrder(t *testing.T) {
 
 	require.NoError(t, p1.Publish(testTopic, testMessage(t.Context(), "first", "customer-1")))
 	require.Equal(t, "first", nextAttempt(t, raw).id)
-	// When another event for the same key and one for a different key arrive,
-	// the different key can be delivered while the first send remains blocked.
+	// When the other relay publishes the same key, its event can be delivered
+	// while the first send remains blocked.
 	require.NoError(t, p2.Publish(testTopic, testMessage(t.Context(), "second", "customer-1")))
-	require.NoError(t, p2.Publish(testTopic, testMessage(t.Context(), "unrelated", "customer-2")))
-	require.Equal(t, "unrelated", nextAttempt(t, raw).id)
-	noAttempt(t, raw)
-
-	release()
-	// Then the queued same-key event is delivered after the first.
 	require.Equal(t, "second", nextAttempt(t, raw).id)
+	require.Eventually(t, func() bool { return len(raw.deliveredIDs()) == 1 }, 5*time.Second, 20*time.Millisecond)
+	require.Equal(t, []string{"second"}, raw.deliveredIDs())
+
+	// Then the claimed row was not sent twice, and completes when released.
+	noAttempt(t, raw)
+	require.Len(t, raw.attemptsFor("first"), 1)
+	release()
 	eventuallyRowCount(t, client, 0)
 }
 
@@ -485,13 +400,14 @@ func TestPublisherDrainsBeyondOneBoundedPass(t *testing.T) {
 	require.NoError(t, err)
 
 	// When the commit wakes the drainer, it schedules continuation itself.
-	// Then every event is delivered in order without another publish.
+	// Then every event is delivered without another publish.
 	require.Eventually(t, func() bool { return len(raw.deliveredIDs()) == eventCount }, 20*time.Second, 20*time.Millisecond)
 	eventuallyRowCount(t, client, 0)
-	ids := raw.deliveredIDs()
-	for i, id := range ids {
-		require.Equal(t, fmt.Sprintf("event-%03d", i), id)
+	expected := make([]string, eventCount)
+	for i := range expected {
+		expected[i] = fmt.Sprintf("event-%03d", i)
 	}
+	require.ElementsMatch(t, expected, raw.deliveredIDs())
 }
 
 var _ message.Publisher = (*recordingPublisher)(nil)

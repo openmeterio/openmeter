@@ -25,7 +25,6 @@ func (EventOutbox) Fields() []ent.Field {
 		field.Int64("id"),
 		field.String("message_id").NotEmpty().Immutable(),
 		field.String("topic").NotEmpty().Immutable(),
-		field.String("delivery_key").Immutable(),
 		field.Bytes("payload").Immutable(),
 		field.String("metadata").
 			GoType(map[string]string{}).
@@ -38,6 +37,5 @@ func (EventOutbox) Fields() []ent.Field {
 func (EventOutbox) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("topic", "id").Annotations(entsql.IndexWhere("deleted_at IS NULL")),
-		index.Fields("topic", "delivery_key", "id").Annotations(entsql.IndexWhere("deleted_at IS NULL")),
 	}
 }
