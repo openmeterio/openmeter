@@ -22,6 +22,7 @@ type creditTransactionLoaderInput struct {
 	Currency            *currencyx.Code
 	AsOf                time.Time
 	FeatureFilter       mo.Option[creditpurchase.FeatureFilters]
+	PlanFilter          mo.Option[*ledger.PlanFilter]
 }
 
 type creditTransactionLoaderResult struct {

@@ -151,6 +151,22 @@ func (f VersionFilter) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// ValidateAsPlanFilter validates a balance or transaction selection: one plan,
+// optionally pinned to a concrete version. Grant restrictions may use ranges.
+func (f PlanFilter) ValidateAsPlanFilter() error {
+	var errs []error
+
+	if err := (CreditFilters{Plans: []PlanFilter{f}}).Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if f.Version != nil && f.Version.Eq == nil {
+		errs = append(errs, errors.New("plan selection requires an exact version"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 // effectiveVersion selects the oldest format that represents new filters.
 // Explicit versions are retained so stored filters keep their encoding contract.
 func (f CreditFilters) effectiveVersion() CreditFiltersVersion {

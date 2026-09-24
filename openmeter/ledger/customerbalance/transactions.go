@@ -50,6 +50,7 @@ type ListCreditTransactionsInput struct {
 	AsOf     *time.Time
 
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	PlanFilter    mo.Option[*ledger.PlanFilter]
 }
 
 func (i ListCreditTransactionsInput) Validate() error {
@@ -97,6 +98,10 @@ func (i ListCreditTransactionsInput) Validate() error {
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if err := ValidatePlanFilter(i.PlanFilter); err != nil {
+		errs = append(errs, fmt.Errorf("plan filter: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -164,6 +169,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		Currency:            input.Currency,
 		AsOf:                creditTransactionsAsOf(input.AsOf),
 		FeatureFilter:       normalizeFeatureFilter(input.FeatureFilter),
+		PlanFilter:          input.PlanFilter,
 	}
 
 	loadedLists := make([][]CreditTransaction, 0, len(loaders))
@@ -195,6 +201,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		CustomerID:    input.CustomerID,
 		Accounts:      accountIDs,
 		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+		PlanFilter:    input.PlanFilter,
 		Items:         items,
 	}); err != nil {
 		return ListCreditTransactionsResult{}, err

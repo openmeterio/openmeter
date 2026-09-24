@@ -279,6 +279,15 @@ func (r Route) Filter() RouteFilter {
 }
 
 func (r Route) Matches(filter RouteFilter) bool {
+	if plan, ok := filter.MatchPlan.Get(); ok {
+		if plan == nil {
+			if len(r.Filters.Plans) > 0 {
+				return false
+			}
+		} else if !(CreditFilters{Plans: r.Filters.Plans}).Matches(Route{Filters: CreditFilters{Plans: []PlanFilter{*plan}}}) {
+			return false
+		}
+	}
 	if exact, ok := filter.CreditFilters.Get(); ok && !r.Filters.Equal(exact) {
 		return false
 	}
@@ -385,6 +394,13 @@ func (r Route) Normalize() (Route, error) {
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
+	if plan, ok := f.MatchPlan.Get(); ok && plan != nil {
+		if err := plan.ValidateAsPlanFilter(); err != nil {
+			return RouteFilter{}, fmt.Errorf("match plan: %w", err)
+		}
+		normalized := (CreditFilters{Plans: []PlanFilter{*plan}}).Normalize()
+		f.MatchPlan = mo.Some(&normalized.Plans[0])
+	}
 	if exact, ok := f.CreditFilters.Get(); ok {
 		if err := exact.Validate(); err != nil {
 			return RouteFilter{}, err
@@ -393,7 +409,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		f.CreditFilters = mo.Some(exact.Normalize())
 	}
 
-	if f.Currency.Code == "" && f.CostBasisCurrency.IsAbsent() && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
+	if f.Currency.Code == "" && f.CostBasisCurrency.IsAbsent() && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.MatchPlan.IsAbsent() && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
 		return f, nil
 	}
 
@@ -472,6 +488,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		TaxBehavior:                    normalizedTaxBehavior,
 		Features:                       normalizedFeatures,
 		MatchFeature:                   f.MatchFeature,
+		MatchPlan:                      f.MatchPlan,
 		CostBasis:                      normalizedCostBasis,
 		CreditPriority:                 normalized.CreditPriority,
 		TransactionAuthorizationStatus: normalized.TransactionAuthorizationStatus,

@@ -540,6 +540,9 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.ExactFiltersPredicate(s.C, exact)) })
 	}
 
+	if plan, ok := route.MatchPlan.Get(); ok {
+		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.MatchPlanPredicate(s.C, plan)) })
+	}
 	if features, ok := route.Features.Get(); ok {
 		routePredicates = append(routePredicates, func(s *sql.Selector) { s.Where(creditfilterquery.ExactFeaturesPredicate(s.C, features)) })
 	}
@@ -737,6 +740,9 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]
 		predicates = append(predicates, creditfilterquery.ExactFiltersPredicate(routeColumn, exact))
 	}
 
+	if plan, ok := route.MatchPlan.Get(); ok {
+		predicates = append(predicates, creditfilterquery.MatchPlanPredicate(routeColumn, plan))
+	}
 	if features, ok := route.Features.Get(); ok {
 		predicates = append(predicates, creditfilterquery.ExactFeaturesPredicate(routeColumn, features))
 	}

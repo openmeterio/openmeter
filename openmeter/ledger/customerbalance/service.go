@@ -106,6 +106,7 @@ type GetBalanceServiceInput struct {
 	CustomerID    customer.CustomerID
 	Currency      currencies.CurrencyReference
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	PlanFilter    mo.Option[*ledger.PlanFilter]
 	BalanceQuery  ledger.BalanceQuery
 }
 
@@ -113,6 +114,7 @@ type GetBalanceCurrenciesInput struct {
 	CustomerID    customer.CustomerID
 	Currencies    CurrencyFilter
 	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	PlanFilter    mo.Option[*ledger.PlanFilter]
 	AsOf          *time.Time
 }
 
@@ -133,6 +135,10 @@ func (i GetBalanceServiceInput) Validate() error {
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if err := ValidatePlanFilter(i.PlanFilter); err != nil {
+		errs = append(errs, fmt.Errorf("plan filter: %w", err))
 	}
 
 	if i.BalanceQuery.After != nil {
@@ -193,6 +199,10 @@ func (i GetBalanceCurrenciesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
 	}
 
+	if err := ValidatePlanFilter(i.PlanFilter); err != nil {
+		errs = append(errs, fmt.Errorf("plan filter: %w", err))
+	}
+
 	if i.AsOf != nil && i.AsOf.IsZero() {
 		errs = append(errs, errors.New("asOf must not be zero"))
 	}
@@ -209,22 +219,22 @@ func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
 }
 
 func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
-	route := i.featureRoute()
+	route := i.creditRoute()
 	route.Currency = i.Currency.Clone()
 
 	return route
 }
 
 func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
-	route := i.featureRoute()
+	route := i.creditRoute()
 	route.Currency = i.Currency.Clone()
 	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
 
 	return route
 }
 
-func (i GetBalanceServiceInput) featureRoute() ledger.RouteFilter {
-	return featureFilterRoute(normalizeFeatureFilter(i.FeatureFilter))
+func (i GetBalanceServiceInput) creditRoute() ledger.RouteFilter {
+	return creditFilterRoute(normalizeFeatureFilter(i.FeatureFilter), i.PlanFilter)
 }
 
 func (c Config) Validate() error {
@@ -309,7 +319,7 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 	// queries return zero instead of mixing current impacts with a past ledger
 	// balance that never represented one coherent point in time.
 	if input.BalanceQuery.AsOf == nil {
-		impacts, err := s.getChargeLiveBalanceImpacts(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter))
+		impacts, err := s.getChargeLiveBalanceImpacts(ctx, input.CustomerID, input.Currency, input.creditRoute())
 		if err != nil {
 			return nil, fmt.Errorf("get charge live balance impacts: %w", err)
 		}
@@ -318,7 +328,7 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		live = s.balanceCalculator.CalculateLiveBalanceFromSources(result.spendable, sources, impacts)
 	}
 
-	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
+	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, input.creditRoute(), input.pendingGrantAsOf())
 	if err != nil {
 		return nil, fmt.Errorf("get pending grant amount: %w", err)
 	}
@@ -459,14 +469,14 @@ func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurr
 		return nil, err
 	}
 
-	pendingCurrencies, err := s.getPendingGrantCurrencies(ctx, input.CustomerID, normalizeFeatureFilter(input.FeatureFilter), asOf)
+	pendingCurrencies, err := s.getPendingGrantCurrencies(ctx, input.CustomerID, creditFilterRoute(normalizeFeatureFilter(input.FeatureFilter), input.PlanFilter), asOf)
 	if err != nil {
 		return nil, err
 	}
 
 	references := append(ledgerCurrencies, pendingCurrencies...)
 	if input.AsOf == nil {
-		liveCurrencies, err := s.getChargeLiveBalanceCurrencies(ctx, input.CustomerID, normalizeFeatureFilter(input.FeatureFilter))
+		liveCurrencies, err := s.getChargeLiveBalanceCurrencies(ctx, input.CustomerID, creditFilterRoute(normalizeFeatureFilter(input.FeatureFilter), input.PlanFilter))
 		if err != nil {
 			return nil, err
 		}
@@ -612,7 +622,7 @@ func (s *service) getLedgerBalanceCurrencies(ctx context.Context, customerID cus
 func (s *service) getPendingGrantCurrencies(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	featureFilter mo.Option[creditpurchase.FeatureFilters],
+	routeFilter ledger.RouteFilter,
 	asOf time.Time,
 ) ([]currencies.CurrencyReference, error) {
 	charges, err := s.listPendingGrantCandidateCharges(ctx, customerID)
@@ -631,7 +641,7 @@ func (s *service) getPendingGrantCurrencies(
 			continue
 		}
 
-		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.Filters.Features) {
+		if !(ledger.Route{Filters: creditPurchaseCharge.Intent.Filters}).Matches(routeFilter) {
 			continue
 		}
 
@@ -657,7 +667,7 @@ func (s *service) getPendingGrantAmount(
 	ctx context.Context,
 	customerID customer.CustomerID,
 	currency currencies.CurrencyReference,
-	featureFilter mo.Option[creditpurchase.FeatureFilters],
+	routeFilter ledger.RouteFilter,
 	asOf time.Time,
 ) (alpacadecimal.Decimal, error) {
 	charges, err := s.listPendingGrantCandidateCharges(ctx, customerID)
@@ -680,7 +690,7 @@ func (s *service) getPendingGrantAmount(
 			continue
 		}
 
-		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.Filters.Features) {
+		if !(ledger.Route{Filters: creditPurchaseCharge.Intent.Filters}).Matches(routeFilter) {
 			continue
 		}
 
@@ -766,25 +776,7 @@ func canBecomeEffectiveLedgerCreditAt(charge creditpurchase.Charge, asOf time.Ti
 	return true
 }
 
-func featureFilterMatchesCreditPurchase(featureFilter mo.Option[creditpurchase.FeatureFilters], grantFeatures creditpurchase.FeatureFilters) bool {
-	if featureFilter.IsAbsent() {
-		return true
-	}
-
-	grantFeatures = grantFeatures.Normalize()
-	filterFeatures := featureFilter.OrEmpty()
-	if filterFeatures == nil {
-		return len(grantFeatures) == 0
-	}
-
-	if len(grantFeatures) == 0 {
-		return true
-	}
-
-	return len(filterFeatures) == 1 && slices.Contains(grantFeatures, filterFeatures[0])
-}
-
-func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]Impact, error) {
+func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencies.CurrencyReference, routeFilter ledger.RouteFilter) ([]Impact, error) {
 	items, err := s.listChargeLiveBalanceCandidates(ctx, customerID)
 	if err != nil {
 		return nil, err
@@ -792,7 +784,7 @@ func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID cu
 
 	impacts := make([]Impact, 0, len(items))
 	for _, charge := range items {
-		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, currency, featureFilter)
+		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, currency, routeFilter)
 		if err != nil {
 			return nil, err
 		}
@@ -807,7 +799,7 @@ func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID cu
 	return impacts, nil
 }
 
-func (s *service) getChargeLiveBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]currencies.CurrencyReference, error) {
+func (s *service) getChargeLiveBalanceCurrencies(ctx context.Context, customerID customer.CustomerID, routeFilter ledger.RouteFilter) ([]currencies.CurrencyReference, error) {
 	items, err := s.listChargeLiveBalanceCandidates(ctx, customerID)
 	if err != nil {
 		return nil, err
@@ -820,7 +812,7 @@ func (s *service) getChargeLiveBalanceCurrencies(ctx context.Context, customerID
 			return nil, err
 		}
 
-		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, reference, featureFilter)
+		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, reference, routeFilter)
 		if err != nil {
 			return nil, err
 		}
@@ -885,22 +877,22 @@ func (s *service) chargeCurrencyReference(charge charges.Charge) (currencies.Cur
 	}
 }
 
-func (s *service) getChargeLiveBalanceImpact(ctx context.Context, charge charges.Charge, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
+func (s *service) getChargeLiveBalanceImpact(ctx context.Context, charge charges.Charge, currency currencies.CurrencyReference, routeFilter ledger.RouteFilter) (*Impact, error) {
 	if !chargeHasStarted(charge) {
 		return nil, nil
 	}
 
 	switch charge.Type() {
 	case meta.ChargeTypeFlatFee:
-		return getFlatFeeChargePendingBalanceImpact(charge, currency, featureFilter)
+		return getFlatFeeChargePendingBalanceImpact(charge, currency, routeFilter)
 	case meta.ChargeTypeUsageBased:
-		return s.getUsageBasedChargePendingBalanceImpact(ctx, charge, currency, featureFilter)
+		return s.getUsageBasedChargePendingBalanceImpact(ctx, charge, currency, routeFilter)
 	default:
 		return nil, nil
 	}
 }
 
-func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
+func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencies.CurrencyReference, routeFilter ledger.RouteFilter) (*Impact, error) {
 	flatFeeCharge, err := charge.AsFlatFeeCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map flat fee charge: %w", err)
@@ -910,14 +902,14 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 		return nil, nil
 	}
 
-	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.GetFeatureKey()) {
+	if !(ledger.Route{Filters: flatFeeCharge.Intent.GetCreditFilters()}).Matches(routeFilter) {
 		return nil, nil
 	}
 
 	return newImpactOrNil(charge, flatFeeCharge.State.AmountAfterProration)
 }
 
-func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencies.CurrencyReference, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
+func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencies.CurrencyReference, routeFilter ledger.RouteFilter) (*Impact, error) {
 	usageBasedCharge, err := charge.AsUsageBasedCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map usage based charge: %w", err)
@@ -927,7 +919,7 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 		return nil, nil
 	}
 
-	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.GetFeatureKey()) {
+	if !(ledger.Route{Filters: usageBasedCharge.Intent.GetCreditFilters()}).Matches(routeFilter) {
 		return nil, nil
 	}
 
@@ -939,27 +931,6 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 	}
 
 	return newImpactOrNil(charges.NewCharge(currentTotals.Charge), currentTotals.DueTotals.Total)
-}
-
-// featureFilterMatchesChargeFeatureKey is query-scope matching: a feature
-// balance view includes unrestricted charge impacts so it can show the customer's
-// shared-credit exposure for that feature. Actual credit allocability is checked
-// separately when live impacts are applied to concrete credit sources.
-func featureFilterMatchesChargeFeatureKey(featureFilter mo.Option[creditpurchase.FeatureFilters], featureKey string) bool {
-	if featureFilter.IsAbsent() {
-		return true
-	}
-
-	features := featureFilter.OrEmpty()
-	if features == nil {
-		return featureKey == ""
-	}
-
-	if featureKey == "" {
-		return true
-	}
-
-	return len(features) == 1 && features[0] == featureKey
 }
 
 func chargeHasStarted(charge charges.Charge) bool {

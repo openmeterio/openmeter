@@ -42,6 +42,17 @@ History before/after values remain booked balances. A grant of 10 followed by
 consumption of 4 shows `0 → 10`, then `10 → 6`, even though spendable credit
 before that consumption is already 6.
 
+Balance and transaction queries support one feature key and one plan key, with
+an optional exact plan version. Each selection includes credits unrestricted on
+that dimension; feature and plan selections combine with AND. `exists=false`
+selects no restriction on that dimension only. For example, feature-unrestricted
+credits can still be plan-restricted. Querying a plan without a version includes
+all its versions. The selection applies to pending/live balances and transaction
+amounts and booked before/after balances before pagination; responses remain per currency.
+History follows the selected credit routes, not the consuming charge's plan or
+feature. Spending unrestricted credit therefore appears in every matching view,
+even when another plan or feature consumed it. Filtered views overlap and must
+not be added together.
 
 Fiat currencies are identified by code. Custom-currency balance rows also
 carry `custom_currency.id`; balances remain separate when historical managed
