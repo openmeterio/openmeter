@@ -13,8 +13,61 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestSubscriptionSpecValidateBillingCadence(t *testing.T) {
+	for _, tc := range []struct {
+		cadence string
+		valid   bool
+	}{
+		{"PT0S", false},
+		{"PT1H", false},
+		{"PT23H59M59S", false},
+		{"P1D", true},
+		{"PT24H", true},
+		{"P1M", true},
+	} {
+		t.Run(tc.cadence, func(t *testing.T) {
+			spec := subscription.SubscriptionSpec{
+				CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
+					BillingCadence: datetime.MustParseDuration(t, tc.cadence),
+				},
+				CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
+					InvoiceCurrency: "USD", BillingAnchor: time.Now(),
+				},
+			}
+			err := spec.Validate()
+			if tc.valid {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, subscription.ErrSubscriptionBillingCadenceTooShort)
+				issues, conversionErr := models.AsValidationIssues(err)
+				require.NoError(t, conversionErr)
+				require.Len(t, issues, 1)
+				require.Equal(t, subscription.ErrCodeSubscriptionBillingCadenceTooShort, issues[0].Code())
+				require.Equal(t, "billingCadence", issues[0].Field().String())
+			}
+		})
+	}
+}
+
+func TestSubscriptionSpecValidateRejectsLegacyShortBillingCadence(t *testing.T) {
+	// Cancellation deliberately ignores this issue for existing subscriptions;
+	// general spec validation must still reject their short billing period.
+	start := time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	legacy := subscription.SubscriptionSpec{
+		CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
+			BillingCadence: datetime.MustParseDuration(t, "PT1H"),
+		},
+		CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
+			InvoiceCurrency: "USD", BillingAnchor: start, ActiveFrom: start, ActiveTo: &end,
+		},
+	}
+	require.ErrorIs(t, legacy.Validate(), subscription.ErrSubscriptionBillingCadenceTooShort)
+}
 
 func TestGetFullServicePeriodAtInputValidate(t *testing.T) {
 	clock.FreezeTime(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))
@@ -186,4 +239,45 @@ func TestSubscriptionSpecHasUnitConfig(t *testing.T) {
 		s := specWith(item(nil), item(divide))
 		assert.True(t, s.HasUnitConfig())
 	})
+}
+
+func TestSubscriptionSpecValidateRateCardBillingCadence(t *testing.T) {
+	makeSpec := func(cadence string) subscription.SubscriptionSpec {
+		period := datetime.MustParseDuration(t, cadence)
+		return subscription.SubscriptionSpec{
+			CreateSubscriptionPlanInput:     subscription.CreateSubscriptionPlanInput{BillingCadence: datetime.MustParseDuration(t, "P1D")},
+			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{InvoiceCurrency: "USD", BillingAnchor: time.Now()},
+			Phases: map[string]*subscription.SubscriptionPhaseSpec{
+				"default": {CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{PhaseKey: "default", Name: "Default"}, ItemsByKey: map[string][]*subscription.SubscriptionItemSpec{
+					"fee": {{CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+							PhaseKey: "default",
+							ItemKey:  "fee",
+							RateCard: &productcatalog.FlatFeeRateCard{
+								RateCardMeta:   productcatalog.RateCardMeta{Key: "fee", Name: "Fee"},
+								BillingCadence: &period,
+							},
+						},
+					}}},
+				}},
+			},
+		}
+	}
+	hourly := makeSpec("PT1H")
+	validationErr := hourly.Validate()
+	require.ErrorIs(t, validationErr, productcatalog.ErrRateCardBillingCadenceTooShort)
+	issues, err := models.AsValidationIssues(validationErr)
+	require.NoError(t, err)
+	found := false
+	for _, issue := range issues {
+		if issue.Code() == productcatalog.ErrCodeRateCardBillingCadenceTooShort {
+			require.Equal(t, "phases.default.itemsByKey.fee[0].billingCadence", issue.Field().String())
+			found = true
+		}
+	}
+	require.True(t, found)
+	daily := makeSpec("P1D")
+	require.NoError(t, daily.Validate())
+	fixed := makeSpec("PT24H")
+	require.NoError(t, fixed.Validate())
 }

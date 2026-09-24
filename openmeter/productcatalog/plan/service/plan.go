@@ -802,6 +802,8 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{
+			// The copied plan is a draft; its warnings must be fixed before publishing.
+			IgnoreNonCriticalIssues: true,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: sourcePlan.Namespace,
 			},

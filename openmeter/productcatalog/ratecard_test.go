@@ -1545,3 +1545,37 @@ func TestValidateRateCardsHaveCompatibleUnitConfig(t *testing.T) {
 		assert.NoError(t, validate(card(nil), card(divide1000())))
 	})
 }
+
+func TestRateCardBillingCadenceMinimum(t *testing.T) {
+	for _, tc := range []struct {
+		cadence string
+		valid   bool
+	}{
+		{"PT23H59M59S", false},
+		{"PT1H", false},
+		{"P1D", true},
+		{"PT24H", true},
+		{"P1M", true},
+	} {
+		t.Run(tc.cadence, func(t *testing.T) {
+			cadence := datetime.MustParseDuration(t, tc.cadence)
+			for _, card := range []RateCard{
+				&FlatFeeRateCard{BillingCadence: &cadence},
+				&UsageBasedRateCard{BillingCadence: cadence},
+			} {
+				err := card.Validate()
+				if tc.valid {
+					require.NoError(t, err)
+				} else {
+					require.ErrorIs(t, err, ErrRateCardBillingCadenceTooShort)
+					issues, conversionErr := models.AsValidationIssues(err)
+					require.NoError(t, conversionErr)
+					require.Len(t, issues, 1)
+					require.Equal(t, models.ErrorSeverityWarning, issues[0].Severity())
+				}
+			}
+			require.Equal(t, tc.cadence, cadence.String())
+		})
+	}
+	require.NoError(t, (&FlatFeeRateCard{}).Validate())
+}

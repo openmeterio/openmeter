@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -82,6 +83,23 @@ func IsValidationIssueWithBoolAttr(err error, attrName string) bool {
 //
 
 // Subscription
+
+const ErrCodeSubscriptionBillingCadenceTooShort models.ErrorCode = "subscription_billing_cadence_too_short"
+
+var ErrSubscriptionBillingCadenceTooShort = models.NewValidationIssue(
+	ErrCodeSubscriptionBillingCadenceTooShort,
+	"subscription billing cadence must be at least 24 hours",
+	models.WithFieldString("billingCadence"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+// LegacySpecValidationErrors may already exist in persisted subscriptions after validation rules change.
+// Reading and canceling an existing subscription may tolerate only these errors.
+var LegacySpecValidationErrors = []error{
+	ErrSubscriptionBillingCadenceTooShort,
+	productcatalog.ErrRateCardBillingCadenceTooShort,
+}
 
 const ErrCodeSubscriptionBillingAnchorIsRequired models.ErrorCode = "subscription_billing_anchor_is_required"
 
