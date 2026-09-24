@@ -1,10 +1,12 @@
 package subscription
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/samber/lo"
 	"github.com/wI2L/jsondiff"
@@ -329,8 +331,20 @@ func NewSubscriptionView(
 	// Let's sort the phases
 	sortedPhases := make([]SubscriptionPhase, len(phases))
 	copy(sortedPhases, phases)
+	// Phases skipped via startingPhase are zero length and share ActiveFrom with the next phase,
+	// so we tie-break the same way as SubscriptionSpec.GetSortedPhases instead of relying on DB order.
 	slices.SortStableFunc(sortedPhases, func(i, j SubscriptionPhase) int {
-		return i.ActiveFrom.Compare(j.ActiveFrom)
+		if diff := i.ActiveFrom.Compare(j.ActiveFrom); diff != 0 {
+			return diff
+		}
+
+		if i.SortHint != nil && j.SortHint != nil {
+			if diff := cmp.Compare(*i.SortHint, *j.SortHint); diff != 0 {
+				return diff
+			}
+		}
+
+		return strings.Compare(i.Key, j.Key)
 	})
 
 	itemsByPhase := lo.GroupBy(items, func(item SubscriptionItem) string {
