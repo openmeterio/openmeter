@@ -3,6 +3,8 @@ package persistedstate
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -25,6 +27,7 @@ type Item interface {
 	Type() ItemType
 	ChildUniqueReferenceID() *string
 	ServicePeriod() timeutil.ClosedPeriod
+	GetSubscriptionReference() *meta.SubscriptionReference
 	IsSubscriptionManaged() bool
 	HasLastLineAnnotation(annotation string) bool
 }
@@ -75,6 +78,10 @@ func (i persistedLine) ChildUniqueReferenceID() *string {
 
 func (i persistedLine) ServicePeriod() timeutil.ClosedPeriod {
 	return i.line.GetServicePeriod()
+}
+
+func (i persistedLine) GetSubscriptionReference() *meta.SubscriptionReference {
+	return subscriptionReferenceFromBilling(i.line.GetSubscriptionReference())
 }
 
 func (i persistedLine) GetLine() billing.GenericInvoiceLine {
@@ -138,6 +145,10 @@ func (i persistedSplitLineHierarchy) ChildUniqueReferenceID() *string {
 
 func (i persistedSplitLineHierarchy) ServicePeriod() timeutil.ClosedPeriod {
 	return i.hierarchy.Group.ServicePeriod
+}
+
+func (i persistedSplitLineHierarchy) GetSubscriptionReference() *meta.SubscriptionReference {
+	return subscriptionReferenceFromBilling(i.hierarchy.Group.Subscription)
 }
 
 func (i persistedSplitLineHierarchy) GetSplitLineHierarchy() *billing.SplitLineHierarchy {
@@ -235,6 +246,14 @@ func (i persistedUsageBasedCharge) ServicePeriod() timeutil.ClosedPeriod {
 	return i.baseIntent.ServicePeriod
 }
 
+func (i persistedUsageBasedCharge) GetSubscriptionReference() *meta.SubscriptionReference {
+	if i.baseIntent.Subscription == nil {
+		return nil
+	}
+
+	return lo.ToPtr(*i.baseIntent.Subscription)
+}
+
 func (i persistedUsageBasedCharge) IsSubscriptionManaged() bool {
 	return i.baseIntent.ManagedBy == billing.SubscriptionManagedLine
 }
@@ -304,6 +323,14 @@ func (i persistedFlatFeeCharge) ServicePeriod() timeutil.ClosedPeriod {
 	return i.baseIntent.ServicePeriod
 }
 
+func (i persistedFlatFeeCharge) GetSubscriptionReference() *meta.SubscriptionReference {
+	if i.baseIntent.Subscription == nil {
+		return nil
+	}
+
+	return lo.ToPtr(*i.baseIntent.Subscription)
+}
+
 func (i persistedFlatFeeCharge) IsSubscriptionManaged() bool {
 	return i.baseIntent.ManagedBy == billing.SubscriptionManagedLine
 }
@@ -344,6 +371,18 @@ func NewChargeItemFromChargeType(chargeType meta.ChargeType, usageBasedCharge *u
 		return newPersistedFlatFeeCharge(*flatFeeCharge)
 	default:
 		return nil, fmt.Errorf("unsupported charge type: %s", chargeType)
+	}
+}
+
+func subscriptionReferenceFromBilling(reference *billing.SubscriptionReference) *meta.SubscriptionReference {
+	if reference == nil {
+		return nil
+	}
+
+	return &meta.SubscriptionReference{
+		SubscriptionID: reference.SubscriptionID,
+		PhaseID:        reference.PhaseID,
+		ItemID:         reference.ItemID,
 	}
 }
 

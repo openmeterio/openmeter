@@ -12,12 +12,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -128,8 +130,17 @@ func (i ApplyInput) Validate() error {
 	return errors.Join(errs...)
 }
 
+type referenceRepairStrategy string
+
+const (
+	referenceRepairStrategyUpToDate    referenceRepairStrategy = "up-to-date"
+	referenceRepairStrategyReplace     referenceRepairStrategy = "replace"
+	referenceRepairStrategySyncAsUsual referenceRepairStrategy = "sync-as-usual"
+)
+
 type Plan struct {
 	InvoicePatches                     []InvoicePatch
+	ChargeReferencePatches             ChargeReferencePatches
 	ChargePatches                      charges.ApplyPatchesInput
 	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
@@ -140,13 +151,14 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	return len(p.InvoicePatches) == 0 && p.ChargePatches.IsEmpty()
+	return len(p.InvoicePatches) == 0 && p.ChargeReferencePatches.IsEmpty() && p.ChargePatches.IsEmpty()
 }
 
 func (s *Service) diffItem(
 	target *targetstate.StateItem,
 	existing persistedstate.Item,
 	patches PatchCollection,
+	chargeReferencePatches ChargeReferencePatches,
 ) error {
 	switch {
 	case target == nil && existing == nil:
@@ -160,6 +172,83 @@ func (s *Service) diffItem(
 
 	existingPeriod := existing.ServicePeriod()
 	targetPeriod := target.GetServicePeriod()
+
+	referenceRepairStrategy := referenceRepairStrategyUpToDate
+	if patches.GetLineEngineType().IsCharge() && !targetPeriod.From.Truncate(streaming.MinimumWindowSizeDuration).Equal(existingPeriod.From.Truncate(streaming.MinimumWindowSizeDuration)) {
+		// The legacy repair path silently overwrote the subscription reference when a logical
+		// child reference matched, even if the target was a replacement item with a different
+		// service-period start. Shrink and extend cannot repair that invalid persisted state
+		// because they only move the period end, so the artifact must be retired and recreated.
+		// Compare at streaming precision because persisted billing periods are normalized to it.
+		referenceRepairStrategy = referenceRepairStrategyReplace
+	}
+
+	if patches.GetLineEngineType().IsCharge() && referenceRepairStrategy == referenceRepairStrategyUpToDate {
+		existingReference := existing.GetSubscriptionReference()
+		if existingReference == nil {
+			// Subscription-managed charges must have an ownership reference; without it
+			// reconciliation cannot distinguish a repair from adopting an unrelated charge.
+			return fmt.Errorf("existing subscription-managed item[%s] is missing its subscription reference", existing.ID().ID)
+		}
+
+		targetReference := target.GetSubscriptionReference()
+		if targetReference == nil {
+			return fmt.Errorf("target subscription item[%s] is missing its subscription reference", target.UniqueID)
+		}
+
+		if !existingReference.Equal(*targetReference) {
+			// Periods are classified by the existing shrink/extend flow below and the physical
+			// reference is handled separately. Any remaining base-intent difference means the
+			// subscription replaced the charge rather than merely reassigning it.
+			var intentsMatch bool
+			var err error
+			switch existingCharge := existing.(type) {
+			case persistedstate.FlatFeeChargeGetter:
+				intentsMatch, err = flatFeeChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existingCharge, *target)
+			case persistedstate.UsageBasedChargeGetter:
+				intentsMatch, err = usageBasedChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existingCharge, *target)
+			default:
+				return fmt.Errorf("unsupported charge item type for subscription reference repair: %s", existing.Type())
+			}
+			if err != nil {
+				return fmt.Errorf("comparing charge intent: %w", err)
+			}
+
+			if !intentsMatch {
+				referenceRepairStrategy = referenceRepairStrategyReplace
+			} else {
+				referencePatch, err := targetReference.AsPatchUpdateSubscriptionReference(*existingReference)
+				if err != nil {
+					return fmt.Errorf("converting target subscription reference to patch: %w", err)
+				}
+
+				if err := chargeReferencePatches.add(chargesmeta.ChargeID(existing.ID()), referencePatch); err != nil {
+					return fmt.Errorf("adding subscription reference patch: %w", err)
+				}
+
+				// Continue through normal period reconciliation so a reference repair can be
+				// combined with a compatible shrink or extend in the same sync plan.
+				referenceRepairStrategy = referenceRepairStrategySyncAsUsual
+			}
+		} else {
+			referenceRepairStrategy = referenceRepairStrategySyncAsUsual
+		}
+	}
+
+	if referenceRepairStrategy == referenceRepairStrategyReplace {
+		// Replacement preserves the logical child reference while retiring the old physical
+		// charge. Charge deletion remains visible to downstream consumers; economic history
+		// and any user-managed overrides stay owned by the charge lifecycle, not this diff.
+		if err := patches.AddDelete(target.UniqueID, existing); err != nil {
+			return fmt.Errorf("adding delete patch for existing item[%s]: %w", existing.ID().ID, err)
+		}
+
+		if err := patches.AddCreate(*target); err != nil {
+			return fmt.Errorf("adding create patch for target item[%s]: %w", target.UniqueID, err)
+		}
+
+		return nil
+	}
 
 	// Charge-backed targets do not use invoice-style semantic proration. The charge
 	// stack materializes and prorates the charge state itself, so reconciliation only
@@ -259,7 +348,8 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			creditThenInvoiceEnabled: s.enableCreditThenInvoice,
 			creditsEnabled:           s.chargesService != nil,
 			featureGate:              s.featureGate,
-		})
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("creating collection by type: %w", err)
 	}
@@ -267,6 +357,8 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	if patchCollections == nil {
 		return nil, fmt.Errorf("patchCollectionRouter is nil")
 	}
+
+	chargeReferencePatches := make(ChargeReferencePatches, len(input.Target.Items)+len(input.Persisted.ByUniqueID))
 
 	persisted := input.Persisted
 	inScopeLines, err := filterInScopeLines(input.Target.Items, persisted.ByUniqueID, patchCollections)
@@ -306,7 +398,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("getting patch collection for deleted line[%s]: %w", id, err)
 		}
 
-		if err := s.diffItem(nil, line, patchCollection); err != nil {
+		if err := s.diffItem(nil, line, patchCollection, chargeReferencePatches); err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
 	}
@@ -323,7 +415,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 				return nil, fmt.Errorf("resolving default patch collection for new line[%s]: %w", id, err)
 			}
 
-			if err := s.diffItem(&targetLine, nil, defaultCollection); err != nil {
+			if err := s.diffItem(&targetLine, nil, defaultCollection, chargeReferencePatches); err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
 			}
 			continue
@@ -334,7 +426,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("getting patch collection for existing line[%s]: %w", id, err)
 		}
 
-		if err := s.diffItem(&targetLine, existingLine, patchCollection); err != nil {
+		if err := s.diffItem(&targetLine, existingLine, patchCollection, chargeReferencePatches); err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
 	}
@@ -343,9 +435,9 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	if err != nil {
 		return nil, fmt.Errorf("collecting charge patches: %w", err)
 	}
-
 	return &Plan{
 		InvoicePatches:                     patchCollections.CollectInvoicePatches(),
+		ChargeReferencePatches:             chargeReferencePatches,
 		ChargePatches:                      chargePatches,
 		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
@@ -373,14 +465,33 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		invoicePatches = append(invoicePatches, newInvoicePatches...)
 	}
 
+	chargeReferencePatches, err := input.Plan.ChargeReferencePatches.asApplyPatchesInput(input.Customer)
+	if err != nil {
+		return fmt.Errorf("building charge reference patches: %w", err)
+	}
+
 	if input.DryRun {
 		s.invoiceUpdater.LogPatches(invoicePatches, input.Plan.Invoices)
+		logChargesPatches(ctx, s.logger, chargeReferencePatches)
 		logChargesPatches(ctx, s.logger, input.Plan.ChargePatches)
 		return nil
 	}
 
 	if err := s.invoiceUpdater.ApplyPatches(ctx, input.Customer, invoicePatches); err != nil {
 		return fmt.Errorf("updating invoices: %w", err)
+	}
+
+	if !input.Plan.ChargeReferencePatches.IsEmpty() {
+		if s.chargesService == nil {
+			return fmt.Errorf("charges service is required when there are charge reference patches")
+		}
+
+		// Reference updates use a separate batch because ApplyPatches accepts one patch per
+		// charge. Applying it first lets a subsequent shrink or extend operate on the repaired
+		// ownership reference without coupling the two patch implementations.
+		if err := s.chargesService.ApplyPatches(ctx, chargeReferencePatches); err != nil {
+			return fmt.Errorf("updating charge subscription references: %w", err)
+		}
 	}
 
 	if !input.Plan.ChargePatches.IsEmpty() {

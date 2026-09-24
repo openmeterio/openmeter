@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -28,6 +29,29 @@ type Intent struct {
 
 	UniqueReferenceID *string                `json:"childUniqueReferenceID"`
 	Subscription      *SubscriptionReference `json:"subscription"`
+}
+
+var _ models.Equaler[Intent] = Intent{}
+
+// Equal compares currency identity without treating expanded currency data as intent.
+func (i Intent) Equal(other Intent) bool {
+	// Note: we don't want to hack a partial Equal method for the currency, that's why we have a custom
+	// Equal method for the intent.
+	if (i.Currency.Currency == nil) != (other.Currency.Currency == nil) {
+		return false
+	}
+
+	if i.Currency.Currency != nil && !i.Currency.Reference().Equal(other.Currency.Reference()) {
+		return false
+	}
+
+	return i.ManagedBy == other.ManagedBy &&
+		i.CustomerID == other.CustomerID &&
+		i.Annotations.Equal(other.Annotations) &&
+		i.TaxConfig.TaxCodeID == other.TaxConfig.TaxCodeID &&
+		equal.ComparablePtrEqual(i.TaxConfig.Behavior, other.TaxConfig.Behavior) &&
+		equal.ComparablePtrEqual(i.UniqueReferenceID, other.UniqueReferenceID) &&
+		equal.PtrEqual(i.Subscription, other.Subscription)
 }
 
 func (i Intent) Clone() Intent {

@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -48,6 +49,14 @@ func (r StateItem) IsBillable() bool {
 
 func (r StateItem) GetServicePeriod() timeutil.ClosedPeriod {
 	return r.ServicePeriod
+}
+
+func (r StateItem) GetSubscriptionReference() *chargesmeta.SubscriptionReference {
+	return &chargesmeta.SubscriptionReference{
+		SubscriptionID: r.Subscription.ID,
+		PhaseID:        r.PhaseID,
+		ItemID:         r.SubscriptionItem.ID,
+	}
 }
 
 func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {

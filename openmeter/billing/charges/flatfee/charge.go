@@ -28,6 +28,7 @@ var (
 	_ billingfeaturemeter.FeatureReferenceGetter = Charge{}
 	_ billingfeaturemeter.FeatureReferenceOwner  = Charge{}
 	_ billingfeaturemeter.FeatureReferenceGetter = Intent{}
+	_ models.Equaler[Intent]                     = Intent{}
 )
 
 type ChargeBase struct {
@@ -215,6 +216,10 @@ type Intent struct {
 	FeatureKey          *string                       `json:"featureKey,omitempty"`
 	FeatureID           *string                       `json:"featureId,omitempty"`
 	CostBasis           *costbasis.Intent             `json:"costBasis,omitempty"`
+}
+
+func (i Intent) Equal(other Intent) bool {
+	return deriveEqualIntent(&i, &other)
 }
 
 func (i Intent) Normalized() Intent {

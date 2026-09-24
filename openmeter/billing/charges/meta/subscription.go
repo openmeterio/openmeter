@@ -13,6 +13,10 @@ type SubscriptionReference struct {
 	ItemID         string `json:"itemID"`
 }
 
+func (r SubscriptionReference) Equal(other SubscriptionReference) bool {
+	return r == other
+}
+
 type UpdateSubscriptionReferenceInput struct {
 	ChargeID ChargeID
 	Target   SubscriptionReference
