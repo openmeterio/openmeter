@@ -57,7 +57,7 @@ func (h *handler) CreateCustomerEntitlementGrant() CreateCustomerEntitlementGran
 				return CreateCustomerEntitlementGrantResponse{}, err
 			}
 
-			return toAPIEntitlementGrant(created, clock.Now())
+			return ToAPIEntitlementGrant(created, clock.Now())
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerEntitlementGrantResponse](http.StatusCreated),
 		httptransport.AppendOptions(

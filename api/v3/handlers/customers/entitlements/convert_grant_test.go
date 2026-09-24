@@ -33,7 +33,7 @@ func TestToAPIEntitlementGrant(t *testing.T) {
 	}
 
 	t.Run("maps a never expiring non-recurring grant", func(t *testing.T) {
-		got, err := toAPIEntitlementGrant(base, now)
+		got, err := ToAPIEntitlementGrant(base, now)
 		require.NoError(t, err)
 
 		require.Equal(t, base.ID, got.Id)
@@ -66,7 +66,7 @@ func TestToAPIEntitlementGrant(t *testing.T) {
 		g.VoidedAt = &voidedAt
 		g.DeletedAt = &deletedAt
 
-		got, err := toAPIEntitlementGrant(g, now)
+		got, err := ToAPIEntitlementGrant(g, now)
 		require.NoError(t, err)
 
 		require.Equal(t, "P3M", lo.FromPtr(got.ExpiresAfter))

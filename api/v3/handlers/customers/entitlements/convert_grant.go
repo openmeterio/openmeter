@@ -37,9 +37,9 @@ func fromAPIEntitlementGrantSortField(ctx context.Context, field string) (grant.
 	return orderBy, nil
 }
 
-// toAPIEntitlementGrant maps a grant owned by an entitlement. The next recurrence
+// ToAPIEntitlementGrant maps a grant owned by an entitlement. The next recurrence
 // is calculated at now, the same way the legacy grant listing reports it.
-func toAPIEntitlementGrant(g grant.Grant, now time.Time) (api.BillingEntitlementGrant, error) {
+func ToAPIEntitlementGrant(g grant.Grant, now time.Time) (api.BillingEntitlementGrant, error) {
 	out := api.BillingEntitlementGrant{
 		Id:                g.ID,
 		EntitlementId:     g.OwnerID,

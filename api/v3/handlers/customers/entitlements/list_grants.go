@@ -102,7 +102,7 @@ func (h *handler) ListCustomerEntitlementGrants() ListCustomerEntitlementGrantsH
 			now := clock.Now()
 
 			items, err := slicesx.MapWithErr(result.Items, func(g grant.Grant) (api.BillingEntitlementGrant, error) {
-				return toAPIEntitlementGrant(g, now)
+				return ToAPIEntitlementGrant(g, now)
 			})
 			if err != nil {
 				return ListCustomerEntitlementGrantsResponse{}, fmt.Errorf("converting grants: %w", err)
