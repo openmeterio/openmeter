@@ -1046,7 +1046,6 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 	}
 
 	var hadValidationErr bool
-
 	for _, grouped := range groupedLines {
 		component := billing.LineEngineValidationComponent(grouped.Engine.GetLineEngineType())
 
@@ -1059,7 +1058,8 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 		}
 
 		lines, err := grouped.Engine.OnCollectionCompleted(ctx, input)
-		if err != nil {
+		recorder := billing.ValidationIssueRecorder{}
+		if err := recorder.RecordWarnings(err); err != nil {
 			hadValidationErr = true
 			if err := m.Invoice.MergeValidationIssues(billing.NewLineEngineValidationError(grouped.Engine, err), component); err != nil {
 				return err
@@ -1074,8 +1074,8 @@ func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
 			return fmt.Errorf("replacing collection completed lines for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 
-		if err := m.Invoice.MergeValidationIssues(nil, component); err != nil {
-			return fmt.Errorf("clearing collection completed validation issues for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
+		if err := m.Invoice.MergeValidationIssues(billing.NewLineEngineValidationError(grouped.Engine, recorder.ErrorsOrNil()), component); err != nil {
+			return fmt.Errorf("merging collection completed validation issues for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
 		}
 	}
 

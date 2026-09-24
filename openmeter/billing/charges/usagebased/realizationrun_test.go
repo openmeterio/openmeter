@@ -24,7 +24,6 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 		priorRunID  *RealizationRunID
 		wantLine    float64
 		wantPreLine float64
-		wantErr     bool
 	}{
 		{
 			name: "first run has no pre-line period quantity",
@@ -64,7 +63,7 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 			wantPreLine: 8,
 		},
 		{
-			name: "errors when current cumulative quantity is below prior billed quantity",
+			name: "preserves a negative raw line period when cumulative quantity falls",
 			runs: RealizationRuns{
 				newRealizationRunForBillingMeteredQuantityTest(
 					"run-1",
@@ -79,8 +78,29 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 				periodStart.Add(48*time.Hour),
 				5,
 			),
-			priorRunID: lo.ToPtr(RealizationRunID{Namespace: "namespace", ID: "run-1"}),
-			wantErr:    true,
+			priorRunID:  lo.ToPtr(RealizationRunID{Namespace: "namespace", ID: "run-1"}),
+			wantLine:    -5,
+			wantPreLine: 10,
+		},
+		{
+			name: "retains signed cumulative snapshots across a negative first run",
+			runs: RealizationRuns{
+				newRealizationRunForBillingMeteredQuantityTest(
+					"run-1",
+					RealizationRunTypePartialInvoice,
+					periodStart.Add(24*time.Hour),
+					-5,
+				),
+			},
+			currentRun: newRealizationRunForBillingMeteredQuantityTest(
+				"current",
+				RealizationRunTypeFinalRealization,
+				periodStart.Add(48*time.Hour),
+				3,
+			),
+			priorRunID:  lo.ToPtr(RealizationRunID{Namespace: "namespace", ID: "run-1"}),
+			wantLine:    8,
+			wantPreLine: -5,
 		},
 		{
 			name: "ignores deleted prior runs",
@@ -145,16 +165,33 @@ func TestRealizationRuns_MapToBillingMeteredQuantity(t *testing.T) {
 			tt.currentRun.PriorRunID = tt.priorRunID
 
 			billingMeteredQuantity, err := tt.runs.MapToBillingMeteredQuantity(tt.currentRun)
-			if tt.wantErr {
-				require.Error(t, err)
-				return
-			}
-
 			require.NoError(t, err)
 			require.Equal(t, tt.wantLine, billingMeteredQuantity.LinePeriod.InexactFloat64())
 			require.Equal(t, tt.wantPreLine, billingMeteredQuantity.PreLinePeriod.InexactFloat64())
 		})
 	}
+}
+
+func TestRealizationRuns_MapToBillingMeteredQuantityPreservesRatedUsageDecrease(t *testing.T) {
+	// Given a prior run with eight units and a current cumulative snapshot of five.
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	priorRun := newRealizationRunForBillingMeteredQuantityTest(
+		"prior", RealizationRunTypePartialInvoice, periodStart.Add(24*time.Hour), 8,
+	)
+	currentRun := newRealizationRunForBillingMeteredQuantityTest(
+		"current", RealizationRunTypeFinalRealization, periodStart.Add(48*time.Hour), 5,
+	)
+	currentRun.PriorRunID = lo.ToPtr(priorRun.ID)
+
+	// When the persisted snapshots are mapped to invoice quantities.
+	quantity, err := (RealizationRuns{priorRun}).MapToBillingMeteredQuantity(currentRun)
+	require.NoError(t, err)
+
+	// Then the billable interval reflects the same signed decrease as delta rating.
+	require.Equal(t, -3.0, quantity.LinePeriod.InexactFloat64())
+	require.Equal(t, 8.0, quantity.PreLinePeriod.InexactFloat64())
+	require.Equal(t, -3.0, quantity.BillableUsage.Quantity.InexactFloat64())
+	require.Equal(t, 8.0, quantity.BillableUsage.PreLinePeriodQuantity.InexactFloat64())
 }
 
 func TestRealizationRuns_MapToBillingMeteredQuantityUsesPriorRunLineage(t *testing.T) {

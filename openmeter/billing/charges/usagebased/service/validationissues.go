@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
@@ -74,6 +76,13 @@ func replaceValidationIssueComponent(existing billing.ValidationIssues, componen
 	}
 
 	return append(existing.WithoutComponent(component), replacement...), true
+}
+
+// Only charge rating warnings are forwarded to the invoice; other charge issues retain their own ownership.
+func ratingValidationIssues(charge usagebased.Charge) billing.ValidationIssues {
+	return lo.Filter(charge.ValidationIssues, func(issue billing.ValidationIssue, _ int) bool {
+		return issue.Component == billing.ValidationComponentBillingRating
+	})
 }
 
 func newActiveRunInvoiceAssignmentIssue(run usagebased.RealizationRun) (billing.ValidationIssue, error) {

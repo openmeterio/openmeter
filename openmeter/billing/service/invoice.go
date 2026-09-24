@@ -229,7 +229,8 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 			return nil, fmt.Errorf("validating build standard invoice lines with live data input for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
 
-		stdLines, err := item.Engine.BuildStandardLinesForGatheringPreview(ctx, engineInput)
+		stdLines, buildErr := item.Engine.BuildStandardLinesForGatheringPreview(ctx, engineInput)
+		validationIssues, err := billing.ToValidationIssues(buildErr)
 		if err != nil {
 			return nil, fmt.Errorf("building standard invoice lines with live data for engine %s: %w", item.Engine.GetLineEngineType(), err)
 		}
@@ -240,6 +241,16 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 
 		if err := billing.ValidateStandardLineIDsMatchGatheringLinesUnordered(item.Lines, stdLines); err != nil {
 			return nil, fmt.Errorf("validating build standard invoice lines with live data ids for engine %s: %w", item.Engine.GetLineEngineType(), err)
+		}
+
+		if len(validationIssues) > 0 {
+			component := billing.LineEngineValidationComponent(item.Engine.GetLineEngineType())
+			if err := out.MergeValidationIssues(
+				billing.NewLineEngineValidationError(item.Engine, validationIssues.AsError()),
+				component,
+			); err != nil {
+				return nil, fmt.Errorf("merging preview validation issues for engine %s: %w", item.Engine.GetLineEngineType(), err)
+			}
 		}
 
 		for _, stdLine := range stdLines {

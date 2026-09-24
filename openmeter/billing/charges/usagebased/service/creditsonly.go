@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditreconciliation"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -423,11 +424,17 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		ServicePeriodTo:    meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To),
 		CurrencyCalculator: s.CurrencyCalculator,
 	})
+	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 	if err != nil {
 		return err
 	}
 
 	s.Charge = result.Charge
+	s.Charge.ValidationIssues, _ = replaceValidationIssueComponent(
+		s.Charge.ValidationIssues,
+		billing.ValidationComponentBillingRating,
+		ratingIssues,
+	)
 	return nil
 }
 
@@ -455,6 +462,7 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 		Customer:        s.CustomerOverride,
 		FeatureMeter:    featureMeter,
 	})
+	ratingIssues, err := billing.ToValidationIssues(err, billing.RequireWarningsOnly())
 	if err != nil {
 		return fmt.Errorf("get detailed rating for usage: %w", err)
 	}
@@ -510,6 +518,11 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	if err := s.RefetchCharge(ctx); err != nil {
 		return fmt.Errorf("refetch charge: %w", err)
 	}
+	s.Charge.ValidationIssues, _ = replaceValidationIssueComponent(
+		s.Charge.ValidationIssues,
+		billing.ValidationComponentBillingRating,
+		ratingIssues,
+	)
 
 	return nil
 }

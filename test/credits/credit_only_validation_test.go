@@ -12,9 +12,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -164,6 +166,132 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		s.Empty(usageCharge.ValidationIssues)
 		s.Len(usageCharge.Realizations, 1)
 	})
+}
+
+func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyNegativeUsageKeepsRatingWarning() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("charges-credit-only-negative-usage")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(t, "PT1H")),
+	)
+	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer feature.Cleanup()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(t, "2026-01-03T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.SetTime(datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime())
+	defer clock.ResetTime()
+
+	// Given a credit-only SUM meter with negative usage.
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.NewCreateChargeIntents(
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "negative usage",
+				ManagedBy:         billing.ManuallyManagedLine,
+				UniqueReferenceID: "credit-only-negative-usage",
+				FeatureKey:        feature.Feature.Key,
+			}),
+		),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(created, 1)
+	chargeID, err := created[0].GetChargeID()
+	s.Require().NoError(err)
+
+	clock.SetTime(servicePeriod.From)
+	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+	s.Require().NoError(err)
+	s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, -5, servicePeriod.From.Add(time.Hour))
+	clock.SetTime(servicePeriod.From.Add(2 * time.Hour))
+
+	currentTotals, err := s.UsageBasedSvc.GetCurrentTotals(ctx, usagebased.GetCurrentTotalsInput{ChargeID: chargeID})
+	s.Require().NoError(err)
+	s.Equal(float64(-5), currentTotals.MeteredQuantity.InexactFloat64())
+	s.Zero(currentTotals.DueTotals.Total.InexactFloat64())
+	s.Require().Len(currentTotals.ValidationIssues, 1)
+	s.Equal(billing.WarnNegativeMeteredQuantityClamped.Code, currentTotals.ValidationIssues[0].Code)
+	s.Equal(billing.ValidationIssueSeverityWarning, currentTotals.ValidationIssues[0].Severity)
+	s.Equal("-5", currentTotals.ValidationIssues[0].Attributes["original_metered_quantity"])
+
+	getCharge := func(expands meta.Expands) usagebased.Charge {
+		t.Helper()
+		result, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID, Expands: expands})
+		s.Require().NoError(err)
+		charge, err := result.AsUsageBasedCharge()
+		s.Require().NoError(err)
+		return charge
+	}
+
+	unexpanded := getCharge(nil)
+	s.Empty(unexpanded.ValidationIssues)
+
+	expanded := getCharge(meta.Expands{meta.ExpandRealtimeUsage})
+	s.Require().NotNil(expanded.Expands.RealtimeUsage)
+	s.Zero(expanded.Expands.RealtimeUsage.Total.InexactFloat64())
+	s.Require().Len(expanded.ValidationIssues, 1)
+	s.Equal(billing.WarnNegativeMeteredQuantityClamped.Code, expanded.ValidationIssues[0].Code)
+	s.Equal("-5", expanded.ValidationIssues[0].Attributes["original_metered_quantity"])
+
+	unexpanded = getCharge(nil)
+	s.Empty(unexpanded.ValidationIssues)
+
+	// Live balance re-rates the active charge; negative usage must not create credit.
+	balancesFacade, err := customerbalance.NewFacade(s.CustomerBalanceSvc)
+	s.Require().NoError(err)
+	requireZeroBalance := func() {
+		t.Helper()
+		balances, err := balancesFacade.GetBalances(ctx, customerbalance.GetBalancesInput{
+			CustomerID: cust.GetID(),
+			Currencies: customerbalance.CurrencyFilter{Codes: []currencyx.Code{USD}},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(balances, 1)
+		s.Zero(balances[0].Balance.Settled().InexactFloat64())
+		s.Zero(balances[0].Balance.Live().InexactFloat64())
+	}
+	requireZeroBalance()
+
+	// When the final run is created, the warning must not abort advancement.
+	clock.SetTime(servicePeriod.To)
+	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+	s.Require().NoError(err)
+	charge := s.RequireUsageBasedChargeStatus(chargeID, usagebased.StatusActiveRealizationWaitingForCollection)
+	s.Require().Len(charge.ValidationIssues, 1)
+	s.Equal(billing.WarnNegativeMeteredQuantityClamped.Code, charge.ValidationIssues[0].Code)
+	s.Equal(billing.ValidationIssueSeverityWarning, charge.ValidationIssues[0].Severity)
+	requireZeroBalance()
+
+	// Then finalization keeps the raw snapshot, zero totals, and charge warning.
+	clock.SetTime(servicePeriod.To.Add(2 * time.Hour))
+	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
+	s.Require().NoError(err)
+	charge = s.RequireUsageBasedChargeStatus(chargeID, usagebased.StatusFinal)
+	s.Require().Len(charge.Realizations, 1)
+	s.Equal(float64(-5), charge.Realizations[0].MeteredQuantity.InexactFloat64())
+	s.Zero(charge.Realizations[0].Totals.Total.InexactFloat64())
+	s.Require().Len(charge.ValidationIssues, 1)
+	s.Equal(billing.WarnNegativeMeteredQuantityClamped.Code, charge.ValidationIssues[0].Code)
+	s.Equal("-5", charge.ValidationIssues[0].Attributes["original_metered_quantity"])
+	requireZeroBalance()
+
+	expanded = getCharge(meta.Expands{meta.ExpandRealtimeUsage})
+	s.Require().Len(expanded.ValidationIssues, 1)
+	s.Equal(billing.WarnNegativeMeteredQuantityClamped.Code, expanded.ValidationIssues[0].Code)
 }
 
 func (s *CreditOnlyValidationSuite) TestFlatFeeCreditOnlyAdvancesWhenSiblingUsageMeterIsMissing() {

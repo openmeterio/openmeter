@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/subtract"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
@@ -88,7 +89,8 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 		ServicePeriod: in.CurrentPeriod.ServicePeriod,
 		MeterValue:    in.CurrentPeriod.MeteredQuantity,
 	}, opts...)
-	if err != nil {
+	recorder := billing.ValidationIssueRecorder{}
+	if err := recorder.RecordWarnings(err); err != nil {
 		return Result{}, fmt.Errorf("generating detailed lines: %w", err)
 	}
 
@@ -143,5 +145,5 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 
 	return Result{
 		DetailedLines: remainingDetailedLines,
-	}, nil
+	}, recorder.ErrorsOrNil()
 }

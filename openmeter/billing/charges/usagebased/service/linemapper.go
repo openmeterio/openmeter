@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -261,10 +260,7 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	// [UnitConfig, DiscountUsage] order — so the displayed billable Quantity matches the
 	// priced amount rather than staying in raw metered units. A nil unit_config is the
 	// identity, so non-unit_config lines are unchanged.
-	billableUsage := mutator.ApplyUnitConfig(billingrating.Usage{
-		Quantity:              billingMeteredQuantity.LinePeriod,
-		PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
-	}, stdLine.UsageBased.UnitConfig)
+	billableUsage := mutator.ApplyUnitConfig(billingMeteredQuantity.BillableUsage, stdLine.UsageBased.UnitConfig)
 
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
 		Usage:                 billableUsage,

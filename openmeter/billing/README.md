@@ -109,13 +109,51 @@ edits preserve the ownership contract of their source.
 
 ## Validation issues alongside successful results
 
-Rating and line-engine callbacks can return a usable result with validation
-issues. At a boundary that supports this contract, pass the returned error to
-`ValidationIssueRecorder.Record`. If it returns nil, keep processing the result
-and return `ErrorsOrNil()` alongside the completed result so the invoice can
-retain the issues. A system error remains fatal, including when joined with a
-validation issue. Recorder options can add component, path, or attribute context
-but do not reclassify a system error as a validation issue.
+Typed validation issues can accompany usable results through an `error` return.
+Classify that error before discarding the result. Its meaning depends on the
+boundary:
+
+| Boundary | Successful result with warnings |
+| --- | --- |
+| Internal rating and rated-run operations | Preserve the result and propagate typed warnings through the existing `error` return. |
+| Charge lifecycle action | Extract warning-only issues, complete the operation, update charge-owned issues, and return nil so the transition succeeds. |
+| Charge line-engine callback | Return updated lines alongside the relevant charge rating issues through the existing callback contract. |
+| Public current-totals read | Return warnings in `result.ValidationIssues` with a nil Go error; consumers use the valid totals normally. |
+
+Gathering-invoice live previews accept line-engine validation issues of any
+severity and attach them to the projected standard invoice while preserving
+the usable lines. The projection is not persisted; system errors still fail
+the preview.
+
+`ValidationIssueRecorder.Record` collects validation issues of any severity;
+successful extraction alone does not mean an operation may advance. Where only
+warnings permit continuation, use `RecordWarnings`. For example, a rating
+wrapper preserves the successful result and warning channel:
+
+```go
+recorder := billing.ValidationIssueRecorder{}
+result, err := rater.GenerateDetailedLines(input)
+if err := recorder.RecordWarnings(err); err != nil {
+    return rating.GenerateDetailedLinesResult{}, fmt.Errorf("rating line: %w", err)
+}
+
+return result, recorder.ErrorsOrNil()
+```
+
+Callers needing an issue slice use
+`ToValidationIssues(err, RequireWarningsOnly())`. Both warning-only helpers
+accept nil; any critical issue or system error rejects the entire supplied
+error tree. The recorder records no part of that rejected tree, and the caller
+keeps its existing failure path. Component, path, and attribute wrappers add
+context without converting system errors into validation issues; that conversion
+requires explicit `WrapAsValidationIssue` intent.
+
+At collection completion, warnings permit replacement lines and do not block
+advancement. Critical validation issues retain the previous lines and prevent
+completion; system errors abort the operation, including when joined with
+warnings. The [collection severity tests](../../test/billing/lineengine_test.go)
+cover these distinct outcomes. Charge persistence and read-time issue lifetimes
+are defined in [Charges](charges/README.md#validation-issues-alongside-successful-results).
 
 ## Invoice lifecycle and failure
 

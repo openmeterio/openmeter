@@ -315,6 +315,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 	}
 
 	featureMeters := e.service.featureMeterResolver.ResolveLazy(ctx, input.Invoice.Namespace, lo.Values(chargesByID)...)
+	recorder := billing.ValidationIssueRecorder{}
 
 	for _, stdLine := range stdLines {
 		charge, ok := chargesByID[*stdLine.ChargeID]
@@ -336,7 +337,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		}
 
 		previewResult, err := e.buildGatheringPreviewRun(ctx, charge, featureMeters, stdLine)
-		if err != nil {
+		if err := recorder.RecordWarnings(err, billing.WithAttributes(models.Annotations{billing.AttributeKeyLineID: stdLine.ID})); err != nil {
 			return nil, fmt.Errorf("building gathering preview run for line[%s]: %w", stdLine.ID, err)
 		}
 
@@ -353,7 +354,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		}
 	}
 
-	return stdLines, nil
+	return stdLines, recorder.ErrorsOrNil()
 }
 
 func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usagebased.Charge, featureMeters billingfeaturemeter.FeatureMeters, stdLine *billing.StandardLine) (usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult, error) {
@@ -455,7 +456,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return stdLine, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
 		}
 
-		return stdLine, nil
+		return stdLine, ratingValidationIssues(charge).AsError()
 	})
 }
 
@@ -464,6 +465,7 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
+	recorder := billing.ValidationIssueRecorder{}
 	for _, stdLine := range input.Lines {
 		stateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)
 		if err != nil {
@@ -503,9 +505,16 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 		if err := stdLine.Validate(); err != nil {
 			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
 		}
+
+		if err := recorder.RecordWarnings(
+			ratingValidationIssues(charge).AsError(),
+			billing.WithAttributes(models.Annotations{billing.AttributeKeyLineID: stdLine.ID}),
+		); err != nil {
+			return nil, fmt.Errorf("recording rating validation issues for line[%s]: %w", stdLine.ID, err)
+		}
 	}
 
-	return input.Lines, nil
+	return input.Lines, recorder.ErrorsOrNil()
 }
 
 func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
