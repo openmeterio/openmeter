@@ -102,6 +102,13 @@ func TestListCustomerEntitlementsInputValidate(t *testing.T) {
 		require.ErrorContains(t, input.Validate(), "invalid entitlement type: unknown")
 	})
 
+	t.Run("rejects an unknown entitlement type in a nin filter", func(t *testing.T) {
+		input := valid
+		input.Type = &filter.FilterString{Nin: &[]string{"unknown"}}
+
+		require.ErrorContains(t, input.Validate(), "invalid entitlement type: unknown")
+	})
+
 	t.Run("rejects a malformed feature id filter", func(t *testing.T) {
 		input := valid
 		input.FeatureID = &filter.FilterULID{Eq: lo.ToPtr("not-a-ulid")}
@@ -214,6 +221,13 @@ func TestListNamespaceEntitlementsInputValidate(t *testing.T) {
 	t.Run("rejects an unknown entitlement type", func(t *testing.T) {
 		input := valid
 		input.Type = &filter.FilterString{In: &[]string{"metered", "unknown"}}
+
+		require.ErrorContains(t, input.Validate(), "invalid entitlement type: unknown")
+	})
+
+	t.Run("rejects an unknown entitlement type in a nin filter", func(t *testing.T) {
+		input := valid
+		input.Type = &filter.FilterString{Nin: &[]string{"unknown"}}
 
 		require.ErrorContains(t, input.Validate(), "invalid entitlement type: unknown")
 	})

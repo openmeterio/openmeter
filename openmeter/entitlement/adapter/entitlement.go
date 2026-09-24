@@ -527,11 +527,12 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				if !params.Order.IsDefaultValue() {
 					order = entutils.GetOrdering(params.Order)
 				}
+				// Timestamps are not unique, so the ID keeps offset pagination stable.
 				switch params.OrderBy {
 				case entitlement.ListEntitlementsOrderByCreatedAt:
-					query = query.Order(db_entitlement.ByCreatedAt(order...))
+					query = query.Order(db_entitlement.ByCreatedAt(order...), db_entitlement.ByID(order...))
 				case entitlement.ListEntitlementsOrderByUpdatedAt:
-					query = query.Order(db_entitlement.ByUpdatedAt(order...))
+					query = query.Order(db_entitlement.ByUpdatedAt(order...), db_entitlement.ByID(order...))
 				}
 			}
 

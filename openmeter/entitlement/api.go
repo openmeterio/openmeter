@@ -328,7 +328,8 @@ func listEntitlementsQueryErrors(featureID *filter.FilterULID, featureKey, entit
 
 		// The column is free text in the database, so an unknown type would silently
 		// match nothing instead of being reported.
-		values := append(lo.FromPtr(entitlementType.In), lo.FromPtr(entitlementType.Eq), lo.FromPtr(entitlementType.Ne))
+		values := append(lo.FromPtr(entitlementType.In), lo.FromPtr(entitlementType.Nin)...)
+		values = append(values, lo.FromPtr(entitlementType.Eq), lo.FromPtr(entitlementType.Ne))
 		for _, value := range lo.Compact(values) {
 			if !slices.Contains(EntitlementType(value).Values(), EntitlementType(value)) {
 				errs = append(errs, fmt.Errorf("invalid entitlement type: %s", value))
