@@ -71,6 +71,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
 
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 
@@ -225,6 +226,7 @@ func checkColumn(t, c string) error {
 			customer.Table:                                         customer.ValidColumn,
 			customersubjects.Table:                                 customersubjects.ValidColumn,
 			entitlement.Table:                                      entitlement.ValidColumn,
+			eventoutbox.Table:                                      eventoutbox.ValidColumn,
 			dbfeature.Table:                                        dbfeature.ValidColumn,
 			dbgrant.Table:                                          dbgrant.ValidColumn,
 			llmcostprice.Table:                                     llmcostprice.ValidColumn,

@@ -110,7 +110,9 @@ and phase; do not persist a derived absolute end as independent source truth.
   subscription item. Recreating an item may recreate its entitlement.
 - Subscription commands publish lifecycle events. Successful subscription
   mutation means the desired schedule was committed; it does not mean billing
-  artifacts have already been reconciled.
+  artifacts have already been reconciled. Application wiring persists system
+  events through the [shared outbox](../watermill/outbox/README.md), with delivery
+  triggered after commit and retries driven by subsequent publishing activity.
 - Billing behavior such as line generation, invoice collection, charge
   realization, proration materialization, and immutable-invoice handling
   belongs outside this package.

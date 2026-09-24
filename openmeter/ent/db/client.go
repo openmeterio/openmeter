@@ -72,6 +72,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
@@ -229,6 +230,8 @@ type Client struct {
 	CustomerSubjects *CustomerSubjectsClient
 	// Entitlement is the client for interacting with the Entitlement builders.
 	Entitlement *EntitlementClient
+	// EventOutbox is the client for interacting with the EventOutbox builders.
+	EventOutbox *EventOutboxClient
 	// Feature is the client for interacting with the Feature builders.
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
@@ -362,6 +365,7 @@ func (c *Client) init() {
 	c.Customer = NewCustomerClient(c.config)
 	c.CustomerSubjects = NewCustomerSubjectsClient(c.config)
 	c.Entitlement = NewEntitlementClient(c.config)
+	c.EventOutbox = NewEventOutboxClient(c.config)
 	c.Feature = NewFeatureClient(c.config)
 	c.Grant = NewGrantClient(c.config)
 	c.LLMCostPrice = NewLLMCostPriceClient(c.config)
@@ -544,6 +548,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Customer:                                         NewCustomerClient(cfg),
 		CustomerSubjects:                                 NewCustomerSubjectsClient(cfg),
 		Entitlement:                                      NewEntitlementClient(cfg),
+		EventOutbox:                                      NewEventOutboxClient(cfg),
 		Feature:                                          NewFeatureClient(cfg),
 		Grant:                                            NewGrantClient(cfg),
 		LLMCostPrice:                                     NewLLMCostPriceClient(cfg),
@@ -653,6 +658,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Customer:                                         NewCustomerClient(cfg),
 		CustomerSubjects:                                 NewCustomerSubjectsClient(cfg),
 		Entitlement:                                      NewEntitlementClient(cfg),
+		EventOutbox:                                      NewEventOutboxClient(cfg),
 		Feature:                                          NewFeatureClient(cfg),
 		Grant:                                            NewGrantClient(cfg),
 		LLMCostPrice:                                     NewLLMCostPriceClient(cfg),
@@ -737,8 +743,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChargeUsageBasedRunOverageCreditAllocations, c.ChargeUsageBasedRunPayment,
 		c.ChargeUsageBasedRuns, c.CreditRealizationLineage,
 		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.LLMCostPrice, c.LedgerAccount, c.LedgerBreakageRecord,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.EventOutbox, c.Feature,
+		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerBreakageRecord,
 		c.LedgerCreditVoidRecord, c.LedgerCustomerAccount, c.LedgerEntry,
 		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
 		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
@@ -780,8 +786,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChargeUsageBasedRunOverageCreditAllocations, c.ChargeUsageBasedRunPayment,
 		c.ChargeUsageBasedRuns, c.ChargesSearchV1, c.CreditRealizationLineage,
 		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.LLMCostPrice, c.LedgerAccount, c.LedgerBreakageRecord,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.EventOutbox, c.Feature,
+		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerBreakageRecord,
 		c.LedgerCreditVoidRecord, c.LedgerCustomerAccount, c.LedgerEntry,
 		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
 		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
@@ -913,6 +919,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CustomerSubjects.mutate(ctx, m)
 	case *EntitlementMutation:
 		return c.Entitlement.mutate(ctx, m)
+	case *EventOutboxMutation:
+		return c.EventOutbox.mutate(ctx, m)
 	case *FeatureMutation:
 		return c.Feature.mutate(ctx, m)
 	case *GrantMutation:
@@ -12177,6 +12185,139 @@ func (c *EntitlementClient) mutate(ctx context.Context, m *EntitlementMutation) 
 	}
 }
 
+// EventOutboxClient is a client for the EventOutbox schema.
+type EventOutboxClient struct {
+	config
+}
+
+// NewEventOutboxClient returns a client for the EventOutbox from the given config.
+func NewEventOutboxClient(c config) *EventOutboxClient {
+	return &EventOutboxClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `eventoutbox.Hooks(f(g(h())))`.
+func (c *EventOutboxClient) Use(hooks ...Hook) {
+	c.hooks.EventOutbox = append(c.hooks.EventOutbox, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `eventoutbox.Intercept(f(g(h())))`.
+func (c *EventOutboxClient) Intercept(interceptors ...Interceptor) {
+	c.inters.EventOutbox = append(c.inters.EventOutbox, interceptors...)
+}
+
+// Create returns a builder for creating a EventOutbox entity.
+func (c *EventOutboxClient) Create() *EventOutboxCreate {
+	mutation := newEventOutboxMutation(c.config, OpCreate)
+	return &EventOutboxCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of EventOutbox entities.
+func (c *EventOutboxClient) CreateBulk(builders ...*EventOutboxCreate) *EventOutboxCreateBulk {
+	return &EventOutboxCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *EventOutboxClient) MapCreateBulk(slice any, setFunc func(*EventOutboxCreate, int)) *EventOutboxCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &EventOutboxCreateBulk{err: fmt.Errorf("calling to EventOutboxClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*EventOutboxCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &EventOutboxCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for EventOutbox.
+func (c *EventOutboxClient) Update() *EventOutboxUpdate {
+	mutation := newEventOutboxMutation(c.config, OpUpdate)
+	return &EventOutboxUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *EventOutboxClient) UpdateOne(_m *EventOutbox) *EventOutboxUpdateOne {
+	mutation := newEventOutboxMutation(c.config, OpUpdateOne, withEventOutbox(_m))
+	return &EventOutboxUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *EventOutboxClient) UpdateOneID(id int64) *EventOutboxUpdateOne {
+	mutation := newEventOutboxMutation(c.config, OpUpdateOne, withEventOutboxID(id))
+	return &EventOutboxUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for EventOutbox.
+func (c *EventOutboxClient) Delete() *EventOutboxDelete {
+	mutation := newEventOutboxMutation(c.config, OpDelete)
+	return &EventOutboxDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *EventOutboxClient) DeleteOne(_m *EventOutbox) *EventOutboxDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *EventOutboxClient) DeleteOneID(id int64) *EventOutboxDeleteOne {
+	builder := c.Delete().Where(eventoutbox.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &EventOutboxDeleteOne{builder}
+}
+
+// Query returns a query builder for EventOutbox.
+func (c *EventOutboxClient) Query() *EventOutboxQuery {
+	return &EventOutboxQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeEventOutbox},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a EventOutbox entity by its id.
+func (c *EventOutboxClient) Get(ctx context.Context, id int64) (*EventOutbox, error) {
+	return c.Query().Where(eventoutbox.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *EventOutboxClient) GetX(ctx context.Context, id int64) *EventOutbox {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *EventOutboxClient) Hooks() []Hook {
+	return c.hooks.EventOutbox
+}
+
+// Interceptors returns the client interceptors.
+func (c *EventOutboxClient) Interceptors() []Interceptor {
+	return c.inters.EventOutbox
+}
+
+func (c *EventOutboxClient) mutate(ctx context.Context, m *EventOutboxMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&EventOutboxCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&EventOutboxUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&EventOutboxUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&EventOutboxDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown EventOutbox mutation op: %q", m.Op())
+	}
+}
+
 // FeatureClient is a client for the Feature schema.
 type FeatureClient struct {
 	config
@@ -18280,15 +18421,15 @@ type (
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunOverageCreditAllocations,
 		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, CreditRealizationLineage,
 		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
-		LedgerBreakageRecord, LedgerCreditVoidRecord, LedgerCustomerAccount,
-		LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute, LedgerTransaction,
-		LedgerTransactionGroup, Meter, NotificationChannel, NotificationEvent,
-		NotificationEventDeliveryStatus, NotificationRule, OrganizationDefaultTaxCodes,
-		Plan, PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription,
-		SubscriptionAddon, SubscriptionAddonQuantity, SubscriptionBillingSyncState,
-		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase, TaxCode,
-		UsageReset []ent.Hook
+		CustomerSubjects, Entitlement, EventOutbox, Feature, Grant, LLMCostPrice,
+		LedgerAccount, LedgerBreakageRecord, LedgerCreditVoidRecord,
+		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
+		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
+		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
+		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionBillingSyncState, SubscriptionCostBasisPin, SubscriptionItem,
+		SubscriptionPhase, TaxCode, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -18311,15 +18452,16 @@ type (
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunOverageCreditAllocations,
 		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, ChargesSearchV1,
 		CreditRealizationLineage, CreditRealizationLineageSegment, CurrencyCostBasis,
-		CustomCurrency, Customer, CustomerSubjects, Entitlement, Feature, Grant,
-		LLMCostPrice, LedgerAccount, LedgerBreakageRecord, LedgerCreditVoidRecord,
-		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
-		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionCostBasisPin, SubscriptionItem,
-		SubscriptionPhase, TaxCode, UsageReset []ent.Interceptor
+		CustomCurrency, Customer, CustomerSubjects, Entitlement, EventOutbox, Feature,
+		Grant, LLMCostPrice, LedgerAccount, LedgerBreakageRecord,
+		LedgerCreditVoidRecord, LedgerCustomerAccount, LedgerEntry, LedgerSubAccount,
+		LedgerSubAccountRoute, LedgerTransaction, LedgerTransactionGroup, Meter,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase,
+		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState,
+		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase, TaxCode,
+		UsageReset []ent.Interceptor
 	}
 )
 

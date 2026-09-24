@@ -2620,6 +2620,18 @@ func (e *Entitlement) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *EventOutbox) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *EventOutbox) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *EventOutbox) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *Feature) GetID() string {
 	return e.ID
 }

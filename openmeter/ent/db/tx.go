@@ -130,6 +130,8 @@ type Tx struct {
 	CustomerSubjects *CustomerSubjectsClient
 	// Entitlement is the client for interacting with the Entitlement builders.
 	Entitlement *EntitlementClient
+	// EventOutbox is the client for interacting with the EventOutbox builders.
+	EventOutbox *EventOutboxClient
 	// Feature is the client for interacting with the Feature builders.
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
@@ -383,6 +385,7 @@ func (tx *Tx) init() {
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)
+	tx.EventOutbox = NewEventOutboxClient(tx.config)
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
 	tx.LLMCostPrice = NewLLMCostPriceClient(tx.config)

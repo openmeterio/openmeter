@@ -10,8 +10,10 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/outbox"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
@@ -76,21 +78,38 @@ func NewPublisher(
 }
 
 func NewEventBusPublisher(
+	ctx context.Context,
 	publisher message.Publisher,
+	db *entdb.Client,
 	conf config.EventsConfiguration,
 	logger *slog.Logger,
-) (eventbus.Publisher, error) {
+) (eventbus.Publisher, func(), error) {
+	outboxPublisher, err := outbox.NewPublisher(ctx, outbox.Config{
+		DB:        db,
+		Publisher: publisher,
+		Topic:     conf.SystemEvents.Topic,
+		Logger:    logger,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize system event outbox: %w", err)
+	}
+
 	eventBusPublisher, err := eventbus.New(eventbus.Options{
-		Publisher:              publisher,
+		Publisher:              outboxPublisher,
 		TopicMapping:           conf.EventBusTopicMapping(),
 		Logger:                 logger,
 		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize event bus publisher: %w", err)
+		_ = outboxPublisher.Close()
+		return nil, nil, fmt.Errorf("failed to initialize event bus publisher: %w", err)
 	}
 
-	return eventBusPublisher, nil
+	return eventBusPublisher, func() {
+		if err := outboxPublisher.Close(); err != nil {
+			logger.ErrorContext(ctx, "failed to close system event outbox", "error", err)
+		}
+	}, nil
 }
 
 func NewEmptyProvisionTopics() []pkgkafka.TopicConfig {

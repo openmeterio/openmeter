@@ -693,6 +693,18 @@ func (f EntitlementFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.EntitlementMutation", m)
 }
 
+// The EventOutboxFunc type is an adapter to allow the use of ordinary
+// function as EventOutbox mutator.
+type EventOutboxFunc func(context.Context, *db.EventOutboxMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f EventOutboxFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.EventOutboxMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.EventOutboxMutation", m)
+}
+
 // The FeatureFunc type is an adapter to allow the use of ordinary
 // function as Feature mutator.
 type FeatureFunc func(context.Context, *db.FeatureMutation) (db.Value, error)

@@ -83,6 +83,9 @@ type TxDriver struct {
 	once sync.Once
 
 	currentSavepoint txSavepoint
+	afterCommit      []func()
+	callbackMarks    []int
+	finished         bool
 
 	err error
 }
@@ -97,26 +100,44 @@ func (t *TxDriver) GetConfig() *RawEntConfig {
 func (t *TxDriver) Commit() error {
 	// lock so we don't use the driver twice
 	t.mu.Lock()
-	defer t.mu.Unlock()
 
 	// If there was an error before, we don't do anything
 	if t.err != nil {
+		t.afterCommit = nil
+		t.callbackMarks = nil
+		t.mu.Unlock()
 		return t.err
 	}
 
 	if t.currentSavepoint != txSavepointNone {
 		// If we're not at the top level, we release the savepoint
 		if err := t.driver.Release(t.currentSavepoint.String()); err == nil {
+			t.callbackMarks = t.callbackMarks[:len(t.callbackMarks)-1]
 			t.currentSavepoint = t.currentSavepoint.Prev()
 		} else {
 			t.err = err
+			t.afterCommit = nil
+			t.callbackMarks = nil
 		}
-	} else {
-		// If we're at the top level, we commit the transaction
-		t.err = t.driver.Commit()
+		err := t.err
+		t.mu.Unlock()
+		return err
 	}
 
-	return t.err
+	// If we're at the top level, commit before notifying.
+	t.err = t.driver.Commit()
+	callbacks := t.afterCommit
+	t.afterCommit = nil
+	t.finished = true
+	err := t.err
+	t.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	for _, callback := range callbacks {
+		callback()
+	}
+	return nil
 }
 
 // Rollback rolls back the (complete) transaction.
@@ -127,19 +148,28 @@ func (t *TxDriver) Rollback() error {
 
 	// If there was an error before, we don't do anything
 	if t.err != nil {
+		t.afterCommit = nil
+		t.callbackMarks = nil
 		return t.err
 	}
 
 	if t.currentSavepoint != txSavepointNone {
 		// If we're not at the top level, we rollback to the savepoint
 		if err := t.driver.RollbackTo(t.currentSavepoint.String()); err == nil {
+			mark := t.callbackMarks[len(t.callbackMarks)-1]
+			t.afterCommit = t.afterCommit[:mark]
+			t.callbackMarks = t.callbackMarks[:len(t.callbackMarks)-1]
 			t.currentSavepoint = t.currentSavepoint.Prev()
 		} else {
 			t.err = err
+			t.afterCommit = nil
+			t.callbackMarks = nil
 		}
 	} else {
 		// If we're at the top level, we rollback the transaction
 		t.err = t.driver.Rollback()
+		t.afterCommit = nil
+		t.finished = true
 	}
 
 	return t.err
@@ -167,8 +197,31 @@ func (t *TxDriver) SavePoint() error {
 		}
 
 		t.currentSavepoint = next
+		t.callbackMarks = append(t.callbackMarks, len(t.afterCommit))
 	}
 
+	return nil
+}
+
+// AfterCommit registers a notification to run after the outer transaction commits.
+// Callbacks registered within a rolled-back savepoint are discarded. Callbacks
+// must not perform work whose success is required for the transaction.
+func (t *TxDriver) AfterCommit(callback func()) error {
+	if callback == nil {
+		return fmt.Errorf("after-commit callback is nil")
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.err != nil {
+		return t.err
+	}
+	if t.finished {
+		return fmt.Errorf("transaction already finished")
+	}
+
+	t.afterCommit = append(t.afterCommit, callback)
 	return nil
 }
 
