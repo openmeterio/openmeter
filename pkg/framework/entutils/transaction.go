@@ -73,6 +73,26 @@ func (sp txSavepoint) String() string {
 	return "s" + strconv.Itoa(int(sp))
 }
 
+// txCallbacks tracks notifications by savepoint scope. Releasing a savepoint
+// retains its callbacks; rolling it back discards callbacks registered within it.
+type txCallbacks struct {
+	callbacks []func()
+	marks     []int
+}
+
+func (c *txCallbacks) SavePoint() {
+	c.marks = append(c.marks, len(c.callbacks))
+}
+
+func (c *txCallbacks) ReleaseSavepoint() {
+	c.marks = c.marks[:len(c.marks)-1]
+}
+
+func (c *txCallbacks) RollbackSavepoint() {
+	c.callbacks = c.callbacks[:c.marks[len(c.marks)-1]]
+	c.ReleaseSavepoint()
+}
+
 type TxDriver struct {
 	driver Transactable
 	// db.config is nominally different but structurally identical for all generations of entgo,
@@ -83,8 +103,7 @@ type TxDriver struct {
 	once sync.Once
 
 	currentSavepoint txSavepoint
-	afterCommit      []func()
-	callbackMarks    []int
+	afterCommit      txCallbacks
 	finished         bool
 
 	err error
@@ -98,39 +117,7 @@ func (t *TxDriver) GetConfig() *RawEntConfig {
 
 // Commit commits the (complete) transaction.
 func (t *TxDriver) Commit() error {
-	// lock so we don't use the driver twice
-	t.mu.Lock()
-
-	// If there was an error before, we don't do anything
-	if t.err != nil {
-		t.afterCommit = nil
-		t.callbackMarks = nil
-		t.mu.Unlock()
-		return t.err
-	}
-
-	if t.currentSavepoint != txSavepointNone {
-		// If we're not at the top level, we release the savepoint
-		if err := t.driver.Release(t.currentSavepoint.String()); err == nil {
-			t.callbackMarks = t.callbackMarks[:len(t.callbackMarks)-1]
-			t.currentSavepoint = t.currentSavepoint.Prev()
-		} else {
-			t.err = err
-			t.afterCommit = nil
-			t.callbackMarks = nil
-		}
-		err := t.err
-		t.mu.Unlock()
-		return err
-	}
-
-	// If we're at the top level, commit before notifying.
-	t.err = t.driver.Commit()
-	callbacks := t.afterCommit
-	t.afterCommit = nil
-	t.finished = true
-	err := t.err
-	t.mu.Unlock()
+	callbacks, err := t.commit()
 	if err != nil {
 		return err
 	}
@@ -138,6 +125,35 @@ func (t *TxDriver) Commit() error {
 		callback()
 	}
 	return nil
+}
+
+// commit releases the driver lock before Commit invokes notifications, allowing
+// callbacks to use the driver without deadlocking.
+func (t *TxDriver) commit() ([]func(), error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.err != nil {
+		t.afterCommit = txCallbacks{}
+		return nil, t.err
+	}
+
+	if t.currentSavepoint != txSavepointNone {
+		if err := t.driver.Release(t.currentSavepoint.String()); err == nil {
+			t.afterCommit.ReleaseSavepoint()
+			t.currentSavepoint = t.currentSavepoint.Prev()
+		} else {
+			t.err = err
+			t.afterCommit = txCallbacks{}
+		}
+		return nil, t.err
+	}
+
+	t.err = t.driver.Commit()
+	callbacks := t.afterCommit.callbacks
+	t.afterCommit = txCallbacks{}
+	t.finished = true
+	return callbacks, t.err
 }
 
 // Rollback rolls back the (complete) transaction.
@@ -148,27 +164,23 @@ func (t *TxDriver) Rollback() error {
 
 	// If there was an error before, we don't do anything
 	if t.err != nil {
-		t.afterCommit = nil
-		t.callbackMarks = nil
+		t.afterCommit = txCallbacks{}
 		return t.err
 	}
 
 	if t.currentSavepoint != txSavepointNone {
 		// If we're not at the top level, we rollback to the savepoint
 		if err := t.driver.RollbackTo(t.currentSavepoint.String()); err == nil {
-			mark := t.callbackMarks[len(t.callbackMarks)-1]
-			t.afterCommit = t.afterCommit[:mark]
-			t.callbackMarks = t.callbackMarks[:len(t.callbackMarks)-1]
+			t.afterCommit.RollbackSavepoint()
 			t.currentSavepoint = t.currentSavepoint.Prev()
 		} else {
 			t.err = err
-			t.afterCommit = nil
-			t.callbackMarks = nil
+			t.afterCommit = txCallbacks{}
 		}
 	} else {
 		// If we're at the top level, we rollback the transaction
 		t.err = t.driver.Rollback()
-		t.afterCommit = nil
+		t.afterCommit = txCallbacks{}
 		t.finished = true
 	}
 
@@ -197,7 +209,7 @@ func (t *TxDriver) SavePoint() error {
 		}
 
 		t.currentSavepoint = next
-		t.callbackMarks = append(t.callbackMarks, len(t.afterCommit))
+		t.afterCommit.SavePoint()
 	}
 
 	return nil
@@ -221,7 +233,7 @@ func (t *TxDriver) AfterCommit(callback func()) error {
 		return fmt.Errorf("transaction already finished")
 	}
 
-	t.afterCommit = append(t.afterCommit, callback)
+	t.afterCommit.callbacks = append(t.afterCommit.callbacks, callback)
 	return nil
 }
 
