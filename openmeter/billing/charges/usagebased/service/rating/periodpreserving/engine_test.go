@@ -37,6 +37,45 @@ type lateEventRatingPhase struct {
 	mutateBookedDetailedLines func(usagebased.DetailedLines) usagebased.DetailedLines
 }
 
+type criticalRatingService struct {
+	billingrating.Service
+	calls int
+}
+
+func (s *criticalRatingService) GenerateDetailedLines(billingrating.StandardLineAccessor, ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
+	s.calls++
+	return billingrating.GenerateDetailedLinesResult{}, billing.ErrInvoiceLineNoTiers
+}
+
+func TestRateStopsOnCriticalRatingIssue(t *testing.T) {
+	// Given two epochs and a rating service that rejects the first one.
+	periods := lateEventRatingTestPeriods()
+	intent := ratingtestutils.NewUnitPriceIntentForTest(t,
+		timeutil.ClosedPeriod{From: periods.period1.From, To: periods.period2.To},
+		alpacadecimal.NewFromInt(1),
+	)
+	service := &criticalRatingService{}
+
+	// When the first epoch returns a critical validation issue.
+	out, err := New(service).Rate(t.Context(), Input{
+		Intent: intent,
+		PriorPeriods: []PriorPeriod{{
+			RunID:           usagebased.RealizationRunID{Namespace: "ns", ID: "run-1"},
+			ServicePeriod:   periods.period1,
+			MeteredQuantity: alpacadecimal.NewFromInt(1),
+		}},
+		CurrentPeriod: CurrentPeriod{
+			ServicePeriod:   periods.period2,
+			MeteredQuantity: alpacadecimal.NewFromInt(2),
+		},
+	})
+
+	// Then rating stops before the second epoch and returns the original issue.
+	require.Empty(t, out.DetailedLines)
+	require.ErrorIs(t, err, billing.ErrInvoiceLineNoTiers)
+	require.Equal(t, 1, service.calls)
+}
+
 func TestRatePreservesNegativeSnapshotWarning(t *testing.T) {
 	// Given a negative cumulative meter snapshot for a unit-priced charge.
 	period := timeutil.ClosedPeriod{

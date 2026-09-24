@@ -230,7 +230,7 @@ func (e Engine) buildDetailsByEpoch(ctx context.Context, in Input, recorder *bil
 			ServicePeriod: epoch.epochClosedPeriod.AsClosedPeriod(),
 			MeterValue:    epoch.Quantity,
 		}, opts...)
-		if err := recorder.Record(err); err != nil {
+		if err := recorder.RecordWarnings(err); err != nil {
 			return nil, fmt.Errorf("generating detailed lines: %w", err)
 		}
 

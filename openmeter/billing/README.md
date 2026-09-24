@@ -120,6 +120,11 @@ boundary:
 | Charge line-engine callback | Return updated lines alongside the relevant charge rating issues through the existing callback contract. |
 | Public current-totals read | Return warnings in `result.ValidationIssues` with a nil Go error; consumers use the valid totals normally. |
 
+Gathering-invoice live previews accept line-engine validation issues of any
+severity and attach them to the projected standard invoice while preserving
+the usable lines. The projection is not persisted; system errors still fail
+the preview.
+
 `ValidationIssueRecorder.Record` collects validation issues of any severity;
 successful extraction alone does not mean an operation may advance. Where only
 warnings permit continuation, use `RecordWarnings`. For example, a rating

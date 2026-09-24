@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -32,6 +33,38 @@ type usageBasedChargeNegativeUsageFixture struct {
 	chargeID      meta.ChargeID
 	featureKey    string
 	servicePeriod timeutil.ClosedPeriod
+}
+
+func (s *usageBasedChargeNegativeUsageSuite) TestGatheringPreviewClampsNegativeUsage() {
+	setupAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	clock.SetTime(setupAt)
+
+	ctx := s.T().Context()
+	fixture := s.setupUsageBasedCharge()
+
+	// Given negative SUM usage on a charge-backed gathering line.
+	s.MockStreamingConnector.AddSimpleEvent(fixture.featureKey, -5, fixture.servicePeriod.From.Add(time.Hour))
+	clock.SetTime(fixture.servicePeriod.To.Add(time.Second))
+
+	// When the gathering invoice is expanded as a live standard-invoice preview.
+	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		Namespace:        fixture.customer.Namespace,
+		CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &fixture.customer.ID}},
+		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
+		Expand: billing.InvoiceExpands{}.
+			With(billing.InvoiceExpandLines).
+			With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices.Items, 1)
+
+	// Then the preview retains its zero-priced line and reports the rating warning.
+	preview, err := invoices.Items[0].AsStandardInvoice()
+	s.Require().NoError(err)
+	s.Require().Len(preview.Lines.OrEmpty(), 1)
+	s.Zero(preview.Lines.OrEmpty()[0].Totals.Total.InexactFloat64())
+	s.requireNegativeUsageWarning(preview, billing.WarnNegativeMeteredQuantityClamped.Code, "-5", "0")
+	s.requireNoPersistedChargeRatingWarning(fixture.chargeID)
 }
 
 func (s *usageBasedChargeNegativeUsageSuite) TestFinalCollectionClampsNegativeUsage() {

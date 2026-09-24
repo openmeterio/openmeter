@@ -622,7 +622,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 		lines := mustAsNewStandardLines(input)
 		lines[0].Name = "preview callback line"
 
-		return lines, nil
+		return lines, ombilling.ErrInvoiceLineFeatureNotFound
 	}
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
@@ -697,6 +697,10 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 	s.Require().Len(previewInvoice.Lines.OrEmpty(), 1)
 	s.True(previewCallbackCalled)
 	s.Equal("preview callback line", previewInvoice.Lines.OrEmpty()[0].Name)
+	s.Require().Len(previewInvoice.ValidationIssues, 1)
+	s.Equal(ombilling.ErrInvoiceLineFeatureNotFound.Code, previewInvoice.ValidationIssues[0].Code)
+	s.Equal(ombilling.ValidationIssueSeverityCritical, previewInvoice.ValidationIssues[0].Severity)
+	s.Equal(ombilling.LineEngineValidationComponent(mockEngine.GetLineEngineType()), previewInvoice.ValidationIssues[0].Component)
 }
 
 func (s *LineEngineTestSuite) TestCollectionCompletedSystemErrorsAbortCollection() {
