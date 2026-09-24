@@ -288,12 +288,11 @@ export class InternalCustomersEntitlements {
   /**
    * Override customer entitlement
    *
-   * Override an entitlement of the customer.
+   * Override an entitlement of the customer with a new one.
    *
-   * Overriding creates a new entitlement from the request and ends the referenced
-   * entitlement at the same instant, so the customer keeps access without a gap. The
-   * new entitlement must be for the same feature as the referenced one. Useful for
-   * upgrades and downgrades.
+   * The referenced entitlement ends and the new one starts at the same instant, so
+   * access continues without a gap. Both must belong to the same feature. Use this
+   * for upgrades and downgrades.
    *
    * Fails if the referenced entitlement does not exist, is deleted, or is no longer
    * active.
