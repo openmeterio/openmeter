@@ -57,5 +57,7 @@ annotations intended for correlation, not persisted child IDs.
 - Custom item currencies must be resolved by the service before persistence;
   the materializer verifies that their managed identity belongs to the item
   namespace without loading currency state itself.
-- Events are published from the materialized view. Downstream consumers should
-  derive work from that committed view and tolerate delivery retries.
+- Events are built from the materialized view and published after the outermost
+  transaction commits. A rollback discards the event. Publication failure after
+  commit is logged but cannot undo the command; billing's periodic reconciler
+  repairs missed syncs. Durable delivery requires a transactional outbox.

@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -15,6 +17,7 @@ import (
 	subscriptionvalidators "github.com/openmeterio/openmeter/openmeter/subscription/validators/subscription"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -107,6 +110,21 @@ func (s *service) lockCustomer(ctx context.Context, customerId string) error {
 	}
 
 	return nil
+}
+
+func (s *service) publishAfterCommit(ctx context.Context, event marshaler.Event) error {
+	if err := event.Validate(); err != nil {
+		return fmt.Errorf("invalid subscription event: %w", err)
+	}
+
+	return transaction.AfterCommit(ctx, func() {
+		publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		defer cancel()
+
+		if err := s.Publisher.Publish(publishCtx, event); err != nil {
+			slog.ErrorContext(publishCtx, "failed to publish committed subscription event", "event", event.EventName(), "error", err)
+		}
+	})
 }
 
 func (s *service) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
@@ -208,9 +226,9 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.NewCreatedEvent(ctx, view))
+		err = s.publishAfterCommit(ctx, subscription.NewCreatedEvent(ctx, view))
 		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
+			return sub, fmt.Errorf("failed to schedule subscription event: %w", err)
 		}
 
 		// Return sub reference
@@ -312,9 +330,9 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.NewUpdatedEvent(ctx, updatedView))
+		err = s.publishAfterCommit(ctx, subscription.NewUpdatedEvent(ctx, updatedView))
 		if err != nil {
-			return subs, fmt.Errorf("failed to publish event: %w", err)
+			return subs, fmt.Errorf("failed to schedule subscription event: %w", err)
 		}
 
 		return updatedView.Subscription, nil
@@ -362,10 +380,9 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 			return fmt.Errorf("failed to delete subscription: %w", err)
 		}
 
-		// Let's publish the event for the deletion
-		err = s.Publisher.Publish(ctx, subscription.NewDeletedEvent(ctx, view))
+		err = s.publishAfterCommit(ctx, subscription.NewDeletedEvent(ctx, view))
 		if err != nil {
-			return fmt.Errorf("failed to publish event: %w", err)
+			return fmt.Errorf("failed to schedule subscription event: %w", err)
 		}
 
 		return nil
@@ -430,9 +447,9 @@ func (s *service) Cancel(ctx context.Context, subscriptionID models.NamespacedID
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.NewCancelledEvent(ctx, view))
+		err = s.publishAfterCommit(ctx, subscription.NewCancelledEvent(ctx, view))
 		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
+			return sub, fmt.Errorf("failed to schedule subscription event: %w", err)
 		}
 
 		return sub, nil
@@ -487,9 +504,9 @@ func (s *service) Continue(ctx context.Context, subscriptionID models.Namespaced
 			return sub, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		err = s.Publisher.Publish(ctx, subscription.NewContinuedEvent(ctx, view))
+		err = s.publishAfterCommit(ctx, subscription.NewContinuedEvent(ctx, view))
 		if err != nil {
-			return sub, fmt.Errorf("failed to publish event: %w", err)
+			return sub, fmt.Errorf("failed to schedule subscription event: %w", err)
 		}
 
 		return sub, nil
