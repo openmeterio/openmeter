@@ -128,46 +128,6 @@ func (a *adapter) UpdateChargeValidationIssues(ctx context.Context, input usageb
 	})
 }
 
-func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebased.Charge, newSubscriptionItemID string) (usagebased.Charge, error) {
-	if err := charge.ManagedModel.Validate(); err != nil {
-		return usagebased.Charge{}, err
-	}
-
-	if err := charge.Validate(); err != nil {
-		return usagebased.Charge{}, err
-	}
-
-	if newSubscriptionItemID == "" {
-		return usagebased.Charge{}, fmt.Errorf("subscription item ID is required")
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) {
-		// TODO: make subscription_item_id immutable again once subscription edits
-		// no longer recreate the item ID for logical item updates.
-		updatedChargeBase, err := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
-			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
-			SetSubscriptionItemID(newSubscriptionItemID).
-			Save(ctx)
-		if err != nil {
-			return usagebased.Charge{}, err
-		}
-
-		if err := tx.loadCostBasisEdge(ctx, updatedChargeBase); err != nil {
-			return usagebased.Charge{}, err
-		}
-
-		overrideLayer := charge.Intent.GetOverrideLayerMutableFields()
-		mappedChargeBase, err := fromDBBaseWithCurrency(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
-		if err != nil {
-			return usagebased.Charge{}, err
-		}
-		charge.ChargeBase = mappedChargeBase
-		charge.Intent = usagebased.NewOverridableIntent(charge.Intent.GetBaseIntent(), overrideLayer)
-
-		return charge, nil
-	})
-}
-
 func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) error {
 	if err := charge.ManagedModel.Validate(); err != nil {
 		return err
