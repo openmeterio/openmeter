@@ -1248,6 +1248,25 @@ export interface ClosedPeriod {
   to: Date
 }
 
+/** Request body for resetting the usage of a metered entitlement. */
+export interface ResetCustomerEntitlementUsageRequest {
+  /**
+   * The time the reset takes effect. Defaults to the current time and cannot be in
+   * the future. Truncated to the minute.
+   */
+  effectiveAt?: Date
+  /**
+   * Whether the usage period anchor is kept. When false, the anchor moves to
+   * `effective_at`.
+   */
+  retainAnchor: boolean
+  /**
+   * Whether overage carries over into the new usage period. Defaults to the
+   * entitlement's own setting.
+   */
+  preserveOverage?: boolean
+}
+
 /**
  * Fiat conversion rate a custom-currency charge is invoiced at. Present once the
  * cost basis is resolved; dynamic cost bases are exposed only after the service
@@ -7424,6 +7443,25 @@ export interface EventInput {
   time?: Date | null
   /** The event payload. Optional, if present it must be a JSON object. */
   data?: Record<string, unknown> | null
+}
+
+/** Request body for resetting the usage of a metered entitlement. */
+export interface ResetCustomerEntitlementUsageRequestInput {
+  /**
+   * The time the reset takes effect. Defaults to the current time and cannot be in
+   * the future. Truncated to the minute.
+   */
+  effectiveAt?: Date
+  /**
+   * Whether the usage period anchor is kept. When false, the anchor moves to
+   * `effective_at`.
+   */
+  retainAnchor?: boolean
+  /**
+   * Whether overage carries over into the new usage period. Defaults to the
+   * entitlement's own setting.
+   */
+  preserveOverage?: boolean
 }
 
 /** Unauthorized. */

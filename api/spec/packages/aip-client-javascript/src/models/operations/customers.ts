@@ -35,6 +35,7 @@ import type {
   ListCustomerChargesParamsFilter,
   ListCustomerEntitlementsParamsFilter,
   ListCustomersParamsFilter,
+  ResetCustomerEntitlementUsageRequestInput,
   SortQueryInput,
   UpdateCreditGrantExternalSettlementRequest as UpdateCreditGrantExternalSettlementRequestBody,
   UpsertAppCustomerDataRequest,
@@ -181,6 +182,13 @@ export type ListCustomerEntitlementsRequest = AcceptDateStrings<
   ListCustomerEntitlementsQuery & { customerId: string }
 >
 export type ListCustomerEntitlementsResponse = EntitlementPagePaginatedResponse
+
+export type ResetCustomerEntitlementUsageRequest = AcceptDateStrings<{
+  customerId: string
+  entitlementId: string
+  body: ResetCustomerEntitlementUsageRequestInput
+}>
+export type ResetCustomerEntitlementUsageResponse = void
 
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string

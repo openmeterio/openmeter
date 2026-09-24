@@ -642,6 +642,18 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusOK,
 			},
 		},
+		{
+			name: "reset customer entitlement usage",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/reset",
+				body:        apiv3.ResetCustomerEntitlementUsageRequest{},
+			},
+			res: testResponse{
+				status: http.StatusNoContent,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
@@ -1234,6 +1246,10 @@ func (n NoopEntitlementConnector) ListCustomerEntitlementAccess(ctx context.Cont
 
 func (n NoopEntitlementConnector) GetCustomerEntitlementHistory(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error) {
 	return entitlement.CustomerEntitlementHistory{}, nil
+}
+
+func (n NoopEntitlementConnector) ResetCustomerEntitlementUsage(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error {
+	return nil
 }
 
 // NoopEntitlementBalanceConnector

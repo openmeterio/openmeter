@@ -2366,6 +2366,27 @@ export const closedPeriod = z
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
 
+export const resetCustomerEntitlementUsageRequest = z
+  .object({
+    effectiveAt: dateTime.optional(),
+    retainAnchor: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the usage period anchor is kept. When false, the anchor moves to `effective_at`.',
+      ),
+    preserveOverage: z
+      .boolean()
+      .optional()
+
+      .describe(
+        "Whether overage carries over into the new usage period. Defaults to the entitlement's own setting.",
+      ),
+  })
+  .describe('Request body for resetting the usage of a metered entitlement.')
+
 export const chargeResolvedCostBasis = z
   .object({
     fiatCurrency: currencyCode,
@@ -7566,6 +7587,14 @@ export const listCustomerEntitlementsResponse = z.object({
   meta: paginatedMeta,
 })
 
+export const resetCustomerEntitlementUsagePathParams = z.object({
+  customerId: ulid,
+  entitlementId: ulid,
+})
+
+export const resetCustomerEntitlementUsageBody =
+  resetCustomerEntitlementUsageRequest
+
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
 })
@@ -10783,6 +10812,26 @@ export const closedPeriodWire = z
   .describe(
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
+
+export const resetCustomerEntitlementUsageRequestWire = z
+  .strictObject({
+    effective_at: dateTimeWire.optional(),
+    retain_anchor: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the usage period anchor is kept. When false, the anchor moves to `effective_at`.',
+      ),
+    preserve_overage: z
+      .boolean()
+      .optional()
+
+      .describe(
+        "Whether overage carries over into the new usage period. Defaults to the entitlement's own setting.",
+      ),
+  })
+  .describe('Request body for resetting the usage of a metered entitlement.')
 
 export const chargeResolvedCostBasisWire = z
   .strictObject({
@@ -15990,6 +16039,14 @@ export const listCustomerEntitlementsResponseWire = z.strictObject({
   data: z.array(entitlementWire),
   meta: paginatedMetaWire,
 })
+
+export const resetCustomerEntitlementUsagePathParamsWire = z.object({
+  customerId: ulidWire,
+  entitlementId: ulidWire,
+})
+
+export const resetCustomerEntitlementUsageBodyWire =
+  resetCustomerEntitlementUsageRequestWire
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

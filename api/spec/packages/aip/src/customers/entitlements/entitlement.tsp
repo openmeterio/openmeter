@@ -424,3 +424,29 @@ union CreateEntitlement {
   @summary("Boolean entitlement")
   boolean: CreateEntitlementBoolean,
 }
+
+namespace Entitlements {
+  /**
+   * Request body for resetting the usage of a metered entitlement.
+   */
+  @friendlyName("ResetCustomerEntitlementUsageRequest")
+  model ResetCustomerEntitlementUsageRequest {
+    /**
+     * The time the reset takes effect. Defaults to the current time and cannot be in
+     * the future. Truncated to the minute.
+     */
+    effective_at?: Shared.DateTime;
+
+    /**
+     * Whether the usage period anchor is kept. When false, the anchor moves to
+     * `effective_at`.
+     */
+    retain_anchor?: boolean = false;
+
+    /**
+     * Whether overage carries over into the new usage period. Defaults to the
+     * entitlement's own setting.
+     */
+    preserve_overage?: boolean;
+  }
+}

@@ -165,5 +165,33 @@ namespace Entitlements {
       | Common.NotFound
       | Common.Conflict
       | Common.ErrorResponses;
+
+    /**
+     * Reset the usage of a metered entitlement. The reset starts a new usage period:
+     * usage is zeroed and grants roll over according to their rollover settings.
+     *
+     * Usage is reset automatically at the end of each usage period. Use this operation
+     * to reset it earlier, for example to align the entitlement with the customer's
+     * billing period. The usage period anchor can be moved at the same time.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @extension(Shared.PrivateExtension, true)
+    @extension(Shared.RPCEndpointExtension, true)
+    @post
+    @route("/{entitlementId}/reset")
+    @operationId("reset-customer-entitlement-usage")
+    @summary("Reset customer entitlement usage")
+    resetUsage(
+      @path customerId: Shared.ULID,
+      @path entitlementId: Shared.ULID,
+
+      @body
+      request?: ResetCustomerEntitlementUsageRequest,
+    ):
+      | Shared.DeleteResponse
+      | Common.NotFound
+      | Common.Conflict
+      | Common.ErrorResponses;
   }
 }

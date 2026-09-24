@@ -65,13 +65,15 @@ func (i ListCustomerEntitlementAccessInput) Validate() error {
 }
 
 // CustomerEntitlementAPIService is the API-facing facade for customer-scoped
-// entitlement operations. Every operation resolves the customer, rejects deleted
-// customers and reports an entitlement owned by another customer as not found.
+// entitlement operations. Every operation resolves the customer and rejects
+// deleted customers; operations addressing an entitlement report one owned by
+// another customer as not found.
 type CustomerEntitlementAPIService interface {
 	CreateCustomerEntitlement(ctx context.Context, input CreateCustomerEntitlementInput) (*Entitlement, error)
 	GetCustomerEntitlementHistory(ctx context.Context, input GetCustomerEntitlementHistoryInput) (CustomerEntitlementHistory, error)
 	GetCustomerEntitlement(ctx context.Context, input GetCustomerEntitlementInput) (*Entitlement, error)
 	ListCustomerEntitlements(ctx context.Context, input ListCustomerEntitlementsInput) (pagination.Result[Entitlement], error)
+	ResetCustomerEntitlementUsage(ctx context.Context, input ResetCustomerEntitlementUsageInput) error
 }
 
 // CreateCustomerEntitlementInput creates an entitlement for the customer referenced by ID.
@@ -251,6 +253,32 @@ func (i ListCustomerEntitlementsInput) Validate() error {
 		if err := i.Page.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("page: %w", err))
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ResetCustomerEntitlementUsageInput starts a new usage period for a metered
+// entitlement. EffectiveAt defaults to the current time; the credit connector
+// rejects a time in the future or before the last reset. A nil PreserveOverage
+// keeps the entitlement's own overage setting.
+type ResetCustomerEntitlementUsageInput struct {
+	CustomerID      customer.CustomerID
+	EntitlementID   string
+	EffectiveAt     *time.Time
+	RetainAnchor    bool
+	PreserveOverage *bool
+}
+
+func (i ResetCustomerEntitlementUsageInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if i.EntitlementID == "" {
+		errs = append(errs, errors.New("entitlement ID is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

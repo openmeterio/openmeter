@@ -220,6 +220,35 @@ func historyWindowSize(size meter.WindowSize) (meteredentitlement.WindowSize, er
 	}
 }
 
+func (c *service) ResetCustomerEntitlementUsage(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	if err != nil {
+		return err
+	}
+
+	if ent.EntitlementType != entitlement.EntitlementTypeMetered {
+		return &entitlement.WrongTypeError{
+			Expected: entitlement.EntitlementTypeMetered,
+			Actual:   ent.EntitlementType,
+		}
+	}
+
+	_, err = c.meteredEntitlementConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
+		Namespace: ent.Namespace,
+		ID:        ent.ID,
+	}, meteredentitlement.ResetEntitlementUsageParams{
+		At:              lo.FromPtrOr(input.EffectiveAt, clock.Now()),
+		RetainAnchor:    input.RetainAnchor,
+		PreserveOverage: input.PreserveOverage,
+	})
+
+	return err
+}
+
 // getCustomerEntitlement resolves an entitlement addressed through its customer.
 // An entitlement owned by another customer is reported as not found so the
 // customer scope does not reveal it.
