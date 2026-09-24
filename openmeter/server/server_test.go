@@ -728,7 +728,7 @@ func TestRoutes(t *testing.T) {
 			name: "list grants",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v3/openmeter/grants?filter[customer_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV&filter[feature]=my-feature&sort=effective_at%20desc&page[number]=2&page[size]=5",
+				path:   "/api/v3/openmeter/grants?filter[customer_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV&filter[feature_id]=01ARZ3NDEKTSV4RRFFQ69G5FAW&sort=effective_at%20desc&page[number]=2&page[size]=5",
 			},
 			res: testResponse{
 				status: http.StatusOK,
