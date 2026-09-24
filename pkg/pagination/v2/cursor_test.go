@@ -1,10 +1,12 @@
 package pagination
 
 import (
+	"encoding/base64"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewCursor(t *testing.T) {
@@ -236,4 +238,17 @@ func TestCursorValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCursorKeepsSubSecondPrecision(t *testing.T) {
+	cursor := NewCursor(time.Date(2023, 5, 15, 12, 30, 0, 123456000, time.UTC), "id")
+
+	decoded, err := DecodeCursor(cursor.Encode())
+	require.NoError(t, err)
+	assert.True(t, cursor.Time.Equal(decoded.Time))
+
+	secondPrecision := base64.StdEncoding.EncodeToString([]byte("2023-05-15T12:30:00Z,id"))
+	decoded, err = DecodeCursor(secondPrecision)
+	require.NoError(t, err)
+	assert.Equal(t, time.Date(2023, 5, 15, 12, 30, 0, 0, time.UTC), decoded.Time)
 }

@@ -53,12 +53,12 @@ func DecodeCursor(s string) (*Cursor, error) {
 }
 
 // Encode converts the cursor to a base64-encoded string representation.
-// The encoded string is formatted as <RFC3339 time>,<ID>.
+// The encoded string is formatted as <RFC3339 time with sub-second precision>,<ID>.
 func (c Cursor) Encode() string {
 	// Ensure time is in UTC
 	t := c.Time.UTC()
 
-	s := fmt.Sprintf("%s%s%s", t.Format(time.RFC3339), cursorDelimiter, c.ID)
+	s := fmt.Sprintf("%s%s%s", t.Format(time.RFC3339Nano), cursorDelimiter, c.ID)
 
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
