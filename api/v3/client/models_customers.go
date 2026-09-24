@@ -1626,7 +1626,7 @@ type EntitlementGrantCreateRequest struct {
 	// creation.
 	Priority *uint8 `json:"priority,omitempty"`
 	// The time the grant becomes effective and the anchor for recurring grants. The
-	// value is rounded up to the next minute.
+	// value is truncated to the start of the minute.
 	EffectiveAt time.Time `json:"effective_at"`
 	// The duration after which the grant expires, counted from `effective_at`. Only
 	// single-unit durations are accepted, such as `PT12H`, `P7D`, `P2W`, `P3M`, or

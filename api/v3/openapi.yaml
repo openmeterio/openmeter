@@ -8669,7 +8669,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: |-
             The time the grant becomes effective and the anchor for recurring grants. The
-            value is rounded up to the next minute.
+            value is truncated to the start of the minute.
           title: Effective at
           example: '2023-01-01T01:01:01.001Z'
         expires_after:

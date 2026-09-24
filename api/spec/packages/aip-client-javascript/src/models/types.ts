@@ -3723,7 +3723,7 @@ export interface EntitlementGrantCreateRequest {
   priority?: number
   /**
    * The time the grant becomes effective and the anchor for recurring grants. The
-   * value is rounded up to the next minute.
+   * value is truncated to the start of the minute.
    */
   effectiveAt: Date
   /**
