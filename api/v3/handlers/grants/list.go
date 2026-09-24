@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
@@ -62,6 +63,9 @@ func (h *handler) ListGrants() ListGrantsHandler {
 				}
 
 				req.PageSize = lo.FromPtrOr(params.Page.Size, defaultListGrantsPageSize)
+				if req.PageSize < 1 || req.PageSize > entitlement.MaxGrantsPageSize {
+					return ListGrantsRequest{}, newInvalidQueryParamError(ctx, "page[size]", fmt.Errorf("must be between 1 and %d", entitlement.MaxGrantsPageSize))
+				}
 			}
 
 			if params.Sort != nil {
@@ -140,7 +144,7 @@ func (h *handler) ListGrants() ListGrantsHandler {
 
 func fromAPIGrantSortField(ctx context.Context, field string) (grant.OrderBy, error) {
 	orderBy := grant.OrderBy(field)
-	if !lo.Contains(grant.CursorOrderByValues, orderBy) {
+	if !slices.Contains(grant.CursorOrderByValues, orderBy) {
 		supported := lo.Map(grant.CursorOrderByValues, func(f grant.OrderBy, _ int) string { return string(f) })
 
 		return "", apierrors.NewUnsupportedSortFieldError(ctx, field, supported...)
