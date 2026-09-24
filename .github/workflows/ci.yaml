@@ -741,7 +741,8 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: pipx run --spec commitizen==4.16.5 cz check --allow-abort --rev-range "${BASE_SHA}..HEAD"
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pipx run --spec commitizen==4.16.5 cz check --allow-abort --rev-range "${BASE_SHA}..${HEAD_SHA}"
 
   trusted-artifacts:
     name: Artifacts
