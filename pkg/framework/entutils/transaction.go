@@ -127,8 +127,9 @@ func (t *TxDriver) Commit() error {
 	return nil
 }
 
-// commit releases the driver lock before Commit invokes notifications, allowing
-// callbacks to use the driver without deadlocking.
+// commit protects transaction state and transfers ownership of the callback list
+// to Commit before unlocking. Notifications run outside the lock so a callback
+// can call a driver method without deadlocking.
 func (t *TxDriver) commit() ([]func(), error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -218,6 +219,11 @@ func (t *TxDriver) SavePoint() error {
 // AfterCommit registers a notification to run after the outer transaction commits.
 // Callbacks registered within a rolled-back savepoint are discarded. Callbacks
 // must not perform work whose success is required for the transaction.
+//
+// Callbacks run synchronously outside the driver mutex: invoking them under the
+// lock would deadlock a callback that calls a mutex-protected driver method.
+// The transaction is already finished, so callbacks cannot extend it or register
+// further after-commit notifications.
 func (t *TxDriver) AfterCommit(callback func()) error {
 	if callback == nil {
 		return fmt.Errorf("after-commit callback is nil")
