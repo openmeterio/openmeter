@@ -243,7 +243,7 @@ func TestToAPIEntitlementStaticConfig(t *testing.T) {
 		Config: lo.ToPtr(`{"integrations":["github"]}`),
 	}
 
-	out, err := toAPIEntitlement(ent)
+	out, err := ToAPIBillingEntitlement(ent)
 	require.NoError(t, err)
 
 	encoded, err := json.Marshal(out)

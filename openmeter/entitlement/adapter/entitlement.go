@@ -501,6 +501,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				query = query.Where(db_entitlement.FeatureKeyIn(params.FeatureKeys...))
 			}
 
+			query = filter.ApplyToQuery(query, params.CustomerID, db_entitlement.FieldCustomerID)
 			query = filter.ApplyToQuery(query, params.FeatureID, db_entitlement.FieldFeatureID)
 			query = filter.ApplyToQuery(query, params.FeatureKey, db_entitlement.FieldFeatureKey)
 			query = filter.ApplyToQuery(query, params.EntitlementType, db_entitlement.FieldEntitlementType)
@@ -526,11 +527,12 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 				if !params.Order.IsDefaultValue() {
 					order = entutils.GetOrdering(params.Order)
 				}
+				// Timestamps are not unique, so the ID keeps offset pagination stable.
 				switch params.OrderBy {
 				case entitlement.ListEntitlementsOrderByCreatedAt:
-					query = query.Order(db_entitlement.ByCreatedAt(order...))
+					query = query.Order(db_entitlement.ByCreatedAt(order...), db_entitlement.ByID(order...))
 				case entitlement.ListEntitlementsOrderByUpdatedAt:
-					query = query.Order(db_entitlement.ByUpdatedAt(order...))
+					query = query.Order(db_entitlement.ByUpdatedAt(order...), db_entitlement.ByID(order...))
 				}
 			}
 

@@ -935,3 +935,154 @@ func TestDeleteCustomerEntitlementAPI(t *testing.T) {
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
 }
+
+func TestNamespaceEntitlementAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-namespace-entitlement-api"
+	otherNamespace := "ns-namespace-entitlement-api-other"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	createFeature := func(t *testing.T, ns, key string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: ns,
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	createBooleanEntitlement := func(t *testing.T, cust *customer.Customer, feat feature.Feature) *entitlement.Entitlement {
+		t.Helper()
+
+		ent, err := conn.CreateCustomerEntitlement(t.Context(), entitlement.CreateCustomerEntitlementInput{
+			CustomerID: customer.CustomerID{Namespace: cust.Namespace, ID: cust.ID},
+			Entitlement: entitlement.CreateEntitlementInputs{
+				FeatureKey:      &feat.Key,
+				EntitlementType: entitlement.EntitlementTypeBoolean,
+			},
+		})
+		require.NoError(t, err)
+
+		return ent
+	}
+
+	// given two customers with entitlements for the same feature, an expired
+	// entitlement, and an entitlement in another namespace
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	otherCust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+	foreignCust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, otherNamespace, "cust-1", "Customer 1")
+
+	feat := createFeature(t, namespace, "boolean")
+	custEnt := createBooleanEntitlement(t, cust, feat)
+
+	clock.SetTime(now.Add(time.Minute))
+
+	otherCustEnt := createBooleanEntitlement(t, otherCust, feat)
+
+	expiredFeature := createFeature(t, namespace, "expired")
+	_, err := conn.ScheduleEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+		Namespace:        namespace,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureKey:       &expiredFeature.Key,
+		EntitlementType:  entitlement.EntitlementTypeBoolean,
+		ActiveFrom:       lo.ToPtr(clock.Now()),
+		ActiveTo:         lo.ToPtr(clock.Now().Add(30 * time.Minute)),
+	})
+	require.NoError(t, err)
+
+	foreignEnt := createBooleanEntitlement(t, foreignCust, createFeature(t, otherNamespace, "boolean"))
+
+	// when an hour passes, the expired entitlement is no longer active
+	clock.SetTime(now.Add(time.Hour))
+
+	t.Run("Get should return the entitlement by ID", func(t *testing.T) {
+		ent, err := conn.GetEntitlementByID(t.Context(), entitlement.GetEntitlementByIDInput{
+			Namespace:     namespace,
+			EntitlementID: otherCustEnt.ID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, otherCustEnt.ID, ent.ID)
+		require.Equal(t, otherCust.ID, ent.CustomerID)
+	})
+
+	t.Run("Get should reject an incomplete input", func(t *testing.T) {
+		_, err := conn.GetEntitlementByID(t.Context(), entitlement.GetEntitlementByIDInput{
+			Namespace: namespace,
+		})
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("Get should report a missing entitlement as not found", func(t *testing.T) {
+		_, err := conn.GetEntitlementByID(t.Context(), entitlement.GetEntitlementByIDInput{
+			Namespace:     namespace,
+			EntitlementID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2",
+		})
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("Get should not reveal an entitlement of another namespace", func(t *testing.T) {
+		_, err := conn.GetEntitlementByID(t.Context(), entitlement.GetEntitlementByIDInput{
+			Namespace:     namespace,
+			EntitlementID: foreignEnt.ID,
+		})
+		require.ErrorAs(t, err, lo.ToPtr(&entitlement.NotFoundError{}))
+	})
+
+	t.Run("List should return the active entitlements of every customer in the namespace", func(t *testing.T) {
+		result, err := conn.ListNamespaceEntitlements(t.Context(), entitlement.ListNamespaceEntitlementsInput{
+			Namespace: namespace,
+			Page:      pagination.NewPage(1, 10),
+		})
+		require.NoError(t, err)
+		require.Equal(t, 2, result.TotalCount)
+
+		ids := lo.Map(result.Items, func(item entitlement.Entitlement, _ int) string { return item.ID })
+		require.Equal(t, []string{custEnt.ID, otherCustEnt.ID}, ids)
+	})
+
+	t.Run("List should honor the sort order", func(t *testing.T) {
+		result, err := conn.ListNamespaceEntitlements(t.Context(), entitlement.ListNamespaceEntitlementsInput{
+			Namespace: namespace,
+			OrderBy:   entitlement.ListEntitlementsOrderByCreatedAt,
+			Order:     sortx.OrderDesc,
+			Page:      pagination.NewPage(1, 10),
+		})
+		require.NoError(t, err)
+
+		ids := lo.Map(result.Items, func(item entitlement.Entitlement, _ int) string { return item.ID })
+		require.Equal(t, []string{otherCustEnt.ID, custEnt.ID}, ids)
+	})
+
+	t.Run("List should filter by customer", func(t *testing.T) {
+		for name, tc := range map[string]struct {
+			filter   filter.FilterULID
+			expected string
+		}{
+			"eq":  {filter: filter.FilterULID{Eq: lo.ToPtr(otherCust.ID)}, expected: otherCustEnt.ID},
+			"in":  {filter: filter.FilterULID{In: &[]string{cust.ID, foreignCust.ID}}, expected: custEnt.ID},
+			"neq": {filter: filter.FilterULID{Ne: lo.ToPtr(cust.ID)}, expected: otherCustEnt.ID},
+		} {
+			result, err := conn.ListNamespaceEntitlements(t.Context(), entitlement.ListNamespaceEntitlementsInput{
+				Namespace:  namespace,
+				CustomerID: &tc.filter,
+			})
+			require.NoError(t, err, name)
+			require.Len(t, result.Items, 1, name)
+			require.Equal(t, tc.expected, result.Items[0].ID, name)
+		}
+	})
+
+	t.Run("List should reject an incomplete input", func(t *testing.T) {
+		_, err := conn.ListNamespaceEntitlements(t.Context(), entitlement.ListNamespaceEntitlementsInput{})
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+}

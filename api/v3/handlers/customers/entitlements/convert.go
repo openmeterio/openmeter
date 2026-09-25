@@ -307,7 +307,7 @@ func parseNumeric(v api.Numeric) (float64, error) {
 	return d.InexactFloat64(), nil
 }
 
-func toAPIEntitlement(e *entitlement.Entitlement) (api.BillingEntitlement, error) {
+func ToAPIBillingEntitlement(e *entitlement.Entitlement) (api.BillingEntitlement, error) {
 	var out api.BillingEntitlement
 
 	if e == nil {

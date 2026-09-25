@@ -4,8 +4,12 @@ import { z } from 'zod'
 import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
+  Entitlement,
   EntitlementAccessResult,
+  EntitlementPagePaginatedResponse,
   ListCustomerEntitlementAccessResponseData,
+  ListEntitlementsParamsFilter,
+  SortQueryInput,
 } from '../types.js'
 
 export type ListCustomerEntitlementAccessRequest = {
@@ -30,3 +34,33 @@ export type GetCustomerEntitlementAccessRequest = AcceptDateStrings<
   GetCustomerEntitlementAccessQuery & { customerId: string; featureKey: string }
 >
 export type GetCustomerEntitlementAccessResponse = EntitlementAccessResult
+
+export interface ListEntitlementsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort entitlements returned in the response. Supported sort attributes are:
+   *
+   * - `created_at` (default)
+   * - `updated_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /**
+   * Filter entitlements returned in the response.
+   *
+   * To filter entitlements by customer, add the following query param:
+   * `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
+   */
+  filter?: ListEntitlementsParamsFilter
+}
+
+export type ListEntitlementsRequest = AcceptDateStrings<ListEntitlementsQuery>
+export type ListEntitlementsResponse = EntitlementPagePaginatedResponse
+
+export type GetEntitlementRequest = {
+  entitlementId: string
+}
+export type GetEntitlementResponse = Entitlement

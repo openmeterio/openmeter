@@ -2789,6 +2789,18 @@ export interface ListCustomerEntitlementsParamsFilter {
   type?: StringFieldFilterExact
 }
 
+/** Filter options for listing entitlements. */
+export interface ListEntitlementsParamsFilter {
+  /** Filter entitlements by feature ID. */
+  featureId?: UlidFieldFilter
+  /** Filter entitlements by feature key. */
+  featureKey?: StringFieldFilterExact
+  /** Filter entitlements by type (`metered`, `static` or `boolean`). */
+  type?: StringFieldFilterExact
+  /** Filter entitlements by customer ID. */
+  customerId?: UlidFieldFilter
+}
+
 /** Filter options for listing subscriptions. */
 export interface ListSubscriptionsParamsFilter {
   id?: UlidFieldFilter

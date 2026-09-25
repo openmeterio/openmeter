@@ -43,6 +43,7 @@ type ListEntitlementsParams struct {
 	FeatureIDsOrKeys []string
 	EntitlementTypes []EntitlementType
 
+	CustomerID      *filter.FilterULID
 	FeatureID       *filter.FilterULID
 	FeatureKey      *filter.FilterString
 	EntitlementType *filter.FilterString
@@ -68,6 +69,7 @@ type Service interface {
 	// Facade interfaces provide convenience helpers for the API layer.
 	CustomerEntitlementAccessAPIService
 	CustomerEntitlementAPIService
+	EntitlementAPIService
 
 	// Meant for API use primarily
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)

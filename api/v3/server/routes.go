@@ -10,6 +10,7 @@ import (
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	customersentitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
+	entitlementshandler "github.com/openmeterio/openmeter/api/v3/handlers/entitlements"
 	planhandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 	subscriptionhandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
@@ -664,6 +665,18 @@ func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.R
 
 func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
 	s.taxcodesHandler.UpsertOrganizationDefaultTaxCodes().ServeHTTP(w, r)
+}
+
+// Entitlements
+
+func (s *Server) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
+	s.entitlementsHandler.ListEntitlements().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetEntitlement(w http.ResponseWriter, r *http.Request, entitlementId api.ULID) {
+	s.entitlementsHandler.GetEntitlement().With(entitlementshandler.GetEntitlementParams{
+		EntitlementID: entitlementId,
+	}).ServeHTTP(w, r)
 }
 
 // EntitlementAccess

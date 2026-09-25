@@ -253,6 +253,7 @@ export type {
   LlmCostOverrideCreate,
   ListCustomersParamsFilter,
   ListCustomerEntitlementsParamsFilter,
+  ListEntitlementsParamsFilter,
   ListSubscriptionsParamsFilter,
   ListAppsParamsFilter,
   ListBillingProfilesParamsFilter,

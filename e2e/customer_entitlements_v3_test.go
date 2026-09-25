@@ -257,7 +257,7 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 	})
 
 	t.Run("list", func(t *testing.T) {
-		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.ListCustomerEntitlementsParams{
 			Sort: &v3sdk.Sort{By: "created_at", Order: v3sdk.SortOrderDesc},
 		})
 		c.requireStatus(http.StatusOK, err)
@@ -274,7 +274,7 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 	})
 
 	t.Run("list paginated", func(t *testing.T) {
-		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.ListCustomerEntitlementsParams{
 			Page: &v3sdk.PageParams{Number: lo.ToPtr(2), Size: lo.ToPtr(1)},
 		})
 		c.requireStatus(http.StatusOK, err)
@@ -287,12 +287,12 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 	})
 
 	t.Run("list filtered", func(t *testing.T) {
-		for name, filter := range map[string]v3sdk.EntitlementFilter{
+		for name, filter := range map[string]v3sdk.ListCustomerEntitlementsFilter{
 			"feature id":  {FeatureID: &v3sdk.StringExactFilter{Eq: lo.ToPtr(meteredFeature.ID)}},
 			"feature key": {FeatureKey: &v3sdk.StringExactFilter{Oeq: []string{meteredFeature.Key, "unknown_feature"}}},
 			"type":        {Type: &v3sdk.StringExactFilter{Eq: lo.ToPtr("metered")}},
 		} {
-			list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+			list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.ListCustomerEntitlementsParams{
 				Filter: &filter,
 			})
 			c.requireStatus(http.StatusOK, err)
@@ -305,8 +305,8 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 	})
 
 	t.Run("list excludes by type", func(t *testing.T) {
-		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
-			Filter: &v3sdk.EntitlementFilter{Type: &v3sdk.StringExactFilter{Neq: lo.ToPtr("metered")}},
+		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.ListCustomerEntitlementsParams{
+			Filter: &v3sdk.ListCustomerEntitlementsFilter{Type: &v3sdk.StringExactFilter{Neq: lo.ToPtr("metered")}},
 		})
 		c.requireStatus(http.StatusOK, err)
 		require.Len(t, list.Data, 1)
@@ -317,12 +317,12 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 	})
 
 	t.Run("list rejects unsupported filters and sort", func(t *testing.T) {
-		_, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
-			Filter: &v3sdk.EntitlementFilter{Type: &v3sdk.StringExactFilter{Eq: lo.ToPtr("unknown")}},
+		_, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.ListCustomerEntitlementsParams{
+			Filter: &v3sdk.ListCustomerEntitlementsFilter{Type: &v3sdk.StringExactFilter{Eq: lo.ToPtr("unknown")}},
 		})
 		requireProblem(t, err, http.StatusBadRequest)
 
-		_, err = c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.EntitlementListParams{
+		_, err = c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.ListCustomerEntitlementsParams{
 			Sort: &v3sdk.Sort{By: "feature_key"},
 		})
 		requireProblem(t, err, http.StatusBadRequest)
@@ -332,7 +332,7 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 		_, err := c.Customers.Entitlements.Get(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", meteredEnt.ID)
 		requireProblem(t, err, http.StatusNotFound)
 
-		_, err = c.Customers.Entitlements.List(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", v3sdk.EntitlementListParams{})
+		_, err = c.Customers.Entitlements.List(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", v3sdk.ListCustomerEntitlementsParams{})
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
@@ -348,7 +348,7 @@ func TestV3GetAndListCustomerEntitlements(t *testing.T) {
 		_, err = c.Customers.Entitlements.Get(t.Context(), deleted.ID, meteredEnt.ID)
 		requireProblem(t, err, http.StatusConflict)
 
-		_, err = c.Customers.Entitlements.List(t.Context(), deleted.ID, v3sdk.EntitlementListParams{})
+		_, err = c.Customers.Entitlements.List(t.Context(), deleted.ID, v3sdk.ListCustomerEntitlementsParams{})
 		requireProblem(t, err, http.StatusConflict)
 	})
 }

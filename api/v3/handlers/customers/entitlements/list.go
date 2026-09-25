@@ -99,7 +99,7 @@ func (h *handler) ListCustomerEntitlements() ListCustomerEntitlementsHandler {
 			}
 
 			items, err := slicesx.MapWithErr(result.Items, func(ent entitlement.Entitlement) (api.BillingEntitlement, error) {
-				return toAPIEntitlement(&ent)
+				return ToAPIBillingEntitlement(&ent)
 			})
 			if err != nil {
 				return ListCustomerEntitlementsResponse{}, fmt.Errorf("converting entitlements: %w", err)

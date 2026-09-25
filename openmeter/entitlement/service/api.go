@@ -175,6 +175,35 @@ func (c *service) DeleteCustomerEntitlement(ctx context.Context, input entitleme
 	return c.DeleteEntitlement(ctx, cus.Namespace, ent.ID, clock.Now())
 }
 
+func (c *service) GetEntitlementByID(ctx context.Context, input entitlement.GetEntitlementByIDInput) (*entitlement.Entitlement, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	return c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.EntitlementID})
+}
+
+func (c *service) ListNamespaceEntitlements(ctx context.Context, input entitlement.ListNamespaceEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[entitlement.Entitlement]{}, err
+	}
+
+	now := clock.Now()
+
+	return c.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		Namespaces:          []string{input.Namespace},
+		CustomerID:          input.CustomerID,
+		FeatureID:           input.FeatureID,
+		FeatureKey:          input.FeatureKey,
+		EntitlementType:     input.Type,
+		OrderBy:             lo.CoalesceOrEmpty(input.OrderBy, entitlement.ListEntitlementsOrderByCreatedAt),
+		Order:               input.Order,
+		Page:                input.Page,
+		ActiveAt:            &now,
+		IncludeDeletedAfter: now,
+	})
+}
+
 func (c *service) getActiveCustomer(ctx context.Context, customerID customer.CustomerID) (*customer.Customer, error) {
 	cus, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customerID,
