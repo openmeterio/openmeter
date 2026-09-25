@@ -1583,8 +1583,7 @@ type EntitlementGrant struct {
 	// priority 1 is consumed before one with priority 2. Among equal priorities, the
 	// grant closest to expiration is consumed first, then the earliest created.
 	Priority uint8 `json:"priority"`
-	// The time the grant takes effect. It is also the anchor of the recurrence for
-	// recurring grants.
+	// The time the grant takes effect.
 	EffectiveAt time.Time `json:"effective_at"`
 	// The duration after which the grant expires, counted from `effective_at`. Always
 	// a single-unit duration (for example `PT12H`, `P7D`, `P2W`, `P3M`, `P1Y`). Absent
@@ -1601,7 +1600,8 @@ type EntitlementGrant struct {
 	// is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
 	MinRolloverAmount Numeric `json:"min_rollover_amount"`
 	// The recurrence of the grant. When set, the grant amount is re-issued every
-	// interval, anchored at `effective_at`. Absent for non-recurring grants.
+	// interval from the anchor, which defaults to `effective_at`. Absent for
+	// non-recurring grants.
 	Recurrence *RecurringPeriod `json:"recurrence,omitempty"`
 	// The next time the grant recurs. Absent for non-recurring grants.
 	NextRecurrence *time.Time `json:"next_recurrence,omitempty"`

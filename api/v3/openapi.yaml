@@ -8545,9 +8545,7 @@ components:
         effective_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: |-
-            The time the grant takes effect. It is also the anchor of the recurrence for
-            recurring grants.
+          description: The time the grant takes effect.
           title: Effective at
           example: '2023-01-01T01:01:01.001Z'
           readOnly: true
@@ -8594,7 +8592,8 @@ components:
             - $ref: '#/components/schemas/RecurringPeriod'
           description: |-
             The recurrence of the grant. When set, the grant amount is re-issued every
-            interval, anchored at `effective_at`. Absent for non-recurring grants.
+            interval from the anchor, which defaults to `effective_at`. Absent for
+            non-recurring grants.
           title: Recurrence
           readOnly: true
         next_recurrence:

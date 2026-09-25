@@ -48,8 +48,7 @@ model EntitlementGrant {
   priority: uint8;
 
   /**
-   * The time the grant takes effect. It is also the anchor of the recurrence for
-   * recurring grants.
+   * The time the grant takes effect.
    */
   @visibility(Lifecycle.Read)
   @summary("Effective at")
@@ -96,7 +95,8 @@ model EntitlementGrant {
 
   /**
    * The recurrence of the grant. When set, the grant amount is re-issued every
-   * interval, anchored at `effective_at`. Absent for non-recurring grants.
+   * interval from the anchor, which defaults to `effective_at`. Absent for
+   * non-recurring grants.
    */
   @visibility(Lifecycle.Read)
   @summary("Recurrence")

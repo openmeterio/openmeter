@@ -3921,10 +3921,7 @@ export interface EntitlementGrant {
    * grant closest to expiration is consumed first, then the earliest created.
    */
   priority: number
-  /**
-   * The time the grant takes effect. It is also the anchor of the recurrence for
-   * recurring grants.
-   */
+  /** The time the grant takes effect. */
   effectiveAt: Date
   /**
    * The duration after which the grant expires, counted from `effective_at`. Always
@@ -3950,7 +3947,8 @@ export interface EntitlementGrant {
   minRolloverAmount: string
   /**
    * The recurrence of the grant. When set, the grant amount is re-issued every
-   * interval, anchored at `effective_at`. Absent for non-recurring grants.
+   * interval from the anchor, which defaults to `effective_at`. Absent for
+   * non-recurring grants.
    */
   recurrence?: RecurringPeriod
   /** The next time the grant recurs. Absent for non-recurring grants. */
