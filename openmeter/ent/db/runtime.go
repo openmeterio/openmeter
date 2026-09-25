@@ -67,6 +67,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
@@ -2216,6 +2217,33 @@ func init() {
 	entitlementDescID := entitlementMixinFields0[0].Descriptor()
 	// entitlement.DefaultID holds the default value on creation for the id field.
 	entitlement.DefaultID = entitlementDescID.Default.(func() string)
+	eventoutboxFields := schema.EventOutbox{}.Fields()
+	_ = eventoutboxFields
+	// eventoutboxDescCreatedAt is the schema descriptor for created_at field.
+	eventoutboxDescCreatedAt := eventoutboxFields[1].Descriptor()
+	// eventoutbox.DefaultCreatedAt holds the default value on creation for the created_at field.
+	eventoutbox.DefaultCreatedAt = eventoutboxDescCreatedAt.Default.(func() time.Time)
+	// eventoutboxDescMessageID is the schema descriptor for message_id field.
+	eventoutboxDescMessageID := eventoutboxFields[2].Descriptor()
+	// eventoutbox.MessageIDValidator is a validator for the "message_id" field. It is called by the builders before save.
+	eventoutbox.MessageIDValidator = eventoutboxDescMessageID.Validators[0].(func(string) error)
+	// eventoutboxDescTransactionID is the schema descriptor for transaction_id field.
+	eventoutboxDescTransactionID := eventoutboxFields[3].Descriptor()
+	// eventoutbox.TransactionIDValidator is a validator for the "transaction_id" field. It is called by the builders before save.
+	eventoutbox.TransactionIDValidator = eventoutboxDescTransactionID.Validators[0].(func(string) error)
+	// eventoutboxDescAttempts is the schema descriptor for attempts field.
+	eventoutboxDescAttempts := eventoutboxFields[4].Descriptor()
+	// eventoutbox.DefaultAttempts holds the default value on creation for the attempts field.
+	eventoutbox.DefaultAttempts = eventoutboxDescAttempts.Default.(int)
+	// eventoutbox.AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
+	eventoutbox.AttemptsValidator = eventoutboxDescAttempts.Validators[0].(func(int) error)
+	// eventoutboxDescTopic is the schema descriptor for topic field.
+	eventoutboxDescTopic := eventoutboxFields[5].Descriptor()
+	// eventoutbox.TopicValidator is a validator for the "topic" field. It is called by the builders before save.
+	eventoutbox.TopicValidator = eventoutboxDescTopic.Validators[0].(func(string) error)
+	// eventoutboxDescMetadata is the schema descriptor for metadata field.
+	eventoutboxDescMetadata := eventoutboxFields[7].Descriptor()
+	eventoutbox.ValueScanner.Metadata = eventoutboxDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	dbfeatureMixin := schema.Feature{}.Mixin()
 	dbfeatureMixinFields0 := dbfeatureMixin[0].Fields()
 	_ = dbfeatureMixinFields0

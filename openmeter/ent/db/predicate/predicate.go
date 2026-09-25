@@ -367,6 +367,20 @@ func EntitlementOrErr(p Entitlement, err error) Entitlement {
 	}
 }
 
+// EventOutbox is the predicate function for eventoutbox builders.
+type EventOutbox func(*sql.Selector)
+
+// EventOutboxOrErr calls the predicate only if the error is not nit.
+func EventOutboxOrErr(p EventOutbox, err error) EventOutbox {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Feature is the predicate function for dbfeature builders.
 type Feature func(*sql.Selector)
 

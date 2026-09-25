@@ -115,7 +115,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Tracer:      tracer,
 		Config:      consumerConfiguration,
 	}
-	eventbusPublisher, err := common.NewEventBusPublisher(publisher, eventsConfiguration, logger)
+	eventbusPublisher, cleanup7, err := common.NewEventBusPublisher(ctx, publisher, client, eventsConfiguration, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -128,8 +128,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v3, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
+	v3, cleanup8, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -141,6 +142,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	progressManagerConfiguration := conf.ProgressManager
 	service, err := common.NewProgressManager(logger, progressManagerConfiguration)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -153,6 +155,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -164,6 +167,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, service, manager)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -175,6 +179,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	adapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -187,6 +192,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	meterService := common.NewMeterService(adapter)
 	locker, err := common.NewLocker(logger)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -198,6 +204,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	customerService, err := common.NewCustomerService(logger, client, eventbusPublisher)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -209,6 +216,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -221,6 +229,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -235,6 +244,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	v4 := conf.Svix
 	svix, err := common.NewSvixAPIClient(v4, meterProvider, tracerProvider)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -246,6 +256,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -258,6 +269,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
 	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -269,6 +281,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -280,6 +293,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectService, err := common.NewSubjectService(subjectAdapter)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -292,6 +306,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, notificationService, subjectService, customerService, logger, balanceWorkerConfiguration)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -303,7 +318,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	v5, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	group := common.BalanceWorkerGroup(ctx, worker, v5)
 	runner := common.Runner{
 		Group:  group,
@@ -311,6 +326,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -329,6 +345,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 	}
 	return application, func() {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()

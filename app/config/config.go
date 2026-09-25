@@ -75,6 +75,9 @@ func (c Configuration) Validate() error {
 	if err := c.Ingest.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "ingest"))
 	}
+	if err := c.Events.Outbox.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "events.outbox"))
+	}
 
 	if err := c.Aggregation.Validate(); err != nil {
 		errs = append(errs, errorsx.WithPrefix(err, "aggregation"))

@@ -4056,6 +4056,35 @@ var (
 			},
 		},
 	}
+	// EventOutboxesColumns holds the columns for the "event_outboxes" table.
+	EventOutboxesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "message_id", Type: field.TypeString},
+		{Name: "transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "topic", Type: field.TypeString},
+		{Name: "payload", Type: field.TypeBytes},
+		{Name: "metadata", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// EventOutboxesTable holds the schema information for the "event_outboxes" table.
+	EventOutboxesTable = &schema.Table{
+		Name:       "event_outboxes",
+		Columns:    EventOutboxesColumns,
+		PrimaryKey: []*schema.Column{EventOutboxesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "eventoutbox_topic_id",
+				Unique:  false,
+				Columns: []*schema.Column{EventOutboxesColumns[5], EventOutboxesColumns[0]},
+			},
+			{
+				Name:    "eventoutbox_topic_transaction_id_id",
+				Unique:  false,
+				Columns: []*schema.Column{EventOutboxesColumns[5], EventOutboxesColumns[3], EventOutboxesColumns[0]},
+			},
+		},
+	}
 	// FeaturesColumns holds the columns for the "features" table.
 	FeaturesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6238,6 +6267,7 @@ var (
 		CustomersTable,
 		CustomerSubjectsTable,
 		EntitlementsTable,
+		EventOutboxesTable,
 		FeaturesTable,
 		GrantsTable,
 		LlmCostPricesTable,
