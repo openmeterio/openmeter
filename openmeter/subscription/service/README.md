@@ -57,6 +57,9 @@ annotations intended for correlation, not persisted child IDs.
   transaction.
 - The materializer receives a complete desired state. It does not interpret
   the user's patch sequence or decide command timing.
+- Replacement item versions may change currency. An omitted edit currency
+  defaults to the subscription invoice currency; explicit currencies follow
+  normal resolution, fiat compatibility, and cost-basis validation.
 - Custom item currencies must be resolved by the service before persistence;
   the materializer verifies that their managed identity belongs to the item
   namespace without loading currency state itself.
