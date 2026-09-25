@@ -33,6 +33,33 @@ type CreateNotificationChannelRequest struct {
 	SigningSecret *string `json:"signing_secret,omitempty"`
 }
 
+// A balance threshold of a notification rule. Crossing it generates an
+// `entitlements.balance.threshold` event.
+type NotificationBalanceThreshold struct {
+	// What the threshold value is measured against.
+	Type NotificationBalanceThresholdType `json:"type"`
+	// The threshold value.
+	Value float64 `json:"value"`
+}
+
+// What a balance threshold is measured against.
+type NotificationBalanceThresholdType string
+
+const (
+	NotificationBalanceThresholdTypeBalanceValue    NotificationBalanceThresholdType = "balance_value"
+	NotificationBalanceThresholdTypeUsagePercentage NotificationBalanceThresholdType = "usage_percentage"
+	NotificationBalanceThresholdTypeUsageValue      NotificationBalanceThresholdType = "usage_value"
+)
+
+func (value NotificationBalanceThresholdType) Valid() bool {
+	switch value {
+	case NotificationBalanceThresholdTypeBalanceValue, NotificationBalanceThresholdTypeUsagePercentage, NotificationBalanceThresholdTypeUsageValue:
+		return true
+	default:
+		return false
+	}
+}
+
 // A notification channel delivers notification events, such as entitlement balance
 // threshold crossings, to an external system. Today the only supported channel
 // type is a webhook delivered via Svix.
@@ -112,14 +139,6 @@ type NotificationEvent struct {
 	Payload NotificationEventPayload `json:"payload"`
 }
 
-// The threshold that the entitlement balance crossed.
-type NotificationEventBalanceThreshold struct {
-	// What the threshold value is measured against.
-	Type NotificationEventBalanceThresholdType `json:"type"`
-	// The threshold value that was crossed.
-	Value float64 `json:"value"`
-}
-
 // The entities and threshold a balance threshold event refers to.
 type NotificationEventBalanceThresholdData struct {
 	// The identifier of the entitlement that triggered the event.
@@ -133,7 +152,7 @@ type NotificationEventBalanceThresholdData struct {
 	// The entitlement balance at the time the event was generated.
 	Value NotificationEventEntitlementValue `json:"value"`
 	// The threshold the balance crossed.
-	Threshold NotificationEventBalanceThreshold `json:"threshold"`
+	Threshold NotificationBalanceThreshold `json:"threshold"`
 }
 
 // A balance threshold notification event payload.
@@ -146,24 +165,6 @@ type NotificationEventBalanceThresholdPayload struct {
 	Timestamp time.Time `json:"timestamp"`
 	// The entities and threshold the event refers to.
 	Data NotificationEventBalanceThresholdData `json:"data"`
-}
-
-// What a balance threshold is measured against.
-type NotificationEventBalanceThresholdType string
-
-const (
-	NotificationEventBalanceThresholdTypeBalanceValue    NotificationEventBalanceThresholdType = "balance_value"
-	NotificationEventBalanceThresholdTypeUsagePercentage NotificationEventBalanceThresholdType = "usage_percentage"
-	NotificationEventBalanceThresholdTypeUsageValue      NotificationEventBalanceThresholdType = "usage_value"
-)
-
-func (value NotificationEventBalanceThresholdType) Valid() bool {
-	switch value {
-	case NotificationEventBalanceThresholdTypeBalanceValue, NotificationEventBalanceThresholdTypeUsagePercentage, NotificationEventBalanceThresholdTypeUsageValue:
-		return true
-	default:
-		return false
-	}
 }
 
 // A single delivery attempt to a channel.

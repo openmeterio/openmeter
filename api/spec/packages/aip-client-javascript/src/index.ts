@@ -257,7 +257,7 @@ export type {
   UpdateBillingNotificationChannelRequest,
   NotificationRuleReference,
   NotificationEventDeliveryAttempt,
-  NotificationEventBalanceThreshold,
+  NotificationBalanceThreshold,
   AppCustomerData,
   UpsertAppCustomerDataRequest,
   CreditAdjustment,

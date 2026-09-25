@@ -97,13 +97,13 @@ func TestDeliveryStateCasing(t *testing.T) {
 func TestToAPIBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
 		in   v1api.NotificationRuleBalanceThresholdValueType
-		want api.BillingNotificationEventBalanceThresholdType
+		want api.BillingNotificationBalanceThresholdType
 	}{
-		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationEventBalanceThresholdTypeBalanceValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationEventBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationEventBalanceThresholdTypeUsageValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationEventBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationEventBalanceThresholdTypeUsageValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationBalanceThresholdTypeBalanceValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationBalanceThresholdTypeUsageValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationBalanceThresholdTypeUsagePercentage},
+		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationBalanceThresholdTypeUsageValue},
 	}
 
 	for _, tc := range testCases {
@@ -178,7 +178,7 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAZ", lo.FromPtr(payload.Data.CustomerId))
 	assert.True(t, payload.Data.Value.HasAccess)
 	assert.Equal(t, 100.0, lo.FromPtr(payload.Data.Value.Balance))
-	assert.Equal(t, api.BillingNotificationEventBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
+	assert.Equal(t, api.BillingNotificationBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
 	assert.Equal(t, 90.0, payload.Data.Threshold.Value)
 }
 
