@@ -344,7 +344,12 @@ func (c *service) ListCustomerEntitlementGrants(ctx context.Context, input entit
 		return pagination.Result[grant.Grant]{}, err
 	}
 
-	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, cus, input.EntitlementID)
 	if err != nil {
 		return pagination.Result[grant.Grant]{}, err
 	}
@@ -374,7 +379,12 @@ func (c *service) CreateCustomerEntitlementGrant(ctx context.Context, input enti
 		return grant.Grant{}, err
 	}
 
-	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return grant.Grant{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, cus, input.EntitlementID)
 	if err != nil {
 		return grant.Grant{}, err
 	}
