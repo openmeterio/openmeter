@@ -75,6 +75,9 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	}
 
 	t.Run("passes the namespaced customer and feature key and defaults at to now", func(t *testing.T) {
+		// given a feature with a boolean entitlement for the customer
+		// when checked without an explicit evaluation time
+		// then the service receives the namespaced customer and current time
 		var received entitlement.GetCustomerEntitlementAccessInput
 
 		response := serveGetCustomerEntitlementAccess(t, capture(&received), GetCustomerEntitlementAccessParams{
@@ -100,6 +103,9 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	})
 
 	t.Run("feature without an entitlement has no type", func(t *testing.T) {
+		// given a feature with no entitlement
+		// when the customer access is checked
+		// then the response denies access without inventing an entitlement type
 		response := serveGetCustomerEntitlementAccess(t, fakeEntitlementService{get: func(context.Context, entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
 			return entitlement.CustomerEntitlementAccess{Value: &entitlement.NoAccessValue{}}, nil
 		}}, GetCustomerEntitlementAccessParams{CustomerID: testCustomerID, FeatureKey: testFeatureKey})
@@ -109,6 +115,9 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	})
 
 	t.Run("passes the entitlement ID and the requested at", func(t *testing.T) {
+		// given a customer entitlement and a historical evaluation time
+		// when its value is requested by ID
+		// then the service receives the entitlement ID and requested time
 		var received entitlement.GetCustomerEntitlementAccessInput
 		at := now.Add(-48 * time.Hour)
 
