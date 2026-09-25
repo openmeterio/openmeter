@@ -1,4 +1,4 @@
-package internal
+package testevent
 
 import (
 	"context"
@@ -22,23 +22,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type TestEventGenerator struct {
+type Generator struct {
 	billingService billing.Service
 }
 
-func NewTestEventGenerator(billingService billing.Service) *TestEventGenerator {
-	return &TestEventGenerator{
+func NewGenerator(billingService billing.Service) *Generator {
+	return &Generator{
 		billingService: billingService,
 	}
 }
 
-type EventGeneratorInput struct {
+type GeneratorInput struct {
 	Namespace string
 
 	EventType notification.EventType
 }
 
-func (i EventGeneratorInput) Validate() error {
+func (i GeneratorInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -50,7 +50,7 @@ func (i EventGeneratorInput) Validate() error {
 	return nil
 }
 
-func (t *TestEventGenerator) Generate(ctx context.Context, in EventGeneratorInput) (notification.EventPayload, error) {
+func (t *Generator) Generate(ctx context.Context, in GeneratorInput) (notification.EventPayload, error) {
 	if err := in.Validate(); err != nil {
 		return notification.EventPayload{}, err
 	}
@@ -67,7 +67,7 @@ func (t *TestEventGenerator) Generate(ctx context.Context, in EventGeneratorInpu
 	}
 }
 
-func (t *TestEventGenerator) newTestBalanceThresholdPayload() notification.EventPayload {
+func (t *Generator) newTestBalanceThresholdPayload() notification.EventPayload {
 	payload := t.newTestEntitlementResetPayload()
 	payload.Type = notification.EventTypeBalanceThreshold
 	payload.BalanceThreshold = &notification.BalanceThresholdPayload{
@@ -80,7 +80,7 @@ func (t *TestEventGenerator) newTestBalanceThresholdPayload() notification.Event
 	return payload
 }
 
-func (t *TestEventGenerator) newTestEntitlementResetPayload() notification.EventPayload {
+func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 	var (
 		now       = time.Now()
 		createdAt = now.Add(-24 * time.Hour)
@@ -180,7 +180,7 @@ func (t *TestEventGenerator) newTestEntitlementResetPayload() notification.Event
 	}
 }
 
-func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespace string, eventType notification.EventType) (notification.EventPayload, error) {
+func (t *Generator) newTestInvoicePayload(ctx context.Context, namespace string, eventType notification.EventType) (notification.EventPayload, error) {
 	now := time.Now().Truncate(time.Second).In(time.UTC)
 
 	invoice, err := t.billingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{

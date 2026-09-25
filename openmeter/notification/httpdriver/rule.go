@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/notification/internal"
+	"github.com/openmeterio/openmeter/openmeter/notification/testevent"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -319,7 +319,7 @@ func (h *handler) TestRule() TestRuleHandler {
 				return TestRuleResponse{}, fmt.Errorf("failed to get rule: %w", err)
 			}
 
-			testEvent, err := h.testEventGenerator.Generate(ctx, internal.EventGeneratorInput{
+			testEvent, err := h.testEventGenerator.Generate(ctx, testevent.GeneratorInput{
 				Namespace: request.Namespace,
 				EventType: rule.Type,
 			})
