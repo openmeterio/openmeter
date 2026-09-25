@@ -437,3 +437,104 @@ func TestV3DeleteCustomerEntitlement(t *testing.T) {
 		requireProblem(t, err, http.StatusNotFound)
 	})
 }
+
+func TestV3OverrideCustomerEntitlement(t *testing.T) {
+	c := newV3Client(t)
+
+	customerKey := uniqueKey("ent_override_customer")
+	cust, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:  customerKey,
+		Name: "Entitlement Customer " + customerKey,
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
+			SubjectKeys: []string{customerKey},
+		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, cust)
+
+	f := createMeteredFeature(t, c, "ent_override_metered")
+
+	created, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
+		Feature:     v3sdk.FeatureReference{ID: f.ID},
+		UsagePeriod: v3sdk.RecurringPeriodInput{Interval: "P1M"},
+	})))
+	c.requireStatus(http.StatusCreated, err)
+	oldEnt, err := created.AsEntitlementMetered()
+	require.NoError(t, err)
+
+	upgrade := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
+		Feature:     v3sdk.FeatureReference{ID: f.ID},
+		UsagePeriod: v3sdk.RecurringPeriodInput{Interval: "P1M"},
+		Issue:       &v3sdk.EntitlementIssueAfterReset{Amount: "100"},
+	}))
+
+	t.Run("different feature", func(t *testing.T) {
+		// given a request for another feature
+		other := createMeteredFeature(t, c, "ent_override_other")
+
+		req := lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
+			Feature:     v3sdk.FeatureReference{ID: other.ID},
+			UsagePeriod: v3sdk.RecurringPeriodInput{Interval: "P1M"},
+		}))
+
+		// when the entitlement is overridden with it, then the request is rejected as invalid
+		_, err := c.Customers.Entitlements.Override(t.Context(), cust.ID, oldEnt.ID, req)
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("replaces the entitlement", func(t *testing.T) {
+		// when the entitlement is overridden with an upgrade for the same feature
+		overridden, err := c.Customers.Entitlements.Override(t.Context(), cust.ID, oldEnt.ID, upgrade)
+		c.requireStatus(http.StatusCreated, err)
+
+		// then a new entitlement carries the upgrade and the old one has ended
+		newEnt, err := overridden.AsEntitlementMetered()
+		require.NoError(t, err)
+		require.NotEqual(t, oldEnt.ID, newEnt.ID)
+		require.Equal(t, f.ID, newEnt.Feature.ID)
+		require.Equal(t, cust.ID, newEnt.Customer.ID)
+		require.NotNil(t, newEnt.Issue)
+		require.Equal(t, "100", newEnt.Issue.Amount)
+
+		got, err := c.Customers.Entitlements.Get(t.Context(), cust.ID, oldEnt.ID)
+		c.requireStatus(http.StatusOK, err)
+		ended, err := got.AsEntitlementMetered()
+		require.NoError(t, err)
+		require.NotNil(t, ended.ActiveTo)
+
+		list, err := c.Customers.Entitlements.List(t.Context(), cust.ID, v3sdk.ListCustomerEntitlementsParams{
+			Filter: &v3sdk.ListCustomerEntitlementsFilter{FeatureID: &v3sdk.StringExactFilter{Eq: lo.ToPtr(f.ID)}},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.Len(t, list.Data, 1)
+
+		listed, err := list.Data[0].AsEntitlementMetered()
+		require.NoError(t, err)
+		require.Equal(t, newEnt.ID, listed.ID)
+	})
+
+	t.Run("unknown entitlement", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Override(t.Context(), cust.ID, "01K4WAQ0J99ZZ0MD75HXR112H9", upgrade)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("unknown customer", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Override(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", oldEnt.ID, upgrade)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("deleted customer", func(t *testing.T) {
+		// given a customer that has been deleted
+		deletedKey := uniqueKey("ent_override_deleted_customer")
+		deleted, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:  deletedKey,
+			Name: "Deleted Customer " + deletedKey,
+		})
+		c.requireStatus(http.StatusCreated, err)
+		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
+
+		// when an entitlement is overridden for it, then the request conflicts with the deleted state
+		_, err = c.Customers.Entitlements.Override(t.Context(), deleted.ID, oldEnt.ID, upgrade)
+		requireProblem(t, err, http.StatusConflict)
+	})
+}

@@ -5,6 +5,7 @@ import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import {
   createCustomerEntitlement,
+  overrideCustomerEntitlement,
   getCustomerEntitlementHistory,
   getCustomerEntitlement,
   listCustomerEntitlements,
@@ -63,6 +64,8 @@ import {
 import type {
   CreateCustomerEntitlementRequest,
   CreateCustomerEntitlementResponse,
+  OverrideCustomerEntitlementRequest,
+  OverrideCustomerEntitlementResponse,
   GetCustomerEntitlementHistoryRequest,
   GetCustomerEntitlementHistoryResponse,
   GetCustomerEntitlementRequest,
@@ -279,6 +282,29 @@ export class InternalCustomersEntitlements {
   ): Promise<CreateCustomerEntitlementResponse> {
     return unwrap(
       await createCustomerEntitlement(this._client, request, options),
+    )
+  }
+
+  /**
+   * Override customer entitlement
+   *
+   * Override an entitlement of the customer with a new one.
+   *
+   * The referenced entitlement ends and the new one starts at the same instant, so
+   * access continues without a gap. Both must belong to the same feature. Use this
+   * for upgrades and downgrades.
+   *
+   * Fails if the referenced entitlement does not exist, is deleted, or is no longer
+   * active.
+   *
+   * PUT /openmeter/customers/{customerId}/entitlements/{entitlementId}/override
+   */
+  async override(
+    request: OverrideCustomerEntitlementRequest,
+    options?: RequestOptions,
+  ): Promise<OverrideCustomerEntitlementResponse> {
+    return unwrap(
+      await overrideCustomerEntitlement(this._client, request, options),
     )
   }
 

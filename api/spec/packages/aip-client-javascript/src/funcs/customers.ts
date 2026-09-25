@@ -35,6 +35,8 @@ import type {
   CreateCustomerStripePortalSessionResponse,
   CreateCustomerEntitlementRequest,
   CreateCustomerEntitlementResponse,
+  OverrideCustomerEntitlementRequest,
+  OverrideCustomerEntitlementResponse,
   GetCustomerEntitlementHistoryRequest,
   GetCustomerEntitlementHistoryResponse,
   GetCustomerEntitlementRequest,
@@ -541,6 +543,66 @@ export function createCustomerEntitlement(
           assertValid(schemas.createCustomerEntitlementResponseWire, data)
         }
         return fromWire(data, schemas.createCustomerEntitlementResponse)
+      })
+  })
+}
+
+/**
+ * Override customer entitlement
+ *
+ * Override an entitlement of the customer with a new one.
+ *
+ * The referenced entitlement ends and the new one starts at the same instant, so
+ * access continues without a gap. Both must belong to the same feature. Use this
+ * for upgrades and downgrades.
+ *
+ * Fails if the referenced entitlement does not exist, is deleted, or is no longer
+ * active.
+ *
+ * PUT /openmeter/customers/{customerId}/entitlements/{entitlementId}/override
+ */
+export function overrideCustomerEntitlement(
+  client: Client,
+  req: OverrideCustomerEntitlementRequest,
+  options?: RequestOptions,
+): Promise<Result<OverrideCustomerEntitlementResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      entitlementId: req.entitlementId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.overrideCustomerEntitlementPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.overrideCustomerEntitlementPathParamsWire, pathParams)
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlements/${(() => {
+      if (pathParams.entitlementId === undefined) {
+        throw new Error('missing path parameter: entitlementId')
+      }
+      return encodeURIComponent(String(pathParams.entitlementId))
+    })()}/override`
+    const body = toWire(req.body, schemas.overrideCustomerEntitlementBody)
+    if (client._options.validate) {
+      assertValid(schemas.overrideCustomerEntitlementBodyWire, body)
+    }
+    return http(client)
+      .put(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.overrideCustomerEntitlementResponseWire, data)
+        }
+        return fromWire(data, schemas.overrideCustomerEntitlementResponse)
       })
   })
 }

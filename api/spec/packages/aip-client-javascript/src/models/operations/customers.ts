@@ -125,6 +125,13 @@ export type CreateCustomerEntitlementRequest = AcceptDateStrings<{
 }>
 export type CreateCustomerEntitlementResponse = Entitlement
 
+export type OverrideCustomerEntitlementRequest = AcceptDateStrings<{
+  customerId: string
+  entitlementId: string
+  body: CreateEntitlementRequestInput
+}>
+export type OverrideCustomerEntitlementResponse = Entitlement
+
 export interface GetCustomerEntitlementHistoryQuery {
   /**
    * The start of the queried range. Defaults to the last reset. Truncated to the

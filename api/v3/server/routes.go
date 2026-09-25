@@ -134,6 +134,13 @@ func (s *Server) DeleteCustomerEntitlement(w http.ResponseWriter, r *http.Reques
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) OverrideCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID) {
+	s.customersEntitlementsHandler.OverrideCustomerEntitlement().With(customersentitlementshandler.OverrideCustomerEntitlementParams{
+		CustomerID:    customerId,
+		EntitlementID: entitlementId,
+	}).ServeHTTP(w, r)
+}
+
 // Customers Entitlements
 
 func (s *Server) GetCustomerEntitlementHistory(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID, params api.GetCustomerEntitlementHistoryParams) {

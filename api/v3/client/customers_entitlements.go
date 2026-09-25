@@ -100,6 +100,42 @@ func (s *CustomersEntitlementsService) Create(ctx context.Context, customerID st
 	return &out, nil
 }
 
+// Override an entitlement of the customer with a new one.
+//
+// The referenced entitlement ends and the new one starts at the same instant, so
+// access continues without a gap. Both must belong to the same feature. Use this
+// for upgrades and downgrades.
+//
+// Fails if the referenced entitlement does not exist, is deleted, or is no longer
+// active.
+func (s *CustomersEntitlementsService) Override(ctx context.Context, customerID string, entitlementID string, request CreateEntitlementRequest) (*Entitlement, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if entitlementID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "entitlementID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlements/{entitlementId}/override"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "entitlementId", entitlementID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPut, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out Entitlement
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // Get the balance and usage history of a metered entitlement. The queried range
 // may span multiple usage periods.
 //
