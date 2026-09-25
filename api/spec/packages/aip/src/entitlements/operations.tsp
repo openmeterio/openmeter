@@ -32,7 +32,7 @@ model ListCustomerEntitlementAccessResponseData {
    * The list of entitlement access results.
    */
   @visibility(Lifecycle.Read)
-  data: EntitlementAccessResult[];
+  data: EntitlementValueResult[];
 }
 
 interface CustomerEntitlementsOperations {
@@ -57,19 +57,8 @@ interface CustomerEntitlementsOperations {
   get(
     @path customerId: Shared.ULID,
     @path featureKey: Shared.ResourceKey,
-
-    /**
-     * Expand computed fields.
-     *
-     * Supported values are:
-     *
-     * - `value`: Expand the balance details of a metered entitlement; it sets the
-     *   `value` field.
-     */
-    @query(#{ explode: false })
-    expand?: EntitlementAccessExpand[],
   ):
-    | Shared.GetResponse<EntitlementAccessResult>
+    | Shared.GetResponse<EntitlementAccessCheckResult>
     | Common.NotFound
     | Common.ErrorResponses;
 }
@@ -175,7 +164,7 @@ interface CustomerEntitlementValueOperations {
     @query
     at?: Shared.DateTime,
   ):
-    | Shared.GetResponse<EntitlementAccessResult>
+    | Shared.GetResponse<EntitlementValueResult>
     | Common.NotFound
     | Common.ErrorResponses;
 }

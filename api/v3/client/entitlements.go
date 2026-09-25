@@ -16,24 +16,6 @@ type EntitlementsService struct {
 	client *Client
 }
 
-type GetCustomerEntitlementAccessParams struct {
-	Expand []EntitlementAccessExpand
-}
-
-func (p GetCustomerEntitlementAccessParams) values() url.Values {
-	q := url.Values{}
-
-	if len(p.Expand) > 0 {
-		expandValues := make([]string, 0, len(p.Expand))
-		for _, value := range p.Expand {
-			expandValues = append(expandValues, string(value))
-		}
-		q.Set("expand", strings.Join(expandValues, ","))
-	}
-
-	return q
-}
-
 type ListEntitlementsFilter struct {
 	// Filter entitlements by feature ID.
 	FeatureID *StringExactFilter
@@ -114,7 +96,7 @@ func (s *EntitlementsService) ListCustomerAccess(ctx context.Context, customerID
 }
 
 // Get the customer's access to a single feature.
-func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID string, featureKey string, params GetCustomerEntitlementAccessParams) (*EntitlementAccessResult, error) {
+func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID string, featureKey string) (*EntitlementAccessCheckResult, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
 	}
@@ -129,12 +111,12 @@ func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID 
 
 	path = replacePathParam(path, "featureKey", featureKey)
 
-	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, nil, nil, "", "application/json")
 	if err != nil {
 		return nil, err
 	}
 
-	var out EntitlementAccessResult
+	var out EntitlementAccessCheckResult
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}
@@ -202,7 +184,7 @@ func (s *EntitlementsService) Get(ctx context.Context, entitlementID string) (*E
 
 // Get the customer's access through a single entitlement, optionally evaluated at
 // a point in time.
-func (s *EntitlementsService) GetCustomerValue(ctx context.Context, customerID string, entitlementID string, params GetCustomerEntitlementValueParams) (*EntitlementAccessResult, error) {
+func (s *EntitlementsService) GetCustomerValue(ctx context.Context, customerID string, entitlementID string, params GetCustomerEntitlementValueParams) (*EntitlementValueResult, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
 	}
@@ -222,7 +204,7 @@ func (s *EntitlementsService) GetCustomerValue(ctx context.Context, customerID s
 		return nil, err
 	}
 
-	var out EntitlementAccessResult
+	var out EntitlementValueResult
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

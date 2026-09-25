@@ -499,13 +499,6 @@ export const entitlementType = z
   .enum(['metered', 'static', 'boolean'])
   .describe('The type of the entitlement.')
 
-export const entitlementAccessExpand = z
-  .enum(['value'])
-
-  .describe(
-    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
-  )
-
 export const iso8601Duration = z
   .string()
 
@@ -557,6 +550,13 @@ export const stringFieldFilterExact = z
 
   .describe(
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
+  )
+
+export const entitlementAccessExpand = z
+  .enum(['value'])
+
+  .describe(
+    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
   )
 
 export const createLabels = z
@@ -3164,6 +3164,25 @@ export const customerStripeCreateCustomerPortalSessionRequest = z
     'Request to create a Stripe Customer Portal Session for the customer. Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods, change their billing address and access their invoice history. Only returns URL if the customer billing profile is linked to a stripe app and customer.',
   )
 
+export const entitlementAccessCheckResult = z
+  .object({
+    hasAccess: z
+      .boolean()
+
+      .describe(
+        'Whether the customer has access to the feature. Always true for `boolean` and `static` entitlements. Depends on balance for `metered` entitlements.',
+      ),
+    config: z
+      .string()
+      .optional()
+
+      .describe(
+        'Only available for static entitlements. Config is the JSON parsable configuration of the entitlement. Useful to describe per customer configuration.',
+      ),
+    type: entitlementType.optional(),
+  })
+  .describe('Entitlement access check result.')
+
 export const recurringPeriodInput = z
   .object({
     interval: iso8601Duration,
@@ -3881,7 +3900,7 @@ export const currencyAmount = z
   })
   .describe('Monetary amount in a fiat or custom currency.')
 
-export const entitlementAccessResult = z
+export const entitlementValueResult = z
   .object({
     type: entitlementType,
     featureKey: resourceKey,
@@ -3900,7 +3919,7 @@ export const entitlementAccessResult = z
       ),
     value: entitlementAccessValue.optional(),
   })
-  .describe('Entitlement access result.')
+  .describe('Entitlement value result.')
 
 export const priceTier = z
   .object({
@@ -5287,7 +5306,7 @@ export const chargeFlatFeeSystemIntent = z
 export const listCustomerEntitlementAccessResponseData = z
   .object({
     data: z
-      .array(entitlementAccessResult)
+      .array(entitlementValueResult)
       .describe('The list of entitlement access results.'),
   })
   .describe('List customer entitlement access response data.')
@@ -7779,17 +7798,7 @@ export const getCustomerEntitlementAccessPathParams = z.object({
   featureKey: resourceKey,
 })
 
-export const getCustomerEntitlementAccessQueryParams = z.object({
-  expand: z
-    .array(entitlementAccessExpand)
-    .optional()
-
-    .describe(
-      'Expand computed fields. Supported values are: - `value`: Expand the balance details of a metered entitlement; it sets the `value` field.',
-    ),
-})
-
-export const getCustomerEntitlementAccessResponse = entitlementAccessResult
+export const getCustomerEntitlementAccessResponse = entitlementAccessCheckResult
 
 export const createCustomerEntitlementPathParams = z.object({
   customerId: ulid,
@@ -7914,7 +7923,7 @@ export const getCustomerEntitlementValueQueryParams = z.object({
   at: dateTime.optional(),
 })
 
-export const getCustomerEntitlementValueResponse = entitlementAccessResult
+export const getCustomerEntitlementValueResponse = entitlementValueResult
 
 export const createCreditGrantPathParams = z.object({
   customerId: ulid,
@@ -9318,13 +9327,6 @@ export const entitlementTypeWire = z
   .enum(['metered', 'static', 'boolean'])
   .describe('The type of the entitlement.')
 
-export const entitlementAccessExpandWire = z
-  .enum(['value'])
-
-  .describe(
-    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
-  )
-
 export const iso8601DurationWire = z
   .string()
 
@@ -9376,6 +9378,13 @@ export const stringFieldFilterExactWire = z
 
   .describe(
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
+  )
+
+export const entitlementAccessExpandWire = z
+  .enum(['value'])
+
+  .describe(
+    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
   )
 
 export const createLabelsWire = z
@@ -11970,6 +11979,25 @@ export const customerStripeCreateCustomerPortalSessionRequestWire = z
     'Request to create a Stripe Customer Portal Session for the customer. Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods, change their billing address and access their invoice history. Only returns URL if the customer billing profile is linked to a stripe app and customer.',
   )
 
+export const entitlementAccessCheckResultWire = z
+  .strictObject({
+    has_access: z
+      .boolean()
+
+      .describe(
+        'Whether the customer has access to the feature. Always true for `boolean` and `static` entitlements. Depends on balance for `metered` entitlements.',
+      ),
+    config: z
+      .string()
+      .optional()
+
+      .describe(
+        'Only available for static entitlements. Config is the JSON parsable configuration of the entitlement. Useful to describe per customer configuration.',
+      ),
+    type: entitlementTypeWire.optional(),
+  })
+  .describe('Entitlement access check result.')
+
 export const recurringPeriodInputWire = z
   .strictObject({
     interval: iso8601DurationWire,
@@ -12675,7 +12703,7 @@ export const currencyAmountWire = z
   })
   .describe('Monetary amount in a fiat or custom currency.')
 
-export const entitlementAccessResultWire = z
+export const entitlementValueResultWire = z
   .strictObject({
     type: entitlementTypeWire,
     feature_key: resourceKeyWire,
@@ -12694,7 +12722,7 @@ export const entitlementAccessResultWire = z
       ),
     value: entitlementAccessValueWire.optional(),
   })
-  .describe('Entitlement access result.')
+  .describe('Entitlement value result.')
 
 export const priceTierWire = z
   .strictObject({
@@ -14080,7 +14108,7 @@ export const chargeFlatFeeSystemIntentWire = z
 export const listCustomerEntitlementAccessResponseDataWire = z
   .strictObject({
     data: z
-      .array(entitlementAccessResultWire)
+      .array(entitlementValueResultWire)
       .describe('The list of entitlement access results.'),
   })
   .describe('List customer entitlement access response data.')
@@ -16587,18 +16615,8 @@ export const getCustomerEntitlementAccessPathParamsWire = z.object({
   featureKey: resourceKeyWire,
 })
 
-export const getCustomerEntitlementAccessQueryParamsWire = z.object({
-  expand: z
-    .array(entitlementAccessExpandWire)
-    .optional()
-
-    .describe(
-      'Expand computed fields. Supported values are: - `value`: Expand the balance details of a metered entitlement; it sets the `value` field.',
-    ),
-})
-
 export const getCustomerEntitlementAccessResponseWire =
-  entitlementAccessResultWire
+  entitlementAccessCheckResultWire
 
 export const createCustomerEntitlementPathParamsWire = z.object({
   customerId: ulidWire,
@@ -16735,7 +16753,7 @@ export const getCustomerEntitlementValueQueryParamsWire = z.object({
 })
 
 export const getCustomerEntitlementValueResponseWire =
-  entitlementAccessResultWire
+  entitlementValueResultWire
 
 export const createCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,

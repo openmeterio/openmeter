@@ -4,10 +4,10 @@ import "../shared/index.tsp";
 namespace Entitlements;
 
 /**
- * Entitlement access result.
+ * Entitlement value result.
  */
-@friendlyName("BillingEntitlementAccessResult")
-model EntitlementAccessResult {
+@friendlyName("BillingEntitlementValueResult")
+model EntitlementValueResult {
   /**
    * The type of the entitlement.
    */
@@ -44,6 +44,22 @@ model EntitlementAccessResult {
    */
   @visibility(Lifecycle.Read)
   value?: EntitlementAccessValue;
+}
+
+/**
+ * Entitlement access check result.
+ */
+@friendlyName("BillingEntitlementAccessCheckResult")
+model EntitlementAccessCheckResult {
+  ...PickProperties<EntitlementValueResult, "has_access" | "config">;
+
+  /**
+   * The type of the entitlement.
+   *
+   * If not provided, the feature has no entitlement defined (has access is always false in this case)
+   */
+  @visibility(Lifecycle.Read)
+  type?: EntitlementType;
 }
 
 /**
