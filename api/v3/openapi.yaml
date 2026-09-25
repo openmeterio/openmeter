@@ -10890,6 +10890,31 @@ components:
         - `system`: The resource lifecycle is controlled by OpenMeter.
         - `manual`: The resource lifecycle was manually overridden by the API user.
       title: Lifecycle controller
+    BillingNotificationBalanceThreshold:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationBalanceThresholdType'
+          description: What the threshold value is measured against.
+        value:
+          type: number
+          format: double
+          description: The threshold value.
+      additionalProperties: false
+      description: |-
+        A balance threshold of a notification rule. Crossing it generates an
+        `entitlements.balance.threshold` event.
+    BillingNotificationBalanceThresholdType:
+      type: string
+      enum:
+        - balance_value
+        - usage_percentage
+        - usage_value
+      description: What a balance threshold is measured against.
     BillingNotificationChannel:
       type: object
       required:
@@ -11019,24 +11044,6 @@ components:
         A notification event records that a notification rule fired and tracks the
         delivery of its payload to each channel of the rule. Events are created by the
         system and cannot be modified.
-    BillingNotificationEventBalanceThreshold:
-      type: object
-      required:
-        - type
-        - value
-      properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventBalanceThresholdType'
-          description: What the threshold value is measured against.
-          readOnly: true
-        value:
-          type: number
-          format: double
-          description: The threshold value that was crossed.
-          readOnly: true
-      additionalProperties: false
-      description: The threshold that the entitlement balance crossed.
     BillingNotificationEventBalanceThresholdData:
       type: object
       required:
@@ -11072,7 +11079,7 @@ components:
           readOnly: true
         threshold:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventBalanceThreshold'
+            - $ref: '#/components/schemas/BillingNotificationBalanceThreshold'
           description: The threshold the balance crossed.
           readOnly: true
       additionalProperties: false
@@ -11108,13 +11115,6 @@ components:
           readOnly: true
       additionalProperties: false
       description: A balance threshold notification event payload.
-    BillingNotificationEventBalanceThresholdType:
-      type: string
-      enum:
-        - balance_value
-        - usage_percentage
-        - usage_value
-      description: What a balance threshold is measured against.
     BillingNotificationEventDeliveryAttempt:
       type: object
       required:

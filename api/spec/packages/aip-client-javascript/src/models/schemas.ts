@@ -1399,7 +1399,7 @@ export const notificationEventEntitlementValue = z
   })
   .describe('The entitlement balance at the time the event was generated.')
 
-export const notificationEventBalanceThresholdType = z
+export const notificationBalanceThresholdType = z
   .enum(['balance_value', 'usage_percentage', 'usage_value'])
   .describe('What a balance threshold is measured against.')
 
@@ -3925,12 +3925,15 @@ export const notificationEventDeliveryAttempt = z
   })
   .describe('A single delivery attempt to a channel.')
 
-export const notificationEventBalanceThreshold = z
+export const notificationBalanceThreshold = z
   .object({
-    type: notificationEventBalanceThresholdType,
-    value: z.number().describe('The threshold value that was crossed.'),
+    type: notificationBalanceThresholdType,
+    value: z.number().describe('The threshold value.'),
   })
-  .describe('The threshold that the entitlement balance crossed.')
+
+  .describe(
+    'A balance threshold of a notification rule. Crossing it generates an `entitlements.balance.threshold` event.',
+  )
 
 export const appCustomerData = z
   .object({
@@ -5525,7 +5528,7 @@ export const notificationEventBalanceThresholdData = z
       .describe('The key of the subject the entitlement belongs to.'),
     customerId: ulid.optional(),
     value: notificationEventEntitlementValue,
-    threshold: notificationEventBalanceThreshold,
+    threshold: notificationBalanceThreshold,
   })
   .describe('The entities and threshold a balance threshold event refers to.')
 
@@ -10699,7 +10702,7 @@ export const notificationEventEntitlementValueWire = z
   })
   .describe('The entitlement balance at the time the event was generated.')
 
-export const notificationEventBalanceThresholdTypeWire = z
+export const notificationBalanceThresholdTypeWire = z
   .enum(['balance_value', 'usage_percentage', 'usage_value'])
   .describe('What a balance threshold is measured against.')
 
@@ -13206,12 +13209,15 @@ export const notificationEventDeliveryAttemptWire = z
   })
   .describe('A single delivery attempt to a channel.')
 
-export const notificationEventBalanceThresholdWire = z
+export const notificationBalanceThresholdWire = z
   .strictObject({
-    type: notificationEventBalanceThresholdTypeWire,
-    value: z.number().describe('The threshold value that was crossed.'),
+    type: notificationBalanceThresholdTypeWire,
+    value: z.number().describe('The threshold value.'),
   })
-  .describe('The threshold that the entitlement balance crossed.')
+
+  .describe(
+    'A balance threshold of a notification rule. Crossing it generates an `entitlements.balance.threshold` event.',
+  )
 
 export const appCustomerDataWire = z
   .strictObject({
@@ -14805,7 +14811,7 @@ export const notificationEventBalanceThresholdDataWire = z
       .describe('The key of the subject the entitlement belongs to.'),
     customer_id: ulidWire.optional(),
     value: notificationEventEntitlementValueWire,
-    threshold: notificationEventBalanceThresholdWire,
+    threshold: notificationBalanceThresholdWire,
   })
   .describe('The entities and threshold a balance threshold event refers to.')
 

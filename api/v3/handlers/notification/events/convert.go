@@ -67,16 +67,16 @@ func ToAPIDeliveryState(v notification.EventDeliveryStatusState) (api.BillingNot
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
 // aliases of `usage_value` and `usage_percentage`; events written before the rename
 // must not leak the legacy spelling.
-func ToAPIBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationEventBalanceThresholdType, error) {
+func ToAPIBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationBalanceThresholdType, error) {
 	switch v {
 	case v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
-		return api.BillingNotificationEventBalanceThresholdTypeBalanceValue, nil
+		return api.BillingNotificationBalanceThresholdTypeBalanceValue, nil
 	case v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
 		v1api.NotificationRuleBalanceThresholdValueTypePercent:
-		return api.BillingNotificationEventBalanceThresholdTypeUsagePercentage, nil
+		return api.BillingNotificationBalanceThresholdTypeUsagePercentage, nil
 	case v1api.NotificationRuleBalanceThresholdValueTypeUsageValue,
 		v1api.NotificationRuleBalanceThresholdValueTypeNumber:
-		return api.BillingNotificationEventBalanceThresholdTypeUsageValue, nil
+		return api.BillingNotificationBalanceThresholdTypeUsageValue, nil
 	default:
 		return "", fmt.Errorf("invalid notification balance threshold type: %s", v)
 	}
@@ -194,7 +194,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 				SubjectKey: e.Payload.BalanceThreshold.Subject.Key,
 				CustomerId: lo.EmptyableToPtr(e.Payload.BalanceThreshold.Customer.Id),
 				Value:      toAPIEntitlementValue(e.Payload.BalanceThreshold.Value),
-				Threshold: api.BillingNotificationEventBalanceThreshold{
+				Threshold: api.BillingNotificationBalanceThreshold{
 					Type:  thresholdType,
 					Value: e.Payload.BalanceThreshold.Threshold.Value,
 				},
