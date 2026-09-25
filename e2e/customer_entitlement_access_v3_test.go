@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"net/http"
-	"strconv"
 	"testing"
 
 	"github.com/oklog/ulid/v2"
@@ -63,48 +62,28 @@ func TestV3GetCustomerEntitlementAccess(t *testing.T) {
 	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, sub)
 
-	t.Run("Should return the metered entitlement without balance details by default", func(t *testing.T) {
-		access, err := c.Entitlements.GetCustomerAccess(t.Context(), customer.ID, feature.Key, v3sdk.GetCustomerEntitlementAccessParams{})
+	t.Run("Should return metered access", func(t *testing.T) {
+		access, err := c.Entitlements.GetCustomerAccess(t.Context(), customer.ID, feature.Key)
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, access)
 
-		assert.Equal(t, feature.Key, access.FeatureKey)
-		assert.Equal(t, v3sdk.EntitlementTypeMetered, access.Type)
+		assert.Equal(t, lo.ToPtr(v3sdk.EntitlementTypeMetered), access.Type)
 		assert.True(t, access.HasAccess)
-		assert.Nil(t, access.Value)
-	})
-
-	t.Run("Should expand the balance details", func(t *testing.T) {
-		access, err := c.Entitlements.GetCustomerAccess(t.Context(), customer.ID, feature.Key, v3sdk.GetCustomerEntitlementAccessParams{
-			Expand: []v3sdk.EntitlementAccessExpand{v3sdk.EntitlementAccessExpandValue},
-		})
-		c.requireStatus(http.StatusOK, err)
-		require.NotNil(t, access)
-		require.NotNil(t, access.Value)
-
-		balance, err := strconv.ParseFloat(access.Value.Balance, 64)
-		require.NoError(t, err)
-		assert.Equal(t, float64(limit), balance)
-
-		assert.Equal(t, v3sdk.Numeric("0"), access.Value.Usage)
-		assert.Equal(t, v3sdk.Numeric("0"), access.Value.Overage)
-		assert.Len(t, access.Value.GrantBalances, 1)
 	})
 
 	t.Run("Should return no access for a feature without an entitlement", func(t *testing.T) {
 		featureKey := uniqueKey("ent_access_missing")
 
-		access, err := c.Entitlements.GetCustomerAccess(t.Context(), customer.ID, featureKey, v3sdk.GetCustomerEntitlementAccessParams{})
+		access, err := c.Entitlements.GetCustomerAccess(t.Context(), customer.ID, featureKey)
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, access)
 
-		assert.Equal(t, featureKey, access.FeatureKey)
 		assert.False(t, access.HasAccess)
-		assert.Nil(t, access.Value)
+		assert.Nil(t, access.Type)
 	})
 
 	t.Run("Should return 404 for an unknown customer", func(t *testing.T) {
-		_, err := c.Entitlements.GetCustomerAccess(t.Context(), ulid.Make().String(), feature.Key, v3sdk.GetCustomerEntitlementAccessParams{})
+		_, err := c.Entitlements.GetCustomerAccess(t.Context(), ulid.Make().String(), feature.Key)
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
@@ -122,7 +101,7 @@ func TestV3GetCustomerEntitlementAccess(t *testing.T) {
 		err = c.Customers.Delete(t.Context(), deleted.ID)
 		c.requireStatus(http.StatusNoContent, err)
 
-		_, err = c.Entitlements.GetCustomerAccess(t.Context(), deleted.ID, feature.Key, v3sdk.GetCustomerEntitlementAccessParams{})
+		_, err = c.Entitlements.GetCustomerAccess(t.Context(), deleted.ID, feature.Key)
 		requireProblem(t, err, http.StatusConflict)
 	})
 }

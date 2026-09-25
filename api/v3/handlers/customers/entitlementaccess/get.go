@@ -17,60 +17,51 @@ import (
 )
 
 type (
-	// GetCustomerEntitlementAccessParams serves both the feature-key and the
-	// entitlement-ID routes; the router sets exactly one identifier.
-	GetCustomerEntitlementAccessParams struct {
+	GetCustomerEntitlementValueParams struct {
 		CustomerID    api.ULID
-		FeatureKey    string
 		EntitlementID string
 		Expand        []api.BillingEntitlementAccessExpand
 		At            *time.Time
 	}
-	GetCustomerEntitlementAccessResponse = api.BillingEntitlementAccessResult
-	GetCustomerEntitlementAccessHandler  httptransport.HandlerWithArgs[GetCustomerEntitlementAccessRequest, GetCustomerEntitlementAccessResponse, GetCustomerEntitlementAccessParams]
+	GetCustomerEntitlementValueResponse = api.BillingEntitlementValueResult
+	GetCustomerEntitlementValueHandler  httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueResponse, GetCustomerEntitlementValueParams]
 )
 
-type GetCustomerEntitlementAccessRequest struct {
+type GetCustomerEntitlementValueRequest struct {
 	entitlement.GetCustomerEntitlementAccessInput
 	Expands []api.BillingEntitlementAccessExpand
 }
 
-const (
-	OperationGetCustomerEntitlementAccess = "get-customer-entitlement-access"
-	OperationGetCustomerEntitlementValue  = "get-customer-entitlement-value"
-)
-
-func (h *handler) GetCustomerEntitlementAccess(operationName string) GetCustomerEntitlementAccessHandler {
+func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementAccessParams) (GetCustomerEntitlementAccessRequest, error) {
+		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementValueParams) (GetCustomerEntitlementValueRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return GetCustomerEntitlementAccessRequest{}, err
+				return GetCustomerEntitlementValueRequest{}, err
 			}
 
-			return GetCustomerEntitlementAccessRequest{
+			return GetCustomerEntitlementValueRequest{
 				CustomerID: customer.CustomerID{
 					Namespace: ns,
 					ID:        params.CustomerID,
 				},
-				FeatureKey:    params.FeatureKey,
 				EntitlementID: params.EntitlementID,
 				At:            lo.FromPtrOr(params.At, clock.Now()),
 				Expands:       params.Expand,
 			}, nil
 		},
-		func(ctx context.Context, request GetCustomerEntitlementAccessRequest) (GetCustomerEntitlementAccessResponse, error) {
+		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request.GetCustomerEntitlementAccessInput)
 			if err != nil {
-				return GetCustomerEntitlementAccessResponse{}, err
+				return GetCustomerEntitlementValueResponse{}, err
 			}
 
 			return mapEntitlementAccessToAPI(access, request.Expands...)
 		},
-		commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementAccessResponse](http.StatusOK),
+		commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementValueResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName(operationName),
+			httptransport.WithOperationName("get-customer-entitlement-value"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

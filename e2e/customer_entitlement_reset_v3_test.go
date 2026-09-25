@@ -79,10 +79,10 @@ func TestV3ResetCustomerEntitlementUsage(t *testing.T) {
 		return createEntitlement(t, customerID, body)
 	}
 
-	meteredValue := func(t *testing.T, customerID string) *v3sdk.EntitlementAccessValue {
+	meteredValue := func(t *testing.T, customerID, entitlementID string) *v3sdk.EntitlementAccessValue {
 		t.Helper()
 
-		access, err := c.Entitlements.GetCustomerAccess(t.Context(), customerID, feature.Key, v3sdk.GetCustomerEntitlementAccessParams{
+		access, err := c.Entitlements.GetCustomerValue(t.Context(), customerID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{
 			Expand: []v3sdk.EntitlementAccessExpand{v3sdk.EntitlementAccessExpandValue},
 		})
 		c.requireStatus(http.StatusOK, err)
@@ -112,7 +112,7 @@ func TestV3ResetCustomerEntitlementUsage(t *testing.T) {
 
 	ctx := t.Context()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		access, err := c.Entitlements.GetCustomerAccess(ctx, cust.ID, feature.Key, v3sdk.GetCustomerEntitlementAccessParams{
+		access, err := c.Entitlements.GetCustomerValue(ctx, cust.ID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{
 			Expand: []v3sdk.EntitlementAccessExpand{v3sdk.EntitlementAccessExpandValue},
 		})
 		require.NoError(t, err)
@@ -125,13 +125,13 @@ func TestV3ResetCustomerEntitlementUsage(t *testing.T) {
 	time.Sleep(time.Until(time.Now().Truncate(time.Minute).Add(time.Minute)))
 
 	t.Run("starts a new usage period", func(t *testing.T) {
-		before := meteredValue(t, cust.ID)
+		before := meteredValue(t, cust.ID, entitlementID)
 		require.Equal(t, v3sdk.Numeric("2"), before.Usage)
 		require.Equal(t, v3sdk.Numeric("98"), before.Balance)
 
 		c.requireStatus(http.StatusNoContent, c.Customers.Entitlements.ResetUsage(t.Context(), cust.ID, entitlementID, nil))
 
-		after := meteredValue(t, cust.ID)
+		after := meteredValue(t, cust.ID, entitlementID)
 		require.Equal(t, v3sdk.Numeric("0"), after.Usage)
 		require.Equal(t, v3sdk.Numeric("100"), after.Balance)
 	})
@@ -177,7 +177,7 @@ func TestV3ResetCustomerEntitlementUsage(t *testing.T) {
 		requireProblem(t, err, http.StatusNotFound)
 
 		// The other customer's usage period is left untouched.
-		require.Equal(t, v3sdk.Numeric("100"), meteredValue(t, other.ID).Balance)
+		require.Equal(t, v3sdk.Numeric("100"), meteredValue(t, other.ID, otherEntitlementID).Balance)
 	})
 
 	t.Run("returns 404 for an unknown entitlement", func(t *testing.T) {

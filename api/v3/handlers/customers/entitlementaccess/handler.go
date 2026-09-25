@@ -9,7 +9,8 @@ import (
 
 type Handler interface {
 	ListCustomerEntitlementAccess() ListCustomerEntitlementAccessHandler
-	GetCustomerEntitlementAccess(operationName string) GetCustomerEntitlementAccessHandler
+	GetCustomerEntitlementAccess() GetCustomerEntitlementAccessHandler
+	GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler
 }
 
 type handler struct {

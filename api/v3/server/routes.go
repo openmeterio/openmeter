@@ -92,11 +92,10 @@ func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Re
 	s.customersEntitlementHandler.ListCustomerEntitlementAccess().With(customerId).ServeHTTP(w, r)
 }
 
-func (s *Server) GetCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID, featureKey api.ResourceKey, params api.GetCustomerEntitlementAccessParams) {
-	s.customersEntitlementHandler.GetCustomerEntitlementAccess(customersentitlementhandler.OperationGetCustomerEntitlementAccess).With(customersentitlementhandler.GetCustomerEntitlementAccessParams{
+func (s *Server) GetCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId api.ULID, featureKey api.ResourceKey) {
+	s.customersEntitlementHandler.GetCustomerEntitlementAccess().With(customersentitlementhandler.GetCustomerEntitlementAccessParams{
 		CustomerID: customerId,
 		FeatureKey: featureKey,
-		Expand:     lo.FromPtr(params.Expand),
 	}).ServeHTTP(w, r)
 }
 
@@ -169,7 +168,7 @@ func (s *Server) GetCustomerEntitlementHistory(w http.ResponseWriter, r *http.Re
 }
 
 func (s *Server) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Request, customerId api.ULID, entitlementId api.ULID, params api.GetCustomerEntitlementValueParams) {
-	s.customersEntitlementHandler.GetCustomerEntitlementAccess(customersentitlementhandler.OperationGetCustomerEntitlementValue).With(customersentitlementhandler.GetCustomerEntitlementAccessParams{
+	s.customersEntitlementHandler.GetCustomerEntitlementValue().With(customersentitlementhandler.GetCustomerEntitlementValueParams{
 		CustomerID:    customerId,
 		EntitlementID: entitlementId,
 		Expand:        lo.FromPtr(params.Expand),

@@ -13,8 +13,29 @@ import (
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 )
 
-func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, expands ...api.BillingEntitlementAccessExpand) (api.BillingEntitlementAccessResult, error) {
-	result := api.BillingEntitlementAccessResult{
+func mapEntitlementAccessCheckToAPI(access entitlement.CustomerEntitlementAccess) (api.BillingEntitlementAccessCheckResult, error) {
+	result := api.BillingEntitlementAccessCheckResult{HasAccess: access.Value.HasAccess()}
+	if access.Type != "" {
+		result.Type = lo.ToPtr(api.BillingEntitlementType(access.Type))
+	}
+
+	switch value := access.Value.(type) {
+	case *meteredentitlement.MeteredEntitlementValue, *booleanentitlement.BooleanEntitlementValue, *entitlement.NoAccessValue:
+	case *staticentitlement.StaticEntitlementValue:
+		result.Config = &value.Config
+	default:
+		return api.BillingEntitlementAccessCheckResult{}, errors.New("unknown entitlement type")
+	}
+
+	return result, nil
+}
+
+func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, expands ...api.BillingEntitlementAccessExpand) (api.BillingEntitlementValueResult, error) {
+	if access.Type == "" {
+		return api.BillingEntitlementValueResult{}, errors.New("entitlement type is required for value result")
+	}
+
+	result := api.BillingEntitlementValueResult{
 		FeatureKey: access.FeatureKey,
 		Type:       api.BillingEntitlementType(access.Type),
 		HasAccess:  access.Value.HasAccess(),
@@ -29,12 +50,8 @@ func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, exp
 		result.Config = &value.Config
 	case *booleanentitlement.BooleanEntitlementValue:
 	case *entitlement.NoAccessValue:
-		// A feature without any entitlement has no type, but the contract requires one.
-		if access.Type == "" {
-			result.Type = api.BillingEntitlementTypeStatic
-		}
 	default:
-		return api.BillingEntitlementAccessResult{}, errors.New("unknown entitlement type")
+		return api.BillingEntitlementValueResult{}, errors.New("unknown entitlement type")
 	}
 
 	return result, nil

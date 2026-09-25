@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -43,7 +44,18 @@ func serveGetCustomerEntitlementAccess(t *testing.T, svc fakeEntitlementService,
 	request := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/customers/"+testCustomerID+"/entitlement-access/features/"+testFeatureKey, nil)
 	response := httptest.NewRecorder()
 
-	h.GetCustomerEntitlementAccess(OperationGetCustomerEntitlementAccess).With(params).ServeHTTP(response, request)
+	h.GetCustomerEntitlementAccess().With(params).ServeHTTP(response, request)
+
+	return response
+}
+
+func serveGetCustomerEntitlementValue(t *testing.T, svc fakeEntitlementService, params GetCustomerEntitlementValueParams) *httptest.ResponseRecorder {
+	t.Helper()
+
+	h := New(func(context.Context) (string, error) { return testNamespace, nil }, svc)
+	request := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/customers/"+testCustomerID+"/entitlements/"+testEntitlementID+"/value", nil)
+	response := httptest.NewRecorder()
+	h.GetCustomerEntitlementValue().With(params).ServeHTTP(response, request)
 
 	return response
 }
@@ -79,20 +91,28 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		require.Equal(t, testNamespace, received.CustomerID.Namespace)
 		require.Equal(t, testCustomerID, received.CustomerID.ID)
 
-		var body api.BillingEntitlementAccessResult
+		var body api.BillingEntitlementAccessCheckResult
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
-		require.Equal(t, api.BillingEntitlementAccessResult{
-			FeatureKey: testFeatureKey,
-			Type:       api.BillingEntitlementTypeBoolean,
-			HasAccess:  true,
+		require.Equal(t, api.BillingEntitlementAccessCheckResult{
+			Type:      lo.ToPtr(api.BillingEntitlementTypeBoolean),
+			HasAccess: true,
 		}, body)
+	})
+
+	t.Run("feature without an entitlement has no type", func(t *testing.T) {
+		response := serveGetCustomerEntitlementAccess(t, fakeEntitlementService{get: func(context.Context, entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+			return entitlement.CustomerEntitlementAccess{Value: &entitlement.NoAccessValue{}}, nil
+		}}, GetCustomerEntitlementAccessParams{CustomerID: testCustomerID, FeatureKey: testFeatureKey})
+
+		require.Equal(t, http.StatusOK, response.Code)
+		require.JSONEq(t, `{"has_access":false}`, response.Body.String())
 	})
 
 	t.Run("passes the entitlement ID and the requested at", func(t *testing.T) {
 		var received entitlement.GetCustomerEntitlementAccessInput
 		at := now.Add(-48 * time.Hour)
 
-		response := serveGetCustomerEntitlementAccess(t, capture(&received), GetCustomerEntitlementAccessParams{
+		response := serveGetCustomerEntitlementValue(t, capture(&received), GetCustomerEntitlementValueParams{
 			CustomerID:    testCustomerID,
 			EntitlementID: testEntitlementID,
 			At:            &at,
@@ -120,9 +140,9 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	}
 
 	t.Run("omits the value without the expand", func(t *testing.T) {
-		response := serveGetCustomerEntitlementAccess(t, metered, GetCustomerEntitlementAccessParams{
-			CustomerID: testCustomerID,
-			FeatureKey: testFeatureKey,
+		response := serveGetCustomerEntitlementValue(t, metered, GetCustomerEntitlementValueParams{
+			CustomerID:    testCustomerID,
+			EntitlementID: testEntitlementID,
 		})
 
 		require.Equal(t, http.StatusOK, response.Code)
@@ -130,15 +150,15 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	})
 
 	t.Run("includes the value with the expand", func(t *testing.T) {
-		response := serveGetCustomerEntitlementAccess(t, metered, GetCustomerEntitlementAccessParams{
-			CustomerID: testCustomerID,
-			FeatureKey: testFeatureKey,
-			Expand:     []api.BillingEntitlementAccessExpand{api.BillingEntitlementAccessExpandValue},
+		response := serveGetCustomerEntitlementValue(t, metered, GetCustomerEntitlementValueParams{
+			CustomerID:    testCustomerID,
+			EntitlementID: testEntitlementID,
+			Expand:        []api.BillingEntitlementAccessExpand{api.BillingEntitlementAccessExpandValue},
 		})
 
 		require.Equal(t, http.StatusOK, response.Code)
 
-		var body api.BillingEntitlementAccessResult
+		var body api.BillingEntitlementValueResult
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
 		require.NotNil(t, body.Value)
 		require.Equal(t, api.Numeric("25"), body.Value.Balance)
@@ -155,22 +175,22 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		}
 	}
 
-	byID := GetCustomerEntitlementAccessParams{CustomerID: testCustomerID, EntitlementID: testEntitlementID}
+	byID := GetCustomerEntitlementValueParams{CustomerID: testCustomerID, EntitlementID: testEntitlementID}
 
 	t.Run("maps a missing customer or entitlement to 404", func(t *testing.T) {
-		response := serveGetCustomerEntitlementAccess(t, failing(models.NewGenericNotFoundError(errors.New("entitlement not found"))), byID)
+		response := serveGetCustomerEntitlementValue(t, failing(models.NewGenericNotFoundError(errors.New("entitlement not found"))), byID)
 
 		require.Equal(t, http.StatusNotFound, response.Code)
 	})
 
 	t.Run("maps a deleted customer to 409", func(t *testing.T) {
-		response := serveGetCustomerEntitlementAccess(t, failing(models.NewGenericConflictError(errors.New("customer is deleted"))), byID)
+		response := serveGetCustomerEntitlementValue(t, failing(models.NewGenericConflictError(errors.New("customer is deleted"))), byID)
 
 		require.Equal(t, http.StatusConflict, response.Code)
 	})
 
 	t.Run("maps a validation error to 400", func(t *testing.T) {
-		response := serveGetCustomerEntitlementAccess(t, failing(models.NewGenericValidationError(errors.New("feature key is required"))), byID)
+		response := serveGetCustomerEntitlementValue(t, failing(models.NewGenericValidationError(errors.New("feature key is required"))), byID)
 
 		require.Equal(t, http.StatusBadRequest, response.Code)
 	})

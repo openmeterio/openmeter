@@ -96,7 +96,7 @@ func TestV3GetCustomerEntitlementHistory(t *testing.T) {
 
 	ctx := t.Context()
 	require.EventuallyWithT(t, func(t *assert.CollectT) {
-		access, err := c.Entitlements.GetCustomerAccess(ctx, cust.ID, feature.Key, v3sdk.GetCustomerEntitlementAccessParams{
+		access, err := c.Entitlements.GetCustomerValue(ctx, cust.ID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{
 			Expand: []v3sdk.EntitlementAccessExpand{v3sdk.EntitlementAccessExpandValue},
 		})
 		require.NoError(t, err)
