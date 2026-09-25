@@ -6,8 +6,12 @@ import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreateNotificationChannelRequestInput,
   ListNotificationChannelsParamsFilter,
+  ListNotificationEventsParamsFilter,
   NotificationChannel,
   NotificationChannelPagePaginatedResponse,
+  NotificationEvent,
+  NotificationEventPagePaginatedResponse,
+  ResendNotificationEventRequest as ResendNotificationEventRequestBody,
   SortQueryInput,
   UpdateNotificationChannelRequestInput,
 } from '../types.js'
@@ -61,3 +65,47 @@ export type DeleteNotificationChannelRequest = {
   notificationChannelId: string
 }
 export type DeleteNotificationChannelResponse = void
+
+export interface ListNotificationEventsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort notification events returned in the response. Supported sort attributes
+   * are:
+   *
+   * - `created_at` (default)
+   * - `id`
+   * - `type`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order. Without a `sort` parameter, events
+   * are returned newest first.
+   */
+  sort?: SortQueryInput
+  /**
+   * Filter notification events returned in the response.
+   *
+   * Examples:
+   *
+   * - `filter[type]=invoice.created`
+   * - `filter[delivery_status]=failed`
+   * - `filter[subject_key]=customer-1`
+   */
+  filter?: ListNotificationEventsParamsFilter
+}
+
+export type ListNotificationEventsRequest =
+  AcceptDateStrings<ListNotificationEventsQuery>
+export type ListNotificationEventsResponse =
+  NotificationEventPagePaginatedResponse
+
+export type GetNotificationEventRequest = {
+  notificationEventId: string
+}
+export type GetNotificationEventResponse = NotificationEvent
+
+export type ResendNotificationEventRequest = AcceptDateStrings<{
+  notificationEventId: string
+  body: ResendNotificationEventRequestBody
+}>
+export type ResendNotificationEventResponse = void

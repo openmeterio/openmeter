@@ -1,8 +1,11 @@
 package entutils
 
 import (
+	"fmt"
+
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -64,4 +67,93 @@ func JSONBKeyExistsInObject(field string, member string, expectedKey string) fun
 			b.WriteString("')")
 		}))
 	}
+}
+
+// JSONBFilterString applies a string filter to the text value stored under key of a
+// JSONB field. Only Eq, Ne, In, and And/Or of those are supported; the annotation
+// filters that use this never carry other operators. A missing key behaves like a
+// NULL column, so Ne does not match rows without the key. An empty filter yields a
+// nil predicate. PostgreSQL only.
+func JSONBFilterString(field string, key string, f filter.FilterString) (func(*sql.Selector), error) {
+	accessor := func(s *sql.Selector, b *sql.Builder) {
+		b.WriteString("(").Ident(s.C(field)).WriteString("->>").Arg(key).WriteString(")")
+	}
+
+	pred := func(write func(*sql.Selector, *sql.Builder)) func(*sql.Selector) {
+		return func(s *sql.Selector) {
+			s.Where(sql.P(func(b *sql.Builder) { write(s, b) }))
+		}
+	}
+
+	switch {
+	case f.IsEmpty():
+		return nil, nil
+	case f.And != nil:
+		return jsonbCombine(field, key, *f.And, sql.AndPredicates)
+	case f.Or != nil:
+		return jsonbCombine(field, key, *f.Or, sql.OrPredicates)
+	case f.Eq != nil:
+		return pred(func(s *sql.Selector, b *sql.Builder) {
+			accessor(s, b)
+			b.WriteString(" = ").Arg(*f.Eq)
+		}), nil
+	case f.Ne != nil:
+		return pred(func(s *sql.Selector, b *sql.Builder) {
+			accessor(s, b)
+			b.WriteString(" <> ").Arg(*f.Ne)
+		}), nil
+	case f.In != nil:
+		if len(*f.In) == 0 {
+			return pred(func(_ *sql.Selector, b *sql.Builder) { b.WriteString("FALSE") }), nil
+		}
+		return pred(func(s *sql.Selector, b *sql.Builder) {
+			accessor(s, b)
+			b.WriteString(" IN (").Args(slicesx.Map(*f.In, func(v string) any { return v })...).WriteString(")")
+		}), nil
+	default:
+		return nil, fmt.Errorf("unsupported operator in filter on jsonb key %q", key)
+	}
+}
+
+// JSONBFilterULID is JSONBFilterString for ULID filters, which nest their own And/Or.
+func JSONBFilterULID(field string, key string, f filter.FilterULID) (func(*sql.Selector), error) {
+	switch {
+	case f.And != nil:
+		return jsonbCombine(field, key, *f.And, sql.AndPredicates)
+	case f.Or != nil:
+		return jsonbCombine(field, key, *f.Or, sql.OrPredicates)
+	default:
+		return JSONBFilterString(field, key, f.FilterString)
+	}
+}
+
+func jsonbCombine[F filter.FilterString | filter.FilterULID](
+	field string,
+	key string,
+	children []F,
+	combine func(...func(*sql.Selector)) func(*sql.Selector),
+) (func(*sql.Selector), error) {
+	preds := make([]func(*sql.Selector), 0, len(children))
+	for _, child := range children {
+		var (
+			p   func(*sql.Selector)
+			err error
+		)
+		switch c := any(child).(type) {
+		case filter.FilterString:
+			p, err = JSONBFilterString(field, key, c)
+		case filter.FilterULID:
+			p, err = JSONBFilterULID(field, key, c)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if p != nil {
+			preds = append(preds, p)
+		}
+	}
+	if len(preds) == 0 {
+		return nil, nil
+	}
+	return combine(preds...), nil
 }

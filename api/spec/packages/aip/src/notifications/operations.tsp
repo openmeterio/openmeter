@@ -7,6 +7,7 @@ import "../common/pagination.tsp";
 import "../common/parameters.tsp";
 import "../shared/index.tsp";
 import "./channel.tsp";
+import "./event.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -134,4 +135,134 @@ interface NotificationChannelOperations {
     | Shared.DeleteResponse
     | Common.NotFound
     | Common.ErrorResponses;
+}
+
+/**
+ * Filter options for listing notification events.
+ */
+@friendlyName("ListNotificationEventsParamsFilter")
+model ListNotificationEventsParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  type?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  created_at?: Common.DateTimeFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  rule_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter by a channel of the generating rule. Matches events whose rule targets at
+   * least one of the given channels. Only `eq` and `oeq` are supported.
+   */
+  channel_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter by delivery state. Matches events where delivery to at least one channel
+   * is in one of the given states. Only `eq` and `oeq` are supported.
+   */
+  delivery_status?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by the key of the subject the event refers to. Events without a subject
+   * never match, not even with `neq`.
+   */
+  subject_key?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by the id of the subject the event refers to. Events without a subject
+   * never match, not even with `neq`.
+   */
+  subject_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter by the key of the feature the event refers to. Events without a feature
+   * never match, not even with `neq`.
+   */
+  feature_key?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter by the id of the feature the event refers to. Events without a feature
+   * never match, not even with `neq`.
+   */
+  feature_id?: Common.ULIDFieldFilter;
+}
+
+interface NotificationEventOperations {
+  /**
+   * List all notification events.
+   */
+  @get
+  @operationId("list-notification-events")
+  @summary("List notification events")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  list(
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort notification events returned in the response. Supported sort attributes
+     * are:
+     *
+     * - `created_at` (default)
+     * - `id`
+     * - `type`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order. Without a `sort` parameter, events
+     * are returned newest first.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter notification events returned in the response.
+     *
+     * Examples:
+     *
+     * - `filter[type]=invoice.created`
+     * - `filter[delivery_status]=failed`
+     * - `filter[subject_key]=customer-1`
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListNotificationEventsParamsFilter,
+  ): Shared.PagePaginatedResponse<NotificationEvent> | Common.ErrorResponses;
+
+  /**
+   * Get a notification event by id.
+   */
+  @get
+  @route("/{notificationEventId}")
+  @operationId("get-notification-event")
+  @summary("Get notification event")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  get(@path notificationEventId: Shared.ULID):
+    | Shared.GetResponse<NotificationEvent>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Resend a notification event to the channels of the rule that generated it.
+   *
+   * Delivery is asynchronous: the request marks the selected channels for redelivery
+   * and returns immediately. Channels whose delivery is still pending or already
+   * being resent are left untouched.
+   */
+  @post
+  @route("/{notificationEventId}/resend")
+  @operationId("resend-notification-event")
+  @summary("Resend notification event")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
+  resend(
+    @path notificationEventId: Shared.ULID,
+
+    @body
+    request: NotificationEventResendRequest,
+  ): Shared.AcceptedResponse | Common.NotFound | Common.ErrorResponses;
 }

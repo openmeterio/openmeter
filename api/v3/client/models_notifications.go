@@ -2,7 +2,11 @@
 
 package openmeter
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
 
 // NotificationChannel create request.
 type CreateNotificationChannelRequest struct {
@@ -88,6 +92,407 @@ func (value NotificationChannelType) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// A notification event records that a notification rule fired and tracks the
+// delivery of its payload to each channel of the rule. Events are created by the
+// system and cannot be modified.
+type NotificationEvent struct {
+	// The unique identifier of the event.
+	ID string `json:"id"`
+	// The type of the event.
+	Type NotificationEventType `json:"type"`
+	// When the event was generated.
+	CreatedAt time.Time `json:"created_at"`
+	// The rule that generated the event.
+	Rule NotificationRuleReference `json:"rule"`
+	// The delivery status of the event, one entry per channel of the rule.
+	DeliveryStatus []NotificationEventDeliveryStatus `json:"delivery_status"`
+	// The payload delivered to the channels.
+	Payload NotificationEventPayload `json:"payload"`
+}
+
+// The threshold that the entitlement balance crossed.
+type NotificationEventBalanceThreshold struct {
+	// What the threshold value is measured against.
+	Type NotificationEventBalanceThresholdType `json:"type"`
+	// The threshold value that was crossed.
+	Value float64 `json:"value"`
+}
+
+// The entities and threshold a balance threshold event refers to.
+type NotificationEventBalanceThresholdData struct {
+	// The identifier of the entitlement that triggered the event.
+	EntitlementID string `json:"entitlement_id"`
+	// The feature the entitlement grants access to.
+	Feature NotificationEventFeatureReference `json:"feature"`
+	// The key of the subject the entitlement belongs to.
+	SubjectKey string `json:"subject_key"`
+	// The identifier of the customer the subject belongs to, if any.
+	CustomerID *string `json:"customer_id,omitempty"`
+	// The entitlement balance at the time the event was generated.
+	Value NotificationEventEntitlementValue `json:"value"`
+	// The threshold the balance crossed.
+	Threshold NotificationEventBalanceThreshold `json:"threshold"`
+}
+
+// A balance threshold notification event payload.
+type NotificationEventBalanceThresholdPayload struct {
+	// The identifier of the event the payload belongs to.
+	ID string `json:"id"`
+	// The type of the event.
+	Type NotificationEventType `json:"type"`
+	// When the event was generated.
+	Timestamp time.Time `json:"timestamp"`
+	// The entities and threshold the event refers to.
+	Data NotificationEventBalanceThresholdData `json:"data"`
+}
+
+// What a balance threshold is measured against.
+type NotificationEventBalanceThresholdType string
+
+const (
+	NotificationEventBalanceThresholdTypeBalanceValue    NotificationEventBalanceThresholdType = "balance_value"
+	NotificationEventBalanceThresholdTypeUsagePercentage NotificationEventBalanceThresholdType = "usage_percentage"
+	NotificationEventBalanceThresholdTypeUsageValue      NotificationEventBalanceThresholdType = "usage_value"
+)
+
+func (value NotificationEventBalanceThresholdType) Valid() bool {
+	switch value {
+	case NotificationEventBalanceThresholdTypeBalanceValue, NotificationEventBalanceThresholdTypeUsagePercentage, NotificationEventBalanceThresholdTypeUsageValue:
+		return true
+	default:
+		return false
+	}
+}
+
+// A single delivery attempt to a channel.
+type NotificationEventDeliveryAttempt struct {
+	// The delivery state reached by this attempt.
+	State NotificationEventDeliveryState `json:"state"`
+	// The response returned by the recipient.
+	Response NotificationEventDeliveryAttemptResponse `json:"response"`
+	// When the attempt was made.
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// The response the recipient returned for a delivery attempt. For webhook channels
+// this is the HTTP response.
+type NotificationEventDeliveryAttemptResponse struct {
+	// The HTTP status code returned by the recipient. Absent when no response was
+	// received.
+	StatusCode *int32 `json:"status_code,omitempty"`
+	// The response body returned by the recipient. Empty when no body was received.
+	Body string `json:"body"`
+	// How long the delivery attempt took, in milliseconds.
+	DurationMs int64 `json:"duration_ms"`
+	// The URL the event was delivered to. Only set for webhook channels.
+	URL *string `json:"url,omitempty"`
+}
+
+// The delivery state of a notification event for a single channel.
+type NotificationEventDeliveryState string
+
+const (
+	NotificationEventDeliveryStateSuccess   NotificationEventDeliveryState = "success"
+	NotificationEventDeliveryStateFailed    NotificationEventDeliveryState = "failed"
+	NotificationEventDeliveryStateSending   NotificationEventDeliveryState = "sending"
+	NotificationEventDeliveryStatePending   NotificationEventDeliveryState = "pending"
+	NotificationEventDeliveryStateResending NotificationEventDeliveryState = "resending"
+)
+
+func (value NotificationEventDeliveryState) Valid() bool {
+	switch value {
+	case NotificationEventDeliveryStateSuccess, NotificationEventDeliveryStateFailed, NotificationEventDeliveryStateSending, NotificationEventDeliveryStatePending, NotificationEventDeliveryStateResending:
+		return true
+	default:
+		return false
+	}
+}
+
+// The delivery status of a notification event for one channel of the generating
+// rule.
+type NotificationEventDeliveryStatus struct {
+	// The identifier of the channel this delivery status belongs to.
+	ChannelID string `json:"channel_id"`
+	// The current delivery state.
+	State NotificationEventDeliveryState `json:"state"`
+	// The reason for the last state change. Empty for successful deliveries.
+	Reason string `json:"reason"`
+	// When the delivery state was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+	// When the next delivery attempt is scheduled. Absent when no further attempts
+	// will be made.
+	NextAttempt *time.Time `json:"next_attempt,omitempty"`
+	// The delivery attempts made so far, most recent first.
+	Attempts []NotificationEventDeliveryAttempt `json:"attempts"`
+}
+
+// The entitlement, feature, and subject an entitlement notification event refers
+// to.
+type NotificationEventEntitlementData struct {
+	// The identifier of the entitlement that triggered the event.
+	EntitlementID string `json:"entitlement_id"`
+	// The feature the entitlement grants access to.
+	Feature NotificationEventFeatureReference `json:"feature"`
+	// The key of the subject the entitlement belongs to.
+	SubjectKey string `json:"subject_key"`
+	// The identifier of the customer the subject belongs to, if any.
+	CustomerID *string `json:"customer_id,omitempty"`
+	// The entitlement balance at the time the event was generated.
+	Value NotificationEventEntitlementValue `json:"value"`
+}
+
+// The entitlement balance at the time the event was generated.
+type NotificationEventEntitlementValue struct {
+	// Whether the subject had access to the feature. The balance never goes below
+	// zero, so access can be lost while the balance is still reported as zero.
+	HasAccess bool `json:"has_access"`
+	// The remaining balance of the entitlement.
+	Balance *float64 `json:"balance,omitempty"`
+	// The total feature usage in the current usage period.
+	Usage *float64 `json:"usage,omitempty"`
+	// The usage not covered by any grant.
+	Overage *float64 `json:"overage,omitempty"`
+}
+
+// A reference to the feature of an entitlement notification event.
+type NotificationEventFeatureReference struct {
+	// The unique identifier of the feature.
+	ID string `json:"id"`
+	// The immutable key of the feature.
+	Key string `json:"key"`
+}
+
+// An invoice created notification event payload.
+type NotificationEventInvoiceCreatedPayload struct {
+	// The identifier of the event the payload belongs to.
+	ID string `json:"id"`
+	// The type of the event.
+	Type NotificationEventType `json:"type"`
+	// When the event was generated.
+	Timestamp time.Time `json:"timestamp"`
+	// The invoice the event refers to.
+	Data NotificationEventInvoiceData `json:"data"`
+}
+
+// The invoice an invoice notification event refers to.
+type NotificationEventInvoiceData struct {
+	// The invoice the event was generated for.
+	Invoice NotificationEventInvoiceReference `json:"invoice"`
+	// The identifier of the customer the invoice was issued to.
+	CustomerID *string `json:"customer_id,omitempty"`
+	// The currency the invoice is denominated in.
+	Currency string `json:"currency"`
+	// The status of the invoice at the time the event was generated.
+	Status string `json:"status"`
+	// The invoice total, including taxes, at the time the event was generated.
+	Total Numeric `json:"total"`
+}
+
+// A reference to the invoice of an invoice notification event.
+type NotificationEventInvoiceReference struct {
+	// The unique identifier of the invoice.
+	ID string `json:"id"`
+	// The human-readable invoice number.
+	Number string `json:"number"`
+}
+
+// An invoice updated notification event payload.
+type NotificationEventInvoiceUpdatedPayload struct {
+	// The identifier of the event the payload belongs to.
+	ID string `json:"id"`
+	// The type of the event.
+	Type NotificationEventType `json:"type"`
+	// When the event was generated.
+	Timestamp time.Time `json:"timestamp"`
+	// The invoice the event refers to.
+	Data NotificationEventInvoiceData `json:"data"`
+}
+
+// Page paginated response.
+type NotificationEventPagePaginatedResponse struct {
+	Data []NotificationEvent `json:"data"`
+	Meta PaginatedMeta       `json:"meta"`
+}
+
+// The payload delivered to the channels, discriminated by the event type.
+//
+// NotificationEventPayload is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the NotificationEventPayloadFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type NotificationEventPayload struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *NotificationEventPayload) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u NotificationEventPayload) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u NotificationEventPayload) AsNotificationEventBalanceThresholdPayload() (*NotificationEventBalanceThresholdPayload, error) {
+	if u.Type != "entitlements.balance.threshold" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "entitlements.balance.threshold", u.Type)
+	}
+	var value NotificationEventBalanceThresholdPayload
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationEventPayloadFromNotificationEventBalanceThresholdPayload(value NotificationEventBalanceThresholdPayload) (NotificationEventPayload, error) {
+	value.Type = "entitlements.balance.threshold"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationEventPayload{}, err
+	}
+	var result NotificationEventPayload
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationEventPayload{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationEventPayload) AsNotificationEventResetPayload() (*NotificationEventResetPayload, error) {
+	if u.Type != "entitlements.reset" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "entitlements.reset", u.Type)
+	}
+	var value NotificationEventResetPayload
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationEventPayloadFromNotificationEventResetPayload(value NotificationEventResetPayload) (NotificationEventPayload, error) {
+	value.Type = "entitlements.reset"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationEventPayload{}, err
+	}
+	var result NotificationEventPayload
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationEventPayload{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationEventPayload) AsNotificationEventInvoiceCreatedPayload() (*NotificationEventInvoiceCreatedPayload, error) {
+	if u.Type != "invoice.created" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "invoice.created", u.Type)
+	}
+	var value NotificationEventInvoiceCreatedPayload
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationEventPayloadFromNotificationEventInvoiceCreatedPayload(value NotificationEventInvoiceCreatedPayload) (NotificationEventPayload, error) {
+	value.Type = "invoice.created"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationEventPayload{}, err
+	}
+	var result NotificationEventPayload
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationEventPayload{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationEventPayload) AsNotificationEventInvoiceUpdatedPayload() (*NotificationEventInvoiceUpdatedPayload, error) {
+	if u.Type != "invoice.updated" {
+		return nil, fmt.Errorf("NotificationEventPayload: expected type %q, got %q", "invoice.updated", u.Type)
+	}
+	var value NotificationEventInvoiceUpdatedPayload
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationEventPayloadFromNotificationEventInvoiceUpdatedPayload(value NotificationEventInvoiceUpdatedPayload) (NotificationEventPayload, error) {
+	value.Type = "invoice.updated"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationEventPayload{}, err
+	}
+	var result NotificationEventPayload
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationEventPayload{}, err
+	}
+	return result, nil
+}
+
+// An entitlement reset notification event payload.
+type NotificationEventResetPayload struct {
+	// The identifier of the event the payload belongs to.
+	ID string `json:"id"`
+	// The type of the event.
+	Type NotificationEventType `json:"type"`
+	// When the event was generated.
+	Timestamp time.Time `json:"timestamp"`
+	// The entities the event refers to.
+	Data NotificationEventEntitlementData `json:"data"`
+}
+
+// The type of a notification event. It determines which payload variant the event
+// carries.
+type NotificationEventType string
+
+const (
+	NotificationEventTypeEntitlementsBalanceThreshold NotificationEventType = "entitlements.balance.threshold"
+	NotificationEventTypeEntitlementsReset            NotificationEventType = "entitlements.reset"
+	NotificationEventTypeInvoiceCreated               NotificationEventType = "invoice.created"
+	NotificationEventTypeInvoiceUpdated               NotificationEventType = "invoice.updated"
+)
+
+func (value NotificationEventType) Valid() bool {
+	switch value {
+	case NotificationEventTypeEntitlementsBalanceThreshold, NotificationEventTypeEntitlementsReset, NotificationEventTypeInvoiceCreated, NotificationEventTypeInvoiceUpdated:
+		return true
+	default:
+		return false
+	}
+}
+
+// A reference to the notification rule that generated an event.
+type NotificationRuleReference struct {
+	// The unique identifier of the rule.
+	ID string `json:"id"`
+	// The type of event the rule generates.
+	Type NotificationEventType `json:"type"`
+	// The user-provided name of the rule.
+	Name string `json:"name"`
+}
+
+// Request body for resending a notification event.
+type ResendNotificationEventRequest struct {
+	// The channels to resend the event to. When omitted or empty, the event is resent
+	// to every enabled channel of the rule. Channels not targeted by the rule or
+	// disabled are rejected.
+	Channels *[]string `json:"channels,omitempty"`
 }
 
 // Request body for updating a notification channel. Updates replace the channel's

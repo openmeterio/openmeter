@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	eventdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -44,26 +48,36 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Where(eventdb.NamespaceIn(params.Namespaces...))
 		}
 
-		if len(params.Events) > 0 {
-			query = query.Where(eventdb.IDIn(params.Events...))
+		query = filter.ApplyToQuery(query, params.ID, eventdb.FieldID)
+		query = filter.ApplyToQuery(query, params.Type, eventdb.FieldType)
+		query = filter.ApplyToQuery(query, params.CreatedAt, eventdb.FieldCreatedAt)
+		query = filter.ApplyToQuery(query, params.RuleID, eventdb.FieldRuleID)
+
+		// Both edge filters are existential: they match events that have at least one
+		// matching delivery status / channel. Negation would silently invert to "has some
+		// other status/channel", so the API layer rejects it before we get here.
+		var statusPreds []predicate.NotificationEventDeliveryStatus
+		statusPreds = filter.ApplyToPredicate(statusPreds, params.DeliveryStatus, statusdb.FieldState)
+		if len(statusPreds) > 0 {
+			query = query.Where(eventdb.HasDeliveryStatusesWith(statusPreds...))
 		}
 
-		if !params.From.IsZero() {
-			query = query.Where(eventdb.CreatedAtGTE(params.From.UTC()))
+		var channelPreds []predicate.NotificationChannel
+		channelPreds = filter.ApplyToPredicate(channelPreds, params.ChannelID, channeldb.FieldID)
+		if len(channelPreds) > 0 {
+			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channelPreds...)))
 		}
 
-		if !params.To.IsZero() {
-			query = query.Where(eventdb.CreatedAtLTE(params.To.UTC()))
+		annotationPreds, err := eventAnnotationPredicates(params)
+		if err != nil {
+			return pagination.Result[notification.Event]{}, err
 		}
+		query = query.Where(annotationPreds...)
 
 		if len(params.DeduplicationHashes) > 0 {
 			query = query.Where(
 				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationBalanceEventDedupeHash, params.DeduplicationHashes),
 			)
-		}
-
-		if len(params.DeliveryStatusStates) > 0 {
-			query = query.Where(eventdb.HasDeliveryStatusesWith(statusdb.StateIn(params.DeliveryStatusStates...)))
 		}
 
 		if !params.NextAttemptBefore.IsZero() {
@@ -76,32 +90,6 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			))
 		}
 
-		if len(params.Features) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, params.Features),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, params.Features),
-				),
-			)
-		}
-
-		if len(params.Subjects) > 0 {
-			query = query.Where(
-				eventdb.Or(
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, params.Subjects),
-					entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, params.Subjects),
-				),
-			)
-		}
-
-		if len(params.Rules) > 0 {
-			query = query.Where(eventdb.RuleIDIn(params.Rules...))
-		}
-
-		if len(params.Channels) > 0 {
-			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...))))
-		}
-
 		order := entutils.GetOrdering(sortx.OrderDesc)
 		if !params.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(params.Order)
@@ -110,6 +98,8 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 		switch params.OrderBy {
 		case notification.OrderByCreatedAt:
 			query = query.Order(eventdb.ByCreatedAt(order...))
+		case notification.OrderByType:
+			query = query.Order(eventdb.ByType(order...))
 		case notification.OrderByID:
 			fallthrough
 		default:
@@ -281,4 +271,43 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
+}
+
+// eventAnnotationPredicates builds the subject and feature predicates, which are
+// resolved against keys of the annotations JSONB column rather than real columns.
+func eventAnnotationPredicates(params notification.ListEventsInput) ([]predicate.NotificationEvent, error) {
+	var preds []predicate.NotificationEvent
+
+	add := func(p func(*sql.Selector), err error) error {
+		if err != nil {
+			return err
+		}
+		if p != nil {
+			preds = append(preds, p)
+		}
+		return nil
+	}
+
+	if params.SubjectKey != nil {
+		if err := add(entutils.JSONBFilterString(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, *params.SubjectKey)); err != nil {
+			return nil, err
+		}
+	}
+	if params.SubjectID != nil {
+		if err := add(entutils.JSONBFilterULID(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, *params.SubjectID)); err != nil {
+			return nil, err
+		}
+	}
+	if params.FeatureKey != nil {
+		if err := add(entutils.JSONBFilterString(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, *params.FeatureKey)); err != nil {
+			return nil, err
+		}
+	}
+	if params.FeatureID != nil {
+		if err := add(entutils.JSONBFilterULID(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, *params.FeatureID)); err != nil {
+			return nil, err
+		}
+	}
+
+	return preds, nil
 }
