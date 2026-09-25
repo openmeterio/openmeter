@@ -8,8 +8,10 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -43,20 +45,17 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 			query = query.Where(ruledb.NamespaceIn(params.Namespaces...))
 		}
 
-		if len(params.Rules) > 0 {
-			query = query.Where(ruledb.IDIn(params.Rules...))
-		}
+		query = filter.ApplyToQuery(query, params.ID, ruledb.FieldID)
+		query = filter.ApplyToQuery(query, params.Name, ruledb.FieldName)
+		query = filter.ApplyToQuery(query, params.Type, ruledb.FieldType)
+		query = filter.ApplyToQuery(query, params.Disabled, ruledb.FieldDisabled)
+		query = filter.ApplyToQuery(query, params.CreatedAt, ruledb.FieldCreatedAt)
+		query = filter.ApplyToQuery(query, params.UpdatedAt, ruledb.FieldUpdatedAt)
 
-		if !params.IncludeDisabled {
-			query = query.Where(ruledb.Disabled(false))
-		}
-
-		if len(params.Types) > 0 {
-			query = query.Where(ruledb.TypeIn(params.Types...))
-		}
-
-		if len(params.Channels) > 0 {
-			query = query.Where(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...)))
+		var channelPreds []predicate.NotificationChannel
+		channelPreds = filter.ApplyToPredicate(channelPreds, params.ChannelID, channeldb.FieldID)
+		if len(channelPreds) > 0 {
+			query = query.Where(ruledb.HasChannelsWith(channelPreds...))
 		}
 
 		order := entutils.GetOrdering(sortx.OrderDefault)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -109,9 +110,8 @@ func (s Service) DeleteChannel(ctx context.Context, params notification.DeleteCh
 		logger.Debug("deleting channel")
 
 		rules, err := s.adapter.ListRules(ctx, notification.ListRulesInput{
-			Namespaces:      []string{params.Namespace},
-			IncludeDisabled: true,
-			Channels:        []string{params.ID},
+			Namespaces: []string{params.Namespace},
+			ChannelID:  &filter.FilterString{Eq: lo.ToPtr(params.ID)},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to list rules for channel [namespace=%s channel.id=%s]: %w",
@@ -204,9 +204,8 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 		// Fetch rules assigned to channel as we need to make sure that we do not remove rule assignments
 		// from channel during update.
 		rules, err := s.adapter.ListRules(ctx, notification.ListRulesInput{
-			Namespaces:      []string{params.Namespace},
-			IncludeDisabled: true,
-			Channels:        []string{params.ID},
+			Namespaces: []string{params.Namespace},
+			ChannelID:  &filter.FilterString{Eq: lo.ToPtr(params.ID)},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to list rules for channel: %w", err)
