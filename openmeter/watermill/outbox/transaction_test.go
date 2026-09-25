@@ -38,6 +38,45 @@ func enqueueTransaction(t *testing.T, p *Publisher, ids ...string) {
 	}))
 }
 
+// Keep the middle event on a different topic to catch accidental topic-scoped claims.
+func enqueueMixedTopicTransaction(t *testing.T, p *Publisher) {
+	t.Helper()
+	require.NoError(t, transaction.RunWithNoValue(t.Context(), enttx.NewCreator(p.cfg.DB), func(ctx context.Context) error {
+		require.NoError(t, p.Publish(testTopic, testMessage(ctx, "A", "same-key")))
+		require.NoError(t, p.Publish("second-topic", testMessage(ctx, "B", "same-key")))
+		return p.Publish(testTopic, testMessage(ctx, "C", "same-key"))
+	}))
+}
+
+func TestPublisherRoutesConfiguredTopics(t *testing.T) {
+	// Given two opted-in topics and a third that bypasses the outbox.
+	p, client, raw := newManualTestPublisher(t)
+	p.cfg.OutboxTopics = []string{testTopic, "second-topic"}
+
+	// When publishing within a transaction, only the passthrough event sends immediately.
+	require.NoError(t, transaction.RunWithNoValue(t.Context(), enttx.NewCreator(client), func(ctx context.Context) error {
+		require.NoError(t, p.Publish(testTopic, testMessage(ctx, "first", "key")))
+		require.NoError(t, p.Publish("second-topic", testMessage(ctx, "second", "key")))
+		require.Empty(t, raw.deliveredIDs())
+		require.NoError(t, p.Publish("direct-topic", testMessage(ctx, "direct", "key")))
+		require.Equal(t, []string{"direct"}, raw.deliveredIDs())
+		count, err := client.EventOutbox.Query().Count(t.Context())
+		require.NoError(t, err)
+		require.Zero(t, count, "queued events stay invisible until commit")
+		return nil
+	}))
+
+	// Then one drain delivers both configured topics in sequence, preserving destinations.
+	require.NoError(t, p.drain(t.Context()))
+	require.Equal(t, []string{"direct", "first", "second"}, raw.deliveredIDs())
+	require.Equal(t, testTopic, raw.attemptsFor("first")[0].topic)
+	require.Equal(t, "second-topic", raw.attemptsFor("second")[0].topic)
+	require.Equal(t, "direct-topic", raw.attemptsFor("direct")[0].topic)
+	count, err := client.EventOutbox.Query().Count(t.Context())
+	require.NoError(t, err)
+	require.Zero(t, count)
+}
+
 func TestPublisherPersistsOuterTransactionIdentity(t *testing.T) {
 	// Given nested scopes, including a rolled-back savepoint.
 	p, client, _ := newManualTestPublisher(t)
@@ -76,9 +115,10 @@ func TestPublisherPersistsOuterTransactionIdentity(t *testing.T) {
 }
 
 func TestPublisherRetriesOnlyUnsentTransactionSuffix(t *testing.T) {
-	// Given A/B/C in one source transaction and D in another.
+	// Given A/B/C across two topics in one source transaction, and D in another.
 	p, client, raw := newManualTestPublisher(t)
-	enqueueTransaction(t, p, "A", "B", "C")
+	p.cfg.OutboxTopics = []string{testTopic, "second-topic"}
+	enqueueMixedTopicTransaction(t, p)
 	enqueueTransaction(t, p, "D")
 	brokerErr := errors.New("B failed")
 	raw.setOnSend(func(msg publishedMessage) error {
@@ -139,14 +179,15 @@ func TestPublisherAbandonsExhaustedEventAndContinuesTransaction(t *testing.T) {
 }
 
 func TestConcurrentPublishersClaimWholeTransactions(t *testing.T) {
-	// Given two relay instances and A/B/C in the same source transaction.
+	// Given two relay instances and A/B/C across topics in the same source transaction.
 	p1, client, raw := newManualTestPublisher(t)
+	p1.cfg.OutboxTopics = []string{testTopic, "second-topic"}
 	p2, err := NewPublisher(t.Context(), p1.cfg)
 	require.NoError(t, err)
 	p2.cancel()
 	p2.workers.Wait()
 	t.Cleanup(func() { require.NoError(t, p2.Close()) })
-	enqueueTransaction(t, p1, "A", "B", "C")
+	enqueueMixedTopicTransaction(t, p1)
 	enqueueTransaction(t, p1, "D")
 	releaseFirst := make(chan struct{})
 	var once sync.Once

@@ -10,7 +10,7 @@ import (
 // pendingTransactionQuery makes the oldest pending row the claim for its entire
 // source transaction. A locked head keeps siblings ineligible to other workers.
 type pendingTransactionQuery struct {
-	Topic                string
+	Topics               []string
 	MaxAttempts          int
 	ExcludedTransactions []string
 }
@@ -18,11 +18,11 @@ type pendingTransactionQuery struct {
 // Equivalent claim SQL, including the ordering, limit, and lock added by drain:
 //
 //	SELECT e.* FROM event_outboxes e
-//	WHERE e.topic = :topic
+//	WHERE e.topic IN (:topics)
 //	  AND e.attempts < :max_attempts
 //	  AND NOT EXISTS (
 //	    SELECT 1 FROM event_outboxes earlier
-//	    WHERE earlier.topic = e.topic
+//	    WHERE earlier.topic IN (:topics)
 //	      AND earlier.transaction_id = e.transaction_id
 //	      AND earlier.attempts < :max_attempts
 //	      AND earlier.id < e.id
@@ -34,11 +34,11 @@ type pendingTransactionQuery struct {
 func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 	earlier := sql.Table(eventoutbox.Table).As("earlier_outbox")
 	s.Where(sql.And(
-		sql.EQ(s.C(eventoutbox.FieldTopic), q.Topic),
+		sql.In(s.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
 		sql.LT(s.C(eventoutbox.FieldAttempts), q.MaxAttempts),
 		sql.NotExists(sql.Select(earlier.C(eventoutbox.FieldID)).From(earlier).Where(sql.And(
 			sql.LT(earlier.C(eventoutbox.FieldAttempts), q.MaxAttempts),
-			sql.ColumnsEQ(earlier.C(eventoutbox.FieldTopic), s.C(eventoutbox.FieldTopic)),
+			sql.In(earlier.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
 			sql.ColumnsEQ(earlier.C(eventoutbox.FieldTransactionID), s.C(eventoutbox.FieldTransactionID)),
 			sql.ColumnsLT(earlier.C(eventoutbox.FieldID), s.C(eventoutbox.FieldID)),
 		))),

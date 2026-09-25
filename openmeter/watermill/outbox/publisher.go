@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -20,9 +21,11 @@ import (
 )
 
 type Config struct {
-	DB               *db.Client
-	Publisher        message.Publisher
-	Topic            string
+	DB        *db.Client
+	Publisher message.Publisher
+
+	// OutboxTopics lists topics persisted before delivery; all others publish directly.
+	OutboxTopics     []string
 	Logger           *slog.Logger
 	DrainLimit       int
 	DrainTimeout     time.Duration
@@ -39,8 +42,11 @@ func (c Config) Validate() error {
 	if c.Publisher == nil {
 		errs = append(errs, errors.New("publisher is required"))
 	}
-	if c.Topic == "" {
-		errs = append(errs, errors.New("system events topic is required"))
+	if len(c.OutboxTopics) == 0 {
+		errs = append(errs, errors.New("at least one outbox topic is required"))
+	}
+	if slices.Contains(c.OutboxTopics, "") {
+		errs = append(errs, errors.New("outbox topics must not be empty"))
 	}
 	if c.Logger == nil {
 		errs = append(errs, errors.New("logger is required"))
@@ -63,7 +69,7 @@ func (c Config) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// Publisher persists system events in the caller's transaction. Each successful
+// Publisher persists configured topics in the caller's transaction. Each successful
 // commit wakes a bounded drain of the shared queue; a periodic tick retries idle work.
 type Publisher struct {
 	cfg     Config
@@ -81,6 +87,7 @@ func NewPublisher(ctx context.Context, cfg Config) (*Publisher, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
+	cfg.OutboxTopics = slices.Clone(cfg.OutboxTopics)
 	ctx, cancel := context.WithCancel(ctx)
 	p := &Publisher{cfg: cfg, ctx: ctx, cancel: cancel, wake: make(chan struct{}, cfg.DrainConcurrency)}
 	for range cfg.DrainConcurrency {
@@ -96,7 +103,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 	if p.closed {
 		return errors.New("outbox publisher is closed")
 	}
-	if topic != p.cfg.Topic {
+	if !slices.Contains(p.cfg.OutboxTopics, topic) {
 		return p.cfg.Publisher.Publish(topic, messages...)
 	}
 	for _, msg := range messages {
@@ -176,7 +183,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 			client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
 			// Claim only a transaction's first pending row. Its lock prevents
 			// other workers from claiming any sibling while this batch is sent.
-			query := pendingTransactionQuery{Topic: p.cfg.Topic, MaxAttempts: p.cfg.MaxAttempts, ExcludedTransactions: failedTransactions}
+			query := pendingTransactionQuery{Topics: p.cfg.OutboxTopics, MaxAttempts: p.cfg.MaxAttempts, ExcludedTransactions: failedTransactions}
 			head, err := client.EventOutbox.Query().
 				Where(query.Apply).
 				Order(eventoutbox.ByID()).
@@ -192,7 +199,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 			// SKIP LOCKED or a row limit here: the claim owns the whole group.
 			rows, err := client.EventOutbox.Query().
 				Where(
-					eventoutbox.TopicEQ(p.cfg.Topic),
+					eventoutbox.TopicIn(p.cfg.OutboxTopics...),
 					eventoutbox.TransactionIDEQ(transactionID),
 					eventoutbox.AttemptsLT(p.cfg.MaxAttempts),
 				).

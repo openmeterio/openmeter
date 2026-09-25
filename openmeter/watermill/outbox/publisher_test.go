@@ -116,7 +116,7 @@ func newTestPublisher(t *testing.T, raw *recordingPublisher) (*Publisher, *db.Cl
 	p, err := NewPublisher(t.Context(), Config{
 		DB:               client,
 		Publisher:        raw,
-		Topic:            testTopic,
+		OutboxTopics:     []string{testTopic},
 		Logger:           testutils.NewDiscardLogger(t),
 		DrainLimit:       drainLimit,
 		DrainTimeout:     30 * time.Second,
@@ -340,7 +340,7 @@ func TestConcurrentPublishersCanSendSameKeyIndependently(t *testing.T) {
 	p2, err := NewPublisher(t.Context(), Config{
 		DB:               client,
 		Publisher:        raw,
-		Topic:            testTopic,
+		OutboxTopics:     []string{testTopic},
 		Logger:           testutils.NewDiscardLogger(t),
 		DrainLimit:       drainLimit,
 		DrainTimeout:     30 * time.Second,

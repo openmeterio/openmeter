@@ -87,7 +87,7 @@ func NewEventBusPublisher(
 	outboxPublisher, err := outbox.NewPublisher(ctx, outbox.Config{
 		DB:               db,
 		Publisher:        publisher,
-		Topic:            conf.SystemEvents.Topic,
+		OutboxTopics:     []string{conf.SystemEvents.Topic},
 		Logger:           logger,
 		DrainLimit:       conf.Outbox.DrainLimit,
 		DrainTimeout:     conf.Outbox.DrainTimeout,

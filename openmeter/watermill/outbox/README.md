@@ -1,8 +1,9 @@
 # System event outbox
 
-System events are stored in PostgreSQL within the caller's transaction (or a
-standalone transaction). Savepoints share the outer transaction ID; rollbacks
-discard their events. `Publish` means stored, not delivered to Kafka. Other topics
+Topics listed in publisher `Config.OutboxTopics` are stored in PostgreSQL within
+the caller's transaction (or a standalone transaction). Application startup opts
+in only the system-events topic. Savepoints share the outer transaction ID;
+rollbacks discard their events. `Publish` means stored, not delivered to Kafka. Other topics
 still publish directly.
 
 ## Delivery and ordering
@@ -11,9 +12,9 @@ After commit, workers drain the shared queue. They also retry periodically
 (default: one minute). `events.outbox` configures drain limit, timeout, concurrency,
 retry interval, and `maxAttempts` (default: 10).
 
-Workers claim a source transaction's pending rows together and send them in
-sequence-ID order. If B fails in A → B → C, A is removed, B's attempt count is
-persisted, and C waits for a later drain. Other transactions can progress. Once B
+Workers claim a source transaction's pending rows across configured topics
+together and publish them in sequence-ID order. If B fails in A → B → C, A is
+removed, B's attempt count is persisted, and C waits for a later drain. Other transactions can progress. Once B
 reaches `maxAttempts`, it is logged and retained for inspection, skipped by future
 drains, and C can proceed. Raising the limit makes retained rows eligible again.
 
@@ -22,7 +23,7 @@ resend them, so consumers must tolerate duplicates. Failed-attempt counts surviv
 successful drain commits; crashes or database failures can cause extra attempts.
 Finite retries mean some events may never be delivered. Ordering applies within
 a source transaction, until an event is abandoned; there is no ordering guarantee
-between transactions or across Kafka partitions.
+between transactions or for consumer delivery across Kafka topics/partitions.
 
 ## Concurrency and shutdown
 
