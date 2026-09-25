@@ -2,6 +2,20 @@
 
 package openmeter
 
+// Entitlement access check result.
+type EntitlementAccessCheckResult struct {
+	// Whether the customer has access to the feature. Always true for `boolean` and
+	// `static` entitlements. Depends on balance for `metered` entitlements.
+	HasAccess bool `json:"has_access"`
+	// Only available for static entitlements. Config is the JSON parsable
+	// configuration of the entitlement. Useful to describe per customer configuration.
+	Config *string `json:"config,omitempty"`
+	// The type of the entitlement.
+	//
+	// If not provided, the feature has no entitlement defined (has access is always false in this case)
+	Type *EntitlementType `json:"type,omitempty"`
+}
+
 // Expands for customer entitlement access.
 //
 // Values:
@@ -23,23 +37,6 @@ func (value EntitlementAccessExpand) Valid() bool {
 	}
 }
 
-// Entitlement access result.
-type EntitlementAccessResult struct {
-	// The type of the entitlement.
-	Type EntitlementType `json:"type"`
-	// The feature key of the entitlement.
-	FeatureKey string `json:"feature_key"`
-	// Whether the customer has access to the feature. Always true for `boolean` and
-	// `static` entitlements. Depends on balance for `metered` entitlements.
-	HasAccess bool `json:"has_access"`
-	// Only available for static entitlements. Config is the JSON parsable
-	// configuration of the entitlement. Useful to describe per customer configuration.
-	Config *string `json:"config,omitempty"`
-	// Only available for metered entitlements. The balance details of the entitlement
-	// at the evaluation time. Requires the `value` expand.
-	Value *EntitlementAccessValue `json:"value,omitempty"`
-}
-
 // Balance details of a metered entitlement at the evaluation time, which is the
 // `at` query parameter when given and the current time otherwise.
 type EntitlementAccessValue struct {
@@ -58,8 +55,25 @@ type EntitlementAccessValue struct {
 	GrantBalances map[string]Numeric `json:"grant_balances"`
 }
 
+// Entitlement value result.
+type EntitlementValueResult struct {
+	// The type of the entitlement.
+	Type EntitlementType `json:"type"`
+	// The feature key of the entitlement.
+	FeatureKey string `json:"feature_key"`
+	// Whether the customer has access to the feature. Always true for `boolean` and
+	// `static` entitlements. Depends on balance for `metered` entitlements.
+	HasAccess bool `json:"has_access"`
+	// Only available for static entitlements. Config is the JSON parsable
+	// configuration of the entitlement. Useful to describe per customer configuration.
+	Config *string `json:"config,omitempty"`
+	// Only available for metered entitlements. The balance details of the entitlement
+	// at the evaluation time. Requires the `value` expand.
+	Value *EntitlementAccessValue `json:"value,omitempty"`
+}
+
 // List customer entitlement access response data.
 type ListCustomerEntitlementAccessResponseData struct {
 	// The list of entitlement access results.
-	Data []EntitlementAccessResult `json:"data"`
+	Data []EntitlementValueResult `json:"data"`
 }
