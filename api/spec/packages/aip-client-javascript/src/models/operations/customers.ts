@@ -26,6 +26,9 @@ import type {
   CustomerStripeCreateCheckoutSessionRequestInput,
   CustomerStripeCreateCustomerPortalSessionRequest,
   Entitlement,
+  EntitlementGrant,
+  EntitlementGrantCreateRequest,
+  EntitlementGrantPagePaginatedResponse,
   EntitlementHistory,
   EntitlementHistoryWindowSize,
   EntitlementPagePaginatedResponse,
@@ -202,6 +205,41 @@ export type DeleteCustomerEntitlementRequest = {
   entitlementId: string
 }
 export type DeleteCustomerEntitlementResponse = void
+
+export type CreateCustomerEntitlementGrantRequest = AcceptDateStrings<{
+  customerId: string
+  entitlementId: string
+  body: EntitlementGrantCreateRequest
+}>
+export type CreateCustomerEntitlementGrantResponse = EntitlementGrant
+
+export interface ListCustomerEntitlementGrantsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort grants returned in the response. Supported sort attributes are:
+   *
+   * - `created_at` (default)
+   * - `updated_at`
+   * - `effective_at`
+   * - `expires_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /** Include deleted grants in the response. */
+  includeDeleted?: boolean
+}
+
+export type ListCustomerEntitlementGrantsRequest = AcceptDateStrings<
+  ListCustomerEntitlementGrantsQuery & {
+    customerId: string
+    entitlementId: string
+  }
+>
+export type ListCustomerEntitlementGrantsResponse =
+  EntitlementGrantPagePaginatedResponse
 
 export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string

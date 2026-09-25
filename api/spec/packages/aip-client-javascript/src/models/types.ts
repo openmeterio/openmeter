@@ -3711,7 +3711,7 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
   termsOfService?: 'none' | 'required'
 }
 
-/** A grant created together with a metered entitlement. */
+/** A grant to issue for a metered entitlement. */
 export interface EntitlementGrantCreateRequest {
   /** The amount to grant, in the feature's unit. Must be positive. */
   amount: string
@@ -3723,7 +3723,7 @@ export interface EntitlementGrantCreateRequest {
   priority?: number
   /**
    * The time the grant becomes effective and the anchor for recurring grants. The
-   * value is rounded up to the next minute.
+   * value is truncated to the start of the minute.
    */
   effectiveAt: Date
   /**
@@ -3898,6 +3898,72 @@ export interface EntitlementBoolean {
   /** The time the entitlement was last updated. */
   updatedAt: Date
   /** The time the entitlement was deleted. */
+  deletedAt?: Date
+}
+
+/**
+ * A grant issued for a metered entitlement. Each grant adds its amount to the
+ * entitlement's balance from its effective time until it expires, and usage is
+ * deducted from the grants in priority order.
+ *
+ * Grants are immutable, so the balance is deterministic regardless of when it is
+ * queried. Deleting a grant ends it at the time of the deletion.
+ */
+export interface EntitlementGrant {
+  id: string
+  /** The ID of the entitlement the grant belongs to. */
+  entitlementId: string
+  /** The granted amount, in the feature's unit. */
+  amount: string
+  /**
+   * The priority of the grant. Lower values are consumed first: a grant with
+   * priority 1 is consumed before one with priority 2. Among equal priorities, the
+   * grant closest to expiration is consumed first, then the earliest created.
+   */
+  priority: number
+  /** The time the grant takes effect. */
+  effectiveAt: Date
+  /**
+   * The duration after which the grant expires, counted from `effective_at`. Always
+   * a single-unit duration (for example `PT12H`, `P7D`, `P2W`, `P3M`, `P1Y`). Absent
+   * when the grant never expires.
+   */
+  expiresAfter?: string
+  /**
+   * The time the grant expires, calculated from `effective_at` and `expires_after`.
+   * The grant is no longer in effect from this time. Absent when the grant never
+   * expires.
+   */
+  expiresAt?: Date
+  /**
+   * The maximum balance the grant carries over at reset. The balance after a reset
+   * is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   */
+  maxRolloverAmount: string
+  /**
+   * The minimum balance the grant carries over at reset. The balance after a reset
+   * is `MIN(max_rollover_amount, MAX(balance_before_reset, min_rollover_amount))`.
+   */
+  minRolloverAmount: string
+  /**
+   * The recurrence of the grant. When set, the grant amount is re-issued every
+   * interval from the anchor, which defaults to `effective_at`. Absent for
+   * non-recurring grants.
+   */
+  recurrence?: RecurringPeriod
+  /** The next time the grant recurs. Absent for non-recurring grants. */
+  nextRecurrence?: Date
+  /**
+   * The time the grant was voided. A voided grant is no longer in effect from this
+   * time.
+   */
+  voidedAt?: Date
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
   deletedAt?: Date
 }
 
@@ -4810,6 +4876,12 @@ export interface CreateEntitlementMeteredRequest {
   measureUsageFrom?: EntitlementMeasureUsageFrom
   /** Grants created together with the entitlement. Cannot be combined with `issue`. */
   grants?: EntitlementGrantCreateRequest[]
+}
+
+/** Page paginated response. */
+export interface EntitlementGrantPagePaginatedResponse {
+  data: EntitlementGrant[]
+  meta: PaginatedMeta
 }
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */

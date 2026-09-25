@@ -699,6 +699,31 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusCreated,
 			},
 		},
+		{
+			name: "list customer entitlement grants",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/grants",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "create customer entitlement grant",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/entitlements/01ARZ3NDEKTSV4RRFFQ69G5FAW/grants",
+				body: apiv3.BillingEntitlementGrantCreateRequest{
+					Amount:      "100",
+					EffectiveAt: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			res: testResponse{
+				status: http.StatusCreated,
+			},
+		},
 		// Charges
 		{
 			name: "list customer charges without charge service",
@@ -1245,6 +1270,14 @@ func (n NoopEntitlementConnector) GetEntitlementByID(ctx context.Context, input 
 
 func (n NoopEntitlementConnector) ListNamespaceEntitlements(ctx context.Context, input entitlement.ListNamespaceEntitlementsInput) (pagination.Result[entitlement.Entitlement], error) {
 	return pagination.Result[entitlement.Entitlement]{}, nil
+}
+
+func (n NoopEntitlementConnector) ListCustomerEntitlementGrants(ctx context.Context, input entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, nil
+}
+
+func (n NoopEntitlementConnector) CreateCustomerEntitlementGrant(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error) {
+	return grant.Grant{}, nil
 }
 
 func (n NoopEntitlementConnector) ScheduleEntitlement(ctx context.Context, input entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -288,6 +289,54 @@ func (c *service) GetCustomerEntitlementHistory(ctx context.Context, input entit
 		Windows:  windows,
 		Burndown: burndown,
 	}, nil
+}
+
+func (c *service) ListCustomerEntitlementGrants(ctx context.Context, input entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	if err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	// The entitlement is already resolved, so the grant list is addressed by ID; the
+	// list itself does not depend on the entitlement type and is empty for the
+	// non-metered ones, as grants can only be issued for metered entitlements.
+	grants, err := c.meteredEntitlementConnector.ListEntitlementGrants(ctx, ent.Namespace, meteredentitlement.ListEntitlementGrantsParams{
+		CustomerID:                ent.CustomerID,
+		EntitlementIDOrFeatureKey: ent.ID,
+		IncludeDeleted:            input.IncludeDeleted,
+		OrderBy:                   input.OrderBy,
+		Order:                     input.Order,
+		Page:                      input.Page,
+	})
+	if err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	return pagination.MapResult(grants, func(g meteredentitlement.EntitlementGrant) grant.Grant {
+		return g.Grant
+	}), nil
+}
+
+func (c *service) CreateCustomerEntitlementGrant(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error) {
+	if err := input.Validate(); err != nil {
+		return grant.Grant{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	if err != nil {
+		return grant.Grant{}, err
+	}
+
+	created, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.CustomerID, ent.ID, input.Grant)
+	if err != nil {
+		return grant.Grant{}, err
+	}
+
+	return created.Grant, nil
 }
 
 // historyWindowSize rejects the meter window sizes the balance history cannot be

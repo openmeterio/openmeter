@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -15,8 +16,9 @@ const (
 )
 
 type fakeService struct {
-	history func(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error)
-	reset   func(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error
+	history     func(ctx context.Context, input entitlement.GetCustomerEntitlementHistoryInput) (entitlement.CustomerEntitlementHistory, error)
+	reset       func(ctx context.Context, input entitlement.ResetCustomerEntitlementUsageInput) error
+	createGrant func(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error)
 }
 
 func (f fakeService) CreateCustomerEntitlement(context.Context, entitlement.CreateCustomerEntitlementInput) (*entitlement.Entitlement, error) {
@@ -45,4 +47,12 @@ func (f fakeService) ResetCustomerEntitlementUsage(ctx context.Context, input en
 
 func (f fakeService) DeleteCustomerEntitlement(context.Context, entitlement.DeleteCustomerEntitlementInput) error {
 	return errors.New("not implemented")
+}
+
+func (f fakeService) ListCustomerEntitlementGrants(context.Context, entitlement.ListCustomerEntitlementGrantsInput) (pagination.Result[grant.Grant], error) {
+	return pagination.Result[grant.Grant]{}, errors.New("not implemented")
+}
+
+func (f fakeService) CreateCustomerEntitlementGrant(ctx context.Context, input entitlement.CreateCustomerEntitlementGrantInput) (grant.Grant, error) {
+	return f.createGrant(ctx, input)
 }

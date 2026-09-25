@@ -57,7 +57,7 @@ model EntitlementIssueAfterReset {
 }
 
 /**
- * A grant created together with a metered entitlement.
+ * A grant to issue for a metered entitlement.
  */
 @friendlyName("BillingEntitlementGrantCreateRequest")
 model EntitlementGrantCreate {
@@ -81,7 +81,7 @@ model EntitlementGrantCreate {
 
   /**
    * The time the grant becomes effective and the anchor for recurring grants. The
-   * value is rounded up to the next minute.
+   * value is truncated to the start of the minute.
    */
   @summary("Effective at")
   @example(Shared.DateTime.fromISO("2023-01-01T01:01:01.001Z"))

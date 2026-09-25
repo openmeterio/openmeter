@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	api "github.com/openmeterio/openmeter/api/client/go"
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
@@ -535,6 +536,320 @@ func TestV3OverrideCustomerEntitlement(t *testing.T) {
 
 		// when an entitlement is overridden for it, then the request conflicts with the deleted state
 		_, err = c.Customers.Entitlements.Override(t.Context(), deleted.ID, oldEnt.ID, upgrade)
+		requireProblem(t, err, http.StatusConflict)
+	})
+}
+
+func TestV3CustomerEntitlementGrants(t *testing.T) {
+	c := newV3Client(t)
+	v1 := initClient(t)
+
+	createCustomer := func(t *testing.T, prefix string) *v3sdk.Customer {
+		t.Helper()
+
+		key := uniqueKey(prefix)
+		cust, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:  key,
+			Name: "Entitlement Customer " + key,
+			UsageAttribution: &v3sdk.CustomerUsageAttribution{
+				SubjectKeys: []string{key},
+			},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, cust)
+
+		return cust
+	}
+
+	// The v3 create endpoint is not available yet, so entitlements and grants are
+	// seeded through the legacy v2 customer entitlement endpoints.
+	createMeteredEntitlement := func(t *testing.T, customerID string, featureID string) string {
+		t.Helper()
+
+		var interval api.RecurringPeriodInterval
+		require.NoError(t, interval.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+		var body api.CreateCustomerEntitlementV2JSONRequestBody
+		require.NoError(t, body.FromEntitlementMeteredV2CreateInputs(api.EntitlementMeteredV2CreateInputs{
+			Type:      api.EntitlementMeteredV2CreateInputsTypeMetered,
+			FeatureId: lo.ToPtr(featureID),
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Interval: interval,
+			},
+		}))
+
+		res, err := v1.CreateCustomerEntitlementV2WithResponse(t.Context(), customerID, body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, res.StatusCode(), "Invalid status code [response_body=%s]", string(res.Body))
+
+		created, err := res.JSON201.AsEntitlementMeteredV2()
+		require.NoError(t, err)
+
+		return created.Id
+	}
+
+	createGrant := func(t *testing.T, customerID string, entitlementID string, amount float64, effectiveAt time.Time) api.EntitlementGrantV2 {
+		t.Helper()
+
+		res, err := v1.CreateCustomerEntitlementGrantV2WithResponse(t.Context(), customerID, entitlementID, api.EntitlementGrantCreateInputV2{
+			Amount:      amount,
+			Priority:    lo.ToPtr(uint8(2)),
+			EffectiveAt: effectiveAt,
+			Expiration:  &api.ExpirationPeriod{Count: 1, Duration: api.ExpirationDurationMONTH},
+			Metadata:    &api.Metadata{"source": "e2e"},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, res.StatusCode(), "Invalid status code [response_body=%s]", string(res.Body))
+
+		return *res.JSON201
+	}
+
+	cust := createCustomer(t, "ent_grants_customer")
+	f := createMeteredFeature(t, c, "ent_grants")
+	entitlementID := createMeteredEntitlement(t, cust.ID, f.ID)
+
+	// The first usage period starts at the entitlement's creation minute, so the
+	// effective date must be taken after the entitlement exists.
+	effectiveAt := time.Now().UTC().Truncate(time.Minute)
+
+	first := createGrant(t, cust.ID, entitlementID, 100, effectiveAt)
+	second := createGrant(t, cust.ID, entitlementID, 50, effectiveAt.Add(time.Minute))
+
+	t.Run("list", func(t *testing.T) {
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+			Sort: &v3sdk.Sort{By: "effective_at", Order: v3sdk.SortOrderAsc},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, res)
+
+		require.Equal(t, 2, res.Meta.Page.Total)
+		require.Len(t, res.Data, 2)
+
+		g := res.Data[0]
+		require.Equal(t, first.Id, g.ID)
+		require.Equal(t, entitlementID, g.EntitlementID)
+		require.Equal(t, "100", g.Amount)
+		require.Equal(t, uint8(2), g.Priority)
+		require.True(t, effectiveAt.Equal(g.EffectiveAt), "effective at %s != %s", g.EffectiveAt, effectiveAt)
+		require.Equal(t, "P1M", lo.FromPtr(g.ExpiresAfter))
+		require.True(t, effectiveAt.AddDate(0, 1, 0).Equal(lo.FromPtr(g.ExpiresAt)))
+		require.Equal(t, "100", g.MaxRolloverAmount)
+		require.Equal(t, "0", g.MinRolloverAmount)
+		require.Nil(t, g.Recurrence)
+		require.Nil(t, g.NextRecurrence)
+		require.Nil(t, g.VoidedAt)
+		require.Nil(t, g.DeletedAt)
+		require.Equal(t, "e2e", g.Labels["source"])
+
+		require.Equal(t, second.Id, res.Data[1].ID)
+	})
+
+	t.Run("list paginated and sorted descending", func(t *testing.T) {
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+			Page: &v3sdk.PageParams{Number: lo.ToPtr(2), Size: lo.ToPtr(1)},
+			Sort: &v3sdk.Sort{By: "effective_at", Order: v3sdk.SortOrderDesc},
+		})
+		c.requireStatus(http.StatusOK, err)
+
+		require.Equal(t, 2, res.Meta.Page.Total)
+		require.Equal(t, 2, res.Meta.Page.Number)
+		require.Equal(t, 1, res.Meta.Page.Size)
+		require.Len(t, res.Data, 1)
+		require.Equal(t, first.Id, res.Data[0].ID)
+	})
+
+	t.Run("list including deleted", func(t *testing.T) {
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+			IncludeDeleted: lo.ToPtr(true),
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.Equal(t, 2, res.Meta.Page.Total)
+	})
+
+	t.Run("list with unsupported sort field", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{
+			Sort: &v3sdk.Sort{By: "owner_id"},
+		})
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("list of an entitlement without grants", func(t *testing.T) {
+		featureKey := uniqueKey("ent_grants_boolean")
+		booleanFeature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+			Key:  featureKey,
+			Name: "Boolean Feature " + featureKey,
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		var body api.CreateCustomerEntitlementV2JSONRequestBody
+		require.NoError(t, body.FromEntitlementBooleanCreateInputs(api.EntitlementBooleanCreateInputs{
+			Type:      api.EntitlementBooleanCreateInputsTypeBoolean,
+			FeatureId: lo.ToPtr(booleanFeature.ID),
+		}))
+
+		created, err := v1.CreateCustomerEntitlementV2WithResponse(t.Context(), cust.ID, body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, created.StatusCode(), "Invalid status code [response_body=%s]", string(created.Body))
+
+		booleanEnt, err := created.JSON201.AsEntitlementBooleanV2()
+		require.NoError(t, err)
+
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, booleanEnt.Id, v3sdk.EntitlementGrantListParams{})
+		c.requireStatus(http.StatusOK, err)
+		require.Equal(t, 0, res.Meta.Page.Total)
+		require.Empty(t, res.Data)
+	})
+
+	t.Run("entitlement of another customer", func(t *testing.T) {
+		other := createCustomer(t, "ent_grants_other_customer")
+		otherEntitlementID := createMeteredEntitlement(t, other.ID, f.ID)
+		createGrant(t, other.ID, otherEntitlementID, 10, effectiveAt)
+
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, otherEntitlementID, v3sdk.EntitlementGrantListParams{})
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("unknown entitlement", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, "01K4WAQ0J99ZZ0MD75HXR112H9", v3sdk.EntitlementGrantListParams{})
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("unknown customer", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), "01K4WAQ0J99ZZ0MD75HXR112H8", entitlementID, v3sdk.EntitlementGrantListParams{})
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("deleted customer", func(t *testing.T) {
+		deleted := createCustomer(t, "ent_grants_deleted_customer")
+		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
+
+		_, err := c.Customers.Entitlements.Grants.List(t.Context(), deleted.ID, entitlementID, v3sdk.EntitlementGrantListParams{})
+		requireProblem(t, err, http.StatusConflict)
+	})
+}
+
+func TestV3CreateCustomerEntitlementGrant(t *testing.T) {
+	c := newV3Client(t)
+
+	createCustomer := func(t *testing.T, prefix string) *v3sdk.Customer {
+		t.Helper()
+
+		key := uniqueKey(prefix)
+		cust, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:  key,
+			Name: "Entitlement Customer " + key,
+			UsageAttribution: &v3sdk.CustomerUsageAttribution{
+				SubjectKeys: []string{key},
+			},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, cust)
+
+		return cust
+	}
+
+	createMeteredEntitlement := func(t *testing.T, customerID string, featureID string) string {
+		t.Helper()
+
+		created, err := c.Customers.Entitlements.Create(t.Context(), customerID, lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementMeteredRequest(v3sdk.CreateEntitlementMeteredRequest{
+			Feature:     v3sdk.FeatureReference{ID: featureID},
+			UsagePeriod: v3sdk.RecurringPeriodInput{Interval: "P1M"},
+		})))
+		c.requireStatus(http.StatusCreated, err)
+
+		metered, err := created.AsEntitlementMetered()
+		require.NoError(t, err)
+
+		return metered.ID
+	}
+
+	cust := createCustomer(t, "ent_create_grant_customer")
+	f := createMeteredFeature(t, c, "ent_create_grant")
+	entitlementID := createMeteredEntitlement(t, cust.ID, f.ID)
+
+	// The first usage period starts at the entitlement's creation minute, so the
+	// effective date must be taken after the entitlement exists.
+	effectiveAt := time.Now().UTC().Truncate(time.Minute)
+
+	grantRequest := v3sdk.EntitlementGrantCreateRequest{
+		Amount:       "100",
+		Priority:     lo.ToPtr(uint8(2)),
+		EffectiveAt:  effectiveAt,
+		ExpiresAfter: lo.ToPtr("P1M"),
+		Labels:       lo.ToPtr(map[string]string{"source": "e2e"}),
+	}
+
+	t.Run("metered entitlement", func(t *testing.T) {
+		// when a grant is issued for the metered entitlement
+		g, err := c.Customers.Entitlements.Grants.Create(t.Context(), cust.ID, entitlementID, grantRequest)
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, g)
+
+		// then the response reflects the request with the rollover defaults applied
+		require.NotEmpty(t, g.ID)
+		require.Equal(t, entitlementID, g.EntitlementID)
+		require.Equal(t, "100", g.Amount)
+		require.Equal(t, uint8(2), g.Priority)
+		require.True(t, effectiveAt.Equal(g.EffectiveAt), "effective at %s != %s", g.EffectiveAt, effectiveAt)
+		require.Equal(t, "P1M", lo.FromPtr(g.ExpiresAfter))
+		require.True(t, effectiveAt.AddDate(0, 1, 0).Equal(lo.FromPtr(g.ExpiresAt)))
+		require.Equal(t, "100", g.MaxRolloverAmount)
+		require.Equal(t, "0", g.MinRolloverAmount)
+		require.Nil(t, g.Recurrence)
+		require.Equal(t, "e2e", g.Labels["source"])
+
+		// and the grant is listed for the entitlement
+		res, err := c.Customers.Entitlements.Grants.List(t.Context(), cust.ID, entitlementID, v3sdk.EntitlementGrantListParams{})
+		c.requireStatus(http.StatusOK, err)
+		require.Equal(t, 1, res.Meta.Page.Total)
+		require.Equal(t, g.ID, res.Data[0].ID)
+	})
+
+	t.Run("effective before the current usage period", func(t *testing.T) {
+		req := grantRequest
+		req.EffectiveAt = effectiveAt.Add(-time.Hour)
+
+		_, err := c.Customers.Entitlements.Grants.Create(t.Context(), cust.ID, entitlementID, req)
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("boolean entitlement", func(t *testing.T) {
+		featureKey := uniqueKey("ent_create_grant_boolean")
+		booleanFeature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+			Key:  featureKey,
+			Name: "Boolean Feature " + featureKey,
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		created, err := c.Customers.Entitlements.Create(t.Context(), cust.ID, lo.Must(v3sdk.CreateEntitlementRequestFromCreateEntitlementBooleanRequest(v3sdk.CreateEntitlementBooleanRequest{
+			Feature: v3sdk.FeatureReference{ID: booleanFeature.ID},
+		})))
+		c.requireStatus(http.StatusCreated, err)
+		booleanEnt, err := created.AsEntitlementBoolean()
+		require.NoError(t, err)
+
+		_, err = c.Customers.Entitlements.Grants.Create(t.Context(), cust.ID, booleanEnt.ID, grantRequest)
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+
+	t.Run("entitlement of another customer", func(t *testing.T) {
+		other := createCustomer(t, "ent_create_grant_other_customer")
+		otherEntitlementID := createMeteredEntitlement(t, other.ID, f.ID)
+
+		_, err := c.Customers.Entitlements.Grants.Create(t.Context(), cust.ID, otherEntitlementID, grantRequest)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("unknown entitlement", func(t *testing.T) {
+		_, err := c.Customers.Entitlements.Grants.Create(t.Context(), cust.ID, "01K4WAQ0J99ZZ0MD75HXR112H9", grantRequest)
+		requireProblem(t, err, http.StatusNotFound)
+	})
+
+	t.Run("deleted customer", func(t *testing.T) {
+		deleted := createCustomer(t, "ent_create_grant_deleted_customer")
+		c.requireStatus(http.StatusNoContent, c.Customers.Delete(t.Context(), deleted.ID))
+
+		_, err := c.Customers.Entitlements.Grants.Create(t.Context(), deleted.ID, entitlementID, grantRequest)
 		requireProblem(t, err, http.StatusConflict)
 	})
 }
