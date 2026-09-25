@@ -15,6 +15,22 @@ type pendingTransactionQuery struct {
 	ExcludedTransactions []string
 }
 
+// Equivalent claim SQL, including the ordering, limit, and lock added by drain:
+//
+//	SELECT e.* FROM event_outboxes e
+//	WHERE e.topic = :topic
+//	  AND e.attempts < :max_attempts
+//	  AND NOT EXISTS (
+//	    SELECT 1 FROM event_outboxes earlier
+//	    WHERE earlier.topic = e.topic
+//	      AND earlier.transaction_id = e.transaction_id
+//	      AND earlier.attempts < :max_attempts
+//	      AND earlier.id < e.id
+//	  )
+//	  AND e.transaction_id NOT IN (:excluded_transactions)
+//	ORDER BY e.id LIMIT 1 FOR UPDATE SKIP LOCKED;
+//
+// The NOT IN clause is omitted when there are no excluded transactions.
 func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 	earlier := sql.Table(eventoutbox.Table).As("earlier_outbox")
 	s.Where(sql.And(
