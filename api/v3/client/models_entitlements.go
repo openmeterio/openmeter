@@ -12,7 +12,8 @@ type EntitlementAccessCheckResult struct {
 	Config *string `json:"config,omitempty"`
 	// The type of the entitlement.
 	//
-	// If not provided, the feature has no entitlement defined (has access is always false in this case)
+	// If not provided, the feature has no entitlement defined (has access is always
+	// false in this case)
 	Type *EntitlementType `json:"type,omitempty"`
 }
 

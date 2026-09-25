@@ -8305,7 +8305,8 @@ components:
           description: |-
             The type of the entitlement.
 
-            If not provided, the feature has no entitlement defined (has access is always false in this case)
+            If not provided, the feature has no entitlement defined (has access is always
+            false in this case)
           readOnly: true
       additionalProperties: false
       description: Entitlement access check result.

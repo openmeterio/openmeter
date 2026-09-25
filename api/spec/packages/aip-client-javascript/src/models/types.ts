@@ -2018,7 +2018,8 @@ export interface EntitlementAccessCheckResult {
   /**
    * The type of the entitlement.
    *
-   * If not provided, the feature has no entitlement defined (has access is always false in this case)
+   * If not provided, the feature has no entitlement defined (has access is always
+   * false in this case)
    */
   type?: 'metered' | 'static' | 'boolean'
 }
