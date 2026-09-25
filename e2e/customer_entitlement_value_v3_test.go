@@ -84,6 +84,9 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 	entitlementID := metered.Id
 
 	t.Run("Should return the metered entitlement without balance details by default", func(t *testing.T) {
+		// given a subscribed customer with a metered entitlement
+		// when its value is requested without expansion
+		// then access is granted without balance details
 		access, err := c.Entitlements.GetCustomerValue(t.Context(), customer.ID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{})
 		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, access)
@@ -95,6 +98,9 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 	})
 
 	t.Run("Should expand the balance details", func(t *testing.T) {
+		// given a metered entitlement with its initial grant
+		// when the value expansion is requested
+		// then the balance and usage details are returned
 		access, err := c.Entitlements.GetCustomerValue(t.Context(), customer.ID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{
 			Expand: []v3sdk.EntitlementAccessExpand{v3sdk.EntitlementAccessExpandValue},
 		})
@@ -112,6 +118,9 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 	})
 
 	t.Run("Should return no access when evaluated before the entitlement became active", func(t *testing.T) {
+		// given an entitlement created after the requested evaluation time
+		// when its earlier value is requested
+		// then the customer has no access at that time
 		access, err := c.Entitlements.GetCustomerValue(t.Context(), customer.ID, entitlementID, v3sdk.GetCustomerEntitlementValueParams{
 			At: lo.ToPtr(time.Now().Add(-24 * time.Hour)),
 		})
@@ -124,16 +133,25 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 	})
 
 	t.Run("Should return 404 for an unknown entitlement", func(t *testing.T) {
+		// given an entitlement ID that does not exist
+		// when the customer requests its value
+		// then the endpoint reports not found
 		_, err := c.Entitlements.GetCustomerValue(t.Context(), customer.ID, ulid.Make().String(), v3sdk.GetCustomerEntitlementValueParams{})
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
 	t.Run("Should return 404 for an unknown customer", func(t *testing.T) {
+		// given a customer ID that does not exist
+		// when it requests a known entitlement value
+		// then the endpoint reports not found
 		_, err := c.Entitlements.GetCustomerValue(t.Context(), ulid.Make().String(), entitlementID, v3sdk.GetCustomerEntitlementValueParams{})
 		requireProblem(t, err, http.StatusNotFound)
 	})
 
 	t.Run("Should return 404 for another customer's entitlement", func(t *testing.T) {
+		// given another customer that does not own this entitlement
+		// when it requests the entitlement value by ID
+		// then the endpoint conceals the other customer's resource
 		other, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 			Key:  uniqueKey("ent_value_other"),
 			Name: "Other Customer",
@@ -149,6 +167,9 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 	})
 
 	t.Run("Should return 409 for a deleted customer", func(t *testing.T) {
+		// given a customer that is subsequently deleted
+		// when its entitlement value is requested
+		// then the endpoint reports the customer's conflicting state
 		deleted, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 			Key:  uniqueKey("ent_value_deleted"),
 			Name: "Deleted Customer",
@@ -168,6 +189,8 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 
 	t.Run("Should return 404 for a deleted entitlement at any time", func(t *testing.T) {
 		// given a standalone boolean entitlement, as subscription-managed ones cannot be deleted
+		// when it is deleted after activation
+		// then its ID is not found even at a time before deletion
 		featureKey := uniqueKey("ent_value_del")
 		deletedFeature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:  featureKey,
@@ -189,7 +212,6 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 		created, err := createResp.JSON201.AsEntitlementBooleanV2()
 		require.NoError(t, err)
 
-		// when the entitlement gets deleted after it became active
 		beforeDeletion := time.Now()
 		require.True(t, beforeDeletion.After(created.ActiveFrom), "entitlement must be active before the deletion")
 
@@ -197,7 +219,6 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, deleteResp.StatusCode(), "unexpected response body: %s", deleteResp.Body)
 
-		// then it is not found, even at a time before the deletion
 		_, err = c.Entitlements.GetCustomerValue(t.Context(), customer.ID, created.Id, v3sdk.GetCustomerEntitlementValueParams{
 			At: lo.ToPtr(beforeDeletion),
 		})

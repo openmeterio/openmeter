@@ -239,6 +239,9 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 	})
 
 	t.Run("Get by ID should return the metered entitlement by ID", func(t *testing.T) {
+		// given a metered entitlement with recorded usage
+		// when its current value is requested by ID
+		// then the result includes its feature and balance
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: meteredEnt.ID,
@@ -254,7 +257,9 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 	})
 
 	t.Run("Get by ID should evaluate the balance at the requested time", func(t *testing.T) {
-		// when evaluated before the usage event was recorded
+		// given a usage event recorded after the requested evaluation time
+		// when the entitlement is evaluated at that earlier time
+		// then the balance is untouched
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: meteredEnt.ID,
@@ -262,7 +267,6 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// then the balance is untouched
 		value, ok := access.Value.(*meteredentitlement.MeteredEntitlementValue)
 		require.True(t, ok, "expected metered value, got %T", access.Value)
 		require.Equal(t, 10.0, value.Balance)
@@ -270,6 +274,9 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 	})
 
 	t.Run("Get by ID should return no access before the entitlement became active", func(t *testing.T) {
+		// given a metered entitlement that becomes active after the requested time
+		// when its earlier value is requested by ID
+		// then access is denied while the metered type is retained
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: meteredEnt.ID,
@@ -282,6 +289,9 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 	})
 
 	t.Run("Get by ID should report an unknown entitlement ID as not found", func(t *testing.T) {
+		// given an entitlement ID that does not exist
+		// when its value is requested by ID
+		// then the lookup reports not found
 		_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2",
@@ -292,6 +302,8 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 
 	t.Run("Get by ID should hide another customer's entitlement", func(t *testing.T) {
 		// given another customer with its own boolean entitlement
+		// when the first customer requests that entitlement by ID
+		// then the response conceals the other customer's entitlement
 		other := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
 		otherEnt, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
 			Namespace:        namespace,
@@ -301,7 +313,6 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 		}, nil)
 		require.NoError(t, err)
 
-		// then it cannot be read through the first customer's scope
 		_, err = conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID:    customerID,
 			EntitlementID: otherEnt.ID,
@@ -312,11 +323,12 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 
 	t.Run("Get by ID should report a deleted entitlement as not found at any time", func(t *testing.T) {
 		// given the boolean entitlement gets deleted and time moves past the deletion
+		// when its value is requested before deletion or at the current time
+		// then the ID lookup reports not found at both times
 		beforeDeletion := clock.Now().Add(-time.Second)
 		require.NoError(t, conn.DeleteEntitlement(t.Context(), namespace, boolEnt.ID, clock.Now()))
 		clock.SetTime(clock.Now().Add(time.Minute))
 
-		// then it is not found, even at a time before the deletion
 		for name, at := range map[string]time.Time{"before deletion": beforeDeletion, "now": clock.Now()} {
 			_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 				CustomerID:    customerID,
@@ -329,11 +341,12 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 
 	t.Run("Get by feature key should return no access for a deleted metered entitlement before its deletion", func(t *testing.T) {
 		// given the metered entitlement gets deleted and time moves past the deletion
+		// when its feature is checked at a time before deletion
+		// then the unavailable credit engine value denies access while retaining the type
 		beforeDeletion := clock.Now().Add(-time.Second)
 		require.NoError(t, conn.DeleteEntitlement(t.Context(), namespace, meteredEnt.ID, clock.Now()))
 		clock.SetTime(clock.Now().Add(time.Minute))
 
-		// then the credit engine cannot evaluate it, which reads as no access
 		access, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: meteredFeature.Key,
@@ -347,10 +360,11 @@ func TestCustomerEntitlementAccessAPI(t *testing.T) {
 
 	t.Run("Get and List should reject a deleted customer", func(t *testing.T) {
 		// given the customer gets deleted and time moves past the deletion
+		// when its access is queried by feature, list, or entitlement ID
+		// then every facade operation conflicts with the deleted state
 		require.NoError(t, deps.customerService.DeleteCustomer(t.Context(), customerID))
 		clock.SetTime(clock.Now().Add(time.Minute))
 
-		// then both facade operations conflict with the deleted state
 		_, err := conn.GetCustomerEntitlementAccess(t.Context(), entitlement.GetCustomerEntitlementAccessInput{
 			CustomerID: customerID,
 			FeatureKey: boolFeature.Key,
