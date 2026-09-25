@@ -16,6 +16,29 @@ type EntitlementsService struct {
 	client *Client
 }
 
+type GetCustomerEntitlementValueByFeatureKeyParams struct {
+	Expand []EntitlementAccessExpand
+	At     *time.Time
+}
+
+func (p GetCustomerEntitlementValueByFeatureKeyParams) values() url.Values {
+	q := url.Values{}
+
+	if len(p.Expand) > 0 {
+		expandValues := make([]string, 0, len(p.Expand))
+		for _, value := range p.Expand {
+			expandValues = append(expandValues, string(value))
+		}
+		q.Set("expand", strings.Join(expandValues, ","))
+	}
+
+	if p.At != nil {
+		q.Set("at", (*p.At).Format(time.RFC3339Nano))
+	}
+
+	return q
+}
+
 type ListEntitlementsFilter struct {
 	// Filter entitlements by feature ID.
 	FeatureID *StringExactFilter
@@ -117,6 +140,36 @@ func (s *EntitlementsService) GetCustomerAccess(ctx context.Context, customerID 
 	}
 
 	var out EntitlementAccessCheckResult
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Get the customer's entitlement value for a feature at a point in time. Without
+// an active entitlement, the result denies access and omits the type.
+func (s *EntitlementsService) GetCustomerValueByFeatureKey(ctx context.Context, customerID string, featureKey string, params GetCustomerEntitlementValueByFeatureKeyParams) (*EntitlementFeatureValueResult, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if featureKey == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "featureKey", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "featureKey", featureKey)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out EntitlementFeatureValueResult
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

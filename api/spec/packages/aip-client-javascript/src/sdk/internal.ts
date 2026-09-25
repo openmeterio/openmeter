@@ -19,6 +19,7 @@ import {
 } from '../funcs/customers.js'
 import {
   getCustomerEntitlementAccess,
+  getCustomerEntitlementValueByFeatureKey,
   listEntitlements,
   getEntitlement,
   getCustomerEntitlementValue,
@@ -94,6 +95,8 @@ import type {
 import type {
   GetCustomerEntitlementAccessRequest,
   GetCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementValueByFeatureKeyRequest,
+  GetCustomerEntitlementValueByFeatureKeyResponse,
   ListEntitlementsRequest,
   ListEntitlementsResponse,
   GetEntitlementRequest,
@@ -635,6 +638,27 @@ export class InternalEntitlements {
   ): Promise<GetCustomerEntitlementAccessResponse> {
     return unwrap(
       await getCustomerEntitlementAccess(this._client, request, options),
+    )
+  }
+
+  /**
+   * Get customer entitlement value by feature key
+   *
+   * Get the customer's entitlement value for a feature at a point in time. Without
+   * an active entitlement, the result denies access and omits the type.
+   *
+   * GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value
+   */
+  async getCustomerValueByFeatureKey(
+    request: GetCustomerEntitlementValueByFeatureKeyRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementValueByFeatureKeyResponse> {
+    return unwrap(
+      await getCustomerEntitlementValueByFeatureKey(
+        this._client,
+        request,
+        options,
+      ),
     )
   }
 

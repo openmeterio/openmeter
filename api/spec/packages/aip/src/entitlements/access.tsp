@@ -16,7 +16,7 @@ model EntitlementValueResult {
   type: EntitlementType;
 
   /**
-   * The feature key of the entitlement.
+   * The feature key being evaluated.
    */
   @example("available_models")
   @visibility(Lifecycle.Read)
@@ -52,6 +52,24 @@ model EntitlementValueResult {
 @friendlyName("BillingEntitlementAccessCheckResult")
 model EntitlementAccessCheckResult {
   ...PickProperties<EntitlementValueResult, "has_access" | "config">;
+
+  /**
+   * The type of the entitlement.
+   *
+   * If not provided, the feature has no entitlement defined (has access is always
+   * false in this case)
+   */
+  @visibility(Lifecycle.Read)
+  type?: EntitlementType;
+}
+
+/**
+ * Entitlement value looked up by feature key. A missing entitlement has no type
+ * and does not grant access.
+ */
+@friendlyName("BillingEntitlementFeatureValueResult")
+model EntitlementFeatureValueResult {
+  ...OmitProperties<EntitlementValueResult, "type">;
 
   /**
    * The type of the entitlement.

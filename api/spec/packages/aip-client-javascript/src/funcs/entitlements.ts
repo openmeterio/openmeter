@@ -17,6 +17,8 @@ import type {
   ListCustomerEntitlementAccessResponse,
   GetCustomerEntitlementAccessRequest,
   GetCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementValueByFeatureKeyRequest,
+  GetCustomerEntitlementValueByFeatureKeyResponse,
   ListEntitlementsRequest,
   ListEntitlementsResponse,
   GetEntitlementRequest,
@@ -117,6 +119,79 @@ export function getCustomerEntitlementAccess(
           assertValid(schemas.getCustomerEntitlementAccessResponseWire, data)
         }
         return fromWire(data, schemas.getCustomerEntitlementAccessResponse)
+      })
+  })
+}
+
+/**
+ * Get customer entitlement value by feature key
+ *
+ * Get the customer's entitlement value for a feature at a point in time. Without
+ * an active entitlement, the result denies access and omits the type.
+ *
+ * GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value
+ */
+export function getCustomerEntitlementValueByFeatureKey(
+  client: Client,
+  req: GetCustomerEntitlementValueByFeatureKeyRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomerEntitlementValueByFeatureKeyResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+      featureKey: req.featureKey,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getCustomerEntitlementValueByFeatureKeyPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.getCustomerEntitlementValueByFeatureKeyPathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/customers/${(() => {
+      if (pathParams.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(pathParams.customerId))
+    })()}/entitlement-access/features/${(() => {
+      if (pathParams.featureKey === undefined) {
+        throw new Error('missing path parameter: featureKey')
+      }
+      return encodeURIComponent(String(pathParams.featureKey))
+    })()}/value`
+    const query = toWire(
+      {
+        expand: req.expand,
+        at: req.at,
+      },
+      schemas.getCustomerEntitlementValueByFeatureKeyQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(
+        schemas.getCustomerEntitlementValueByFeatureKeyQueryParamsWire,
+        query,
+      )
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(
+            schemas.getCustomerEntitlementValueByFeatureKeyResponseWire,
+            data,
+          )
+        }
+        return fromWire(
+          data,
+          schemas.getCustomerEntitlementValueByFeatureKeyResponse,
+        )
       })
   })
 }

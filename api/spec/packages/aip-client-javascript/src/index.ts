@@ -249,6 +249,7 @@ export type {
   ListCreditTransactionsParamsFilter,
   CurrencyAmount,
   EntitlementValueResult,
+  EntitlementFeatureValueResult,
   PriceTier,
   ChargeTotals,
   FeatureLlmUnitCost,

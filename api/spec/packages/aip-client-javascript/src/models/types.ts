@@ -2740,7 +2740,7 @@ export interface CurrencyAmount {
 export interface EntitlementValueResult {
   /** The type of the entitlement. */
   type: 'metered' | 'static' | 'boolean'
-  /** The feature key of the entitlement. */
+  /** The feature key being evaluated. */
   featureKey: string
   /**
    * Whether the customer has access to the feature. Always true for `boolean` and
@@ -2757,6 +2757,37 @@ export interface EntitlementValueResult {
    * at the evaluation time. Requires the `value` expand.
    */
   value?: EntitlementAccessValue
+}
+
+/**
+ * Entitlement value looked up by feature key. A missing entitlement has no type
+ * and does not grant access.
+ */
+export interface EntitlementFeatureValueResult {
+  /** The feature key being evaluated. */
+  featureKey: string
+  /**
+   * Whether the customer has access to the feature. Always true for `boolean` and
+   * `static` entitlements. Depends on balance for `metered` entitlements.
+   */
+  hasAccess: boolean
+  /**
+   * Only available for static entitlements. Config is the JSON parsable
+   * configuration of the entitlement. Useful to describe per customer configuration.
+   */
+  config?: string
+  /**
+   * Only available for metered entitlements. The balance details of the entitlement
+   * at the evaluation time. Requires the `value` expand.
+   */
+  value?: EntitlementAccessValue
+  /**
+   * The type of the entitlement.
+   *
+   * If not provided, the feature has no entitlement defined (has access is always
+   * false in this case)
+   */
+  type?: 'metered' | 'static' | 'boolean'
 }
 
 /**

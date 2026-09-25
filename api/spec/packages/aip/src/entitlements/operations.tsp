@@ -58,6 +58,42 @@ interface CustomerEntitlementsOperations {
     | Shared.GetResponse<EntitlementAccessCheckResult>
     | Common.NotFound
     | Common.ErrorResponses;
+
+  /**
+   * Get the customer's entitlement value for a feature at a point in time. Without
+   * an active entitlement, the result denies access and omits the type.
+   */
+  @get
+  @route("/features/{featureKey}/value")
+  @operationId("get-customer-entitlement-value-by-feature-key")
+  @summary("Get customer entitlement value by feature key")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.InternalExtension, true)
+  getValueByFeatureKey(
+    @path customerId: Shared.ULID,
+    @path featureKey: Shared.ResourceKey,
+
+    /**
+     * Expand computed fields.
+     *
+     * Supported values are:
+     *
+     * - `value`: Expand the balance details of a metered entitlement; it sets the
+     *   `value` field.
+     */
+    @query(#{ explode: false })
+    expand?: EntitlementAccessExpand[],
+
+    /**
+     * The point in time to evaluate the entitlement at. Defaults to the current time.
+     */
+    @query
+    at?: Shared.DateTime,
+  ):
+    | Shared.GetResponse<EntitlementFeatureValueResult>
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 /**

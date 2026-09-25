@@ -6,6 +6,7 @@ import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   Entitlement,
   EntitlementAccessCheckResult,
+  EntitlementFeatureValueResult,
   EntitlementPagePaginatedResponse,
   EntitlementValueResult,
   ListCustomerEntitlementAccessResponseData,
@@ -24,6 +25,29 @@ export type GetCustomerEntitlementAccessRequest = {
   featureKey: string
 }
 export type GetCustomerEntitlementAccessResponse = EntitlementAccessCheckResult
+
+export interface GetCustomerEntitlementValueByFeatureKeyQuery {
+  /**
+   * Expand computed fields.
+   *
+   * Supported values are:
+   *
+   * - `value`: Expand the balance details of a metered entitlement; it sets the
+   * `value` field.
+   */
+  expand?: 'value'[]
+  /** The point in time to evaluate the entitlement at. Defaults to the current time. */
+  at?: Date
+}
+
+export type GetCustomerEntitlementValueByFeatureKeyRequest = AcceptDateStrings<
+  GetCustomerEntitlementValueByFeatureKeyQuery & {
+    customerId: string
+    featureKey: string
+  }
+>
+export type GetCustomerEntitlementValueByFeatureKeyResponse =
+  EntitlementFeatureValueResult
 
 export interface ListEntitlementsQuery {
   /** Determines which page of the collection to retrieve. */

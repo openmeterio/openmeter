@@ -56,11 +56,32 @@ type EntitlementAccessValue struct {
 	GrantBalances map[string]Numeric `json:"grant_balances"`
 }
 
+// Entitlement value looked up by feature key. A missing entitlement has no type
+// and does not grant access.
+type EntitlementFeatureValueResult struct {
+	// The feature key being evaluated.
+	FeatureKey string `json:"feature_key"`
+	// Whether the customer has access to the feature. Always true for `boolean` and
+	// `static` entitlements. Depends on balance for `metered` entitlements.
+	HasAccess bool `json:"has_access"`
+	// Only available for static entitlements. Config is the JSON parsable
+	// configuration of the entitlement. Useful to describe per customer configuration.
+	Config *string `json:"config,omitempty"`
+	// Only available for metered entitlements. The balance details of the entitlement
+	// at the evaluation time. Requires the `value` expand.
+	Value *EntitlementAccessValue `json:"value,omitempty"`
+	// The type of the entitlement.
+	//
+	// If not provided, the feature has no entitlement defined (has access is always
+	// false in this case)
+	Type *EntitlementType `json:"type,omitempty"`
+}
+
 // Entitlement value result.
 type EntitlementValueResult struct {
 	// The type of the entitlement.
 	Type EntitlementType `json:"type"`
-	// The feature key of the entitlement.
+	// The feature key being evaluated.
 	FeatureKey string `json:"feature_key"`
 	// Whether the customer has access to the feature. Always true for `boolean` and
 	// `static` entitlements. Depends on balance for `metered` entitlements.

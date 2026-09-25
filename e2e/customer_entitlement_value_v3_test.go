@@ -15,10 +15,6 @@ import (
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
-// TestV3GetCustomerEntitlementValue covers GET
-// /customers/{customerId}/entitlements/{entitlementId}/value. The entitlement is
-// materialized through a v3 plan subscription and its ID is read back through the
-// v1 entitlement listing, as v3 has no entitlement listing yet.
 func TestV3GetCustomerEntitlementValue(t *testing.T) {
 	c := newV3Client(t)
 	v1 := initClient(t)
@@ -115,6 +111,58 @@ func TestV3GetCustomerEntitlementValue(t *testing.T) {
 		assert.Equal(t, v3sdk.Numeric("0"), access.Value.Usage)
 		assert.Equal(t, v3sdk.Numeric("0"), access.Value.Overage)
 		assert.Len(t, access.Value.GrantBalances, 1)
+	})
+
+	t.Run("Should return the metered value by feature key", func(t *testing.T) {
+		// given a subscribed customer with a metered entitlement
+		// when its value is requested by feature key with expansion
+		// then the same entitlement type and balance are returned
+		access, err := c.Entitlements.GetCustomerValueByFeatureKey(t.Context(), customer.ID, feature.Key, v3sdk.GetCustomerEntitlementValueByFeatureKeyParams{
+			Expand: []v3sdk.EntitlementAccessExpand{v3sdk.EntitlementAccessExpandValue},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, access)
+		require.NotNil(t, access.Value)
+
+		assert.Equal(t, feature.Key, access.FeatureKey)
+		assert.Equal(t, lo.ToPtr(v3sdk.EntitlementTypeMetered), access.Type)
+		assert.True(t, access.HasAccess)
+
+		balance, err := strconv.ParseFloat(access.Value.Balance, 64)
+		require.NoError(t, err)
+		assert.Equal(t, float64(limit), balance)
+	})
+
+	t.Run("Should return no access for a feature without an entitlement", func(t *testing.T) {
+		// given a feature key with no active entitlement
+		// when its value is requested
+		// then the response denies access without a type or value
+		featureKey := uniqueKey("ent_value_missing")
+		access, err := c.Entitlements.GetCustomerValueByFeatureKey(t.Context(), customer.ID, featureKey, v3sdk.GetCustomerEntitlementValueByFeatureKeyParams{
+			Expand: []v3sdk.EntitlementAccessExpand{v3sdk.EntitlementAccessExpandValue},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, access)
+
+		assert.Equal(t, featureKey, access.FeatureKey)
+		assert.False(t, access.HasAccess)
+		assert.Nil(t, access.Type)
+		assert.Nil(t, access.Value)
+	})
+
+	t.Run("Should return no access by feature key before activation", func(t *testing.T) {
+		// given an entitlement that was not active yesterday
+		// when its earlier value is requested by feature key
+		// then no entitlement is selected at that time
+		access, err := c.Entitlements.GetCustomerValueByFeatureKey(t.Context(), customer.ID, feature.Key, v3sdk.GetCustomerEntitlementValueByFeatureKeyParams{
+			At: lo.ToPtr(time.Now().Add(-24 * time.Hour)),
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, access)
+
+		assert.Equal(t, feature.Key, access.FeatureKey)
+		assert.False(t, access.HasAccess)
+		assert.Nil(t, access.Type)
 	})
 
 	t.Run("Should return no access when evaluated before the entitlement became active", func(t *testing.T) {
