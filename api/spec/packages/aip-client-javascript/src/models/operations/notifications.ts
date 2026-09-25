@@ -73,19 +73,23 @@ export interface ListNotificationEventsQuery {
    * Sort notification events returned in the response. Supported sort attributes
    * are:
    *
-   * - `created_at` (default, descending)
+   * - `created_at` (default)
    * - `id`
    * - `type`
    *
    * The `asc` suffix is optional as the default sort order is ascending. The `desc`
-   * suffix is used to specify a descending order.
+   * suffix is used to specify a descending order. Without a `sort` parameter, events
+   * are returned newest first.
    */
   sort?: SortQueryInput
   /**
    * Filter notification events returned in the response.
    *
-   * To filter notification events by type add the following query param:
-   * filter[type]=invoice.created
+   * Examples:
+   *
+   * - `filter[type]=invoice.created`
+   * - `filter[delivery_status]=failed`
+   * - `filter[subject_key]=customer-1`
    */
   filter?: ListNotificationEventsParamsFilter
 }

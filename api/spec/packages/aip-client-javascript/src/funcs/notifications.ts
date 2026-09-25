@@ -305,11 +305,11 @@ export function getNotificationEvent(
 /**
  * Resend notification event
  *
- * Re-send a notification event to the channels of the rule that generated it.
+ * Resend a notification event to the channels of the rule that generated it.
  *
- * Delivery is asynchronous: the request marks the matching delivery statuses for
- * re-delivery and returns immediately. Statuses that are still pending or already
- * being re-sent are left untouched.
+ * Delivery is asynchronous: the request marks the selected channels for redelivery
+ * and returns immediately. Channels whose delivery is still pending or already
+ * being resent are left untouched.
  *
  * POST /openmeter/notification/events/{notificationEventId}/resend
  */

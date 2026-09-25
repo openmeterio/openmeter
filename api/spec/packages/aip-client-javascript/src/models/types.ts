@@ -453,38 +453,34 @@ export interface EntitlementAccessQueryRequestFeatures {
 
 /**
  * The response the recipient returned for a delivery attempt. For webhook channels
- * this is the HTTP response; fields that the transport could not observe are
- * omitted.
+ * this is the HTTP response.
  */
 export interface NotificationEventDeliveryAttemptResponse {
   /**
-   * The HTTP status code returned by the recipient, if a response was received at
-   * all.
+   * The HTTP status code returned by the recipient. Absent when no response was
+   * received.
    */
   statusCode?: number
-  /**
-   * The response body returned by the recipient. Empty when the recipient returned
-   * no body or the request never completed.
-   */
+  /** The response body returned by the recipient. Empty when no body was received. */
   body: string
   /** How long the delivery attempt took, in milliseconds. */
   durationMs: bigint
-  /** The URL the event was delivered to, for webhook channels. */
+  /** The URL the event was delivered to. Only set for webhook channels. */
   url?: string
 }
 
 /** The entitlement balance at the time the event was generated. */
 export interface NotificationEventEntitlementValue {
   /**
-   * Whether the subject had access to the feature. Balance never turns negative, so
-   * access can be lost while the balance is still reported as zero.
+   * Whether the subject had access to the feature. The balance never goes below
+   * zero, so access can be lost while the balance is still reported as zero.
    */
   hasAccess: boolean
   /** The remaining balance of the entitlement. */
   balance?: number
   /** The total feature usage in the current usage period. */
   usage?: number
-  /** The usage that was not covered by any grant. */
+  /** The usage not covered by any grant. */
   overage?: number
 }
 
@@ -1147,7 +1143,7 @@ export interface UpdateResourceReference {
   id: string
 }
 
-/** A reference to the feature an entitlement notification event refers to. */
+/** A reference to the feature of an entitlement notification event. */
 export interface NotificationEventFeatureReference {
   /** The unique identifier of the feature. */
   id: string
@@ -1155,20 +1151,20 @@ export interface NotificationEventFeatureReference {
   key: string
 }
 
-/** A reference to the invoice an invoice notification event refers to. */
+/** A reference to the invoice of an invoice notification event. */
 export interface NotificationEventInvoiceReference {
   /** The unique identifier of the invoice. */
   id: string
-  /** The human readable invoice number. */
+  /** The human-readable invoice number. */
   number: string
 }
 
-/** Request body for re-sending a notification event. */
+/** Request body for resending a notification event. */
 export interface ResendNotificationEventRequest {
   /**
-   * The channels to re-send the event to. When omitted or empty the event is re-sent
-   * to every channel of the generating rule that is eligible for a resend. Channels
-   * that are unknown to the rule or disabled are rejected.
+   * The channels to resend the event to. When omitted or empty, the event is resent
+   * to every enabled channel of the rule. Channels not targeted by the rule or
+   * disabled are rejected.
    */
   channels?: string[]
 }
@@ -2660,11 +2656,7 @@ export interface UpdateNotificationChannelRequest {
   signingSecret?: string
 }
 
-/**
- * A reference to the notification rule that generated an event. Notification rules
- * are not yet exposed as a v3 resource, so events carry an inline reference rather
- * than a link to a retrievable resource.
- */
+/** A reference to the notification rule that generated an event. */
 export interface NotificationRuleReference {
   /** The unique identifier of the rule. */
   id: string
@@ -2674,13 +2666,13 @@ export interface NotificationRuleReference {
     | 'entitlements.reset'
     | 'invoice.created'
     | 'invoice.updated'
-  /** The user provided name of the rule. */
+  /** The user-provided name of the rule. */
   name: string
 }
 
-/** A single delivery attempt towards a channel. */
+/** A single delivery attempt to a channel. */
 export interface NotificationEventDeliveryAttempt {
-  /** The state the delivery reached with this attempt. */
+  /** The delivery state reached by this attempt. */
   state: 'success' | 'failed' | 'sending' | 'pending' | 'resending'
   /** The response returned by the recipient. */
   response: NotificationEventDeliveryAttemptResponse
@@ -3330,29 +3322,23 @@ export interface UpdateTaxCodeConfig {
 }
 
 /**
- * The entities an entitlement notification event refers to. Each is identified
- * rather than embedded; retrieve the full resources through their own endpoints.
+ * The entitlement, feature, and subject an entitlement notification event refers
+ * to.
  */
 export interface NotificationEventEntitlementData {
-  /** The identifier of the entitlement whose balance triggered the event. */
+  /** The identifier of the entitlement that triggered the event. */
   entitlementId: string
   /** The feature the entitlement grants access to. */
   feature: NotificationEventFeatureReference
   /** The key of the subject the entitlement belongs to. */
   subjectKey: string
-  /**
-   * The identifier of the customer the subject is attributed to, when the subject is
-   * attributed to one.
-   */
+  /** The identifier of the customer the subject belongs to, if any. */
   customerId?: string
   /** The entitlement balance at the time the event was generated. */
   value: NotificationEventEntitlementValue
 }
 
-/**
- * The invoice an invoice notification event refers to. The invoice itself is
- * identified rather than embedded; retrieve it through the invoice endpoints.
- */
+/** The invoice an invoice notification event refers to. */
 export interface NotificationEventInvoiceData {
   /** The invoice the event was generated for. */
   invoice: NotificationEventInvoiceReference
@@ -3362,10 +3348,7 @@ export interface NotificationEventInvoiceData {
   currency: string
   /** The status of the invoice at the time the event was generated. */
   status: string
-  /**
-   * The total value of the invoice, including taxes, at the time the event was
-   * generated.
-   */
+  /** The invoice total, including taxes, at the time the event was generated. */
   total: string
 }
 
@@ -3472,39 +3455,33 @@ export interface ListNotificationEventsParamsFilter {
   createdAt?: DateTimeFieldFilter
   ruleId?: UlidFieldFilter
   /**
-   * Filter by the channels the generating rule targets. This is an existential
-   * match: `filter[channel_id][eq]=<id>` returns events whose rule targets that
-   * channel, not events that were delivered only to it. Only `eq` and `oeq` are
-   * supported; negating an existential match would return events that merely have
-   * some other channel as well, so `neq` is rejected.
+   * Filter by a channel of the generating rule. Matches events whose rule targets at
+   * least one of the given channels. Only `eq` and `oeq` are supported.
    */
   channelId?: UlidFieldFilter
   /**
-   * Filter by delivery state. This is an existential match:
-   * `filter[delivery_status][eq]=failed` returns events where delivery to at least
-   * one channel failed, not events where every delivery failed. Only `eq` and `oeq`
-   * are supported; negating an existential match would return events that merely
-   * have some other state as well, so `neq` is rejected.
+   * Filter by delivery state. Matches events where delivery to at least one channel
+   * is in one of the given states. Only `eq` and `oeq` are supported.
    */
   deliveryStatus?: StringFieldFilterExact
   /**
    * Filter by the key of the subject the event refers to. Events without a subject
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   subjectKey?: StringFieldFilterExact
   /**
    * Filter by the id of the subject the event refers to. Events without a subject
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   subjectId?: UlidFieldFilter
   /**
    * Filter by the key of the feature the event refers to. Events without a feature
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   featureKey?: StringFieldFilterExact
   /**
    * Filter by the id of the feature the event refers to. Events without a feature
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   featureId?: UlidFieldFilter
 }
@@ -4436,28 +4413,21 @@ export interface NotificationChannelPagePaginatedResponse {
 }
 
 /**
- * The delivery status of a notification event towards one of the channels the
- * generating rule targets. An event has one entry per channel.
+ * The delivery status of a notification event for one channel of the generating
+ * rule.
  */
 export interface NotificationEventDeliveryStatus {
-  /**
-   * The identifier of the channel this status belongs to. Retrieve the channel
-   * itself through the notification channel endpoints.
-   */
+  /** The identifier of the channel this delivery status belongs to. */
   channelId: string
   /** The current delivery state. */
   state: 'success' | 'failed' | 'sending' | 'pending' | 'resending'
-  /**
-   * The reason for the last state change. Empty when the last change needs no
-   * explanation, for example a successful delivery.
-   */
+  /** The reason for the last state change. Empty for successful deliveries. */
   reason: string
   /** When the delivery state was last updated. */
   updatedAt: Date
   /**
    * When the next delivery attempt is scheduled. Absent when no further attempts
-   * will be made, either because delivery succeeded or because it failed
-   * permanently.
+   * will be made.
    */
   nextAttempt?: Date
   /** The delivery attempts made so far, most recent first. */
@@ -4466,16 +4436,13 @@ export interface NotificationEventDeliveryStatus {
 
 /** The entities and threshold a balance threshold event refers to. */
 export interface NotificationEventBalanceThresholdData {
-  /** The identifier of the entitlement whose balance triggered the event. */
+  /** The identifier of the entitlement that triggered the event. */
   entitlementId: string
   /** The feature the entitlement grants access to. */
   feature: NotificationEventFeatureReference
   /** The key of the subject the entitlement belongs to. */
   subjectKey: string
-  /**
-   * The identifier of the customer the subject is attributed to, when the subject is
-   * attributed to one.
-   */
+  /** The identifier of the customer the subject belongs to, if any. */
   customerId?: string
   /** The entitlement balance at the time the event was generated. */
   value: NotificationEventEntitlementValue
@@ -6171,9 +6138,9 @@ export interface ProfileApps {
 }
 
 /**
- * A notification event records that a notification rule fired, and tracks the
- * delivery of the resulting payload to each of the rule's channels. Events are
- * created by the system and cannot be modified.
+ * A notification event records that a notification rule fired and tracks the
+ * delivery of its payload to each channel of the rule. Events are created by the
+ * system and cannot be modified.
  */
 export interface NotificationEvent {
   /** The unique identifier of the event. */
@@ -6188,10 +6155,7 @@ export interface NotificationEvent {
   createdAt: Date
   /** The rule that generated the event. */
   rule: NotificationRuleReference
-  /**
-   * The delivery status of the event, one entry per channel the generating rule
-   * targets.
-   */
+  /** The delivery status of the event, one entry per channel of the rule. */
   deliveryStatus: NotificationEventDeliveryStatus[]
   /** The payload delivered to the channels. */
   payload: NotificationEventPayload
@@ -7764,10 +7728,7 @@ export type App = AppStripe | AppSandbox | AppExternalInvoicing
 export type BillingInstallAppResponse =
   InstalledAppStripe | InstalledAppSandbox | InstalledAppExternalInvoicing
 
-/**
- * The payload delivered to the channels of the generating rule, discriminated by
- * the event type.
- */
+/** The payload delivered to the channels, discriminated by the event type. */
 export type NotificationEventPayload =
   | NotificationEventBalanceThresholdPayload
   | NotificationEventResetPayload

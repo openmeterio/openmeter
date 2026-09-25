@@ -152,44 +152,38 @@ model ListNotificationEventsParamsFilter {
   rule_id?: Common.ULIDFieldFilter;
 
   /**
-   * Filter by the channels the generating rule targets. This is an existential
-   * match: `filter[channel_id][eq]=<id>` returns events whose rule targets that
-   * channel, not events that were delivered only to it. Only `eq` and `oeq` are
-   * supported; negating an existential match would return events that merely have
-   * some other channel as well, so `neq` is rejected.
+   * Filter by a channel of the generating rule. Matches events whose rule targets at
+   * least one of the given channels. Only `eq` and `oeq` are supported.
    */
   channel_id?: Common.ULIDFieldFilter;
 
   /**
-   * Filter by delivery state. This is an existential match:
-   * `filter[delivery_status][eq]=failed` returns events where delivery to at least
-   * one channel failed, not events where every delivery failed. Only `eq` and `oeq`
-   * are supported; negating an existential match would return events that merely
-   * have some other state as well, so `neq` is rejected.
+   * Filter by delivery state. Matches events where delivery to at least one channel
+   * is in one of the given states. Only `eq` and `oeq` are supported.
    */
   delivery_status?: Common.StringFieldFilterExact;
 
   /**
    * Filter by the key of the subject the event refers to. Events without a subject
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   subject_key?: Common.StringFieldFilterExact;
 
   /**
    * Filter by the id of the subject the event refers to. Events without a subject
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   subject_id?: Common.ULIDFieldFilter;
 
   /**
    * Filter by the key of the feature the event refers to. Events without a feature
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   feature_key?: Common.StringFieldFilterExact;
 
   /**
    * Filter by the id of the feature the event refers to. Events without a feature
-   * are not matched by `neq`.
+   * never match, not even with `neq`.
    */
   feature_id?: Common.ULIDFieldFilter;
 }
@@ -211,12 +205,13 @@ interface NotificationEventOperations {
      * Sort notification events returned in the response. Supported sort attributes
      * are:
      *
-     * - `created_at` (default, descending)
+     * - `created_at` (default)
      * - `id`
      * - `type`
      *
      * The `asc` suffix is optional as the default sort order is ascending. The `desc`
-     * suffix is used to specify a descending order.
+     * suffix is used to specify a descending order. Without a `sort` parameter, events
+     * are returned newest first.
      */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
@@ -224,8 +219,11 @@ interface NotificationEventOperations {
     /**
      * Filter notification events returned in the response.
      *
-     * To filter notification events by type add the following query param:
-     * filter[type]=invoice.created
+     * Examples:
+     *
+     * - `filter[type]=invoice.created`
+     * - `filter[delivery_status]=failed`
+     * - `filter[subject_key]=customer-1`
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListNotificationEventsParamsFilter,
@@ -247,11 +245,11 @@ interface NotificationEventOperations {
     | Common.ErrorResponses;
 
   /**
-   * Re-send a notification event to the channels of the rule that generated it.
+   * Resend a notification event to the channels of the rule that generated it.
    *
-   * Delivery is asynchronous: the request marks the matching delivery statuses for
-   * re-delivery and returns immediately. Statuses that are still pending or already
-   * being re-sent are left untouched.
+   * Delivery is asynchronous: the request marks the selected channels for redelivery
+   * and returns immediately. Channels whose delivery is still pending or already
+   * being resent are left untouched.
    */
   @post
   @route("/{notificationEventId}/resend")
@@ -260,6 +258,7 @@ interface NotificationEventOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
   resend(
     @path notificationEventId: Shared.ULID,
 

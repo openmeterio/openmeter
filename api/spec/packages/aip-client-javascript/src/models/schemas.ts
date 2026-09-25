@@ -1333,15 +1333,12 @@ export const notificationEventType = z
   ])
 
   .describe(
-    'The type of a notification event. The event type determines which payload variant the event carries and which rule configuration produced it.',
+    'The type of a notification event. It determines which payload variant the event carries.',
   )
 
 export const notificationEventDeliveryState = z
   .enum(['success', 'failed', 'sending', 'pending', 'resending'])
-
-  .describe(
-    'The delivery state of a notification event towards a single channel.',
-  )
+  .describe('The delivery state of a notification event for a single channel.')
 
 export const notificationEventDeliveryAttemptResponse = z
   .object({
@@ -1353,13 +1350,13 @@ export const notificationEventDeliveryAttemptResponse = z
       .optional()
 
       .describe(
-        'The HTTP status code returned by the recipient, if a response was received at all.',
+        'The HTTP status code returned by the recipient. Absent when no response was received.',
       ),
     body: z
       .string()
 
       .describe(
-        'The response body returned by the recipient. Empty when the recipient returned no body or the request never completed.',
+        'The response body returned by the recipient. Empty when no body was received.',
       ),
     durationMs: z.coerce
       .bigint()
@@ -1369,11 +1366,14 @@ export const notificationEventDeliveryAttemptResponse = z
     url: z
       .string()
       .optional()
-      .describe('The URL the event was delivered to, for webhook channels.'),
+
+      .describe(
+        'The URL the event was delivered to. Only set for webhook channels.',
+      ),
   })
 
   .describe(
-    'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response; fields that the transport could not observe are omitted.',
+    'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response.',
   )
 
 export const notificationEventEntitlementValue = z
@@ -1382,7 +1382,7 @@ export const notificationEventEntitlementValue = z
       .boolean()
 
       .describe(
-        'Whether the subject had access to the feature. Balance never turns negative, so access can be lost while the balance is still reported as zero.',
+        'Whether the subject had access to the feature. The balance never goes below zero, so access can be lost while the balance is still reported as zero.',
       ),
     balance: z
       .number()
@@ -1395,16 +1395,13 @@ export const notificationEventEntitlementValue = z
     overage: z
       .number()
       .optional()
-      .describe('The usage that was not covered by any grant.'),
+      .describe('The usage not covered by any grant.'),
   })
   .describe('The entitlement balance at the time the event was generated.')
 
 export const notificationEventBalanceThresholdType = z
   .enum(['balance_value', 'usage_percentage', 'usage_value'])
-
-  .describe(
-    'The kind of threshold that a balance threshold rule triggers on. The legacy `NUMBER` and `PERCENT` values are normalized to `usage_value` and `usage_percentage` respectively, so events created before the rename report the current value.',
-  )
+  .describe('What a balance threshold is measured against.')
 
 export const queryFilterInteger = z
   .object({
@@ -2351,20 +2348,14 @@ export const notificationEventFeatureReference = z
     id: ulid,
     key: z.string().describe('The immutable key of the feature.'),
   })
-
-  .describe(
-    'A reference to the feature an entitlement notification event refers to.',
-  )
+  .describe('A reference to the feature of an entitlement notification event.')
 
 export const notificationEventInvoiceReference = z
   .object({
     id: ulid,
-    number: z.string().describe('The human readable invoice number.'),
+    number: z.string().describe('The human-readable invoice number.'),
   })
-
-  .describe(
-    'A reference to the invoice an invoice notification event refers to.',
-  )
+  .describe('A reference to the invoice of an invoice notification event.')
 
 export const resendNotificationEventRequest = z
   .object({
@@ -2373,10 +2364,10 @@ export const resendNotificationEventRequest = z
       .optional()
 
       .describe(
-        'The channels to re-send the event to. When omitted or empty the event is re-sent to every channel of the generating rule that is eligible for a resend. Channels that are unknown to the rule or disabled are rejected.',
+        'The channels to resend the event to. When omitted or empty, the event is resent to every enabled channel of the rule. Channels not targeted by the rule or disabled are rejected.',
       ),
   })
-  .describe('Request body for re-sending a notification event.')
+  .describe('Request body for resending a notification event.')
 
 export const billingCustomerReference = z
   .object({
@@ -3900,12 +3891,9 @@ export const notificationRuleReference = z
   .object({
     id: ulid,
     type: notificationEventType,
-    name: z.string().describe('The user provided name of the rule.'),
+    name: z.string().describe('The user-provided name of the rule.'),
   })
-
-  .describe(
-    'A reference to the notification rule that generated an event. Notification rules are not yet exposed as a v3 resource, so events carry an inline reference rather than a link to a retrievable resource.',
-  )
+  .describe('A reference to the notification rule that generated an event.')
 
 export const notificationEventDeliveryAttempt = z
   .object({
@@ -3913,7 +3901,7 @@ export const notificationEventDeliveryAttempt = z
     response: notificationEventDeliveryAttemptResponse,
     timestamp: dateTime,
   })
-  .describe('A single delivery attempt towards a channel.')
+  .describe('A single delivery attempt to a channel.')
 
 export const notificationEventBalanceThreshold = z
   .object({
@@ -4463,7 +4451,7 @@ export const notificationEventEntitlementData = z
   })
 
   .describe(
-    'The entities an entitlement notification event refers to. Each is identified rather than embedded; retrieve the full resources through their own endpoints.',
+    'The entitlement, feature, and subject an entitlement notification event refers to.',
   )
 
 export const notificationEventInvoiceData = z
@@ -4479,10 +4467,7 @@ export const notificationEventInvoiceData = z
       ),
     total: numeric,
   })
-
-  .describe(
-    'The invoice an invoice notification event refers to. The invoice itself is identified rather than embedded; retrieve it through the invoice endpoints.',
-  )
+  .describe('The invoice an invoice notification event refers to.')
 
 export const listEventsParamsFilter = z
   .object({
@@ -5432,7 +5417,7 @@ export const notificationEventDeliveryStatus = z
       .string()
 
       .describe(
-        'The reason for the last state change. Empty when the last change needs no explanation, for example a successful delivery.',
+        'The reason for the last state change. Empty for successful deliveries.',
       ),
     updatedAt: dateTime,
     nextAttempt: dateTime.optional(),
@@ -5442,7 +5427,7 @@ export const notificationEventDeliveryStatus = z
   })
 
   .describe(
-    'The delivery status of a notification event towards one of the channels the generating rule targets. An event has one entry per channel.',
+    'The delivery status of a notification event for one channel of the generating rule.',
   )
 
 export const notificationEventBalanceThresholdData = z
@@ -6666,7 +6651,7 @@ export const notificationEventPayload = z
   ])
 
   .describe(
-    'The payload delivered to the channels of the generating rule, discriminated by the event type.',
+    'The payload delivered to the channels, discriminated by the event type.',
   )
 
 export const rateCard = z
@@ -6845,13 +6830,13 @@ export const notificationEvent = z
       .array(notificationEventDeliveryStatus)
 
       .describe(
-        'The delivery status of the event, one entry per channel the generating rule targets.',
+        'The delivery status of the event, one entry per channel of the rule.',
       ),
     payload: notificationEventPayload,
   })
 
   .describe(
-    "A notification event records that a notification rule fired, and tracks the delivery of the resulting payload to each of the rule's channels. Events are created by the system and cannot be modified.",
+    'A notification event records that a notification rule fired and tracks the delivery of its payload to each channel of the rule. Events are created by the system and cannot be modified.',
   )
 
 export const subscriptionItem = z
@@ -10456,15 +10441,12 @@ export const notificationEventTypeWire = z
   ])
 
   .describe(
-    'The type of a notification event. The event type determines which payload variant the event carries and which rule configuration produced it.',
+    'The type of a notification event. It determines which payload variant the event carries.',
   )
 
 export const notificationEventDeliveryStateWire = z
   .enum(['success', 'failed', 'sending', 'pending', 'resending'])
-
-  .describe(
-    'The delivery state of a notification event towards a single channel.',
-  )
+  .describe('The delivery state of a notification event for a single channel.')
 
 export const notificationEventDeliveryAttemptResponseWire = z
   .strictObject({
@@ -10476,13 +10458,13 @@ export const notificationEventDeliveryAttemptResponseWire = z
       .optional()
 
       .describe(
-        'The HTTP status code returned by the recipient, if a response was received at all.',
+        'The HTTP status code returned by the recipient. Absent when no response was received.',
       ),
     body: z
       .string()
 
       .describe(
-        'The response body returned by the recipient. Empty when the recipient returned no body or the request never completed.',
+        'The response body returned by the recipient. Empty when no body was received.',
       ),
     duration_ms: z.coerce
       .bigint()
@@ -10492,11 +10474,14 @@ export const notificationEventDeliveryAttemptResponseWire = z
     url: z
       .string()
       .optional()
-      .describe('The URL the event was delivered to, for webhook channels.'),
+
+      .describe(
+        'The URL the event was delivered to. Only set for webhook channels.',
+      ),
   })
 
   .describe(
-    'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response; fields that the transport could not observe are omitted.',
+    'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response.',
   )
 
 export const notificationEventEntitlementValueWire = z
@@ -10505,7 +10490,7 @@ export const notificationEventEntitlementValueWire = z
       .boolean()
 
       .describe(
-        'Whether the subject had access to the feature. Balance never turns negative, so access can be lost while the balance is still reported as zero.',
+        'Whether the subject had access to the feature. The balance never goes below zero, so access can be lost while the balance is still reported as zero.',
       ),
     balance: z
       .number()
@@ -10518,16 +10503,13 @@ export const notificationEventEntitlementValueWire = z
     overage: z
       .number()
       .optional()
-      .describe('The usage that was not covered by any grant.'),
+      .describe('The usage not covered by any grant.'),
   })
   .describe('The entitlement balance at the time the event was generated.')
 
 export const notificationEventBalanceThresholdTypeWire = z
   .enum(['balance_value', 'usage_percentage', 'usage_value'])
-
-  .describe(
-    'The kind of threshold that a balance threshold rule triggers on. The legacy `NUMBER` and `PERCENT` values are normalized to `usage_value` and `usage_percentage` respectively, so events created before the rename report the current value.',
-  )
+  .describe('What a balance threshold is measured against.')
 
 export const queryFilterIntegerWire = z
   .strictObject({
@@ -11473,20 +11455,14 @@ export const notificationEventFeatureReferenceWire = z
     id: ulidWire,
     key: z.string().describe('The immutable key of the feature.'),
   })
-
-  .describe(
-    'A reference to the feature an entitlement notification event refers to.',
-  )
+  .describe('A reference to the feature of an entitlement notification event.')
 
 export const notificationEventInvoiceReferenceWire = z
   .strictObject({
     id: ulidWire,
-    number: z.string().describe('The human readable invoice number.'),
+    number: z.string().describe('The human-readable invoice number.'),
   })
-
-  .describe(
-    'A reference to the invoice an invoice notification event refers to.',
-  )
+  .describe('A reference to the invoice of an invoice notification event.')
 
 export const resendNotificationEventRequestWire = z
   .strictObject({
@@ -11495,10 +11471,10 @@ export const resendNotificationEventRequestWire = z
       .optional()
 
       .describe(
-        'The channels to re-send the event to. When omitted or empty the event is re-sent to every channel of the generating rule that is eligible for a resend. Channels that are unknown to the rule or disabled are rejected.',
+        'The channels to resend the event to. When omitted or empty, the event is resent to every enabled channel of the rule. Channels not targeted by the rule or disabled are rejected.',
       ),
   })
-  .describe('Request body for re-sending a notification event.')
+  .describe('Request body for resending a notification event.')
 
 export const billingCustomerReferenceWire = z
   .strictObject({
@@ -13004,12 +12980,9 @@ export const notificationRuleReferenceWire = z
   .strictObject({
     id: ulidWire,
     type: notificationEventTypeWire,
-    name: z.string().describe('The user provided name of the rule.'),
+    name: z.string().describe('The user-provided name of the rule.'),
   })
-
-  .describe(
-    'A reference to the notification rule that generated an event. Notification rules are not yet exposed as a v3 resource, so events carry an inline reference rather than a link to a retrievable resource.',
-  )
+  .describe('A reference to the notification rule that generated an event.')
 
 export const notificationEventDeliveryAttemptWire = z
   .strictObject({
@@ -13017,7 +12990,7 @@ export const notificationEventDeliveryAttemptWire = z
     response: notificationEventDeliveryAttemptResponseWire,
     timestamp: dateTimeWire,
   })
-  .describe('A single delivery attempt towards a channel.')
+  .describe('A single delivery attempt to a channel.')
 
 export const notificationEventBalanceThresholdWire = z
   .strictObject({
@@ -13567,7 +13540,7 @@ export const notificationEventEntitlementDataWire = z
   })
 
   .describe(
-    'The entities an entitlement notification event refers to. Each is identified rather than embedded; retrieve the full resources through their own endpoints.',
+    'The entitlement, feature, and subject an entitlement notification event refers to.',
   )
 
 export const notificationEventInvoiceDataWire = z
@@ -13583,10 +13556,7 @@ export const notificationEventInvoiceDataWire = z
       ),
     total: numericWire,
   })
-
-  .describe(
-    'The invoice an invoice notification event refers to. The invoice itself is identified rather than embedded; retrieve it through the invoice endpoints.',
-  )
+  .describe('The invoice an invoice notification event refers to.')
 
 export const listEventsParamsFilterWire = z
   .strictObject({
@@ -14535,7 +14505,7 @@ export const notificationEventDeliveryStatusWire = z
       .string()
 
       .describe(
-        'The reason for the last state change. Empty when the last change needs no explanation, for example a successful delivery.',
+        'The reason for the last state change. Empty for successful deliveries.',
       ),
     updated_at: dateTimeWire,
     next_attempt: dateTimeWire.optional(),
@@ -14545,7 +14515,7 @@ export const notificationEventDeliveryStatusWire = z
   })
 
   .describe(
-    'The delivery status of a notification event towards one of the channels the generating rule targets. An event has one entry per channel.',
+    'The delivery status of a notification event for one channel of the generating rule.',
   )
 
 export const notificationEventBalanceThresholdDataWire = z
@@ -15767,7 +15737,7 @@ export const notificationEventPayloadWire = z
   ])
 
   .describe(
-    'The payload delivered to the channels of the generating rule, discriminated by the event type.',
+    'The payload delivered to the channels, discriminated by the event type.',
   )
 
 export const rateCardWire = z
@@ -15946,13 +15916,13 @@ export const notificationEventWire = z
       .array(notificationEventDeliveryStatusWire)
 
       .describe(
-        'The delivery status of the event, one entry per channel the generating rule targets.',
+        'The delivery status of the event, one entry per channel of the rule.',
       ),
     payload: notificationEventPayloadWire,
   })
 
   .describe(
-    "A notification event records that a notification rule fired, and tracks the delivery of the resulting payload to each of the rule's channels. Events are created by the system and cannot be modified.",
+    'A notification event records that a notification rule fired and tracks the delivery of its payload to each channel of the rule. Events are created by the system and cannot be modified.',
   )
 
 export const subscriptionItemWire = z
@@ -18333,7 +18303,7 @@ export const listNotificationEventsQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      'Sort notification events returned in the response. Supported sort attributes are: - `created_at` (default, descending) - `id` - `type` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+      'Sort notification events returned in the response. Supported sort attributes are: - `created_at` (default) - `id` - `type` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. Without a `sort` parameter, events are returned newest first.',
     ),
   filter: listNotificationEventsParamsFilterWire.optional(),
 })

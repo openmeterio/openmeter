@@ -3386,12 +3386,13 @@ paths:
             Sort notification events returned in the response. Supported sort attributes
             are:
 
-            - `created_at` (default, descending)
+            - `created_at` (default)
             - `id`
             - `type`
 
             The `asc` suffix is optional as the default sort order is ascending. The `desc`
-            suffix is used to specify a descending order.
+            suffix is used to specify a descending order. Without a `sort` parameter, events
+            are returned newest first.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false
@@ -3402,8 +3403,11 @@ paths:
           description: |-
             Filter notification events returned in the response.
 
-            To filter notification events by type add the following query param:
-            filter[type]=invoice.created
+            Examples:
+
+            - `filter[type]=invoice.created`
+            - `filter[delivery_status]=failed`
+            - `filter[subject_key]=customer-1`
           schema:
             $ref: '#/components/schemas/ListNotificationEventsParamsFilter'
           style: deepObject
@@ -3461,11 +3465,11 @@ paths:
       operationId: resend-notification-event
       summary: Resend notification event
       description: |-
-        Re-send a notification event to the channels of the rule that generated it.
+        Resend a notification event to the channels of the rule that generated it.
 
-        Delivery is asynchronous: the request marks the matching delivery statuses for
-        re-delivery and returns immediately. Statuses that are still pending or already
-        being re-sent are left untouched.
+        Delivery is asynchronous: the request marks the selected channels for redelivery
+        and returns immediately. Channels whose delivery is still pending or already
+        being resent are left untouched.
       parameters:
         - name: notificationEventId
           in: path
@@ -3491,6 +3495,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResendNotificationEventRequest'
+      x-rpc-endpoint: true
       x-private: true
       x-internal: true
       x-unstable: true
@@ -15635,44 +15640,38 @@ components:
           allOf:
             - $ref: '#/components/schemas/ULIDFieldFilter'
           description: |-
-            Filter by the channels the generating rule targets. This is an existential
-            match: `filter[channel_id][eq]=<id>` returns events whose rule targets that
-            channel, not events that were delivered only to it. Only `eq` and `oeq` are
-            supported; negating an existential match would return events that merely have
-            some other channel as well, so `neq` is rejected.
+            Filter by a channel of the generating rule. Matches events whose rule targets at
+            least one of the given channels. Only `eq` and `oeq` are supported.
         delivery_status:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilterExact'
           description: |-
-            Filter by delivery state. This is an existential match:
-            `filter[delivery_status][eq]=failed` returns events where delivery to at least
-            one channel failed, not events where every delivery failed. Only `eq` and `oeq`
-            are supported; negating an existential match would return events that merely
-            have some other state as well, so `neq` is rejected.
+            Filter by delivery state. Matches events where delivery to at least one channel
+            is in one of the given states. Only `eq` and `oeq` are supported.
         subject_key:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilterExact'
           description: |-
             Filter by the key of the subject the event refers to. Events without a subject
-            are not matched by `neq`.
+            never match, not even with `neq`.
         subject_id:
           allOf:
             - $ref: '#/components/schemas/ULIDFieldFilter'
           description: |-
             Filter by the id of the subject the event refers to. Events without a subject
-            are not matched by `neq`.
+            never match, not even with `neq`.
         feature_key:
           allOf:
             - $ref: '#/components/schemas/StringFieldFilterExact'
           description: |-
             Filter by the key of the feature the event refers to. Events without a feature
-            are not matched by `neq`.
+            never match, not even with `neq`.
         feature_id:
           allOf:
             - $ref: '#/components/schemas/ULIDFieldFilter'
           description: |-
             Filter by the id of the feature the event refers to. Events without a feature
-            are not matched by `neq`.
+            never match, not even with `neq`.
       additionalProperties: false
       description: Filter options for listing notification events.
     ListPlanAddonsParamsFilter:
@@ -16262,9 +16261,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/NotificationEventDeliveryStatus'
-          description: |-
-            The delivery status of the event, one entry per channel the generating rule
-            targets.
+          description: The delivery status of the event, one entry per channel of the rule.
           readOnly: true
         payload:
           allOf:
@@ -16273,9 +16270,9 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        A notification event records that a notification rule fired, and tracks the
-        delivery of the resulting payload to each of the rule's channels. Events are
-        created by the system and cannot be modified.
+        A notification event records that a notification rule fired and tracks the
+        delivery of its payload to each channel of the rule. Events are created by the
+        system and cannot be modified.
     NotificationEventBalanceThreshold:
       type: object
       required:
@@ -16306,7 +16303,7 @@ components:
         entitlement_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
-          description: The identifier of the entitlement whose balance triggered the event.
+          description: The identifier of the entitlement that triggered the event.
           readOnly: true
         feature:
           allOf:
@@ -16320,9 +16317,7 @@ components:
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
-          description: |-
-            The identifier of the customer the subject is attributed to, when the subject is
-            attributed to one.
+          description: The identifier of the customer the subject belongs to, if any.
           readOnly: true
         value:
           allOf:
@@ -16373,12 +16368,7 @@ components:
         - balance_value
         - usage_percentage
         - usage_value
-      description: |-
-        The kind of threshold that a balance threshold rule triggers on.
-
-        The legacy `NUMBER` and `PERCENT` values are normalized to `usage_value` and
-        `usage_percentage` respectively, so events created before the rename report the
-        current value.
+      description: What a balance threshold is measured against.
     NotificationEventDeliveryAttempt:
       type: object
       required:
@@ -16389,7 +16379,7 @@ components:
         state:
           allOf:
             - $ref: '#/components/schemas/NotificationEventDeliveryState'
-          description: The state the delivery reached with this attempt.
+          description: The delivery state reached by this attempt.
           readOnly: true
         response:
           allOf:
@@ -16402,7 +16392,7 @@ components:
           description: When the attempt was made.
           readOnly: true
       additionalProperties: false
-      description: A single delivery attempt towards a channel.
+      description: A single delivery attempt to a channel.
     NotificationEventDeliveryAttemptResponse:
       type: object
       required:
@@ -16413,14 +16403,12 @@ components:
           type: integer
           format: int32
           description: |-
-            The HTTP status code returned by the recipient, if a response was received at
-            all.
+            The HTTP status code returned by the recipient. Absent when no response was
+            received.
           readOnly: true
         body:
           type: string
-          description: |-
-            The response body returned by the recipient. Empty when the recipient returned
-            no body or the request never completed.
+          description: The response body returned by the recipient. Empty when no body was received.
           readOnly: true
         duration_ms:
           type: integer
@@ -16429,13 +16417,12 @@ components:
           readOnly: true
         url:
           type: string
-          description: The URL the event was delivered to, for webhook channels.
+          description: The URL the event was delivered to. Only set for webhook channels.
           readOnly: true
       additionalProperties: false
       description: |-
         The response the recipient returned for a delivery attempt. For webhook channels
-        this is the HTTP response; fields that the transport could not observe are
-        omitted.
+        this is the HTTP response.
     NotificationEventDeliveryState:
       type: string
       enum:
@@ -16444,7 +16431,7 @@ components:
         - sending
         - pending
         - resending
-      description: The delivery state of a notification event towards a single channel.
+      description: The delivery state of a notification event for a single channel.
     NotificationEventDeliveryStatus:
       type: object
       required:
@@ -16457,9 +16444,7 @@ components:
         channel_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
-          description: |-
-            The identifier of the channel this status belongs to. Retrieve the channel
-            itself through the notification channel endpoints.
+          description: The identifier of the channel this delivery status belongs to.
           readOnly: true
         state:
           allOf:
@@ -16468,9 +16453,7 @@ components:
           readOnly: true
         reason:
           type: string
-          description: |-
-            The reason for the last state change. Empty when the last change needs no
-            explanation, for example a successful delivery.
+          description: The reason for the last state change. Empty for successful deliveries.
           readOnly: true
         updated_at:
           allOf:
@@ -16482,8 +16465,7 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: |-
             When the next delivery attempt is scheduled. Absent when no further attempts
-            will be made, either because delivery succeeded or because it failed
-            permanently.
+            will be made.
           readOnly: true
         attempts:
           type: array
@@ -16493,8 +16475,8 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        The delivery status of a notification event towards one of the channels the
-        generating rule targets. An event has one entry per channel.
+        The delivery status of a notification event for one channel of the generating
+        rule.
     NotificationEventEntitlementData:
       type: object
       required:
@@ -16506,7 +16488,7 @@ components:
         entitlement_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
-          description: The identifier of the entitlement whose balance triggered the event.
+          description: The identifier of the entitlement that triggered the event.
           readOnly: true
         feature:
           allOf:
@@ -16520,9 +16502,7 @@ components:
         customer_id:
           allOf:
             - $ref: '#/components/schemas/ULID'
-          description: |-
-            The identifier of the customer the subject is attributed to, when the subject is
-            attributed to one.
+          description: The identifier of the customer the subject belongs to, if any.
           readOnly: true
         value:
           allOf:
@@ -16531,8 +16511,8 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        The entities an entitlement notification event refers to. Each is identified
-        rather than embedded; retrieve the full resources through their own endpoints.
+        The entitlement, feature, and subject an entitlement notification event refers
+        to.
     NotificationEventEntitlementValue:
       type: object
       required:
@@ -16541,8 +16521,8 @@ components:
         has_access:
           type: boolean
           description: |-
-            Whether the subject had access to the feature. Balance never turns negative, so
-            access can be lost while the balance is still reported as zero.
+            Whether the subject had access to the feature. The balance never goes below
+            zero, so access can be lost while the balance is still reported as zero.
           readOnly: true
         balance:
           type: number
@@ -16557,7 +16537,7 @@ components:
         overage:
           type: number
           format: double
-          description: The usage that was not covered by any grant.
+          description: The usage not covered by any grant.
           readOnly: true
       additionalProperties: false
       description: The entitlement balance at the time the event was generated.
@@ -16577,7 +16557,7 @@ components:
           description: The immutable key of the feature.
           readOnly: true
       additionalProperties: false
-      description: A reference to the feature an entitlement notification event refers to.
+      description: A reference to the feature of an entitlement notification event.
     NotificationEventInvoiceCreatedPayload:
       type: object
       required:
@@ -16639,14 +16619,10 @@ components:
         total:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: |-
-            The total value of the invoice, including taxes, at the time the event was
-            generated.
+          description: The invoice total, including taxes, at the time the event was generated.
           readOnly: true
       additionalProperties: false
-      description: |-
-        The invoice an invoice notification event refers to. The invoice itself is
-        identified rather than embedded; retrieve it through the invoice endpoints.
+      description: The invoice an invoice notification event refers to.
     NotificationEventInvoiceReference:
       type: object
       required:
@@ -16660,10 +16636,10 @@ components:
           readOnly: true
         number:
           type: string
-          description: The human readable invoice number.
+          description: The human-readable invoice number.
           readOnly: true
       additionalProperties: false
-      description: A reference to the invoice an invoice notification event refers to.
+      description: A reference to the invoice of an invoice notification event.
     NotificationEventInvoiceUpdatedPayload:
       type: object
       required:
@@ -16723,9 +16699,7 @@ components:
           entitlements.reset: '#/components/schemas/NotificationEventResetPayload'
           invoice.created: '#/components/schemas/NotificationEventInvoiceCreatedPayload'
           invoice.updated: '#/components/schemas/NotificationEventInvoiceUpdatedPayload'
-      description: |-
-        The payload delivered to the channels of the generating rule, discriminated by
-        the event type.
+      description: The payload delivered to the channels, discriminated by the event type.
     NotificationEventResetPayload:
       type: object
       required:
@@ -16765,8 +16739,8 @@ components:
         - invoice.created
         - invoice.updated
       description: |-
-        The type of a notification event. The event type determines which payload
-        variant the event carries and which rule configuration produced it.
+        The type of a notification event. It determines which payload variant the event
+        carries.
     NotificationRuleReference:
       type: object
       required:
@@ -16786,13 +16760,10 @@ components:
           readOnly: true
         name:
           type: string
-          description: The user provided name of the rule.
+          description: The user-provided name of the rule.
           readOnly: true
       additionalProperties: false
-      description: |-
-        A reference to the notification rule that generated an event. Notification rules
-        are not yet exposed as a v3 resource, so events carry an inline reference rather
-        than a link to a retrievable resource.
+      description: A reference to the notification rule that generated an event.
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
@@ -17127,11 +17098,11 @@ components:
           items:
             $ref: '#/components/schemas/ULID'
           description: |-
-            The channels to re-send the event to. When omitted or empty the event is re-sent
-            to every channel of the generating rule that is eligible for a resend. Channels
-            that are unknown to the rule or disabled are rejected.
+            The channels to resend the event to. When omitted or empty, the event is resent
+            to every enabled channel of the rule. Channels not targeted by the rule or
+            disabled are rejected.
       additionalProperties: false
-      description: Request body for re-sending a notification event.
+      description: Request body for resending a notification event.
     ResetCustomerEntitlementUsageRequest:
       type: object
       properties:

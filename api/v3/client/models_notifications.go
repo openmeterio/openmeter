@@ -94,9 +94,9 @@ func (value NotificationChannelType) Valid() bool {
 	}
 }
 
-// A notification event records that a notification rule fired, and tracks the
-// delivery of the resulting payload to each of the rule's channels. Events are
-// created by the system and cannot be modified.
+// A notification event records that a notification rule fired and tracks the
+// delivery of its payload to each channel of the rule. Events are created by the
+// system and cannot be modified.
 type NotificationEvent struct {
 	// The unique identifier of the event.
 	ID string `json:"id"`
@@ -106,8 +106,7 @@ type NotificationEvent struct {
 	CreatedAt time.Time `json:"created_at"`
 	// The rule that generated the event.
 	Rule NotificationRuleReference `json:"rule"`
-	// The delivery status of the event, one entry per channel the generating rule
-	// targets.
+	// The delivery status of the event, one entry per channel of the rule.
 	DeliveryStatus []NotificationEventDeliveryStatus `json:"delivery_status"`
 	// The payload delivered to the channels.
 	Payload NotificationEventPayload `json:"payload"`
@@ -123,14 +122,13 @@ type NotificationEventBalanceThreshold struct {
 
 // The entities and threshold a balance threshold event refers to.
 type NotificationEventBalanceThresholdData struct {
-	// The identifier of the entitlement whose balance triggered the event.
+	// The identifier of the entitlement that triggered the event.
 	EntitlementID string `json:"entitlement_id"`
 	// The feature the entitlement grants access to.
 	Feature NotificationEventFeatureReference `json:"feature"`
 	// The key of the subject the entitlement belongs to.
 	SubjectKey string `json:"subject_key"`
-	// The identifier of the customer the subject is attributed to, when the subject is
-	// attributed to one.
+	// The identifier of the customer the subject belongs to, if any.
 	CustomerID *string `json:"customer_id,omitempty"`
 	// The entitlement balance at the time the event was generated.
 	Value NotificationEventEntitlementValue `json:"value"`
@@ -150,11 +148,7 @@ type NotificationEventBalanceThresholdPayload struct {
 	Data NotificationEventBalanceThresholdData `json:"data"`
 }
 
-// The kind of threshold that a balance threshold rule triggers on.
-//
-// The legacy `NUMBER` and `PERCENT` values are normalized to `usage_value` and
-// `usage_percentage` respectively, so events created before the rename report the
-// current value.
+// What a balance threshold is measured against.
 type NotificationEventBalanceThresholdType string
 
 const (
@@ -172,9 +166,9 @@ func (value NotificationEventBalanceThresholdType) Valid() bool {
 	}
 }
 
-// A single delivery attempt towards a channel.
+// A single delivery attempt to a channel.
 type NotificationEventDeliveryAttempt struct {
-	// The state the delivery reached with this attempt.
+	// The delivery state reached by this attempt.
 	State NotificationEventDeliveryState `json:"state"`
 	// The response returned by the recipient.
 	Response NotificationEventDeliveryAttemptResponse `json:"response"`
@@ -183,22 +177,20 @@ type NotificationEventDeliveryAttempt struct {
 }
 
 // The response the recipient returned for a delivery attempt. For webhook channels
-// this is the HTTP response; fields that the transport could not observe are
-// omitted.
+// this is the HTTP response.
 type NotificationEventDeliveryAttemptResponse struct {
-	// The HTTP status code returned by the recipient, if a response was received at
-	// all.
+	// The HTTP status code returned by the recipient. Absent when no response was
+	// received.
 	StatusCode *int32 `json:"status_code,omitempty"`
-	// The response body returned by the recipient. Empty when the recipient returned
-	// no body or the request never completed.
+	// The response body returned by the recipient. Empty when no body was received.
 	Body string `json:"body"`
 	// How long the delivery attempt took, in milliseconds.
 	DurationMs int64 `json:"duration_ms"`
-	// The URL the event was delivered to, for webhook channels.
+	// The URL the event was delivered to. Only set for webhook channels.
 	URL *string `json:"url,omitempty"`
 }
 
-// The delivery state of a notification event towards a single channel.
+// The delivery state of a notification event for a single channel.
 type NotificationEventDeliveryState string
 
 const (
@@ -218,38 +210,34 @@ func (value NotificationEventDeliveryState) Valid() bool {
 	}
 }
 
-// The delivery status of a notification event towards one of the channels the
-// generating rule targets. An event has one entry per channel.
+// The delivery status of a notification event for one channel of the generating
+// rule.
 type NotificationEventDeliveryStatus struct {
-	// The identifier of the channel this status belongs to. Retrieve the channel
-	// itself through the notification channel endpoints.
+	// The identifier of the channel this delivery status belongs to.
 	ChannelID string `json:"channel_id"`
 	// The current delivery state.
 	State NotificationEventDeliveryState `json:"state"`
-	// The reason for the last state change. Empty when the last change needs no
-	// explanation, for example a successful delivery.
+	// The reason for the last state change. Empty for successful deliveries.
 	Reason string `json:"reason"`
 	// When the delivery state was last updated.
 	UpdatedAt time.Time `json:"updated_at"`
 	// When the next delivery attempt is scheduled. Absent when no further attempts
-	// will be made, either because delivery succeeded or because it failed
-	// permanently.
+	// will be made.
 	NextAttempt *time.Time `json:"next_attempt,omitempty"`
 	// The delivery attempts made so far, most recent first.
 	Attempts []NotificationEventDeliveryAttempt `json:"attempts"`
 }
 
-// The entities an entitlement notification event refers to. Each is identified
-// rather than embedded; retrieve the full resources through their own endpoints.
+// The entitlement, feature, and subject an entitlement notification event refers
+// to.
 type NotificationEventEntitlementData struct {
-	// The identifier of the entitlement whose balance triggered the event.
+	// The identifier of the entitlement that triggered the event.
 	EntitlementID string `json:"entitlement_id"`
 	// The feature the entitlement grants access to.
 	Feature NotificationEventFeatureReference `json:"feature"`
 	// The key of the subject the entitlement belongs to.
 	SubjectKey string `json:"subject_key"`
-	// The identifier of the customer the subject is attributed to, when the subject is
-	// attributed to one.
+	// The identifier of the customer the subject belongs to, if any.
 	CustomerID *string `json:"customer_id,omitempty"`
 	// The entitlement balance at the time the event was generated.
 	Value NotificationEventEntitlementValue `json:"value"`
@@ -257,18 +245,18 @@ type NotificationEventEntitlementData struct {
 
 // The entitlement balance at the time the event was generated.
 type NotificationEventEntitlementValue struct {
-	// Whether the subject had access to the feature. Balance never turns negative, so
-	// access can be lost while the balance is still reported as zero.
+	// Whether the subject had access to the feature. The balance never goes below
+	// zero, so access can be lost while the balance is still reported as zero.
 	HasAccess bool `json:"has_access"`
 	// The remaining balance of the entitlement.
 	Balance *float64 `json:"balance,omitempty"`
 	// The total feature usage in the current usage period.
 	Usage *float64 `json:"usage,omitempty"`
-	// The usage that was not covered by any grant.
+	// The usage not covered by any grant.
 	Overage *float64 `json:"overage,omitempty"`
 }
 
-// A reference to the feature an entitlement notification event refers to.
+// A reference to the feature of an entitlement notification event.
 type NotificationEventFeatureReference struct {
 	// The unique identifier of the feature.
 	ID string `json:"id"`
@@ -288,8 +276,7 @@ type NotificationEventInvoiceCreatedPayload struct {
 	Data NotificationEventInvoiceData `json:"data"`
 }
 
-// The invoice an invoice notification event refers to. The invoice itself is
-// identified rather than embedded; retrieve it through the invoice endpoints.
+// The invoice an invoice notification event refers to.
 type NotificationEventInvoiceData struct {
 	// The invoice the event was generated for.
 	Invoice NotificationEventInvoiceReference `json:"invoice"`
@@ -299,16 +286,15 @@ type NotificationEventInvoiceData struct {
 	Currency string `json:"currency"`
 	// The status of the invoice at the time the event was generated.
 	Status string `json:"status"`
-	// The total value of the invoice, including taxes, at the time the event was
-	// generated.
+	// The invoice total, including taxes, at the time the event was generated.
 	Total Numeric `json:"total"`
 }
 
-// A reference to the invoice an invoice notification event refers to.
+// A reference to the invoice of an invoice notification event.
 type NotificationEventInvoiceReference struct {
 	// The unique identifier of the invoice.
 	ID string `json:"id"`
-	// The human readable invoice number.
+	// The human-readable invoice number.
 	Number string `json:"number"`
 }
 
@@ -330,8 +316,7 @@ type NotificationEventPagePaginatedResponse struct {
 	Meta PaginatedMeta       `json:"meta"`
 }
 
-// The payload delivered to the channels of the generating rule, discriminated by
-// the event type.
+// The payload delivered to the channels, discriminated by the event type.
 //
 // NotificationEventPayload is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the NotificationEventPayloadFrom* constructors.
 // The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
@@ -472,8 +457,8 @@ type NotificationEventResetPayload struct {
 	Data NotificationEventEntitlementData `json:"data"`
 }
 
-// The type of a notification event. The event type determines which payload
-// variant the event carries and which rule configuration produced it.
+// The type of a notification event. It determines which payload variant the event
+// carries.
 type NotificationEventType string
 
 const (
@@ -492,23 +477,21 @@ func (value NotificationEventType) Valid() bool {
 	}
 }
 
-// A reference to the notification rule that generated an event. Notification rules
-// are not yet exposed as a v3 resource, so events carry an inline reference rather
-// than a link to a retrievable resource.
+// A reference to the notification rule that generated an event.
 type NotificationRuleReference struct {
 	// The unique identifier of the rule.
 	ID string `json:"id"`
 	// The type of event the rule generates.
 	Type NotificationEventType `json:"type"`
-	// The user provided name of the rule.
+	// The user-provided name of the rule.
 	Name string `json:"name"`
 }
 
-// Request body for re-sending a notification event.
+// Request body for resending a notification event.
 type ResendNotificationEventRequest struct {
-	// The channels to re-send the event to. When omitted or empty the event is re-sent
-	// to every channel of the generating rule that is eligible for a resend. Channels
-	// that are unknown to the rule or disabled are rejected.
+	// The channels to resend the event to. When omitted or empty, the event is resent
+	// to every enabled channel of the rule. Channels not targeted by the rule or
+	// disabled are rejected.
 	Channels *[]string `json:"channels,omitempty"`
 }
 

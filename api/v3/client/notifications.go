@@ -53,29 +53,23 @@ type NotificationEventFilter struct {
 	Type      *StringExactFilter
 	CreatedAt *DateTimeFilter
 	RuleID    *StringExactFilter
-	// Filter by the channels the generating rule targets. This is an existential
-	// match: `filter[channel_id][eq]=<id>` returns events whose rule targets that
-	// channel, not events that were delivered only to it. Only `eq` and `oeq` are
-	// supported; negating an existential match would return events that merely have
-	// some other channel as well, so `neq` is rejected.
+	// Filter by a channel of the generating rule. Matches events whose rule targets at
+	// least one of the given channels. Only `eq` and `oeq` are supported.
 	ChannelID *StringExactFilter
-	// Filter by delivery state. This is an existential match:
-	// `filter[delivery_status][eq]=failed` returns events where delivery to at least
-	// one channel failed, not events where every delivery failed. Only `eq` and `oeq`
-	// are supported; negating an existential match would return events that merely
-	// have some other state as well, so `neq` is rejected.
+	// Filter by delivery state. Matches events where delivery to at least one channel
+	// is in one of the given states. Only `eq` and `oeq` are supported.
 	DeliveryStatus *StringExactFilter
 	// Filter by the key of the subject the event refers to. Events without a subject
-	// are not matched by `neq`.
+	// never match, not even with `neq`.
 	SubjectKey *StringExactFilter
 	// Filter by the id of the subject the event refers to. Events without a subject
-	// are not matched by `neq`.
+	// never match, not even with `neq`.
 	SubjectID *StringExactFilter
 	// Filter by the key of the feature the event refers to. Events without a feature
-	// are not matched by `neq`.
+	// never match, not even with `neq`.
 	FeatureKey *StringExactFilter
 	// Filter by the id of the feature the event refers to. Events without a feature
-	// are not matched by `neq`.
+	// never match, not even with `neq`.
 	FeatureID *StringExactFilter
 }
 
@@ -277,11 +271,11 @@ func (s *NotificationsService) GetEvent(ctx context.Context, notificationEventID
 	return &out, nil
 }
 
-// Re-send a notification event to the channels of the rule that generated it.
+// Resend a notification event to the channels of the rule that generated it.
 //
-// Delivery is asynchronous: the request marks the matching delivery statuses for
-// re-delivery and returns immediately. Statuses that are still pending or already
-// being re-sent are left untouched.
+// Delivery is asynchronous: the request marks the selected channels for redelivery
+// and returns immediately. Channels whose delivery is still pending or already
+// being resent are left untouched.
 func (s *NotificationsService) ResendEvent(ctx context.Context, notificationEventID string, request ResendNotificationEventRequest) error {
 	if notificationEventID == "" {
 		return fmt.Errorf("openmeter: %s must not be empty: %w", "notificationEventID", ErrEmptyID)

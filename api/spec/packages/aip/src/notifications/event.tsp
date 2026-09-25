@@ -3,14 +3,13 @@ import "../shared/index.tsp";
 namespace Notifications;
 
 /**
- * The type of a notification event. The event type determines which payload
- * variant the event carries and which rule configuration produced it.
+ * The type of a notification event. It determines which payload variant the event
+ * carries.
  */
 @friendlyName("NotificationEventType")
 enum NotificationEventType {
   /**
-   * A metered entitlement's balance crossed one of the thresholds configured on the
-   * rule.
+   * A metered entitlement's balance crossed a threshold configured on the rule.
    */
   EntitlementsBalanceThreshold: "entitlements.balance.threshold",
 
@@ -31,12 +30,12 @@ enum NotificationEventType {
 }
 
 /**
- * The delivery state of a notification event towards a single channel.
+ * The delivery state of a notification event for a single channel.
  */
 @friendlyName("NotificationEventDeliveryState")
 enum NotificationEventDeliveryState {
   /**
-   * The event was delivered and the recipient acknowledged it.
+   * The event was delivered and acknowledged by the recipient.
    */
   Success: "success",
 
@@ -56,15 +55,13 @@ enum NotificationEventDeliveryState {
   Pending: "pending",
 
   /**
-   * Delivery is being retried after an explicit resend request.
+   * Delivery is being retried after a resend request.
    */
   Resending: "resending",
 }
 
 /**
- * A reference to the notification rule that generated an event. Notification rules
- * are not yet exposed as a v3 resource, so events carry an inline reference rather
- * than a link to a retrievable resource.
+ * A reference to the notification rule that generated an event.
  */
 @friendlyName("NotificationRuleReference")
 model NotificationRuleReference {
@@ -81,7 +78,7 @@ model NotificationRuleReference {
   type: NotificationEventType;
 
   /**
-   * The user provided name of the rule.
+   * The user-provided name of the rule.
    */
   @visibility(Lifecycle.Read)
   name: string;
@@ -89,21 +86,19 @@ model NotificationRuleReference {
 
 /**
  * The response the recipient returned for a delivery attempt. For webhook channels
- * this is the HTTP response; fields that the transport could not observe are
- * omitted.
+ * this is the HTTP response.
  */
 @friendlyName("NotificationEventDeliveryAttemptResponse")
 model NotificationEventDeliveryAttemptResponse {
   /**
-   * The HTTP status code returned by the recipient, if a response was received at
-   * all.
+   * The HTTP status code returned by the recipient. Absent when no response was
+   * received.
    */
   @visibility(Lifecycle.Read)
   status_code?: int32;
 
   /**
-   * The response body returned by the recipient. Empty when the recipient returned
-   * no body or the request never completed.
+   * The response body returned by the recipient. Empty when no body was received.
    */
   @visibility(Lifecycle.Read)
   body: string;
@@ -115,19 +110,19 @@ model NotificationEventDeliveryAttemptResponse {
   duration_ms: int64;
 
   /**
-   * The URL the event was delivered to, for webhook channels.
+   * The URL the event was delivered to. Only set for webhook channels.
    */
   @visibility(Lifecycle.Read)
   url?: string;
 }
 
 /**
- * A single delivery attempt towards a channel.
+ * A single delivery attempt to a channel.
  */
 @friendlyName("NotificationEventDeliveryAttempt")
 model NotificationEventDeliveryAttempt {
   /**
-   * The state the delivery reached with this attempt.
+   * The delivery state reached by this attempt.
    */
   @visibility(Lifecycle.Read)
   state: NotificationEventDeliveryState;
@@ -146,14 +141,13 @@ model NotificationEventDeliveryAttempt {
 }
 
 /**
- * The delivery status of a notification event towards one of the channels the
- * generating rule targets. An event has one entry per channel.
+ * The delivery status of a notification event for one channel of the generating
+ * rule.
  */
 @friendlyName("NotificationEventDeliveryStatus")
 model NotificationEventDeliveryStatus {
   /**
-   * The identifier of the channel this status belongs to. Retrieve the channel
-   * itself through the notification channel endpoints.
+   * The identifier of the channel this delivery status belongs to.
    */
   @visibility(Lifecycle.Read)
   channel_id: Shared.ULID;
@@ -165,8 +159,7 @@ model NotificationEventDeliveryStatus {
   state: NotificationEventDeliveryState;
 
   /**
-   * The reason for the last state change. Empty when the last change needs no
-   * explanation, for example a successful delivery.
+   * The reason for the last state change. Empty for successful deliveries.
    */
   @visibility(Lifecycle.Read)
   reason: string;
@@ -179,8 +172,7 @@ model NotificationEventDeliveryStatus {
 
   /**
    * When the next delivery attempt is scheduled. Absent when no further attempts
-   * will be made, either because delivery succeeded or because it failed
-   * permanently.
+   * will be made.
    */
   @visibility(Lifecycle.Read)
   next_attempt?: Shared.DateTime;
@@ -198,8 +190,8 @@ model NotificationEventDeliveryStatus {
 @friendlyName("NotificationEventEntitlementValue")
 model NotificationEventEntitlementValue {
   /**
-   * Whether the subject had access to the feature. Balance never turns negative, so
-   * access can be lost while the balance is still reported as zero.
+   * Whether the subject had access to the feature. The balance never goes below
+   * zero, so access can be lost while the balance is still reported as zero.
    */
   @visibility(Lifecycle.Read)
   has_access: boolean;
@@ -217,14 +209,14 @@ model NotificationEventEntitlementValue {
   usage?: float64;
 
   /**
-   * The usage that was not covered by any grant.
+   * The usage not covered by any grant.
    */
   @visibility(Lifecycle.Read)
   overage?: float64;
 }
 
 /**
- * A reference to the feature an entitlement notification event refers to.
+ * A reference to the feature of an entitlement notification event.
  */
 @friendlyName("NotificationEventFeatureReference")
 model NotificationEventFeatureReference {
@@ -242,13 +234,13 @@ model NotificationEventFeatureReference {
 }
 
 /**
- * The entities an entitlement notification event refers to. Each is identified
- * rather than embedded; retrieve the full resources through their own endpoints.
+ * The entitlement, feature, and subject an entitlement notification event refers
+ * to.
  */
 @friendlyName("NotificationEventEntitlementData")
 model NotificationEventEntitlementData {
   /**
-   * The identifier of the entitlement whose balance triggered the event.
+   * The identifier of the entitlement that triggered the event.
    */
   @visibility(Lifecycle.Read)
   entitlement_id: Shared.ULID;
@@ -266,8 +258,7 @@ model NotificationEventEntitlementData {
   subject_key: string;
 
   /**
-   * The identifier of the customer the subject is attributed to, when the subject is
-   * attributed to one.
+   * The identifier of the customer the subject belongs to, if any.
    */
   @visibility(Lifecycle.Read)
   customer_id?: Shared.ULID;
@@ -280,22 +271,17 @@ model NotificationEventEntitlementData {
 }
 
 /**
- * The kind of threshold that a balance threshold rule triggers on.
- *
- * The legacy `NUMBER` and `PERCENT` values are normalized to `usage_value` and
- * `usage_percentage` respectively, so events created before the rename report the
- * current value.
+ * What a balance threshold is measured against.
  */
 @friendlyName("NotificationEventBalanceThresholdType")
 enum NotificationEventBalanceThresholdType {
   /**
-   * The remaining balance, based on usage and the total of grants in the current usage
-   * period.
+   * The remaining balance in the current usage period.
    */
   BalanceValue: "balance_value",
 
   /**
-   * The usage as a percentage of the total of grants in the current usage period.
+   * The usage as a percentage of the total grants in the current usage period.
    */
   UsagePercentage: "usage_percentage",
 
@@ -338,7 +324,7 @@ model NotificationEventBalanceThresholdData {
 }
 
 /**
- * A reference to the invoice an invoice notification event refers to.
+ * A reference to the invoice of an invoice notification event.
  */
 @friendlyName("NotificationEventInvoiceReference")
 model NotificationEventInvoiceReference {
@@ -349,15 +335,14 @@ model NotificationEventInvoiceReference {
   id: Shared.ULID;
 
   /**
-   * The human readable invoice number.
+   * The human-readable invoice number.
    */
   @visibility(Lifecycle.Read)
   number: string;
 }
 
 /**
- * The invoice an invoice notification event refers to. The invoice itself is
- * identified rather than embedded; retrieve it through the invoice endpoints.
+ * The invoice an invoice notification event refers to.
  */
 @friendlyName("NotificationEventInvoiceData")
 model NotificationEventInvoiceData {
@@ -386,8 +371,7 @@ model NotificationEventInvoiceData {
   status: string;
 
   /**
-   * The total value of the invoice, including taxes, at the time the event was
-   * generated.
+   * The invoice total, including taxes, at the time the event was generated.
    */
   @visibility(Lifecycle.Read)
   total: Shared.Numeric;
@@ -514,8 +498,7 @@ model NotificationEventInvoiceUpdatedPayload {
 }
 
 /**
- * The payload delivered to the channels of the generating rule, discriminated by
- * the event type.
+ * The payload delivered to the channels, discriminated by the event type.
  */
 @friendlyName("NotificationEventPayload")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
@@ -527,9 +510,9 @@ union NotificationEventPayload {
 }
 
 /**
- * A notification event records that a notification rule fired, and tracks the
- * delivery of the resulting payload to each of the rule's channels. Events are
- * created by the system and cannot be modified.
+ * A notification event records that a notification rule fired and tracks the
+ * delivery of its payload to each channel of the rule. Events are created by the
+ * system and cannot be modified.
  */
 @friendlyName("NotificationEvent")
 model NotificationEvent {
@@ -558,8 +541,7 @@ model NotificationEvent {
   rule: NotificationRuleReference;
 
   /**
-   * The delivery status of the event, one entry per channel the generating rule
-   * targets.
+   * The delivery status of the event, one entry per channel of the rule.
    */
   @visibility(Lifecycle.Read)
   delivery_status: Array<NotificationEventDeliveryStatus>;
@@ -572,14 +554,14 @@ model NotificationEvent {
 }
 
 /**
- * Request body for re-sending a notification event.
+ * Request body for resending a notification event.
  */
 @friendlyName("ResendNotificationEventRequest")
 model NotificationEventResendRequest {
   /**
-   * The channels to re-send the event to. When omitted or empty the event is re-sent
-   * to every channel of the generating rule that is eligible for a resend. Channels
-   * that are unknown to the rule or disabled are rejected.
+   * The channels to resend the event to. When omitted or empty, the event is resent
+   * to every enabled channel of the rule. Channels not targeted by the rule or
+   * disabled are rejected.
    */
   @visibility(Lifecycle.Create)
   channels?: Array<Shared.ULID>;
