@@ -135,6 +135,8 @@ model MarketplaceInstallRequestPayload {
   /**
    * If true, a billing profile will be created for the app.
    * The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.
+   * Automatic billing profile creation is not supported for Custom Invoicing apps.
+   * Set this to false and create a profile separately.
    */
   createBillingProfile?: boolean = true;
 }
