@@ -23,6 +23,7 @@ type SyncService interface {
 }
 
 type EventHandler interface {
+	HandleSubscriptionChange(ctx context.Context, subscriptionID models.NamespacedID) error
 	HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error
 	HandleDeletedEvent(ctx context.Context, event *subscription.DeletedEvent) error
 	HandleSubscriptionSyncEvent(ctx context.Context, event *subscription.SubscriptionSyncEvent) error

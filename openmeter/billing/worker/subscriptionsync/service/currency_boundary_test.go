@@ -22,7 +22,7 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 	// given:
 	// - a deleted subscription whose billing artifacts still need cleanup
 	// when:
-	// - subscription sync runs from the last event-carried view
+	// - subscription sync runs after the subscription was deleted
 	// then:
 	// - it plans an empty target and records that no future billables remain
 	deletedAt := time.Now()
@@ -34,12 +34,18 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 	}}
 
 	billingService := &billingServiceSpy{}
+	subscriptionService := &subscriptionServiceSpy{view: view}
+	subscriptionService.onList = func(call int) {
+		if call == 2 {
+			require.True(t, billingService.withLockCalled, "current state must be read under the billing lock")
+		}
+	}
 	syncAdapter := &subscriptionSyncAdapterSpy{}
 	reconciler := &syncReconcilerSpy{}
 	service := &Service{
 		billingService:          billingService,
 		reconciler:              reconciler,
-		subscriptionService:     &subscriptionServiceSpy{view: view},
+		subscriptionService:     subscriptionService,
 		subscriptionSyncAdapter: syncAdapter,
 		logger:                  testutils.NewDiscardLogger(t),
 		tracer:                  noop.NewTracerProvider().Tracer("test"),
@@ -49,6 +55,7 @@ func TestDeletedSubscriptionReconcilesBillingArtifacts(t *testing.T) {
 
 	require.NoError(t, err)
 	require.True(t, billingService.withLockCalled)
+	require.Equal(t, 2, subscriptionService.listCalls)
 	require.True(t, reconciler.planCalled)
 	require.Len(t, syncAdapter.upserts, 1)
 	require.False(t, syncAdapter.upserts[0].HasBillables)
@@ -78,10 +85,16 @@ func (s *billingServiceSpy) GetSplitLineGroupsForSubscription(context.Context, b
 
 type subscriptionServiceSpy struct {
 	subscription.Service
-	view subscription.SubscriptionView
+	view      subscription.SubscriptionView
+	listCalls int
+	onList    func(int)
 }
 
 func (s *subscriptionServiceSpy) List(context.Context, subscription.ListSubscriptionsInput) (subscription.SubscriptionList, error) {
+	s.listCalls++
+	if s.onList != nil {
+		s.onList(s.listCalls)
+	}
 	return subscription.SubscriptionList{Items: []subscription.Subscription{s.view.Subscription}}, nil
 }
 

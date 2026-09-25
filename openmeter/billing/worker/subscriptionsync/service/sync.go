@@ -63,12 +63,19 @@ func (s *Service) HandleSubscriptionSyncEvent(ctx context.Context, event *subscr
 	return s.synchronizeSubscriptionAndInvoiceCustomer(
 		ctx,
 		newSubscriptionReferenceOrView(event.Subscription),
-		time.Now(),
+		syncHorizon{asOf: clock.Now(), includeCurrentEnd: true},
 	)
 }
 
-func (s *Service) synchronizeSubscriptionAndInvoiceCustomer(ctx context.Context, refOrView subscriptionReferenceOrView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
-	res, err := s.synchronizeSubscription(ctx, refOrView, asOf, opts...)
+// syncHorizon lets lifecycle events include the current cancellation end while
+// explicit sync requests retain their caller-provided horizon.
+type syncHorizon struct {
+	asOf              time.Time
+	includeCurrentEnd bool
+}
+
+func (s *Service) synchronizeSubscriptionAndInvoiceCustomer(ctx context.Context, refOrView subscriptionReferenceOrView, horizon syncHorizon, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
+	res, err := s.synchronizeSubscription(ctx, refOrView, horizon, opts...)
 	if err != nil {
 		return fmt.Errorf("synchronize subscription: %w", err)
 	}
@@ -92,12 +99,12 @@ type synchronizeSubscriptionResult struct {
 	Deleted bool
 }
 
-func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscriptionReferenceOrView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) (*synchronizeSubscriptionResult, error) {
+func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscriptionReferenceOrView, horizon syncHorizon, opts ...subscriptionsync.SynchronizeSubscriptionOption) (*synchronizeSubscriptionResult, error) {
 	subscriptionID := refOrView.GetID()
 
 	span := tracex.Start[*synchronizeSubscriptionResult](ctx, s.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
 		attribute.String("subscription_id", subscriptionID.ID),
-		attribute.String("as_of", asOf.Format(time.RFC3339)),
+		attribute.String("as_of", horizon.asOf.Format(time.RFC3339)),
 	))
 
 	options := subscriptionsync.SynchronizeSubscriptionOptions{}
@@ -106,101 +113,106 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 	}
 
 	return span.Wrap(func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
-		subs, err := s.getSubscription(ctx, subscriptionID)
+		// Resolve the immutable customer identity before acquiring billing's lock.
+		initial, err := s.getSubscription(ctx, subscriptionID)
 		if err != nil {
 			return nil, err
 		}
+		customerID := customer.CustomerID{Namespace: initial.Namespace, ID: initial.CustomerId}
 
-		var subsView *subscription.SubscriptionView
-		if subs.IsDeleted() {
-			subsView = nil
-		} else if refOrView.Type() == SubscriptionReferenceTypeView {
-			view, err := refOrView.AsSubscriptionView()
+		return withBillingLock(ctx, s, customerID, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
+			// Re-read under the lock. An older event must never apply its embedded
+			// snapshot after another event has reconciled newer subscription state.
+			subs, err := s.getSubscription(ctx, subscriptionID)
 			if err != nil {
 				return nil, err
 			}
-
-			subsView = &view
-			currentView, err := s.subscriptionService.GetView(ctx, subscriptionID)
-			if err != nil {
-				return nil, err
+			asOf := horizon.asOf
+			if horizon.includeCurrentEnd && subs.ActiveTo != nil && subs.ActiveTo.After(asOf) {
+				asOf = *subs.ActiveTo
 			}
 
-			// Currency definitions are runtime-only snapshots and are deliberately not
-			// serialized into subscription events. Reload custom-priced views before
-			// planning so billing has authoritative identity and precision, and so a
-			// delayed event cannot reconcile obsolete custom-currency state.
-			if view.Spec.HasCustomCurrencyBillables() || currentView.Spec.HasCustomCurrencyBillables() {
-				subsView = &currentView
-			}
-		} else {
-			view, err := s.subscriptionService.GetView(ctx, subscriptionID)
-			if err != nil {
-				return nil, err
-			}
+			var subsView *subscription.SubscriptionView
+			if subs.IsDeleted() {
+				subsView = nil
+			} else if refOrView.Type() == SubscriptionReferenceTypeView {
+				view, err := refOrView.AsSubscriptionView()
+				if err != nil {
+					return nil, err
+				}
 
-			subsView = &view
-		}
+				subsView = &view
+				currentView, err := s.subscriptionService.GetView(ctx, subscriptionID)
+				if err != nil {
+					return nil, err
+				}
 
-		res := &synchronizeSubscriptionResult{
-			View:    subsView,
-			Deleted: subs.IsDeleted(),
-		}
+				// Currency definitions are runtime-only snapshots and are deliberately not
+				// serialized into subscription events. Reload custom-priced views before
+				// planning so billing has authoritative identity and precision, and so a
+				// delayed event cannot reconcile obsolete custom-currency state.
+				if view.Spec.HasCustomCurrencyBillables() || currentView.Spec.HasCustomCurrencyBillables() {
+					subsView = &currentView
+				}
+			} else {
+				view, err := s.subscriptionService.GetView(ctx, subscriptionID)
+				if err != nil {
+					return nil, err
+				}
 
-		customerID := customer.CustomerID{
-			Namespace: subs.Namespace,
-			ID:        subs.CustomerId,
-		}
-
-		var customerDeletedAt *time.Time
-		var subscriptionEndProrationMode billing.SubscriptionEndProrationMode
-		if subsView != nil && subsView.Spec.HasBillables() {
-			// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
-			// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-			customerOverride, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-				Customer: customerID,
-				Expand: billing.CustomerOverrideExpand{
-					Customer: true,
-				},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("getting billing profile: %w", err)
+				subsView = &view
 			}
 
-			if customerOverride.Customer != nil {
-				customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
+			res := &synchronizeSubscriptionResult{
+				View:    subsView,
+				Deleted: subs.IsDeleted(),
 			}
-			subscriptionEndProrationMode = customerOverride.MergedProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
 
-			if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
-				if options.DryRun {
+			var customerDeletedAt *time.Time
+			var subscriptionEndProrationMode billing.SubscriptionEndProrationMode
+			if subsView != nil && subsView.Spec.HasBillables() {
+				// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
+				// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
+				customerOverride, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+					Customer: customerID,
+					Expand: billing.CustomerOverrideExpand{
+						Customer: true,
+					},
+				})
+				if err != nil {
+					return nil, fmt.Errorf("getting billing profile: %w", err)
+				}
+
+				if customerOverride.Customer != nil {
+					customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
+				}
+				subscriptionEndProrationMode = customerOverride.MergedProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
+
+				if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
+					if options.DryRun {
+						return res, nil
+					}
+
+					if err := s.updateSyncState(ctx, updateSyncStateInput{
+						SubscriptionID: subscriptionID,
+						// Prevent deleted customers from continuing to be scheduled for sync.
+						PreventFurtherSyncs: true,
+					}); err != nil {
+						return nil, fmt.Errorf("updating sync state: %w", err)
+					}
+
+					s.logger.WarnContext(ctx, "customer deleted before subscription start, skipping sync", "subscription_id", subscriptionID.ID, "customer_id", customerID.ID)
 					return res, nil
 				}
-
-				if err := s.updateSyncState(ctx, updateSyncStateInput{
-					SubscriptionID: subscriptionID,
-					// Prevent deleted customers from continuing to be scheduled for sync.
-					PreventFurtherSyncs: true,
-				}); err != nil {
-					return nil, fmt.Errorf("updating sync state: %w", err)
-				}
-
-				s.logger.WarnContext(ctx, "customer deleted before subscription start, skipping sync", "subscription_id", subscriptionID.ID, "customer_id", customerID.ID)
-				return res, nil
 			}
-		}
 
-		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(subs.InvoiceCurrency).
-			Build()
-		if err != nil {
-			return nil, fmt.Errorf("getting currency calculator: %w", err)
-		}
+			cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+				WithCode(subs.InvoiceCurrency).
+				Build()
+			if err != nil {
+				return nil, fmt.Errorf("getting currency calculator: %w", err)
+			}
 
-		return withBillingLock(ctx, s, customer.CustomerID{
-			Namespace: subs.Namespace,
-			ID:        subs.CustomerId,
-		}, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
 			// Calculate per line patches
 			linesDiff, err := s.buildSyncPlan(ctx, buildSyncPlanInput{
 				Subscription:                 subs,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
@@ -163,10 +162,9 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+			return w.subscriptionSync.HandleSubscriptionChange(
 				ctx,
-				event.SubscriptionView,
-				time.Now(),
+				event.Subscription.NamespacedID,
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
@@ -188,10 +186,9 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+			return w.subscriptionSync.HandleSubscriptionChange(
 				ctx,
-				event.SubscriptionView,
-				time.Now(),
+				event.Subscription.NamespacedID,
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
@@ -199,10 +196,9 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+			return w.subscriptionSync.HandleSubscriptionChange(
 				ctx,
-				event.UpdatedView,
-				time.Now(),
+				event.UpdatedView.Subscription.NamespacedID,
 			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {

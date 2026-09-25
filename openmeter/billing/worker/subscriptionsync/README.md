@@ -12,9 +12,9 @@ advance invoice and payment lifecycles.
 ## Reconciliation model
 
 A sync is given a subscription reference or expanded view and an `asOf`
-horizon. It resolves the subscription, including deleted records, and the
-customer's billing profile before acquiring billing's customer lock. Under that
-lock it:
+horizon. It resolves the customer identity, then acquires billing's customer
+lock. Under that lock it reloads the subscription (including deleted records)
+and billing profile, then:
 
 1. loads the persisted invoice-line and charge state owned by that subscription
 2. builds the target billable periods from the resolved subscription view
@@ -24,8 +24,9 @@ lock it:
    reconciliation
 
 This is reconciliation, not event handling by side effect. Repeating the same
-sync must converge. Subscription events provide the prompt path, invoice
-creation triggers a refill of consumed future work, and the periodic reconciler
+sync must converge. Subscription lifecycle events prompt a sync from current
+subscription state, so delayed or reordered event snapshots cannot restore
+obsolete billing state. Invoice creation triggers a refill of consumed future work, and the periodic reconciler
 repairs missed or failed event processing.
 
 Invoice patches, charge patches, and the sync-state update share the billing
@@ -91,13 +92,9 @@ keeps its gathering line pending until the dependency is repaired.
 
 ## Deletion, cancellation, and retries
 
-Cancellation syncs through the subscription end so artifacts are shortened or
-removed according to the final desired periods. When a cancellation event's root
-`UpdatedAt` predates the current subscription, sync uses the current view and
-current cancellation end; a continued subscription needs no cancellation sync.
-Annotation writes can also advance the root timestamp, so age alone must not
-discard a still-valid cancellation. This timestamp is not a version for all child
-changes. A deleted subscription has no view and
+Cancellation syncs through the current subscription end so artifacts are shortened or
+removed according to the final desired periods. A delayed cancellation event
+after continuation reconciles the continued state. A deleted subscription has no view and
 therefore produces an empty target, asking reconciliation to remove its remaining
 owned artifacts subject to immutable-invoice rules. Cleanup must
 use an ID-based entrypoint because the normal subscription view lookup excludes

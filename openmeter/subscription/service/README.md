@@ -60,5 +60,5 @@ annotations intended for correlation, not persisted child IDs.
 - Custom item currencies must be resolved by the service before persistence;
   the materializer verifies that their managed identity belongs to the item
   namespace without loading currency state itself.
-- Events are published from the materialized view. Downstream consumers should
-  derive work from that committed view and tolerate delivery retries.
+- Events carry the materialized view, but asynchronous billing reconciliation
+  reloads current subscription state to tolerate reordered delivery and retries.

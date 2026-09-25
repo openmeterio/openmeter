@@ -13,54 +13,28 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// HandleCancelledEvent is a handler for the subscription cancel event, it will make sure that
-// we synchronize the
+// HandleSubscriptionChange treats a lifecycle event as a prompt to reconcile
+// current state. The current cancellation end is included in the sync horizon.
+func (s *Service) HandleSubscriptionChange(ctx context.Context, subscriptionID models.NamespacedID) error {
+	return s.synchronizeSubscriptionAndInvoiceCustomer(
+		ctx,
+		newSubscriptionReferenceOrView(subscriptionID),
+		syncHorizon{asOf: clock.Now(), includeCurrentEnd: true},
+	)
+}
+
 func (s *Service) HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error {
-	now := clock.Now()
-
-	// For canceled events, we skip the pre-sync invoice creation, as we don't want to create an invoice that we
-	// might need to change immediately after the sync.
-
+	if event == nil {
+		return nil
+	}
+	// Reconcile the current subscription even if a later continuation already
+	// committed. The event's timestamp and view are not a reliable version.
+	if err := s.HandleSubscriptionChange(ctx, event.Subscription.NamespacedID); err != nil {
+		return err
+	}
 	if event.Spec.ActiveTo == nil {
-		// Let's do one sync, just to make sure we have at least the new items lined up
-		err := s.synchronizeSubscriptionAndInvoiceCustomer(
-			ctx,
-			newSubscriptionReferenceOrView(event.SubscriptionView),
-			now,
-		)
-		if err != nil {
-			return err
-		}
-
 		return errors.New("active_to is required for canceled events")
 	}
-
-	current, err := s.getSubscription(ctx, event.Subscription.NamespacedID)
-	if err != nil {
-		return err
-	}
-
-	refOrView := newSubscriptionReferenceOrView(event.SubscriptionView)
-	asOf := *event.Spec.ActiveTo
-
-	// Cancellation and continuation update the root timestamp, but annotation
-	// writes can also advance it after cancellation (for example, plan changes).
-	// An older snapshot must use the current cancellation and horizon instead of
-	// dropping valid billing work or replaying obsolete subscription state.
-	if current.UpdatedAt.After(event.Subscription.UpdatedAt) {
-		if current.ActiveTo == nil {
-			return nil
-		}
-		refOrView = newSubscriptionReferenceOrView(current.NamespacedID)
-		asOf = *current.ActiveTo
-	}
-
-	// Let's sync up to the end of the subscription
-	err = s.synchronizeSubscriptionAndInvoiceCustomer(ctx, refOrView, asOf)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -94,7 +68,7 @@ func (s *Service) HandleInvoiceCreation(ctx context.Context, event *billing.Stan
 				Namespace: event.Invoice.Namespace,
 				ID:        subscriptionID,
 			}),
-			clock.Now(),
+			syncHorizon{asOf: clock.Now()},
 		); err != nil {
 			return fmt.Errorf("syncing subscription[%s]: %w", subscriptionID, err)
 		}
@@ -109,7 +83,7 @@ func (s *Service) HandleDeletedEvent(ctx context.Context, event *subscription.De
 	_, err := s.synchronizeSubscription(
 		ctx,
 		newSubscriptionReferenceOrView(event.Subscription.NamespacedID),
-		clock.Now(),
+		syncHorizon{asOf: clock.Now()},
 	)
 	return err
 }
