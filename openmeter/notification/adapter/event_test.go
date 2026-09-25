@@ -294,9 +294,9 @@ func TestListEvents_Filters(t *testing.T) {
 }
 
 // TestListEvents_AnnotationFilterOperators pins the JSONB predicate semantics of the
-// annotation-backed filters: pattern matching works against the stored text value, and
-// negated operators treat a missing annotation like a NULL column, so events without
-// the annotation never match.
+// annotation-backed filters: negated operators treat a missing annotation like a NULL
+// column, so events without the annotation never match, and operators the API cannot
+// produce are rejected instead of being silently ignored.
 func TestListEvents_AnnotationFilterOperators(t *testing.T) {
 	env := newEventTestEnv(t)
 	ns := ulid.Make().String()
@@ -318,11 +318,12 @@ func TestListEvents_AnnotationFilterOperators(t *testing.T) {
 		name    string
 		input   notification.ListEventsInput
 		wantIDs []string
+		wantErr bool
 	}{
 		{
-			name: "contains matches the annotation value case-insensitively",
+			name: "eq matches the annotation value",
 			input: notification.ListEventsInput{
-				SubjectKey: &filter.FilterString{Contains: lo.ToPtr("CUSTOMER")},
+				SubjectKey: &filter.FilterString{Eq: lo.ToPtr("customer-42")},
 			},
 			wantIDs: []string{annotated.ID},
 		},
@@ -333,6 +334,13 @@ func TestListEvents_AnnotationFilterOperators(t *testing.T) {
 			},
 			wantIDs: []string{other.ID},
 		},
+		{
+			name: "unsupported operator is rejected",
+			input: notification.ListEventsInput{
+				SubjectKey: &filter.FilterString{Contains: lo.ToPtr("CUSTOMER")},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -342,6 +350,10 @@ func TestListEvents_AnnotationFilterOperators(t *testing.T) {
 			input.Page = pagination.NewPage(1, 20)
 
 			result, err := env.adapter.ListEvents(t.Context(), input)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 
 			gotIDs := make([]string, 0, len(result.Items))

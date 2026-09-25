@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	eventdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
@@ -66,10 +68,11 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 			query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channelPreds...)))
 		}
 
-		query = filter.ApplyToQueryJSONB(query, params.SubjectKey, eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey)
-		query = filter.ApplyToQueryJSONB(query, params.SubjectID, eventdb.FieldAnnotations, notification.AnnotationEventSubjectID)
-		query = filter.ApplyToQueryJSONB(query, params.FeatureKey, eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey)
-		query = filter.ApplyToQueryJSONB(query, params.FeatureID, eventdb.FieldAnnotations, notification.AnnotationEventFeatureID)
+		annotationPreds, err := eventAnnotationPredicates(params)
+		if err != nil {
+			return pagination.Result[notification.Event]{}, err
+		}
+		query = query.Where(annotationPreds...)
 
 		if len(params.DeduplicationHashes) > 0 {
 			query = query.Where(
@@ -268,4 +271,43 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 	}
 
 	return entutils.TransactingRepo(ctx, a, fn)
+}
+
+// eventAnnotationPredicates builds the subject and feature predicates, which are
+// resolved against keys of the annotations JSONB column rather than real columns.
+func eventAnnotationPredicates(params notification.ListEventsInput) ([]predicate.NotificationEvent, error) {
+	var preds []predicate.NotificationEvent
+
+	add := func(p func(*sql.Selector), err error) error {
+		if err != nil {
+			return err
+		}
+		if p != nil {
+			preds = append(preds, p)
+		}
+		return nil
+	}
+
+	if params.SubjectKey != nil {
+		if err := add(entutils.JSONBFilterString(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, *params.SubjectKey)); err != nil {
+			return nil, err
+		}
+	}
+	if params.SubjectID != nil {
+		if err := add(entutils.JSONBFilterULID(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, *params.SubjectID)); err != nil {
+			return nil, err
+		}
+	}
+	if params.FeatureKey != nil {
+		if err := add(entutils.JSONBFilterString(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, *params.FeatureKey)); err != nil {
+			return nil, err
+		}
+	}
+	if params.FeatureID != nil {
+		if err := add(entutils.JSONBFilterULID(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, *params.FeatureID)); err != nil {
+			return nil, err
+		}
+	}
+
+	return preds, nil
 }
