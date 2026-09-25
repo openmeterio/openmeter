@@ -6,12 +6,9 @@ CREATE TABLE "event_outboxes" (
   "deleted_at" timestamptz NULL,
   "message_id" character varying NOT NULL,
   "topic" character varying NOT NULL,
-  "delivery_key" character varying NOT NULL,
   "payload" bytea NOT NULL,
   "metadata" jsonb NOT NULL,
   PRIMARY KEY ("id")
 );
--- create index "eventoutbox_topic_delivery_key_id" to table: "event_outboxes"
-CREATE INDEX "eventoutbox_topic_delivery_key_id" ON "event_outboxes" ("topic", "delivery_key", "id") WHERE (deleted_at IS NULL);
 -- create index "eventoutbox_topic_id" to table: "event_outboxes"
 CREATE INDEX "eventoutbox_topic_id" ON "event_outboxes" ("topic", "id") WHERE (deleted_at IS NULL);
