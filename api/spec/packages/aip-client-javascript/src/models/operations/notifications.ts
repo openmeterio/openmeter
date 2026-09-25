@@ -7,10 +7,14 @@ import type {
   CreateNotificationChannelRequestInput,
   ListNotificationChannelsParamsFilter,
   ListNotificationEventsParamsFilter,
+  ListNotificationRulesParamsFilter,
   NotificationChannel,
   NotificationChannelPagePaginatedResponse,
   NotificationEvent,
   NotificationEventPagePaginatedResponse,
+  NotificationRule,
+  NotificationRulePagePaginatedResponse,
+  NotificationRuleRequestInput,
   ResendNotificationEventRequest as ResendNotificationEventRequestBody,
   SortQueryInput,
   UpdateNotificationChannelRequestInput,
@@ -65,6 +69,63 @@ export type DeleteNotificationChannelRequest = {
   notificationChannelId: string
 }
 export type DeleteNotificationChannelResponse = void
+
+export interface ListNotificationRulesQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /**
+   * Sort notification rules returned in the response. Supported sort attributes are:
+   *
+   * - `id` (default)
+   * - `type`
+   * - `created_at`
+   * - `updated_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
+  sort?: SortQueryInput
+  /**
+   * Filter notification rules returned in the response.
+   *
+   * Examples:
+   *
+   * - `filter[type]=entitlements.balance.threshold`
+   * - `filter[disabled]=false`
+   * - `filter[channel_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV`
+   */
+  filter?: ListNotificationRulesParamsFilter
+}
+
+export type ListNotificationRulesRequest =
+  AcceptDateStrings<ListNotificationRulesQuery>
+export type ListNotificationRulesResponse =
+  NotificationRulePagePaginatedResponse
+
+export type CreateNotificationRuleRequest =
+  AcceptDateStrings<NotificationRuleRequestInput>
+export type CreateNotificationRuleResponse = NotificationRule
+
+export type GetNotificationRuleRequest = {
+  notificationRuleId: string
+}
+export type GetNotificationRuleResponse = NotificationRule
+
+export type UpdateNotificationRuleRequest = AcceptDateStrings<{
+  notificationRuleId: string
+  body: NotificationRuleRequestInput
+}>
+export type UpdateNotificationRuleResponse = NotificationRule
+
+export type DeleteNotificationRuleRequest = {
+  notificationRuleId: string
+}
+export type DeleteNotificationRuleResponse = void
+
+export type TestNotificationRuleRequest = {
+  notificationRuleId: string
+}
+export type TestNotificationRuleResponse = NotificationEvent
 
 export interface ListNotificationEventsQuery {
   /** Determines which page of the collection to retrieve. */

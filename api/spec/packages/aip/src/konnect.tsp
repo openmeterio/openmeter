@@ -231,6 +231,11 @@ interface EntitlementAccessEndpoints
 interface NotificationChannelsEndpoints
   extends Notifications.NotificationChannelOperations {}
 
+@route("/openmeter/notification/rules")
+@tag(Shared.NotificationsTag)
+interface NotificationRulesEndpoints
+  extends Notifications.NotificationRuleOperations {}
+
 @route("/openmeter/notification/events")
 @tag(Shared.NotificationsTag)
 interface NotificationEventsEndpoints

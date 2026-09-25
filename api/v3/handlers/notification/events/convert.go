@@ -10,7 +10,6 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -86,58 +85,6 @@ func ToAPIBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType
 	default:
 		return "", fmt.Errorf("invalid notification balance threshold type: %s", v)
 	}
-}
-
-// mapAPIEnumFilter rewrites the wire values of an exact-match filter into their domain
-// equivalents so the predicate matches what is actually stored in the column.
-// filters.FromAPIFilterStringExact and filters.FromAPIFilterULID always produce a single
-// flat *filter.FilterString for the operators this endpoint accepts (never And-wrapped),
-// so translating Eq and In covers every value that can reach the adapter.
-func mapAPIEnumFilter(f *filter.FilterString, mapValue func(string) (string, error)) (*filter.FilterString, error) {
-	if f == nil {
-		return nil, nil
-	}
-
-	mapped := *f
-
-	if f.Eq != nil {
-		v, err := mapValue(*f.Eq)
-		if err != nil {
-			return nil, err
-		}
-		mapped.Eq = lo.ToPtr(v)
-	}
-
-	if f.In != nil {
-		values := make([]string, 0, len(*f.In))
-		for _, raw := range *f.In {
-			v, err := mapValue(raw)
-			if err != nil {
-				return nil, err
-			}
-			values = append(values, v)
-		}
-		mapped.In = &values
-	}
-
-	return &mapped, nil
-}
-
-// requireExactFilter rejects operators the backing predicate cannot express faithfully.
-// The channel and delivery-state filters are existential joins, so a negated predicate
-// means "has some other channel/state as well" rather than "does not have this one".
-// A non-exact operator would return rows that do not answer the question that was
-// asked, so it fails loudly instead.
-func requireExactFilter(field string, f *filter.FilterString) error {
-	if f == nil || f.IsEmpty() {
-		return nil
-	}
-
-	if f.Eq != nil || f.In != nil {
-		return nil
-	}
-
-	return fmt.Errorf("filter[%s] only supports the eq and oeq operators", field)
 }
 
 // ToAPIEvent maps a domain Event to its v3 API representation.

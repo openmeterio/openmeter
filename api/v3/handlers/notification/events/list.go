@@ -140,7 +140,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	if err != nil {
 		return badRequest("filter[type]", err)
 	}
-	typeFilter, err = mapAPIEnumFilter(typeFilter, func(v string) (string, error) {
+	typeFilter, err = filters.MapValues(typeFilter, func(v string) (string, error) {
 		return v, notification.EventType(v).Validate()
 	})
 	if err != nil {
@@ -165,7 +165,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 		return badRequest("filter[channel_id]", err)
 	}
 	if channelID != nil {
-		if err := requireExactFilter("channel_id", &channelID.FilterString); err != nil {
+		if err := filters.RequireExact("channel_id", &channelID.FilterString); err != nil {
 			return badRequest("filter[channel_id]", err)
 		}
 		req.ChannelID = &channelID.FilterString
@@ -175,11 +175,11 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 	if err != nil {
 		return badRequest("filter[delivery_status]", err)
 	}
-	if err := requireExactFilter("delivery_status", deliveryStatus); err != nil {
+	if err := filters.RequireExact("delivery_status", deliveryStatus); err != nil {
 		return badRequest("filter[delivery_status]", err)
 	}
 	// The column stores the uppercase domain state ("FAILED"), not the wire value.
-	deliveryStatus, err = mapAPIEnumFilter(deliveryStatus, func(v string) (string, error) {
+	deliveryStatus, err = filters.MapValues(deliveryStatus, func(v string) (string, error) {
 		domain, err := ToDomainDeliveryState(api.NotificationEventDeliveryState(v))
 		return string(domain), err
 	})

@@ -351,6 +351,12 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Notifications.GetChannel` | `GET /openmeter/notification/channels/{notificationChannelId}` | Get a notification channel by id. |
 | `om.Notifications.UpdateChannel` | `PUT /openmeter/notification/channels/{notificationChannelId}` | Update a notification channel by id. |
 | `om.Notifications.DeleteChannel` | `DELETE /openmeter/notification/channels/{notificationChannelId}` | Delete a notification channel by id. |
+| `om.Notifications.ListRules` | `GET /openmeter/notification/rules` | List all notification rules. |
+| `om.Notifications.CreateRule` | `POST /openmeter/notification/rules` | Create a notification rule. |
+| `om.Notifications.GetRule` | `GET /openmeter/notification/rules/{notificationRuleId}` | Get a notification rule by id. |
+| `om.Notifications.UpdateRule` | `PUT /openmeter/notification/rules/{notificationRuleId}` | Update a notification rule by id. |
+| `om.Notifications.DeleteRule` | `DELETE /openmeter/notification/rules/{notificationRuleId}` | Delete a notification rule by id. |
+| `om.Notifications.TestRule` | `POST /openmeter/notification/rules/{notificationRuleId}/test` | Test a notification rule by generating an event with sample data and delivering it to the rule's channels. The test event is persisted and listed like any other event. |
 | `om.Notifications.ListEvents` | `GET /openmeter/notification/events` | List all notification events. |
 | `om.Notifications.GetEvent` | `GET /openmeter/notification/events/{notificationEventId}` | Get a notification event by id. |
 | `om.Notifications.ResendEvent` | `POST /openmeter/notification/events/{notificationEventId}/resend` | Resend a notification event to the channels of the rule that generated it. Delivery is asynchronous: the request marks the selected channels for redelivery and returns immediately. Channels whose delivery is still pending or already being resent are left untouched. |

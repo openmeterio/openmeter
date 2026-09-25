@@ -101,7 +101,11 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 				}
 				// Translate the wire-format type value(s) ("webhook") into the
 				// domain/DB value ("WEBHOOK") before this reaches the adapter.
-				typeFilter, err = mapAPIChannelTypeFilter(typeFilter)
+				typeFilter, err = filters.MapValues(typeFilter, func(v string) (string, error) {
+					domainType, err := ToDomainChannelType(api.NotificationChannelType(v))
+
+					return string(domainType), err
+				})
 				if err != nil {
 					return ListNotificationChannelsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{Field: "filter[type]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},

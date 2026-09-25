@@ -11,7 +11,6 @@ import (
 	v1api "github.com/openmeterio/openmeter/api"
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -121,74 +120,6 @@ func TestToAPIBalanceThresholdType(t *testing.T) {
 		_, err := ToAPIBalanceThresholdType(v1api.NotificationRuleBalanceThresholdValueType("nonsense"))
 		require.Error(t, err)
 	})
-}
-
-func TestMapAPIEnumFilter(t *testing.T) {
-	toDomainState := func(v string) (string, error) {
-		domain, err := ToDomainDeliveryState(api.NotificationEventDeliveryState(v))
-		return string(domain), err
-	}
-
-	t.Run("nil filter maps to nil", func(t *testing.T) {
-		got, err := mapAPIEnumFilter(nil, toDomainState)
-		require.NoError(t, err)
-		assert.Nil(t, got)
-	})
-
-	t.Run("eq is translated to the domain value", func(t *testing.T) {
-		got, err := mapAPIEnumFilter(&filter.FilterString{Eq: lo.ToPtr("failed")}, toDomainState)
-		require.NoError(t, err)
-		require.NotNil(t, got)
-		assert.Equal(t, "FAILED", lo.FromPtr(got.Eq))
-	})
-
-	t.Run("in translates every element", func(t *testing.T) {
-		got, err := mapAPIEnumFilter(&filter.FilterString{In: lo.ToPtr([]string{"failed", "pending"})}, toDomainState)
-		require.NoError(t, err)
-		require.NotNil(t, got)
-		assert.Equal(t, []string{"FAILED", "PENDING"}, lo.FromPtr(got.In))
-	})
-
-	t.Run("an unknown value fails the whole filter", func(t *testing.T) {
-		_, err := mapAPIEnumFilter(&filter.FilterString{In: lo.ToPtr([]string{"failed", "nonsense"})}, toDomainState)
-		require.Error(t, err)
-	})
-
-	t.Run("the input filter is not mutated", func(t *testing.T) {
-		in := &filter.FilterString{Eq: lo.ToPtr("failed")}
-		_, err := mapAPIEnumFilter(in, toDomainState)
-		require.NoError(t, err)
-		assert.Equal(t, "failed", lo.FromPtr(in.Eq))
-	})
-}
-
-func TestRequireExactFilter(t *testing.T) {
-	testCases := []struct {
-		name    string
-		in      *filter.FilterString
-		wantErr bool
-	}{
-		{name: "nil is allowed", in: nil},
-		{name: "empty is allowed", in: &filter.FilterString{}},
-		{name: "eq is allowed", in: &filter.FilterString{Eq: lo.ToPtr("a")}},
-		{name: "in is allowed", in: &filter.FilterString{In: lo.ToPtr([]string{"a", "b"})}},
-		{name: "neq is rejected", in: &filter.FilterString{Ne: lo.ToPtr("a")}, wantErr: true},
-		{name: "contains is rejected", in: &filter.FilterString{Contains: lo.ToPtr("a")}, wantErr: true},
-		{name: "exists is rejected", in: &filter.FilterString{Exists: lo.ToPtr(true)}, wantErr: true},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := requireExactFilter("channel_id", tc.in)
-			if tc.wantErr {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), "filter[channel_id]")
-				return
-			}
-
-			require.NoError(t, err)
-		})
-	}
 }
 
 func TestToAPIEvent_BalanceThreshold(t *testing.T) {

@@ -1,6 +1,8 @@
 package filters
 
 import (
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -383,5 +385,76 @@ func TestConvertFilterBoolean(t *testing.T) {
 		out, err := FromAPIFilterBoolean(nil)
 		require.NoError(t, err)
 		assert.Nil(t, out)
+	})
+}
+
+func TestRequireExact(t *testing.T) {
+	testCases := []struct {
+		name    string
+		in      *filter.FilterString
+		wantErr bool
+	}{
+		{name: "nil is allowed", in: nil},
+		{name: "empty is allowed", in: &filter.FilterString{}},
+		{name: "eq is allowed", in: &filter.FilterString{Eq: lo.ToPtr("a")}},
+		{name: "in is allowed", in: &filter.FilterString{In: lo.ToPtr([]string{"a", "b"})}},
+		{name: "neq is rejected", in: &filter.FilterString{Ne: lo.ToPtr("a")}, wantErr: true},
+		{name: "contains is rejected", in: &filter.FilterString{Contains: lo.ToPtr("a")}, wantErr: true},
+		{name: "exists is rejected", in: &filter.FilterString{Exists: lo.ToPtr(true)}, wantErr: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := RequireExact("channel_id", tc.in)
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "filter[channel_id]")
+
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestMapValues(t *testing.T) {
+	upper := func(v string) (string, error) {
+		if v == "nonsense" {
+			return "", errors.New("unknown value")
+		}
+
+		return strings.ToUpper(v), nil
+	}
+
+	t.Run("nil filter maps to nil", func(t *testing.T) {
+		got, err := MapValues(nil, upper)
+		require.NoError(t, err)
+		assert.Nil(t, got)
+	})
+
+	t.Run("eq, ne and in are translated", func(t *testing.T) {
+		got, err := MapValues(&filter.FilterString{
+			Eq: lo.ToPtr("failed"),
+			Ne: lo.ToPtr("pending"),
+			In: lo.ToPtr([]string{"failed", "pending"}),
+		}, upper)
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		assert.Equal(t, "FAILED", lo.FromPtr(got.Eq))
+		assert.Equal(t, "PENDING", lo.FromPtr(got.Ne))
+		assert.Equal(t, []string{"FAILED", "PENDING"}, lo.FromPtr(got.In))
+	})
+
+	t.Run("an unknown value fails the whole filter", func(t *testing.T) {
+		_, err := MapValues(&filter.FilterString{In: lo.ToPtr([]string{"failed", "nonsense"})}, upper)
+		require.Error(t, err)
+	})
+
+	t.Run("the input filter is not mutated", func(t *testing.T) {
+		in := &filter.FilterString{Eq: lo.ToPtr("failed")}
+		_, err := MapValues(in, upper)
+		require.NoError(t, err)
+		assert.Equal(t, "failed", lo.FromPtr(in.Eq))
 	})
 }

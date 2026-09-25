@@ -478,6 +478,323 @@ func (value NotificationEventType) Valid() bool {
 	}
 }
 
+// A notification rule selects the type of event to generate, the conditions
+// specific to that type, and the channels to deliver the events to.
+//
+// NotificationRule is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the NotificationRuleFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type NotificationRule struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *NotificationRule) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u NotificationRule) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u NotificationRule) AsNotificationRuleBalanceThreshold() (*NotificationRuleBalanceThreshold, error) {
+	if u.Type != "entitlements.balance.threshold" {
+		return nil, fmt.Errorf("NotificationRule: expected type %q, got %q", "entitlements.balance.threshold", u.Type)
+	}
+	var value NotificationRuleBalanceThreshold
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleFromNotificationRuleBalanceThreshold(value NotificationRuleBalanceThreshold) (NotificationRule, error) {
+	value.Type = "entitlements.balance.threshold"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRule{}, err
+	}
+	var result NotificationRule
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRule{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationRule) AsNotificationRuleEntitlementReset() (*NotificationRuleEntitlementReset, error) {
+	if u.Type != "entitlements.reset" {
+		return nil, fmt.Errorf("NotificationRule: expected type %q, got %q", "entitlements.reset", u.Type)
+	}
+	var value NotificationRuleEntitlementReset
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleFromNotificationRuleEntitlementReset(value NotificationRuleEntitlementReset) (NotificationRule, error) {
+	value.Type = "entitlements.reset"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRule{}, err
+	}
+	var result NotificationRule
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRule{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationRule) AsNotificationRuleInvoiceCreated() (*NotificationRuleInvoiceCreated, error) {
+	if u.Type != "invoice.created" {
+		return nil, fmt.Errorf("NotificationRule: expected type %q, got %q", "invoice.created", u.Type)
+	}
+	var value NotificationRuleInvoiceCreated
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleFromNotificationRuleInvoiceCreated(value NotificationRuleInvoiceCreated) (NotificationRule, error) {
+	value.Type = "invoice.created"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRule{}, err
+	}
+	var result NotificationRule
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRule{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationRule) AsNotificationRuleInvoiceUpdated() (*NotificationRuleInvoiceUpdated, error) {
+	if u.Type != "invoice.updated" {
+		return nil, fmt.Errorf("NotificationRule: expected type %q, got %q", "invoice.updated", u.Type)
+	}
+	var value NotificationRuleInvoiceUpdated
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleFromNotificationRuleInvoiceUpdated(value NotificationRuleInvoiceUpdated) (NotificationRule, error) {
+	value.Type = "invoice.updated"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRule{}, err
+	}
+	var result NotificationRule
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRule{}, err
+	}
+	return result, nil
+}
+
+// A rule that generates an event when an entitlement balance crosses one of its
+// thresholds.
+type NotificationRuleBalanceThreshold struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string            `json:"name"`
+	Labels map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+	// The thresholds that generate an event when crossed. Between 1 and 10 thresholds.
+	Thresholds []NotificationBalanceThreshold `json:"thresholds"`
+	// The features the rule applies to, by id or key. When omitted, the rule applies
+	// to every feature.
+	Features []string `json:"features,omitempty"`
+}
+
+// Request body for a balance threshold rule.
+type NotificationRuleBalanceThresholdRequest struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string             `json:"name"`
+	Labels *map[string]string `json:"labels,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+	// The thresholds that generate an event when crossed. Between 1 and 10 thresholds.
+	Thresholds []NotificationBalanceThreshold `json:"thresholds"`
+	// The features the rule applies to, by id or key. When omitted, the rule applies
+	// to every feature.
+	Features *[]string `json:"features,omitempty"`
+}
+
+// A rule that generates an event when an entitlement usage period is reset.
+type NotificationRuleEntitlementReset struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string            `json:"name"`
+	Labels map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+	// The features the rule applies to, by id or key. When omitted, the rule applies
+	// to every feature.
+	Features []string `json:"features,omitempty"`
+}
+
+// Request body for an entitlement reset rule.
+type NotificationRuleEntitlementResetRequest struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string             `json:"name"`
+	Labels *map[string]string `json:"labels,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+	// The features the rule applies to, by id or key. When omitted, the rule applies
+	// to every feature.
+	Features *[]string `json:"features,omitempty"`
+}
+
+// A rule that generates an event when an invoice is created.
+type NotificationRuleInvoiceCreated struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string            `json:"name"`
+	Labels map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+}
+
+// Request body for an invoice created rule.
+type NotificationRuleInvoiceCreatedRequest struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string             `json:"name"`
+	Labels *map[string]string `json:"labels,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+}
+
+// A rule that generates an event when an invoice is updated.
+type NotificationRuleInvoiceUpdated struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string            `json:"name"`
+	Labels map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+}
+
+// Request body for an invoice updated rule.
+type NotificationRuleInvoiceUpdatedRequest struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name   string             `json:"name"`
+	Labels *map[string]string `json:"labels,omitempty"`
+	// The type of event the rule generates. Immutable after creation.
+	Type NotificationEventType `json:"type"`
+	// Whether the rule is disabled. Disabled rules do not generate events.
+	Disabled *bool `json:"disabled,omitempty"`
+	// The channels the rule delivers its events to. At least one and at most five
+	// channels are required. Responses omit channels that have since been disabled or
+	// deleted.
+	ChannelIds []string `json:"channel_ids"`
+}
+
+// Page paginated response.
+type NotificationRulePagePaginatedResponse struct {
+	Data []NotificationRule `json:"data"`
+	Meta PaginatedMeta      `json:"meta"`
+}
+
 // A reference to the notification rule that generated an event.
 type NotificationRuleReference struct {
 	// The unique identifier of the rule.
@@ -486,6 +803,137 @@ type NotificationRuleReference struct {
 	Type NotificationEventType `json:"type"`
 	// The user-provided name of the rule.
 	Name string `json:"name"`
+}
+
+// Request body for creating or updating a notification rule. Updates replace the
+// rule's mutable state: omitting `disabled`, `labels`, or `features` resets them
+// to their defaults. The `type` must match the existing rule on update.
+//
+// NotificationRuleRequest is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the NotificationRuleRequestFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type NotificationRuleRequest struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *NotificationRuleRequest) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u NotificationRuleRequest) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u NotificationRuleRequest) AsNotificationRuleBalanceThresholdRequest() (*NotificationRuleBalanceThresholdRequest, error) {
+	if u.Type != "entitlements.balance.threshold" {
+		return nil, fmt.Errorf("NotificationRuleRequest: expected type %q, got %q", "entitlements.balance.threshold", u.Type)
+	}
+	var value NotificationRuleBalanceThresholdRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleRequestFromNotificationRuleBalanceThresholdRequest(value NotificationRuleBalanceThresholdRequest) (NotificationRuleRequest, error) {
+	value.Type = "entitlements.balance.threshold"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	var result NotificationRuleRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationRuleRequest) AsNotificationRuleEntitlementResetRequest() (*NotificationRuleEntitlementResetRequest, error) {
+	if u.Type != "entitlements.reset" {
+		return nil, fmt.Errorf("NotificationRuleRequest: expected type %q, got %q", "entitlements.reset", u.Type)
+	}
+	var value NotificationRuleEntitlementResetRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleRequestFromNotificationRuleEntitlementResetRequest(value NotificationRuleEntitlementResetRequest) (NotificationRuleRequest, error) {
+	value.Type = "entitlements.reset"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	var result NotificationRuleRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationRuleRequest) AsNotificationRuleInvoiceCreatedRequest() (*NotificationRuleInvoiceCreatedRequest, error) {
+	if u.Type != "invoice.created" {
+		return nil, fmt.Errorf("NotificationRuleRequest: expected type %q, got %q", "invoice.created", u.Type)
+	}
+	var value NotificationRuleInvoiceCreatedRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleRequestFromNotificationRuleInvoiceCreatedRequest(value NotificationRuleInvoiceCreatedRequest) (NotificationRuleRequest, error) {
+	value.Type = "invoice.created"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	var result NotificationRuleRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	return result, nil
+}
+
+func (u NotificationRuleRequest) AsNotificationRuleInvoiceUpdatedRequest() (*NotificationRuleInvoiceUpdatedRequest, error) {
+	if u.Type != "invoice.updated" {
+		return nil, fmt.Errorf("NotificationRuleRequest: expected type %q, got %q", "invoice.updated", u.Type)
+	}
+	var value NotificationRuleInvoiceUpdatedRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func NotificationRuleRequestFromNotificationRuleInvoiceUpdatedRequest(value NotificationRuleInvoiceUpdatedRequest) (NotificationRuleRequest, error) {
+	value.Type = "invoice.updated"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	var result NotificationRuleRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return NotificationRuleRequest{}, err
+	}
+	return result, nil
 }
 
 // Request body for resending a notification event.

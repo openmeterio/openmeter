@@ -3,6 +3,7 @@ package filters
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/samber/lo"
 
@@ -294,4 +295,68 @@ func FromAPIStatusFilter[T validator[T]](ctx context.Context, f *FilterStringExa
 	}
 
 	return statuses, nil
+}
+
+// RequireExact rejects operators other than eq and oeq. Existential edge filters
+// (such as "rules targeting this channel") cannot express negation faithfully: a
+// negated predicate would mean "has some other match as well" rather than "does not
+// match", so the request fails instead of returning rows that do not answer the
+// question asked.
+func RequireExact(field string, f *filter.FilterString) error {
+	if f == nil || f.IsEmpty() {
+		return nil
+	}
+
+	if f.Eq != nil || f.In != nil {
+		return nil
+	}
+
+	return fmt.Errorf("filter[%s] only supports the eq and oeq operators", field)
+}
+
+// MapValues rewrites the values of an exact-match filter, typically translating wire
+// enum values into what the column stores. FromAPIFilterStringExact and
+// FromAPIFilterULID always produce a single flat filter for exact operators (never
+// And-wrapped), so translating Eq, Ne, and In covers every value that can reach the
+// adapter. The input filter is not mutated.
+func MapValues(f *filter.FilterString, mapValue func(string) (string, error)) (*filter.FilterString, error) {
+	if f == nil {
+		return nil, nil
+	}
+
+	mapped := *f
+
+	if f.Eq != nil {
+		v, err := mapValue(*f.Eq)
+		if err != nil {
+			return nil, err
+		}
+
+		mapped.Eq = lo.ToPtr(v)
+	}
+
+	if f.Ne != nil {
+		v, err := mapValue(*f.Ne)
+		if err != nil {
+			return nil, err
+		}
+
+		mapped.Ne = lo.ToPtr(v)
+	}
+
+	if f.In != nil {
+		values := make([]string, 0, len(*f.In))
+		for _, raw := range *f.In {
+			v, err := mapValue(raw)
+			if err != nil {
+				return nil, err
+			}
+
+			values = append(values, v)
+		}
+
+		mapped.In = &values
+	}
+
+	return &mapped, nil
 }

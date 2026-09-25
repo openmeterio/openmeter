@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -157,48 +156,4 @@ func FromAPIUpdateChannelRequest(ns string, id string, body api.UpdateNotificati
 		Metadata:    ma.Metadata,
 		Annotations: ma.Annotations,
 	}, nil
-}
-
-// mapAPIChannelTypeFilter translates a Type filter's wire-format values ("webhook")
-// into the domain/DB value ("WEBHOOK") so filter[type][eq]=webhook actually matches
-// rows in the notification_channels table (the column stores the uppercase domain
-// value, not the wire value). filters.FromAPIFilterStringExact always produces a
-// single flat *filter.FilterString (never And-wrapped), so only Eq/Ne/In need
-// translating here.
-func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, error) {
-	if f == nil {
-		return nil, nil
-	}
-
-	mapped := *f
-
-	if f.Eq != nil {
-		v, err := ToDomainChannelType(api.NotificationChannelType(*f.Eq))
-		if err != nil {
-			return nil, err
-		}
-		mapped.Eq = lo.ToPtr(string(v))
-	}
-
-	if f.Ne != nil {
-		v, err := ToDomainChannelType(api.NotificationChannelType(*f.Ne))
-		if err != nil {
-			return nil, err
-		}
-		mapped.Ne = lo.ToPtr(string(v))
-	}
-
-	if f.In != nil {
-		values := make([]string, 0, len(*f.In))
-		for _, raw := range *f.In {
-			v, err := ToDomainChannelType(api.NotificationChannelType(raw))
-			if err != nil {
-				return nil, err
-			}
-			values = append(values, string(v))
-		}
-		mapped.In = &values
-	}
-
-	return &mapped, nil
 }

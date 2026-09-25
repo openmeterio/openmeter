@@ -8,6 +8,7 @@ import "../common/parameters.tsp";
 import "../shared/index.tsp";
 import "./channel.tsp";
 import "./event.tsp";
+import "./rule.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -133,6 +134,155 @@ interface NotificationChannelOperations {
   @extension(Shared.PrivateExtension, true)
   delete(@path notificationChannelId: Shared.ULID):
     | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
+}
+
+/**
+ * Filter options for listing notification rules.
+ */
+@friendlyName("ListNotificationRulesParamsFilter")
+model ListNotificationRulesParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  name?: Common.StringFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  type?: Common.StringFieldFilterExact;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  disabled?: Common.BooleanFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  created_at?: Common.DateTimeFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  updated_at?: Common.DateTimeFieldFilter;
+
+  /**
+   * Filter by an assigned channel. Matches rules that deliver to at least one of the
+   * given channels. Only `eq` and `oeq` are supported.
+   */
+  channel_id?: Common.ULIDFieldFilter;
+}
+
+interface NotificationRuleOperations {
+  /**
+   * List all notification rules.
+   */
+  @get
+  @operationId("list-notification-rules")
+  @summary("List notification rules")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  list(
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort notification rules returned in the response. Supported sort attributes are:
+     *
+     * - `id` (default)
+     * - `type`
+     * - `created_at`
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter notification rules returned in the response.
+     *
+     * Examples:
+     *
+     * - `filter[type]=entitlements.balance.threshold`
+     * - `filter[disabled]=false`
+     * - `filter[channel_id]=01ARZ3NDEKTSV4RRFFQ69G5FAV`
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListNotificationRulesParamsFilter,
+  ): Shared.PagePaginatedResponse<NotificationRule> | Common.ErrorResponses;
+
+  /**
+   * Create a notification rule.
+   */
+  @post
+  @operationId("create-notification-rule")
+  @summary("Create notification rule")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  create(
+    @body
+    rule: NotificationRuleRequest,
+  ): Shared.CreateResponse<NotificationRule> | Common.ErrorResponses;
+
+  /**
+   * Get a notification rule by id.
+   */
+  @get
+  @route("/{notificationRuleId}")
+  @operationId("get-notification-rule")
+  @summary("Get notification rule")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  get(@path notificationRuleId: Shared.ULID):
+    | Shared.GetResponse<NotificationRule>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Update a notification rule by id.
+   */
+  @put
+  @route("/{notificationRuleId}")
+  @operationId("update-notification-rule")
+  @summary("Update notification rule")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  update(
+    @path notificationRuleId: Shared.ULID,
+
+    @body
+    rule: NotificationRuleRequest,
+  ):
+    | Shared.UpdateResponse<NotificationRule>
+    | Common.NotFound
+    | Common.Conflict
+    | Common.ErrorResponses;
+
+  /**
+   * Delete a notification rule by id.
+   */
+  @delete
+  @route("/{notificationRuleId}")
+  @operationId("delete-notification-rule")
+  @summary("Delete notification rule")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  delete(@path notificationRuleId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Test a notification rule by generating an event with sample data and delivering
+   * it to the rule's channels. The test event is persisted and listed like any other
+   * event.
+   */
+  @post
+  @route("/{notificationRuleId}/test")
+  @operationId("test-notification-rule")
+  @summary("Test notification rule")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.RPCEndpointExtension, true)
+  test(@path notificationRuleId: Shared.ULID):
+    | Shared.CreateResponse<NotificationEvent>
     | Common.NotFound
     | Common.ErrorResponses;
 }

@@ -714,7 +714,33 @@ func (s *Server) DeleteNotificationChannel(w http.ResponseWriter, r *http.Reques
 	s.notificationChannelsHandler.DeleteNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
 }
 
-// Notification Events
+// Notification rules
+
+func (s *Server) ListNotificationRules(w http.ResponseWriter, r *http.Request, params api.ListNotificationRulesParams) {
+	s.notificationRulesHandler.ListNotificationRules().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) CreateNotificationRule(w http.ResponseWriter, r *http.Request) {
+	s.notificationRulesHandler.CreateNotificationRule().ServeHTTP(w, r)
+}
+
+func (s *Server) GetNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+	s.notificationRulesHandler.GetNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+	s.notificationRulesHandler.UpdateNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
+}
+
+func (s *Server) DeleteNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+	s.notificationRulesHandler.DeleteNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
+}
+
+func (s *Server) TestNotificationRule(w http.ResponseWriter, r *http.Request, notificationRuleId api.ULID) {
+	s.notificationRulesHandler.TestNotificationRule().With(notificationRuleId).ServeHTTP(w, r)
+}
+
+// Notification events
 
 func (s *Server) ListNotificationEvents(w http.ResponseWriter, r *http.Request, params api.ListNotificationEventsParams) {
 	s.notificationEventsHandler.ListNotificationEvents().With(params).ServeHTTP(w, r)
