@@ -676,15 +676,27 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
-/** Balance details of a metered entitlement. */
+/**
+ * Balance details of a metered entitlement at the evaluation time, which is the
+ * `at` query parameter when given and the current time otherwise.
+ */
 export interface EntitlementAccessValue {
-  /** The remaining balance of the entitlement in the current usage period. */
+  /**
+   * The remaining balance of the entitlement in the usage period at the evaluation
+   * time.
+   */
   balance: string
-  /** The usage recorded in the current usage period. */
+  /** The usage recorded in the usage period at the evaluation time. */
   usage: string
-  /** The usage exceeding the available balance in the current usage period. */
+  /**
+   * The usage exceeding the available balance in the usage period at the evaluation
+   * time.
+   */
   overage: string
-  /** The total amount granted and currently available to the entitlement. */
+  /**
+   * The total amount granted and available to the entitlement at the evaluation
+   * time.
+   */
   totalAvailableGrantAmount: string
   /** The remaining balance of each grant, keyed by grant ID. */
   grantBalances: Record<string, string>
@@ -1991,6 +2003,27 @@ export interface CustomerStripeCreateCustomerPortalSessionRequest {
   stripeOptions: AppStripeCreateCustomerPortalSessionOptions
 }
 
+/** Entitlement access check result. */
+export interface EntitlementAccessCheckResult {
+  /**
+   * Whether the customer has access to the feature. Always true for `boolean` and
+   * `static` entitlements. Depends on balance for `metered` entitlements.
+   */
+  hasAccess: boolean
+  /**
+   * Only available for static entitlements. Config is the JSON parsable
+   * configuration of the entitlement. Useful to describe per customer configuration.
+   */
+  config?: string
+  /**
+   * The type of the entitlement.
+   *
+   * If not provided, the feature has no entitlement defined (has access is always
+   * false in this case)
+   */
+  type?: 'metered' | 'static' | 'boolean'
+}
+
 /**
  * Recurring period input. The anchor is optional; the owning resource defines the
  * default, typically its creation time.
@@ -2703,8 +2736,8 @@ export interface CurrencyAmount {
   currency: BillingCurrencyCode
 }
 
-/** Entitlement access result. */
-export interface EntitlementAccessResult {
+/** Entitlement value result. */
+export interface EntitlementValueResult {
   /** The type of the entitlement. */
   type: 'metered' | 'static' | 'boolean'
   /** The feature key of the entitlement. */
@@ -2720,8 +2753,8 @@ export interface EntitlementAccessResult {
    */
   config?: string
   /**
-   * Only available for metered entitlements. The current balance details of the
-   * entitlement. Requires the `value` expand.
+   * Only available for metered entitlements. The balance details of the entitlement
+   * at the evaluation time. Requires the `value` expand.
    */
   value?: EntitlementAccessValue
 }
@@ -4386,7 +4419,7 @@ export interface ChargeFlatFeeSystemIntent {
 /** List customer entitlement access response data. */
 export interface ListCustomerEntitlementAccessResponseData {
   /** The list of entitlement access results. */
-  data: EntitlementAccessResult[]
+  data: EntitlementValueResult[]
 }
 
 /**

@@ -5,8 +5,9 @@ import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   Entitlement,
-  EntitlementAccessResult,
+  EntitlementAccessCheckResult,
   EntitlementPagePaginatedResponse,
+  EntitlementValueResult,
   ListCustomerEntitlementAccessResponseData,
   ListEntitlementsParamsFilter,
   SortQueryInput,
@@ -18,22 +19,11 @@ export type ListCustomerEntitlementAccessRequest = {
 export type ListCustomerEntitlementAccessResponse =
   ListCustomerEntitlementAccessResponseData
 
-export interface GetCustomerEntitlementAccessQuery {
-  /**
-   * Expand computed fields.
-   *
-   * Supported values are:
-   *
-   * - `value`: Expand the balance details of a metered entitlement; it sets the
-   * `value` field.
-   */
-  expand?: 'value'[]
+export type GetCustomerEntitlementAccessRequest = {
+  customerId: string
+  featureKey: string
 }
-
-export type GetCustomerEntitlementAccessRequest = AcceptDateStrings<
-  GetCustomerEntitlementAccessQuery & { customerId: string; featureKey: string }
->
-export type GetCustomerEntitlementAccessResponse = EntitlementAccessResult
+export type GetCustomerEntitlementAccessResponse = EntitlementAccessCheckResult
 
 export interface ListEntitlementsQuery {
   /** Determines which page of the collection to retrieve. */
@@ -64,3 +54,25 @@ export type GetEntitlementRequest = {
   entitlementId: string
 }
 export type GetEntitlementResponse = Entitlement
+
+export interface GetCustomerEntitlementValueQuery {
+  /**
+   * Expand computed fields.
+   *
+   * Supported values are:
+   *
+   * - `value`: Expand the balance details of a metered entitlement; it sets the
+   * `value` field.
+   */
+  expand?: 'value'[]
+  /** The point in time to evaluate the entitlement at. Defaults to the current time. */
+  at?: Date
+}
+
+export type GetCustomerEntitlementValueRequest = AcceptDateStrings<
+  GetCustomerEntitlementValueQuery & {
+    customerId: string
+    entitlementId: string
+  }
+>
+export type GetCustomerEntitlementValueResponse = EntitlementValueResult

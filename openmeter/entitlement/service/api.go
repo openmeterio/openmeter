@@ -29,11 +29,27 @@ func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitl
 		return entitlement.CustomerEntitlementAccess{}, err
 	}
 
-	value, err := c.GetEntitlementValue(ctx, cus.Namespace, cus.ID, input.FeatureKey, clock.Now())
+	ent, err := c.getAccessEntitlement(ctx, cus, input)
 	if err != nil {
+		return entitlement.CustomerEntitlementAccess{}, err
+	}
+
+	if ent == nil {
+		return entitlement.CustomerEntitlementAccess{
+			FeatureKey: input.FeatureKey,
+			Value:      &entitlement.NoAccessValue{},
+		}, nil
+	}
+
+	value, err := c.getEntitlementValueAt(ctx, ent, input.At)
+	if err != nil {
+		// The metered engine resolves the entitlement against the current time, so a
+		// feature-key lookup at a time before a metered entitlement's deletion cannot
+		// be evaluated and grants no access.
 		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 			return entitlement.CustomerEntitlementAccess{
-				FeatureKey: input.FeatureKey,
+				FeatureKey: ent.FeatureKey,
+				Type:       ent.EntitlementType,
 				Value:      &entitlement.NoAccessValue{},
 			}, nil
 		}
@@ -42,9 +58,35 @@ func (c *service) GetCustomerEntitlementAccess(ctx context.Context, input entitl
 	}
 
 	return entitlement.CustomerEntitlementAccess{
-		FeatureKey: input.FeatureKey,
+		FeatureKey: ent.FeatureKey,
+		Type:       ent.EntitlementType,
 		Value:      value,
 	}, nil
+}
+
+// getAccessEntitlement returns nil without an error when the feature key has no
+// active entitlement, since missing access is a valid answer for a feature lookup
+// but not for an entitlement ID.
+func (c *service) getAccessEntitlement(ctx context.Context, cus *customer.Customer, input entitlement.GetCustomerEntitlementAccessInput) (*entitlement.Entitlement, error) {
+	if input.EntitlementID == "" {
+		ent, err := c.entitlementRepo.GetActiveEntitlementOfCustomerAt(ctx, cus.Namespace, cus.ID, input.FeatureKey, input.At)
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return nil, nil
+		}
+
+		return ent, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, cus, input.EntitlementID)
+	if err != nil {
+		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+			return nil, models.NewGenericNotFoundError(err)
+		}
+
+		return nil, err
+	}
+
+	return ent, nil
 }
 
 func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entitlement.ListCustomerEntitlementAccessInput) ([]entitlement.CustomerEntitlementAccess, error) {
@@ -70,6 +112,7 @@ func (c *service) ListCustomerEntitlementAccess(ctx context.Context, input entit
 
 		items = append(items, entitlement.CustomerEntitlementAccess{
 			FeatureKey: featureKey,
+			Type:       ent.Type,
 			Value:      ent.Value,
 		})
 	}
@@ -260,7 +303,12 @@ func (c *service) GetCustomerEntitlementHistory(ctx context.Context, input entit
 		return entitlement.CustomerEntitlementHistory{}, err
 	}
 
-	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return entitlement.CustomerEntitlementHistory{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, cus, input.EntitlementID)
 	if err != nil {
 		return entitlement.CustomerEntitlementHistory{}, err
 	}
@@ -296,7 +344,12 @@ func (c *service) ListCustomerEntitlementGrants(ctx context.Context, input entit
 		return pagination.Result[grant.Grant]{}, err
 	}
 
-	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return pagination.Result[grant.Grant]{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, cus, input.EntitlementID)
 	if err != nil {
 		return pagination.Result[grant.Grant]{}, err
 	}
@@ -326,7 +379,12 @@ func (c *service) CreateCustomerEntitlementGrant(ctx context.Context, input enti
 		return grant.Grant{}, err
 	}
 
-	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return grant.Grant{}, err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, cus, input.EntitlementID)
 	if err != nil {
 		return grant.Grant{}, err
 	}
@@ -357,7 +415,12 @@ func (c *service) ResetCustomerEntitlementUsage(ctx context.Context, input entit
 		return err
 	}
 
-	ent, err := c.getCustomerEntitlement(ctx, input.CustomerID, input.EntitlementID)
+	cus, err := c.getActiveCustomer(ctx, input.CustomerID)
+	if err != nil {
+		return err
+	}
+
+	ent, err := c.getCustomerEntitlement(ctx, cus, input.EntitlementID)
 	if err != nil {
 		return err
 	}
@@ -384,12 +447,7 @@ func (c *service) ResetCustomerEntitlementUsage(ctx context.Context, input entit
 // getCustomerEntitlement resolves an entitlement addressed through its customer.
 // An entitlement owned by another customer is reported as not found so the
 // customer scope does not reveal it.
-func (c *service) getCustomerEntitlement(ctx context.Context, customerID customer.CustomerID, entitlementID string) (*entitlement.Entitlement, error) {
-	cus, err := c.getActiveCustomer(ctx, customerID)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *service) getCustomerEntitlement(ctx context.Context, cus *customer.Customer, entitlementID string) (*entitlement.Entitlement, error) {
 	id := models.NamespacedID{Namespace: cus.Namespace, ID: entitlementID}
 
 	ent, err := c.entitlementRepo.GetEntitlement(ctx, id)

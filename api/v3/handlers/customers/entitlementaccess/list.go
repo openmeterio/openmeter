@@ -42,7 +42,7 @@ func (h *handler) ListCustomerEntitlementAccess() ListCustomerEntitlementAccessH
 				return ListCustomerEntitlementAccessResponse{}, err
 			}
 
-			data, err := lo.MapErr(items, func(item entitlement.CustomerEntitlementAccess, _ int) (api.BillingEntitlementAccessResult, error) {
+			data, err := lo.MapErr(items, func(item entitlement.CustomerEntitlementAccess, _ int) (api.BillingEntitlementValueResult, error) {
 				return mapEntitlementAccessToAPI(item)
 			})
 			if err != nil {

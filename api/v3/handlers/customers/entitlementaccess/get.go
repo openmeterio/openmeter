@@ -3,6 +3,7 @@ package customersentitlement
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -10,54 +11,57 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 type (
-	GetCustomerEntitlementAccessParams struct {
-		CustomerID api.ULID
-		FeatureKey api.ResourceKey
-		Params     api.GetCustomerEntitlementAccessParams
+	GetCustomerEntitlementValueParams struct {
+		CustomerID    api.ULID
+		EntitlementID string
+		Expand        []api.BillingEntitlementAccessExpand
+		At            *time.Time
 	}
-	GetCustomerEntitlementAccessResponse = api.BillingEntitlementAccessResult
-	GetCustomerEntitlementAccessHandler  httptransport.HandlerWithArgs[GetCustomerEntitlementAccessRequest, GetCustomerEntitlementAccessResponse, GetCustomerEntitlementAccessParams]
+	GetCustomerEntitlementValueResponse = api.BillingEntitlementValueResult
+	GetCustomerEntitlementValueHandler  httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueResponse, GetCustomerEntitlementValueParams]
 )
 
-type GetCustomerEntitlementAccessRequest struct {
+type GetCustomerEntitlementValueRequest struct {
 	entitlement.GetCustomerEntitlementAccessInput
 	Expands []api.BillingEntitlementAccessExpand
 }
 
-func (h *handler) GetCustomerEntitlementAccess() GetCustomerEntitlementAccessHandler {
+func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementAccessParams) (GetCustomerEntitlementAccessRequest, error) {
+		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementValueParams) (GetCustomerEntitlementValueRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return GetCustomerEntitlementAccessRequest{}, err
+				return GetCustomerEntitlementValueRequest{}, err
 			}
 
-			return GetCustomerEntitlementAccessRequest{
+			return GetCustomerEntitlementValueRequest{
 				CustomerID: customer.CustomerID{
 					Namespace: ns,
 					ID:        params.CustomerID,
 				},
-				FeatureKey: params.FeatureKey,
-				Expands:    lo.FromPtr(params.Params.Expand),
+				EntitlementID: params.EntitlementID,
+				At:            lo.FromPtrOr(params.At, clock.Now()),
+				Expands:       params.Expand,
 			}, nil
 		},
-		func(ctx context.Context, request GetCustomerEntitlementAccessRequest) (GetCustomerEntitlementAccessResponse, error) {
+		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request.GetCustomerEntitlementAccessInput)
 			if err != nil {
-				return GetCustomerEntitlementAccessResponse{}, err
+				return GetCustomerEntitlementValueResponse{}, err
 			}
 
 			return mapEntitlementAccessToAPI(access, request.Expands...)
 		},
-		commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementAccessResponse](http.StatusOK),
+		commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementValueResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("get-customer-entitlement-access"),
+			httptransport.WithOperationName("get-customer-entitlement-value"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

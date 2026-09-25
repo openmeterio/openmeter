@@ -1957,29 +1957,13 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ResourceKey'
-        - name: expand
-          in: query
-          required: false
-          description: |-
-            Expand computed fields.
-
-            Supported values are:
-
-            - `value`: Expand the balance details of a metered entitlement; it sets the
-            `value` field.
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/BillingEntitlementAccessExpand'
-          explode: false
-          style: form
       responses:
         '200':
-          description: EntitlementAccessResult response.
+          description: EntitlementAccessCheckResult response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingEntitlementAccessResult'
+                $ref: '#/components/schemas/BillingEntitlementAccessCheckResult'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2474,6 +2458,68 @@ paths:
             schema:
               $ref: '#/components/schemas/ResetCustomerEntitlementUsageRequest'
       x-rpc-endpoint: true
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/customers/{customerId}/entitlements/{entitlementId}/value:
+    get:
+      operationId: get-customer-entitlement-value
+      summary: Get customer entitlement value
+      description: |-
+        Get the customer's access through a single entitlement, optionally evaluated at
+        a point in time.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: entitlementId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: expand
+          in: query
+          required: false
+          description: |-
+            Expand computed fields.
+
+            Supported values are:
+
+            - `value`: Expand the balance details of a metered entitlement; it sets the
+            `value` field.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingEntitlementAccessExpand'
+          explode: false
+          style: form
+        - name: at
+          in: query
+          required: false
+          description: The point in time to evaluate the entitlement at. Defaults to the current time.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: EntitlementValueResult response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingEntitlementValueResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
       x-private: true
       x-internal: true
       x-unstable: true
@@ -8234,37 +8280,11 @@ components:
           static: '#/components/schemas/BillingEntitlementStatic'
           boolean: '#/components/schemas/BillingEntitlementBoolean'
       description: An entitlement grants a customer access to a feature.
-    BillingEntitlementAccessExpand:
-      type: string
-      enum:
-        - value
-      description: |-
-        Expands for customer entitlement access.
-
-        Values:
-
-        - `value`: The balance details of a metered entitlement; it sets the `value`
-        field.
-      title: Customer entitlement access expands
-    BillingEntitlementAccessResult:
+    BillingEntitlementAccessCheckResult:
       type: object
       required:
-        - type
-        - feature_key
         - has_access
       properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingEntitlementType'
-          description: The type of the entitlement.
-          example: static
-          readOnly: true
-        feature_key:
-          allOf:
-            - $ref: '#/components/schemas/ResourceKey'
-          description: The feature key of the entitlement.
-          example: available_models
-          readOnly: true
         has_access:
           type: boolean
           description: |-
@@ -8279,15 +8299,29 @@ components:
             configuration of the entitlement. Useful to describe per customer configuration.
           example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
           readOnly: true
-        value:
+        type:
           allOf:
-            - $ref: '#/components/schemas/BillingEntitlementAccessValue'
+            - $ref: '#/components/schemas/BillingEntitlementType'
           description: |-
-            Only available for metered entitlements. The current balance details of the
-            entitlement. Requires the `value` expand.
+            The type of the entitlement.
+
+            If not provided, the feature has no entitlement defined (has access is always
+            false in this case)
           readOnly: true
       additionalProperties: false
-      description: Entitlement access result.
+      description: Entitlement access check result.
+    BillingEntitlementAccessExpand:
+      type: string
+      enum:
+        - value
+      description: |-
+        Expands for customer entitlement access.
+
+        Values:
+
+        - `value`: The balance details of a metered entitlement; it sets the `value`
+        field.
+      title: Customer entitlement access expands
     BillingEntitlementAccessValue:
       type: object
       required:
@@ -8300,22 +8334,28 @@ components:
         balance:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The remaining balance of the entitlement in the current usage period.
+          description: |-
+            The remaining balance of the entitlement in the usage period at the evaluation
+            time.
           readOnly: true
         usage:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The usage recorded in the current usage period.
+          description: The usage recorded in the usage period at the evaluation time.
           readOnly: true
         overage:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The usage exceeding the available balance in the current usage period.
+          description: |-
+            The usage exceeding the available balance in the usage period at the evaluation
+            time.
           readOnly: true
         total_available_grant_amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The total amount granted and currently available to the entitlement.
+          description: |-
+            The total amount granted and available to the entitlement at the evaluation
+            time.
           readOnly: true
         grant_balances:
           type: object
@@ -8324,7 +8364,9 @@ components:
           description: The remaining balance of each grant, keyed by grant ID.
           readOnly: true
       additionalProperties: false
-      description: Balance details of a metered entitlement.
+      description: |-
+        Balance details of a metered entitlement at the evaluation time, which is the
+        `at` query parameter when given and the current time otherwise.
       example:
         balance: '100'
         usage: '50'
@@ -9060,6 +9102,48 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
+    BillingEntitlementValueResult:
+      type: object
+      required:
+        - type
+        - feature_key
+        - has_access
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementType'
+          description: The type of the entitlement.
+          example: static
+          readOnly: true
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The feature key of the entitlement.
+          example: available_models
+          readOnly: true
+        has_access:
+          type: boolean
+          description: |-
+            Whether the customer has access to the feature. Always true for `boolean` and
+            `static` entitlements. Depends on balance for `metered` entitlements.
+          example: true
+          readOnly: true
+        config:
+          type: string
+          description: |-
+            Only available for static entitlements. Config is the JSON parsable
+            configuration of the entitlement. Useful to describe per customer configuration.
+          example: '{ "availableModels": ["gpt-5", "gpt-4o"] }'
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingEntitlementAccessValue'
+          description: |-
+            Only available for metered entitlements. The balance details of the entitlement
+            at the evaluation time. Requires the `value` expand.
+          readOnly: true
+      additionalProperties: false
+      description: Entitlement value result.
     BillingFeatureLLMTokenType:
       type: string
       enum:
@@ -15579,7 +15663,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/BillingEntitlementAccessResult'
+            $ref: '#/components/schemas/BillingEntitlementValueResult'
           description: The list of entitlement access results.
           readOnly: true
       additionalProperties: false

@@ -29,14 +29,22 @@ type CustomerEntitlementAccessAPIService interface {
 	ListCustomerEntitlementAccess(ctx context.Context, input ListCustomerEntitlementAccessInput) ([]CustomerEntitlementAccess, error)
 }
 
+// CustomerEntitlementAccess carries the entitlement type separately from the
+// value because an inactive entitlement yields a NoAccessValue that no longer
+// identifies its type.
 type CustomerEntitlementAccess struct {
 	FeatureKey string
+	Type       EntitlementType
 	Value      EntitlementValue
 }
 
+// GetCustomerEntitlementAccessInput addresses the entitlement by exactly one of
+// FeatureKey or EntitlementID.
 type GetCustomerEntitlementAccessInput struct {
-	CustomerID customer.CustomerID
-	FeatureKey string
+	CustomerID    customer.CustomerID
+	FeatureKey    string
+	EntitlementID string
+	At            time.Time
 }
 
 func (i GetCustomerEntitlementAccessInput) Validate() error {
@@ -46,8 +54,12 @@ func (i GetCustomerEntitlementAccessInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	if i.FeatureKey == "" {
-		errs = append(errs, errors.New("feature key is required"))
+	if (i.FeatureKey == "") == (i.EntitlementID == "") {
+		errs = append(errs, errors.New("exactly one of feature key or entitlement ID is required"))
+	}
+
+	if i.At.IsZero() {
+		errs = append(errs, errors.New("at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

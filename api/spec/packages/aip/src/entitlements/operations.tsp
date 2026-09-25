@@ -32,7 +32,7 @@ model ListCustomerEntitlementAccessResponseData {
    * The list of entitlement access results.
    */
   @visibility(Lifecycle.Read)
-  data: EntitlementAccessResult[];
+  data: EntitlementValueResult[];
 }
 
 interface CustomerEntitlementsOperations {
@@ -54,22 +54,8 @@ interface CustomerEntitlementsOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.InternalExtension, true)
-  get(
-    @path customerId: Shared.ULID,
-    @path featureKey: Shared.ResourceKey,
-
-    /**
-     * Expand computed fields.
-     *
-     * Supported values are:
-     *
-     * - `value`: Expand the balance details of a metered entitlement; it sets the
-     *   `value` field.
-     */
-    @query(#{ explode: false })
-    expand?: EntitlementAccessExpand[],
-  ):
-    | Shared.GetResponse<EntitlementAccessResult>
+  get(@path customerId: Shared.ULID, @path featureKey: Shared.ResourceKey):
+    | Shared.GetResponse<EntitlementAccessCheckResult>
     | Common.NotFound
     | Common.ErrorResponses;
 }
@@ -138,6 +124,44 @@ interface EntitlementsOperations {
   @summary("Get entitlement")
   get(@path entitlementId: Shared.ULID):
     | Shared.GetResponse<Customers.Entitlement>
+    | Common.NotFound
+    | Common.ErrorResponses;
+}
+
+interface CustomerEntitlementValueOperations {
+  /**
+   * Get the customer's access through a single entitlement, optionally evaluated at
+   * a point in time.
+   */
+  @get
+  @route("/{entitlementId}/value")
+  @operationId("get-customer-entitlement-value")
+  @summary("Get customer entitlement value")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  get(
+    @path customerId: Shared.ULID,
+    @path entitlementId: Shared.ULID,
+
+    /**
+     * Expand computed fields.
+     *
+     * Supported values are:
+     *
+     * - `value`: Expand the balance details of a metered entitlement; it sets the
+     *   `value` field.
+     */
+    @query(#{ explode: false })
+    expand?: EntitlementAccessExpand[],
+
+    /**
+     * The point in time to evaluate the entitlement at. Defaults to the current time.
+     */
+    @query
+    at?: Shared.DateTime,
+  ):
+    | Shared.GetResponse<EntitlementValueResult>
     | Common.NotFound
     | Common.ErrorResponses;
 }

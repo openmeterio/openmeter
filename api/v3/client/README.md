@@ -195,6 +195,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Entitlements.GetCustomerAccess` | `GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}` | Get the customer's access to a single feature. |
 | `om.Entitlements.List` | `GET /openmeter/entitlements` | List the active entitlements of all customers. Intended for administrative use. To list the entitlements of a single customer, use the customer entitlements endpoints; to check entitlement access, use the entitlement access endpoints. |
 | `om.Entitlements.Get` | `GET /openmeter/entitlements/{entitlementId}` | Get an entitlement by ID. To check entitlement access, use the entitlement access endpoints instead. |
+| `om.Entitlements.GetCustomerValue` | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value` | Get the customer's access through a single entitlement, optionally evaluated at a point in time. |
 
 ### Subscriptions
 
