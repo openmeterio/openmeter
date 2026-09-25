@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // CreateDefault creates a default billing profile for the installed app based on its type.
@@ -33,8 +34,7 @@ func CreateDefault(ctx context.Context, billingService billing.Service, stripeAp
 			app.CapabilityTypeCollectPayments,
 		}, nil
 	case app.AppTypeCustomInvoicing:
-		// TODO: Implement custom invoicing billing profile creation
-		return nil, nil
+		return nil, models.NewGenericValidationError(app.ErrCustomInvoicingAutoProvisioningUnsupported)
 	default:
 		return nil, fmt.Errorf("unknown app type: %s", installedApp.GetType())
 	}

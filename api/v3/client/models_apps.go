@@ -339,6 +339,8 @@ type InstallAppExternalInvoicing struct {
 	Name string `json:"name"`
 	// If true, a billing profile will be created for the app. The Stripe app will be
 	// also set as the default billing profile if the current default is a Sandbox app.
+	// Automatic billing profile creation is not supported for External Invoicing apps.
+	// Set this to false and create a profile separately.
 	CreateBillingProfile bool `json:"create_billing_profile"`
 }
 
@@ -461,6 +463,8 @@ type InstallAppSandbox struct {
 	Name string `json:"name"`
 	// If true, a billing profile will be created for the app. The Stripe app will be
 	// also set as the default billing profile if the current default is a Sandbox app.
+	// Automatic billing profile creation is not supported for External Invoicing apps.
+	// Set this to false and create a profile separately.
 	CreateBillingProfile bool `json:"create_billing_profile"`
 }
 
@@ -472,6 +476,8 @@ type InstallAppStripeWithAPIKey struct {
 	Name string `json:"name"`
 	// If true, a billing profile will be created for the app. The Stripe app will be
 	// also set as the default billing profile if the current default is a Sandbox app.
+	// Automatic billing profile creation is not supported for External Invoicing apps.
+	// Set this to false and create a profile separately.
 	CreateBillingProfile bool `json:"create_billing_profile"`
 	// API key for the app.
 	APIKey string `json:"api_key"`

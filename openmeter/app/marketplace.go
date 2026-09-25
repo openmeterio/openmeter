@@ -150,6 +150,8 @@ type InstallAppV3Input struct {
 	CreateDefaultBillingProfileFn func(ctx context.Context, installedApp App) ([]CapabilityType, error)
 }
 
+var ErrCustomInvoicingAutoProvisioningUnsupported = errors.New("automatic billing profile provisioning is not supported for custom invoicing apps")
+
 func (i InstallAppV3Input) Validate() error {
 	var errs []error
 	if err := i.MarketplaceListingID.Validate(); err != nil {
@@ -162,6 +164,9 @@ func (i InstallAppV3Input) Validate() error {
 
 	if i.APIKey != nil && *i.APIKey == "" {
 		errs = append(errs, errors.New("api key is required"))
+	}
+	if i.CreateDefaultBillingProfile && i.Type == AppTypeCustomInvoicing {
+		errs = append(errs, ErrCustomInvoicingAutoProvisioningUnsupported)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

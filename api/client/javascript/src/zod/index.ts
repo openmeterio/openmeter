@@ -8814,7 +8814,7 @@ export const MarketplaceAppInstallBody = zod
       .boolean()
       .default(marketplaceAppInstallBodyCreateBillingProfileDefault)
       .describe(
-        'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+        'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.\nAutomatic billing profile creation is not supported for Custom Invoicing apps.\nSet this to false and create a profile separately.',
       ),
     name: zod.coerce
       .string()
@@ -8847,7 +8847,7 @@ export const MarketplaceAppAPIKeyInstallBody = zod.object({
     .boolean()
     .default(marketplaceAppAPIKeyInstallBodyCreateBillingProfileDefault)
     .describe(
-      'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      'If true, a billing profile will be created for the app.\nThe Stripe app will be also set as the default billing profile if the current default is a Sandbox app.\nAutomatic billing profile creation is not supported for Custom Invoicing apps.\nSet this to false and create a profile separately.',
     ),
   name: zod.coerce
     .string()
