@@ -109,18 +109,8 @@ export function getCustomerEntitlementAccess(
       }
       return encodeURIComponent(String(pathParams.featureKey))
     })()}`
-    const query = toWire(
-      {
-        expand: req.expand,
-      },
-      schemas.getCustomerEntitlementAccessQueryParams,
-    )
-    if (client._options.validate) {
-      assertValid(schemas.getCustomerEntitlementAccessQueryParamsWire, query)
-    }
-    const searchParams = toURLSearchParams(query)
     return http(client)
-      .get(path, { ...options, searchParams })
+      .get(path, options)
       .json()
       .then((data) => {
         if (client._options.validate) {
