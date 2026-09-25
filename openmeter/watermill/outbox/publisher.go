@@ -25,9 +25,10 @@ type Config struct {
 	Publisher message.Publisher
 
 	// OutboxTopics lists topics persisted before delivery; all others publish directly.
-	OutboxTopics     []string
-	Logger           *slog.Logger
-	DrainLimit       int
+	OutboxTopics []string
+	Logger       *slog.Logger
+	DrainLimit   int
+	// DrainTimeout is a soft budget checked before sends; in-flight work can finish.
 	DrainTimeout     time.Duration
 	DrainConcurrency int
 	RetryInterval    time.Duration
@@ -156,9 +157,7 @@ func (p *Publisher) run() {
 		case <-p.wake:
 		case <-ticker.C:
 		}
-		ctx, cancel := context.WithTimeout(p.ctx, p.cfg.DrainTimeout)
-		err := p.drain(ctx)
-		cancel()
+		err := p.drain(p.ctx)
 		if err != nil && p.ctx.Err() == nil {
 			p.cfg.Logger.WarnContext(p.ctx, "system event outbox drain encountered errors", "error", err)
 		}
@@ -166,11 +165,12 @@ func (p *Publisher) run() {
 }
 
 func (p *Publisher) drain(ctx context.Context) error {
+	deadline := time.Now().Add(p.cfg.DrainTimeout)
 	var failedTransactions []string
 	var errs []error
 	progressed := false
 	attempted := 0
-	for attempted < p.cfg.DrainLimit {
+	for attempted < p.cfg.DrainLimit && time.Now().Before(deadline) {
 		var transactionID string
 		var publishErr error
 		var exhausted []string
@@ -208,6 +208,14 @@ func (p *Publisher) drain(ctx context.Context) error {
 				return err
 			}
 			for _, row := range rows {
+				// End the pass without canceling its transaction: acknowledged
+				// deletions and failed-attempt counts must still be committed.
+				if !time.Now().Before(deadline) {
+					break
+				}
+				if err := ctx.Err(); err != nil {
+					return err
+				}
 				attempted++
 				msg := message.NewMessage(row.MessageID, row.Payload)
 				msg.Metadata = message.Metadata(row.Metadata)
@@ -254,8 +262,8 @@ func (p *Publisher) drain(ctx context.Context) error {
 			return errors.Join(errs...)
 		}
 	}
-	// Check the message budget between source transactions, never midway through
-	// a successful batch. Continue productive work whose wakeups were coalesced.
+	// Continue after a message/time budget yielded productive work, including a
+	// committed prefix whose remaining siblings must be claimed on the next pass.
 	if progressed {
 		p.signal()
 	}

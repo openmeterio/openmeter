@@ -46,8 +46,9 @@ func (c EventsConfiguration) Validate() error {
 }
 
 type OutboxConfiguration struct {
-	MaxAttempts      int
-	DrainLimit       int
+	MaxAttempts int
+	DrainLimit  int
+	// DrainTimeout limits starting new sends, not finishing in-flight work.
 	DrainTimeout     time.Duration
 	DrainConcurrency int
 	RetryInterval    time.Duration
