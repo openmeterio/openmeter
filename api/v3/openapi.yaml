@@ -16130,6 +16130,31 @@ components:
           readOnly: true
       additionalProperties: false
       description: Event validation errors.
+    NotificationBalanceThreshold:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/NotificationBalanceThresholdType'
+          description: What the threshold value is measured against.
+        value:
+          type: number
+          format: double
+          description: The threshold value.
+      additionalProperties: false
+      description: |-
+        A balance threshold of a notification rule. Crossing it generates an
+        `entitlements.balance.threshold` event.
+    NotificationBalanceThresholdType:
+      type: string
+      enum:
+        - balance_value
+        - usage_percentage
+        - usage_value
+      description: What a balance threshold is measured against.
     NotificationChannel:
       type: object
       required:
@@ -16273,24 +16298,6 @@ components:
         A notification event records that a notification rule fired and tracks the
         delivery of its payload to each channel of the rule. Events are created by the
         system and cannot be modified.
-    NotificationEventBalanceThreshold:
-      type: object
-      required:
-        - type
-        - value
-      properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/NotificationEventBalanceThresholdType'
-          description: What the threshold value is measured against.
-          readOnly: true
-        value:
-          type: number
-          format: double
-          description: The threshold value that was crossed.
-          readOnly: true
-      additionalProperties: false
-      description: The threshold that the entitlement balance crossed.
     NotificationEventBalanceThresholdData:
       type: object
       required:
@@ -16326,7 +16333,7 @@ components:
           readOnly: true
         threshold:
           allOf:
-            - $ref: '#/components/schemas/NotificationEventBalanceThreshold'
+            - $ref: '#/components/schemas/NotificationBalanceThreshold'
           description: The threshold the balance crossed.
           readOnly: true
       additionalProperties: false
@@ -16362,13 +16369,6 @@ components:
           readOnly: true
       additionalProperties: false
       description: A balance threshold notification event payload.
-    NotificationEventBalanceThresholdType:
-      type: string
-      enum:
-        - balance_value
-        - usage_percentage
-        - usage_value
-      description: What a balance threshold is measured against.
     NotificationEventDeliveryAttempt:
       type: object
       required:

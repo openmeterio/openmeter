@@ -2680,11 +2680,14 @@ export interface NotificationEventDeliveryAttempt {
   timestamp: Date
 }
 
-/** The threshold that the entitlement balance crossed. */
-export interface NotificationEventBalanceThreshold {
+/**
+ * A balance threshold of a notification rule. Crossing it generates an
+ * `entitlements.balance.threshold` event.
+ */
+export interface NotificationBalanceThreshold {
   /** What the threshold value is measured against. */
   type: 'balance_value' | 'usage_percentage' | 'usage_value'
-  /** The threshold value that was crossed. */
+  /** The threshold value. */
   value: number
 }
 
@@ -4447,7 +4450,7 @@ export interface NotificationEventBalanceThresholdData {
   /** The entitlement balance at the time the event was generated. */
   value: NotificationEventEntitlementValue
   /** The threshold the balance crossed. */
-  threshold: NotificationEventBalanceThreshold
+  threshold: NotificationBalanceThreshold
 }
 
 /** Billing customer data. */

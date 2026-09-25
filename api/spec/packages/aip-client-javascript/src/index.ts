@@ -247,7 +247,7 @@ export type {
   NotificationChannel,
   NotificationRuleReference,
   NotificationEventDeliveryAttempt,
-  NotificationEventBalanceThreshold,
+  NotificationBalanceThreshold,
   AppCustomerData,
   UpsertAppCustomerDataRequest,
   CreditAdjustment,

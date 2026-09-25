@@ -1,4 +1,5 @@
 import "../shared/index.tsp";
+import "./rule.tsp";
 
 namespace Notifications;
 
@@ -271,45 +272,6 @@ model NotificationEventEntitlementData {
 }
 
 /**
- * What a balance threshold is measured against.
- */
-@friendlyName("NotificationEventBalanceThresholdType")
-enum NotificationEventBalanceThresholdType {
-  /**
-   * The remaining balance in the current usage period.
-   */
-  BalanceValue: "balance_value",
-
-  /**
-   * The usage as a percentage of the total grants in the current usage period.
-   */
-  UsagePercentage: "usage_percentage",
-
-  /**
-   * The usage value in the current usage period.
-   */
-  UsageValue: "usage_value",
-}
-
-/**
- * The threshold that the entitlement balance crossed.
- */
-@friendlyName("NotificationEventBalanceThreshold")
-model NotificationEventBalanceThreshold {
-  /**
-   * What the threshold value is measured against.
-   */
-  @visibility(Lifecycle.Read)
-  type: NotificationEventBalanceThresholdType;
-
-  /**
-   * The threshold value that was crossed.
-   */
-  @visibility(Lifecycle.Read)
-  value: float64;
-}
-
-/**
  * The entities and threshold a balance threshold event refers to.
  */
 @friendlyName("NotificationEventBalanceThresholdData")
@@ -320,7 +282,7 @@ model NotificationEventBalanceThresholdData {
    * The threshold the balance crossed.
    */
   @visibility(Lifecycle.Read)
-  threshold: NotificationEventBalanceThreshold;
+  threshold: NotificationBalanceThreshold;
 }
 
 /**

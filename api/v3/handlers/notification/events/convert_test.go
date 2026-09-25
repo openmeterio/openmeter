@@ -100,13 +100,13 @@ func TestDeliveryStateCasing(t *testing.T) {
 func TestToAPIBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
 		in   v1api.NotificationRuleBalanceThresholdValueType
-		want api.NotificationEventBalanceThresholdType
+		want api.NotificationBalanceThresholdType
 	}{
-		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.NotificationEventBalanceThresholdTypeBalanceValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationEventBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.NotificationEventBalanceThresholdTypeUsageValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.NotificationEventBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.NotificationEventBalanceThresholdTypeUsageValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.NotificationBalanceThresholdTypeBalanceValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationBalanceThresholdTypeUsagePercentage},
+		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.NotificationBalanceThresholdTypeUsageValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.NotificationBalanceThresholdTypeUsagePercentage},
+		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.NotificationBalanceThresholdTypeUsageValue},
 	}
 
 	for _, tc := range testCases {
@@ -249,7 +249,7 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAZ", lo.FromPtr(payload.Data.CustomerId))
 	assert.True(t, payload.Data.Value.HasAccess)
 	assert.Equal(t, 100.0, lo.FromPtr(payload.Data.Value.Balance))
-	assert.Equal(t, api.NotificationEventBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
+	assert.Equal(t, api.NotificationBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
 	assert.Equal(t, 90.0, payload.Data.Threshold.Value)
 }
 
