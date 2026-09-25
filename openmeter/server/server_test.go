@@ -938,10 +938,6 @@ func (n NoopChargeService) CreatePendingInvoiceLines(_ context.Context, _ billin
 	return nil, nil
 }
 
-func (n NoopChargeService) UpdateSubscriptionItemID(_ context.Context, charge billingcharges.Charge, _ string) (billingcharges.Charge, error) {
-	return charge, nil
-}
-
 func (n NoopChargeService) AdvanceCharges(_ context.Context, _ billingcharges.AdvanceChargesInput) (billingcharges.Charges, error) {
 	return nil, nil
 }

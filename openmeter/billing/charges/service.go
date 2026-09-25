@@ -33,8 +33,6 @@ type ChargeService interface {
 	GetByIDs(ctx context.Context, input GetByIDsInput) (Charges, error)
 	Create(ctx context.Context, input CreateInput) (Charges, error)
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
-	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
-
 	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
 	ListCustomersToAdvance(ctx context.Context, input ListCustomersToAdvanceInput) (pagination.Result[customer.CustomerID], error)
 	// ApplyPatches currently returns no affected-charge payload. If exact post-apply

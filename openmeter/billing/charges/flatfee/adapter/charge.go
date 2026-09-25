@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	dbchargeflatfeeoverride "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -116,52 +115,6 @@ func (a *adapter) UpdateSubscriptionReference(ctx context.Context, input meta.Up
 			tx.db.ChargeFlatFee.Update(),
 			input,
 		)
-	})
-}
-
-func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.Charge, newSubscriptionItemID string) (flatfee.Charge, error) {
-	if err := charge.ManagedModel.Validate(); err != nil {
-		return flatfee.Charge{}, err
-	}
-
-	if err := charge.Validate(); err != nil {
-		return flatfee.Charge{}, err
-	}
-
-	if newSubscriptionItemID == "" {
-		return flatfee.Charge{}, fmt.Errorf("subscription item ID is required")
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
-		// TODO: make subscription_item_id immutable again once subscription edits
-		// no longer recreate the item ID for logical item updates.
-		updatedChargeBase, err := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
-			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
-			SetSubscriptionItemID(newSubscriptionItemID).
-			Save(ctx)
-		if err != nil {
-			return flatfee.Charge{}, err
-		}
-
-		override, err := tx.db.ChargeFlatFeeOverride.Query().
-			Where(dbchargeflatfeeoverride.NamespaceEQ(charge.Namespace)).
-			Where(dbchargeflatfeeoverride.ChargeIDEQ(charge.ID)).
-			Only(ctx)
-		if err != nil && !db.IsNotFound(err) {
-			return flatfee.Charge{}, err
-		}
-
-		updatedChargeBase.Edges.IntentOverride = override
-		if err := tx.loadCostBasisEdge(ctx, updatedChargeBase); err != nil {
-			return flatfee.Charge{}, err
-		}
-		mappedChargeBase, err := fromDBBaseWithCurrency(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
-		if err != nil {
-			return flatfee.Charge{}, err
-		}
-		charge.ChargeBase = mappedChargeBase
-
-		return charge, nil
 	})
 }
 

@@ -26,9 +26,6 @@ type FlatFeeService interface {
 	// GetByID loads one flat-fee charge. Effective behavior may come from an
 	// override layer, while subscription sync should compare the base intent.
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
-	// UpdateSubscriptionItemID repairs subscription ownership metadata on the
-	// base intent; it must not rewrite an active customer-facing override layer.
-	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 	// AdvanceCharge drives one charge until invoice patches are emitted or its
 	// lifecycle becomes stable. Callers must apply returned invoice patches
 	// before resuming when CanAdvance is true.
