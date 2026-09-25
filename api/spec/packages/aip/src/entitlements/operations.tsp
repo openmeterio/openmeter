@@ -54,10 +54,7 @@ interface CustomerEntitlementsOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.InternalExtension, true)
-  get(
-    @path customerId: Shared.ULID,
-    @path featureKey: Shared.ResourceKey,
-  ):
+  get(@path customerId: Shared.ULID, @path featureKey: Shared.ResourceKey):
     | Shared.GetResponse<EntitlementAccessCheckResult>
     | Common.NotFound
     | Common.ErrorResponses;
