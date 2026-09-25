@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -28,29 +27,24 @@ func (_u *EventOutboxUpdate) Where(ps ...predicate.EventOutbox) *EventOutboxUpda
 	return _u
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *EventOutboxUpdate) SetUpdatedAt(v time.Time) *EventOutboxUpdate {
-	_u.mutation.SetUpdatedAt(v)
+// SetAttempts sets the "attempts" field.
+func (_u *EventOutboxUpdate) SetAttempts(v int) *EventOutboxUpdate {
+	_u.mutation.ResetAttempts()
+	_u.mutation.SetAttempts(v)
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *EventOutboxUpdate) SetDeletedAt(v time.Time) *EventOutboxUpdate {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *EventOutboxUpdate) SetNillableDeletedAt(v *time.Time) *EventOutboxUpdate {
+// SetNillableAttempts sets the "attempts" field if the given value is not nil.
+func (_u *EventOutboxUpdate) SetNillableAttempts(v *int) *EventOutboxUpdate {
 	if v != nil {
-		_u.SetDeletedAt(*v)
+		_u.SetAttempts(*v)
 	}
 	return _u
 }
 
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *EventOutboxUpdate) ClearDeletedAt() *EventOutboxUpdate {
-	_u.mutation.ClearDeletedAt()
+// AddAttempts adds value to the "attempts" field.
+func (_u *EventOutboxUpdate) AddAttempts(v int) *EventOutboxUpdate {
+	_u.mutation.AddAttempts(v)
 	return _u
 }
 
@@ -61,7 +55,6 @@ func (_u *EventOutboxUpdate) Mutation() *EventOutboxMutation {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *EventOutboxUpdate) Save(ctx context.Context) (int, error) {
-	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -87,15 +80,20 @@ func (_u *EventOutboxUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// defaults sets the default values of the builder before save.
-func (_u *EventOutboxUpdate) defaults() {
-	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := eventoutbox.UpdateDefaultUpdatedAt()
-		_u.mutation.SetUpdatedAt(v)
+// check runs all checks and user-defined validators on the builder.
+func (_u *EventOutboxUpdate) check() error {
+	if v, ok := _u.mutation.Attempts(); ok {
+		if err := eventoutbox.AttemptsValidator(v); err != nil {
+			return &ValidationError{Name: "attempts", err: fmt.Errorf(`db: validator failed for field "EventOutbox.attempts": %w`, err)}
+		}
 	}
+	return nil
 }
 
 func (_u *EventOutboxUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(eventoutbox.Table, eventoutbox.Columns, sqlgraph.NewFieldSpec(eventoutbox.FieldID, field.TypeInt64))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -104,14 +102,11 @@ func (_u *EventOutboxUpdate) sqlSave(ctx context.Context) (_node int, err error)
 			}
 		}
 	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(eventoutbox.FieldUpdatedAt, field.TypeTime, value)
+	if value, ok := _u.mutation.Attempts(); ok {
+		_spec.SetField(eventoutbox.FieldAttempts, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(eventoutbox.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(eventoutbox.FieldDeletedAt, field.TypeTime)
+	if value, ok := _u.mutation.AddedAttempts(); ok {
+		_spec.AddField(eventoutbox.FieldAttempts, field.TypeInt, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -133,29 +128,24 @@ type EventOutboxUpdateOne struct {
 	mutation *EventOutboxMutation
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *EventOutboxUpdateOne) SetUpdatedAt(v time.Time) *EventOutboxUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
+// SetAttempts sets the "attempts" field.
+func (_u *EventOutboxUpdateOne) SetAttempts(v int) *EventOutboxUpdateOne {
+	_u.mutation.ResetAttempts()
+	_u.mutation.SetAttempts(v)
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *EventOutboxUpdateOne) SetDeletedAt(v time.Time) *EventOutboxUpdateOne {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *EventOutboxUpdateOne) SetNillableDeletedAt(v *time.Time) *EventOutboxUpdateOne {
+// SetNillableAttempts sets the "attempts" field if the given value is not nil.
+func (_u *EventOutboxUpdateOne) SetNillableAttempts(v *int) *EventOutboxUpdateOne {
 	if v != nil {
-		_u.SetDeletedAt(*v)
+		_u.SetAttempts(*v)
 	}
 	return _u
 }
 
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *EventOutboxUpdateOne) ClearDeletedAt() *EventOutboxUpdateOne {
-	_u.mutation.ClearDeletedAt()
+// AddAttempts adds value to the "attempts" field.
+func (_u *EventOutboxUpdateOne) AddAttempts(v int) *EventOutboxUpdateOne {
+	_u.mutation.AddAttempts(v)
 	return _u
 }
 
@@ -179,7 +169,6 @@ func (_u *EventOutboxUpdateOne) Select(field string, fields ...string) *EventOut
 
 // Save executes the query and returns the updated EventOutbox entity.
 func (_u *EventOutboxUpdateOne) Save(ctx context.Context) (*EventOutbox, error) {
-	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -205,15 +194,20 @@ func (_u *EventOutboxUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// defaults sets the default values of the builder before save.
-func (_u *EventOutboxUpdateOne) defaults() {
-	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := eventoutbox.UpdateDefaultUpdatedAt()
-		_u.mutation.SetUpdatedAt(v)
+// check runs all checks and user-defined validators on the builder.
+func (_u *EventOutboxUpdateOne) check() error {
+	if v, ok := _u.mutation.Attempts(); ok {
+		if err := eventoutbox.AttemptsValidator(v); err != nil {
+			return &ValidationError{Name: "attempts", err: fmt.Errorf(`db: validator failed for field "EventOutbox.attempts": %w`, err)}
+		}
 	}
+	return nil
 }
 
 func (_u *EventOutboxUpdateOne) sqlSave(ctx context.Context) (_node *EventOutbox, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(eventoutbox.Table, eventoutbox.Columns, sqlgraph.NewFieldSpec(eventoutbox.FieldID, field.TypeInt64))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -239,14 +233,11 @@ func (_u *EventOutboxUpdateOne) sqlSave(ctx context.Context) (_node *EventOutbox
 			}
 		}
 	}
-	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(eventoutbox.FieldUpdatedAt, field.TypeTime, value)
+	if value, ok := _u.mutation.Attempts(); ok {
+		_spec.SetField(eventoutbox.FieldAttempts, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(eventoutbox.FieldDeletedAt, field.TypeTime, value)
-	}
-	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(eventoutbox.FieldDeletedAt, field.TypeTime)
+	if value, ok := _u.mutation.AddedAttempts(); ok {
+		_spec.AddField(eventoutbox.FieldAttempts, field.TypeInt, value)
 	}
 	_node = &EventOutbox{config: _u.config}
 	_spec.Assign = _node.assignValues

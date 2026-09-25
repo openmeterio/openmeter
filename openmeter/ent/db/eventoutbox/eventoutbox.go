@@ -16,12 +16,12 @@ const (
 	FieldID = "id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
-	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
-	FieldUpdatedAt = "updated_at"
-	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
-	FieldDeletedAt = "deleted_at"
 	// FieldMessageID holds the string denoting the message_id field in the database.
 	FieldMessageID = "message_id"
+	// FieldTransactionID holds the string denoting the transaction_id field in the database.
+	FieldTransactionID = "transaction_id"
+	// FieldAttempts holds the string denoting the attempts field in the database.
+	FieldAttempts = "attempts"
 	// FieldTopic holds the string denoting the topic field in the database.
 	FieldTopic = "topic"
 	// FieldPayload holds the string denoting the payload field in the database.
@@ -36,9 +36,9 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
-	FieldUpdatedAt,
-	FieldDeletedAt,
 	FieldMessageID,
+	FieldTransactionID,
+	FieldAttempts,
 	FieldTopic,
 	FieldPayload,
 	FieldMetadata,
@@ -57,12 +57,14 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
-	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
-	DefaultUpdatedAt func() time.Time
-	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
-	UpdateDefaultUpdatedAt func() time.Time
 	// MessageIDValidator is a validator for the "message_id" field. It is called by the builders before save.
 	MessageIDValidator func(string) error
+	// TransactionIDValidator is a validator for the "transaction_id" field. It is called by the builders before save.
+	TransactionIDValidator func(string) error
+	// DefaultAttempts holds the default value on creation for the "attempts" field.
+	DefaultAttempts int
+	// AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
+	AttemptsValidator func(int) error
 	// TopicValidator is a validator for the "topic" field. It is called by the builders before save.
 	TopicValidator func(string) error
 	// ValueScanner of all EventOutbox fields.
@@ -84,19 +86,19 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
 }
 
-// ByUpdatedAt orders the results by the updated_at field.
-func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
-}
-
-// ByDeletedAt orders the results by the deleted_at field.
-func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
-}
-
 // ByMessageID orders the results by the message_id field.
 func ByMessageID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMessageID, opts...).ToFunc()
+}
+
+// ByTransactionID orders the results by the transaction_id field.
+func ByTransactionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTransactionID, opts...).ToFunc()
+}
+
+// ByAttempts orders the results by the attempts field.
+func ByAttempts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAttempts, opts...).ToFunc()
 }
 
 // ByTopic orders the results by the topic field.

@@ -46,6 +46,7 @@ func (c EventsConfiguration) Validate() error {
 }
 
 type OutboxConfiguration struct {
+	MaxAttempts      int
 	DrainLimit       int
 	DrainTimeout     time.Duration
 	DrainConcurrency int
@@ -54,6 +55,9 @@ type OutboxConfiguration struct {
 
 func (c OutboxConfiguration) Validate() error {
 	var errs []error
+	if c.MaxAttempts <= 0 {
+		errs = append(errs, errors.New("max attempts must be greater than 0"))
+	}
 	if c.DrainLimit <= 0 {
 		errs = append(errs, errors.New("drain limit must be greater than 0"))
 	}
@@ -262,6 +266,7 @@ func ConfigureEvents(v *viper.Viper) {
 	v.SetDefault("events.outbox.drainTimeout", 30*time.Second)
 	v.SetDefault("events.outbox.drainConcurrency", 2)
 	v.SetDefault("events.outbox.retryInterval", time.Minute)
+	v.SetDefault("events.outbox.maxAttempts", 10)
 
 	v.SetDefault("events.ingestEvents.topic", "om_sys.ingest_events")
 	v.SetDefault("events.ingestEvents.autoProvision.enabled", true)

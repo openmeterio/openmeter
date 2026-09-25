@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"entgo.io/ent/dialect"
+	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -46,6 +47,7 @@ type TxHijacker interface {
 
 func NewTxDriver(driver Transactable, cfg *RawEntConfig) *TxDriver {
 	return &TxDriver{
+		id:     ulid.Make().String(),
 		driver: driver,
 		cfg:    cfg,
 	}
@@ -106,6 +108,7 @@ func (c *txCallbacks) RollbackTo(stage txSavepoint) {
 }
 
 type TxDriver struct {
+	id     string
 	driver Transactable
 	// db.config is nominally different but structurally identical for all generations of entgo,
 	// so we represent it as an interface{} here
@@ -122,6 +125,11 @@ type TxDriver struct {
 }
 
 var _ transaction.Driver = &TxDriver{}
+
+// ID identifies the outer transaction. Nested savepoints share this identity.
+func (t *TxDriver) ID() string {
+	return t.id
+}
 
 func (t *TxDriver) GetConfig() *RawEntConfig {
 	return t.cfg

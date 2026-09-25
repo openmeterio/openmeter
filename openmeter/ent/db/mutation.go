@@ -91047,20 +91047,21 @@ func (m *EntitlementMutation) ResetEdge(name string) error {
 // EventOutboxMutation represents an operation that mutates the EventOutbox nodes in the graph.
 type EventOutboxMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int64
-	created_at    *time.Time
-	updated_at    *time.Time
-	deleted_at    *time.Time
-	message_id    *string
-	topic         *string
-	payload       *[]byte
-	metadata      *map[string]string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*EventOutbox, error)
-	predicates    []predicate.EventOutbox
+	op             Op
+	typ            string
+	id             *int64
+	created_at     *time.Time
+	message_id     *string
+	transaction_id *string
+	attempts       *int
+	addattempts    *int
+	topic          *string
+	payload        *[]byte
+	metadata       *map[string]string
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*EventOutbox, error)
+	predicates     []predicate.EventOutbox
 }
 
 var _ ent.Mutation = (*EventOutboxMutation)(nil)
@@ -91203,91 +91204,6 @@ func (m *EventOutboxMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (m *EventOutboxMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *EventOutboxMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the EventOutbox entity.
-// If the EventOutbox object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventOutboxMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *EventOutboxMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (m *EventOutboxMutation) SetDeletedAt(t time.Time) {
-	m.deleted_at = &t
-}
-
-// DeletedAt returns the value of the "deleted_at" field in the mutation.
-func (m *EventOutboxMutation) DeletedAt() (r time.Time, exists bool) {
-	v := m.deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDeletedAt returns the old "deleted_at" field's value of the EventOutbox entity.
-// If the EventOutbox object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventOutboxMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
-	}
-	return oldValue.DeletedAt, nil
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (m *EventOutboxMutation) ClearDeletedAt() {
-	m.deleted_at = nil
-	m.clearedFields[eventoutbox.FieldDeletedAt] = struct{}{}
-}
-
-// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
-func (m *EventOutboxMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[eventoutbox.FieldDeletedAt]
-	return ok
-}
-
-// ResetDeletedAt resets all changes to the "deleted_at" field.
-func (m *EventOutboxMutation) ResetDeletedAt() {
-	m.deleted_at = nil
-	delete(m.clearedFields, eventoutbox.FieldDeletedAt)
-}
-
 // SetMessageID sets the "message_id" field.
 func (m *EventOutboxMutation) SetMessageID(s string) {
 	m.message_id = &s
@@ -91322,6 +91238,98 @@ func (m *EventOutboxMutation) OldMessageID(ctx context.Context) (v string, err e
 // ResetMessageID resets all changes to the "message_id" field.
 func (m *EventOutboxMutation) ResetMessageID() {
 	m.message_id = nil
+}
+
+// SetTransactionID sets the "transaction_id" field.
+func (m *EventOutboxMutation) SetTransactionID(s string) {
+	m.transaction_id = &s
+}
+
+// TransactionID returns the value of the "transaction_id" field in the mutation.
+func (m *EventOutboxMutation) TransactionID() (r string, exists bool) {
+	v := m.transaction_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTransactionID returns the old "transaction_id" field's value of the EventOutbox entity.
+// If the EventOutbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EventOutboxMutation) OldTransactionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTransactionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTransactionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTransactionID: %w", err)
+	}
+	return oldValue.TransactionID, nil
+}
+
+// ResetTransactionID resets all changes to the "transaction_id" field.
+func (m *EventOutboxMutation) ResetTransactionID() {
+	m.transaction_id = nil
+}
+
+// SetAttempts sets the "attempts" field.
+func (m *EventOutboxMutation) SetAttempts(i int) {
+	m.attempts = &i
+	m.addattempts = nil
+}
+
+// Attempts returns the value of the "attempts" field in the mutation.
+func (m *EventOutboxMutation) Attempts() (r int, exists bool) {
+	v := m.attempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttempts returns the old "attempts" field's value of the EventOutbox entity.
+// If the EventOutbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EventOutboxMutation) OldAttempts(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttempts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttempts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttempts: %w", err)
+	}
+	return oldValue.Attempts, nil
+}
+
+// AddAttempts adds i to the "attempts" field.
+func (m *EventOutboxMutation) AddAttempts(i int) {
+	if m.addattempts != nil {
+		*m.addattempts += i
+	} else {
+		m.addattempts = &i
+	}
+}
+
+// AddedAttempts returns the value that was added to the "attempts" field in this mutation.
+func (m *EventOutboxMutation) AddedAttempts() (r int, exists bool) {
+	v := m.addattempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAttempts resets all changes to the "attempts" field.
+func (m *EventOutboxMutation) ResetAttempts() {
+	m.attempts = nil
+	m.addattempts = nil
 }
 
 // SetTopic sets the "topic" field.
@@ -91470,14 +91478,14 @@ func (m *EventOutboxMutation) Fields() []string {
 	if m.created_at != nil {
 		fields = append(fields, eventoutbox.FieldCreatedAt)
 	}
-	if m.updated_at != nil {
-		fields = append(fields, eventoutbox.FieldUpdatedAt)
-	}
-	if m.deleted_at != nil {
-		fields = append(fields, eventoutbox.FieldDeletedAt)
-	}
 	if m.message_id != nil {
 		fields = append(fields, eventoutbox.FieldMessageID)
+	}
+	if m.transaction_id != nil {
+		fields = append(fields, eventoutbox.FieldTransactionID)
+	}
+	if m.attempts != nil {
+		fields = append(fields, eventoutbox.FieldAttempts)
 	}
 	if m.topic != nil {
 		fields = append(fields, eventoutbox.FieldTopic)
@@ -91498,12 +91506,12 @@ func (m *EventOutboxMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case eventoutbox.FieldCreatedAt:
 		return m.CreatedAt()
-	case eventoutbox.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case eventoutbox.FieldDeletedAt:
-		return m.DeletedAt()
 	case eventoutbox.FieldMessageID:
 		return m.MessageID()
+	case eventoutbox.FieldTransactionID:
+		return m.TransactionID()
+	case eventoutbox.FieldAttempts:
+		return m.Attempts()
 	case eventoutbox.FieldTopic:
 		return m.Topic()
 	case eventoutbox.FieldPayload:
@@ -91521,12 +91529,12 @@ func (m *EventOutboxMutation) OldField(ctx context.Context, name string) (ent.Va
 	switch name {
 	case eventoutbox.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case eventoutbox.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case eventoutbox.FieldDeletedAt:
-		return m.OldDeletedAt(ctx)
 	case eventoutbox.FieldMessageID:
 		return m.OldMessageID(ctx)
+	case eventoutbox.FieldTransactionID:
+		return m.OldTransactionID(ctx)
+	case eventoutbox.FieldAttempts:
+		return m.OldAttempts(ctx)
 	case eventoutbox.FieldTopic:
 		return m.OldTopic(ctx)
 	case eventoutbox.FieldPayload:
@@ -91549,26 +91557,26 @@ func (m *EventOutboxMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case eventoutbox.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case eventoutbox.FieldDeletedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDeletedAt(v)
-		return nil
 	case eventoutbox.FieldMessageID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMessageID(v)
+		return nil
+	case eventoutbox.FieldTransactionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTransactionID(v)
+		return nil
+	case eventoutbox.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttempts(v)
 		return nil
 	case eventoutbox.FieldTopic:
 		v, ok := value.(string)
@@ -91598,13 +91606,21 @@ func (m *EventOutboxMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *EventOutboxMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addattempts != nil {
+		fields = append(fields, eventoutbox.FieldAttempts)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *EventOutboxMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case eventoutbox.FieldAttempts:
+		return m.AddedAttempts()
+	}
 	return nil, false
 }
 
@@ -91613,6 +91629,13 @@ func (m *EventOutboxMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *EventOutboxMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case eventoutbox.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAttempts(v)
+		return nil
 	}
 	return fmt.Errorf("unknown EventOutbox numeric field %s", name)
 }
@@ -91620,11 +91643,7 @@ func (m *EventOutboxMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *EventOutboxMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(eventoutbox.FieldDeletedAt) {
-		fields = append(fields, eventoutbox.FieldDeletedAt)
-	}
-	return fields
+	return nil
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -91637,11 +91656,6 @@ func (m *EventOutboxMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *EventOutboxMutation) ClearField(name string) error {
-	switch name {
-	case eventoutbox.FieldDeletedAt:
-		m.ClearDeletedAt()
-		return nil
-	}
 	return fmt.Errorf("unknown EventOutbox nullable field %s", name)
 }
 
@@ -91652,14 +91666,14 @@ func (m *EventOutboxMutation) ResetField(name string) error {
 	case eventoutbox.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case eventoutbox.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case eventoutbox.FieldDeletedAt:
-		m.ResetDeletedAt()
-		return nil
 	case eventoutbox.FieldMessageID:
 		m.ResetMessageID()
+		return nil
+	case eventoutbox.FieldTransactionID:
+		m.ResetTransactionID()
+		return nil
+	case eventoutbox.FieldAttempts:
+		m.ResetAttempts()
 		return nil
 	case eventoutbox.FieldTopic:
 		m.ResetTopic()

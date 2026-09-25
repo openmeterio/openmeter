@@ -4894,20 +4894,6 @@ func (u *EntitlementUpdateOne) SetOrClearAnnotations(value *models.Annotations) 
 	return u.SetAnnotations(*value)
 }
 
-func (u *EventOutboxUpdate) SetOrClearDeletedAt(value *time.Time) *EventOutboxUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *EventOutboxUpdateOne) SetOrClearDeletedAt(value *time.Time) *EventOutboxUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
 func (u *FeatureUpdate) SetOrClearDeletedAt(value *time.Time) *FeatureUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

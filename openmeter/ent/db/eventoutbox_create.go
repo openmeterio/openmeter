@@ -36,37 +36,29 @@ func (_c *EventOutboxCreate) SetNillableCreatedAt(v *time.Time) *EventOutboxCrea
 	return _c
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (_c *EventOutboxCreate) SetUpdatedAt(v time.Time) *EventOutboxCreate {
-	_c.mutation.SetUpdatedAt(v)
-	return _c
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (_c *EventOutboxCreate) SetNillableUpdatedAt(v *time.Time) *EventOutboxCreate {
-	if v != nil {
-		_c.SetUpdatedAt(*v)
-	}
-	return _c
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (_c *EventOutboxCreate) SetDeletedAt(v time.Time) *EventOutboxCreate {
-	_c.mutation.SetDeletedAt(v)
-	return _c
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_c *EventOutboxCreate) SetNillableDeletedAt(v *time.Time) *EventOutboxCreate {
-	if v != nil {
-		_c.SetDeletedAt(*v)
-	}
-	return _c
-}
-
 // SetMessageID sets the "message_id" field.
 func (_c *EventOutboxCreate) SetMessageID(v string) *EventOutboxCreate {
 	_c.mutation.SetMessageID(v)
+	return _c
+}
+
+// SetTransactionID sets the "transaction_id" field.
+func (_c *EventOutboxCreate) SetTransactionID(v string) *EventOutboxCreate {
+	_c.mutation.SetTransactionID(v)
+	return _c
+}
+
+// SetAttempts sets the "attempts" field.
+func (_c *EventOutboxCreate) SetAttempts(v int) *EventOutboxCreate {
+	_c.mutation.SetAttempts(v)
+	return _c
+}
+
+// SetNillableAttempts sets the "attempts" field if the given value is not nil.
+func (_c *EventOutboxCreate) SetNillableAttempts(v *int) *EventOutboxCreate {
+	if v != nil {
+		_c.SetAttempts(*v)
+	}
 	return _c
 }
 
@@ -133,9 +125,9 @@ func (_c *EventOutboxCreate) defaults() {
 		v := eventoutbox.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		v := eventoutbox.DefaultUpdatedAt()
-		_c.mutation.SetUpdatedAt(v)
+	if _, ok := _c.mutation.Attempts(); !ok {
+		v := eventoutbox.DefaultAttempts
+		_c.mutation.SetAttempts(v)
 	}
 }
 
@@ -144,15 +136,28 @@ func (_c *EventOutboxCreate) check() error {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "EventOutbox.created_at"`)}
 	}
-	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "EventOutbox.updated_at"`)}
-	}
 	if _, ok := _c.mutation.MessageID(); !ok {
 		return &ValidationError{Name: "message_id", err: errors.New(`db: missing required field "EventOutbox.message_id"`)}
 	}
 	if v, ok := _c.mutation.MessageID(); ok {
 		if err := eventoutbox.MessageIDValidator(v); err != nil {
 			return &ValidationError{Name: "message_id", err: fmt.Errorf(`db: validator failed for field "EventOutbox.message_id": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.TransactionID(); !ok {
+		return &ValidationError{Name: "transaction_id", err: errors.New(`db: missing required field "EventOutbox.transaction_id"`)}
+	}
+	if v, ok := _c.mutation.TransactionID(); ok {
+		if err := eventoutbox.TransactionIDValidator(v); err != nil {
+			return &ValidationError{Name: "transaction_id", err: fmt.Errorf(`db: validator failed for field "EventOutbox.transaction_id": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Attempts(); !ok {
+		return &ValidationError{Name: "attempts", err: errors.New(`db: missing required field "EventOutbox.attempts"`)}
+	}
+	if v, ok := _c.mutation.Attempts(); ok {
+		if err := eventoutbox.AttemptsValidator(v); err != nil {
+			return &ValidationError{Name: "attempts", err: fmt.Errorf(`db: validator failed for field "EventOutbox.attempts": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Topic(); !ok {
@@ -209,17 +214,17 @@ func (_c *EventOutboxCreate) createSpec() (*EventOutbox, *sqlgraph.CreateSpec, e
 		_spec.SetField(eventoutbox.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
-	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(eventoutbox.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
-	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(eventoutbox.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
-	}
 	if value, ok := _c.mutation.MessageID(); ok {
 		_spec.SetField(eventoutbox.FieldMessageID, field.TypeString, value)
 		_node.MessageID = value
+	}
+	if value, ok := _c.mutation.TransactionID(); ok {
+		_spec.SetField(eventoutbox.FieldTransactionID, field.TypeString, value)
+		_node.TransactionID = value
+	}
+	if value, ok := _c.mutation.Attempts(); ok {
+		_spec.SetField(eventoutbox.FieldAttempts, field.TypeInt, value)
+		_node.Attempts = value
 	}
 	if value, ok := _c.mutation.Topic(); ok {
 		_spec.SetField(eventoutbox.FieldTopic, field.TypeString, value)
@@ -289,33 +294,21 @@ type (
 	}
 )
 
-// SetUpdatedAt sets the "updated_at" field.
-func (u *EventOutboxUpsert) SetUpdatedAt(v time.Time) *EventOutboxUpsert {
-	u.Set(eventoutbox.FieldUpdatedAt, v)
+// SetAttempts sets the "attempts" field.
+func (u *EventOutboxUpsert) SetAttempts(v int) *EventOutboxUpsert {
+	u.Set(eventoutbox.FieldAttempts, v)
 	return u
 }
 
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *EventOutboxUpsert) UpdateUpdatedAt() *EventOutboxUpsert {
-	u.SetExcluded(eventoutbox.FieldUpdatedAt)
+// UpdateAttempts sets the "attempts" field to the value that was provided on create.
+func (u *EventOutboxUpsert) UpdateAttempts() *EventOutboxUpsert {
+	u.SetExcluded(eventoutbox.FieldAttempts)
 	return u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (u *EventOutboxUpsert) SetDeletedAt(v time.Time) *EventOutboxUpsert {
-	u.Set(eventoutbox.FieldDeletedAt, v)
-	return u
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *EventOutboxUpsert) UpdateDeletedAt() *EventOutboxUpsert {
-	u.SetExcluded(eventoutbox.FieldDeletedAt)
-	return u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *EventOutboxUpsert) ClearDeletedAt() *EventOutboxUpsert {
-	u.SetNull(eventoutbox.FieldDeletedAt)
+// AddAttempts adds v to the "attempts" field.
+func (u *EventOutboxUpsert) AddAttempts(v int) *EventOutboxUpsert {
+	u.Add(eventoutbox.FieldAttempts, v)
 	return u
 }
 
@@ -341,6 +334,9 @@ func (u *EventOutboxUpsertOne) UpdateNewValues() *EventOutboxUpsertOne {
 		}
 		if _, exists := u.create.mutation.MessageID(); exists {
 			s.SetIgnore(eventoutbox.FieldMessageID)
+		}
+		if _, exists := u.create.mutation.TransactionID(); exists {
+			s.SetIgnore(eventoutbox.FieldTransactionID)
 		}
 		if _, exists := u.create.mutation.Topic(); exists {
 			s.SetIgnore(eventoutbox.FieldTopic)
@@ -382,38 +378,24 @@ func (u *EventOutboxUpsertOne) Update(set func(*EventOutboxUpsert)) *EventOutbox
 	return u
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (u *EventOutboxUpsertOne) SetUpdatedAt(v time.Time) *EventOutboxUpsertOne {
+// SetAttempts sets the "attempts" field.
+func (u *EventOutboxUpsertOne) SetAttempts(v int) *EventOutboxUpsertOne {
 	return u.Update(func(s *EventOutboxUpsert) {
-		s.SetUpdatedAt(v)
+		s.SetAttempts(v)
 	})
 }
 
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *EventOutboxUpsertOne) UpdateUpdatedAt() *EventOutboxUpsertOne {
+// AddAttempts adds v to the "attempts" field.
+func (u *EventOutboxUpsertOne) AddAttempts(v int) *EventOutboxUpsertOne {
 	return u.Update(func(s *EventOutboxUpsert) {
-		s.UpdateUpdatedAt()
+		s.AddAttempts(v)
 	})
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (u *EventOutboxUpsertOne) SetDeletedAt(v time.Time) *EventOutboxUpsertOne {
+// UpdateAttempts sets the "attempts" field to the value that was provided on create.
+func (u *EventOutboxUpsertOne) UpdateAttempts() *EventOutboxUpsertOne {
 	return u.Update(func(s *EventOutboxUpsert) {
-		s.SetDeletedAt(v)
-	})
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *EventOutboxUpsertOne) UpdateDeletedAt() *EventOutboxUpsertOne {
-	return u.Update(func(s *EventOutboxUpsert) {
-		s.UpdateDeletedAt()
-	})
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *EventOutboxUpsertOne) ClearDeletedAt() *EventOutboxUpsertOne {
-	return u.Update(func(s *EventOutboxUpsert) {
-		s.ClearDeletedAt()
+		s.UpdateAttempts()
 	})
 }
 
@@ -608,6 +590,9 @@ func (u *EventOutboxUpsertBulk) UpdateNewValues() *EventOutboxUpsertBulk {
 			if _, exists := b.mutation.MessageID(); exists {
 				s.SetIgnore(eventoutbox.FieldMessageID)
 			}
+			if _, exists := b.mutation.TransactionID(); exists {
+				s.SetIgnore(eventoutbox.FieldTransactionID)
+			}
 			if _, exists := b.mutation.Topic(); exists {
 				s.SetIgnore(eventoutbox.FieldTopic)
 			}
@@ -649,38 +634,24 @@ func (u *EventOutboxUpsertBulk) Update(set func(*EventOutboxUpsert)) *EventOutbo
 	return u
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (u *EventOutboxUpsertBulk) SetUpdatedAt(v time.Time) *EventOutboxUpsertBulk {
+// SetAttempts sets the "attempts" field.
+func (u *EventOutboxUpsertBulk) SetAttempts(v int) *EventOutboxUpsertBulk {
 	return u.Update(func(s *EventOutboxUpsert) {
-		s.SetUpdatedAt(v)
+		s.SetAttempts(v)
 	})
 }
 
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *EventOutboxUpsertBulk) UpdateUpdatedAt() *EventOutboxUpsertBulk {
+// AddAttempts adds v to the "attempts" field.
+func (u *EventOutboxUpsertBulk) AddAttempts(v int) *EventOutboxUpsertBulk {
 	return u.Update(func(s *EventOutboxUpsert) {
-		s.UpdateUpdatedAt()
+		s.AddAttempts(v)
 	})
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (u *EventOutboxUpsertBulk) SetDeletedAt(v time.Time) *EventOutboxUpsertBulk {
+// UpdateAttempts sets the "attempts" field to the value that was provided on create.
+func (u *EventOutboxUpsertBulk) UpdateAttempts() *EventOutboxUpsertBulk {
 	return u.Update(func(s *EventOutboxUpsert) {
-		s.SetDeletedAt(v)
-	})
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *EventOutboxUpsertBulk) UpdateDeletedAt() *EventOutboxUpsertBulk {
-	return u.Update(func(s *EventOutboxUpsert) {
-		s.UpdateDeletedAt()
-	})
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *EventOutboxUpsertBulk) ClearDeletedAt() *EventOutboxUpsertBulk {
-	return u.Update(func(s *EventOutboxUpsert) {
-		s.ClearDeletedAt()
+		s.UpdateAttempts()
 	})
 }
 

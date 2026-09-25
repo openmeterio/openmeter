@@ -59,19 +59,19 @@ func CreatedAt(v time.Time) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldEQ(FieldCreatedAt, v))
 }
 
-// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
-func UpdatedAt(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldEQ(FieldUpdatedAt, v))
-}
-
-// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
-func DeletedAt(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldEQ(FieldDeletedAt, v))
-}
-
 // MessageID applies equality check predicate on the "message_id" field. It's identical to MessageIDEQ.
 func MessageID(v string) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldEQ(FieldMessageID, v))
+}
+
+// TransactionID applies equality check predicate on the "transaction_id" field. It's identical to TransactionIDEQ.
+func TransactionID(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldTransactionID, v))
+}
+
+// Attempts applies equality check predicate on the "attempts" field. It's identical to AttemptsEQ.
+func Attempts(v int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldAttempts, v))
 }
 
 // Topic applies equality check predicate on the "topic" field. It's identical to TopicEQ.
@@ -122,96 +122,6 @@ func CreatedAtLT(v time.Time) predicate.EventOutbox {
 // CreatedAtLTE applies the LTE predicate on the "created_at" field.
 func CreatedAtLTE(v time.Time) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldLTE(FieldCreatedAt, v))
-}
-
-// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
-func UpdatedAtEQ(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldEQ(FieldUpdatedAt, v))
-}
-
-// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
-func UpdatedAtNEQ(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldNEQ(FieldUpdatedAt, v))
-}
-
-// UpdatedAtIn applies the In predicate on the "updated_at" field.
-func UpdatedAtIn(vs ...time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldIn(FieldUpdatedAt, vs...))
-}
-
-// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
-func UpdatedAtNotIn(vs ...time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldNotIn(FieldUpdatedAt, vs...))
-}
-
-// UpdatedAtGT applies the GT predicate on the "updated_at" field.
-func UpdatedAtGT(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldGT(FieldUpdatedAt, v))
-}
-
-// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
-func UpdatedAtGTE(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldGTE(FieldUpdatedAt, v))
-}
-
-// UpdatedAtLT applies the LT predicate on the "updated_at" field.
-func UpdatedAtLT(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldLT(FieldUpdatedAt, v))
-}
-
-// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
-func UpdatedAtLTE(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldLTE(FieldUpdatedAt, v))
-}
-
-// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
-func DeletedAtEQ(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldEQ(FieldDeletedAt, v))
-}
-
-// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
-func DeletedAtNEQ(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldNEQ(FieldDeletedAt, v))
-}
-
-// DeletedAtIn applies the In predicate on the "deleted_at" field.
-func DeletedAtIn(vs ...time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldIn(FieldDeletedAt, vs...))
-}
-
-// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
-func DeletedAtNotIn(vs ...time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldNotIn(FieldDeletedAt, vs...))
-}
-
-// DeletedAtGT applies the GT predicate on the "deleted_at" field.
-func DeletedAtGT(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldGT(FieldDeletedAt, v))
-}
-
-// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
-func DeletedAtGTE(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldGTE(FieldDeletedAt, v))
-}
-
-// DeletedAtLT applies the LT predicate on the "deleted_at" field.
-func DeletedAtLT(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldLT(FieldDeletedAt, v))
-}
-
-// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
-func DeletedAtLTE(v time.Time) predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldLTE(FieldDeletedAt, v))
-}
-
-// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
-func DeletedAtIsNil() predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldIsNull(FieldDeletedAt))
-}
-
-// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
-func DeletedAtNotNil() predicate.EventOutbox {
-	return predicate.EventOutbox(sql.FieldNotNull(FieldDeletedAt))
 }
 
 // MessageIDEQ applies the EQ predicate on the "message_id" field.
@@ -277,6 +187,111 @@ func MessageIDEqualFold(v string) predicate.EventOutbox {
 // MessageIDContainsFold applies the ContainsFold predicate on the "message_id" field.
 func MessageIDContainsFold(v string) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldContainsFold(FieldMessageID, v))
+}
+
+// TransactionIDEQ applies the EQ predicate on the "transaction_id" field.
+func TransactionIDEQ(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldTransactionID, v))
+}
+
+// TransactionIDNEQ applies the NEQ predicate on the "transaction_id" field.
+func TransactionIDNEQ(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNEQ(FieldTransactionID, v))
+}
+
+// TransactionIDIn applies the In predicate on the "transaction_id" field.
+func TransactionIDIn(vs ...string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldIn(FieldTransactionID, vs...))
+}
+
+// TransactionIDNotIn applies the NotIn predicate on the "transaction_id" field.
+func TransactionIDNotIn(vs ...string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNotIn(FieldTransactionID, vs...))
+}
+
+// TransactionIDGT applies the GT predicate on the "transaction_id" field.
+func TransactionIDGT(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGT(FieldTransactionID, v))
+}
+
+// TransactionIDGTE applies the GTE predicate on the "transaction_id" field.
+func TransactionIDGTE(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGTE(FieldTransactionID, v))
+}
+
+// TransactionIDLT applies the LT predicate on the "transaction_id" field.
+func TransactionIDLT(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLT(FieldTransactionID, v))
+}
+
+// TransactionIDLTE applies the LTE predicate on the "transaction_id" field.
+func TransactionIDLTE(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLTE(FieldTransactionID, v))
+}
+
+// TransactionIDContains applies the Contains predicate on the "transaction_id" field.
+func TransactionIDContains(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldContains(FieldTransactionID, v))
+}
+
+// TransactionIDHasPrefix applies the HasPrefix predicate on the "transaction_id" field.
+func TransactionIDHasPrefix(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldHasPrefix(FieldTransactionID, v))
+}
+
+// TransactionIDHasSuffix applies the HasSuffix predicate on the "transaction_id" field.
+func TransactionIDHasSuffix(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldHasSuffix(FieldTransactionID, v))
+}
+
+// TransactionIDEqualFold applies the EqualFold predicate on the "transaction_id" field.
+func TransactionIDEqualFold(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEqualFold(FieldTransactionID, v))
+}
+
+// TransactionIDContainsFold applies the ContainsFold predicate on the "transaction_id" field.
+func TransactionIDContainsFold(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldContainsFold(FieldTransactionID, v))
+}
+
+// AttemptsEQ applies the EQ predicate on the "attempts" field.
+func AttemptsEQ(v int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldAttempts, v))
+}
+
+// AttemptsNEQ applies the NEQ predicate on the "attempts" field.
+func AttemptsNEQ(v int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNEQ(FieldAttempts, v))
+}
+
+// AttemptsIn applies the In predicate on the "attempts" field.
+func AttemptsIn(vs ...int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldIn(FieldAttempts, vs...))
+}
+
+// AttemptsNotIn applies the NotIn predicate on the "attempts" field.
+func AttemptsNotIn(vs ...int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNotIn(FieldAttempts, vs...))
+}
+
+// AttemptsGT applies the GT predicate on the "attempts" field.
+func AttemptsGT(v int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGT(FieldAttempts, v))
+}
+
+// AttemptsGTE applies the GTE predicate on the "attempts" field.
+func AttemptsGTE(v int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGTE(FieldAttempts, v))
+}
+
+// AttemptsLT applies the LT predicate on the "attempts" field.
+func AttemptsLT(v int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLT(FieldAttempts, v))
+}
+
+// AttemptsLTE applies the LTE predicate on the "attempts" field.
+func AttemptsLTE(v int) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLTE(FieldAttempts, v))
 }
 
 // TopicEQ applies the EQ predicate on the "topic" field.

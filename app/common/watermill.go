@@ -93,6 +93,7 @@ func NewEventBusPublisher(
 		DrainTimeout:     conf.Outbox.DrainTimeout,
 		DrainConcurrency: conf.Outbox.DrainConcurrency,
 		RetryInterval:    conf.Outbox.RetryInterval,
+		MaxAttempts:      conf.Outbox.MaxAttempts,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize system event outbox: %w", err)

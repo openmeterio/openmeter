@@ -19,12 +19,12 @@ type EventOutbox struct {
 	ID int64 `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// MessageID holds the value of the "message_id" field.
 	MessageID string `json:"message_id,omitempty"`
+	// TransactionID holds the value of the "transaction_id" field.
+	TransactionID string `json:"transaction_id,omitempty"`
+	// Attempts holds the value of the "attempts" field.
+	Attempts int `json:"attempts,omitempty"`
 	// Topic holds the value of the "topic" field.
 	Topic string `json:"topic,omitempty"`
 	// Payload holds the value of the "payload" field.
@@ -41,11 +41,11 @@ func (*EventOutbox) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case eventoutbox.FieldPayload:
 			values[i] = new([]byte)
-		case eventoutbox.FieldID:
+		case eventoutbox.FieldID, eventoutbox.FieldAttempts:
 			values[i] = new(sql.NullInt64)
-		case eventoutbox.FieldMessageID, eventoutbox.FieldTopic:
+		case eventoutbox.FieldMessageID, eventoutbox.FieldTransactionID, eventoutbox.FieldTopic:
 			values[i] = new(sql.NullString)
-		case eventoutbox.FieldCreatedAt, eventoutbox.FieldUpdatedAt, eventoutbox.FieldDeletedAt:
+		case eventoutbox.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		case eventoutbox.FieldMetadata:
 			values[i] = eventoutbox.ValueScanner.Metadata.ScanValue()
@@ -76,24 +76,23 @@ func (_m *EventOutbox) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case eventoutbox.FieldUpdatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
-			} else if value.Valid {
-				_m.UpdatedAt = value.Time
-			}
-		case eventoutbox.FieldDeletedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
-			} else if value.Valid {
-				_m.DeletedAt = new(time.Time)
-				*_m.DeletedAt = value.Time
-			}
 		case eventoutbox.FieldMessageID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field message_id", values[i])
 			} else if value.Valid {
 				_m.MessageID = value.String
+			}
+		case eventoutbox.FieldTransactionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field transaction_id", values[i])
+			} else if value.Valid {
+				_m.TransactionID = value.String
+			}
+		case eventoutbox.FieldAttempts:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field attempts", values[i])
+			} else if value.Valid {
+				_m.Attempts = int(value.Int64)
 			}
 		case eventoutbox.FieldTopic:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -152,16 +151,14 @@ func (_m *EventOutbox) String() string {
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	if v := _m.DeletedAt; v != nil {
-		builder.WriteString("deleted_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
 	builder.WriteString("message_id=")
 	builder.WriteString(_m.MessageID)
+	builder.WriteString(", ")
+	builder.WriteString("transaction_id=")
+	builder.WriteString(_m.TransactionID)
+	builder.WriteString(", ")
+	builder.WriteString("attempts=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Attempts))
 	builder.WriteString(", ")
 	builder.WriteString("topic=")
 	builder.WriteString(_m.Topic)

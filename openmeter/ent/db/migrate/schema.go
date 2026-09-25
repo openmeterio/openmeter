@@ -4060,9 +4060,9 @@ var (
 	EventOutboxesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "message_id", Type: field.TypeString},
+		{Name: "transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
 		{Name: "topic", Type: field.TypeString},
 		{Name: "payload", Type: field.TypeBytes},
 		{Name: "metadata", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -4077,9 +4077,11 @@ var (
 				Name:    "eventoutbox_topic_id",
 				Unique:  false,
 				Columns: []*schema.Column{EventOutboxesColumns[5], EventOutboxesColumns[0]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at IS NULL",
-				},
+			},
+			{
+				Name:    "eventoutbox_topic_transaction_id_id",
+				Unique:  false,
+				Columns: []*schema.Column{EventOutboxesColumns[5], EventOutboxesColumns[3], EventOutboxesColumns[0]},
 			},
 		},
 	}

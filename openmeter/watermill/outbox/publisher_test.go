@@ -122,6 +122,7 @@ func newTestPublisher(t *testing.T, raw *recordingPublisher) (*Publisher, *db.Cl
 		DrainTimeout:     30 * time.Second,
 		DrainConcurrency: 2,
 		RetryInterval:    time.Minute,
+		MaxAttempts:      10,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, p.Close()) })
@@ -183,7 +184,7 @@ func TestPublisherDeliversOnlyAfterOuterCommit(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	require.ElementsMatch(t, []string{"outer", "nested"}, []string{nextAttempt(t, raw).id, nextAttempt(t, raw).id})
+	require.Equal(t, []string{"outer", "nested"}, []string{nextAttempt(t, raw).id, nextAttempt(t, raw).id})
 	eventuallyRowCount(t, client, 0)
 }
 
@@ -345,6 +346,7 @@ func TestConcurrentPublishersCanSendSameKeyIndependently(t *testing.T) {
 		DrainTimeout:     30 * time.Second,
 		DrainConcurrency: 2,
 		RetryInterval:    time.Minute,
+		MaxAttempts:      10,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, p2.Close()) })
@@ -362,8 +364,8 @@ func TestConcurrentPublishersCanSendSameKeyIndependently(t *testing.T) {
 	require.ElementsMatch(t, []string{"first", "second"}, raw.deliveredIDs())
 }
 
-func TestPublisherDrainsBeyondOneBoundedPass(t *testing.T) {
-	// Given more events than two complete drain passes in one transaction.
+func TestPublisherKeepsLargeTransactionTogether(t *testing.T) {
+	// Given a source transaction larger than the drain message budget.
 	raw := newRecordingPublisher()
 	p, client := newTestPublisher(t, raw)
 	const eventCount = 2*drainLimit + 1
@@ -377,15 +379,15 @@ func TestPublisherDrainsBeyondOneBoundedPass(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// When the commit wakes the drainer, it schedules continuation itself.
-	// Then every event is delivered without another publish.
+	// When the commit wakes the drainer, it finishes the entire transaction.
+	// Then every event is delivered in order without another publish.
 	require.Eventually(t, func() bool { return len(raw.deliveredIDs()) == eventCount }, 20*time.Second, 20*time.Millisecond)
 	eventuallyRowCount(t, client, 0)
 	expected := make([]string, eventCount)
 	for i := range expected {
 		expected[i] = fmt.Sprintf("event-%03d", i)
 	}
-	require.ElementsMatch(t, expected, raw.deliveredIDs())
+	require.Equal(t, expected, raw.deliveredIDs())
 }
 
 var _ message.Publisher = (*recordingPublisher)(nil)

@@ -1,28 +1,36 @@
 # System event outbox
 
 System events are stored in PostgreSQL within the caller's transaction (or a
-standalone transaction). Outer and savepoint rollbacks discard their events.
-`Publish` means stored, not delivered to Kafka; other topics still publish directly.
+standalone transaction). Savepoints share the outer transaction ID; rollbacks
+discard their events. `Publish` means stored, not delivered to Kafka. Other topics
+still publish directly.
 
-## Delivery
+## Delivery and ordering
 
-After commit, a small fixed set of workers drains the shared queue, including
-older pending events. Productive batches continue draining. Workers also retry
-periodically (one minute by default), so pending events recover after a failure
-or restart without new traffic. Drain limit, timeout, concurrency, and retry
-interval are configured under `events.outbox`.
+After commit, workers drain the shared queue. They also retry periodically
+(default: one minute). `events.outbox` configures drain limit, timeout, concurrency,
+retry interval, and `maxAttempts` (default: 10).
 
-Rows are deleted after broker acknowledgment. Delivery is **at least once**:
-failed deletion or commit can resend the original ID, payload, headers, topic,
-and Kafka message key. Consumers must tolerate duplicates.
+Workers claim a source transaction's pending rows together and send them in
+sequence-ID order. If B fails in A → B → C, A is removed, B's attempt count is
+persisted, and C waits for a later drain. Other transactions can progress. Once B
+reaches `maxAttempts`, it is logged and retained for inspection, skipped by future
+drains, and C can proceed. Raising the limit makes retained rows eligible again.
+
+Acknowledged events are **hard-deleted**. A crash or failed database commit can
+resend them, so consumers must tolerate duplicates. Failed-attempt counts survive
+successful drain commits; crashes or database failures can cause extra attempts.
+Finite retries mean some events may never be delivered. Ordering applies within
+a source transaction, until an event is abandoned; there is no ordering guarantee
+between transactions or across Kafka partitions.
 
 ## Concurrency and shutdown
 
-Workers claim pending rows with `FOR UPDATE SKIP LOCKED`. A locked or failed
-row does not hold back other rows, including those with the same Kafka key.
-Delivery order is not guaranteed; consumers must tolerate reordered events.
-Domain transactions never wait for Kafka, and workers use the application context.
+`FOR UPDATE SKIP LOCKED` claims transaction heads without waiting for other
+workers. Domain transactions never wait for Kafka. Drain message limits are
+checked between transaction batches; a large batch can exceed the message limit.
+The drain timeout still applies.
 
-`Close` cancels workers and waits for them; it does not flush the backlog. Pending
-rows remain durable. Drain passes have message/time limits, but synchronous
-Kafka I/O follows the underlying publisher's timeouts and can delay shutdown.
+`Close` cancels workers and waits; it does not flush pending events. Workers use
+the application context, and synchronous Kafka I/O follows the underlying
+publisher's timeouts, which can delay shutdown.

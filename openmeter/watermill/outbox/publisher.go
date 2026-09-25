@@ -28,6 +28,7 @@ type Config struct {
 	DrainTimeout     time.Duration
 	DrainConcurrency int
 	RetryInterval    time.Duration
+	MaxAttempts      int
 }
 
 func (c Config) Validate() error {
@@ -55,6 +56,9 @@ func (c Config) Validate() error {
 	}
 	if c.RetryInterval <= 0 {
 		errs = append(errs, errors.New("retry interval must be greater than 0"))
+	}
+	if c.MaxAttempts <= 0 {
+		errs = append(errs, errors.New("max attempts must be greater than 0"))
 	}
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
@@ -109,6 +113,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 			client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
 			_, err = client.EventOutbox.Create().
 				SetMessageID(msg.UUID).
+				SetTransactionID(tx.ID()).
 				SetTopic(topic).
 				SetPayload(msg.Payload).
 				SetMetadata(map[string]string(msg.Metadata)).Save(ctx)
@@ -148,71 +153,103 @@ func (p *Publisher) run() {
 		err := p.drain(ctx)
 		cancel()
 		if err != nil && p.ctx.Err() == nil {
-			p.cfg.Logger.WarnContext(p.ctx, "system event delivery deferred until the next publish or retry tick", "error", err)
+			p.cfg.Logger.WarnContext(p.ctx, "system event outbox drain encountered errors", "error", err)
 		}
 	}
 }
 
 func (p *Publisher) drain(ctx context.Context) error {
-	var failedIDs []int64
+	var failedTransactions []string
 	var errs []error
-	delivered := false
-	for range p.cfg.DrainLimit {
-		var claimedID int64
-		var claimed bool
-		sent, err := transaction.Run(ctx, enttx.NewCreator(p.cfg.DB), func(ctx context.Context) (bool, error) {
+	progressed := false
+	attempted := 0
+	for attempted < p.cfg.DrainLimit {
+		var transactionID string
+		var publishErr error
+		var exhausted []string
+		sent := 0
+		err := transaction.RunWithNoValue(ctx, enttx.NewCreator(p.cfg.DB), func(ctx context.Context) error {
 			tx, err := entutils.GetDriverFromContext(ctx)
 			if err != nil {
-				return false, err
+				return err
 			}
 			client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
-			// Skip claimed rows so another worker can deliver independently.
-			row, err := client.EventOutbox.Query().
-				Where(
-					eventoutbox.TopicEQ(p.cfg.Topic),
-					eventoutbox.DeletedAtIsNil(),
-					eventoutbox.IDNotIn(failedIDs...),
-				).
+			// Claim only a transaction's first pending row. Its lock prevents
+			// other workers from claiming any sibling while this batch is sent.
+			query := pendingTransactionQuery{Topic: p.cfg.Topic, MaxAttempts: p.cfg.MaxAttempts, ExcludedTransactions: failedTransactions}
+			head, err := client.EventOutbox.Query().
+				Where(query.Apply).
 				Order(eventoutbox.ByID()).
 				ForUpdate(sql.WithLockAction(sql.SkipLocked)).First(ctx)
 			if db.IsNotFound(err) {
-				return false, nil
+				return nil
 			}
 			if err != nil {
-				return false, err
+				return err
 			}
-			claimedID = row.ID
-			claimed = true
-			msg := message.NewMessage(row.MessageID, row.Payload)
-			msg.Metadata = message.Metadata(row.Metadata)
-			msg.SetContext(ctx)
-			if err := p.cfg.Publisher.Publish(row.Topic, msg); err != nil {
-				return false, fmt.Errorf("publish pending system event: %w", err)
+			transactionID = head.TransactionID
+			// All siblings became visible in the same source commit. Do not use
+			// SKIP LOCKED or a row limit here: the claim owns the whole group.
+			rows, err := client.EventOutbox.Query().
+				Where(
+					eventoutbox.TopicEQ(p.cfg.Topic),
+					eventoutbox.TransactionIDEQ(transactionID),
+					eventoutbox.AttemptsLT(p.cfg.MaxAttempts),
+				).
+				Order(eventoutbox.ByID()).ForUpdate().All(ctx)
+			if err != nil {
+				return err
 			}
-			// A crash after broker acknowledgment but before this transaction
-			// commits leaves the same message ID pending for at-least-once delivery.
-			if err := client.EventOutbox.DeleteOneID(row.ID).Exec(ctx); err != nil {
-				return false, fmt.Errorf("remove delivered system event: %w", err)
+			for _, row := range rows {
+				attempted++
+				msg := message.NewMessage(row.MessageID, row.Payload)
+				msg.Metadata = message.Metadata(row.Metadata)
+				msg.SetContext(ctx)
+				if err := p.cfg.Publisher.Publish(row.Topic, msg); err != nil {
+					publishErr = errors.Join(publishErr, fmt.Errorf("publish pending system event %s: %w", row.MessageID, err))
+					if err := client.EventOutbox.UpdateOneID(row.ID).SetAttempts(row.Attempts + 1).Exec(ctx); err != nil {
+						return fmt.Errorf("record failed delivery attempt: %w", err)
+					}
+					if row.Attempts+1 >= p.cfg.MaxAttempts {
+						exhausted = append(exhausted, row.MessageID)
+						continue
+					}
+					// Commit the successful prefix; this row and all later siblings
+					// remain pending. Other source transactions can still progress.
+					break
+				}
+				// Hard-delete acknowledged events: this table is a delivery queue.
+				// Exhausted events stay stored with their failed-attempt count.
+				if err := client.EventOutbox.DeleteOneID(row.ID).Exec(ctx); err != nil {
+					return fmt.Errorf("remove delivered system event: %w", err)
+				}
+				sent++
 			}
-			return true, nil
+			return nil
 		})
-		if err != nil {
+		if err == nil {
+			if sent > 0 || len(exhausted) > 0 {
+				progressed = true
+			}
+			for _, messageID := range exhausted {
+				p.cfg.Logger.ErrorContext(ctx, "system event delivery abandoned after max attempts", "message_id", messageID, "transaction_id", transactionID, "attempts", p.cfg.MaxAttempts)
+			}
+		}
+		if err := errors.Join(err, publishErr); err != nil {
 			errs = append(errs, err)
-			if !claimed || ctx.Err() != nil {
+			if transactionID == "" || ctx.Err() != nil {
 				return errors.Join(errs...)
 			}
-			// Retry this row on a later wake while other rows can progress.
-			failedIDs = append(failedIDs, claimedID)
+			failedTransactions = append(failedTransactions, transactionID)
 			continue
 		}
-		if !sent {
+		if transactionID == "" {
 			return errors.Join(errs...)
 		}
-		delivered = true
 	}
-	// A large committed batch may have coalesced its notifications. Continue
-	// productive work without introducing a timer or retrying an all-failed queue.
-	if delivered {
+	// Check the message budget between source transactions, never midway through
+	// a successful batch. Continue productive work whose wakeups were coalesced.
+	if progressed {
 		p.signal()
 	}
 	return errors.Join(errs...)

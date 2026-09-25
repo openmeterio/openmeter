@@ -3,10 +3,10 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -16,14 +16,13 @@ type EventOutbox struct {
 	ent.Schema
 }
 
-func (EventOutbox) Mixin() []ent.Mixin {
-	return []ent.Mixin{entutils.TimeMixin{}}
-}
-
 func (EventOutbox) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
+		field.Time("created_at").Default(clock.Now).Immutable(),
 		field.String("message_id").NotEmpty().Immutable(),
+		field.String("transaction_id").NotEmpty().Immutable().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
+		field.Int("attempts").Default(0).NonNegative(),
 		field.String("topic").NotEmpty().Immutable(),
 		field.Bytes("payload").Immutable(),
 		field.String("metadata").
@@ -36,6 +35,7 @@ func (EventOutbox) Fields() []ent.Field {
 
 func (EventOutbox) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("topic", "id").Annotations(entsql.IndexWhere("deleted_at IS NULL")),
+		index.Fields("topic", "id"),
+		index.Fields("topic", "transaction_id", "id"),
 	}
 }

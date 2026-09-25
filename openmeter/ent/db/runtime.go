@@ -2217,31 +2217,32 @@ func init() {
 	entitlementDescID := entitlementMixinFields0[0].Descriptor()
 	// entitlement.DefaultID holds the default value on creation for the id field.
 	entitlement.DefaultID = entitlementDescID.Default.(func() string)
-	eventoutboxMixin := schema.EventOutbox{}.Mixin()
-	eventoutboxMixinFields0 := eventoutboxMixin[0].Fields()
-	_ = eventoutboxMixinFields0
 	eventoutboxFields := schema.EventOutbox{}.Fields()
 	_ = eventoutboxFields
 	// eventoutboxDescCreatedAt is the schema descriptor for created_at field.
-	eventoutboxDescCreatedAt := eventoutboxMixinFields0[0].Descriptor()
+	eventoutboxDescCreatedAt := eventoutboxFields[1].Descriptor()
 	// eventoutbox.DefaultCreatedAt holds the default value on creation for the created_at field.
 	eventoutbox.DefaultCreatedAt = eventoutboxDescCreatedAt.Default.(func() time.Time)
-	// eventoutboxDescUpdatedAt is the schema descriptor for updated_at field.
-	eventoutboxDescUpdatedAt := eventoutboxMixinFields0[1].Descriptor()
-	// eventoutbox.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	eventoutbox.DefaultUpdatedAt = eventoutboxDescUpdatedAt.Default.(func() time.Time)
-	// eventoutbox.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	eventoutbox.UpdateDefaultUpdatedAt = eventoutboxDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// eventoutboxDescMessageID is the schema descriptor for message_id field.
-	eventoutboxDescMessageID := eventoutboxFields[1].Descriptor()
+	eventoutboxDescMessageID := eventoutboxFields[2].Descriptor()
 	// eventoutbox.MessageIDValidator is a validator for the "message_id" field. It is called by the builders before save.
 	eventoutbox.MessageIDValidator = eventoutboxDescMessageID.Validators[0].(func(string) error)
+	// eventoutboxDescTransactionID is the schema descriptor for transaction_id field.
+	eventoutboxDescTransactionID := eventoutboxFields[3].Descriptor()
+	// eventoutbox.TransactionIDValidator is a validator for the "transaction_id" field. It is called by the builders before save.
+	eventoutbox.TransactionIDValidator = eventoutboxDescTransactionID.Validators[0].(func(string) error)
+	// eventoutboxDescAttempts is the schema descriptor for attempts field.
+	eventoutboxDescAttempts := eventoutboxFields[4].Descriptor()
+	// eventoutbox.DefaultAttempts holds the default value on creation for the attempts field.
+	eventoutbox.DefaultAttempts = eventoutboxDescAttempts.Default.(int)
+	// eventoutbox.AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
+	eventoutbox.AttemptsValidator = eventoutboxDescAttempts.Validators[0].(func(int) error)
 	// eventoutboxDescTopic is the schema descriptor for topic field.
-	eventoutboxDescTopic := eventoutboxFields[2].Descriptor()
+	eventoutboxDescTopic := eventoutboxFields[5].Descriptor()
 	// eventoutbox.TopicValidator is a validator for the "topic" field. It is called by the builders before save.
 	eventoutbox.TopicValidator = eventoutboxDescTopic.Validators[0].(func(string) error)
 	// eventoutboxDescMetadata is the schema descriptor for metadata field.
-	eventoutboxDescMetadata := eventoutboxFields[4].Descriptor()
+	eventoutboxDescMetadata := eventoutboxFields[7].Descriptor()
 	eventoutbox.ValueScanner.Metadata = eventoutboxDescMetadata.ValueScanner.(field.TypeValueScanner[map[string]string])
 	dbfeatureMixin := schema.Feature{}.Mixin()
 	dbfeatureMixinFields0 := dbfeatureMixin[0].Fields()
