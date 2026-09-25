@@ -3,8 +3,10 @@ package notification
 import (
 	"errors"
 	"fmt"
+	"net/url"
 
 	webhooksecret "github.com/openmeterio/openmeter/openmeter/notification/webhook/secret"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -72,7 +74,7 @@ type ChannelConfig struct {
 
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
 func (c ChannelConfig) Validate() error {
-	switch c.Type {
+	switch c.ChannelConfigMeta.Type {
 	case ChannelTypeWebhook:
 		return c.WebHook.Validate()
 	default:
@@ -99,6 +101,8 @@ func (w WebHookChannelConfig) Validate() error {
 
 	if w.URL == "" {
 		errs = append(errs, errors.New("missing URL"))
+	} else if u, err := url.Parse(w.URL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		errs = append(errs, errors.New("invalid URL: must be an absolute http(s) URL"))
 	}
 
 	if w.SigningSecret != "" {
@@ -118,12 +122,17 @@ var (
 type ListChannelsInput struct {
 	pagination.Page
 
-	Namespaces      []string
-	Channels        []string
-	IncludeDisabled bool
+	Namespaces []string
 
 	OrderBy OrderBy
 	Order   sortx.Order
+
+	ID        *filter.FilterULID
+	Name      *filter.FilterString
+	Type      *filter.FilterString
+	Disabled  *filter.FilterBoolean
+	CreatedAt *filter.FilterTime
+	UpdatedAt *filter.FilterTime
 }
 
 func (i ListChannelsInput) ValidateWith(validators ...models.ValidatorFunc[ListChannelsInput]) error {
@@ -131,7 +140,52 @@ func (i ListChannelsInput) ValidateWith(validators ...models.ValidatorFunc[ListC
 }
 
 func (i ListChannelsInput) Validate() error {
-	return nil
+	var errs []error
+
+	// The adapter skips tenant scoping entirely when Namespaces is empty, which
+	// would turn the query into a cross-tenant list (including signing secrets), so
+	// an unscoped list must never reach it.
+	if len(i.Namespaces) == 0 {
+		errs = append(errs, errors.New("namespaces is required"))
+	}
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid id filter: %w", err))
+		}
+	}
+
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid name filter: %w", err))
+		}
+	}
+
+	if i.Type != nil {
+		if err := i.Type.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid type filter: %w", err))
+		}
+	}
+
+	if i.Disabled != nil {
+		if err := i.Disabled.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid disabled filter: %w", err))
+		}
+	}
+
+	if i.CreatedAt != nil {
+		if err := i.CreatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid created_at filter: %w", err))
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid updated_at filter: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListChannelsResult = pagination.Result[Channel]

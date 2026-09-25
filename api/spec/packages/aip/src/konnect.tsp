@@ -16,6 +16,7 @@ import "./defaults/index.tsp";
 import "./entitlement-access/index.tsp";
 import "./invoices/index.tsp";
 import "./charges/index.tsp";
+import "./notifications/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -61,6 +62,10 @@ using TypeSpec.OpenAPI;
   #{ description: Shared.ProductCatalogDescription }
 )
 @tagMetadata(Shared.DefaultsTag, #{ description: Shared.DefaultsDescription })
+@tagMetadata(
+  Shared.NotificationsTag,
+  #{ description: Shared.NotificationsDescription }
+)
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -220,6 +225,11 @@ interface OrganizationDefaultTaxCodesEndpoints
 @tag(Shared.EntitlementsTag)
 interface EntitlementAccessEndpoints
   extends EntitlementAccess.EntitlementAccessOperations {}
+
+@route("/openmeter/notification/channels")
+@tag(Shared.NotificationsTag)
+interface NotificationChannelsEndpoints
+  extends Notifications.NotificationChannelOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that

@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -48,11 +49,10 @@ func ValidateRuleChannels[I notification.CreateRuleInput | notification.UpdateRu
 				PageSize:   len(channels),
 				PageNumber: 1,
 			},
-			Namespaces:      []string{namespace},
-			Channels:        channels,
-			IncludeDisabled: true,
-			OrderBy:         notification.OrderByCreatedAt,
-			Order:           sortx.OrderAsc,
+			Namespaces: []string{namespace},
+			ID:         &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr(channels)}},
+			OrderBy:    notification.OrderByCreatedAt,
+			Order:      sortx.OrderAsc,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to validate channels: %w", err)
@@ -257,9 +257,8 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 				PageSize:   2 * notification.MaxChannelsPerRule,
 				PageNumber: 1,
 			},
-			Namespaces:      []string{params.Namespace},
-			Channels:        channelIDsDiff.All(),
-			IncludeDisabled: true,
+			Namespaces: []string{params.Namespace},
+			ID:         &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr(channelIDsDiff.All())}},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to list channels for rule: %w", err)

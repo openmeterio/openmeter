@@ -40,7 +40,7 @@ func (h svixHandler) GetOrUpdateEndpointHeaders(ctx context.Context, appID, endp
 			attribute.String("svix.endpoint_id", endpointID),
 		}
 
-		if len(headers) > 0 {
+		if headers != nil {
 			span.AddEvent("updating endpoint headers", trace.WithAttributes(spanAttrs...))
 
 			input := svix.EndpointHeadersIn{
@@ -295,13 +295,13 @@ func (h svixHandler) UpdateWebhook(ctx context.Context, params webhook.UpdateWeb
 			return nil, err
 		}
 
-		// Set custom HTTP headers for webhook endpoint if provided
+		// Replace the custom HTTP headers of the webhook endpoint. The update replaces
+		// the whole webhook config, so an omitted or emptied header set clears the
+		// headers in Svix as well.
 
-		if len(params.CustomHeaders) > 0 {
-			wh.CustomHeaders, err = h.GetOrUpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
-			if err != nil {
-				return nil, err
-			}
+		wh.CustomHeaders, err = h.GetOrUpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
+		if err != nil {
+			return nil, err
 		}
 
 		return wh, nil
