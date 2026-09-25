@@ -60,6 +60,17 @@ func serveGetCustomerEntitlementValue(t *testing.T, svc fakeEntitlementService, 
 	return response
 }
 
+func serveGetCustomerEntitlementValueByFeatureKey(t *testing.T, svc fakeEntitlementService, params GetCustomerEntitlementValueByFeatureKeyParams) *httptest.ResponseRecorder {
+	t.Helper()
+
+	h := New(func(context.Context) (string, error) { return testNamespace, nil }, svc)
+	request := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/customers/"+testCustomerID+"/entitlement-access/features/"+testFeatureKey+"/value", nil)
+	response := httptest.NewRecorder()
+	h.GetCustomerEntitlementValueByFeatureKey().With(params).ServeHTTP(response, request)
+
+	return response
+}
+
 func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
@@ -203,4 +214,126 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 
 		require.Equal(t, http.StatusBadRequest, response.Code)
 	})
+}
+
+func TestGetCustomerEntitlementValueByFeatureKeyHandler(t *testing.T) {
+	now := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	metered := fakeEntitlementService{
+		get: func(_ context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+			return entitlement.CustomerEntitlementAccess{
+				FeatureKey: input.FeatureKey,
+				Type:       entitlement.EntitlementTypeMetered,
+				Value: &meteredentitlement.MeteredEntitlementValue{
+					Balance:                   25,
+					UsageInPeriod:             75,
+					TotalAvailableGrantAmount: 100,
+					GrantBalances:             map[string]float64{"grant-1": 25},
+				},
+			}, nil
+		},
+	}
+
+	t.Run("defaults evaluation time and omits balance without expand", func(t *testing.T) {
+		// given a metered entitlement for the requested feature
+		// when its value is read without an evaluation time or expansion
+		// then the service receives the feature key and current time, and the balance is omitted
+		var received entitlement.GetCustomerEntitlementAccessInput
+		svc := fakeEntitlementService{get: func(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+			received = input
+			return metered.get(ctx, input)
+		}}
+
+		response := serveGetCustomerEntitlementValueByFeatureKey(t, svc, GetCustomerEntitlementValueByFeatureKeyParams{
+			CustomerID: testCustomerID,
+			FeatureKey: testFeatureKey,
+		})
+
+		require.Equal(t, http.StatusOK, response.Code)
+		require.Equal(t, testNamespace, received.CustomerID.Namespace)
+		require.Equal(t, testCustomerID, received.CustomerID.ID)
+		require.Equal(t, testFeatureKey, received.FeatureKey)
+		require.Empty(t, received.EntitlementID)
+		require.Equal(t, now, received.At)
+
+		var body api.BillingEntitlementFeatureValueResult
+		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+		require.Equal(t, testFeatureKey, body.FeatureKey)
+		require.Equal(t, lo.ToPtr(api.BillingEntitlementTypeMetered), body.Type)
+		require.True(t, body.HasAccess)
+		require.Nil(t, body.Value)
+	})
+
+	t.Run("evaluates at the requested time and expands the balance", func(t *testing.T) {
+		// given a metered entitlement and a requested evaluation time
+		// when the value expansion is requested
+		// then the service receives that time and the response includes balance details
+		at := now.Add(-time.Hour)
+		var received entitlement.GetCustomerEntitlementAccessInput
+		svc := fakeEntitlementService{get: func(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+			received = input
+			return metered.get(ctx, input)
+		}}
+
+		response := serveGetCustomerEntitlementValueByFeatureKey(t, svc, GetCustomerEntitlementValueByFeatureKeyParams{
+			CustomerID: testCustomerID,
+			FeatureKey: testFeatureKey,
+			At:         &at,
+			Expand:     []api.BillingEntitlementAccessExpand{api.BillingEntitlementAccessExpandValue},
+		})
+
+		require.Equal(t, http.StatusOK, response.Code)
+		require.Equal(t, at, received.At)
+
+		var body api.BillingEntitlementFeatureValueResult
+		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+		require.NotNil(t, body.Value)
+		require.Equal(t, api.Numeric("25"), body.Value.Balance)
+		require.Equal(t, api.Numeric("75"), body.Value.Usage)
+		require.Equal(t, map[string]api.Numeric{"grant-1": "25"}, body.Value.GrantBalances)
+	})
+
+	t.Run("missing entitlement omits type and value", func(t *testing.T) {
+		// given a feature without an active entitlement
+		// when its value is requested with expansion
+		// then access is denied without inventing a type or balance
+		response := serveGetCustomerEntitlementValueByFeatureKey(t, fakeEntitlementService{get: func(_ context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+			return entitlement.CustomerEntitlementAccess{FeatureKey: input.FeatureKey, Value: &entitlement.NoAccessValue{}}, nil
+		}}, GetCustomerEntitlementValueByFeatureKeyParams{
+			CustomerID: testCustomerID,
+			FeatureKey: testFeatureKey,
+			Expand:     []api.BillingEntitlementAccessExpand{api.BillingEntitlementAccessExpandValue},
+		})
+
+		require.Equal(t, http.StatusOK, response.Code)
+		require.JSONEq(t, `{"feature_key":"tokens","has_access":false}`, response.Body.String())
+	})
+
+	t.Run("known entitlement with no access retains its type", func(t *testing.T) {
+		response := serveGetCustomerEntitlementValueByFeatureKey(t, fakeEntitlementService{get: func(_ context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+			return entitlement.CustomerEntitlementAccess{FeatureKey: input.FeatureKey, Type: entitlement.EntitlementTypeMetered, Value: &entitlement.NoAccessValue{}}, nil
+		}}, GetCustomerEntitlementValueByFeatureKeyParams{CustomerID: testCustomerID, FeatureKey: testFeatureKey})
+
+		require.Equal(t, http.StatusOK, response.Code)
+		require.JSONEq(t, `{"feature_key":"tokens","type":"metered","has_access":false}`, response.Body.String())
+	})
+
+	for _, tc := range []struct {
+		name   string
+		err    error
+		status int
+	}{
+		{name: "missing customer", err: models.NewGenericNotFoundError(errors.New("customer not found")), status: http.StatusNotFound},
+		{name: "deleted customer", err: models.NewGenericConflictError(errors.New("customer is deleted")), status: http.StatusConflict},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			response := serveGetCustomerEntitlementValueByFeatureKey(t, fakeEntitlementService{get: func(context.Context, entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+				return entitlement.CustomerEntitlementAccess{}, tc.err
+			}}, GetCustomerEntitlementValueByFeatureKeyParams{CustomerID: testCustomerID, FeatureKey: testFeatureKey})
+
+			require.Equal(t, tc.status, response.Code)
+		})
+	}
 }

@@ -100,6 +100,15 @@ func (s *Server) GetCustomerEntitlementAccess(w http.ResponseWriter, r *http.Req
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) GetCustomerEntitlementValueByFeatureKey(w http.ResponseWriter, r *http.Request, customerId api.ULID, featureKey api.ResourceKey, params api.GetCustomerEntitlementValueByFeatureKeyParams) {
+	s.customersEntitlementHandler.GetCustomerEntitlementValueByFeatureKey().With(customersentitlementhandler.GetCustomerEntitlementValueByFeatureKeyParams{
+		CustomerID: customerId,
+		FeatureKey: featureKey,
+		Expand:     lo.FromPtr(params.Expand),
+		At:         params.At,
+	}).ServeHTTP(w, r)
+}
+
 // Customers Entitlements
 
 func (s *Server) CreateCustomerEntitlement(w http.ResponseWriter, r *http.Request, customerId api.ULID) {

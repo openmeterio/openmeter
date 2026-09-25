@@ -499,6 +499,13 @@ export const entitlementType = z
   .enum(['metered', 'static', 'boolean'])
   .describe('The type of the entitlement.')
 
+export const entitlementAccessExpand = z
+  .enum(['value'])
+
+  .describe(
+    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
+  )
+
 export const iso8601Duration = z
   .string()
 
@@ -550,13 +557,6 @@ export const stringFieldFilterExact = z
 
   .describe(
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
-  )
-
-export const entitlementAccessExpand = z
-  .enum(['value'])
-
-  .describe(
-    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
   )
 
 export const createLabels = z
@@ -3920,6 +3920,30 @@ export const entitlementValueResult = z
     value: entitlementAccessValue.optional(),
   })
   .describe('Entitlement value result.')
+
+export const entitlementFeatureValueResult = z
+  .object({
+    featureKey: resourceKey,
+    hasAccess: z
+      .boolean()
+
+      .describe(
+        'Whether the customer has access to the feature. Always true for `boolean` and `static` entitlements. Depends on balance for `metered` entitlements.',
+      ),
+    config: z
+      .string()
+      .optional()
+
+      .describe(
+        'Only available for static entitlements. Config is the JSON parsable configuration of the entitlement. Useful to describe per customer configuration.',
+      ),
+    value: entitlementAccessValue.optional(),
+    type: entitlementType.optional(),
+  })
+
+  .describe(
+    'Entitlement value looked up by feature key. A missing entitlement has no type and does not grant access.',
+  )
 
 export const priceTier = z
   .object({
@@ -7846,6 +7870,25 @@ export const getCustomerEntitlementAccessPathParams = z.object({
 
 export const getCustomerEntitlementAccessResponse = entitlementAccessCheckResult
 
+export const getCustomerEntitlementValueByFeatureKeyPathParams = z.object({
+  customerId: ulid,
+  featureKey: resourceKey,
+})
+
+export const getCustomerEntitlementValueByFeatureKeyQueryParams = z.object({
+  expand: z
+    .array(entitlementAccessExpand)
+    .optional()
+
+    .describe(
+      'Expand computed fields. Supported values are: - `value`: Expand the balance details of a metered entitlement; it sets the `value` field.',
+    ),
+  at: dateTime.optional(),
+})
+
+export const getCustomerEntitlementValueByFeatureKeyResponse =
+  entitlementFeatureValueResult
+
 export const createCustomerEntitlementPathParams = z.object({
   customerId: ulid,
 })
@@ -9444,6 +9487,13 @@ export const entitlementTypeWire = z
   .enum(['metered', 'static', 'boolean'])
   .describe('The type of the entitlement.')
 
+export const entitlementAccessExpandWire = z
+  .enum(['value'])
+
+  .describe(
+    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
+  )
+
 export const iso8601DurationWire = z
   .string()
 
@@ -9495,13 +9545,6 @@ export const stringFieldFilterExactWire = z
 
   .describe(
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
-  )
-
-export const entitlementAccessExpandWire = z
-  .enum(['value'])
-
-  .describe(
-    'Expands for customer entitlement access. Values: - `value`: The balance details of a metered entitlement; it sets the `value` field.',
   )
 
 export const createLabelsWire = z
@@ -12840,6 +12883,30 @@ export const entitlementValueResultWire = z
     value: entitlementAccessValueWire.optional(),
   })
   .describe('Entitlement value result.')
+
+export const entitlementFeatureValueResultWire = z
+  .strictObject({
+    feature_key: resourceKeyWire,
+    has_access: z
+      .boolean()
+
+      .describe(
+        'Whether the customer has access to the feature. Always true for `boolean` and `static` entitlements. Depends on balance for `metered` entitlements.',
+      ),
+    config: z
+      .string()
+      .optional()
+
+      .describe(
+        'Only available for static entitlements. Config is the JSON parsable configuration of the entitlement. Useful to describe per customer configuration.',
+      ),
+    value: entitlementAccessValueWire.optional(),
+    type: entitlementTypeWire.optional(),
+  })
+
+  .describe(
+    'Entitlement value looked up by feature key. A missing entitlement has no type and does not grant access.',
+  )
 
 export const priceTierWire = z
   .strictObject({
@@ -16780,6 +16847,25 @@ export const getCustomerEntitlementAccessPathParamsWire = z.object({
 
 export const getCustomerEntitlementAccessResponseWire =
   entitlementAccessCheckResultWire
+
+export const getCustomerEntitlementValueByFeatureKeyPathParamsWire = z.object({
+  customerId: ulidWire,
+  featureKey: resourceKeyWire,
+})
+
+export const getCustomerEntitlementValueByFeatureKeyQueryParamsWire = z.object({
+  expand: z
+    .array(entitlementAccessExpandWire)
+    .optional()
+
+    .describe(
+      'Expand computed fields. Supported values are: - `value`: Expand the balance details of a metered entitlement; it sets the `value` field.',
+    ),
+  at: dateTimeWire.optional(),
+})
+
+export const getCustomerEntitlementValueByFeatureKeyResponseWire =
+  entitlementFeatureValueResultWire
 
 export const createCustomerEntitlementPathParamsWire = z.object({
   customerId: ulidWire,
