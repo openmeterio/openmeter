@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -45,6 +46,8 @@ type ListParams struct {
 	Namespace        string
 	OwnerID          *string
 	IncludeDeleted   bool
+	CustomerID       *filter.FilterULID
+	FeatureID        *filter.FilterULID
 	CustomerIDs      []string
 	SubjectKeys      []string
 	FeatureIdsOrKeys []string

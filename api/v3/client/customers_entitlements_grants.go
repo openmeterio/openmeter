@@ -15,13 +15,13 @@ type CustomersEntitlementsGrantsService struct {
 	client *Client
 }
 
-type EntitlementGrantListParams struct {
+type ListCustomerEntitlementGrantsParams struct {
 	Page           *PageParams
 	Sort           *Sort
 	IncludeDeleted *bool
 }
 
-func (p EntitlementGrantListParams) values() url.Values {
+func (p ListCustomerEntitlementGrantsParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
@@ -73,7 +73,7 @@ func (s *CustomersEntitlementsGrantsService) Create(ctx context.Context, custome
 //
 // Deleted grants are excluded unless `include_deleted` is set. Voided and expired
 // grants are always included, as they are part of the balance history.
-func (s *CustomersEntitlementsGrantsService) List(ctx context.Context, customerID string, entitlementID string, params EntitlementGrantListParams) (*EntitlementGrantPagePaginatedResponse, error) {
+func (s *CustomersEntitlementsGrantsService) List(ctx context.Context, customerID string, entitlementID string, params ListCustomerEntitlementGrantsParams) (*EntitlementGrantPagePaginatedResponse, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
 	}
@@ -102,7 +102,7 @@ func (s *CustomersEntitlementsGrantsService) List(ctx context.Context, customerI
 }
 
 // ListAll returns an iterator over all EntitlementGrant results, fetching pages of List transparently. Iteration stops at the first error, which is yielded as the second value.
-func (s *CustomersEntitlementsGrantsService) ListAll(ctx context.Context, customerID string, entitlementID string, params EntitlementGrantListParams) iter.Seq2[EntitlementGrant, error] {
+func (s *CustomersEntitlementsGrantsService) ListAll(ctx context.Context, customerID string, entitlementID string, params ListCustomerEntitlementGrantsParams) iter.Seq2[EntitlementGrant, error] {
 	return paginate(params.Page, func(page, size int) ([]EntitlementGrant, int, error) {
 		pageParams := params
 		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}

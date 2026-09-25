@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -104,6 +105,18 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 				db_entitlement.DeletedAtGT(now),
 			)),
 		)
+	}
+
+	if params.CustomerID != nil {
+		if p := filter.SelectPredicate[predicate.Entitlement](filter.Filter(*params.CustomerID), db_entitlement.FieldCustomerID); p != nil {
+			query = query.Where(db_grant.HasEntitlementWith(*p))
+		}
+	}
+
+	if params.FeatureID != nil {
+		if p := filter.SelectPredicate[predicate.Entitlement](filter.Filter(*params.FeatureID), db_entitlement.FieldFeatureID); p != nil {
+			query = query.Where(db_grant.HasEntitlementWith(*p))
+		}
 	}
 
 	if len(params.CustomerIDs) > 0 {

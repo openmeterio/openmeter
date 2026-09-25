@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
+	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -34,6 +36,9 @@ type ServiceConfig struct {
 	StaticEntitlementConnector  entitlement.SubTypeConnector
 	BooleanEntitlementConnector entitlement.SubTypeConnector
 
+	GrantRepo      grant.Repo
+	GrantConnector credit.GrantConnector
+
 	Publisher eventbus.Publisher
 	Locker    *lockr.Locker
 }
@@ -47,6 +52,9 @@ type service struct {
 	entitlementRepo  entitlement.EntitlementRepo
 	featureConnector feature.FeatureConnector
 	meterService     meter.Service
+
+	grantRepo      grant.Repo
+	grantConnector credit.GrantConnector
 
 	hooks models.ServiceHookRegistry[entitlement.Entitlement]
 
@@ -69,6 +77,8 @@ func NewEntitlementService(
 		entitlementRepo:             config.EntitlementRepo,
 		featureConnector:            config.FeatureConnector,
 		meterService:                config.MeterService,
+		grantRepo:                   config.GrantRepo,
+		grantConnector:              config.GrantConnector,
 		publisher:                   config.Publisher,
 		locker:                      config.Locker,
 	}

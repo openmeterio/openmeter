@@ -43,6 +43,7 @@ export type * from './models/operations/events.js'
 export type * from './models/operations/meters.js'
 export type * from './models/operations/customers.js'
 export type * from './models/operations/entitlements.js'
+export type * from './models/operations/grants.js'
 export type * from './models/operations/subscriptions.js'
 export type * from './models/operations/apps.js'
 export type * from './models/operations/billing.js'
@@ -257,6 +258,7 @@ export type {
   ListCustomersParamsFilter,
   ListCustomerEntitlementsParamsFilter,
   ListEntitlementsParamsFilter,
+  ListGrantsParamsFilter,
   ListSubscriptionsParamsFilter,
   ListAppsParamsFilter,
   ListBillingProfilesParamsFilter,

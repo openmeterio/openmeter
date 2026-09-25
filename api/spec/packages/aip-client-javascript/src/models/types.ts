@@ -2951,6 +2951,14 @@ export interface ListEntitlementsParamsFilter {
   customerId?: UlidFieldFilter
 }
 
+/** Filter options for listing grants. */
+export interface ListGrantsParamsFilter {
+  /** Filter grants by the ID of the customer that owns the entitlement. */
+  customerId?: UlidFieldFilter
+  /** Filter grants by the ID of the entitlement's feature. */
+  featureId?: UlidFieldFilter
+}
+
 /** Filter options for listing subscriptions. */
 export interface ListSubscriptionsParamsFilter {
   id?: UlidFieldFilter

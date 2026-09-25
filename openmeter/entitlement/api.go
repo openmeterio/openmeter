@@ -488,3 +488,74 @@ func (i CreateCustomerEntitlementGrantInput) Validate() error {
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
+
+// GrantAPIService is the API-facing facade for grant operations that are not
+// scoped to a single customer entitlement.
+type GrantAPIService interface {
+	ListNamespaceGrants(ctx context.Context, input ListNamespaceGrantsInput) (pagination.Result[grant.Grant], error)
+	VoidGrant(ctx context.Context, input VoidGrantInput) error
+}
+
+// ListNamespaceGrantsInput lists the grants of every entitlement in the namespace.
+// Deleted grants and the grants of deleted entitlements are excluded unless
+// IncludeDeleted is set; voided and expired grants are always listed.
+// FeatureIDsOrKeys matches the entitlement's feature by either its ID or its key.
+type ListNamespaceGrantsInput struct {
+	Namespace      string
+	IncludeDeleted bool
+
+	CustomerID *filter.FilterULID
+	FeatureID  *filter.FilterULID
+
+	OrderBy grant.OrderBy
+	Order   sortx.Order
+	Page    pagination.Page
+}
+
+func (i ListNamespaceGrantsInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.OrderBy != "" && !slices.Contains(i.OrderBy.Values(), i.OrderBy) {
+		errs = append(errs, fmt.Errorf("invalid order by: %s", i.OrderBy))
+	}
+
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer ID filter: %w", err))
+		}
+	}
+
+	if i.FeatureID != nil {
+		if err := i.FeatureID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature ID filter: %w", err))
+		}
+	}
+
+	// The limit/offset mode of the grant list is not exposed, so a page is always required.
+	if i.Page.IsZero() {
+		errs = append(errs, errors.New("page is required"))
+	} else if err := i.Page.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("page: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// VoidGrantInput voids a grant from At, or from the time of the call when At is
+// unset. Usage already deducted from the grant is kept.
+type VoidGrantInput struct {
+	GrantID models.NamespacedID
+	At      *time.Time
+}
+
+func (i VoidGrantInput) Validate() error {
+	if err := i.GrantID.Validate(); err != nil {
+		return models.NewNillableGenericValidationError(fmt.Errorf("grant ID: %w", err))
+	}
+
+	return nil
+}

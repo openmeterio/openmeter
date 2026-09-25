@@ -212,6 +212,8 @@ func setupDependencies(t *testing.T) Dependencies {
 			MeteredEntitlementConnector: meteredEntitlementConnector,
 			StaticEntitlementConnector:  staticEntitlementConnector,
 			BooleanEntitlementConnector: booleanEntitlementConnector,
+			GrantRepo:                   grantRepo,
+			GrantConnector:              creditConnector,
 			Publisher:                   mockPublisher,
 			Locker:                      locker,
 		},

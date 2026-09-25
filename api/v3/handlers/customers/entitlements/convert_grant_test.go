@@ -33,7 +33,7 @@ func TestToAPIEntitlementGrant(t *testing.T) {
 	}
 
 	t.Run("maps a never expiring non-recurring grant", func(t *testing.T) {
-		got, err := toAPIEntitlementGrant(base, now)
+		got, err := ToAPIEntitlementGrant(base, now)
 		require.NoError(t, err)
 
 		require.Equal(t, base.ID, got.Id)
@@ -66,7 +66,7 @@ func TestToAPIEntitlementGrant(t *testing.T) {
 		g.VoidedAt = &voidedAt
 		g.DeletedAt = &deletedAt
 
-		got, err := toAPIEntitlementGrant(g, now)
+		got, err := ToAPIEntitlementGrant(g, now)
 		require.NoError(t, err)
 
 		require.Equal(t, "P3M", lo.FromPtr(got.ExpiresAfter))
@@ -114,7 +114,7 @@ func TestToAPIEntitlementGrantExpiresAfter(t *testing.T) {
 
 func TestFromAPIEntitlementGrantSortField(t *testing.T) {
 	for _, field := range []string{"created_at", "updated_at", "effective_at", "expires_at"} {
-		got, err := fromAPIEntitlementGrantSortField(t.Context(), field)
+		got, err := FromAPIEntitlementGrantSortField(t.Context(), field)
 		require.NoError(t, err)
 		require.Equal(t, grant.OrderBy(field), got)
 	}
@@ -122,7 +122,7 @@ func TestFromAPIEntitlementGrantSortField(t *testing.T) {
 	// The owner is fixed by the path and the ID is not meaningful to sort by, so
 	// neither is exposed even though the domain supports them.
 	for _, field := range []string{"owner_id", "id", "amount"} {
-		_, err := fromAPIEntitlementGrantSortField(t.Context(), field)
+		_, err := FromAPIEntitlementGrantSortField(t.Context(), field)
 		require.ErrorContains(t, err, "unsupported sort field")
 	}
 }

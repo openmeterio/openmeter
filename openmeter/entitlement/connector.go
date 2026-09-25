@@ -70,6 +70,7 @@ type Service interface {
 	CustomerEntitlementAccessAPIService
 	CustomerEntitlementAPIService
 	EntitlementAPIService
+	GrantAPIService
 
 	// Meant for API use primarily
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs, grants []CreateEntitlementGrantInputs) (*Entitlement, error)

@@ -31,6 +31,7 @@ import (
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	featurecosthandler "github.com/openmeterio/openmeter/api/v3/handlers/featurecost"
 	featureshandler "github.com/openmeterio/openmeter/api/v3/handlers/features"
+	grantshandler "github.com/openmeterio/openmeter/api/v3/handlers/grants"
 	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	notificationchannelshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/channels"
@@ -267,6 +268,7 @@ type Server struct {
 	customersCreditsHandler      customerscreditshandler.Handler
 	customersEntitlementHandler  customersentitlementhandler.Handler
 	customersEntitlementsHandler customersentitlementshandler.Handler
+	grantsHandler                grantshandler.Handler
 	entitlementAccessHandler     entitlementaccesshandler.Handler
 	entitlementsHandler          entitlementshandler.Handler
 	notificationChannelsHandler  notificationchannelshandler.Handler
@@ -337,6 +339,7 @@ func NewServer(config *Config) (*Server, error) {
 	customersCreditsHandler := customerscreditshandler.New(resolveNamespace, config.CustomerService, customerBalanceFacade, creditGrantService, ledgerService, accountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementsHandler := customersentitlementshandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
+	grantsHandler := grantshandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, config.SubscriptionWorkflowService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, config.SubscriptionService, config.SubscriptionWorkflowService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -379,6 +382,7 @@ func NewServer(config *Config) (*Server, error) {
 		customersCreditsHandler:      customersCreditsHandler,
 		customersEntitlementHandler:  customersEntitlementHandler,
 		customersEntitlementsHandler: customersEntitlementsHandler,
+		grantsHandler:                grantsHandler,
 		metersHandler:                metersHandler,
 		subscriptionsHandler:         subscriptionsHandler,
 		subscriptionAddonsHandler:    subscriptionAddonsHandler,

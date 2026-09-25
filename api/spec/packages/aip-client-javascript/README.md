@@ -37,6 +37,7 @@ TypeSpec definitions and ships fully-typed request and response models.
 - [Internal Operations](#internal-operations)
   - [Internal Customers](#internal-customers)
   - [Internal Entitlements](#internal-entitlements)
+  - [Internal Grants](#internal-grants)
   - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Apps](#internal-apps)
   - [Internal Invoices](#internal-invoices)
@@ -445,6 +446,13 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.entitlements.list`              | `GET /openmeter/entitlements`                                                    | List the active entitlements of all customers. Intended for administrative use. To list the entitlements of a single customer, use the customer entitlements endpoints; to check entitlement access, use the entitlement access endpoints. |
 | `client.internal.entitlements.get`               | `GET /openmeter/entitlements/{entitlementId}`                                    | Get an entitlement by ID. To check entitlement access, use the entitlement access endpoints instead.                                                                                                                                       |
 | `client.internal.entitlements.getCustomerValue`  | `GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value`       | Get the customer's access through a single entitlement, optionally evaluated at a point in time.                                                                                                                                           |
+
+### Internal Grants
+
+| Method                        | HTTP                                 | Description                                                                                                                                                                                                                                                                                       |
+| ----------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.grants.list` | `GET /openmeter/grants`              | List the grants of all customers and entitlements. To list the grants of a single entitlement, use the customer entitlement grants endpoint. Deleted grants are excluded unless `include_deleted` is set. Voided and expired grants are always included, as they are part of the balance history. |
+| `client.internal.grants.void` | `DELETE /openmeter/grants/{grantId}` | Void a grant so it no longer adds to the balance. Usage already deducted from the grant is kept.                                                                                                                                                                                                  |
 
 ### Internal Subscriptions
 

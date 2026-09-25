@@ -1740,3 +1740,231 @@ func TestCreateCustomerEntitlementGrantAPI(t *testing.T) {
 		require.True(t, models.IsGenericConflictError(err), "expected conflict error, got: %v", err)
 	})
 }
+
+func TestGrantAPI(t *testing.T) {
+	conn, deps := setupDependecies(t)
+	defer deps.Teardown()
+
+	namespace := "ns-grant-api"
+	now := testutils.GetRFC3339Time(t, "2025-01-01T00:00:00Z")
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
+		Namespace:     namespace,
+		Name:          "Meter 1",
+		Key:           "meter1",
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	})
+	require.NoError(t, err)
+	createMeterInPG(t, deps.dbClient, mtr)
+
+	createFeature := func(t *testing.T, key string) feature.Feature {
+		t.Helper()
+
+		feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+			Key:       key,
+			Name:      key,
+			Namespace: namespace,
+			MeterID:   lo.ToPtr(mtr.ID),
+		})
+		require.NoError(t, err)
+
+		return feat
+	}
+
+	createEntitlement := func(t *testing.T, cust *customer.Customer, featureKey string) *entitlement.Entitlement {
+		t.Helper()
+
+		ent, err := conn.CreateEntitlement(t.Context(), entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			UsageAttribution: cust.GetUsageAttribution(),
+			FeatureKey:       &featureKey,
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+				Interval: timeutil.RecurrencePeriodDaily,
+				Anchor:   now,
+			})),
+		}, nil)
+		require.NoError(t, err)
+
+		return ent
+	}
+
+	createGrant := func(t *testing.T, ent *entitlement.Entitlement, effectiveAt time.Time) string {
+		t.Helper()
+
+		g, err := deps.registry.MeteredEntitlement.CreateGrant(t.Context(), namespace, ent.CustomerID, ent.ID, meteredentitlement.CreateEntitlementGrantInputs{
+			CreateGrantInput: credit.CreateGrantInput{Amount: 10, EffectiveAt: effectiveAt},
+		})
+		require.NoError(t, err)
+
+		return g.ID
+	}
+
+	// given two customers with entitlements for two features and a grant effective
+	// every minute, created in the order of their effective time
+	featureA := createFeature(t, "feature-a")
+	featureB := createFeature(t, "feature-b")
+
+	cust1 := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-1", "Customer 1")
+	cust2 := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, "cust-2", "Customer 2")
+
+	cust1A := createEntitlement(t, cust1, featureA.Key)
+	cust1B := createEntitlement(t, cust1, featureB.Key)
+	cust2A := createEntitlement(t, cust2, featureA.Key)
+
+	grant1 := createGrant(t, cust1A, now)
+	grant2 := createGrant(t, cust1A, now.Add(time.Minute))
+	grant3 := createGrant(t, cust1B, now.Add(2*time.Minute))
+	grant4 := createGrant(t, cust2A, now.Add(3*time.Minute))
+
+	listInput := func() entitlement.ListNamespaceGrantsInput {
+		return entitlement.ListNamespaceGrantsInput{
+			Namespace: namespace,
+			OrderBy:   grant.OrderByEffectiveAt,
+			Order:     sortx.OrderAsc,
+			Page:      pagination.NewPage(1, 10),
+		}
+	}
+
+	grantIDs := func(grants []grant.Grant) []string {
+		return lo.Map(grants, func(g grant.Grant, _ int) string { return g.ID })
+	}
+
+	t.Run("List should reject an invalid input", func(t *testing.T) {
+		input := listInput()
+		input.Page = pagination.Page{}
+
+		_, err := conn.ListNamespaceGrants(t.Context(), input)
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("List should sort by effective time in both directions", func(t *testing.T) {
+		result, err := conn.ListNamespaceGrants(t.Context(), listInput())
+		require.NoError(t, err)
+		require.Equal(t, []string{grant1, grant2, grant3, grant4}, grantIDs(result.Items))
+		require.Equal(t, 4, result.TotalCount)
+
+		input := listInput()
+		input.Order = sortx.OrderDesc
+
+		result, err = conn.ListNamespaceGrants(t.Context(), input)
+		require.NoError(t, err)
+		require.Equal(t, []string{grant4, grant3, grant2, grant1}, grantIDs(result.Items))
+	})
+
+	t.Run("List should return the requested page", func(t *testing.T) {
+		input := listInput()
+		input.OrderBy = grant.OrderByCreatedAt
+		input.Order = sortx.OrderDesc
+		input.Page = pagination.NewPage(2, 3)
+
+		result, err := conn.ListNamespaceGrants(t.Context(), input)
+		require.NoError(t, err)
+		require.Equal(t, []string{grant1}, grantIDs(result.Items))
+		require.Equal(t, 4, result.TotalCount)
+	})
+
+	t.Run("List should filter by the entitlement's customer and feature", func(t *testing.T) {
+		for _, tc := range []struct {
+			name   string
+			modify func(*entitlement.ListNamespaceGrantsInput)
+			want   []string
+		}{
+			{
+				name: "customer ID",
+				modify: func(i *entitlement.ListNamespaceGrantsInput) {
+					i.CustomerID = &filter.FilterULID{Eq: lo.ToPtr(cust2.ID)}
+				},
+				want: []string{grant4},
+			},
+			{
+				name: "feature ID",
+				modify: func(i *entitlement.ListNamespaceGrantsInput) {
+					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureB.ID)}
+				},
+				want: []string{grant3},
+			},
+			{
+				name: "customer ID and feature ID",
+				modify: func(i *entitlement.ListNamespaceGrantsInput) {
+					i.CustomerID = &filter.FilterULID{Eq: lo.ToPtr(cust1.ID)}
+					i.FeatureID = &filter.FilterULID{Eq: lo.ToPtr(featureA.ID)}
+				},
+				want: []string{grant1, grant2},
+			},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				input := listInput()
+				tc.modify(&input)
+
+				result, err := conn.ListNamespaceGrants(t.Context(), input)
+				require.NoError(t, err)
+				require.Equal(t, tc.want, grantIDs(result.Items))
+			})
+		}
+	})
+
+	t.Run("Void should report a missing grant as not found", func(t *testing.T) {
+		err := conn.VoidGrant(t.Context(), entitlement.VoidGrantInput{
+			GrantID: models.NamespacedID{Namespace: namespace, ID: "01K5A4V2X8Q9Z7M3N6P1R4S8T2"},
+		})
+		require.True(t, models.IsGenericNotFoundError(err), "expected not found error, got: %v", err)
+	})
+
+	t.Run("Void should void the grant at the given time and reject voiding it again", func(t *testing.T) {
+		clock.SetTime(now.Add(10 * time.Minute))
+		voidedAt := now.Add(5 * time.Minute)
+
+		err := conn.VoidGrant(t.Context(), entitlement.VoidGrantInput{
+			GrantID: models.NamespacedID{Namespace: namespace, ID: grant2},
+			At:      &voidedAt,
+		})
+		require.NoError(t, err)
+
+		voided, err := deps.registry.GrantRepo.GetGrant(t.Context(), models.NamespacedID{Namespace: namespace, ID: grant2})
+		require.NoError(t, err)
+		require.NotNil(t, voided.VoidedAt)
+		require.True(t, voidedAt.Equal(*voided.VoidedAt))
+
+		err = conn.VoidGrant(t.Context(), entitlement.VoidGrantInput{
+			GrantID: models.NamespacedID{Namespace: namespace, ID: grant2},
+		})
+		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+	})
+
+	t.Run("Void should default to the current time", func(t *testing.T) {
+		voidNow := now.Add(20 * time.Minute)
+		clock.FreezeTime(voidNow)
+		defer clock.UnFreeze()
+
+		err := conn.VoidGrant(t.Context(), entitlement.VoidGrantInput{
+			GrantID: models.NamespacedID{Namespace: namespace, ID: grant3},
+		})
+		require.NoError(t, err)
+
+		voided, err := deps.registry.GrantRepo.GetGrant(t.Context(), models.NamespacedID{Namespace: namespace, ID: grant3})
+		require.NoError(t, err)
+		require.NotNil(t, voided.VoidedAt)
+		require.True(t, voidNow.Equal(*voided.VoidedAt))
+	})
+
+	t.Run("List should include voided grants and the grants of deleted entitlements only on request", func(t *testing.T) {
+		require.NoError(t, conn.DeleteEntitlement(t.Context(), namespace, cust2A.ID, clock.Now()))
+
+		result, err := conn.ListNamespaceGrants(t.Context(), listInput())
+		require.NoError(t, err)
+		require.Equal(t, []string{grant1, grant2, grant3}, grantIDs(result.Items))
+
+		input := listInput()
+		input.IncludeDeleted = true
+
+		result, err = conn.ListNamespaceGrants(t.Context(), input)
+		require.NoError(t, err)
+		require.Equal(t, []string{grant1, grant2, grant3, grant4}, grantIDs(result.Items))
+	})
+}

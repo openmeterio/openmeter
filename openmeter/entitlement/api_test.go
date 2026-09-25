@@ -396,3 +396,48 @@ func TestCreateCustomerEntitlementGrantInputValidate(t *testing.T) {
 		require.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
 	})
 }
+
+func TestListNamespaceGrantsInputValidate(t *testing.T) {
+	valid := ListNamespaceGrantsInput{
+		Namespace: "ns",
+		OrderBy:   grant.OrderByEffectiveAt,
+		Page:      pagination.NewPage(1, 20),
+	}
+
+	require.NoError(t, valid.Validate())
+
+	t.Run("requires namespace", func(t *testing.T) {
+		input := valid
+		input.Namespace = ""
+
+		require.ErrorContains(t, input.Validate(), "namespace is required")
+	})
+
+	t.Run("rejects an unknown order by", func(t *testing.T) {
+		input := valid
+		input.OrderBy = "unknown"
+
+		require.ErrorContains(t, input.Validate(), "invalid order by")
+	})
+
+	t.Run("requires a page", func(t *testing.T) {
+		input := valid
+		input.Page = pagination.Page{}
+
+		err := input.Validate()
+		require.True(t, models.IsGenericValidationError(err))
+		require.ErrorContains(t, err, "page is required")
+	})
+
+	t.Run("rejects an invalid page", func(t *testing.T) {
+		input := valid
+		input.Page = pagination.NewPage(0, 20)
+
+		require.ErrorContains(t, input.Validate(), "page")
+	})
+}
+
+func TestVoidGrantInputValidate(t *testing.T) {
+	require.NoError(t, VoidGrantInput{GrantID: models.NamespacedID{Namespace: "ns", ID: "01K4WAQ0J99ZZ0MD75HXR112H8"}}.Validate())
+	require.ErrorContains(t, VoidGrantInput{GrantID: models.NamespacedID{Namespace: "ns"}}.Validate(), "grant ID")
+}

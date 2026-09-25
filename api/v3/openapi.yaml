@@ -2977,6 +2977,111 @@ paths:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
       x-unstable: true
+  /openmeter/grants:
+    get:
+      operationId: list-grants
+      summary: List grants
+      description: |-
+        List the grants of all customers and entitlements. To list the grants of a
+        single entitlement, use the customer entitlement grants endpoint.
+
+        Deleted grants are excluded unless `include_deleted` is set. Voided and expired
+        grants are always included, as they are part of the balance history.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort grants returned in the response. Supported sort attributes are:
+
+            - `created_at` (default)
+            - `updated_at`
+            - `effective_at`
+            - `expires_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter grants returned in the response.
+
+            To filter grants by customer, add the following query param:
+            `filter[customer_id]=01K4WAQ0J99ZZ0MD75HXR112H8`
+          schema:
+            $ref: '#/components/schemas/ListGrantsParamsFilter'
+          style: deepObject
+        - name: include_deleted
+          in: query
+          required: false
+          description: Include deleted grants in the response.
+          schema:
+            type: boolean
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementGrantPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Entitlements
+      x-internal: true
+      x-private: true
+      x-unstable: true
+  /openmeter/grants/{grantId}:
+    delete:
+      operationId: void-grant
+      summary: Void grant
+      description: |-
+        Void a grant so it no longer adds to the balance. Usage already deducted from
+        the grant is kept.
+      parameters:
+        - name: grantId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: voided_at
+          in: query
+          required: false
+          description: |-
+            The time the grant is voided from. Defaults to now; it cannot be in the future
+            or before the start of the current usage period.
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Entitlements
+      x-internal: true
+      x-private: true
+      x-unstable: true
   /openmeter/llm-cost/overrides:
     get:
       operationId: list-llm-cost-overrides
@@ -15771,6 +15876,19 @@ components:
           $ref: '#/components/schemas/StringFieldFilter'
       additionalProperties: false
       description: Filter options for listing features.
+    ListGrantsParamsFilter:
+      type: object
+      properties:
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter grants by the ID of the customer that owns the entitlement.
+        feature_id:
+          allOf:
+            - $ref: '#/components/schemas/ULIDFieldFilter'
+          description: Filter grants by the ID of the entitlement's feature.
+      additionalProperties: false
+      description: Filter options for listing grants.
     ListInvoicesParamsFilter:
       type: object
       properties:
