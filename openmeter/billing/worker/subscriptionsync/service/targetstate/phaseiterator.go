@@ -25,7 +25,7 @@ import (
 // TimeInfinity is a big enough time that we can use to represent infinity (biggest possible date for our system).
 var (
 	TimeInfinity = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
-	maxSafeIter  = 1000
+	maxSafeIter  = 2500
 )
 
 type PhaseIterator struct {
