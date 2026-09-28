@@ -96,7 +96,7 @@ func (value NotificationChannelType) Valid() bool {
 // their defaults (enabled, no labels, no custom headers). `signing_secret` is the
 // one exception: omitting it keeps the channel's current signing secret instead of
 // clearing the credential.
-type UpdateNotificationChannelRequest struct {
+type UpdateBillingNotificationChannelRequest struct {
 	// Display name of the resource.
 	//
 	// Between 1 and 256 characters.

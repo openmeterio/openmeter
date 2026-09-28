@@ -3589,7 +3589,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationChannel'
+                $ref: '#/components/schemas/BillingNotificationChannel'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3624,7 +3624,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationChannel'
+                $ref: '#/components/schemas/BillingNotificationChannel'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3654,7 +3654,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationChannel'
+                $ref: '#/components/schemas/BillingNotificationChannel'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3672,7 +3672,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateNotificationChannelRequest'
+              $ref: '#/components/schemas/UpdateBillingNotificationChannelRequest'
       x-private: true
       x-internal: true
       x-unstable: true
@@ -10757,6 +10757,89 @@ components:
         - `system`: The resource lifecycle is controlled by OpenMeter.
         - `manual`: The resource lifecycle was manually overridden by the API user.
       title: Lifecycle controller
+    BillingNotificationChannel:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - url
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: |-
+        A notification channel delivers notification events, such as entitlement balance
+        threshold crossings, to an external system. Today the only supported channel
+        type is a webhook delivered via Svix.
+    BillingNotificationChannelType:
+      type: string
+      enum:
+        - webhook
+      description: |-
+        The type of a notification channel.
+
+        Currently the only supported channel type is `webhook`; the domain model
+        anticipates additional channel types (e.g. email, Slack) in the future, so this
+        is modeled as an enum rather than a boolean/constant even though it has a single
+        member today.
     BillingParty:
       type: object
       properties:
@@ -14573,7 +14656,7 @@ components:
           $ref: '#/components/schemas/Labels'
         type:
           allOf:
-            - $ref: '#/components/schemas/NotificationChannelType'
+            - $ref: '#/components/schemas/BillingNotificationChannelType'
           description: The type of the channel. Immutable after creation.
         disabled:
           type: boolean
@@ -16533,78 +16616,6 @@ components:
           readOnly: true
       additionalProperties: false
       description: Event validation errors.
-    NotificationChannel:
-      type: object
-      required:
-        - id
-        - name
-        - created_at
-        - updated_at
-        - type
-        - url
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        created_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity creation date.
-          readOnly: true
-        updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity last update date.
-          readOnly: true
-        deleted_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity deletion date.
-          readOnly: true
-        type:
-          allOf:
-            - $ref: '#/components/schemas/NotificationChannelType'
-          description: The type of the channel. Immutable after creation.
-        disabled:
-          type: boolean
-          description: |-
-            Whether the channel is disabled. Disabled channels do not receive notification
-            events.
-          default: false
-        url:
-          type: string
-          description: The URL that webhook notification events are delivered to.
-        custom_headers:
-          type: object
-          additionalProperties:
-            type: string
-          description: |-
-            Custom HTTP headers to include on every webhook delivery request, keyed by
-            header name.
-        signing_secret:
-          type: string
-          description: |-
-            Secret used to sign outgoing webhook payloads so recipients can verify their
-            authenticity. If omitted on create, a secret is generated automatically by the
-            delivery provider. This is a sensitive credential returned in responses (unlike
-            most secrets) specifically so clients can retrieve a server-generated value and
-            verify webhook signatures; handle it with the same care as any other credential.
-      additionalProperties: false
-      description: |-
-        A notification channel delivers notification events, such as entitlement balance
-        threshold crossings, to an external system. Today the only supported channel
-        type is a webhook delivered via Svix.
     NotificationChannelPagePaginatedResponse:
       type: object
       required:
@@ -16614,22 +16625,11 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/NotificationChannel'
+            $ref: '#/components/schemas/BillingNotificationChannel'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
-    NotificationChannelType:
-      type: string
-      enum:
-        - webhook
-      description: |-
-        The type of a notification channel.
-
-        Currently the only supported channel type is `webhook`; the domain model
-        anticipates additional channel types (e.g. email, Slack) in the future, so this
-        is modeled as an enum rather than a boolean/constant even though it has a single
-        member today.
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
@@ -17520,6 +17520,59 @@ components:
         A subset of BillingWorkflowInvoicingSettings limited to fields that are
         meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
         profile-level decision.
+    UpdateBillingNotificationChannelRequest:
+      type: object
+      required:
+        - name
+        - type
+        - url
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: |-
+        Request body for updating a notification channel. Updates replace the channel's
+        mutable state rather than merging it: `type`, `name`, and `url` must always be
+        provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+        their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+        one exception: omitting it keeps the channel's current signing secret instead of
+        clearing the credential.
     UpdateBillingPartyAddresses:
       type: object
       required:
@@ -17938,59 +17991,6 @@ components:
             type: $.type
       additionalProperties: false
       description: Meter update request.
-    UpdateNotificationChannelRequest:
-      type: object
-      required:
-        - name
-        - type
-        - url
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        type:
-          allOf:
-            - $ref: '#/components/schemas/NotificationChannelType'
-          description: The type of the channel. Immutable after creation.
-        url:
-          type: string
-          description: The URL that webhook notification events are delivered to.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        disabled:
-          type: boolean
-          description: |-
-            Whether the channel is disabled. Disabled channels do not receive notification
-            events.
-          default: false
-        custom_headers:
-          type: object
-          additionalProperties:
-            type: string
-          description: |-
-            Custom HTTP headers to include on every webhook delivery request, keyed by
-            header name.
-        signing_secret:
-          type: string
-          description: |-
-            Secret used to sign outgoing webhook payloads so recipients can verify their
-            authenticity. If omitted on create, a secret is generated automatically by the
-            delivery provider. This is a sensitive credential returned in responses (unlike
-            most secrets) specifically so clients can retrieve a server-generated value and
-            verify webhook signatures; handle it with the same care as any other credential.
-      additionalProperties: false
-      description: |-
-        Request body for updating a notification channel. Updates replace the channel's
-        mutable state rather than merging it: `type`, `name`, and `url` must always be
-        provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
-        their defaults (enabled, no labels, no custom headers). `signing_secret` is the
-        one exception: omitting it keeps the channel's current signing secret instead of
-        clearing the credential.
     UpdateOrganizationDefaultTaxCodesRequest:
       type: object
       properties:

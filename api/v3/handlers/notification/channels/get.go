@@ -14,7 +14,7 @@ import (
 
 type (
 	GetNotificationChannelRequest  = notification.GetChannelInput
-	GetNotificationChannelResponse = api.NotificationChannel
+	GetNotificationChannelResponse = api.BillingNotificationChannel
 	GetNotificationChannelParams   = string
 	GetNotificationChannelHandler  = httptransport.HandlerWithArgs[GetNotificationChannelRequest, GetNotificationChannelResponse, GetNotificationChannelParams]
 )

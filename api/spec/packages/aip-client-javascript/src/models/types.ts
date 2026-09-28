@@ -2598,7 +2598,7 @@ export interface CreateNotificationChannelRequest {
  * one exception: omitting it keeps the channel's current signing secret instead of
  * clearing the credential.
  */
-export interface UpdateNotificationChannelRequest {
+export interface UpdateBillingNotificationChannelRequest {
   /**
    * Display name of the resource.
    *
@@ -8086,7 +8086,7 @@ export interface CreateNotificationChannelRequestInput {
  * one exception: omitting it keeps the channel's current signing secret instead of
  * clearing the credential.
  */
-export interface UpdateNotificationChannelRequestInput {
+export interface UpdateBillingNotificationChannelRequestInput {
   /**
    * Display name of the resource.
    *
