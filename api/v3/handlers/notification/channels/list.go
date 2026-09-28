@@ -20,7 +20,7 @@ import (
 
 type (
 	ListNotificationChannelsRequest  = notification.ListChannelsInput
-	ListNotificationChannelsResponse = response.PagePaginationResponse[api.NotificationChannel]
+	ListNotificationChannelsResponse = response.PagePaginationResponse[api.BillingNotificationChannel]
 	ListNotificationChannelsParams   = api.ListNotificationChannelsParams
 	ListNotificationChannelsHandler  = httptransport.HandlerWithArgs[ListNotificationChannelsRequest, ListNotificationChannelsResponse, ListNotificationChannelsParams]
 )
@@ -142,7 +142,7 @@ func (h *handler) ListNotificationChannels() ListNotificationChannelsHandler {
 				return ListNotificationChannelsResponse{}, fmt.Errorf("failed to list notification channels: %w", err)
 			}
 
-			items := make([]api.NotificationChannel, 0, len(result.Items))
+			items := make([]api.BillingNotificationChannel, 0, len(result.Items))
 			for _, item := range result.Items {
 				apiChannel, err := ToAPIChannel(item)
 				if err != nil {

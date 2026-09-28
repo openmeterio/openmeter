@@ -3764,7 +3764,7 @@ export const createNotificationChannelRequest = z
   })
   .describe('NotificationChannel create request.')
 
-export const updateNotificationChannelRequest = z
+export const updateBillingNotificationChannelRequest = z
   .object({
     name: z
       .string()
@@ -8982,7 +8982,8 @@ export const updateNotificationChannelPathParams = z.object({
   notificationChannelId: ulid,
 })
 
-export const updateNotificationChannelBody = updateNotificationChannelRequest
+export const updateNotificationChannelBody =
+  updateBillingNotificationChannelRequest
 
 export const updateNotificationChannelResponse = notificationChannel
 
@@ -12728,7 +12729,7 @@ export const createNotificationChannelRequestWire = z
   })
   .describe('NotificationChannel create request.')
 
-export const updateNotificationChannelRequestWire = z
+export const updateBillingNotificationChannelRequestWire = z
   .strictObject({
     name: z
       .string()
@@ -18073,7 +18074,7 @@ export const updateNotificationChannelPathParamsWire = z.object({
 })
 
 export const updateNotificationChannelBodyWire =
-  updateNotificationChannelRequestWire
+  updateBillingNotificationChannelRequestWire
 
 export const updateNotificationChannelResponseWire = notificationChannelWire
 

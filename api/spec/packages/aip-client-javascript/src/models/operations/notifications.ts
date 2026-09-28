@@ -9,7 +9,7 @@ import type {
   NotificationChannel,
   NotificationChannelPagePaginatedResponse,
   SortQueryInput,
-  UpdateNotificationChannelRequestInput,
+  UpdateBillingNotificationChannelRequestInput,
 } from '../types.js'
 
 export interface ListNotificationChannelsQuery {
@@ -53,7 +53,7 @@ export type GetNotificationChannelResponse = NotificationChannel
 
 export type UpdateNotificationChannelRequest = AcceptDateStrings<{
   notificationChannelId: string
-  body: UpdateNotificationChannelRequestInput
+  body: UpdateBillingNotificationChannelRequestInput
 }>
 export type UpdateNotificationChannelResponse = NotificationChannel
 

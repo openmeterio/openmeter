@@ -19,7 +19,7 @@ import (
 // ChannelType would otherwise reach ChannelConfig.Validate()'s type switch and fail
 // deep inside domain validation with a confusing error instead of a clear one here.
 func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
-	baseBody := func(channelType api.NotificationChannelType) api.CreateNotificationChannelRequest {
+	baseBody := func(channelType api.BillingNotificationChannelType) api.CreateNotificationChannelRequest {
 		return api.CreateNotificationChannelRequest{
 			Name: "test channel",
 			Type: channelType,
@@ -28,7 +28,7 @@ func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
 	}
 
 	t.Run("lowercase wire value maps to uppercase domain value", func(t *testing.T) {
-		result, err := FromAPICreateChannelRequest("ns1", baseBody(api.NotificationChannelTypeWebhook))
+		result, err := FromAPICreateChannelRequest("ns1", baseBody(api.BillingNotificationChannelTypeWebhook))
 		require.NoError(t, err)
 		assert.Equal(t, notification.ChannelTypeWebhook, result.Type)
 		assert.Equal(t, notification.ChannelType("WEBHOOK"), result.Type)
@@ -57,15 +57,15 @@ func TestFromAPICreateChannelRequest_TypeCasing(t *testing.T) {
 }
 
 // TestFromAPIUpdateChannelRequest pins the update request's replace semantics as
-// documented on the UpdateNotificationChannelRequest spec model: type/name/url are
+// documented on the UpdateBillingNotificationChannelRequest spec model: type/name/url are
 // required on the wire, an omitted disabled resets to false, and an omitted
 // signing_secret maps to the empty string — which the service layer treats as "keep
 // the current secret", never as clearing the credential.
 func TestFromAPIUpdateChannelRequest(t *testing.T) {
-	baseBody := func() api.UpdateNotificationChannelRequest {
-		return api.UpdateNotificationChannelRequest{
+	baseBody := func() api.UpdateBillingNotificationChannelRequest {
+		return api.UpdateBillingNotificationChannelRequest{
 			Name: "updated channel",
-			Type: api.NotificationChannelTypeWebhook,
+			Type: api.BillingNotificationChannelTypeWebhook,
 			Url:  "https://example.com/hook",
 		}
 	}
@@ -121,8 +121,8 @@ func TestToAPIChannel_TypeCasing(t *testing.T) {
 
 		result, err := ToAPIChannel(channel)
 		require.NoError(t, err)
-		assert.Equal(t, api.NotificationChannelTypeWebhook, result.Type)
-		assert.Equal(t, api.NotificationChannelType("webhook"), result.Type)
+		assert.Equal(t, api.BillingNotificationChannelTypeWebhook, result.Type)
+		assert.Equal(t, api.BillingNotificationChannelType("webhook"), result.Type)
 	})
 
 	t.Run("unknown domain type errors instead of leaking the raw value", func(t *testing.T) {
@@ -261,7 +261,7 @@ func TestToAPIChannel_LabelsRoundTrip(t *testing.T) {
 	metadataOnly := api.Labels{"env": (*apiChannel.Labels)["env"]}
 	created, err := FromAPICreateChannelRequest("ns1", api.CreateNotificationChannelRequest{
 		Name:   "test",
-		Type:   api.NotificationChannelTypeWebhook,
+		Type:   api.BillingNotificationChannelTypeWebhook,
 		Url:    "https://example.com/hook",
 		Labels: &metadataOnly,
 	})
@@ -279,7 +279,7 @@ func TestToAPIChannel_LabelsRoundTrip(t *testing.T) {
 	// it is documented here rather than treated as a defect of FromAPIUpdateChannelRequest.
 	_, err = FromAPICreateChannelRequest("ns1", api.CreateNotificationChannelRequest{
 		Name:   "test",
-		Type:   api.NotificationChannelTypeWebhook,
+		Type:   api.BillingNotificationChannelTypeWebhook,
 		Url:    "https://example.com/hook",
 		Labels: apiChannel.Labels,
 	})

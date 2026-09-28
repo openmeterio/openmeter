@@ -73,7 +73,7 @@ model NotificationChannel {
  * one exception: omitting it keeps the channel's current signing secret instead of
  * clearing the credential.
  */
-@friendlyName("BillingUpdateNotificationChannelRequest")
+@friendlyName("UpdateBillingNotificationChannelRequest")
 model NotificationChannelUpdateRequest {
   ...PickProperties<
     UpdateableProperties<NotificationChannel>,

@@ -121,7 +121,7 @@ func (s *NotificationsService) GetChannel(ctx context.Context, notificationChann
 }
 
 // Update a notification channel by id.
-func (s *NotificationsService) UpdateChannel(ctx context.Context, notificationChannelID string, request UpdateNotificationChannelRequest) (*NotificationChannel, error) {
+func (s *NotificationsService) UpdateChannel(ctx context.Context, notificationChannelID string, request UpdateBillingNotificationChannelRequest) (*NotificationChannel, error) {
 	if notificationChannelID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationChannelID", ErrEmptyID)
 	}

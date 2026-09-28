@@ -3672,7 +3672,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingUpdateNotificationChannelRequest'
+              $ref: '#/components/schemas/UpdateBillingNotificationChannelRequest'
       x-private: true
       x-internal: true
       x-unstable: true
@@ -13263,59 +13263,6 @@ components:
           sandbox: '#/components/schemas/UpdateAppSandboxRequest'
           external_invoicing: '#/components/schemas/UpdateAppExternalInvoicingRequest'
       description: Request to update an installed app.
-    BillingUpdateNotificationChannelRequest:
-      type: object
-      required:
-        - name
-        - type
-        - url
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationChannelType'
-          description: The type of the channel. Immutable after creation.
-        url:
-          type: string
-          description: The URL that webhook notification events are delivered to.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        disabled:
-          type: boolean
-          description: |-
-            Whether the channel is disabled. Disabled channels do not receive notification
-            events.
-          default: false
-        custom_headers:
-          type: object
-          additionalProperties:
-            type: string
-          description: |-
-            Custom HTTP headers to include on every webhook delivery request, keyed by
-            header name.
-        signing_secret:
-          type: string
-          description: |-
-            Secret used to sign outgoing webhook payloads so recipients can verify their
-            authenticity. If omitted on create, a secret is generated automatically by the
-            delivery provider. This is a sensitive credential returned in responses (unlike
-            most secrets) specifically so clients can retrieve a server-generated value and
-            verify webhook signatures; handle it with the same care as any other credential.
-      additionalProperties: false
-      description: |-
-        Request body for updating a notification channel. Updates replace the channel's
-        mutable state rather than merging it: `type`, `name`, and `url` must always be
-        provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
-        their defaults (enabled, no labels, no custom headers). `signing_secret` is the
-        one exception: omitting it keeps the channel's current signing secret instead of
-        clearing the credential.
     BillingValidationIssue:
       type: object
       required:
@@ -17573,6 +17520,59 @@ components:
         A subset of BillingWorkflowInvoicingSettings limited to fields that are
         meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
         profile-level decision.
+    UpdateBillingNotificationChannelRequest:
+      type: object
+      required:
+        - name
+        - type
+        - url
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: |-
+        Request body for updating a notification channel. Updates replace the channel's
+        mutable state rather than merging it: `type`, `name`, and `url` must always be
+        provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+        their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+        one exception: omitting it keeps the channel's current signing secret instead of
+        clearing the credential.
     UpdateBillingPartyAddresses:
       type: object
       required:

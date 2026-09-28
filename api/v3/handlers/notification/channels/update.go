@@ -15,7 +15,7 @@ import (
 
 type (
 	UpdateNotificationChannelRequest  = notification.UpdateChannelInput
-	UpdateNotificationChannelResponse = api.NotificationChannel
+	UpdateNotificationChannelResponse = api.BillingNotificationChannel
 	UpdateNotificationChannelParams   = string
 	UpdateNotificationChannelHandler  = httptransport.HandlerWithArgs[UpdateNotificationChannelRequest, UpdateNotificationChannelResponse, UpdateNotificationChannelParams]
 )
@@ -24,7 +24,7 @@ type (
 func (h *handler) UpdateNotificationChannel() UpdateNotificationChannelHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, channelID UpdateNotificationChannelParams) (UpdateNotificationChannelRequest, error) {
-			body := api.UpdateNotificationChannelRequest{}
+			body := api.UpdateBillingNotificationChannelRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateNotificationChannelRequest{}, err
 			}

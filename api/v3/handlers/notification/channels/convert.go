@@ -40,9 +40,9 @@ func FromAPIChannelSortField(ctx context.Context, field string) (notification.Or
 // silently invalid ChannelType would otherwise either fail deep inside domain
 // validation with a confusing error (create/update) or silently match zero rows
 // (filter[type]).
-func ToDomainChannelType(v api.NotificationChannelType) (notification.ChannelType, error) {
+func ToDomainChannelType(v api.BillingNotificationChannelType) (notification.ChannelType, error) {
 	switch v {
-	case api.NotificationChannelTypeWebhook:
+	case api.BillingNotificationChannelTypeWebhook:
 		return notification.ChannelTypeWebhook, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification channel type: %s", v))
@@ -50,23 +50,23 @@ func ToDomainChannelType(v api.NotificationChannelType) (notification.ChannelTyp
 }
 
 // ToAPIChannelType maps the domain ChannelType to the v3 wire-format channel type.
-func ToAPIChannelType(v notification.ChannelType) (api.NotificationChannelType, error) {
+func ToAPIChannelType(v notification.ChannelType) (api.BillingNotificationChannelType, error) {
 	switch v {
 	case notification.ChannelTypeWebhook:
-		return api.NotificationChannelTypeWebhook, nil
+		return api.BillingNotificationChannelTypeWebhook, nil
 	default:
 		return "", fmt.Errorf("invalid notification channel type: %s", v)
 	}
 }
 
 // ToAPIChannel maps a domain Channel to its v3 API representation.
-func ToAPIChannel(c notification.Channel) (api.NotificationChannel, error) {
+func ToAPIChannel(c notification.Channel) (api.BillingNotificationChannel, error) {
 	apiType, err := ToAPIChannelType(c.Type)
 	if err != nil {
-		return api.NotificationChannel{}, err
+		return api.BillingNotificationChannel{}, err
 	}
 
-	channel := api.NotificationChannel{
+	channel := api.BillingNotificationChannel{
 		Id:        c.ID,
 		Name:      c.Name,
 		Type:      apiType,
@@ -125,7 +125,7 @@ func FromAPICreateChannelRequest(ns string, body api.CreateNotificationChannelRe
 // the wire, while an omitted disabled/labels/custom_headers resets the field. An
 // omitted signing_secret maps to the empty string, which the service layer treats
 // as "keep the current secret" — the credential is never cleared by omission.
-func FromAPIUpdateChannelRequest(ns string, id string, body api.UpdateNotificationChannelRequest) (notification.UpdateChannelInput, error) {
+func FromAPIUpdateChannelRequest(ns string, id string, body api.UpdateBillingNotificationChannelRequest) (notification.UpdateChannelInput, error) {
 	ma, err := labels.ToMetadataAnnotations(body.Labels)
 	if err != nil {
 		return notification.UpdateChannelInput{}, err
@@ -173,7 +173,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 	mapped := *f
 
 	if f.Eq != nil {
-		v, err := ToDomainChannelType(api.NotificationChannelType(*f.Eq))
+		v, err := ToDomainChannelType(api.BillingNotificationChannelType(*f.Eq))
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +181,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 	}
 
 	if f.Ne != nil {
-		v, err := ToDomainChannelType(api.NotificationChannelType(*f.Ne))
+		v, err := ToDomainChannelType(api.BillingNotificationChannelType(*f.Ne))
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +191,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 	if f.In != nil {
 		values := make([]string, 0, len(*f.In))
 		for _, raw := range *f.In {
-			v, err := ToDomainChannelType(api.NotificationChannelType(raw))
+			v, err := ToDomainChannelType(api.BillingNotificationChannelType(raw))
 			if err != nil {
 				return nil, err
 			}
