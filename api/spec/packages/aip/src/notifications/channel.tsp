@@ -10,7 +10,7 @@ namespace Notifications;
  * is modeled as an enum rather than a boolean/constant even though it has a single
  * member today.
  */
-@friendlyName("NotificationChannelType")
+@friendlyName("BillingNotificationChannelType")
 enum NotificationChannelType {
   /**
    * A webhook channel delivers notification events as signed HTTP POST
@@ -24,7 +24,7 @@ enum NotificationChannelType {
  * threshold crossings, to an external system. Today the only supported channel
  * type is a webhook delivered via Svix.
  */
-@friendlyName("NotificationChannel")
+@friendlyName("BillingNotificationChannel")
 model NotificationChannel {
   ...OmitProperties<Shared.Resource, "description">;
 
@@ -73,7 +73,7 @@ model NotificationChannel {
  * one exception: omitting it keeps the channel's current signing secret instead of
  * clearing the credential.
  */
-@friendlyName("UpdateNotificationChannelRequest")
+@friendlyName("BillingUpdateNotificationChannelRequest")
 model NotificationChannelUpdateRequest {
   ...PickProperties<
     UpdateableProperties<NotificationChannel>,
