@@ -50,6 +50,12 @@ is also reflected in Svix's endpoint filters. Channel and rule changes must
 keep PostgreSQL and provider state consistent; changing only one side breaks
 delivery or leaves delivery status unreconcilable.
 
+Svix disables an endpoint on its own after a prolonged delivery failure and
+does not push that decision back. Reconciliation mirrors it onto the channel,
+stamping the `channel.provider.disabled.timestamp` annotation so the reason is
+visible. Re-enabling is a user action: updating the channel clears the
+annotation and re-enables the endpoint at the provider.
+
 ## Source events and matching
 
 | notification type | source | matching behavior |
@@ -132,8 +138,9 @@ SENDING, SUCCESS, or FAILED -> RESENDING -> SENDING
   creation. The current implementation does not restart that clock on resend,
   so an old delivery can reach the sending timeout immediately after a resend.
   These timeouts and the reconciliation interval are configurable.
-- A failed delivery does not disable its rule or channel. Future matching
-  source events remain independent.
+- A failed delivery does not disable its rule or channel, with one exception:
+  when the provider reports the endpoint as disabled, reconciliation disables
+  the channel as well. Future matching source events remain independent.
 
 Resend reuses the persisted event payload. It may target selected channels, but
 only channels assigned to the event's rule and statuses already in

@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var (
@@ -305,7 +306,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 
 					wh, ok := webhooksByChannelID[status.ChannelID]
 					if !ok {
-						h.logger.ErrorContext(ctx, "notification channel for delivery status does not exist at webhook provider. it means its state is out of sync",
+						h.logger.WarnContext(ctx, "notification channel for delivery status does not exist at webhook provider. it means its state is out of sync",
 							"namespace", event.Namespace,
 							"notification.event.id", event.ID,
 							"notification.delivery_status.id", status.ID,
@@ -325,7 +326,7 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 					}
 
 					if !lo.Contains(wh.Channels, event.Rule.ID) {
-						h.logger.ErrorContext(ctx, "notification rule is not associated with notification channel for delivery status at webhook provider. it means its state is out of sync",
+						h.logger.WarnContext(ctx, "notification rule is not associated with notification channel for delivery status at webhook provider. it means its state is out of sync",
 							"namespace", event.Namespace,
 							"notification.event.id", event.ID,
 							"notification.delivery_status.id", status.ID,
@@ -352,6 +353,15 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 							"notification.delivery_status.id", status.ID,
 							"notification.channel.id", status.ChannelID,
 						)
+
+						// Note: keep the error local, so a failed write-back does not prevent the delivery
+						// status from being finalized.
+						if err := h.disableChannelForProvider(ctx, models.NamespacedID{
+							Namespace: event.Namespace,
+							ID:        status.ChannelID,
+						}); err != nil {
+							errs = append(errs, fmt.Errorf("failed to mirror provider-side channel disable: %w", err))
+						}
 
 						input = &notification.UpdateEventDeliveryStatusInput{
 							NamespacedID: status.NamespacedID,
@@ -602,4 +612,51 @@ func eventAsPayload(event *notification.Event) (webhook.Payload, error) {
 	}
 
 	return m, nil
+}
+
+// disableChannelForProvider mirrors a provider-side endpoint disable onto the notification channel.
+//
+// The webhook provider disables endpoints on its own after a prolonged delivery failure and never
+// pushes that decision back to us. Until the channel is disabled here as well, it keeps reporting
+// itself as enabled over the API and every event routed through it produces a delivery status that
+// immediately fails. Writing the state back stops the event fan-out and surfaces the reason to the
+// user, who re-enables the channel through the regular update path once the endpoint is healthy
+// again; that update also re-enables the endpoint at the provider.
+//
+// The channel is updated through the repository rather than the service on purpose: the service
+// would push the state we just read back to the provider.
+//
+// The read and the write are not atomic: a channel update landing between them is reverted, and a
+// user re-enabling the channel in that window ends up with the channel disabled while the provider
+// endpoint stays enabled, until the channel is updated once more. Ordering the two writers would
+// take a row lock shared with the channel service, or a channel revision carried from the provider
+// observation through to this write. Neither is worth its cost while channel updates stay as rare
+// as they are in practice; revisit if that changes.
+func (h *Handler) disableChannelForProvider(ctx context.Context, channelID models.NamespacedID) error {
+	channel, err := h.repo.GetChannel(ctx, notification.GetChannelInput(channelID))
+	if err != nil {
+		return fmt.Errorf("failed to get channel: %w", err)
+	}
+
+	if channel.Disabled {
+		return nil
+	}
+
+	annotations := lo.Assign(channel.Annotations, models.Annotations{
+		notification.AnnotationChannelProviderDisabledTimestamp: clock.Now().UTC().Format(time.RFC3339),
+	})
+
+	if _, err = h.repo.UpdateChannel(ctx, notification.UpdateChannelInput{
+		NamespacedID: channel.NamespacedID,
+		Type:         channel.Type,
+		Name:         channel.Name,
+		Disabled:     true,
+		Config:       channel.Config,
+		Metadata:     channel.Metadata,
+		Annotations:  annotations,
+	}); err != nil {
+		return fmt.Errorf("failed to update channel: %w", err)
+	}
+
+	return nil
 }
