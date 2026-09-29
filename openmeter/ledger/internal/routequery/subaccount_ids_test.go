@@ -3,6 +3,7 @@ package routequery
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
@@ -49,6 +50,61 @@ func TestSubAccountIDsByRouteSQL(t *testing.T) {
 			wantArgs: []any{
 				"USD",
 				`["feature-a"]`,
+			},
+		},
+		{
+			name: "without plan restrictions",
+			route: ledger.RouteFilter{
+				MatchPlan: mo.Some[*ledger.PlanFilter](nil),
+			},
+			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE COALESCE("lsar"."filters"->'plans', '[]'::jsonb) = '[]'::jsonb`,
+		},
+		{
+			name: "match plan key",
+			route: ledger.RouteFilter{
+				Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
+				MatchPlan: mo.Some(&ledger.PlanFilter{Key: "pro"}),
+			},
+			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND (COALESCE("lsar"."filters"->'plans', '[]'::jsonb) = '[]'::jsonb OR jsonb_path_exists("lsar"."filters", $2::jsonpath, $3::jsonb))`,
+			wantArgs: []any{
+				"USD",
+				`$.plans[*] ? (@.key == $key)`,
+				`{"key":"pro"}`,
+			},
+		},
+		{
+			name: "match plan version",
+			route: ledger.RouteFilter{
+				MatchPlan: mo.Some(&ledger.PlanFilter{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(2)}}),
+			},
+			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE COALESCE("lsar"."filters"->'plans', '[]'::jsonb) = '[]'::jsonb OR jsonb_path_exists("lsar"."filters", $1::jsonpath, $2::jsonb)`,
+			wantArgs: []any{
+				`$.plans[*] ? (@.key == $key && (!exists(@.version) || @.version == null || @.version.eq == $version || @.version.in[*] == $version || @.version.gte <= $version || @.version.lte >= $version))`,
+				`{"key":"pro","version":2}`,
+			},
+		},
+		{
+			name: "match feature and plan version",
+			route: ledger.RouteFilter{
+				MatchFeature: "feature-a",
+				MatchPlan:    mo.Some(&ledger.PlanFilter{Key: "pro", Version: &ledger.VersionFilter{Eq: lo.ToPtr(2)}}),
+			},
+			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE (COALESCE("lsar"."filters"->'plans', '[]'::jsonb) = '[]'::jsonb OR jsonb_path_exists("lsar"."filters", $1::jsonpath, $2::jsonb)) AND ("lsar"."filters"->'features' IS NULL OR "lsar"."filters"->'features' @> $3::jsonb)`,
+			wantArgs: []any{
+				`$.plans[*] ? (@.key == $key && (!exists(@.version) || @.version == null || @.version.eq == $version || @.version.in[*] == $version || @.version.gte <= $version || @.version.lte >= $version))`,
+				`{"key":"pro","version":2}`,
+				`["feature-a"]`,
+			},
+		},
+		{
+			name: "plan key stays a bound JSON value",
+			route: ledger.RouteFilter{
+				MatchPlan: mo.Some(&ledger.PlanFilter{Key: `pro'"\beta`}),
+			},
+			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE COALESCE("lsar"."filters"->'plans', '[]'::jsonb) = '[]'::jsonb OR jsonb_path_exists("lsar"."filters", $1::jsonpath, $2::jsonb)`,
+			wantArgs: []any{
+				`$.plans[*] ? (@.key == $key)`,
+				`{"key":"pro'\"\\beta"}`,
 			},
 		},
 		{

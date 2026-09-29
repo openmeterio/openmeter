@@ -645,13 +645,13 @@ func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flat
 func (e *testEnv) createPendingInvoiceCreditGrant(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features ...string) creditpurchase.Charge {
 	t.Helper()
 
-	return e.createCreditPurchase(t, amount, currency, nil, creditpurchase.FeatureFilters(features), creditpurchase.NewInvoiceSettlement())
+	return e.createCreditPurchase(t, amount, currency, nil, ledger.CreditFilters{Features: features}, creditpurchase.NewInvoiceSettlement())
 }
 
 func (e *testEnv) createPromotionalCreditGrant(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, effectiveAt *time.Time, features ...string) creditpurchase.Charge {
 	t.Helper()
 
-	return e.createCreditPurchase(t, amount, currency, effectiveAt, creditpurchase.FeatureFilters(features), creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}))
+	return e.createCreditPurchase(t, amount, currency, effectiveAt, ledger.CreditFilters{Features: features}, creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}))
 }
 
 func (e *testEnv) markCreditPurchaseDeleted(t *testing.T, charge creditpurchase.Charge) {
@@ -669,7 +669,7 @@ func (e *testEnv) createCreditPurchase(
 	amount alpacadecimal.Decimal,
 	currency currencyx.Code,
 	effectiveAt *time.Time,
-	features creditpurchase.FeatureFilters,
+	filters ledger.CreditFilters,
 	settlement creditpurchase.Settlement,
 ) creditpurchase.Charge {
 	t.Helper()
@@ -710,7 +710,7 @@ func (e *testEnv) createCreditPurchase(
 				},
 				CreditAmount: amount,
 				EffectiveAt:  effectiveAt,
-				Filters:      ledger.CreditFilters{Version: ledger.CreditFiltersVersion1, Features: features},
+				Filters:      filters,
 				Settlement:   settlement,
 			},
 			CostBasis: costBasis,

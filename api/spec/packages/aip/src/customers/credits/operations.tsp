@@ -184,9 +184,26 @@ model GetCreditBalanceParamsFilter {
 
   /**
    * Filter credit balance by feature key. Omit to return the total portfolio value.
-   * Use `exists=false` to return only unrestricted balance.
+   * Use `exists=false` to return only credits without feature restrictions; those
+   * credits may still have plan restrictions.
    */
   feature_key?: Common.StringFieldFilter;
+
+  /**
+   * Select credits matching one plan key, including credits without plan
+   * restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and a
+   * single-value `oeq`. Omit to include all plans. Use `exists=false` for credits
+   * without plan restrictions. Feature and plan selections combine with AND.
+   */
+  plan_key?: Common.StringFieldFilter;
+
+  /**
+   * Select one positive integer plan version using `eq` (or shorthand). Requires a
+   * concrete `plan_key`. Credits whose version constraints match this version, and
+   * credits without plan restrictions, are included. Omit to include every version
+   * of the selected plan.
+   */
+  plan_version?: Common.NumericFieldFilter;
 }
 
 namespace Credits.Balance {
@@ -237,10 +254,26 @@ model ListCreditTransactionsParamsFilter {
 
   /**
    * Filter credit transactions by feature key. Omit to return all credit
-   * transactions. Use `exists=false` to return only unrestricted credit
-   * transactions.
+   * transactions. Use `exists=false` to return only movements on routes without
+   * feature restrictions; those routes may still have plan restrictions.
    */
   feature_key?: Common.StringFieldFilter;
+
+  /**
+   * Select credits matching one plan key, including credits without plan
+   * restrictions. Keys are case-sensitive. Supports `eq` (or shorthand) and a
+   * single-value `oeq`. Omit to include all plans. Use `exists=false` for credits
+   * without plan restrictions. Feature and plan selections combine with AND.
+   */
+  plan_key?: Common.StringFieldFilter;
+
+  /**
+   * Select one positive integer plan version using `eq` (or shorthand). Requires a
+   * concrete `plan_key`. Credits whose version constraints match this version, and
+   * credits without plan restrictions, are included. Omit to include every version
+   * of the selected plan.
+   */
+  plan_version?: Common.NumericFieldFilter;
 
   // TODO: add date filters for created_at and booked_at
 }

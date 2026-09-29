@@ -25,7 +25,7 @@ func (l *voidedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		After:      input.After,
 		Before:     input.Before,
 		Limit:      input.Limit,
-		Route:      featureFilterRoute(input.FeatureFilter),
+		Route:      creditFilterRoute(input.FeatureFilter, input.PlanFilter),
 	})
 	if err != nil {
 		return creditTransactionLoaderResult{}, fmt.Errorf("list voided credit impacts: %w", err)
