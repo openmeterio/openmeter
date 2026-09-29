@@ -4945,6 +4945,7 @@ export const entitlementGrant = z
   .object({
     id: ulid,
     entitlementId: ulid,
+    customerId: ulid.optional(),
     amount: numeric,
     priority: z
       .number()
@@ -13906,6 +13907,7 @@ export const entitlementGrantWire = z
   .strictObject({
     id: ulidWire,
     entitlement_id: ulidWire,
+    customer_id: ulidWire.optional(),
     amount: numericWire,
     priority: z
       .number()

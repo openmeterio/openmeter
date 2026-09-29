@@ -43,6 +43,7 @@ func ToAPIEntitlementGrant(g grant.Grant, now time.Time) (api.BillingEntitlement
 	out := api.BillingEntitlementGrant{
 		Id:                g.ID,
 		EntitlementId:     g.OwnerID,
+		CustomerId:        g.CustomerID,
 		Amount:            alpacadecimal.NewFromFloat(g.Amount).String(),
 		Priority:          g.Priority,
 		EffectiveAt:       g.EffectiveAt,

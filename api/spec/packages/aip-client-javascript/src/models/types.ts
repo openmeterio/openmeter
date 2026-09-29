@@ -3985,6 +3985,8 @@ export interface EntitlementGrant {
   id: string
   /** The ID of the entitlement the grant belongs to. */
   entitlementId: string
+  /** The ID of the customer the grant belongs to. */
+  customerId?: string
   /** The granted amount, in the feature's unit. */
   amount: string
   /**

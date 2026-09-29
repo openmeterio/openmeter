@@ -30,6 +30,13 @@ model EntitlementGrant {
   entitlement_id: Shared.ULID;
 
   /**
+   * The ID of the customer the grant belongs to.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Customer ID")
+  customer_id?: Shared.ULID;
+
+  /**
    * The granted amount, in the feature's unit.
    */
   @visibility(Lifecycle.Read)

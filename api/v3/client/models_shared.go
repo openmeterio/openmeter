@@ -1337,6 +1337,8 @@ type EntitlementGrant struct {
 	ID string `json:"id"`
 	// The ID of the entitlement the grant belongs to.
 	EntitlementID string `json:"entitlement_id"`
+	// The ID of the customer the grant belongs to.
+	CustomerID *string `json:"customer_id,omitempty"`
 	// The granted amount, in the feature's unit.
 	Amount Numeric `json:"amount"`
 	// The priority of the grant. Lower values are consumed first: a grant with

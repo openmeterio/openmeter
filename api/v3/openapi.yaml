@@ -8780,6 +8780,12 @@ components:
           description: The ID of the entitlement the grant belongs to.
           title: Entitlement ID
           readOnly: true
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the customer the grant belongs to.
+          title: Customer ID
+          readOnly: true
         amount:
           allOf:
             - $ref: '#/components/schemas/Numeric'

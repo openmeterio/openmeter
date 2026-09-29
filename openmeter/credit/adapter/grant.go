@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/samber/lo"
 )
 
 type grantDBADapter struct {
@@ -285,6 +286,10 @@ func (g *grantDBADapter) GetGrant(ctx context.Context, grantID models.Namespaced
 }
 
 func mapGrantEntity(entity *db.Grant) grant.Grant {
+	var customerID *string
+	if entity.Edges.Entitlement != nil {
+		customerID = lo.ToPtr(entity.Edges.Entitlement.CustomerID)
+	}
 	g := grant.Grant{
 		ManagedModel: models.ManagedModel{
 			CreatedAt: entity.CreatedAt.In(time.UTC),
@@ -294,10 +299,11 @@ func mapGrantEntity(entity *db.Grant) grant.Grant {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: entity.Namespace,
 		},
-		ID:       entity.ID,
-		OwnerID:  entity.OwnerID,
-		Amount:   entity.Amount,
-		Priority: entity.Priority,
+		ID:         entity.ID,
+		OwnerID:    entity.OwnerID,
+		CustomerID: customerID,
+		Amount:     entity.Amount,
+		Priority:   entity.Priority,
 		VoidedAt: convert.SafeDeRef(entity.VoidedAt, func(t time.Time) *time.Time {
 			return convert.ToPointer(t.In(time.UTC).Truncate(time.Minute)) // To avoid consistency errors for previous versions of the database where this value wasn't store truncated
 		}),
