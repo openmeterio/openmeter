@@ -369,7 +369,7 @@ func TestToAPICreditGrantPurchase(t *testing.T) {
 
 func TestCreditGrantPlanFilterMapping(t *testing.T) {
 	for _, version := range []*api.CreateVersionFilter{
-		nil, {Eq: lo.ToPtr(int32(2))}, {In: lo.ToPtr([]int32{2, 3})}, {Gte: lo.ToPtr(int32(2))}, {Lte: lo.ToPtr(int32(3))},
+		nil, {Eq: lo.ToPtr(int32(2))}, {Oeq: lo.ToPtr([]int32{2, 3})}, {Gte: lo.ToPtr(int32(2))}, {Lte: lo.ToPtr(int32(3))},
 	} {
 		filters, err := fromAPIBillingCreditGrantFilters(&api.CreateCreditGrantFilters{
 			Features: lo.ToPtr([]api.ResourceKey{"api-calls"}),
@@ -386,13 +386,13 @@ func TestCreditGrantPlanFilterMapping(t *testing.T) {
 		} else {
 			actual := (*mapped.Plans)[0].Version
 			require.Equal(t, version.Eq, actual.Eq)
-			require.Equal(t, version.In, actual.In)
+			require.Equal(t, version.Oeq, actual.Oeq)
 			require.Equal(t, version.Gte, actual.Gte)
 			require.Equal(t, version.Lte, actual.Lte)
 		}
 	}
 	for _, version := range []*api.CreateVersionFilter{
-		{}, {In: lo.ToPtr([]int32{})}, {Eq: lo.ToPtr(int32(0))}, {In: lo.ToPtr([]int32{-1})}, {Eq: lo.ToPtr(int32(2)), Gte: lo.ToPtr(int32(1))},
+		{}, {Oeq: lo.ToPtr([]int32{})}, {Eq: lo.ToPtr(int32(0))}, {Oeq: lo.ToPtr([]int32{-1})}, {Eq: lo.ToPtr(int32(2)), Gte: lo.ToPtr(int32(1))},
 	} {
 		filters, err := fromAPIBillingCreditGrantFilters(&api.CreateCreditGrantFilters{
 			Plans: lo.ToPtr([]api.CreateCreditGrantPlanFilter{{Key: "pro", Version: version}}),

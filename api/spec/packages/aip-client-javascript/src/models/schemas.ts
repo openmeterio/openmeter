@@ -596,7 +596,7 @@ export const createVersionFilter = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)
@@ -638,7 +638,7 @@ export const versionFilter = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)
@@ -9585,7 +9585,7 @@ export const createVersionFilterWire = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)
@@ -9627,7 +9627,7 @@ export const versionFilterWire = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)

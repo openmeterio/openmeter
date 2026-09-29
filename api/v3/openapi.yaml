@@ -14902,7 +14902,7 @@ components:
           format: int32
           minimum: 1
           description: Match this exact version.
-        in:
+        oeq:
           type: array
           items:
             type: integer
@@ -18518,7 +18518,7 @@ components:
           format: int32
           minimum: 1
           description: Match this exact version.
-        in:
+        oeq:
           type: array
           items:
             type: integer

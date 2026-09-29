@@ -157,7 +157,7 @@ export interface CreateVersionFilter {
   /** Match this exact version. */
   eq?: number
   /** Match one of these versions. */
-  in?: number[]
+  oeq?: number[]
   /** Match this version and later versions. */
   gte?: number
   /** Match this version and earlier versions. */
@@ -169,7 +169,7 @@ export interface VersionFilter {
   /** Match this exact version. */
   eq?: number
   /** Match one of these versions. */
-  in?: number[]
+  oeq?: number[]
   /** Match this version and later versions. */
   gte?: number
   /** Match this version and earlier versions. */

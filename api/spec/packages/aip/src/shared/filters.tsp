@@ -301,7 +301,7 @@ model VersionFilter {
    */
   @minItems(1)
   @maxItems(100)
-  in?: int32[];
+  oeq?: int32[];
 
   /**
    * Match this version and later versions.
