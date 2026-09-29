@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -21,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 type grantDBADapter struct {
@@ -90,7 +90,7 @@ func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.Namespace
 }
 
 func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams) (pagination.Result[grant.Grant], error) {
-	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
+	query := g.db.Grant.Query().WithEntitlement().Where(db_grant.Namespace(params.Namespace))
 
 	now := clock.Now()
 
