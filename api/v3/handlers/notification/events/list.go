@@ -138,8 +138,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 		return badRequest("filter[type]", err)
 	}
 	typeFilter, err = typeFilter.Map(func(v string) (string, error) {
-		eventType, err := ToDomainEventType(api.BillingNotificationEventType(v))
-		return string(eventType), err
+		return v, notification.EventType(v).Validate()
 	})
 	if err != nil {
 		return badRequest("filter[type]", err)

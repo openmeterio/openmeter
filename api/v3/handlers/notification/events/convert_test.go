@@ -44,35 +44,24 @@ func TestFromAPIEventSortField(t *testing.T) {
 	}
 }
 
-func TestEventTypeVersionPrefix(t *testing.T) {
+// TestEventTypeWireEqualsDomain pins that the v3 enum reuses the domain values, which is
+// what lets ToAPIEvent cast between the two types instead of mapping them.
+func TestEventTypeWireEqualsDomain(t *testing.T) {
 	testCases := []struct {
 		wire   api.BillingNotificationEventType
 		domain notification.EventType
 	}{
-		{api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, notification.EventTypeBalanceThreshold},
-		{api.BillingNotificationEventTypeV1EntitlementsReset, notification.EventTypeEntitlementReset},
-		{api.BillingNotificationEventTypeV1InvoiceCreated, notification.EventTypeInvoiceCreated},
-		{api.BillingNotificationEventTypeV1InvoiceUpdated, notification.EventTypeInvoiceUpdated},
+		{api.BillingNotificationEventTypeEntitlementsBalanceThreshold, notification.EventTypeBalanceThreshold},
+		{api.BillingNotificationEventTypeEntitlementsReset, notification.EventTypeEntitlementReset},
+		{api.BillingNotificationEventTypeInvoiceCreated, notification.EventTypeInvoiceCreated},
+		{api.BillingNotificationEventTypeInvoiceUpdated, notification.EventTypeInvoiceUpdated},
 	}
 
 	for _, tc := range testCases {
 		t.Run(string(tc.wire), func(t *testing.T) {
-			assert.Equal(t, "v1."+string(tc.domain), string(tc.wire))
-
-			domain, err := ToDomainEventType(tc.wire)
-			require.NoError(t, err)
-			assert.Equal(t, tc.domain, domain)
-
-			wire, err := ToAPIEventType(tc.domain)
-			require.NoError(t, err)
-			assert.Equal(t, tc.wire, wire)
+			assert.Equal(t, string(tc.domain), string(tc.wire))
 		})
 	}
-
-	t.Run("unprefixed wire value is rejected", func(t *testing.T) {
-		_, err := ToDomainEventType(api.BillingNotificationEventType(notification.EventTypeInvoiceCreated))
-		require.Error(t, err)
-	})
 }
 
 func TestDeliveryStateCasing(t *testing.T) {
@@ -171,11 +160,11 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, event.ID, got.Id)
-	assert.Equal(t, api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, got.Type)
+	assert.Equal(t, api.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Type)
 	assert.Equal(t, createdAt, got.CreatedAt)
 	assert.Equal(t, event.Rule.ID, got.Rule.Id)
 	assert.Equal(t, "threshold rule", got.Rule.Name)
-	assert.Equal(t, api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, got.Rule.Type)
+	assert.Equal(t, api.BillingNotificationEventTypeEntitlementsBalanceThreshold, got.Rule.Type)
 
 	payload, err := got.Payload.AsBillingNotificationEventBalanceThresholdPayload()
 	require.NoError(t, err)
@@ -219,7 +208,7 @@ func TestToAPIEvent_EntitlementReset(t *testing.T) {
 	payload, err := got.Payload.AsBillingNotificationEventResetPayload()
 	require.NoError(t, err)
 
-	assert.Equal(t, api.BillingNotificationEventResetPayloadTypeV1EntitlementsReset, payload.Type)
+	assert.Equal(t, api.BillingNotificationEventResetPayloadTypeEntitlementsReset, payload.Type)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAX", payload.Data.EntitlementId)
 	assert.Equal(t, "gpt4_tokens", payload.Data.Feature.Key)
 	// The customer is absent on this payload, so the optional field must stay unset
@@ -259,7 +248,7 @@ func TestToAPIEvent_InvoiceCreated(t *testing.T) {
 	payload, err := got.Payload.AsBillingNotificationEventInvoiceCreatedPayload()
 	require.NoError(t, err)
 
-	assert.Equal(t, api.BillingNotificationEventInvoiceCreatedPayloadTypeV1InvoiceCreated, payload.Type)
+	assert.Equal(t, api.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated, payload.Type)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB0", payload.Data.Invoice.Id)
 	assert.Equal(t, "INV-2024-0001", payload.Data.Invoice.Number)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB1", lo.FromPtr(payload.Data.CustomerId))

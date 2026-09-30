@@ -64,38 +64,6 @@ func ToAPIDeliveryState(v notification.EventDeliveryStatusState) (api.BillingNot
 	}
 }
 
-// Only the v3 surface carries the `v1.` prefix; the domain constants keep the
-// unversioned spelling shared with v1 and the stored column.
-func ToAPIEventType(v notification.EventType) (api.BillingNotificationEventType, error) {
-	switch v {
-	case notification.EventTypeBalanceThreshold:
-		return api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, nil
-	case notification.EventTypeEntitlementReset:
-		return api.BillingNotificationEventTypeV1EntitlementsReset, nil
-	case notification.EventTypeInvoiceCreated:
-		return api.BillingNotificationEventTypeV1InvoiceCreated, nil
-	case notification.EventTypeInvoiceUpdated:
-		return api.BillingNotificationEventTypeV1InvoiceUpdated, nil
-	default:
-		return "", fmt.Errorf("invalid notification event type: %s", v)
-	}
-}
-
-func ToDomainEventType(v api.BillingNotificationEventType) (notification.EventType, error) {
-	switch v {
-	case api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold:
-		return notification.EventTypeBalanceThreshold, nil
-	case api.BillingNotificationEventTypeV1EntitlementsReset:
-		return notification.EventTypeEntitlementReset, nil
-	case api.BillingNotificationEventTypeV1InvoiceCreated:
-		return notification.EventTypeInvoiceCreated, nil
-	case api.BillingNotificationEventTypeV1InvoiceUpdated:
-		return notification.EventTypeInvoiceUpdated, nil
-	default:
-		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification event type: %s", v))
-	}
-}
-
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
 // aliases of `usage_value` and `usage_percentage`; events written before the rename
 // must not leak the legacy spelling.
@@ -120,23 +88,13 @@ func ToAPIEvent(e notification.Event) (api.BillingNotificationEvent, error) {
 		return api.BillingNotificationEvent{}, err
 	}
 
-	eventType, err := ToAPIEventType(e.Type)
-	if err != nil {
-		return api.BillingNotificationEvent{}, err
-	}
-
-	ruleType, err := ToAPIEventType(e.Rule.Type)
-	if err != nil {
-		return api.BillingNotificationEvent{}, err
-	}
-
 	event := api.BillingNotificationEvent{
 		Id:        e.ID,
-		Type:      eventType,
+		Type:      api.BillingNotificationEventType(e.Type),
 		CreatedAt: e.CreatedAt,
 		Rule: api.BillingNotificationRuleReference{
 			Id:   e.Rule.ID,
-			Type: ruleType,
+			Type: api.BillingNotificationEventType(e.Rule.Type),
 			Name: e.Rule.Name,
 		},
 		DeliveryStatus: deliveryStatus,
@@ -225,7 +183,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 
 		return event.Payload.FromBillingNotificationEventBalanceThresholdPayload(api.BillingNotificationEventBalanceThresholdPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventBalanceThresholdPayloadTypeV1EntitlementsBalanceThreshold,
+			Type:      api.BillingNotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
 			Timestamp: e.CreatedAt,
 			Data: api.BillingNotificationEventBalanceThresholdData{
 				EntitlementId: e.Payload.BalanceThreshold.Entitlement.Id,
@@ -250,7 +208,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 
 		return event.Payload.FromBillingNotificationEventResetPayload(api.BillingNotificationEventResetPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventResetPayloadTypeV1EntitlementsReset,
+			Type:      api.BillingNotificationEventResetPayloadTypeEntitlementsReset,
 			Timestamp: e.CreatedAt,
 			Data: api.BillingNotificationEventEntitlementData{
 				EntitlementId: e.Payload.EntitlementReset.Entitlement.Id,
@@ -271,7 +229,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 
 		return event.Payload.FromBillingNotificationEventInvoiceCreatedPayload(api.BillingNotificationEventInvoiceCreatedPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventInvoiceCreatedPayloadTypeV1InvoiceCreated,
+			Type:      api.BillingNotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
 			Timestamp: e.CreatedAt,
 			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
 		})
@@ -283,7 +241,7 @@ func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Even
 
 		return event.Payload.FromBillingNotificationEventInvoiceUpdatedPayload(api.BillingNotificationEventInvoiceUpdatedPayload{
 			Id:        e.ID,
-			Type:      api.BillingNotificationEventInvoiceUpdatedPayloadTypeV1InvoiceUpdated,
+			Type:      api.BillingNotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
 			Timestamp: e.CreatedAt,
 			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
 		})

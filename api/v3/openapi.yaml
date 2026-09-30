@@ -3735,7 +3735,7 @@ paths:
 
             Examples:
 
-            - `filter[type]=v1.invoice.created`
+            - `filter[type]=invoice.created`
             - `filter[delivery_status]=failed`
             - `filter[subject_key]=customer-1`
           schema:
@@ -11093,7 +11093,7 @@ components:
         type:
           type: string
           enum:
-            - v1.entitlements.balance.threshold
+            - entitlements.balance.threshold
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -11320,7 +11320,7 @@ components:
         type:
           type: string
           enum:
-            - v1.invoice.created
+            - invoice.created
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -11402,7 +11402,7 @@ components:
         type:
           type: string
           enum:
-            - v1.invoice.updated
+            - invoice.updated
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -11427,10 +11427,10 @@ components:
       discriminator:
         propertyName: type
         mapping:
-          v1.entitlements.balance.threshold: '#/components/schemas/BillingNotificationEventBalanceThresholdPayload'
-          v1.entitlements.reset: '#/components/schemas/BillingNotificationEventResetPayload'
-          v1.invoice.created: '#/components/schemas/BillingNotificationEventInvoiceCreatedPayload'
-          v1.invoice.updated: '#/components/schemas/BillingNotificationEventInvoiceUpdatedPayload'
+          entitlements.balance.threshold: '#/components/schemas/BillingNotificationEventBalanceThresholdPayload'
+          entitlements.reset: '#/components/schemas/BillingNotificationEventResetPayload'
+          invoice.created: '#/components/schemas/BillingNotificationEventInvoiceCreatedPayload'
+          invoice.updated: '#/components/schemas/BillingNotificationEventInvoiceUpdatedPayload'
       description: The payload delivered to the channels, discriminated by the event type.
     BillingNotificationEventResetPayload:
       type: object
@@ -11448,7 +11448,7 @@ components:
         type:
           type: string
           enum:
-            - v1.entitlements.reset
+            - entitlements.reset
           description: The type of the event.
           readOnly: true
         timestamp:
@@ -11466,10 +11466,10 @@ components:
     BillingNotificationEventType:
       type: string
       enum:
-        - v1.entitlements.balance.threshold
-        - v1.entitlements.reset
-        - v1.invoice.created
-        - v1.invoice.updated
+        - entitlements.balance.threshold
+        - entitlements.reset
+        - invoice.created
+        - invoice.updated
       description: |-
         The type of a notification event. It determines which payload variant the event
         carries.
