@@ -11,22 +11,22 @@ enum NotificationEventType {
   /**
    * A metered entitlement's balance crossed a threshold configured on the rule.
    */
-  EntitlementsBalanceThreshold: "v1.entitlements.balance.threshold",
+  EntitlementsBalanceThreshold: "entitlements.balance.threshold",
 
   /**
    * A metered entitlement's usage period was reset.
    */
-  EntitlementsReset: "v1.entitlements.reset",
+  EntitlementsReset: "entitlements.reset",
 
   /**
    * An invoice was created.
    */
-  InvoiceCreated: "v1.invoice.created",
+  InvoiceCreated: "invoice.created",
 
   /**
    * An invoice was updated.
    */
-  InvoiceUpdated: "v1.invoice.updated",
+  InvoiceUpdated: "invoice.updated",
 }
 
 /**
@@ -503,10 +503,10 @@ model NotificationEventInvoiceUpdatedPayload {
 @friendlyName("BillingNotificationEventPayload")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union NotificationEventPayload {
-  `v1.entitlements.balance.threshold`: NotificationEventBalanceThresholdPayload,
-  `v1.entitlements.reset`: NotificationEventResetPayload,
-  `v1.invoice.created`: NotificationEventInvoiceCreatedPayload,
-  `v1.invoice.updated`: NotificationEventInvoiceUpdatedPayload,
+  `entitlements.balance.threshold`: NotificationEventBalanceThresholdPayload,
+  `entitlements.reset`: NotificationEventResetPayload,
+  `invoice.created`: NotificationEventInvoiceCreatedPayload,
+  `invoice.updated`: NotificationEventInvoiceUpdatedPayload,
 }
 
 /**

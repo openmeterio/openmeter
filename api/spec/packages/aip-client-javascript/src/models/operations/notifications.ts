@@ -87,7 +87,7 @@ export interface ListNotificationEventsQuery {
    *
    * Examples:
    *
-   * - `filter[type]=v1.invoice.created`
+   * - `filter[type]=invoice.created`
    * - `filter[delivery_status]=failed`
    * - `filter[subject_key]=customer-1`
    */

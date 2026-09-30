@@ -2695,10 +2695,10 @@ export interface NotificationRuleReference {
   id: string
   /** The type of event the rule generates. */
   type:
-    | 'v1.entitlements.balance.threshold'
-    | 'v1.entitlements.reset'
-    | 'v1.invoice.created'
-    | 'v1.invoice.updated'
+    | 'entitlements.balance.threshold'
+    | 'entitlements.reset'
+    | 'invoice.created'
+    | 'invoice.updated'
   /** The user-provided name of the rule. */
   name: string
 }
@@ -4915,7 +4915,7 @@ export interface NotificationEventResetPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'v1.entitlements.reset'
+  type: 'entitlements.reset'
   /** When the event was generated. */
   timestamp: Date
   /** The entities the event refers to. */
@@ -4927,7 +4927,7 @@ export interface NotificationEventInvoiceCreatedPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'v1.invoice.created'
+  type: 'invoice.created'
   /** When the event was generated. */
   timestamp: Date
   /** The invoice the event refers to. */
@@ -4939,7 +4939,7 @@ export interface NotificationEventInvoiceUpdatedPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'v1.invoice.updated'
+  type: 'invoice.updated'
   /** When the event was generated. */
   timestamp: Date
   /** The invoice the event refers to. */
@@ -5593,7 +5593,7 @@ export interface NotificationEventBalanceThresholdPayload {
   /** The identifier of the event the payload belongs to. */
   id: string
   /** The type of the event. */
-  type: 'v1.entitlements.balance.threshold'
+  type: 'entitlements.balance.threshold'
   /** When the event was generated. */
   timestamp: Date
   /** The entities and threshold the event refers to. */
@@ -6293,10 +6293,10 @@ export interface NotificationEvent {
   id: string
   /** The type of the event. */
   type:
-    | 'v1.entitlements.balance.threshold'
-    | 'v1.entitlements.reset'
-    | 'v1.invoice.created'
-    | 'v1.invoice.updated'
+    | 'entitlements.balance.threshold'
+    | 'entitlements.reset'
+    | 'invoice.created'
+    | 'invoice.updated'
   /** When the event was generated. */
   createdAt: Date
   /** The rule that generated the event. */
