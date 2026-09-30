@@ -287,6 +287,85 @@ func (f *FilterString) LoFilterPredicate() func(value string, _ int) (bool, erro
 	return func(value string, _ int) (bool, error) { return f.Match(value) }
 }
 
+// Map returns a copy of the filter with fn applied to every operand, including those of
+// nested And/Or filters.
+func (f *FilterString) Map(fn func(string) (string, error)) (*FilterString, error) {
+	if f == nil {
+		return nil, nil
+	}
+
+	mapped := *f
+
+	mapPtr := func(dst **string) error {
+		if *dst == nil {
+			return nil
+		}
+		v, err := fn(**dst)
+		if err != nil {
+			return err
+		}
+		*dst = &v
+		return nil
+	}
+
+	mapSlice := func(dst **[]string) error {
+		if *dst == nil {
+			return nil
+		}
+		values := make([]string, 0, len(**dst))
+		for _, raw := range **dst {
+			v, err := fn(raw)
+			if err != nil {
+				return err
+			}
+			values = append(values, v)
+		}
+		*dst = &values
+		return nil
+	}
+
+	mapChildren := func(dst **[]FilterString) error {
+		if *dst == nil {
+			return nil
+		}
+		children := make([]FilterString, 0, len(**dst))
+		for _, child := range **dst {
+			m, err := child.Map(fn)
+			if err != nil {
+				return err
+			}
+			children = append(children, *m)
+		}
+		*dst = &children
+		return nil
+	}
+
+	for _, dst := range []**string{
+		&mapped.Eq, &mapped.Ne,
+		&mapped.Like, &mapped.Nlike, &mapped.Ilike, &mapped.Nilike,
+		&mapped.Contains, &mapped.Ncontains,
+		&mapped.Gt, &mapped.Gte, &mapped.Lt, &mapped.Lte,
+	} {
+		if err := mapPtr(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, dst := range []**[]string{&mapped.In, &mapped.Nin} {
+		if err := mapSlice(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, dst := range []**[]FilterString{&mapped.And, &mapped.Or} {
+		if err := mapChildren(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	return &mapped, nil
+}
+
 func (f FilterString) matches(value string) (bool, error) {
 	switch {
 	case f.Eq != nil:
