@@ -488,7 +488,7 @@ type NotificationRuleReference struct {
 }
 
 // Request body for resending a notification event.
-type ResendNotificationEventRequest struct {
+type ResendBillingNotificationEventRequest struct {
 	// The channels to resend the event to. When omitted or empty, the event is resent
 	// to every enabled channel of the rule. Channels not targeted by the rule or
 	// disabled are rejected.

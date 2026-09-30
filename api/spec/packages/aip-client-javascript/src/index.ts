@@ -171,6 +171,7 @@ export type {
   UpdateResourceReference,
   NotificationEventFeatureReference,
   NotificationEventInvoiceReference,
+  ResendBillingNotificationEventRequest,
   BillingCustomerReference,
   ChargeFeature,
   Event,

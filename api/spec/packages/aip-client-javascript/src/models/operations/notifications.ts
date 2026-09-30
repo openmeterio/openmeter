@@ -11,7 +11,7 @@ import type {
   NotificationChannelPagePaginatedResponse,
   NotificationEvent,
   NotificationEventPagePaginatedResponse,
-  ResendNotificationEventRequest as ResendNotificationEventRequestBody,
+  ResendBillingNotificationEventRequest,
   SortQueryInput,
   UpdateBillingNotificationChannelRequestInput,
 } from '../types.js'
@@ -106,6 +106,6 @@ export type GetNotificationEventResponse = NotificationEvent
 
 export type ResendNotificationEventRequest = AcceptDateStrings<{
   notificationEventId: string
-  body: ResendNotificationEventRequestBody
+  body: ResendBillingNotificationEventRequest
 }>
 export type ResendNotificationEventResponse = void

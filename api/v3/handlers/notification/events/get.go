@@ -14,7 +14,7 @@ import (
 
 type (
 	GetNotificationEventRequest  = notification.GetEventInput
-	GetNotificationEventResponse = api.NotificationEvent
+	GetNotificationEventResponse = api.BillingNotificationEvent
 	GetNotificationEventParams   = string
 	GetNotificationEventHandler  = httptransport.HandlerWithArgs[GetNotificationEventRequest, GetNotificationEventResponse, GetNotificationEventParams]
 )

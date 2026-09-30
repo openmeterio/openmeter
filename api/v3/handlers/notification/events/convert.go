@@ -30,35 +30,35 @@ func FromAPIEventSortField(ctx context.Context, field string) (notification.Orde
 
 // The v3 wire value is lowercase ("failed") while the column keeps the uppercase value
 // written by v1 ("FAILED").
-func ToDomainDeliveryState(v api.NotificationEventDeliveryState) (notification.EventDeliveryStatusState, error) {
+func ToDomainDeliveryState(v api.BillingNotificationEventDeliveryState) (notification.EventDeliveryStatusState, error) {
 	switch v {
-	case api.NotificationEventDeliveryStateSuccess:
+	case api.BillingNotificationEventDeliveryStateSuccess:
 		return notification.EventDeliveryStatusStateSuccess, nil
-	case api.NotificationEventDeliveryStateFailed:
+	case api.BillingNotificationEventDeliveryStateFailed:
 		return notification.EventDeliveryStatusStateFailed, nil
-	case api.NotificationEventDeliveryStateSending:
+	case api.BillingNotificationEventDeliveryStateSending:
 		return notification.EventDeliveryStatusStateSending, nil
-	case api.NotificationEventDeliveryStatePending:
+	case api.BillingNotificationEventDeliveryStatePending:
 		return notification.EventDeliveryStatusStatePending, nil
-	case api.NotificationEventDeliveryStateResending:
+	case api.BillingNotificationEventDeliveryStateResending:
 		return notification.EventDeliveryStatusStateResending, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification event delivery state: %s", v))
 	}
 }
 
-func ToAPIDeliveryState(v notification.EventDeliveryStatusState) (api.NotificationEventDeliveryState, error) {
+func ToAPIDeliveryState(v notification.EventDeliveryStatusState) (api.BillingNotificationEventDeliveryState, error) {
 	switch v {
 	case notification.EventDeliveryStatusStateSuccess:
-		return api.NotificationEventDeliveryStateSuccess, nil
+		return api.BillingNotificationEventDeliveryStateSuccess, nil
 	case notification.EventDeliveryStatusStateFailed:
-		return api.NotificationEventDeliveryStateFailed, nil
+		return api.BillingNotificationEventDeliveryStateFailed, nil
 	case notification.EventDeliveryStatusStateSending:
-		return api.NotificationEventDeliveryStateSending, nil
+		return api.BillingNotificationEventDeliveryStateSending, nil
 	case notification.EventDeliveryStatusStatePending:
-		return api.NotificationEventDeliveryStatePending, nil
+		return api.BillingNotificationEventDeliveryStatePending, nil
 	case notification.EventDeliveryStatusStateResending:
-		return api.NotificationEventDeliveryStateResending, nil
+		return api.BillingNotificationEventDeliveryStateResending, nil
 	default:
 		return "", fmt.Errorf("invalid notification event delivery state: %s", v)
 	}
@@ -66,30 +66,30 @@ func ToAPIDeliveryState(v notification.EventDeliveryStatusState) (api.Notificati
 
 // Only the v3 surface carries the `v1.` prefix; the domain constants keep the
 // unversioned spelling shared with v1 and the stored column.
-func ToAPIEventType(v notification.EventType) (api.NotificationEventType, error) {
+func ToAPIEventType(v notification.EventType) (api.BillingNotificationEventType, error) {
 	switch v {
 	case notification.EventTypeBalanceThreshold:
-		return api.NotificationEventTypeV1EntitlementsBalanceThreshold, nil
+		return api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, nil
 	case notification.EventTypeEntitlementReset:
-		return api.NotificationEventTypeV1EntitlementsReset, nil
+		return api.BillingNotificationEventTypeV1EntitlementsReset, nil
 	case notification.EventTypeInvoiceCreated:
-		return api.NotificationEventTypeV1InvoiceCreated, nil
+		return api.BillingNotificationEventTypeV1InvoiceCreated, nil
 	case notification.EventTypeInvoiceUpdated:
-		return api.NotificationEventTypeV1InvoiceUpdated, nil
+		return api.BillingNotificationEventTypeV1InvoiceUpdated, nil
 	default:
 		return "", fmt.Errorf("invalid notification event type: %s", v)
 	}
 }
 
-func ToDomainEventType(v api.NotificationEventType) (notification.EventType, error) {
+func ToDomainEventType(v api.BillingNotificationEventType) (notification.EventType, error) {
 	switch v {
-	case api.NotificationEventTypeV1EntitlementsBalanceThreshold:
+	case api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold:
 		return notification.EventTypeBalanceThreshold, nil
-	case api.NotificationEventTypeV1EntitlementsReset:
+	case api.BillingNotificationEventTypeV1EntitlementsReset:
 		return notification.EventTypeEntitlementReset, nil
-	case api.NotificationEventTypeV1InvoiceCreated:
+	case api.BillingNotificationEventTypeV1InvoiceCreated:
 		return notification.EventTypeInvoiceCreated, nil
-	case api.NotificationEventTypeV1InvoiceUpdated:
+	case api.BillingNotificationEventTypeV1InvoiceUpdated:
 		return notification.EventTypeInvoiceUpdated, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification event type: %s", v))
@@ -99,42 +99,42 @@ func ToDomainEventType(v api.NotificationEventType) (notification.EventType, err
 // The stored value is the v1 API model, where `NUMBER` and `PERCENT` are deprecated
 // aliases of `usage_value` and `usage_percentage`; events written before the rename
 // must not leak the legacy spelling.
-func ToAPIBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.NotificationEventBalanceThresholdType, error) {
+func ToAPIBalanceThresholdType(v v1api.NotificationRuleBalanceThresholdValueType) (api.BillingNotificationEventBalanceThresholdType, error) {
 	switch v {
 	case v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue:
-		return api.NotificationEventBalanceThresholdTypeBalanceValue, nil
+		return api.BillingNotificationEventBalanceThresholdTypeBalanceValue, nil
 	case v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage,
 		v1api.NotificationRuleBalanceThresholdValueTypePercent:
-		return api.NotificationEventBalanceThresholdTypeUsagePercentage, nil
+		return api.BillingNotificationEventBalanceThresholdTypeUsagePercentage, nil
 	case v1api.NotificationRuleBalanceThresholdValueTypeUsageValue,
 		v1api.NotificationRuleBalanceThresholdValueTypeNumber:
-		return api.NotificationEventBalanceThresholdTypeUsageValue, nil
+		return api.BillingNotificationEventBalanceThresholdTypeUsageValue, nil
 	default:
 		return "", fmt.Errorf("invalid notification balance threshold type: %s", v)
 	}
 }
 
-func ToAPIEvent(e notification.Event) (api.NotificationEvent, error) {
+func ToAPIEvent(e notification.Event) (api.BillingNotificationEvent, error) {
 	deliveryStatus, err := ToAPIDeliveryStatuses(e.DeliveryStatus)
 	if err != nil {
-		return api.NotificationEvent{}, err
+		return api.BillingNotificationEvent{}, err
 	}
 
 	eventType, err := ToAPIEventType(e.Type)
 	if err != nil {
-		return api.NotificationEvent{}, err
+		return api.BillingNotificationEvent{}, err
 	}
 
 	ruleType, err := ToAPIEventType(e.Rule.Type)
 	if err != nil {
-		return api.NotificationEvent{}, err
+		return api.BillingNotificationEvent{}, err
 	}
 
-	event := api.NotificationEvent{
+	event := api.BillingNotificationEvent{
 		Id:        e.ID,
 		Type:      eventType,
 		CreatedAt: e.CreatedAt,
-		Rule: api.NotificationRuleReference{
+		Rule: api.BillingNotificationRuleReference{
 			Id:   e.Rule.ID,
 			Type: ruleType,
 			Name: e.Rule.Name,
@@ -143,7 +143,7 @@ func ToAPIEvent(e notification.Event) (api.NotificationEvent, error) {
 	}
 
 	if err := setAPIEventPayload(&event, e); err != nil {
-		return api.NotificationEvent{}, err
+		return api.BillingNotificationEvent{}, err
 	}
 
 	return event, nil
@@ -151,8 +151,8 @@ func ToAPIEvent(e notification.Event) (api.NotificationEvent, error) {
 
 // Unlike v1, the channel is reported by id only, so a channel that has since been
 // disabled or deleted is still reported.
-func ToAPIDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.NotificationEventDeliveryStatus, error) {
-	result := make([]api.NotificationEventDeliveryStatus, 0, len(statuses))
+func ToAPIDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.BillingNotificationEventDeliveryStatus, error) {
+	result := make([]api.BillingNotificationEventDeliveryStatus, 0, len(statuses))
 
 	for _, status := range statuses {
 		state, err := ToAPIDeliveryState(status.State)
@@ -165,7 +165,7 @@ func ToAPIDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.N
 			return nil, err
 		}
 
-		result = append(result, api.NotificationEventDeliveryStatus{
+		result = append(result, api.BillingNotificationEventDeliveryStatus{
 			ChannelId:   status.ChannelID,
 			State:       state,
 			Reason:      status.Reason,
@@ -178,10 +178,10 @@ func ToAPIDeliveryStatuses(statuses []notification.EventDeliveryStatus) ([]api.N
 	return result, nil
 }
 
-func ToAPIDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]api.NotificationEventDeliveryAttempt, error) {
+func ToAPIDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]api.BillingNotificationEventDeliveryAttempt, error) {
 	notification.SortEventDeliveryAttemptsInDescOrder(attempts)
 
-	result := make([]api.NotificationEventDeliveryAttempt, 0, len(attempts))
+	result := make([]api.BillingNotificationEventDeliveryAttempt, 0, len(attempts))
 
 	for _, attempt := range attempts {
 		state, err := ToAPIDeliveryState(attempt.State)
@@ -194,10 +194,10 @@ func ToAPIDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]api.
 			statusCode = lo.ToPtr(int32(*attempt.Response.StatusCode))
 		}
 
-		result = append(result, api.NotificationEventDeliveryAttempt{
+		result = append(result, api.BillingNotificationEventDeliveryAttempt{
 			State:     state,
 			Timestamp: attempt.Timestamp,
-			Response: api.NotificationEventDeliveryAttemptResponse{
+			Response: api.BillingNotificationEventDeliveryAttemptResponse{
 				StatusCode: statusCode,
 				Body:       attempt.Response.Body,
 				DurationMs: attempt.Response.Duration.Milliseconds(),
@@ -211,7 +211,7 @@ func ToAPIDeliveryAttempts(attempts []notification.EventDeliveryAttempt) ([]api.
 
 // The stored payload holds v1 API models; only the identifiers and scalars the v3
 // surface exposes are extracted, never the v1 shapes.
-func setAPIEventPayload(event *api.NotificationEvent, e notification.Event) error {
+func setAPIEventPayload(event *api.BillingNotificationEvent, e notification.Event) error {
 	switch e.Type {
 	case notification.EventTypeBalanceThreshold:
 		if e.Payload.BalanceThreshold == nil {
@@ -223,20 +223,20 @@ func setAPIEventPayload(event *api.NotificationEvent, e notification.Event) erro
 			return err
 		}
 
-		return event.Payload.FromNotificationEventBalanceThresholdPayload(api.NotificationEventBalanceThresholdPayload{
+		return event.Payload.FromBillingNotificationEventBalanceThresholdPayload(api.BillingNotificationEventBalanceThresholdPayload{
 			Id:        e.ID,
-			Type:      api.NotificationEventBalanceThresholdPayloadTypeV1EntitlementsBalanceThreshold,
+			Type:      api.BillingNotificationEventBalanceThresholdPayloadTypeV1EntitlementsBalanceThreshold,
 			Timestamp: e.CreatedAt,
-			Data: api.NotificationEventBalanceThresholdData{
+			Data: api.BillingNotificationEventBalanceThresholdData{
 				EntitlementId: e.Payload.BalanceThreshold.Entitlement.Id,
-				Feature: api.NotificationEventFeatureReference{
+				Feature: api.BillingNotificationEventFeatureReference{
 					Id:  e.Payload.BalanceThreshold.Feature.Id,
 					Key: e.Payload.BalanceThreshold.Feature.Key,
 				},
 				SubjectKey: e.Payload.BalanceThreshold.Subject.Key,
 				CustomerId: lo.EmptyableToPtr(e.Payload.BalanceThreshold.Customer.Id),
 				Value:      toAPIEntitlementValue(e.Payload.BalanceThreshold.Value),
-				Threshold: api.NotificationEventBalanceThreshold{
+				Threshold: api.BillingNotificationEventBalanceThreshold{
 					Type:  thresholdType,
 					Value: e.Payload.BalanceThreshold.Threshold.Value,
 				},
@@ -248,13 +248,13 @@ func setAPIEventPayload(event *api.NotificationEvent, e notification.Event) erro
 			return fmt.Errorf("missing entitlement reset payload on notification event %s", e.ID)
 		}
 
-		return event.Payload.FromNotificationEventResetPayload(api.NotificationEventResetPayload{
+		return event.Payload.FromBillingNotificationEventResetPayload(api.BillingNotificationEventResetPayload{
 			Id:        e.ID,
-			Type:      api.NotificationEventResetPayloadTypeV1EntitlementsReset,
+			Type:      api.BillingNotificationEventResetPayloadTypeV1EntitlementsReset,
 			Timestamp: e.CreatedAt,
-			Data: api.NotificationEventEntitlementData{
+			Data: api.BillingNotificationEventEntitlementData{
 				EntitlementId: e.Payload.EntitlementReset.Entitlement.Id,
-				Feature: api.NotificationEventFeatureReference{
+				Feature: api.BillingNotificationEventFeatureReference{
 					Id:  e.Payload.EntitlementReset.Feature.Id,
 					Key: e.Payload.EntitlementReset.Feature.Key,
 				},
@@ -269,9 +269,9 @@ func setAPIEventPayload(event *api.NotificationEvent, e notification.Event) erro
 			return fmt.Errorf("missing invoice payload on notification event %s", e.ID)
 		}
 
-		return event.Payload.FromNotificationEventInvoiceCreatedPayload(api.NotificationEventInvoiceCreatedPayload{
+		return event.Payload.FromBillingNotificationEventInvoiceCreatedPayload(api.BillingNotificationEventInvoiceCreatedPayload{
 			Id:        e.ID,
-			Type:      api.NotificationEventInvoiceCreatedPayloadTypeV1InvoiceCreated,
+			Type:      api.BillingNotificationEventInvoiceCreatedPayloadTypeV1InvoiceCreated,
 			Timestamp: e.CreatedAt,
 			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
 		})
@@ -281,9 +281,9 @@ func setAPIEventPayload(event *api.NotificationEvent, e notification.Event) erro
 			return fmt.Errorf("missing invoice payload on notification event %s", e.ID)
 		}
 
-		return event.Payload.FromNotificationEventInvoiceUpdatedPayload(api.NotificationEventInvoiceUpdatedPayload{
+		return event.Payload.FromBillingNotificationEventInvoiceUpdatedPayload(api.BillingNotificationEventInvoiceUpdatedPayload{
 			Id:        e.ID,
-			Type:      api.NotificationEventInvoiceUpdatedPayloadTypeV1InvoiceUpdated,
+			Type:      api.BillingNotificationEventInvoiceUpdatedPayloadTypeV1InvoiceUpdated,
 			Timestamp: e.CreatedAt,
 			Data:      toAPIInvoiceData(e.Payload.Invoice.Invoice),
 		})
@@ -293,8 +293,8 @@ func setAPIEventPayload(event *api.NotificationEvent, e notification.Event) erro
 	}
 }
 
-func toAPIEntitlementValue(v v1api.EntitlementValue) api.NotificationEventEntitlementValue {
-	return api.NotificationEventEntitlementValue{
+func toAPIEntitlementValue(v v1api.EntitlementValue) api.BillingNotificationEventEntitlementValue {
+	return api.BillingNotificationEventEntitlementValue{
 		HasAccess: v.HasAccess,
 		Balance:   v.Balance,
 		Usage:     v.Usage,
@@ -302,9 +302,9 @@ func toAPIEntitlementValue(v v1api.EntitlementValue) api.NotificationEventEntitl
 	}
 }
 
-func toAPIInvoiceData(invoice v1api.Invoice) api.NotificationEventInvoiceData {
-	return api.NotificationEventInvoiceData{
-		Invoice: api.NotificationEventInvoiceReference{
+func toAPIInvoiceData(invoice v1api.Invoice) api.BillingNotificationEventInvoiceData {
+	return api.BillingNotificationEventInvoiceData{
+		Invoice: api.BillingNotificationEventInvoiceReference{
 			Id:     invoice.Id,
 			Number: invoice.Number,
 		},
