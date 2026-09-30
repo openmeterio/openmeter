@@ -1123,7 +1123,7 @@ type CreateVersionFilter struct {
 	// Match this exact version.
 	Eq *int32 `json:"eq,omitempty"`
 	// Match one of these versions.
-	In *[]int32 `json:"in,omitempty"`
+	Oeq *[]int32 `json:"oeq,omitempty"`
 	// Match this version and later versions.
 	Gte *int32 `json:"gte,omitempty"`
 	// Match this version and earlier versions.
@@ -1804,7 +1804,7 @@ type VersionFilter struct {
 	// Match this exact version.
 	Eq *int32 `json:"eq,omitempty"`
 	// Match one of these versions.
-	In []int32 `json:"in,omitempty"`
+	Oeq []int32 `json:"oeq,omitempty"`
 	// Match this version and later versions.
 	Gte *int32 `json:"gte,omitempty"`
 	// Match this version and earlier versions.

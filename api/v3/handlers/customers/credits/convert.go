@@ -225,7 +225,7 @@ func toAPIBillingCreditGrantFilters(filters ledger.CreditFilters) *api.BillingCr
 					mapped.Version.Lte = lo.ToPtr(int32(*v.Lte))
 				}
 				if v.In != nil {
-					mapped.Version.In = lo.ToPtr(lo.Map(v.In, func(n int, _ int) int32 { return int32(n) }))
+					mapped.Version.Oeq = lo.ToPtr(lo.Map(v.In, func(n int, _ int) int32 { return int32(n) }))
 				}
 			}
 			return mapped
@@ -292,9 +292,9 @@ func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*c
 				if v.Lte != nil {
 					mapped.Version.Lte = lo.ToPtr(int(*v.Lte))
 				}
-				if v.In != nil {
-					mapped.Version.In = make([]int, len(*v.In))
-					for i, n := range *v.In {
+				if v.Oeq != nil {
+					mapped.Version.In = make([]int, len(*v.Oeq))
+					for i, n := range *v.Oeq {
 						mapped.Version.In[i] = int(n)
 					}
 				}

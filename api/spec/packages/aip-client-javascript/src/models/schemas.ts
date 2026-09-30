@@ -596,7 +596,7 @@ export const createVersionFilter = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)
@@ -638,7 +638,7 @@ export const versionFilter = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)
@@ -4945,6 +4945,7 @@ export const entitlementGrant = z
   .object({
     id: ulid,
     entitlementId: ulid,
+    customerId: ulid.optional(),
     amount: numeric,
     priority: z
       .number()
@@ -9585,7 +9586,7 @@ export const createVersionFilterWire = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)
@@ -9627,7 +9628,7 @@ export const versionFilterWire = z
       .lte(2147483647)
       .optional()
       .describe('Match this exact version.'),
-    in: z
+    oeq: z
       .array(z.number().int().gte(-2147483648).lte(2147483647))
       .min(1)
       .max(100)
@@ -13906,6 +13907,7 @@ export const entitlementGrantWire = z
   .strictObject({
     id: ulidWire,
     entitlement_id: ulidWire,
+    customer_id: ulidWire.optional(),
     amount: numericWire,
     priority: z
       .number()
