@@ -32,7 +32,7 @@ func (h *handler) ResendNotificationEvent() ResendNotificationEventHandler {
 				return ResendNotificationEventRequest{}, err
 			}
 
-			body := api.ResendNotificationEventRequest{}
+			body := api.ResendBillingNotificationEventRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return ResendNotificationEventRequest{}, err
 			}

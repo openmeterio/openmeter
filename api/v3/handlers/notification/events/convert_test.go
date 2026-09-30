@@ -46,13 +46,13 @@ func TestFromAPIEventSortField(t *testing.T) {
 
 func TestEventTypeVersionPrefix(t *testing.T) {
 	testCases := []struct {
-		wire   api.NotificationEventType
+		wire   api.BillingNotificationEventType
 		domain notification.EventType
 	}{
-		{api.NotificationEventTypeV1EntitlementsBalanceThreshold, notification.EventTypeBalanceThreshold},
-		{api.NotificationEventTypeV1EntitlementsReset, notification.EventTypeEntitlementReset},
-		{api.NotificationEventTypeV1InvoiceCreated, notification.EventTypeInvoiceCreated},
-		{api.NotificationEventTypeV1InvoiceUpdated, notification.EventTypeInvoiceUpdated},
+		{api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, notification.EventTypeBalanceThreshold},
+		{api.BillingNotificationEventTypeV1EntitlementsReset, notification.EventTypeEntitlementReset},
+		{api.BillingNotificationEventTypeV1InvoiceCreated, notification.EventTypeInvoiceCreated},
+		{api.BillingNotificationEventTypeV1InvoiceUpdated, notification.EventTypeInvoiceUpdated},
 	}
 
 	for _, tc := range testCases {
@@ -70,21 +70,21 @@ func TestEventTypeVersionPrefix(t *testing.T) {
 	}
 
 	t.Run("unprefixed wire value is rejected", func(t *testing.T) {
-		_, err := ToDomainEventType(api.NotificationEventType(notification.EventTypeInvoiceCreated))
+		_, err := ToDomainEventType(api.BillingNotificationEventType(notification.EventTypeInvoiceCreated))
 		require.Error(t, err)
 	})
 }
 
 func TestDeliveryStateCasing(t *testing.T) {
 	testCases := []struct {
-		wire   api.NotificationEventDeliveryState
+		wire   api.BillingNotificationEventDeliveryState
 		domain notification.EventDeliveryStatusState
 	}{
-		{api.NotificationEventDeliveryStateSuccess, notification.EventDeliveryStatusStateSuccess},
-		{api.NotificationEventDeliveryStateFailed, notification.EventDeliveryStatusStateFailed},
-		{api.NotificationEventDeliveryStateSending, notification.EventDeliveryStatusStateSending},
-		{api.NotificationEventDeliveryStatePending, notification.EventDeliveryStatusStatePending},
-		{api.NotificationEventDeliveryStateResending, notification.EventDeliveryStatusStateResending},
+		{api.BillingNotificationEventDeliveryStateSuccess, notification.EventDeliveryStatusStateSuccess},
+		{api.BillingNotificationEventDeliveryStateFailed, notification.EventDeliveryStatusStateFailed},
+		{api.BillingNotificationEventDeliveryStateSending, notification.EventDeliveryStatusStateSending},
+		{api.BillingNotificationEventDeliveryStatePending, notification.EventDeliveryStatusStatePending},
+		{api.BillingNotificationEventDeliveryStateResending, notification.EventDeliveryStatusStateResending},
 	}
 
 	for _, tc := range testCases {
@@ -100,7 +100,7 @@ func TestDeliveryStateCasing(t *testing.T) {
 	}
 
 	t.Run("uppercase wire value is rejected", func(t *testing.T) {
-		_, err := ToDomainDeliveryState(api.NotificationEventDeliveryState("FAILED"))
+		_, err := ToDomainDeliveryState(api.BillingNotificationEventDeliveryState("FAILED"))
 		require.Error(t, err)
 	})
 }
@@ -108,13 +108,13 @@ func TestDeliveryStateCasing(t *testing.T) {
 func TestToAPIBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
 		in   v1api.NotificationRuleBalanceThresholdValueType
-		want api.NotificationEventBalanceThresholdType
+		want api.BillingNotificationEventBalanceThresholdType
 	}{
-		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.NotificationEventBalanceThresholdTypeBalanceValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.NotificationEventBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.NotificationEventBalanceThresholdTypeUsageValue},
-		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.NotificationEventBalanceThresholdTypeUsagePercentage},
-		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.NotificationEventBalanceThresholdTypeUsageValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, api.BillingNotificationEventBalanceThresholdTypeBalanceValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, api.BillingNotificationEventBalanceThresholdTypeUsagePercentage},
+		{v1api.NotificationRuleBalanceThresholdValueTypeUsageValue, api.BillingNotificationEventBalanceThresholdTypeUsageValue},
+		{v1api.NotificationRuleBalanceThresholdValueTypePercent, api.BillingNotificationEventBalanceThresholdTypeUsagePercentage},
+		{v1api.NotificationRuleBalanceThresholdValueTypeNumber, api.BillingNotificationEventBalanceThresholdTypeUsageValue},
 	}
 
 	for _, tc := range testCases {
@@ -171,13 +171,13 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, event.ID, got.Id)
-	assert.Equal(t, api.NotificationEventTypeV1EntitlementsBalanceThreshold, got.Type)
+	assert.Equal(t, api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, got.Type)
 	assert.Equal(t, createdAt, got.CreatedAt)
 	assert.Equal(t, event.Rule.ID, got.Rule.Id)
 	assert.Equal(t, "threshold rule", got.Rule.Name)
-	assert.Equal(t, api.NotificationEventTypeV1EntitlementsBalanceThreshold, got.Rule.Type)
+	assert.Equal(t, api.BillingNotificationEventTypeV1EntitlementsBalanceThreshold, got.Rule.Type)
 
-	payload, err := got.Payload.AsNotificationEventBalanceThresholdPayload()
+	payload, err := got.Payload.AsBillingNotificationEventBalanceThresholdPayload()
 	require.NoError(t, err)
 
 	assert.Equal(t, event.ID, payload.Id)
@@ -189,7 +189,7 @@ func TestToAPIEvent_BalanceThreshold(t *testing.T) {
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAZ", lo.FromPtr(payload.Data.CustomerId))
 	assert.True(t, payload.Data.Value.HasAccess)
 	assert.Equal(t, 100.0, lo.FromPtr(payload.Data.Value.Balance))
-	assert.Equal(t, api.NotificationEventBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
+	assert.Equal(t, api.BillingNotificationEventBalanceThresholdTypeUsagePercentage, payload.Data.Threshold.Type)
 	assert.Equal(t, 90.0, payload.Data.Threshold.Value)
 }
 
@@ -216,10 +216,10 @@ func TestToAPIEvent_EntitlementReset(t *testing.T) {
 	got, err := ToAPIEvent(event)
 	require.NoError(t, err)
 
-	payload, err := got.Payload.AsNotificationEventResetPayload()
+	payload, err := got.Payload.AsBillingNotificationEventResetPayload()
 	require.NoError(t, err)
 
-	assert.Equal(t, api.NotificationEventResetPayloadTypeV1EntitlementsReset, payload.Type)
+	assert.Equal(t, api.BillingNotificationEventResetPayloadTypeV1EntitlementsReset, payload.Type)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAX", payload.Data.EntitlementId)
 	assert.Equal(t, "gpt4_tokens", payload.Data.Feature.Key)
 	// The customer is absent on this payload, so the optional field must stay unset
@@ -256,10 +256,10 @@ func TestToAPIEvent_InvoiceCreated(t *testing.T) {
 	got, err := ToAPIEvent(event)
 	require.NoError(t, err)
 
-	payload, err := got.Payload.AsNotificationEventInvoiceCreatedPayload()
+	payload, err := got.Payload.AsBillingNotificationEventInvoiceCreatedPayload()
 	require.NoError(t, err)
 
-	assert.Equal(t, api.NotificationEventInvoiceCreatedPayloadTypeV1InvoiceCreated, payload.Type)
+	assert.Equal(t, api.BillingNotificationEventInvoiceCreatedPayloadTypeV1InvoiceCreated, payload.Type)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB0", payload.Data.Invoice.Id)
 	assert.Equal(t, "INV-2024-0001", payload.Data.Invoice.Number)
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FB1", lo.FromPtr(payload.Data.CustomerId))
@@ -324,7 +324,7 @@ func TestToAPIDeliveryStatuses(t *testing.T) {
 
 	status := got[0]
 	assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAV", status.ChannelId)
-	assert.Equal(t, api.NotificationEventDeliveryStateFailed, status.State)
+	assert.Equal(t, api.BillingNotificationEventDeliveryStateFailed, status.State)
 	assert.Equal(t, "connection refused", status.Reason)
 	assert.Equal(t, newer, status.UpdatedAt)
 	assert.Equal(t, nextAttempt, lo.FromPtr(status.NextAttempt))

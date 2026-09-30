@@ -6,7 +6,7 @@ namespace Notifications;
  * The type of a notification event. It determines which payload variant the event
  * carries.
  */
-@friendlyName("NotificationEventType")
+@friendlyName("BillingNotificationEventType")
 enum NotificationEventType {
   /**
    * A metered entitlement's balance crossed a threshold configured on the rule.
@@ -32,7 +32,7 @@ enum NotificationEventType {
 /**
  * The delivery state of a notification event for a single channel.
  */
-@friendlyName("NotificationEventDeliveryState")
+@friendlyName("BillingNotificationEventDeliveryState")
 enum NotificationEventDeliveryState {
   /**
    * The event was delivered and acknowledged by the recipient.
@@ -63,7 +63,7 @@ enum NotificationEventDeliveryState {
 /**
  * A reference to the notification rule that generated an event.
  */
-@friendlyName("NotificationRuleReference")
+@friendlyName("BillingNotificationRuleReference")
 model NotificationRuleReference {
   /**
    * The unique identifier of the rule.
@@ -88,7 +88,7 @@ model NotificationRuleReference {
  * The response the recipient returned for a delivery attempt. For webhook channels
  * this is the HTTP response.
  */
-@friendlyName("NotificationEventDeliveryAttemptResponse")
+@friendlyName("BillingNotificationEventDeliveryAttemptResponse")
 model NotificationEventDeliveryAttemptResponse {
   /**
    * The HTTP status code returned by the recipient. Absent when no response was
@@ -119,7 +119,7 @@ model NotificationEventDeliveryAttemptResponse {
 /**
  * A single delivery attempt to a channel.
  */
-@friendlyName("NotificationEventDeliveryAttempt")
+@friendlyName("BillingNotificationEventDeliveryAttempt")
 model NotificationEventDeliveryAttempt {
   /**
    * The delivery state reached by this attempt.
@@ -144,7 +144,7 @@ model NotificationEventDeliveryAttempt {
  * The delivery status of a notification event for one channel of the generating
  * rule.
  */
-@friendlyName("NotificationEventDeliveryStatus")
+@friendlyName("BillingNotificationEventDeliveryStatus")
 model NotificationEventDeliveryStatus {
   /**
    * The identifier of the channel this delivery status belongs to.
@@ -187,7 +187,7 @@ model NotificationEventDeliveryStatus {
 /**
  * The entitlement balance at the time the event was generated.
  */
-@friendlyName("NotificationEventEntitlementValue")
+@friendlyName("BillingNotificationEventEntitlementValue")
 model NotificationEventEntitlementValue {
   /**
    * Whether the subject had access to the feature. The balance never goes below
@@ -218,7 +218,7 @@ model NotificationEventEntitlementValue {
 /**
  * A reference to the feature of an entitlement notification event.
  */
-@friendlyName("NotificationEventFeatureReference")
+@friendlyName("BillingNotificationEventFeatureReference")
 model NotificationEventFeatureReference {
   /**
    * The unique identifier of the feature.
@@ -237,7 +237,7 @@ model NotificationEventFeatureReference {
  * The entitlement, feature, and subject an entitlement notification event refers
  * to.
  */
-@friendlyName("NotificationEventEntitlementData")
+@friendlyName("BillingNotificationEventEntitlementData")
 model NotificationEventEntitlementData {
   /**
    * The identifier of the entitlement that triggered the event.
@@ -273,7 +273,7 @@ model NotificationEventEntitlementData {
 /**
  * What a balance threshold is measured against.
  */
-@friendlyName("NotificationEventBalanceThresholdType")
+@friendlyName("BillingNotificationEventBalanceThresholdType")
 enum NotificationEventBalanceThresholdType {
   /**
    * The remaining balance in the current usage period.
@@ -294,7 +294,7 @@ enum NotificationEventBalanceThresholdType {
 /**
  * The threshold that the entitlement balance crossed.
  */
-@friendlyName("NotificationEventBalanceThreshold")
+@friendlyName("BillingNotificationEventBalanceThreshold")
 model NotificationEventBalanceThreshold {
   /**
    * What the threshold value is measured against.
@@ -312,7 +312,7 @@ model NotificationEventBalanceThreshold {
 /**
  * The entities and threshold a balance threshold event refers to.
  */
-@friendlyName("NotificationEventBalanceThresholdData")
+@friendlyName("BillingNotificationEventBalanceThresholdData")
 model NotificationEventBalanceThresholdData {
   ...NotificationEventEntitlementData;
 
@@ -326,7 +326,7 @@ model NotificationEventBalanceThresholdData {
 /**
  * A reference to the invoice of an invoice notification event.
  */
-@friendlyName("NotificationEventInvoiceReference")
+@friendlyName("BillingNotificationEventInvoiceReference")
 model NotificationEventInvoiceReference {
   /**
    * The unique identifier of the invoice.
@@ -344,7 +344,7 @@ model NotificationEventInvoiceReference {
 /**
  * The invoice an invoice notification event refers to.
  */
-@friendlyName("NotificationEventInvoiceData")
+@friendlyName("BillingNotificationEventInvoiceData")
 model NotificationEventInvoiceData {
   /**
    * The invoice the event was generated for.
@@ -380,7 +380,7 @@ model NotificationEventInvoiceData {
 /**
  * A balance threshold notification event payload.
  */
-@friendlyName("NotificationEventBalanceThresholdPayload")
+@friendlyName("BillingNotificationEventBalanceThresholdPayload")
 model NotificationEventBalanceThresholdPayload {
   /**
    * The identifier of the event the payload belongs to.
@@ -410,7 +410,7 @@ model NotificationEventBalanceThresholdPayload {
 /**
  * An entitlement reset notification event payload.
  */
-@friendlyName("NotificationEventResetPayload")
+@friendlyName("BillingNotificationEventResetPayload")
 model NotificationEventResetPayload {
   /**
    * The identifier of the event the payload belongs to.
@@ -440,7 +440,7 @@ model NotificationEventResetPayload {
 /**
  * An invoice created notification event payload.
  */
-@friendlyName("NotificationEventInvoiceCreatedPayload")
+@friendlyName("BillingNotificationEventInvoiceCreatedPayload")
 model NotificationEventInvoiceCreatedPayload {
   /**
    * The identifier of the event the payload belongs to.
@@ -470,7 +470,7 @@ model NotificationEventInvoiceCreatedPayload {
 /**
  * An invoice updated notification event payload.
  */
-@friendlyName("NotificationEventInvoiceUpdatedPayload")
+@friendlyName("BillingNotificationEventInvoiceUpdatedPayload")
 model NotificationEventInvoiceUpdatedPayload {
   /**
    * The identifier of the event the payload belongs to.
@@ -500,7 +500,7 @@ model NotificationEventInvoiceUpdatedPayload {
 /**
  * The payload delivered to the channels, discriminated by the event type.
  */
-@friendlyName("NotificationEventPayload")
+@friendlyName("BillingNotificationEventPayload")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union NotificationEventPayload {
   `v1.entitlements.balance.threshold`: NotificationEventBalanceThresholdPayload,
@@ -514,7 +514,7 @@ union NotificationEventPayload {
  * delivery of its payload to each channel of the rule. Events are created by the
  * system and cannot be modified.
  */
-@friendlyName("NotificationEvent")
+@friendlyName("BillingNotificationEvent")
 model NotificationEvent {
   /**
    * The unique identifier of the event.
@@ -556,7 +556,7 @@ model NotificationEvent {
 /**
  * Request body for resending a notification event.
  */
-@friendlyName("ResendNotificationEventRequest")
+@friendlyName("ResendBillingNotificationEventRequest")
 model NotificationEventResendRequest {
   /**
    * The channels to resend the event to. When omitted or empty, the event is resent

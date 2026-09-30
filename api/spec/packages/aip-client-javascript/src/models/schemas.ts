@@ -2360,7 +2360,7 @@ export const notificationEventInvoiceReference = z
   })
   .describe('A reference to the invoice of an invoice notification event.')
 
-export const resendNotificationEventRequest = z
+export const resendBillingNotificationEventRequest = z
   .object({
     channels: z
       .array(ulid)
@@ -9306,7 +9306,7 @@ export const resendNotificationEventPathParams = z.object({
   notificationEventId: ulid,
 })
 
-export const resendNotificationEventBody = resendNotificationEventRequest
+export const resendNotificationEventBody = resendBillingNotificationEventRequest
 
 export const labelsWire = z
   .record(z.string(), z.string())
@@ -11659,7 +11659,7 @@ export const notificationEventInvoiceReferenceWire = z
   })
   .describe('A reference to the invoice of an invoice notification event.')
 
-export const resendNotificationEventRequestWire = z
+export const resendBillingNotificationEventRequestWire = z
   .strictObject({
     channels: z
       .array(ulidWire)
@@ -18721,4 +18721,4 @@ export const resendNotificationEventPathParamsWire = z.object({
 })
 
 export const resendNotificationEventBodyWire =
-  resendNotificationEventRequestWire
+  resendBillingNotificationEventRequestWire

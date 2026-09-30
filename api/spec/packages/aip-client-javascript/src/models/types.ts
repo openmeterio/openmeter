@@ -1172,7 +1172,7 @@ export interface NotificationEventInvoiceReference {
 }
 
 /** Request body for resending a notification event. */
-export interface ResendNotificationEventRequest {
+export interface ResendBillingNotificationEventRequest {
   /**
    * The channels to resend the event to. When omitted or empty, the event is resent
    * to every enabled channel of the rule. Channels not targeted by the rule or

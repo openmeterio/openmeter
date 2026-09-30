@@ -276,7 +276,7 @@ func (s *NotificationsService) GetEvent(ctx context.Context, notificationEventID
 // Delivery is asynchronous: the request marks the selected channels for redelivery
 // and returns immediately. Channels whose delivery is still pending or already
 // being resent are left untouched.
-func (s *NotificationsService) ResendEvent(ctx context.Context, notificationEventID string, request ResendNotificationEventRequest) error {
+func (s *NotificationsService) ResendEvent(ctx context.Context, notificationEventID string, request ResendBillingNotificationEventRequest) error {
 	if notificationEventID == "" {
 		return fmt.Errorf("openmeter: %s must not be empty: %w", "notificationEventID", ErrEmptyID)
 	}

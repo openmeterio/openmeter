@@ -21,7 +21,7 @@ import (
 
 type (
 	ListNotificationEventsRequest  = notification.ListEventsInput
-	ListNotificationEventsResponse = response.PagePaginationResponse[api.NotificationEvent]
+	ListNotificationEventsResponse = response.PagePaginationResponse[api.BillingNotificationEvent]
 	ListNotificationEventsParams   = api.ListNotificationEventsParams
 	ListNotificationEventsHandler  = httptransport.HandlerWithArgs[ListNotificationEventsRequest, ListNotificationEventsResponse, ListNotificationEventsParams]
 )
@@ -95,7 +95,7 @@ func (h *handler) ListNotificationEvents() ListNotificationEventsHandler {
 				return ListNotificationEventsResponse{}, fmt.Errorf("failed to list notification events: %w", err)
 			}
 
-			items := make([]api.NotificationEvent, 0, len(result.Items))
+			items := make([]api.BillingNotificationEvent, 0, len(result.Items))
 			for _, item := range result.Items {
 				apiEvent, err := ToAPIEvent(item)
 				if err != nil {
@@ -138,7 +138,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 		return badRequest("filter[type]", err)
 	}
 	typeFilter, err = typeFilter.Map(func(v string) (string, error) {
-		eventType, err := ToDomainEventType(api.NotificationEventType(v))
+		eventType, err := ToDomainEventType(api.BillingNotificationEventType(v))
 		return string(eventType), err
 	})
 	if err != nil {
@@ -171,7 +171,7 @@ func applyAPIEventFilters(ctx context.Context, req *ListNotificationEventsReques
 		return badRequest("filter[delivery_status]", err)
 	}
 	deliveryStatus, err = deliveryStatus.Map(func(v string) (string, error) {
-		domain, err := ToDomainDeliveryState(api.NotificationEventDeliveryState(v))
+		domain, err := ToDomainDeliveryState(api.BillingNotificationEventDeliveryState(v))
 		return string(domain), err
 	})
 	if err != nil {
