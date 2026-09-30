@@ -2,6 +2,7 @@ package filter_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -2822,4 +2823,61 @@ func TestFilterULID_IsEmpty(t *testing.T) {
 			assert.Equal(t, tt.want, tt.filter.IsEmpty())
 		})
 	}
+}
+
+func TestFilterStringMap(t *testing.T) {
+	upper := func(v string) (string, error) {
+		if v == "bad" {
+			return "", errors.New("bad value")
+		}
+		return strings.ToUpper(v), nil
+	}
+
+	t.Run("nil filter maps to nil", func(t *testing.T) {
+		var in *filter.FilterString
+		got, err := in.Map(upper)
+		assert.NoError(t, err)
+		assert.Nil(t, got)
+	})
+
+	t.Run("every operand is mapped, including nested ones", func(t *testing.T) {
+		in := &filter.FilterString{
+			And: &[]filter.FilterString{
+				{Eq: lo.ToPtr("a")},
+				{Ne: lo.ToPtr("b")},
+				{In: &[]string{"c", "d"}},
+				{Or: &[]filter.FilterString{
+					{Nin: &[]string{"e"}},
+					{Like: lo.ToPtr("f%")},
+				}},
+			},
+		}
+
+		got, err := in.Map(upper)
+		assert.NoError(t, err)
+		assert.Equal(t, &filter.FilterString{
+			And: &[]filter.FilterString{
+				{Eq: lo.ToPtr("A")},
+				{Ne: lo.ToPtr("B")},
+				{In: &[]string{"C", "D"}},
+				{Or: &[]filter.FilterString{
+					{Nin: &[]string{"E"}},
+					{Like: lo.ToPtr("F%")},
+				}},
+			},
+		}, got)
+	})
+
+	t.Run("a failing operand fails the whole filter", func(t *testing.T) {
+		_, err := (&filter.FilterString{In: &[]string{"a", "bad"}}).Map(upper)
+		assert.Error(t, err)
+	})
+
+	t.Run("the input filter is not mutated", func(t *testing.T) {
+		in := &filter.FilterString{Eq: lo.ToPtr("a"), In: &[]string{"b"}}
+		_, err := in.Map(upper)
+		assert.NoError(t, err)
+		assert.Equal(t, "a", lo.FromPtr(in.Eq))
+		assert.Equal(t, []string{"b"}, *in.In)
+	})
 }
