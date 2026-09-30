@@ -194,7 +194,7 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		collection := newFlatFeeChargeCollection(1)
 		referencePatches := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, collection, referencePatches))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches))
 		require.True(t, referencePatches.IsEmpty())
 		require.True(t, collection.Patches().IsEmpty())
 	})
@@ -208,7 +208,7 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		collection := newFlatFeeChargeCollection(1)
 		referencePatches := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, collection, referencePatches))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches))
 
 		require.True(t, collection.Patches().IsEmpty())
 		require.Len(t, referencePatches, 1)
@@ -235,7 +235,7 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		collection := newFlatFeeChargeCollection(1)
 		referencePatches := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, collection, referencePatches))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches))
 
 		require.Len(t, referencePatches, 1)
 		chargePatches := collection.Patches()
@@ -271,7 +271,7 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		collection := newFlatFeeChargeCollection(1)
 		referencePatches := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, collection, referencePatches))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches))
 
 		require.Len(t, referencePatches, 1)
 		chargePatches := collection.Patches()
@@ -291,7 +291,7 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		collection := newFlatFeeChargeCollection(1)
 		referencePatches := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, collection, referencePatches))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches))
 
 		require.True(t, referencePatches.IsEmpty())
 		chargePatches := collection.Patches()
@@ -309,7 +309,7 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		collection := newFlatFeeChargeCollection(1)
 		referencePatches := make(ChargeReferencePatches, 1)
 
-		err := (&Service{}).diffItem(&target, existing, collection, referencePatches)
+		err := newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches)
 		require.ErrorContains(t, err, "subscription ID cannot be updated")
 		require.True(t, referencePatches.IsEmpty())
 		require.True(t, collection.Patches().IsEmpty())
@@ -325,7 +325,7 @@ func TestServiceDiffItemFlatFeeSubscriptionReferenceChange(t *testing.T) {
 		collection := newFlatFeeChargeCollection(1)
 		referencePatches := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, collection, referencePatches))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches))
 
 		require.True(t, referencePatches.IsEmpty())
 		chargePatches := collection.Patches()
@@ -547,7 +547,7 @@ func TestServiceDiffItemUsageBasedSubscriptionReferenceChange(t *testing.T) {
 			referencePatches := make(ChargeReferencePatches, 1)
 
 			// When subscription sync diffs the current item against that persisted charge.
-			err := (&Service{}).diffItem(&target, existing, collection, referencePatches)
+			err := newComparisonReconciler().diffItem(t.Context(), &target, existing, collection, referencePatches)
 			if tt.expectError != "" {
 				require.ErrorContains(t, err, tt.expectError)
 				require.True(t, referencePatches.IsEmpty())
@@ -1177,7 +1177,7 @@ func TestBillingTermComparisonPhysicalReferenceGate(t *testing.T) {
 		patches := newFlatFeeChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, patches, references))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references))
 		require.True(t, references.IsEmpty())
 		require.True(t, patches.Patches().IsEmpty())
 	})
@@ -1190,7 +1190,7 @@ func TestBillingTermComparisonPhysicalReferenceGate(t *testing.T) {
 		patches := newUsageBasedChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, patches, references))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references))
 		require.True(t, references.IsEmpty())
 		require.True(t, patches.Patches().IsEmpty())
 	})
@@ -1205,7 +1205,7 @@ func TestBillingTermComparisonPhysicalReferenceGate(t *testing.T) {
 		patches := newFlatFeeChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, patches, references))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references))
 		require.Len(t, references, 1)
 		require.True(t, patches.Patches().IsEmpty())
 	})
@@ -1220,7 +1220,7 @@ func TestBillingTermComparisonPhysicalReferenceGate(t *testing.T) {
 		patches := newUsageBasedChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, patches, references))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references))
 		require.Len(t, references, 1)
 		require.True(t, patches.Patches().IsEmpty())
 	})
@@ -1238,7 +1238,7 @@ func TestBillingTermComparisonPhysicalReferenceGate(t *testing.T) {
 		patches := newFlatFeeChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, patches, references))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references))
 		require.Len(t, references, 1)
 		require.True(t, patches.Patches().IsEmpty())
 	})
@@ -1254,7 +1254,7 @@ func TestBillingTermComparisonPhysicalReferenceGate(t *testing.T) {
 		patches := newUsageBasedChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		require.NoError(t, (&Service{}).diffItem(&target, existing, patches, references))
+		require.NoError(t, newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references))
 		require.Len(t, references, 1)
 		require.True(t, patches.Patches().IsEmpty())
 	})
@@ -1269,7 +1269,7 @@ func TestMatchedChargeOwnershipValidation(t *testing.T) {
 		patches := newFlatFeeChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		err := (&Service{}).diffItem(&target, existing, patches, references)
+		err := newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references)
 		require.ErrorContains(t, err, "customer does not match")
 		require.True(t, references.IsEmpty())
 		require.True(t, patches.Patches().IsEmpty())
@@ -1283,7 +1283,7 @@ func TestMatchedChargeOwnershipValidation(t *testing.T) {
 		patches := newUsageBasedChargeCollection(1)
 		references := make(ChargeReferencePatches, 1)
 
-		err := (&Service{}).diffItem(&target, existing, patches, references)
+		err := newComparisonReconciler().diffItem(t.Context(), &target, existing, patches, references)
 		require.ErrorContains(t, err, "not subscription-managed")
 		require.True(t, references.IsEmpty())
 		require.True(t, patches.Patches().IsEmpty())

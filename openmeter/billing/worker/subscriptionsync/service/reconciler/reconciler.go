@@ -155,6 +155,7 @@ func (p *Plan) IsEmpty() bool {
 }
 
 func (s *Service) diffItem(
+	ctx context.Context,
 	target *targetstate.StateItem,
 	existing persistedstate.Item,
 	patches PatchCollection,
@@ -251,6 +252,10 @@ func (s *Service) diffItem(
 	}
 
 	if referenceRepairStrategy == referenceRepairStrategyReplace {
+		if err := s.ensureChargeCanBeReplaced(ctx, existing); err != nil {
+			return fmt.Errorf("reconciling subscription item[%s]: replacing charge[%s]: %w", target.UniqueID, existing.ID().ID, err)
+		}
+
 		// Replacement preserves the logical child reference while retiring the old physical
 		// charge. Charge deletion remains visible to downstream consumers; economic history
 		// and any user-managed overrides stay owned by the charge lifecycle, not this diff.
@@ -429,7 +434,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("getting patch collection for deleted line[%s]: %w", id, err)
 		}
 
-		if err := s.diffItem(nil, line, patchCollection, chargeReferencePatches); err != nil {
+		if err := s.diffItem(ctx, nil, line, patchCollection, chargeReferencePatches); err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
 	}
@@ -446,7 +451,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 				return nil, fmt.Errorf("resolving default patch collection for new line[%s]: %w", id, err)
 			}
 
-			if err := s.diffItem(&targetLine, nil, defaultCollection, chargeReferencePatches); err != nil {
+			if err := s.diffItem(ctx, &targetLine, nil, defaultCollection, chargeReferencePatches); err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
 			}
 			continue
@@ -457,7 +462,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("getting patch collection for existing line[%s]: %w", id, err)
 		}
 
-		if err := s.diffItem(&targetLine, existingLine, patchCollection, chargeReferencePatches); err != nil {
+		if err := s.diffItem(ctx, &targetLine, existingLine, patchCollection, chargeReferencePatches); err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
 	}

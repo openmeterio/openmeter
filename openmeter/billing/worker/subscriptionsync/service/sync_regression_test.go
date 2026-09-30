@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -582,4 +583,181 @@ func (s *CreditThenInvoiceTestSuite) assertPaidCancellationHistory(subscriptionI
 	s.ElementsMatch(originalLineIDs, snapshot.lineIDs, "no second collectible line for a paid period")
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	return snapshot
+}
+func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWithoutNewCollection() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	const itemKey = "replacement-guard-flat-fee"
+	const referenceOnlyItemKey = "a-reference-only-flat-fee"
+	var chargeID chargesmeta.ChargeID
+	var referenceOnlyChargeID chargesmeta.ChargeID
+	var invoiceID billing.InvoiceID
+	var lineID string
+	var originalAmount alpacadecimal.Decimal
+	var oldItemID string
+	var referenceOnlyItemID string
+	var subscriptionID models.NamespacedID
+	var originalChargeIDs []string
+
+	// given: an in-advance flat fee has a paid invoice alongside a separate in-arrears charge.
+	s.RequireRun("bill the original flat fee", func() {
+		view := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Guarded flat fee",
+					Key:            "guarded-flat-fee",
+					Version:        1,
+					Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				},
+				Phases: []productcatalog.Phase{{
+					PhaseMeta: s.phaseMeta("service", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  itemKey,
+								Name: "Monthly flat fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(30),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  referenceOnlyItemKey,
+								Name: "Reference-only flat fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(5),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				}},
+			},
+		})
+		oldItemID = view.Phases[0].ItemsByKey[itemKey][0].SubscriptionItem.ID
+		referenceOnlyItemID = view.Phases[0].ItemsByKey[referenceOnlyItemKey][0].SubscriptionItem.ID
+		subscriptionID = view.Subscription.NamespacedID
+		s.Require().NoError(s.Service.SyncByView(ctx, view, start.AddDate(0, 1, 0)))
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+			AsOf:     lo.ToPtr(start),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+		line := invoices[0].Lines.OrEmpty()[0]
+		s.Require().NotNil(line.ChargeID)
+		chargeID = chargesmeta.ChargeID{Namespace: s.Namespace, ID: *line.ChargeID}
+		lineID = line.ID
+
+		approved, err := s.BillingService.ApproveInvoice(ctx, invoices[0].GetInvoiceID())
+		s.Require().NoError(err)
+		invoiceID = approved.GetInvoiceID()
+		paidInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoiceID,
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.Require().Equal(billing.StandardInvoiceStatusPaid, paidInvoice.Status)
+		s.Require().True(paidInvoice.StatusDetails.Immutable)
+		s.Require().Len(paidInvoice.Lines.OrEmpty(), 1)
+		originalAmount = paidInvoice.Lines.OrEmpty()[0].Totals.Total
+
+		allCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Page:            pagination.Page{PageNumber: 1, PageSize: 20},
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{subscriptionID.ID},
+			IncludeDeleted:  true,
+		})
+		s.Require().NoError(err)
+		for _, charge := range allCharges.Items {
+			originalChargeIDs = append(originalChargeIDs, charge.GetID())
+			flatFee, err := charge.AsFlatFeeCharge()
+			s.Require().NoError(err)
+			s.Require().NotNil(flatFee.Intent.GetSubscription())
+			if flatFee.Intent.GetSubscription().ItemID == referenceOnlyItemID && flatFee.Intent.GetBaseIntent().ServicePeriod.From.Equal(start) {
+				referenceOnlyChargeID = chargesmeta.ChargeID{Namespace: s.Namespace, ID: charge.GetID()}
+			}
+		}
+		s.Require().Contains(originalChargeIDs, chargeID.ID)
+		s.Require().NotEmpty(referenceOnlyChargeID.ID)
+	})
+
+	// when: a reference repair is planned before the paid item's new physical ID and price are checked.
+	s.RequireRun("reject the changed item", func() {
+		revised, err := s.SubscriptionService.GetView(ctx, subscriptionID)
+		s.Require().NoError(err)
+		item := &revised.Phases[0].ItemsByKey[itemKey][0]
+		item.SubscriptionItem.ID = ulid.Make().String()
+		s.Require().NotEqual(oldItemID, item.SubscriptionItem.ID)
+		changedRateCard, ok := item.SubscriptionItem.RateCard.Clone().(*productcatalog.FlatFeeRateCard)
+		s.Require().True(ok)
+		changedRateCard.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromInt(40),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		})
+		item.SubscriptionItem.RateCard = changedRateCard
+		item.Spec.RateCard = changedRateCard.Clone()
+		revised.Phases[0].ItemsByKey[referenceOnlyItemKey][0].SubscriptionItem.ID = ulid.Make().String()
+		s.Require().NoError(revised.Validate(true))
+
+		err = s.Service.SyncByViewAndInvoiceCustomer(ctx, revised, start.AddDate(0, 1, 0))
+		s.Require().ErrorContains(err, "immutable")
+	})
+
+	// then: neither the reference repair nor charge replacement is applied.
+	s.Run("preserve the invoiced charge", func() {
+		charge, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+		s.Require().NoError(err)
+		flatFee, err := charge.AsFlatFeeCharge()
+		s.Require().NoError(err)
+		s.Require().NotNil(flatFee.Intent.GetSubscription())
+		s.Equal(oldItemID, flatFee.Intent.GetSubscription().ItemID)
+		s.Equal(alpacadecimal.NewFromInt(30), flatFee.Intent.GetBaseIntent().AmountBeforeProration)
+
+		allCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Page:            pagination.Page{PageNumber: 1, PageSize: 20},
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{subscriptionID.ID},
+			IncludeDeleted:  true,
+		})
+		s.Require().NoError(err)
+		chargeIDsAfter := make([]string, 0, len(allCharges.Items))
+		for _, charge := range allCharges.Items {
+			chargeIDsAfter = append(chargeIDsAfter, charge.GetID())
+		}
+		s.ElementsMatch(originalChargeIDs, chargeIDsAfter)
+		referenceOnlyCharge, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: referenceOnlyChargeID})
+		s.Require().NoError(err)
+		referenceOnlyFlatFee, err := referenceOnlyCharge.AsFlatFeeCharge()
+		s.Require().NoError(err)
+		s.Equal(referenceOnlyItemID, referenceOnlyFlatFee.Intent.GetSubscription().ItemID)
+
+		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoiceID,
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+		s.Equal(lineID, invoice.Lines.OrEmpty()[0].ID)
+		s.Equal(originalAmount, invoice.Lines.OrEmpty()[0].Totals.Total)
+
+		allInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+			Namespace: s.Namespace,
+		})
+		s.Require().NoError(err)
+		s.Require().Len(allInvoices.Items, 1)
+		s.Equal(invoiceID.ID, allInvoices.Items[0].ID)
+	})
 }

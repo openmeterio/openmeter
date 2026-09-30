@@ -107,6 +107,12 @@ the charge. An incompatible service-period start selects replacement because
 shrink and extend only move the end. When physical references already match,
 sync skips billing-term comparison and continues period reconciliation.
 
+Before replacing a matched charge, sync loads all its realization runs, including
+older and deleted runs, and checks every referenced invoice. An immutable
+invoice blocks replacement, as does missing invoice history or a failed lookup.
+This check runs only for the matched-charge replacement decision. Cancellation
+deletes and ordinary period shrink or extend continue through their own paths.
+
 This decision always follows system intent. Manual overrides remain associated
 with the retired or repaired charge and do not participate in comparison; users
 remain responsible for managing them. Charge deletion remains observable, while
