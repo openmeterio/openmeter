@@ -584,6 +584,7 @@ func (s *CreditThenInvoiceTestSuite) assertPaidCancellationHistory(subscriptionI
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	return snapshot
 }
+
 func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWithoutNewCollection() {
 	ctx := s.T().Context()
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
