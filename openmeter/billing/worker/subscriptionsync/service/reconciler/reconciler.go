@@ -155,6 +155,7 @@ func (p *Plan) IsEmpty() bool {
 }
 
 func (s *Service) diffItem(
+	ctx context.Context,
 	target *targetstate.StateItem,
 	existing persistedstate.Item,
 	patches PatchCollection,
@@ -168,6 +169,21 @@ func (s *Service) diffItem(
 		return patches.AddDelete(uniqueID, existing)
 	case target != nil && existing == nil:
 		return patches.AddCreate(*target)
+	}
+
+	if patches.GetLineEngineType().IsCharge() {
+		var err error
+		switch charge := existing.(type) {
+		case persistedstate.FlatFeeChargeGetter:
+			err = validateMatchedChargeOwnership(charge.GetFlatFeeCharge().Intent.GetBaseIntent().Intent, *target)
+		case persistedstate.UsageBasedChargeGetter:
+			err = validateMatchedChargeOwnership(charge.GetUsageBasedCharge().Intent.GetBaseIntent().Intent, *target)
+		default:
+			return fmt.Errorf("unsupported charge item type for subscription reconciliation: %s", existing.Type())
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	existingPeriod := existing.ServicePeriod()
@@ -200,21 +216,21 @@ func (s *Service) diffItem(
 			// Periods are classified by the existing shrink/extend flow below and the physical
 			// reference is handled separately. Any remaining base-intent difference means the
 			// subscription replaced the charge rather than merely reassigning it.
-			var intentsMatch bool
+			var billingTermsMatch bool
 			var err error
 			switch existingCharge := existing.(type) {
 			case persistedstate.FlatFeeChargeGetter:
-				intentsMatch, err = flatFeeChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existingCharge, *target)
+				billingTermsMatch, err = flatFeeBillingTermsMatch(existingCharge, *target)
 			case persistedstate.UsageBasedChargeGetter:
-				intentsMatch, err = usageBasedChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existingCharge, *target)
+				billingTermsMatch, err = usageBasedBillingTermsMatch(existingCharge, *target)
 			default:
 				return fmt.Errorf("unsupported charge item type for subscription reference repair: %s", existing.Type())
 			}
 			if err != nil {
-				return fmt.Errorf("comparing charge intent: %w", err)
+				return fmt.Errorf("comparing charge billing terms: %w", err)
 			}
 
-			if !intentsMatch {
+			if !billingTermsMatch {
 				referenceRepairStrategy = referenceRepairStrategyReplace
 			} else {
 				referencePatch, err := targetReference.AsPatchUpdateSubscriptionReference(*existingReference)
@@ -236,6 +252,10 @@ func (s *Service) diffItem(
 	}
 
 	if referenceRepairStrategy == referenceRepairStrategyReplace {
+		if err := s.ensureChargeCanBeReplaced(ctx, existing); err != nil {
+			return fmt.Errorf("reconciling subscription item[%s]: replacing charge[%s]: %w", target.UniqueID, existing.ID().ID, err)
+		}
+
 		// Replacement preserves the logical child reference while retiring the old physical
 		// charge. Charge deletion remains visible to downstream consumers; economic history
 		// and any user-managed overrides stay owned by the charge lifecycle, not this diff.
@@ -275,6 +295,22 @@ func (s *Service) diffItem(
 	default:
 		return nil
 	}
+}
+
+func validateMatchedChargeOwnership(existing chargesmeta.Intent, target targetstate.StateItem) error {
+	if existing.ManagedBy != billing.SubscriptionManagedLine {
+		return errors.New("existing charge is not subscription-managed")
+	}
+	if existing.CustomerID != target.Subscription.CustomerId {
+		return errors.New("existing charge customer does not match subscription customer")
+	}
+	if existing.Subscription == nil {
+		return errors.New("existing charge is missing its subscription reference")
+	}
+	if existing.Subscription.SubscriptionID != target.Subscription.ID {
+		return errors.New("subscription ID cannot be updated")
+	}
+	return nil
 }
 
 // filterInScopeLines removes target items that should not participate in
@@ -398,7 +434,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("getting patch collection for deleted line[%s]: %w", id, err)
 		}
 
-		if err := s.diffItem(nil, line, patchCollection, chargeReferencePatches); err != nil {
+		if err := s.diffItem(ctx, nil, line, patchCollection, chargeReferencePatches); err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
 	}
@@ -415,7 +451,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 				return nil, fmt.Errorf("resolving default patch collection for new line[%s]: %w", id, err)
 			}
 
-			if err := s.diffItem(&targetLine, nil, defaultCollection, chargeReferencePatches); err != nil {
+			if err := s.diffItem(ctx, &targetLine, nil, defaultCollection, chargeReferencePatches); err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
 			}
 			continue
@@ -426,7 +462,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("getting patch collection for existing line[%s]: %w", id, err)
 		}
 
-		if err := s.diffItem(&targetLine, existingLine, patchCollection, chargeReferencePatches); err != nil {
+		if err := s.diffItem(ctx, &targetLine, existingLine, patchCollection, chargeReferencePatches); err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
 	}

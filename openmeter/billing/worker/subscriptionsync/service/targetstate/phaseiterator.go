@@ -81,7 +81,11 @@ func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 	// Flat-fee in advance is the only case we bill in advance
 	if r.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType {
 		flatFee, _ := r.Spec.RateCard.AsMeta().Price.AsFlat()
-		if flatFee.PaymentTerm == productcatalog.InAdvancePaymentTerm {
+		paymentTerm := flatFee.PaymentTerm
+		if paymentTerm == "" {
+			paymentTerm = productcatalog.DefaultPaymentTerm
+		}
+		if paymentTerm == productcatalog.InAdvancePaymentTerm {
 			// In advance invoicing
 			// For in advance invoicing we attempt to incoice at the start of the billing period
 			return r.BillingPeriod.From

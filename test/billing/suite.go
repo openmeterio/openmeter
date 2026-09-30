@@ -96,6 +96,14 @@ type BaseSuite struct {
 	TaxCodeService taxcode.Service
 }
 
+func (s *BaseSuite) RequireRun(name string, subtest func()) {
+	t := s.T()
+	t.Helper()
+	if !s.Run(name, subtest) {
+		t.Fatalf("test failed")
+	}
+}
+
 func (s *BaseSuite) TearDownTest() {
 	clock.UnFreeze()
 	clock.ResetTime()

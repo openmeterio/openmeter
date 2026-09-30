@@ -89,24 +89,29 @@ charge. Credit-then-invoice usage reconciliation may preserve a missing feature
 or meter as a product-catalog issue on a newly created charge; invoice assignment
 keeps its gathering line pending until the dependency is repaired.
 
-When an existing flat-fee or usage-based charge's physical phase or item reference changes,
-the charge-specific comparison checks the target against the subscription-owned
-base intent while excluding the reference and reconciliation periods. The root
-subscription ID is the reconciliation boundary and cannot change. Plan key and
-version are also excluded: they are best-effort creation-time attribution, so a
-different snapshot does not establish that the physical item was replaced. This
-comparison is an approximation of item identity. A change to another source
-base-intent field means that the logical child reference now describes a
-replacement charge, so sync emits delete/create patches. Expanded currency
-data is not source intent; currency is compared by its stable reference. Flat-fee
-comparison treats disabled proration modes as equivalent and ignores the
-period-derived realized amount, but retains the unprorated source price as a
-replacement signal. If only the physical phase or item reference changed, sync
-repairs that reference and lets normal period reconciliation add a compatible
-shrink or extend. A changed period start also requires replacement because
-shrink and extend only move the period end. This start mismatch can remain from
-the legacy repair path, which silently overwrote a matched charge's subscription
-reference even when the referenced replacement item began at a different time.
+When a matched flat-fee or usage-based charge's physical phase or item reference
+changes, sync compares the subscription-owned base intent's billing terms.
+Currency identity, tax behavior and explicit tax-code ID, settlement mode,
+feature key, cost basis, price, discounts, proration, and usage unit conversion
+can distinguish a replacement charge. An omitted source tax-code ID accepts the
+charge's stored ID; flat-fee payment terms are compared after applying the
+catalog default. Presentation, annotations, discount lineage, expanded
+currency data, pinned feature ID, plan attribution, periods, and invoice
+scheduling do not distinguish billing terms. Historical plan and feature
+attribution remain on the existing charge. Charge ownership and root
+subscription identity are validated separately.
+
+Equivalent terms permit repair of the physical reference, followed by normal
+period reconciliation. A changed service-period end can still shrink or extend
+the charge. An incompatible service-period start selects replacement because
+shrink and extend only move the end. When physical references already match,
+sync skips billing-term comparison and continues period reconciliation.
+
+Before replacing a matched charge, sync loads all its realization runs, including
+older and deleted runs, and checks every referenced invoice. An immutable
+invoice blocks replacement, as does missing invoice history or a failed lookup.
+This check runs only for the matched-charge replacement decision. Cancellation
+deletes and ordinary period shrink or extend continue through their own paths.
 
 This decision always follows system intent. Manual overrides remain associated
 with the retired or repaired charge and do not participate in comparison; users

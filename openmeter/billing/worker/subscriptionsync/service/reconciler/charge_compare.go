@@ -2,19 +2,18 @@ package reconciler
 
 import (
 	"fmt"
-	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargesflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargesusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/openmeterio/openmeter/pkg/equal"
 )
 
-func flatFeeChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existing persistedstate.FlatFeeChargeGetter, target targetstate.StateItem) (bool, error) {
+func flatFeeBillingTermsMatch(existing persistedstate.FlatFeeChargeGetter, target targetstate.StateItem) (bool, error) {
 	targetChargeIntent, err := newFlatFeeChargeIntent(target)
 	if err != nil {
 		return false, fmt.Errorf("building target flat fee intent: %w", err)
@@ -27,25 +26,46 @@ func flatFeeChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existing 
 
 	existingIntent := existing.GetFlatFeeCharge().Intent.GetBaseIntent()
 
-	return flatFeeIntentsMatchIgnoringPeriodsAndSubscriptionReference(existingIntent, targetIntent), nil
+	return flatFeeIntentBillingTermsMatch(existingIntent, targetIntent), nil
 }
 
-func flatFeeIntentsMatchIgnoringPeriodsAndSubscriptionReference(existing, target chargesflatfee.Intent) bool {
+func flatFeeIntentBillingTermsMatch(existing, target chargesflatfee.Intent) bool {
 	// Reconciliation always follows the subscription-owned base intent. Manual overrides
 	// remain attached to the charge but do not change whether the subscription replaced it.
-	existingComparable := flatFeeIntentWithoutPeriodsAndSubscriptionReference(existing.Normalized())
-	targetComparable := flatFeeIntentWithoutPeriodsAndSubscriptionReference(target.Normalized())
-
-	if targetComparable.TaxConfig.TaxCodeID == "" {
-		// Charge creation resolves an omitted subscription tax code to the namespace default.
-		// The resolved ID is persistence state, not a change to the subscription source intent.
-		existingComparable.TaxConfig.TaxCodeID = ""
+	existing = existing.Normalized()
+	target = target.Normalized()
+	if !chargeBillingTermsMatch(existing.Intent, target.Intent) ||
+		existing.SettlementMode != target.SettlementMode ||
+		!equal.ComparablePtrEqual(existing.FeatureKey, target.FeatureKey) ||
+		!equal.PtrEqual(existing.CostBasis, target.CostBasis) ||
+		!existing.AmountBeforeProration.Equal(target.AmountBeforeProration) ||
+		!percentageDiscountBillingTermsMatch(existing.PercentageDiscounts, target.PercentageDiscounts) ||
+		existing.ProRating.Enabled != target.ProRating.Enabled {
+		return false
 	}
 
-	return existingComparable.Equal(targetComparable)
+	existingPaymentTerm := existing.PaymentTerm
+	if existingPaymentTerm == "" {
+		existingPaymentTerm = productcatalog.DefaultPaymentTerm
+	}
+	targetPaymentTerm := target.PaymentTerm
+	if targetPaymentTerm == "" {
+		targetPaymentTerm = productcatalog.DefaultPaymentTerm
+	}
+
+	if existingPaymentTerm != targetPaymentTerm {
+		return false
+	}
+	if target.ProRating.Enabled {
+		if existing.ProRating.Mode != target.ProRating.Mode {
+			return false
+		}
+	}
+
+	return true
 }
 
-func usageBasedChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existing persistedstate.UsageBasedChargeGetter, target targetstate.StateItem) (bool, error) {
+func usageBasedBillingTermsMatch(existing persistedstate.UsageBasedChargeGetter, target targetstate.StateItem) (bool, error) {
 	targetChargeIntent, err := newUsageBasedChargeIntent(target)
 	if err != nil {
 		return false, fmt.Errorf("building target usage based intent: %w", err)
@@ -58,68 +78,69 @@ func usageBasedChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existi
 
 	existingIntent := existing.GetUsageBasedCharge().Intent.GetBaseIntent()
 
-	return usageBasedIntentsMatchIgnoringPeriodsAndSubscriptionReference(existingIntent, targetIntent), nil
+	return usageBasedIntentBillingTermsMatch(existingIntent, targetIntent), nil
 }
 
-func usageBasedIntentsMatchIgnoringPeriodsAndSubscriptionReference(existing, target chargesusagebased.Intent) bool {
+func usageBasedIntentBillingTermsMatch(existing, target chargesusagebased.Intent) bool {
 	// A customer's override changes the effective rating inputs, but the subscription's
 	// base intent still decides whether the physical subscription item was replaced.
-	existingComparable := usageBasedIntentWithoutPeriodsAndSubscriptionReference(existing.Normalized())
-	targetComparable := usageBasedIntentWithoutPeriodsAndSubscriptionReference(target.Normalized())
-
-	if targetComparable.TaxConfig.TaxCodeID == "" {
-		existingComparable.TaxConfig.TaxCodeID = ""
-	}
-
-	return existingComparable.Equal(targetComparable)
+	return chargeBillingTermsMatch(existing.Intent, target.Intent) &&
+		existing.SettlementMode == target.SettlementMode &&
+		existing.FeatureKey == target.FeatureKey &&
+		equal.PtrEqual(existing.CostBasis, target.CostBasis) &&
+		(&existing.Price).Equal(&target.Price) &&
+		percentageDiscountBillingTermsMatch(existing.Discounts.Percentage, target.Discounts.Percentage) &&
+		usageDiscountBillingTermsMatch(existing.Discounts.Usage, target.Discounts.Usage) &&
+		unitConfigBillingTermsMatch(existing.UnitConfig, target.UnitConfig)
 }
 
-func flatFeeIntentWithoutPeriodsAndSubscriptionReference(intent chargesflatfee.Intent) chargesflatfee.Intent {
-	intent.Intent, intent.IntentMutableFields.IntentMutableFields = chargeIntentWithoutPeriodsAndSubscriptionReference(intent.Intent, intent.IntentMutableFields.IntentMutableFields)
-	intent.InvoiceAt = time.Time{}
-	if !intent.ProRating.Enabled {
-		// Persistence supplies the default mode when reading disabled proration,
-		// while subscription intent may leave that economically inert mode empty.
-		intent.ProRating.Mode = productcatalog.ProRatingModeProratePrices
+func chargeBillingTermsMatch(existing, target chargesmeta.Intent) bool {
+	if !existing.Currency.Reference().Equal(target.Currency.Reference()) {
+		return false
 	}
-	if intent.PercentageDiscounts != nil {
-		intent.PercentageDiscounts = intent.PercentageDiscounts.CloneOrNil()
-		intent.PercentageDiscounts.CorrelationID = ""
+	// An omitted target tax-code ID uses the system default for new charges. The
+	// existing charge's persisted ID remains compatible with that source intent.
+	if target.TaxConfig.TaxCodeID != "" {
+		if existing.TaxConfig.TaxCodeID != target.TaxConfig.TaxCodeID {
+			return false
+		}
 	}
 
-	return intent
+	return equal.ComparablePtrEqual(existing.TaxConfig.Behavior, target.TaxConfig.Behavior)
 }
 
-func usageBasedIntentWithoutPeriodsAndSubscriptionReference(intent chargesusagebased.Intent) chargesusagebased.Intent {
-	intent.Intent, intent.IntentMutableFields.IntentMutableFields = chargeIntentWithoutPeriodsAndSubscriptionReference(intent.Intent, intent.IntentMutableFields.IntentMutableFields)
-	intent.InvoiceAt = time.Time{}
-	intent.Discounts = intent.Discounts.Clone()
-	if intent.Discounts.Percentage != nil {
-		intent.Discounts.Percentage.CorrelationID = ""
-	}
-	if intent.Discounts.Usage != nil {
-		intent.Discounts.Usage.CorrelationID = ""
+func percentageDiscountBillingTermsMatch(existing, target *billing.PercentageDiscount) bool {
+	if existing == nil || target == nil {
+		return existing == target
 	}
 
-	return intent
+	return existing.Percentage.Decimal.Equal(target.Percentage.Decimal)
 }
 
-func chargeIntentWithoutPeriodsAndSubscriptionReference(intent chargesmeta.Intent, mutable chargesmeta.IntentMutableFields) (chargesmeta.Intent, chargesmeta.IntentMutableFields) {
-	intent = intent.Clone()
-	delete(intent.Annotations, subscriptionworkflow.AnnotationEditUniqueKey)
-	if len(intent.Annotations) == 0 {
-		intent.Annotations = nil
+func usageDiscountBillingTermsMatch(existing, target *billing.UsageDiscount) bool {
+	if existing == nil || target == nil {
+		return existing == target
 	}
-	if len(mutable.Metadata) == 0 {
-		mutable.Metadata = nil
+
+	return existing.Quantity.Equal(target.Quantity)
+}
+
+func unitConfigBillingTermsMatch(existing, target *productcatalog.UnitConfig) bool {
+	if existing == nil || target == nil {
+		return existing == target
 	}
-	intent.Subscription = nil
-	// Plan attribution is a best-effort snapshot, not evidence that the underlying item changed.
-	intent.SubscriptionPlan = nil
 
-	mutable.ServicePeriod = timeutil.ClosedPeriod{}
-	mutable.FullServicePeriod = timeutil.ClosedPeriod{}
-	mutable.BillingPeriod = timeutil.ClosedPeriod{}
+	if existing.Operation != target.Operation ||
+		!existing.ConversionFactor.Equal(target.ConversionFactor) ||
+		existing.Rounding.IsNone() != target.Rounding.IsNone() {
+		return false
+	}
 
-	return intent, mutable
+	if !existing.Rounding.IsNone() {
+		if existing.Rounding != target.Rounding || existing.Precision != target.Precision {
+			return false
+		}
+	}
+
+	return true
 }
