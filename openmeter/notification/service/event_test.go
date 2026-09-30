@@ -203,3 +203,61 @@ func TestResendEvent(t *testing.T) {
 		assert.Nil(t, status.NextAttempt, "resend must clear the scheduled next attempt")
 	})
 }
+
+func TestResendEvent_SkipsChannelDisabledAfterDelivery(t *testing.T) {
+	env := newServiceTestEnv(t)
+	ns := ulid.Make().String()
+
+	// given: a rule with two channels, an event delivered (and failed) on both, and one
+	// channel disabled afterwards
+	active := seedChannel(t, env, ns, clock.Now(), "active-"+ulid.Make().String())
+	disabled := seedChannel(t, env, ns, clock.Now(), "disabled-"+ulid.Make().String())
+	rule := seedBalanceThresholdRule(t, env, ns, active.ID, disabled.ID)
+	event := seedEvent(t, env, ns, rule)
+
+	statuses, err := env.service.ListEventsDeliveryStatus(t.Context(), notification.ListEventsDeliveryStatusInput{
+		Namespaces: []string{ns},
+		Events:     []string{event.ID},
+		Page:       pagination.NewPage(1, 20),
+	})
+	require.NoError(t, err)
+	require.Len(t, statuses.Items, 2)
+
+	for _, status := range statuses.Items {
+		_, err = env.service.UpdateEventDeliveryStatus(t.Context(), notification.UpdateEventDeliveryStatusInput{
+			NamespacedID: models.NamespacedID{Namespace: ns, ID: status.ID},
+			State:        notification.EventDeliveryStatusStateFailed,
+			Reason:       "delivery failed",
+		})
+		require.NoError(t, err)
+	}
+
+	_, err = env.adapter.UpdateChannel(t.Context(), notification.UpdateChannelInput{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: disabled.ID},
+		Type:         disabled.Type,
+		Name:         disabled.Name,
+		Disabled:     true,
+		Config:       disabled.Config,
+	})
+	require.NoError(t, err)
+
+	// when: the event is resent without naming channels
+	err = env.service.ResendEvent(t.Context(), notification.ResendEventInput{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: event.ID},
+	})
+	require.NoError(t, err)
+
+	// then: only the active channel's status is marked for redelivery
+	statuses, err = env.service.ListEventsDeliveryStatus(t.Context(), notification.ListEventsDeliveryStatusInput{
+		Namespaces: []string{ns},
+		Events:     []string{event.ID},
+		Page:       pagination.NewPage(1, 20),
+	})
+	require.NoError(t, err)
+
+	stateByChannel := lo.SliceToMap(statuses.Items, func(s notification.EventDeliveryStatus) (string, notification.EventDeliveryStatusState) {
+		return s.ChannelID, s.State
+	})
+	assert.Equal(t, notification.EventDeliveryStatusStateResending, stateByChannel[active.ID])
+	assert.Equal(t, notification.EventDeliveryStatusStateFailed, stateByChannel[disabled.ID])
+}
