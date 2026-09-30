@@ -170,6 +170,21 @@ func (s *Service) diffItem(
 		return patches.AddCreate(*target)
 	}
 
+	if patches.GetLineEngineType().IsCharge() {
+		var err error
+		switch charge := existing.(type) {
+		case persistedstate.FlatFeeChargeGetter:
+			err = validateMatchedChargeOwnership(charge.GetFlatFeeCharge().Intent.GetBaseIntent().Intent, *target)
+		case persistedstate.UsageBasedChargeGetter:
+			err = validateMatchedChargeOwnership(charge.GetUsageBasedCharge().Intent.GetBaseIntent().Intent, *target)
+		default:
+			return fmt.Errorf("unsupported charge item type for subscription reconciliation: %s", existing.Type())
+		}
+		if err != nil {
+			return err
+		}
+	}
+
 	existingPeriod := existing.ServicePeriod()
 	targetPeriod := target.GetServicePeriod()
 
@@ -200,21 +215,21 @@ func (s *Service) diffItem(
 			// Periods are classified by the existing shrink/extend flow below and the physical
 			// reference is handled separately. Any remaining base-intent difference means the
 			// subscription replaced the charge rather than merely reassigning it.
-			var intentsMatch bool
+			var billingTermsMatch bool
 			var err error
 			switch existingCharge := existing.(type) {
 			case persistedstate.FlatFeeChargeGetter:
-				intentsMatch, err = flatFeeChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existingCharge, *target)
+				billingTermsMatch, err = flatFeeBillingTermsMatch(existingCharge, *target)
 			case persistedstate.UsageBasedChargeGetter:
-				intentsMatch, err = usageBasedChargeMatchesTargetIgnoringPeriodsAndSubscriptionReference(existingCharge, *target)
+				billingTermsMatch, err = usageBasedBillingTermsMatch(existingCharge, *target)
 			default:
 				return fmt.Errorf("unsupported charge item type for subscription reference repair: %s", existing.Type())
 			}
 			if err != nil {
-				return fmt.Errorf("comparing charge intent: %w", err)
+				return fmt.Errorf("comparing charge billing terms: %w", err)
 			}
 
-			if !intentsMatch {
+			if !billingTermsMatch {
 				referenceRepairStrategy = referenceRepairStrategyReplace
 			} else {
 				referencePatch, err := targetReference.AsPatchUpdateSubscriptionReference(*existingReference)
@@ -275,6 +290,22 @@ func (s *Service) diffItem(
 	default:
 		return nil
 	}
+}
+
+func validateMatchedChargeOwnership(existing chargesmeta.Intent, target targetstate.StateItem) error {
+	if existing.ManagedBy != billing.SubscriptionManagedLine {
+		return errors.New("existing charge is not subscription-managed")
+	}
+	if existing.CustomerID != target.Subscription.CustomerId {
+		return errors.New("existing charge customer does not match subscription customer")
+	}
+	if existing.Subscription == nil {
+		return errors.New("existing charge is missing its subscription reference")
+	}
+	if existing.Subscription.SubscriptionID != target.Subscription.ID {
+		return errors.New("subscription ID cannot be updated")
+	}
+	return nil
 }
 
 // filterInScopeLines removes target items that should not participate in
