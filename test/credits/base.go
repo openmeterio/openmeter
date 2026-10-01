@@ -57,6 +57,7 @@ type BaseSuite struct {
 	FlatFeeSvc           flatfee.Service
 	CreditPurchaseSvc    creditpurchase.Service
 	UsageBasedSvc        usagebased.Service
+	FlatFeeSvc           flatfee.Service
 	CustomerBalanceSvc   customerbalance.Service
 	Ledger               ledger.Ledger
 	BalanceQuerier       ledger.BalanceQuerier
@@ -197,6 +198,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.FlatFeeSvc = stack.FlatFeeService
 	s.CreditPurchaseSvc = stack.CreditPurchaseService
 	s.UsageBasedSvc = stack.UsageBasedService
+	s.FlatFeeSvc = stack.FlatFeeService
 	s.CurrencyService = stack.CurrencyService
 	s.CurrencyResolver = stack.CurrencyResolver
 
