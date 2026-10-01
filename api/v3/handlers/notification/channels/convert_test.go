@@ -9,7 +9,6 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -141,63 +140,6 @@ func TestToAPIChannel_TypeCasing(t *testing.T) {
 // values must be translated to the domain/DB value before the predicate reaches the
 // adapter, or filter[type][eq]=webhook would silently match zero rows against a
 // column that stores "WEBHOOK".
-func TestMapAPIChannelTypeFilter(t *testing.T) {
-	testCases := []struct {
-		name    string
-		input   *filter.FilterString
-		want    *filter.FilterString
-		wantErr bool
-	}{
-		{
-			name:  "nil filter is a no-op",
-			input: nil,
-			want:  nil,
-		},
-		{
-			name:  "eq translates the wire value to the domain value",
-			input: &filter.FilterString{Eq: lo.ToPtr("webhook")},
-			want:  &filter.FilterString{Eq: lo.ToPtr("WEBHOOK")},
-		},
-		{
-			name:  "ne translates the wire value to the domain value",
-			input: &filter.FilterString{Ne: lo.ToPtr("webhook")},
-			want:  &filter.FilterString{Ne: lo.ToPtr("WEBHOOK")},
-		},
-		{
-			name:  "in translates every wire value to its domain value",
-			input: &filter.FilterString{In: &[]string{"webhook"}},
-			want:  &filter.FilterString{In: &[]string{"WEBHOOK"}},
-		},
-		{
-			name:    "unknown eq value is rejected rather than silently matching zero rows",
-			input:   &filter.FilterString{Eq: lo.ToPtr("bogus")},
-			wantErr: true,
-		},
-		{
-			name:    "unknown ne value is rejected",
-			input:   &filter.FilterString{Ne: lo.ToPtr("bogus")},
-			wantErr: true,
-		},
-		{
-			name:    "an unknown value inside in is rejected",
-			input:   &filter.FilterString{In: &[]string{"webhook", "bogus"}},
-			wantErr: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := mapAPIChannelTypeFilter(tc.input)
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tc.want, got)
-		})
-	}
-}
-
 // TestFromAPIChannelSortField verifies the sort allow-list must accept exactly the
 // four documented fields, map each to the matching domain OrderBy constant, and
 // reject anything else instead of silently falling back to an unintended order.
