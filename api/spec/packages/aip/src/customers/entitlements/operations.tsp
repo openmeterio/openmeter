@@ -44,8 +44,6 @@ namespace Entitlements {
      * creation, only deleted.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     @post
     @operationId("create-customer-entitlement")
     @summary("Create customer entitlement")
@@ -69,8 +67,6 @@ namespace Entitlements {
      * active.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     @put
     @route("/{entitlementId}/override")
     @operationId("override-customer-entitlement")
@@ -95,8 +91,6 @@ namespace Entitlements {
      * each grant.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
-    @extension(Shared.PrivateExtension, true)
     @get
     @route("/{entitlementId}/history")
     @operationId("get-customer-entitlement-history")
@@ -141,8 +135,6 @@ namespace Entitlements {
      * the entitlement access endpoints instead.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("get-customer-entitlement")
     @summary("Get customer entitlement")
@@ -158,8 +150,6 @@ namespace Entitlements {
      * instead.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("list-customer-entitlements")
     @summary("List customer entitlements")
@@ -202,8 +192,6 @@ namespace Entitlements {
      * billing period. The usage period anchor can be moved at the same time.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
-    @extension(Shared.PrivateExtension, true)
     @extension(Shared.RPCEndpointExtension, true)
     @post
     @route("/{entitlementId}/reset")
@@ -231,8 +219,6 @@ namespace Entitlements {
      * so access changes are never retroactive.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     @delete
     @operationId("delete-customer-entitlement")
     @summary("Delete customer entitlement")

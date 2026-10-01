@@ -219,8 +219,6 @@ interface SubscriptionsOperations {
   @summary("Unschedule subscription")
   @route("/{subscriptionId}/unschedule")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.RPCEndpointExtension, true)
   unschedule(@path subscriptionId: Shared.ULID):
     | Shared.DeleteResponse
@@ -238,8 +236,6 @@ interface SubscriptionsOperations {
   @summary("Restore subscription")
   @route("/{subscriptionId}/restore")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   @extension(Shared.RPCEndpointExtension, true)
   restore(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
@@ -281,7 +277,6 @@ interface SubscriptionsOperations {
   @summary("Migrate subscription")
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.RPCEndpointExtension, true)
-  @extension(Shared.InternalExtension, true)
   @route("/{subscriptionId}/migrate")
   migrate(@path subscriptionId: Shared.ULID, @body body: SubscriptionMigrate):
     | SubscriptionMigrateResponse

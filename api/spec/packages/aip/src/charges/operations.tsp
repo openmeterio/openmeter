@@ -34,8 +34,6 @@ interface ChargesOperations {
    * usage-based charges.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-charges")
   @summary("List charges")

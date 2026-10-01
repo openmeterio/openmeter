@@ -22,9 +22,6 @@ interface EntitlementAccessOperations {
    * _Designed to be called on a fixed refresh interval and the query response is
    * intended to be cached._
    */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   @post
   @route("/query")
   @operationId("query-entitlement-access")

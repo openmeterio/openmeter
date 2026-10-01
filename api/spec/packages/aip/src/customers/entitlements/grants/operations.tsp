@@ -24,8 +24,6 @@ namespace Entitlements.Grants {
      * which cannot be earlier than the start of the current usage period.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     @post
     @operationId("create-customer-entitlement-grant")
     @summary("Create customer entitlement grant")
@@ -47,8 +45,6 @@ namespace Entitlements.Grants {
      * grants are always included, as they are part of the balance history.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("list-customer-entitlement-grants")
     @summary("List customer entitlement grants")

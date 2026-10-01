@@ -122,8 +122,6 @@ namespace Credits.Grants {
     @operationId("void-credit-grant")
     @summary("Void credit grant")
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.PrivateExtension, true)
-    @extension(Shared.InternalExtension, true)
     voidGrant(
       @path customerId: Shared.ULID,
       @path creditGrantId: Shared.ULID,

@@ -52,8 +52,6 @@ interface CustomerEntitlementsOperations {
   @operationId("get-customer-entitlement-access")
   @summary("Get customer entitlement access")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.InternalExtension, true)
   get(@path customerId: Shared.ULID, @path featureKey: Shared.ResourceKey):
     | Shared.GetResponse<EntitlementAccessCheckResult>
     | Common.NotFound
@@ -68,8 +66,6 @@ interface CustomerEntitlementsOperations {
   @operationId("get-customer-entitlement-value-by-feature-key")
   @summary("Get customer entitlement value by feature key")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.InternalExtension, true)
   getValueByFeatureKey(
     @path customerId: Shared.ULID,
     @path featureKey: Shared.ResourceKey,
@@ -116,8 +112,6 @@ interface EntitlementsOperations {
    * endpoints; to check entitlement access, use the entitlement access endpoints.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-entitlements")
   @summary("List entitlements")
@@ -153,8 +147,6 @@ interface EntitlementsOperations {
    * access endpoints instead.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("get-entitlement")
   @summary("Get entitlement")
@@ -174,8 +166,6 @@ interface CustomerEntitlementValueOperations {
   @operationId("get-customer-entitlement-value")
   @summary("Get customer entitlement value")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   get(
     @path customerId: Shared.ULID,
     @path entitlementId: Shared.ULID,

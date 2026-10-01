@@ -38,8 +38,6 @@ interface GrantsOperations {
    * grants are always included, as they are part of the balance history.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-grants")
   @summary("List grants")
@@ -83,8 +81,6 @@ interface GrantsOperations {
    * the grant is kept.
    */
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.InternalExtension, true)
   @delete
   @operationId("void-grant")
   @summary("Void grant")
