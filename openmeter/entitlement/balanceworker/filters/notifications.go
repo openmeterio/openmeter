@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/lrux"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -111,9 +112,8 @@ func (f *NotificationsFilter) IsEntitlementInScope(ctx context.Context, req Enti
 func (f *NotificationsFilter) fetchRulesForNamespace(ctx context.Context, namespace string) ([]notification.Rule, error) {
 	rulesPage, err := f.notificationService.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{namespace},
-		Types: []notification.EventType{
-			notification.EventTypeBalanceThreshold,
-		},
+		Type:       &filter.FilterString{Eq: lo.ToPtr(string(notification.EventTypeBalanceThreshold))},
+		Disabled:   &filter.FilterBoolean{Eq: lo.ToPtr(false)},
 	})
 	if err != nil {
 		return nil, err

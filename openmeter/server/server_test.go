@@ -1480,6 +1480,22 @@ func (n NoopNotificationService) UpdateRule(_ context.Context, _ notification.Up
 	return &notification.Rule{}, nil
 }
 
+func (n NoopNotificationService) ListRuleViews(_ context.Context, _ notification.ListRulesInput) (pagination.Result[notification.RuleView], error) {
+	return pagination.Result[notification.RuleView]{}, nil
+}
+
+func (n NoopNotificationService) CreateRuleView(_ context.Context, _ notification.CreateRuleInput) (notification.RuleView, error) {
+	return notification.RuleView{}, nil
+}
+
+func (n NoopNotificationService) GetRuleView(_ context.Context, _ notification.GetRuleInput) (notification.RuleView, error) {
+	return notification.RuleView{}, nil
+}
+
+func (n NoopNotificationService) UpdateRuleView(_ context.Context, _ notification.UpdateRuleInput) (notification.RuleView, error) {
+	return notification.RuleView{}, nil
+}
+
 func (n NoopNotificationService) ListEvents(_ context.Context, _ notification.ListEventsInput) (notification.ListEventsResult, error) {
 	return notification.ListEventsResult{}, nil
 }

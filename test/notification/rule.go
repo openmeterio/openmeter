@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -183,12 +184,8 @@ func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 			createIn1.Namespace,
 			createIn2.Namespace,
 		},
-		Rules: []string{
-			rule1.ID,
-			rule2.ID,
-		},
-		OrderBy:         "id",
-		IncludeDisabled: false,
+		ID:      &filter.FilterULID{FilterString: filter.FilterString{In: lo.ToPtr([]string{rule1.ID, rule2.ID})}},
+		OrderBy: "id",
 	})
 	require.NoError(t, err, "Listing rules must not return error")
 	assert.NotEmpty(t, list.Items, "List of rules must not be empty")

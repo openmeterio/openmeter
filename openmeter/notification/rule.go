@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -96,6 +97,18 @@ func (c RuleConfig) ValidateWith(validators ...models.ValidatorFunc[RuleConfig])
 	return models.Validate(c, validators...)
 }
 
+// Empty means every feature; invoice rules have no feature scope.
+func (c RuleConfig) Features() []string {
+	switch {
+	case c.BalanceThreshold != nil:
+		return c.BalanceThreshold.Features
+	case c.EntitlementReset != nil:
+		return c.EntitlementReset.Features
+	default:
+		return nil
+	}
+}
+
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
 func (c RuleConfig) Validate() error {
 	switch c.Type {
@@ -130,14 +143,31 @@ var (
 type ListRulesInput struct {
 	pagination.Page
 
-	Namespaces      []string
-	Rules           []string
-	IncludeDisabled bool
-	Types           []EventType
-	Channels        []string
+	// Namespace scopes the list to one tenant; Namespaces is the multi-tenant form the
+	// workers use. One of them is required.
+	Namespace  string
+	Namespaces []string
 
 	OrderBy OrderBy
 	Order   sortx.Order
+
+	// IncludeDisabled false lists enabled rules only, independently of Disabled.
+	IncludeDisabled bool
+	// Channels matches rules targeting any of the channel ids, like ChannelID.
+	Channels []string
+
+	ID        *filter.FilterULID
+	Name      *filter.FilterString
+	Type      *filter.FilterString
+	Disabled  *filter.FilterBoolean
+	CreatedAt *filter.FilterTime
+	UpdatedAt *filter.FilterTime
+
+	// ChannelID is existential: it matches rules that target at least one of the given
+	// channels, including channels disabled or deleted since the assignment, because
+	// DeleteChannel relies on it to refuse deleting a channel a rule still references.
+	// Negation is therefore not expressible and is rejected by Validate.
+	ChannelID *filter.FilterString
 }
 
 func (i ListRulesInput) ValidateWith(validators ...models.ValidatorFunc[ListRulesInput]) error {
@@ -145,7 +175,57 @@ func (i ListRulesInput) ValidateWith(validators ...models.ValidatorFunc[ListRule
 }
 
 func (i ListRulesInput) Validate() error {
-	return nil
+	var errs []error
+
+	// The adapter skips tenant scoping entirely without a namespace, which would turn
+	// the query into a cross-tenant list, so an unscoped list must never reach it.
+	if i.Namespace == "" && len(i.Namespaces) == 0 {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid id filter: %w", err))
+		}
+	}
+
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid name filter: %w", err))
+		}
+	}
+
+	if i.Type != nil {
+		if err := i.Type.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid type filter: %w", err))
+		}
+	}
+
+	if i.Disabled != nil {
+		if err := i.Disabled.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid disabled filter: %w", err))
+		}
+	}
+
+	if i.CreatedAt != nil {
+		if err := i.CreatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid created_at filter: %w", err))
+		}
+	}
+
+	if i.UpdatedAt != nil {
+		if err := i.UpdatedAt.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid updated_at filter: %w", err))
+		}
+	}
+
+	if i.ChannelID != nil {
+		if err := validateExistentialFilter(i.ChannelID); err != nil {
+			errs = append(errs, fmt.Errorf("invalid channel_id filter: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListRulesResult = pagination.Result[Rule]

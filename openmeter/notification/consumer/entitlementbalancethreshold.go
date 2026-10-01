@@ -40,7 +40,8 @@ func (b *EntitlementSnapshotHandler) handleAsSnapshotEvent(ctx context.Context, 
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
 	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{event.Namespace.ID},
-		Types:      []notification.EventType{notification.EventTypeBalanceThreshold},
+		Type:       &filter.FilterString{Eq: lo.ToPtr(string(notification.EventTypeBalanceThreshold))},
+		Disabled:   &filter.FilterBoolean{Eq: lo.ToPtr(false)},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list notification rules: %w", err)

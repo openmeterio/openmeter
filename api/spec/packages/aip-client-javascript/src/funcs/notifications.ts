@@ -23,6 +23,18 @@ import type {
   UpdateNotificationChannelResponse,
   DeleteNotificationChannelRequest,
   DeleteNotificationChannelResponse,
+  ListNotificationRulesRequest,
+  ListNotificationRulesResponse,
+  CreateNotificationRuleRequest,
+  CreateNotificationRuleResponse,
+  GetNotificationRuleRequest,
+  GetNotificationRuleResponse,
+  UpdateNotificationRuleRequest,
+  UpdateNotificationRuleResponse,
+  DeleteNotificationRuleRequest,
+  DeleteNotificationRuleResponse,
+  TestNotificationRuleRequest,
+  TestNotificationRuleResponse,
   ListNotificationEventsRequest,
   ListNotificationEventsResponse,
   GetNotificationEventRequest,
@@ -216,6 +228,233 @@ export function deleteNotificationChannel(
       return encodeURIComponent(String(pathParams.notificationChannelId))
     })()}`
     await http(client).delete(path, options)
+  })
+}
+
+/**
+ * List notification rules
+ *
+ * List all notification rules.
+ *
+ * GET /openmeter/notification/rules
+ */
+export function listNotificationRules(
+  client: Client,
+  req: ListNotificationRulesRequest = {},
+  options?: RequestOptions,
+): Promise<Result<ListNotificationRulesResponse>> {
+  return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.listNotificationRulesQueryParams.shape.sort, req.sort)
+    }
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listNotificationRulesQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listNotificationRulesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get('openmeter/notification/rules', { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listNotificationRulesResponseWire, data)
+        }
+        return fromWire(data, schemas.listNotificationRulesResponse)
+      })
+  })
+}
+
+/**
+ * Create notification rule
+ *
+ * Create a notification rule.
+ *
+ * POST /openmeter/notification/rules
+ */
+export function createNotificationRule(
+  client: Client,
+  req: CreateNotificationRuleRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateNotificationRuleResponse>> {
+  return request(() => {
+    const body = toWire(req, schemas.createNotificationRuleBody)
+    if (client._options.validate) {
+      assertValid(schemas.createNotificationRuleBodyWire, body)
+    }
+    return http(client)
+      .post('openmeter/notification/rules', { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createNotificationRuleResponseWire, data)
+        }
+        return fromWire(data, schemas.createNotificationRuleResponse)
+      })
+  })
+}
+
+/**
+ * Get notification rule
+ *
+ * Get a notification rule by id.
+ *
+ * GET /openmeter/notification/rules/{notificationRuleId}
+ */
+export function getNotificationRule(
+  client: Client,
+  req: GetNotificationRuleRequest,
+  options?: RequestOptions,
+): Promise<Result<GetNotificationRuleResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      notificationRuleId: req.notificationRuleId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getNotificationRulePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getNotificationRulePathParamsWire, pathParams)
+    }
+    const path = `openmeter/notification/rules/${(() => {
+      if (pathParams.notificationRuleId === undefined) {
+        throw new Error('missing path parameter: notificationRuleId')
+      }
+      return encodeURIComponent(String(pathParams.notificationRuleId))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getNotificationRuleResponseWire, data)
+        }
+        return fromWire(data, schemas.getNotificationRuleResponse)
+      })
+  })
+}
+
+/**
+ * Update notification rule
+ *
+ * Update a notification rule by id.
+ *
+ * PUT /openmeter/notification/rules/{notificationRuleId}
+ */
+export function updateNotificationRule(
+  client: Client,
+  req: UpdateNotificationRuleRequest,
+  options?: RequestOptions,
+): Promise<Result<UpdateNotificationRuleResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      notificationRuleId: req.notificationRuleId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.updateNotificationRulePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.updateNotificationRulePathParamsWire, pathParams)
+    }
+    const path = `openmeter/notification/rules/${(() => {
+      if (pathParams.notificationRuleId === undefined) {
+        throw new Error('missing path parameter: notificationRuleId')
+      }
+      return encodeURIComponent(String(pathParams.notificationRuleId))
+    })()}`
+    const body = toWire(req.body, schemas.updateNotificationRuleBody)
+    if (client._options.validate) {
+      assertValid(schemas.updateNotificationRuleBodyWire, body)
+    }
+    return http(client)
+      .put(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.updateNotificationRuleResponseWire, data)
+        }
+        return fromWire(data, schemas.updateNotificationRuleResponse)
+      })
+  })
+}
+
+/**
+ * Delete notification rule
+ *
+ * Delete a notification rule by id.
+ *
+ * DELETE /openmeter/notification/rules/{notificationRuleId}
+ */
+export function deleteNotificationRule(
+  client: Client,
+  req: DeleteNotificationRuleRequest,
+  options?: RequestOptions,
+): Promise<Result<DeleteNotificationRuleResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      notificationRuleId: req.notificationRuleId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.deleteNotificationRulePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.deleteNotificationRulePathParamsWire, pathParams)
+    }
+    const path = `openmeter/notification/rules/${(() => {
+      if (pathParams.notificationRuleId === undefined) {
+        throw new Error('missing path parameter: notificationRuleId')
+      }
+      return encodeURIComponent(String(pathParams.notificationRuleId))
+    })()}`
+    await http(client).delete(path, options)
+  })
+}
+
+/**
+ * Test notification rule
+ *
+ * Test a notification rule by generating an event with sample data and delivering
+ * it to the rule's channels. The test event is persisted and listed like any other
+ * event.
+ *
+ * POST /openmeter/notification/rules/{notificationRuleId}/test
+ */
+export function testNotificationRule(
+  client: Client,
+  req: TestNotificationRuleRequest,
+  options?: RequestOptions,
+): Promise<Result<TestNotificationRuleResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      notificationRuleId: req.notificationRuleId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.testNotificationRulePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.testNotificationRulePathParamsWire, pathParams)
+    }
+    const path = `openmeter/notification/rules/${(() => {
+      if (pathParams.notificationRuleId === undefined) {
+        throw new Error('missing path parameter: notificationRuleId')
+      }
+      return encodeURIComponent(String(pathParams.notificationRuleId))
+    })()}/test`
+    return http(client)
+      .post(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.testNotificationRuleResponseWire, data)
+        }
+        return fromWire(data, schemas.testNotificationRuleResponse)
+      })
   })
 }
 
