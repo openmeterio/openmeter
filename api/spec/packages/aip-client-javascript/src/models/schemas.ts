@@ -1339,6 +1339,10 @@ export const notificationChannelType = z
     'The type of a notification channel. Currently the only supported channel type is `webhook`; the domain model anticipates additional channel types (e.g. email, Slack) in the future, so this is modeled as an enum rather than a boolean/constant even though it has a single member today.',
   )
 
+export const notificationBalanceThresholdType = z
+  .enum(['balance_value', 'usage_percentage', 'usage_value'])
+  .describe('What a balance threshold is measured against.')
+
 export const notificationEventType = z
   .enum([
     'entitlements.balance.threshold',
@@ -1390,10 +1394,6 @@ export const notificationEventDeliveryAttemptResponse = z
   .describe(
     'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response.',
   )
-
-export const notificationBalanceThresholdType = z
-  .enum(['balance_value', 'usage_percentage', 'usage_value'])
-  .describe('What a balance threshold is measured against.')
 
 export const queryFilterInteger = z
   .object({
@@ -2337,6 +2337,12 @@ export const updateResourceReference = z
     id: ulid,
   })
   .describe('TaxCode reference.')
+
+export const notificationChannelReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('NotificationChannel reference.')
 
 export const notificationEventFeatureReference = z
   .object({
@@ -3914,6 +3920,16 @@ export const updateBillingNotificationChannelRequest = z
     "Request body for updating a notification channel. Updates replace the channel's mutable state rather than merging it: `type`, `name`, and `url` must always be provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to their defaults (enabled, no labels, no custom headers). `signing_secret` is the one exception: omitting it keeps the channel's current signing secret instead of clearing the credential.",
   )
 
+export const notificationBalanceThreshold = z
+  .object({
+    type: notificationBalanceThresholdType,
+    value: z.number().describe('The threshold value.'),
+  })
+
+  .describe(
+    'A balance threshold of a notification rule. Crossing it generates an `entitlements.balance.threshold` event.',
+  )
+
 export const notificationRuleReference = z
   .object({
     id: ulid,
@@ -3929,16 +3945,6 @@ export const notificationEventDeliveryAttempt = z
     timestamp: dateTime,
   })
   .describe('A single delivery attempt to a channel.')
-
-export const notificationBalanceThreshold = z
-  .object({
-    type: notificationBalanceThresholdType,
-    value: z.number().describe('The threshold value.'),
-  })
-
-  .describe(
-    'A balance threshold of a notification rule. Crossing it generates an `entitlements.balance.threshold` event.',
-  )
 
 export const appCustomerData = z
   .object({
@@ -4500,6 +4506,227 @@ export const updateTaxCodeConfig = z
     'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
+export const notificationRuleEntitlementReset = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('entitlements.reset')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    features: z
+      .array(featureReference)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe(
+    'A rule that generates an event when an entitlement usage period is reset.',
+  )
+
+export const notificationRuleInvoiceCreated = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('invoice.created')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('A rule that generates an event when an invoice is created.')
+
+export const notificationRuleInvoiceUpdated = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('invoice.updated')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('A rule that generates an event when an invoice is updated.')
+
+export const notificationRuleEntitlementResetRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    type: z
+      .literal('entitlements.reset')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    features: z
+      .array(featureReference)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+  .describe('Request body for an entitlement reset rule.')
+
+export const notificationRuleInvoiceCreatedRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    type: z
+      .literal('invoice.created')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('Request body for an invoice created rule.')
+
+export const notificationRuleInvoiceUpdatedRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    type: z
+      .literal('invoice.updated')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('Request body for an invoice updated rule.')
+
 export const notificationEventInvoiceData = z
   .object({
     invoice: notificationEventInvoiceReference,
@@ -4569,6 +4796,18 @@ export const listNotificationChannelsParamsFilter = z
     updatedAt: dateTimeFieldFilter.optional(),
   })
   .describe('Filter options for listing notification channels.')
+
+export const listNotificationRulesParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+    type: stringFieldFilterExact.optional(),
+    disabled: booleanFieldFilter.optional(),
+    createdAt: dateTimeFieldFilter.optional(),
+    updatedAt: dateTimeFieldFilter.optional(),
+    channelId: ulidFieldFilter.optional(),
+  })
+  .describe('Filter options for listing notification rules.')
 
 export const listNotificationEventsParamsFilter = z
   .object({
@@ -5487,6 +5726,107 @@ export const notificationChannelPagePaginatedResponse = z
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
+
+export const notificationRuleBalanceThreshold = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('entitlements.balance.threshold')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    thresholds: z
+      .array(notificationBalanceThreshold)
+      .min(1)
+      .max(10)
+
+      .describe(
+        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
+      ),
+    features: z
+      .array(featureReference)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe(
+    'A rule that generates an event when an entitlement balance crosses one of its thresholds.',
+  )
+
+export const notificationRuleBalanceThresholdRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labels.optional(),
+    type: z
+      .literal('entitlements.balance.threshold')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReference)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    thresholds: z
+      .array(notificationBalanceThreshold)
+      .min(1)
+      .max(10)
+
+      .describe(
+        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
+      ),
+    features: z
+      .array(featureReference)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+  .describe('Request body for a balance threshold rule.')
 
 export const notificationEventDeliveryStatus = z
   .object({
@@ -6416,6 +6756,30 @@ export const entitlementAccessQueryResult = z
   })
   .describe('Access evaluation result for a single resolved customer.')
 
+export const notificationRule = z
+  .discriminatedUnion('type', [
+    notificationRuleBalanceThreshold,
+    notificationRuleEntitlementReset,
+    notificationRuleInvoiceCreated,
+    notificationRuleInvoiceUpdated,
+  ])
+
+  .describe(
+    'A notification rule selects the type of event to generate, the conditions specific to that type, and the channels to deliver the events to.',
+  )
+
+export const notificationRuleRequest = z
+  .discriminatedUnion('type', [
+    notificationRuleBalanceThresholdRequest,
+    notificationRuleEntitlementResetRequest,
+    notificationRuleInvoiceCreatedRequest,
+    notificationRuleInvoiceUpdatedRequest,
+  ])
+
+  .describe(
+    "Request body for creating or updating a notification rule. Updates replace the rule's mutable state: omitting `disabled`, `labels`, or `features` resets them to their defaults. The `type` must match the existing rule on update.",
+  )
+
 export const notificationEventBalanceThresholdPayload = z
   .object({
     id: ulid,
@@ -6784,6 +7148,13 @@ export const entitlementAccessQueryResponse = z
     meta: cursorMeta,
   })
   .describe('Response of the entitlement access query.')
+
+export const notificationRulePagePaginatedResponse = z
+  .object({
+    data: z.array(notificationRule),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
 
 export const notificationEventPayload = z
   .discriminatedUnion('type', [
@@ -9333,6 +9704,55 @@ export const deleteNotificationChannelPathParams = z.object({
   notificationChannelId: ulid,
 })
 
+export const listNotificationRulesQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listNotificationRulesParamsFilter.optional(),
+})
+
+export const listNotificationRulesResponse = z.object({
+  data: z.array(notificationRule),
+  meta: paginatedMeta,
+})
+
+export const createNotificationRuleBody = notificationRuleRequest
+
+export const createNotificationRuleResponse = notificationRule
+
+export const getNotificationRulePathParams = z.object({
+  notificationRuleId: ulid,
+})
+
+export const getNotificationRuleResponse = notificationRule
+
+export const updateNotificationRulePathParams = z.object({
+  notificationRuleId: ulid,
+})
+
+export const updateNotificationRuleBody = notificationRuleRequest
+
+export const updateNotificationRuleResponse = notificationRule
+
+export const deleteNotificationRulePathParams = z.object({
+  notificationRuleId: ulid,
+})
+
+export const testNotificationRulePathParams = z.object({
+  notificationRuleId: ulid,
+})
+
+export const testNotificationRuleResponse = notificationEvent
+
 export const listNotificationEventsQueryParams = z.object({
   page: z
     .object({
@@ -10697,6 +11117,10 @@ export const notificationChannelTypeWire = z
     'The type of a notification channel. Currently the only supported channel type is `webhook`; the domain model anticipates additional channel types (e.g. email, Slack) in the future, so this is modeled as an enum rather than a boolean/constant even though it has a single member today.',
   )
 
+export const notificationBalanceThresholdTypeWire = z
+  .enum(['balance_value', 'usage_percentage', 'usage_value'])
+  .describe('What a balance threshold is measured against.')
+
 export const notificationEventTypeWire = z
   .enum([
     'entitlements.balance.threshold',
@@ -10748,10 +11172,6 @@ export const notificationEventDeliveryAttemptResponseWire = z
   .describe(
     'The response the recipient returned for a delivery attempt. For webhook channels this is the HTTP response.',
   )
-
-export const notificationBalanceThresholdTypeWire = z
-  .enum(['balance_value', 'usage_percentage', 'usage_value'])
-  .describe('What a balance threshold is measured against.')
 
 export const queryFilterIntegerWire = z
   .strictObject({
@@ -11694,6 +12114,12 @@ export const updateResourceReferenceWire = z
     id: ulidWire,
   })
   .describe('TaxCode reference.')
+
+export const notificationChannelReferenceWire = z
+  .strictObject({
+    id: ulidWire,
+  })
+  .describe('NotificationChannel reference.')
 
 export const notificationEventFeatureReferenceWire = z
   .strictObject({
@@ -13255,6 +13681,16 @@ export const updateBillingNotificationChannelRequestWire = z
     "Request body for updating a notification channel. Updates replace the channel's mutable state rather than merging it: `type`, `name`, and `url` must always be provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to their defaults (enabled, no labels, no custom headers). `signing_secret` is the one exception: omitting it keeps the channel's current signing secret instead of clearing the credential.",
   )
 
+export const notificationBalanceThresholdWire = z
+  .strictObject({
+    type: notificationBalanceThresholdTypeWire,
+    value: z.number().describe('The threshold value.'),
+  })
+
+  .describe(
+    'A balance threshold of a notification rule. Crossing it generates an `entitlements.balance.threshold` event.',
+  )
+
 export const notificationRuleReferenceWire = z
   .strictObject({
     id: ulidWire,
@@ -13270,16 +13706,6 @@ export const notificationEventDeliveryAttemptWire = z
     timestamp: dateTimeWire,
   })
   .describe('A single delivery attempt to a channel.')
-
-export const notificationBalanceThresholdWire = z
-  .strictObject({
-    type: notificationBalanceThresholdTypeWire,
-    value: z.number().describe('The threshold value.'),
-  })
-
-  .describe(
-    'A balance threshold of a notification rule. Crossing it generates an `entitlements.balance.threshold` event.',
-  )
 
 export const appCustomerDataWire = z
   .strictObject({
@@ -13841,6 +14267,221 @@ export const updateTaxCodeConfigWire = z
     'Tax configuration for a billable resource. Applies a tax code and tax behavior to the resulting invoice line items. When not set, the applicable default is used: the billing profile default tax configuration, then the organization default tax code.',
   )
 
+export const notificationRuleEntitlementResetWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('entitlements.reset')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    features: z
+      .array(featureReferenceWire)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe(
+    'A rule that generates an event when an entitlement usage period is reset.',
+  )
+
+export const notificationRuleInvoiceCreatedWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('invoice.created')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('A rule that generates an event when an invoice is created.')
+
+export const notificationRuleInvoiceUpdatedWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('invoice.updated')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('A rule that generates an event when an invoice is updated.')
+
+export const notificationRuleEntitlementResetRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    type: z
+      .literal('entitlements.reset')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    features: z
+      .array(featureReferenceWire)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+  .describe('Request body for an entitlement reset rule.')
+
+export const notificationRuleInvoiceCreatedRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    type: z
+      .literal('invoice.created')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('Request body for an invoice created rule.')
+
+export const notificationRuleInvoiceUpdatedRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    type: z
+      .literal('invoice.updated')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+  })
+  .describe('Request body for an invoice updated rule.')
+
 export const notificationEventInvoiceDataWire = z
   .strictObject({
     invoice: notificationEventInvoiceReferenceWire,
@@ -13910,6 +14551,18 @@ export const listNotificationChannelsParamsFilterWire = z
     updated_at: dateTimeFieldFilterWire.optional(),
   })
   .describe('Filter options for listing notification channels.')
+
+export const listNotificationRulesParamsFilterWire = z
+  .strictObject({
+    id: ulidFieldFilterWire.optional(),
+    name: stringFieldFilterWire.optional(),
+    type: stringFieldFilterExactWire.optional(),
+    disabled: booleanFieldFilterWire.optional(),
+    created_at: dateTimeFieldFilterWire.optional(),
+    updated_at: dateTimeFieldFilterWire.optional(),
+    channel_id: ulidFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing notification rules.')
 
 export const listNotificationEventsParamsFilterWire = z
   .strictObject({
@@ -14827,6 +15480,105 @@ export const notificationChannelPagePaginatedResponseWire = z
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
+
+export const notificationRuleBalanceThresholdWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('entitlements.balance.threshold')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    thresholds: z
+      .array(notificationBalanceThresholdWire)
+      .min(1)
+      .max(10)
+
+      .describe(
+        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
+      ),
+    features: z
+      .array(featureReferenceWire)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe(
+    'A rule that generates an event when an entitlement balance crosses one of its thresholds.',
+  )
+
+export const notificationRuleBalanceThresholdRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    labels: labelsWire.optional(),
+    type: z
+      .literal('entitlements.balance.threshold')
+
+      .describe(
+        'The type of event the rule generates. Immutable after creation.',
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+
+      .describe(
+        'Whether the rule is disabled. Disabled rules do not generate events.',
+      ),
+    channels: z
+      .array(notificationChannelReferenceWire)
+      .max(5)
+
+      .describe(
+        'The channels the rule delivers its events to. At least one and at most five channels are required. Responses omit channels that have since been disabled or deleted.',
+      ),
+    thresholds: z
+      .array(notificationBalanceThresholdWire)
+      .min(1)
+      .max(10)
+
+      .describe(
+        'The thresholds that generate an event when crossed. Between 1 and 10 thresholds.',
+      ),
+    features: z
+      .array(featureReferenceWire)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+  .describe('Request body for a balance threshold rule.')
 
 export const notificationEventDeliveryStatusWire = z
   .strictObject({
@@ -15751,6 +16503,30 @@ export const entitlementAccessQueryResultWire = z
   })
   .describe('Access evaluation result for a single resolved customer.')
 
+export const notificationRuleWire = z
+  .discriminatedUnion('type', [
+    notificationRuleBalanceThresholdWire,
+    notificationRuleEntitlementResetWire,
+    notificationRuleInvoiceCreatedWire,
+    notificationRuleInvoiceUpdatedWire,
+  ])
+
+  .describe(
+    'A notification rule selects the type of event to generate, the conditions specific to that type, and the channels to deliver the events to.',
+  )
+
+export const notificationRuleRequestWire = z
+  .discriminatedUnion('type', [
+    notificationRuleBalanceThresholdRequestWire,
+    notificationRuleEntitlementResetRequestWire,
+    notificationRuleInvoiceCreatedRequestWire,
+    notificationRuleInvoiceUpdatedRequestWire,
+  ])
+
+  .describe(
+    "Request body for creating or updating a notification rule. Updates replace the rule's mutable state: omitting `disabled`, `labels`, or `features` resets them to their defaults. The `type` must match the existing rule on update.",
+  )
+
 export const notificationEventBalanceThresholdPayloadWire = z
   .strictObject({
     id: ulidWire,
@@ -16122,6 +16898,13 @@ export const entitlementAccessQueryResponseWire = z
     meta: cursorMetaWire,
   })
   .describe('Response of the entitlement access query.')
+
+export const notificationRulePagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(notificationRuleWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
 
 export const notificationEventPayloadWire = z
   .discriminatedUnion('type', [
@@ -18800,6 +19583,61 @@ export const updateNotificationChannelResponseWire = notificationChannelWire
 export const deleteNotificationChannelPathParamsWire = z.object({
   notificationChannelId: ulidWire,
 })
+
+export const listNotificationRulesQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort notification rules returned in the response. Supported sort attributes are: - `id` (default) - `type` - `created_at` - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listNotificationRulesParamsFilterWire.optional(),
+})
+
+export const listNotificationRulesResponseWire = z.strictObject({
+  data: z.array(notificationRuleWire),
+  meta: paginatedMetaWire,
+})
+
+export const createNotificationRuleBodyWire = notificationRuleRequestWire
+
+export const createNotificationRuleResponseWire = notificationRuleWire
+
+export const getNotificationRulePathParamsWire = z.object({
+  notificationRuleId: ulidWire,
+})
+
+export const getNotificationRuleResponseWire = notificationRuleWire
+
+export const updateNotificationRulePathParamsWire = z.object({
+  notificationRuleId: ulidWire,
+})
+
+export const updateNotificationRuleBodyWire = notificationRuleRequestWire
+
+export const updateNotificationRuleResponseWire = notificationRuleWire
+
+export const deleteNotificationRulePathParamsWire = z.object({
+  notificationRuleId: ulidWire,
+})
+
+export const testNotificationRulePathParamsWire = z.object({
+  notificationRuleId: ulidWire,
+})
+
+export const testNotificationRuleResponseWire = notificationEventWire
 
 export const listNotificationEventsQueryParamsWire = z.object({
   page: z

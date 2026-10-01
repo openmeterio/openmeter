@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -28,7 +31,8 @@ func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventSta
 	// List active rules available for this event type in namespace
 	rules, err := h.Notification.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{event.Invoice.Namespace},
-		Types:      []notification.EventType{eventType},
+		Type:       &filter.FilterString{Eq: lo.ToPtr(string(eventType))},
+		Disabled:   &filter.FilterBoolean{Eq: lo.ToPtr(false)},
 		OrderBy:    notification.OrderByID,
 		Order:      sortx.OrderDefault,
 	})

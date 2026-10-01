@@ -48,6 +48,44 @@ func (p NotificationChannelListParams) values() url.Values {
 	return q
 }
 
+type NotificationRuleFilter struct {
+	ID        *StringExactFilter
+	Name      *StringFilter
+	Type      *StringExactFilter
+	Disabled  *BooleanFilter
+	CreatedAt *DateTimeFilter
+	UpdatedAt *DateTimeFilter
+	// Filter by an assigned channel. Matches rules that deliver to at least one of the
+	// given channels. Only `eq` and `oeq` are supported.
+	ChannelID *StringExactFilter
+}
+
+type NotificationRuleListParams struct {
+	Page   *PageParams
+	Sort   *Sort
+	Filter *NotificationRuleFilter
+}
+
+func (p NotificationRuleListParams) values() url.Values {
+	q := url.Values{}
+
+	addPageParams(q, p.Page)
+
+	addSort(q, "sort", p.Sort)
+
+	if p.Filter != nil {
+		addStringExactFilter(q, "filter[id]", p.Filter.ID)
+		addStringFilter(q, "filter[name]", p.Filter.Name)
+		addStringExactFilter(q, "filter[type]", p.Filter.Type)
+		addBooleanFilter(q, "filter[disabled]", p.Filter.Disabled)
+		addDateTimeFilter(q, "filter[created_at]", p.Filter.CreatedAt)
+		addDateTimeFilter(q, "filter[updated_at]", p.Filter.UpdatedAt)
+		addStringExactFilter(q, "filter[channel_id]", p.Filter.ChannelID)
+	}
+
+	return q
+}
+
 type NotificationEventFilter struct {
 	ID        *StringExactFilter
 	Type      *StringExactFilter
@@ -214,6 +252,145 @@ func (s *NotificationsService) DeleteChannel(ctx context.Context, notificationCh
 
 	_, err = s.client.doRaw(req)
 	return err
+}
+
+// List all notification rules.
+func (s *NotificationsService) ListRules(ctx context.Context, params NotificationRuleListParams) (*NotificationRulePagePaginatedResponse, error) {
+	path := "/openmeter/notification/rules"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationRulePagePaginatedResponse
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// ListRulesAll returns an iterator over all NotificationRule results, fetching pages of ListRules transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *NotificationsService) ListRulesAll(ctx context.Context, params NotificationRuleListParams) iter.Seq2[NotificationRule, error] {
+	return paginate(params.Page, func(page, size int) ([]NotificationRule, int, error) {
+		pageParams := params
+		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+
+		resp, err := s.ListRules(ctx, pageParams)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return resp.Data, resp.Meta.Page.Total, nil
+	})
+}
+
+// Create a notification rule.
+func (s *NotificationsService) CreateRule(ctx context.Context, request NotificationRuleRequest) (*NotificationRule, error) {
+	path := "/openmeter/notification/rules"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationRule
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Get a notification rule by id.
+func (s *NotificationsService) GetRule(ctx context.Context, notificationRuleID string) (*NotificationRule, error) {
+	if notificationRuleID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
+	}
+
+	path := "/openmeter/notification/rules/{notificationRuleId}"
+
+	path = replacePathParam(path, "notificationRuleId", notificationRuleID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationRule
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Update a notification rule by id.
+func (s *NotificationsService) UpdateRule(ctx context.Context, notificationRuleID string, request NotificationRuleRequest) (*NotificationRule, error) {
+	if notificationRuleID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
+	}
+
+	path := "/openmeter/notification/rules/{notificationRuleId}"
+
+	path = replacePathParam(path, "notificationRuleId", notificationRuleID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPut, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationRule
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Delete a notification rule by id.
+func (s *NotificationsService) DeleteRule(ctx context.Context, notificationRuleID string) error {
+	if notificationRuleID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
+	}
+
+	path := "/openmeter/notification/rules/{notificationRuleId}"
+
+	path = replacePathParam(path, "notificationRuleId", notificationRuleID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodDelete, path, nil, nil, "", "")
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.doRaw(req)
+	return err
+}
+
+// Test a notification rule by generating an event with sample data and delivering
+// it to the rule's channels. The test event is persisted and listed like any other
+// event.
+func (s *NotificationsService) TestRule(ctx context.Context, notificationRuleID string) (*NotificationEvent, error) {
+	if notificationRuleID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationRuleID", ErrEmptyID)
+	}
+
+	path := "/openmeter/notification/rules/{notificationRuleId}/test"
+
+	path = replacePathParam(path, "notificationRuleId", notificationRuleID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationEvent
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }
 
 // List all notification events.

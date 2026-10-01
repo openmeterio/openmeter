@@ -20,6 +20,7 @@ type Service interface {
 
 	ChannelService
 	RuleService
+	RuleAPIService
 	EventService
 }
 
