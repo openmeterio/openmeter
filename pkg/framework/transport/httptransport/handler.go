@@ -21,6 +21,10 @@ var defaultHandlerOptions = []HandlerOption{
 	WithErrorEncoder(commonhttp.GenericErrorEncoder()),
 }
 
+// statusClientClosedRequest is the conventional status for a request canceled by its caller.
+// It is not part of the HTTP standard or Go's net/http status constants.
+const statusClientClosedRequest = 499
+
 // tracer reads the globally configured TracerProvider (set during telemetry init).
 // Used to start an application-level span named after the handler operation, as a
 // child of the otelhttp server span.
@@ -120,10 +124,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
 
-		handled := h.encodeError(ctx, err, w, r)
-		if !handled {
-			h.errorHandler.HandleContext(ctx, err)
-		}
+		h.handleError(ctx, err, w, r)
 
 		return
 	}
@@ -133,10 +134,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
 
-		handled := h.encodeError(ctx, err, w, r)
-		if !handled {
-			h.errorHandler.HandleContext(ctx, err)
-		}
+		h.handleError(ctx, err, w, r)
 
 		return
 	}
@@ -146,6 +144,20 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 
 		h.errorHandler.HandleContext(ctx, err)
 		return
+	}
+}
+
+func (h handler[Request, Response]) handleError(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) {
+	// Internal contexts can be canceled while the HTTP request remains active, so only
+	// classify the error as a client disconnect when the request context is canceled too.
+	if errors.Is(err, context.Canceled) && errors.Is(r.Context().Err(), context.Canceled) {
+		w.WriteHeader(statusClientClosedRequest)
+		h.errorHandler.HandleContext(ctx, err)
+		return
+	}
+
+	if !h.encodeError(ctx, err, w, r) {
+		h.errorHandler.HandleContext(ctx, err)
 	}
 }
 
