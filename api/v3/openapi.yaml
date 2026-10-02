@@ -3085,6 +3085,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
     post:
       operationId: create-llm-cost-override
@@ -3111,6 +3112,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LLMCostOverrideCreate'
+      deprecated: true
       x-unstable: true
   /openmeter/llm-cost/overrides/{priceId}:
     delete:
@@ -3136,6 +3138,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
   /openmeter/llm-cost/prices:
     get:
@@ -3184,6 +3187,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
   /openmeter/llm-cost/prices/{priceId}:
     get:
@@ -3215,6 +3219,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
+      deprecated: true
       x-unstable: true
   /openmeter/meters:
     post:
