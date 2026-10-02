@@ -713,15 +713,31 @@ jobs:
     permissions:
       contents: read
 
-  artifacts-pass:
-    name: Artifacts
+  # Branch protection requires a stable Build check. Aggregate the mutually
+  # exclusive trusted and fork-safe image builds under the same check name.
+  build:
+    name: Build
     needs:
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ always() }}
-    uses: $/.github/workflows/workflow-result.yaml
-    with:
-      result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || !contains(needs.*.result, 'success')) && 'fail' || 'pass' }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Verify container builds
+        env:
+          TRUSTED_ARTIFACTS_RESULT: ${{ needs.trusted-artifacts.result }}
+          UNTRUSTED_ARTIFACTS_RESULT: ${{ needs.untrusted-artifacts.result }}
+        run: |
+          case "${TRUSTED_ARTIFACTS_RESULT}:${UNTRUSTED_ARTIFACTS_RESULT}" in
+            success:skipped|skipped:success)
+              exit 0
+              ;;
+            *)
+              echo "Container builds did not complete successfully"
+              exit 1
+              ;;
+          esac
 
   dependency-review:
     name: Dependency review
