@@ -28,14 +28,26 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 		}
 
 		fiatAmount := lineWithHeader.Line.Totals.Total
-		if run.NoFiatTransactionRequired || fiatAmount.IsZero() {
-			return nil
-		}
-
 		if run.Payment != nil {
+			if err := run.Payment.Validate(); err != nil {
+				return fmt.Errorf("validating existing invoice payment: %w", err)
+			}
+
+			if run.Payment.DeletedAt == nil &&
+				run.Payment.Namespace == charge.Namespace &&
+				run.Payment.InvoiceID == lineWithHeader.Invoice.ID &&
+				run.Payment.LineID == lineWithHeader.Line.ID &&
+				run.Payment.FiatAmount.Equal(fiatAmount) {
+				return nil
+			}
+
 			return payment.ErrPaymentAlreadyAuthorized.
 				WithAttrs(charge.ErrorAttributes()).
 				WithAttrs(run.Payment.ErrorAttributes())
+		}
+
+		if run.NoFiatTransactionRequired || fiatAmount.IsZero() {
+			return nil
 		}
 
 		eventAt := clock.Now()

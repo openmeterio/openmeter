@@ -54,6 +54,7 @@ type BaseSuite struct {
 	billingtest.BaseSuite
 
 	Charges              charges.Service
+	FlatFeeSvc           flatfee.Service
 	CreditPurchaseSvc    creditpurchase.Service
 	UsageBasedSvc        usagebased.Service
 	CustomerBalanceSvc   customerbalance.Service
@@ -193,6 +194,7 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.Charges = stack.ChargesService
+	s.FlatFeeSvc = stack.FlatFeeService
 	s.CreditPurchaseSvc = stack.CreditPurchaseService
 	s.UsageBasedSvc = stack.UsageBasedService
 	s.CurrencyService = stack.CurrencyService

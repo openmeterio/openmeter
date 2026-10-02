@@ -215,7 +215,19 @@ func (s *Service) AuthorizeInvoicedPayment(ctx context.Context, input AuthorizeI
 	charge := input.Charge
 	lineWithHeader := input.LineWithHeader
 
-	if charge.Realizations.InvoiceSettlement != nil {
+	if booked := charge.Realizations.InvoiceSettlement; booked != nil {
+		if err := booked.Validate(); err != nil {
+			return creditpurchase.Charge{}, fmt.Errorf("validating existing invoice payment: %w", err)
+		}
+
+		if booked.DeletedAt == nil &&
+			booked.Namespace == charge.Namespace &&
+			booked.InvoiceID == lineWithHeader.Invoice.ID &&
+			booked.LineID == lineWithHeader.Line.ID &&
+			booked.FiatAmount.Equal(lineWithHeader.Line.Totals.Total) {
+			return charge, nil
+		}
+
 		return creditpurchase.Charge{}, payment.ErrPaymentAlreadyAuthorized.
 			WithAttrs(charge.ErrorAttributes()).
 			WithAttrs(charge.Realizations.InvoiceSettlement.ErrorAttributes())
