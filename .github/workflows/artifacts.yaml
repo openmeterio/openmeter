@@ -31,7 +31,7 @@ permissions:
 jobs:
   container-image:
     name: Container image
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04
 
     permissions:
       contents: read
@@ -144,7 +144,7 @@ jobs:
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04
 
     permissions:
       contents: read

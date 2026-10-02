@@ -493,7 +493,7 @@ jobs:
   benthos-collector-build:
     name: Build / Benthos Collector
     if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     permissions:
       contents: read
 
@@ -534,7 +534,7 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-8
     env:
       COMPOSE_PROFILES: webhook
       OPENMETER_IMAGE: openmeter-ci:${{ github.sha }}
@@ -746,7 +746,7 @@ jobs:
 
   e2e-credits-disabled:
     name: E2E / Credits disabled
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-8
     permissions:
       contents: read
 
