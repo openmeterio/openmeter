@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type fakeStatus string
@@ -155,6 +158,39 @@ func TestMachine_FireAndAdvanceUntilStableReturnsUnsupportedOperationWhenTrigger
 	require.ErrorContains(t, err, fmt.Sprint(meta.TriggerNext))
 	require.ErrorContains(t, err, string(fakeStatusCreated))
 	require.ErrorContains(t, err, "charge-1")
+}
+
+func TestMachine_UnsupportedInvoiceIssuedErrorPreservesValidationContext(t *testing.T) {
+	// given a charge whose state cannot accept invoice issuance
+	charge := newFakeCharge(fakeStatusCreated)
+	machine := newTestMachine(
+		t,
+		charge,
+		func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+	)
+
+	// when billing converts the unsupported issuance error into a validation issue
+	issuanceErr := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerInvoiceIssued)
+	require.ErrorIs(t, issuanceErr, ErrUnsupportedOperation)
+	component := billing.LineEngineValidationComponent(billing.LineEngineTypeChargeFlatFee)
+	issues, err := billing.ToValidationIssues(billing.WrapAsValidationIssue(
+		billing.ValidationWithComponent(component, issuanceErr),
+	))
+	require.NoError(t, err)
+	require.Len(t, issues, 1)
+
+	// then the rejected event and structured charge context survive extraction
+	require.Equal(t, billing.ValidationIssueSeverityCritical, issues[0].Severity)
+	require.Equal(t, component, issues[0].Component)
+	require.Contains(t, issues[0].Message, "unsupported operation")
+	// TODO: Add invoice-line context assertions when line engines attach invoice and line ID attributes.
+	assert.Contains(t, issues[0].Message, "invoice_issued")
+	assert.Equal(t, models.Annotations{
+		"trigger":       "invoice_issued",
+		"charge_id":     charge.ChargeID.ID,
+		"charge_status": string(charge.Status),
+	}, issues[0].Attributes)
 }
 
 func TestMachine_FireAndAdvanceUntilStableValidatesTriggerArguments(t *testing.T) {
