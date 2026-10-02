@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 concurrency:
-  # Supersede stale pull request runs while allowing an in-flight main run to finish.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale pull request runs without grouping distinct main pushes.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -204,10 +204,17 @@ jobs:
       - name: Set up Depot CLI
         uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
 
-      - name: Log in to Depot Registry
+      - name: Log in to Depot build registry
         env:
           DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
         run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
+
+      - name: Log in to Depot dependency registry
+        if: matrix.suite != 'quickstart'
+        env:
+          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
+          DEPOT_REGISTRY: 6drdc68833.registry.depot.dev
+        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login "${DEPOT_REGISTRY}" --username x-token --password-stdin
 
       - name: Run ${{ matrix.name }}
         env:

@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  # Supersede stale pull request runs while allowing an in-flight main run to finish.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale pull request runs without grouping distinct main pushes.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
