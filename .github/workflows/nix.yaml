@@ -13,9 +13,9 @@ permissions:
   contents: read
 
 concurrency:
-  # Supersede stale pull request runs without cancelling independent main runs.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  # Supersede stale pull request runs while allowing an in-flight main run to finish.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   nix:
@@ -38,31 +38,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Select Nix cache key
-        id: cache-key
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          NIX_INPUT_HASH: ${{ hashFiles('flake.lock', '**/*.nix') }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          RUN_ATTEMPT: ${{ github.run_attempt }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          cache_key="${RUNNER_OS}-openmeter-nix-build-v5-main-${NIX_INPUT_HASH}"
-
-          # PRs use immutable per-attempt keys so unmerged code cannot replace
-          # the stable cache selected by main.
-          if [ "${EVENT_NAME}" = "pull_request" ]; then
-            cache_key="${RUNNER_OS}-openmeter-nix-build-v5-pr-${PR_NUMBER}-${RUN_ID}-${RUN_ATTEMPT}-${NIX_INPUT_HASH}"
-          fi
-
-          echo "value=${cache_key}" >> "${GITHUB_OUTPUT}"
-
       - name: Set up Nix
         uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          # Authenticate public flake fetches to avoid GitHub API rate limits,
+          # but never expose the token to fork or Dependabot code.
+          github_access_token: ${{ (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')) && github.token || null }}
           nix_conf: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             keep-env-derivations = true
             keep-outputs = true
             # Nix defaults to one local build at a time. Balance independent
@@ -147,10 +129,11 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c env GOCACHEPROG= make -j 4 build GO_BUILD_FLAGS=
+            nix develop --impure .#ci -c env GOCACHEPROG= make -j 4 build
 
       - name: Save Nix store cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ steps.cache-key.outputs.value }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v5-main-${{ hashFiles('.github/workflows/nix.yaml', 'flake.lock', '**/*.nix') }}
           save: "true"

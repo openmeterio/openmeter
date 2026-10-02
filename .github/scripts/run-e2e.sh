@@ -30,9 +30,6 @@ compose=(
 
 case "${variant}" in
   base)
-    if [ "${dependency_source}" = depot ]; then
-      compose+=(-f ../.github/docker-compose.depot-registry.yaml)
-    fi
     test_target=test-base
     ;;
   credits-disabled)
@@ -44,6 +41,10 @@ case "${variant}" in
     exit 1
     ;;
 esac
+
+if [ "${dependency_source}" = depot ]; then
+  compose+=(-f ../.github/docker-compose.depot-registry.yaml)
+fi
 
 log_dir="artifacts/logs/docker-compose/${variant}"
 log_pid=""

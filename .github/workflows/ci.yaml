@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 concurrency:
-  # Supersede stale pull request runs without cancelling independent main runs.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  # Supersede stale pull request runs while allowing an in-flight main run to finish.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   generators-openapi:

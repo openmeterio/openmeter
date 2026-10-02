@@ -9,13 +9,13 @@ permissions:
   contents: read
 
 concurrency:
-  # Supersede stale pull request runs without cancelling independent main runs.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  # Supersede stale pull request runs while allowing an in-flight main run to finish.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  local-container-tests:
-    name: Container tests / Local
+  fork:
+    name: Fork
     if: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]') }}
     runs-on: ubuntu-24.04
     env:
@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
 
       - name: Build OpenMeter image
-        run: docker build --tag "${OPENMETER_IMAGE}" .
+        run: docker build --build-arg "VERSION=${GITHUB_SHA}" --tag "${OPENMETER_IMAGE}" .
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -103,7 +103,7 @@ jobs:
           fi
 
   registry-image:
-    name: Container test image
+    name: Build
     if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]') }}
     runs-on: ubuntu-24.04
     permissions:
@@ -140,7 +140,7 @@ jobs:
           project: ${{ vars.DEPOT_PROJECT }}
 
   registry-container-tests:
-    name: Container tests / ${{ matrix.name }}
+    name: ${{ matrix.name }}
     needs: registry-image
     strategy:
       fail-fast: false
@@ -238,7 +238,7 @@ jobs:
   result:
     name: Result
     needs:
-      - local-container-tests
+      - fork
       - registry-image
       - registry-container-tests
     if: always()
@@ -247,11 +247,11 @@ jobs:
     steps:
       - name: Verify container test path
         env:
-          LOCAL_RESULT: ${{ needs.local-container-tests.result }}
+          FORK_RESULT: ${{ needs.fork.result }}
           REGISTRY_IMAGE_RESULT: ${{ needs.registry-image.result }}
           REGISTRY_TESTS_RESULT: ${{ needs.registry-container-tests.result }}
         run: |
-          case "${LOCAL_RESULT}:${REGISTRY_IMAGE_RESULT}:${REGISTRY_TESTS_RESULT}" in
+          case "${FORK_RESULT}:${REGISTRY_IMAGE_RESULT}:${REGISTRY_TESTS_RESULT}" in
             success:skipped:skipped|skipped:success:success)
               exit 0
               ;;

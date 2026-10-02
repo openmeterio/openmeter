@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   depot:
-    name: Depot
+    name: Build
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
     runs-on: depot-ubuntu-24.04-4
     permissions:
@@ -45,8 +45,8 @@ jobs:
           push: false
           project: ${{ vars.DEPOT_PROJECT }}
 
-  local:
-    name: Local
+  fork:
+    name: Build (Fork)
     if: ${{ github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]' }}
     runs-on: ubuntu-24.04
     permissions:
@@ -68,12 +68,12 @@ jobs:
         run: docker build --file benthos-collector.Dockerfile --build-arg "VERSION=${GITHUB_SHA}" --tag benthos-collector:ci .
 
   # Preserve one check name while selecting the cached Depot build for
-  # same-repository pull requests and the credentialless local build for forks.
+  # same-repository pull requests and the credentialless build for forks.
   result:
     name: Result
     needs:
       - depot
-      - local
+      - fork
     if: always()
     runs-on: ubuntu-24.04
 
@@ -81,9 +81,9 @@ jobs:
       - name: Verify Benthos Collector build
         env:
           DEPOT_RESULT: ${{ needs.depot.result }}
-          LOCAL_RESULT: ${{ needs.local.result }}
+          FORK_RESULT: ${{ needs.fork.result }}
         run: |
-          case "${DEPOT_RESULT}:${LOCAL_RESULT}" in
+          case "${DEPOT_RESULT}:${FORK_RESULT}" in
             success:skipped|skipped:success)
               exit 0
               ;;
