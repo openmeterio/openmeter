@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -79,6 +80,89 @@ type ClickHouseAggregationConfiguration struct {
 	PoolMetrics ClickhousePoolMetricsConfig
 
 	Retry ClickhouseQueryRetryConfig
+
+	// EventsTableEngine controls the storage engine used when creating the
+	// events table on startup. Defaults to "MergeTree", which ClickHouse Cloud
+	// transparently rewrites to SharedMergeTree. Self-hosted clusters that
+	// require replication should set Type to "ReplicatedMergeTree" and supply
+	// ZooKeeperPath and ReplicaName.
+	EventsTableEngine ClickhouseEventsTableEngineConfig
+}
+
+// ClickhouseEventsTableEngineType is the storage engine used for the events table.
+type ClickhouseEventsTableEngineType string
+
+const (
+	ClickhouseEventsTableEngineMergeTree           ClickhouseEventsTableEngineType = "MergeTree"
+	ClickhouseEventsTableEngineReplicatedMergeTree ClickhouseEventsTableEngineType = "ReplicatedMergeTree"
+)
+
+// ClickhouseEventsTableEngineConfig describes the storage engine used when
+// creating the events table on startup.
+type ClickhouseEventsTableEngineConfig struct {
+	// Type is the storage engine name. Allowed values: "MergeTree" (default)
+	// and "ReplicatedMergeTree".
+	Type ClickhouseEventsTableEngineType
+
+	// ZooKeeperPath is the ZooKeeper/Keeper path passed as the first argument
+	// to ReplicatedMergeTree. Required when Type is "ReplicatedMergeTree".
+	// Supports ClickHouse macros, for example
+	// "/clickhouse/tables/{shard}/{database}/{table}".
+	ZooKeeperPath string
+
+	// ReplicaName is the replica identifier passed as the second argument to
+	// ReplicatedMergeTree. Required when Type is "ReplicatedMergeTree".
+	// Typically a macro like "{replica}".
+	ReplicaName string
+
+	// Cluster, when set, renders the CREATE TABLE statement with an
+	// ON CLUSTER {cluster} clause. Required for multi-node self-hosted
+	// deployments that route DDL through a cluster macro.
+	Cluster string
+}
+
+// Validate validates the configuration.
+func (c ClickhouseEventsTableEngineConfig) Validate() error {
+	var errs []error
+
+	// The cluster name is backtick-quoted by the SQL builder, so any value
+	// ClickHouse accepts as an identifier is fine. Whitespace-only is almost
+	// always a config typo, so we reject it explicitly.
+	if c.Cluster != "" && strings.TrimSpace(c.Cluster) == "" {
+		errs = append(errs, errors.New("cluster name must not be whitespace-only"))
+	}
+
+	switch c.Type {
+	case "", ClickhouseEventsTableEngineMergeTree:
+		if c.Cluster != "" {
+			errs = append(errs, fmt.Errorf("cluster requires %s engine; MergeTree with ON CLUSTER produces independent (non-replicated) tables per node",
+				ClickhouseEventsTableEngineReplicatedMergeTree,
+			))
+		}
+	case ClickhouseEventsTableEngineReplicatedMergeTree:
+		if strings.TrimSpace(c.ZooKeeperPath) == "" {
+			errs = append(errs, errors.New("zooKeeperPath is required for ReplicatedMergeTree"))
+		}
+		if strings.TrimSpace(c.ReplicaName) == "" {
+			errs = append(errs, errors.New("replicaName is required for ReplicatedMergeTree"))
+		}
+	default:
+		errs = append(errs, fmt.Errorf("unsupported events table engine type %q (allowed: %q, %q)",
+			c.Type,
+			ClickhouseEventsTableEngineMergeTree,
+			ClickhouseEventsTableEngineReplicatedMergeTree,
+		))
+	}
+
+	return errors.Join(errs...)
+}
+
+// ResolvedType returns the engine type with empty defaulted to MergeTree.
+func (c ClickhouseEventsTableEngineConfig) ResolvedType() ClickhouseEventsTableEngineType {
+	if c.Type == "" {
+		return ClickhouseEventsTableEngineMergeTree
+	}
+	return c.Type
 }
 
 // Validate validates the configuration.
@@ -115,6 +199,10 @@ func (c ClickHouseAggregationConfiguration) Validate() error {
 
 	if err := c.PoolMetrics.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("pool metrics: %w", err))
+	}
+
+	if err := c.EventsTableEngine.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("events table engine: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -222,6 +310,12 @@ func ConfigureAggregation(v *viper.Viper) {
 	// Pool metrics
 	v.SetDefault("aggregation.clickhouse.poolMetrics.enabled", true)
 	v.SetDefault("aggregation.clickhouse.poolMetrics.pollInterval", "5s")
+
+	// Events table storage engine. Defaults to MergeTree (ClickHouse Cloud
+	// rewrites this to SharedMergeTree transparently). Self-hosted clusters
+	// that require replication should set type to ReplicatedMergeTree and
+	// supply zooKeeperPath / replicaName / (optionally) cluster.
+	v.SetDefault("aggregation.clickhouse.eventsTableEngine.type", string(ClickhouseEventsTableEngineMergeTree))
 
 	// Decimal precision
 	v.SetDefault("aggregation.enableDecimalPrecision", false)
