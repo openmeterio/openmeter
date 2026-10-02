@@ -1,0 +1,8 @@
+# Copied from api/spec/.prettierignore
+.npmrc
+pnpm-lock.yaml
+
+# Action specific ignores
+dist/
+node_modules/
+coverage/
