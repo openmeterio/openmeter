@@ -1,5 +1,7 @@
 name: CI
 
+# Runner benchmark trigger; application source is identical across benchmark branches.
+
 on:
   push:
     branches: [main]
