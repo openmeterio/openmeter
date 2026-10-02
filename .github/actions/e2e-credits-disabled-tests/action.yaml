@@ -1,0 +1,96 @@
+name: Run credits-disabled E2E tests
+description: Launch the prepared OpenMeter image and run credits-disabled E2E tests
+
+runs:
+  using: composite
+  steps:
+    - name: Debug E2E runner state
+      shell: bash
+      run: |
+        echo "### DEBUG"
+        ss -ltnp | grep ':39000 ' || true
+        docker ps -a
+        docker network ls
+        echo "### DEBUG"
+
+    - name: Launch Docker Compose infra with credits disabled
+      id: launch_credits_disabled_e2e
+      shell: bash
+      run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
+      working-directory: e2e
+
+    - name: Start Docker Compose log stream for credits-disabled tests
+      if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
+      shell: bash
+      working-directory: e2e
+      run: |
+        mkdir -p artifacts/logs/docker-compose/credits-disabled
+        docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
+        echo "$!" > artifacts/logs/docker-compose/credits-disabled/compose-follow.pid
+
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: .go-version
+        cache: true
+        cache-dependency-path: |
+          go.sum
+          collector/go.sum
+          api/v3/client/go.sum
+          e2e/go.sum
+
+    - name: Record Go cache configuration
+      shell: bash
+      run: go env GOCACHE GOCACHEPROG
+
+    - name: Check container health
+      if: always()
+      continue-on-error: true
+      shell: bash
+      run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
+
+    - name: Wait for worker to become ready with credits disabled
+      shell: bash
+      run: |
+        curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+        curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
+        docker ps
+
+    - name: Run credits-disabled tests
+      id: run_credits_disabled_tests
+      shell: bash
+      env:
+        OPENMETER_ADDRESS: http://localhost:38888
+        TZ: UTC
+      run: make -C e2e test-credits-disabled
+
+    - name: Capture Docker Compose logs after credits-disabled tests
+      if: always() && steps.launch_credits_disabled_e2e.outcome != 'skipped'
+      shell: bash
+      working-directory: e2e
+      run: |
+        mkdir -p artifacts/logs/docker-compose/credits-disabled
+        if [ -f artifacts/logs/docker-compose/credits-disabled/compose-follow.pid ]; then
+          kill "$(cat artifacts/logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
+          sleep 1
+        fi
+        docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
+        for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml config --services); do
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
+        done
+
+    - name: Cleanup Docker Compose
+      if: always()
+      shell: bash
+      run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml down -v
+      working-directory: e2e
+
+    - name: Upload Openmeter logs as artifact
+      if: always()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: "[${{ github.job }}] Openmeter logs"
+        path: |
+          e2e/logs/**
+          e2e/artifacts/logs/**
+        retention-days: 14

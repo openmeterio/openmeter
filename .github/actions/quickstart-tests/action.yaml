@@ -1,0 +1,58 @@
+name: Run quickstart tests
+description: Launch the prepared quickstart image and run its tests
+
+runs:
+  using: composite
+  steps:
+    - name: Debug quickstart runner state
+      shell: bash
+      run: |
+        echo "### DEBUG"
+        ss -ltnp | grep ':49000 ' || true
+        docker ps -a
+        docker network ls
+        echo "### DEBUG"
+
+    - name: Launch Docker Compose
+      shell: bash
+      run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
+      working-directory: quickstart
+
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: .go-version
+        cache: true
+        cache-dependency-path: |
+          go.sum
+          collector/go.sum
+          api/v3/client/go.sum
+          e2e/go.sum
+
+    - name: Record Go cache configuration
+      shell: bash
+      run: go env GOCACHE GOCACHEPROG
+
+    - name: Check container health
+      if: always()
+      continue-on-error: true
+      shell: bash
+      run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
+
+    - name: Wait for worker to become ready
+      shell: bash
+      run: |
+        curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:40000/healthz
+        docker ps
+
+    - name: Run tests
+      shell: bash
+      env:
+        OPENMETER_ADDRESS: http://localhost:48888
+      run: go test -v -count=1 ./quickstart/
+
+    - name: Cleanup Docker Compose
+      if: always()
+      shell: bash
+      run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml down -v
+      working-directory: quickstart
