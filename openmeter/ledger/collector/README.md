@@ -8,26 +8,20 @@ undo the same collected amounts.
 
 ## Vocab
 
-- `BookedAt`: timestamp used for the ledger transactions being written.
-- `SourceBalanceAsOf`: timestamp used to decide which FBO sources are available.
+- `BookedAt`: effective timestamp for both source credit eligibility and ledger postings.
 - `source`: one spendable FBO slice selected by the collector.
 - `source entry`: the concrete negative FBO ledger entry created by collection.
 - `allocation`: billing's collapsed record of collected credit.
 - `advance`: value moved through FBO/accrued before real credit exists to cover it.
 
-`BookedAt` and `SourceBalanceAsOf` are intentionally separate.
+Collection checks FBO balances and expiry state at `BookedAt` and posts the
+debit at that same time. A delayed collection must not spend credit granted
+after its booking time. Flat-fee charge-currency collection uses its service
+boundary, which can differ from the invoice scheduling time for a mid-period
+change.
 
-Example:
-
-```text
-charge allocates at T1
-source balance is checked at T5
-
-BookedAt = T1
-SourceBalanceAsOf = T5
-```
-
-The transaction is booked at `T1`, but source selection can see credit and expiry state visible as of `T5`.
+[Advance backfill](../advance/README.md#backfill) has its own attribution and
+issuance timing; it does not select spendable FBO through this collection input.
 
 ## Collection Order
 
