@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
-	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
@@ -79,7 +78,7 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 
 	stripeApp, ok := createApp.App.(appstripe.App)
 	require.True(t, ok, "Create stripe app must return a stripe app")
-	require.Equal(t, appstripeservice.LatestWebhookSchemaVersion, stripeApp.WebhookSchemaVersion)
+	require.Equal(t, appstripe.LatestWebhookSchemaVersion, stripeApp.WebhookSchemaVersion)
 
 	// Create with same Stripe account ID should return conflict
 	_, err = s.Env.App().InstallApp(ctx, app.InstallAppV3Input{

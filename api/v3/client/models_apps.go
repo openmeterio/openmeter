@@ -113,6 +113,30 @@ func AppFromAppExternalInvoicing(value AppExternalInvoicing) (App, error) {
 	return result, nil
 }
 
+// An action the operator should take on an installed app.
+type AppAction struct {
+	// The action type.
+	Type AppActionType `json:"type"`
+	// Human readable explanation of why the action is needed.
+	Description string `json:"description"`
+}
+
+// App action type.
+type AppActionType string
+
+const (
+	AppActionTypeReconcileWebhookEvents AppActionType = "reconcile_webhook_events"
+)
+
+func (value AppActionType) Valid() bool {
+	switch value {
+	case AppActionTypeReconcileWebhookEvents:
+		return true
+	default:
+		return false
+	}
+}
+
 // App capability describes a function that an App can perform.
 type AppCapability struct {
 	// Type of the capability.
@@ -210,6 +234,9 @@ type AppExternalInvoicing struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// Enable draft synchronization hook.
 	//
 	// When enabled, invoices will pause at the draft state and wait for the
@@ -280,6 +307,9 @@ type AppSandbox struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 }
 
 // Connection status of an installed app.
@@ -323,6 +353,9 @@ type AppStripe struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// The Stripe account ID associated with the connected Stripe account.
 	AccountID string `json:"account_id"`
 	// Indicates whether the app is connected to a live Stripe account.
@@ -600,6 +633,9 @@ type InstalledAppExternalInvoicing struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// Enable draft synchronization hook.
 	//
 	// When enabled, invoices will pause at the draft state and wait for the
@@ -648,6 +684,9 @@ type InstalledAppSandbox struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// Default capabilities of the installed app.
 	DefaultForCapabilityTypes []AppCapabilityType `json:"default_for_capability_types"`
 }
@@ -676,6 +715,9 @@ type InstalledAppStripe struct {
 	Definition AppCatalogItem `json:"definition"`
 	// Status of the app connection.
 	Status AppStatus `json:"status"`
+	// Actions the operator should take to bring the app up to date. Omitted when no
+	// action is required.
+	Actions []AppAction `json:"actions,omitempty"`
 	// The Stripe account ID associated with the connected Stripe account.
 	AccountID string `json:"account_id"`
 	// Indicates whether the app is connected to a live Stripe account.

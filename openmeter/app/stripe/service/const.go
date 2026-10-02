@@ -5,7 +5,3 @@ const (
 	InvoiceIDAttributeName       = "invoice.id"
 	InvoiceStatusAttributeName   = "invoice.status"
 )
-
-// LatestWebhookSchemaVersion is persisted on newly installed Stripe apps and identifies the
-// webhook event set SetupWebhook registered. Bump it whenever that event list changes.
-const LatestWebhookSchemaVersion = 2

@@ -79,7 +79,7 @@ func NewStripeClient(config StripeClientConfig) (StripeClient, error) {
 }
 
 // SetupWebhook registers the Stripe webhook endpoint for an app. The registered event set is
-// tracked by appservice.LatestWebhookSchemaVersion; bump it whenever this list changes.
+// tracked by appstripe.LatestWebhookSchemaVersion; bump it whenever this list changes.
 func (c *stripeClient) SetupWebhook(ctx context.Context, input SetupWebhookInput) (StripeWebhookEndpoint, error) {
 	if err := input.Validate(); err != nil {
 		return StripeWebhookEndpoint{}, fmt.Errorf("invalid input: %w", err)

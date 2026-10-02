@@ -5114,6 +5114,26 @@ components:
           sandbox: '#/components/schemas/BillingAppSandbox'
           external_invoicing: '#/components/schemas/BillingAppExternalInvoicing'
       description: Installed application.
+    BillingAppAction:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppActionType'
+          description: The action type.
+        description:
+          type: string
+          description: Human readable explanation of why the action is needed.
+      additionalProperties: false
+      description: An action the operator should take on an installed app.
+    BillingAppActionType:
+      type: string
+      enum:
+        - reconcile_webhook_events
+      description: App action type.
     BillingAppCapability:
       type: object
       required:
@@ -5336,6 +5356,14 @@ components:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
           readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
+          readOnly: true
         enable_draft_sync_hook:
           type: boolean
           description: |-
@@ -5459,6 +5487,14 @@ components:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
           readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
+          readOnly: true
       additionalProperties: false
       description: Sandbox app can be used for testing billing features.
     BillingAppStatus:
@@ -5531,6 +5567,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+          readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
           readOnly: true
         account_id:
           type: string
@@ -9546,6 +9590,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
         enable_draft_sync_hook:
           type: boolean
           description: |-
@@ -9633,6 +9684,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
         default_for_capability_types:
           type: array
           items:
@@ -9699,6 +9757,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingAppStatus'
           description: Status of the app connection.
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppAction'
+          description: |-
+            Actions the operator should take to bring the app up to date. Omitted when no
+            action is required.
         account_id:
           type: string
           description: The Stripe account ID associated with the connected Stripe account.
