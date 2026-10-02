@@ -148,7 +148,9 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 }
 
 func (h handler[Request, Response]) handleError(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) {
-	if errors.Is(err, context.Canceled) {
+	// Internal contexts can be canceled while the HTTP request remains active, so only
+	// classify the error as a client disconnect when the request context is canceled too.
+	if errors.Is(err, context.Canceled) && errors.Is(r.Context().Err(), context.Canceled) {
 		w.WriteHeader(statusClientClosedRequest)
 		h.errorHandler.HandleContext(ctx, err)
 		return

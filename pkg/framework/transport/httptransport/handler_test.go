@@ -21,27 +21,6 @@ func (h *recordingErrorHandler) HandleContext(_ context.Context, err error) {
 	h.err = err
 }
 
-func decodeRequest(_ context.Context, _ *http.Request) (struct{}, error) {
-	return struct{}{}, nil
-}
-
-func decodeCanceledRequest(_ context.Context, _ *http.Request) (struct{}, error) {
-	return struct{}{}, fmt.Errorf("decode request: %w", context.Canceled)
-}
-
-func executeRequest(_ context.Context, _ struct{}) (struct{}, error) {
-	return struct{}{}, nil
-}
-
-func executeCanceledRequest(_ context.Context, _ struct{}) (struct{}, error) {
-	return struct{}{}, fmt.Errorf("execute request: %w", context.Canceled)
-}
-
-func encodeResponse(_ context.Context, w http.ResponseWriter, _ *http.Request, _ struct{}) error {
-	w.WriteHeader(http.StatusNoContent)
-	return nil
-}
-
 func TestHandlerRecordsClientClosedRequest(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -49,14 +28,22 @@ func TestHandlerRecordsClientClosedRequest(t *testing.T) {
 		operation      operation.Operation[struct{}, struct{}]
 	}{
 		{
-			name:           "request decoder cancellation",
-			requestDecoder: decodeCanceledRequest,
-			operation:      executeRequest,
+			name: "request decoder cancellation",
+			requestDecoder: func(_ context.Context, _ *http.Request) (struct{}, error) {
+				return struct{}{}, fmt.Errorf("decode request: %w", context.Canceled)
+			},
+			operation: func(_ context.Context, _ struct{}) (struct{}, error) {
+				return struct{}{}, nil
+			},
 		},
 		{
-			name:           "operation cancellation",
-			requestDecoder: decodeRequest,
-			operation:      executeCanceledRequest,
+			name: "operation cancellation",
+			requestDecoder: func(_ context.Context, _ *http.Request) (struct{}, error) {
+				return struct{}{}, nil
+			},
+			operation: func(_ context.Context, _ struct{}) (struct{}, error) {
+				return struct{}{}, fmt.Errorf("execute request: %w", context.Canceled)
+			},
 		},
 	}
 
@@ -66,17 +53,51 @@ func TestHandlerRecordsClientClosedRequest(t *testing.T) {
 			handler := NewHandler(
 				test.requestDecoder,
 				test.operation,
-				encodeResponse,
+				func(_ context.Context, _ http.ResponseWriter, _ *http.Request, _ struct{}) error {
+					require.FailNow(t, "response encoder must not be called")
+					return nil
+				},
 				WithErrorHandler(errorHandler),
 				WithErrorEncoder(commonhttp.DummyErrorEncoder()),
 			)
 
+			ctx, cancel := context.WithCancel(t.Context())
+			cancel()
+
 			writer := httptest.NewRecorder()
-			handler.ServeHTTP(writer, httptest.NewRequest(http.MethodGet, "/", nil))
+			request := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+			handler.ServeHTTP(writer, request)
 
 			require.Equal(t, statusClientClosedRequest, writer.Code)
 			require.Empty(t, writer.Body.Bytes())
 			require.ErrorIs(t, errorHandler.err, context.Canceled)
 		})
 	}
+}
+
+func TestHandlerDoesNotRecordInternalCancellationAsClientClosedRequest(t *testing.T) {
+	errorHandler := &recordingErrorHandler{}
+	handler := NewHandler(
+		func(_ context.Context, _ *http.Request) (struct{}, error) {
+			return struct{}{}, nil
+		},
+		func(_ context.Context, _ struct{}) (struct{}, error) {
+			return struct{}{}, fmt.Errorf("execute request: %w", context.Canceled)
+		},
+		func(_ context.Context, _ http.ResponseWriter, _ *http.Request, _ struct{}) error {
+			require.FailNow(t, "response encoder must not be called")
+			return nil
+		},
+		WithErrorHandler(errorHandler),
+		WithErrorEncoder(commonhttp.DummyErrorEncoder()),
+	)
+
+	writer := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	handler.ServeHTTP(writer, request)
+
+	require.Equal(t, http.StatusRequestTimeout, writer.Code)
+	require.NotEmpty(t, writer.Body.Bytes())
+	require.Nil(t, errorHandler.err)
+	require.NoError(t, request.Context().Err())
 }
