@@ -981,9 +981,7 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 		if err := m.Service.dispatchAPIStandardLineDeletions(
 			ctx,
 			m.Invoice,
-			lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-				return line != nil && line.DeletedAt == nil
-			}),
+			m.Invoice.Lines.OrEmpty().WithoutDeletedLines(),
 		); err != nil {
 			return err
 		}
@@ -994,9 +992,7 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 		if err := m.Service.dispatchSystemStandardLineDeletions(
 			ctx,
 			m.Invoice,
-			lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-				return line != nil && line.DeletedAt == nil
-			}).AsGenericLines(),
+			m.Invoice.Lines.OrEmpty().WithoutDeletedLines().AsGenericLines(),
 		); err != nil {
 			return err
 		}
@@ -1040,7 +1036,7 @@ func (m *InvoiceStateMachine) isReadyForCollection() bool {
 }
 
 func (m *InvoiceStateMachine) onCollectionCompleted(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
@@ -1096,7 +1092,7 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 		return fmt.Errorf("cloning invoice for line finalization: %w", err)
 	}
 
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(finalizedInvoice.Lines.OrEmpty())
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(finalizedInvoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
@@ -1140,7 +1136,7 @@ func (m *InvoiceStateMachine) onInvoiceFinalizing(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
@@ -1165,7 +1161,7 @@ func (m *InvoiceStateMachine) onInvoiceIssued(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) onPaymentAuthorized(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
@@ -1198,7 +1194,7 @@ func (m *InvoiceStateMachine) onPaymentAuthorizedAndSettled(ctx context.Context)
 }
 
 func (m *InvoiceStateMachine) onPaymentSettled(ctx context.Context) error {
-	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty())
+	groupedLines, err := m.Service.lineEngines.groupStandardLinesByEngine(m.Invoice.Lines.OrEmpty().WithoutDeletedLines())
 	if err != nil {
 		return fmt.Errorf("grouping standard lines by engine: %w", err)
 	}
