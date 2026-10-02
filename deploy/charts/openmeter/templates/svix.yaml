@@ -51,16 +51,16 @@ spec:
               containerPort: 8071
               protocol: TCP
           resources:
-            {{- toYaml .Values.svix.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
+            {{- toYaml (.Values.svix.resources | default .Values.resources) | nindent 12 }}
+      {{- with (.Values.svix.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with (.Values.svix.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with (.Values.svix.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
