@@ -77,53 +77,96 @@ func (s *CreditThenInvoiceTestSuite) TestPaidCallbackClearsPreviousPaymentFailur
 }
 
 func (s *CreditThenInvoiceTestSuite) TestPaymentBookingRetryPreservesCompletedSettlement() {
-	t := s.T()
-	ctx := t.Context()
-	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
-	defer clock.UnFreeze()
+	s.Run(string(meta.ChargeTypeFlatFee), func() {
+		t := s.T()
+		ctx := t.Context()
+		clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+		defer clock.UnFreeze()
 
-	// given the real settlement completes before a one-time callback failure is reported
-	fixture := s.setupPaymentBookingInvoice()
-	engine := s.FlatFeeSvc.GetLineEngine()
-	fault := &failOnceAfterPaymentSettlementLineEngine{LineEngine: engine}
-	require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
-	require.NoError(t, s.BillingService.RegisterLineEngine(fault))
-	t.Cleanup(func() {
+		// given the real settlement completes before a one-time callback failure is reported
+		fixture := s.setupPaymentBookingInvoice()
+		engine := s.FlatFeeSvc.GetLineEngine()
+		fault := &failOnceAfterPaymentSettlementLineEngine{LineEngine: engine}
 		require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
-		require.NoError(t, s.BillingService.RegisterLineEngine(engine))
+		require.NoError(t, s.BillingService.RegisterLineEngine(fault))
+		t.Cleanup(func() {
+			require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
+			require.NoError(t, s.BillingService.RegisterLineEngine(engine))
+		})
+		require.NoError(t, s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
+			InvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: fixture.Invoice.GetInvoiceID(), Trigger: billing.TriggerPaid},
+			AppType:             app.AppTypeCustomInvoicing,
+			Capability:          app.CapabilityTypeCollectPayments,
+		}))
+		require.True(t, fault.Failed)
+		failed, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: fixture.Invoice.GetInvoiceID()})
+		require.NoError(t, err)
+		require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed, failed.Status)
+		require.True(t, failed.HasCriticalValidationIssues())
+		require.Len(t, failed.ValidationIssues, 1)
+		require.Equal(t, "test_post_settlement_callback_failed", failed.ValidationIssues[0].Code)
+		booked := s.requireSettledPaymentBookings(fixture)
+		before, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: fixture.Customer.Namespace, Limit: 100})
+		require.NoError(t, err)
+		require.Nil(t, before.NextCursor)
+		require.Len(t, before.Items, 3)
+		beforeIDs := lo.Map(before.Items, func(tx ledger.Transaction, _ int) string { return tx.ID().ID })
+
+		// when retry resumes from the persisted invoice with its completed payment intact
+		invoice, err := s.BillingService.RetryInvoice(ctx, failed.GetInvoiceID())
+		require.NoError(t, err)
+
+		// then retry reaches paid without replacing references or adding ledger transactions
+		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status, "issues: %+v", invoice.ValidationIssues)
+		s.False(invoice.StatusDetails.Failed)
+		s.False(invoice.HasCriticalValidationIssues())
+		s.Equal(booked, s.requireSettledPaymentBookings(fixture))
+		after, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: fixture.Customer.Namespace, Limit: 100})
+		require.NoError(t, err)
+		require.Nil(t, after.NextCursor)
+		s.ElementsMatch(beforeIDs, lo.Map(after.Items, func(tx ledger.Transaction, _ int) string { return tx.ID().ID }))
 	})
-	require.NoError(t, s.BillingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
-		InvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: fixture.Invoice.GetInvoiceID(), Trigger: billing.TriggerPaid},
-		AppType:             app.AppTypeCustomInvoicing,
-		Capability:          app.CapabilityTypeCollectPayments,
-	}))
-	require.True(t, fault.Failed)
-	failed, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{Invoice: fixture.Invoice.GetInvoiceID()})
-	require.NoError(t, err)
-	require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed, failed.Status)
-	require.True(t, failed.HasCriticalValidationIssues())
-	require.Len(t, failed.ValidationIssues, 1)
-	require.Equal(t, "test_post_settlement_callback_failed", failed.ValidationIssues[0].Code)
-	booked := s.requireSettledPaymentBookings(fixture)
-	before, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: fixture.Customer.Namespace, Limit: 100})
-	require.NoError(t, err)
-	require.Nil(t, before.NextCursor)
-	require.Len(t, before.Items, 3)
-	beforeIDs := lo.Map(before.Items, func(tx ledger.Transaction, _ int) string { return tx.ID().ID })
 
-	// when retry resumes from the persisted invoice with its completed payment intact
-	invoice, err := s.BillingService.RetryInvoice(ctx, failed.GetInvoiceID())
-	require.NoError(t, err)
+	for _, chargeType := range []meta.ChargeType{meta.ChargeTypeUsageBased, meta.ChargeTypeCreditPurchase} {
+		s.Run(string(chargeType), func() {
+			t := s.T()
+			ctx := t.Context()
+			clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+			defer clock.UnFreeze()
+			defer s.MockStreamingConnector.Reset()
 
-	// then retry reaches paid without replacing references or adding ledger transactions
-	s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status, "issues: %+v", invoice.ValidationIssues)
-	s.False(invoice.StatusDetails.Failed)
-	s.False(invoice.HasCriticalValidationIssues())
-	s.Equal(booked, s.requireSettledPaymentBookings(fixture))
-	after, err := s.Ledger.ListTransactions(ctx, ledger.ListTransactionsInput{Namespace: fixture.Customer.Namespace, Limit: 100})
-	require.NoError(t, err)
-	require.Nil(t, after.NextCursor)
-	s.ElementsMatch(beforeIDs, lo.Map(after.Items, func(tx ledger.Transaction, _ int) string { return tx.ID().ID }))
+			// given real settlement completes for both lines before a one-time callback failure
+			fixture := s.setupPaymentRetryInvoice(chargeType)
+			engine := s.bookingRetryLineEngine(chargeType)
+			fault := &failOnceAfterPaymentSettlementLineEngine{LineEngine: engine}
+			s.replaceBookingRetryLineEngine(fault, engine)
+			failed := s.triggerBookingRetryPayment(fixture, billing.TriggerPaid)
+			require.True(t, fault.Failed)
+			require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingBookingAuthorizedAndSettledFailed, failed.Status)
+			require.True(t, failed.HasCriticalValidationIssues())
+			require.Len(t, failed.ValidationIssues, 1)
+			require.Equal(t, "test_post_settlement_callback_failed", failed.ValidationIssues[0].Code)
+			before := s.bookingRetryProgress(fixture)
+			for _, line := range before {
+				require.NotNil(t, line.Payment)
+				require.Equal(t, payment.StatusSettled, line.Payment.Status)
+				require.NotNil(t, line.Payment.Settled)
+			}
+			beforeIDs := s.bookingRetryTransactionIDs(fixture)
+			require.Len(t, beforeIDs, 6)
+
+			// when retry resumes from the persisted invoice with completed payments intact
+			invoice, err := s.BillingService.RetryInvoice(ctx, failed.GetInvoiceID())
+			require.NoError(t, err)
+
+			// then retry reaches paid without replacing references or adding ledger transactions
+			s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status, "issues: %+v", invoice.ValidationIssues)
+			s.False(invoice.StatusDetails.Failed)
+			s.False(invoice.HasCriticalValidationIssues())
+			s.Equal(before, s.bookingRetryProgress(fixture))
+			s.ElementsMatch(beforeIDs, s.bookingRetryTransactionIDs(fixture))
+		})
+	}
 }
 
 type paymentBookingInvoice struct {

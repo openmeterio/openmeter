@@ -1,7 +1,6 @@
 package credits
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -61,57 +60,6 @@ func (s *CreditThenInvoiceTestSuite) TestIssuingSkipsDeletedChargeLine() {
 	}
 }
 
-func (s *CreditThenInvoiceTestSuite) TestIssuingRetryPreservesCompletedChargeBooking() {
-	for _, chargeType := range []meta.ChargeType{meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased} {
-		s.Run(string(chargeType), func() {
-			t := s.T()
-			ctx := t.Context()
-			clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
-			defer clock.UnFreeze()
-
-			// given issuance books the first charge before the second callback fails once
-			fixture := s.setupChargeBookingInvoice(chargeType)
-			clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
-			defer clock.UnFreeze()
-			fault := s.failIssuingAfterFirstBooking(fixture)
-
-			failedInvoice, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
-			require.NoError(t, err)
-			require.Equal(t, billing.StandardInvoiceStatusIssuingChargeBookingFailed, failedInvoice.Status)
-			require.Len(t, failedInvoice.Lines.OrEmpty(), 2)
-			require.True(t, fault.Failed)
-			require.True(t, failedInvoice.HasCriticalValidationIssues())
-			booked := s.requireCompletedChargeBooking(fixture)
-			ledgerInput := LedgerSnapshotInput{
-				Namespace: fixture.Customer.Namespace,
-				Customer:  fixture.Customer,
-				Currency:  USD,
-				CostBasis: mo.None[*alpacadecimal.Decimal](),
-			}
-			bookedLedger := s.CreateLedgerSnapshot(ledgerInput)
-			require.Equal(t, float64(5), bookedLedger.Accrued.InexactFloat64())
-
-			// when retry encounters the first booking again after the transient failure is gone
-			invoice, err := s.BillingService.RetryInvoice(ctx, failedInvoice.GetInvoiceID())
-			require.NoError(t, err)
-
-			// then retry preserves the first booking and books the second charge exactly once
-			s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
-			s.False(invoice.StatusDetails.Failed)
-			s.False(invoice.HasCriticalValidationIssues())
-			s.Equal(booked, s.requireCompletedChargeBooking(fixture))
-			s.AssertLedgerSnapshotEqual(LedgerSnapshot{
-				FBO:                  bookedLedger.FBO,
-				Accrued:              alpacadecimal.NewFromInt(10),
-				OpenReceivable:       alpacadecimal.NewFromInt(-10),
-				AuthorizedReceivable: bookedLedger.AuthorizedReceivable,
-				Wash:                 bookedLedger.Wash,
-				Earnings:             bookedLedger.Earnings,
-			}, s.CreateLedgerSnapshot(ledgerInput))
-		})
-	}
-}
-
 func (s *CreditThenInvoiceTestSuite) TestIssuingFailedInvoicePreservesUnsupportedCorrectionHistory() {
 	t := s.T()
 	ctx := t.Context()
@@ -122,7 +70,7 @@ func (s *CreditThenInvoiceTestSuite) TestIssuingFailedInvoicePreservesUnsupporte
 	fixture := s.setupChargeBookingInvoice(meta.ChargeTypeFlatFee)
 	clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
 	defer clock.UnFreeze()
-	fault := s.failIssuingAfterFirstBooking(fixture)
+	fault := s.failIssuingAfterFirstBooking(fixture.Invoice, s.FlatFeeSvc.GetLineEngine())
 	before, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
 	require.NoError(t, err)
 	require.True(t, fault.Failed)
@@ -309,61 +257,4 @@ func (s *CreditThenInvoiceTestSuite) setupChargeBookingInvoice(chargeType meta.C
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 5, Total: 5}, line.Totals)
 	}
 	return fixture
-}
-
-// failIssuingAfterFirstBooking arranges a partially committed invoice callback
-// without relying on the deleted-line defect, and restores the real engine afterward.
-func (s *CreditThenInvoiceTestSuite) failIssuingAfterFirstBooking(fixture chargeBookingInvoice) *failOnceIssuingLineEngine {
-	t := s.T()
-	t.Helper()
-	var engine billing.LineEngine
-	switch fixture.Invoice.Lines.OrEmpty()[0].Engine {
-	case billing.LineEngineTypeChargeFlatFee:
-		engine = s.FlatFeeSvc.GetLineEngine()
-	case billing.LineEngineTypeChargeUsageBased:
-		engine = s.UsageBasedSvc.GetLineEngine()
-	default:
-		t.Fatalf("unexpected line engine: %s", fixture.Invoice.Lines.OrEmpty()[0].Engine)
-	}
-	fault := &failOnceIssuingLineEngine{LineEngine: engine, FailLineID: fixture.Invoice.Lines.OrEmpty()[1].ID}
-	require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
-	require.NoError(t, s.BillingService.RegisterLineEngine(fault))
-	t.Cleanup(func() {
-		require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
-		require.NoError(t, s.BillingService.RegisterLineEngine(engine))
-	})
-	return fault
-}
-
-// failOnceIssuingLineEngine retains real per-line bookings before a transient
-// callback failure, isolating retry safety from deleted-line dispatch.
-type failOnceIssuingLineEngine struct {
-	billing.LineEngine
-	FailLineID string
-	Failed     bool
-}
-
-func (e *failOnceIssuingLineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {
-	if e.Failed {
-		return e.LineEngine.OnInvoiceIssued(ctx, input)
-	}
-
-	for _, line := range input.Lines {
-		if line.ID == e.FailLineID {
-			e.Failed = true
-			return billing.ValidationIssue{
-				Severity: billing.ValidationIssueSeverityCritical,
-				Code:     "test_issuing_callback_failed",
-				Message:  "transient invoice-issued callback failure",
-			}
-		}
-
-		lineInput := input
-		lineInput.Lines = billing.StandardLines{line}
-		if err := e.LineEngine.OnInvoiceIssued(ctx, lineInput); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
