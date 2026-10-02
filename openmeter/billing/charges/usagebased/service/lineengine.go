@@ -1262,6 +1262,23 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 				Invoice: input.Invoice,
 			}
 		},
+		ShouldSkipFn: func(charge usagebased.Charge, stdLine *billing.StandardLine) (bool, error) {
+			// Billing retries invoice_issued for every line when any line callback fails.
+			// A preceding line can therefore have committed its charge and ledger updates.
+			// Immutable is persisted only after that work succeeds, so a matching run is
+			// already complete and must not receive invoice_issued again.
+			// See TestCreditThenInvoiceTestSuite/TestUsageBasedIssuingRetryPreservesCompletedChargeBooking.
+			run, err := charge.Realizations.GetByLineID(stdLine.ID)
+			if err != nil || !run.Immutable {
+				return false, nil
+			}
+
+			if run.InvoiceID == nil || *run.InvoiceID != input.Invoice.ID {
+				return false, fmt.Errorf("issued realization run[%s] invoice does not match invoice[%s]", run.ID.ID, input.Invoice.ID)
+			}
+
+			return true, nil
+		},
 	})
 }
 
@@ -1290,9 +1307,10 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 }
 
 type fireLineTriggerInput struct {
-	Lines   billing.StandardLines
-	Trigger meta.Trigger
-	InputFn func(*billing.StandardLine) models.Validator
+	Lines        billing.StandardLines
+	Trigger      meta.Trigger
+	InputFn      func(*billing.StandardLine) models.Validator
+	ShouldSkipFn func(usagebased.Charge, *billing.StandardLine) (bool, error)
 }
 
 func (i fireLineTriggerInput) Validate() error {
@@ -1321,24 +1339,35 @@ func (e *LineEngine) fireLineTrigger(ctx context.Context, input fireLineTriggerI
 		if err != nil {
 			return err
 		}
+		charge := stateMachine.GetCharge()
+
+		if input.ShouldSkipFn != nil {
+			shouldSkip, err := input.ShouldSkipFn(charge, stdLine)
+			if err != nil {
+				return fmt.Errorf("checking whether to skip %s for charge[%s]: %w", input.Trigger, charge.ID, err)
+			}
+			if shouldSkip {
+				continue
+			}
+		}
 
 		canFire, err := stateMachine.CanFire(ctx, input.Trigger)
 		if err != nil {
-			return fmt.Errorf("checking %s for charge[%s]: %w", input.Trigger, stateMachine.GetCharge().ID, err)
+			return fmt.Errorf("checking %s for charge[%s]: %w", input.Trigger, charge.ID, err)
 		}
 
 		if !canFire {
 			return fmt.Errorf(
 				"charge[%s] in status %s cannot handle %s for standard line[%s]",
-				stateMachine.GetCharge().ID,
-				stateMachine.GetCharge().Status,
+				charge.ID,
+				charge.Status,
 				input.Trigger,
 				stdLine.ID,
 			)
 		}
 
 		if err := stateMachine.FireAndAdvanceUntilStable(ctx, input.Trigger, input.InputFn(stdLine)); err != nil {
-			return fmt.Errorf("triggering %s for charge[%s]: %w", input.Trigger, stateMachine.GetCharge().ID, err)
+			return fmt.Errorf("triggering %s for charge[%s]: %w", input.Trigger, charge.ID, err)
 		}
 	}
 

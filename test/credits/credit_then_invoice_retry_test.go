@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -25,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
 func (s *CreditThenInvoiceTestSuite) TestFlatFeePaymentAuthorizationRetryPreservesCompletedLineBooking() {
@@ -551,6 +553,352 @@ func (e *failOncePaymentAuthorizationLineEngine) OnPaymentAuthorized(ctx context
 		one := input
 		one.Lines = billing.StandardLines{line}
 		if err := e.LineEngine.OnPaymentAuthorized(ctx, one); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeIssuingRetryPreservesCompletedChargeBooking() {
+	ctx := s.T().Context()
+	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	var fixture issuingRetryInvoice
+	s.Run("create an invoice with two flat fee charges", func() {
+		// given an invoice with two independently bookable flat fee charges
+		t := s.T()
+		fixture = s.setupFlatFeeIssuingRetryInvoice()
+		require.Equal(t, float64(15), fixture.Invoice.Totals.Total.InexactFloat64())
+	})
+
+	var completedBeforeRetry completedIssuingBooking
+	var ledgerBeforeRetry LedgerSnapshot
+	s.Run("fail issuance after the first charge booking completes", func() {
+		// when invoice issuance fails after the first charge booking commits
+		t := s.T()
+		clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
+		defer clock.UnFreeze()
+
+		fault := s.failIssuingAfterFirstBooking(fixture.Invoice, s.FlatFeeSvc.GetLineEngine())
+		failedInvoice, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
+		require.NoError(t, err)
+		require.True(t, fault.Failed)
+		require.Equal(t, billing.StandardInvoiceStatusIssuingChargeBookingFailed, failedInvoice.Status)
+		require.True(t, failedInvoice.HasCriticalValidationIssues())
+
+		completedBeforeRetry = s.requireCompletedFlatFeeIssuingBooking(fixture)
+		ledgerBeforeRetry = s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput())
+		require.Equal(t, float64(5), ledgerBeforeRetry.Accrued.InexactFloat64())
+	})
+
+	s.Run("retry books only the remaining charge", func() {
+		// then retry preserves the completed booking and books the remaining charge
+		t := s.T()
+		retried, err := s.BillingService.RetryInvoice(ctx, fixture.Invoice.GetInvoiceID())
+		require.NoError(t, err)
+		require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingPending, retried.Status, "issues: %+v", retried.ValidationIssues)
+		require.False(t, retried.HasCriticalValidationIssues())
+		require.Equal(t, completedBeforeRetry, s.requireCompletedFlatFeeIssuingBooking(fixture))
+		s.AssertLedgerSnapshotEqual(LedgerSnapshot{
+			FBO:                  ledgerBeforeRetry.FBO,
+			Accrued:              alpacadecimal.NewFromInt(15),
+			OpenReceivable:       alpacadecimal.NewFromInt(-15),
+			AuthorizedReceivable: ledgerBeforeRetry.AuthorizedReceivable,
+			Wash:                 ledgerBeforeRetry.Wash,
+			Earnings:             ledgerBeforeRetry.Earnings,
+		}, s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput()))
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedIssuingRetryPreservesCompletedChargeBooking() {
+	ctx := s.T().Context()
+	clock.FreezeTime(time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+	defer s.MockStreamingConnector.Reset()
+
+	var fixture issuingRetryInvoice
+	s.Run("create an invoice with two usage based charges", func() {
+		// given an invoice with two independently bookable usage based charges
+		t := s.T()
+		fixture = s.setupUsageBasedIssuingRetryInvoice()
+		require.Equal(t, float64(15), fixture.Invoice.Totals.Total.InexactFloat64())
+	})
+
+	var completedBeforeRetry completedIssuingBooking
+	var ledgerBeforeRetry LedgerSnapshot
+	s.Run("fail issuance after the first charge booking completes", func() {
+		// when invoice issuance fails after the first charge booking commits
+		t := s.T()
+		clock.FreezeTime(fixture.Invoice.DraftUntil.Add(time.Second))
+		defer clock.UnFreeze()
+
+		fault := s.failIssuingAfterFirstBooking(fixture.Invoice, s.UsageBasedSvc.GetLineEngine())
+		failedInvoice, err := s.BillingService.AdvanceInvoice(ctx, fixture.Invoice.GetInvoiceID())
+		require.NoError(t, err)
+		require.True(t, fault.Failed)
+		require.Equal(t, billing.StandardInvoiceStatusIssuingChargeBookingFailed, failedInvoice.Status)
+		require.True(t, failedInvoice.HasCriticalValidationIssues())
+
+		completedBeforeRetry = s.requireCompletedUsageBasedIssuingBooking(fixture)
+		ledgerBeforeRetry = s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput())
+		require.Equal(t, float64(5), ledgerBeforeRetry.Accrued.InexactFloat64())
+	})
+
+	s.Run("retry books only the remaining charge", func() {
+		// then retry preserves the completed booking and books the remaining charge
+		t := s.T()
+		retried, err := s.BillingService.RetryInvoice(ctx, fixture.Invoice.GetInvoiceID())
+		require.NoError(t, err)
+		require.Equal(t, billing.StandardInvoiceStatusPaymentProcessingPending, retried.Status, "issues: %+v", retried.ValidationIssues)
+		require.False(t, retried.HasCriticalValidationIssues())
+		require.Equal(t, completedBeforeRetry, s.requireCompletedUsageBasedIssuingBooking(fixture))
+		s.AssertLedgerSnapshotEqual(LedgerSnapshot{
+			FBO:                  ledgerBeforeRetry.FBO,
+			Accrued:              alpacadecimal.NewFromInt(15),
+			OpenReceivable:       alpacadecimal.NewFromInt(-15),
+			AuthorizedReceivable: ledgerBeforeRetry.AuthorizedReceivable,
+			Wash:                 ledgerBeforeRetry.Wash,
+			Earnings:             ledgerBeforeRetry.Earnings,
+		}, s.CreateLedgerSnapshot(fixture.ledgerSnapshotInput()))
+	})
+}
+
+type issuingRetryInvoice struct {
+	Customer customer.CustomerID
+	Invoice  billing.StandardInvoice
+	Charges  [2]meta.ChargeID
+}
+
+func (i issuingRetryInvoice) ledgerSnapshotInput() LedgerSnapshotInput {
+	return LedgerSnapshotInput{
+		Namespace: i.Customer.Namespace,
+		Customer:  i.Customer,
+		Currency:  USD,
+		CostBasis: mo.None[*alpacadecimal.Decimal](),
+	}
+}
+
+type completedIssuingBooking struct {
+	RunID        string
+	LineID       string
+	InvoiceID    string
+	AccruedUsage *invoicedusage.AccruedUsage
+}
+
+func (s *CreditThenInvoiceTestSuite) setupFlatFeeIssuingRetryInvoice() issuingRetryInvoice {
+	t := s.T()
+	t.Helper()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("flat-fee-issuing-retry")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	invoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	s.ProvisionBillingProfile(ctx, ns, invoicing.App.GetID())
+	period := timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now().AddDate(0, 1, 0)}
+	intents := make([]charges.ChargeIntent, 0, 2)
+	for i, amount := range []int64{5, 10} {
+		intents = append(intents, s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+			Customer:       cust.GetID(),
+			Currency:       USD,
+			ServicePeriod:  period,
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(amount),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			ProRating:         productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices},
+			Name:              fmt.Sprintf("charge %d", i),
+			ManagedBy:         billing.SubscriptionManagedLine,
+			UniqueReferenceID: fmt.Sprintf("charge-%d", i),
+		}))
+	}
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+	require.NoError(t, err)
+	require.Len(t, created, 2)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	require.NoError(t, err)
+	require.Len(t, invoices, 1)
+
+	invoice := invoices[0]
+	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	require.NotNil(t, invoice.DraftUntil)
+	require.Len(t, invoice.Lines.OrEmpty(), 2)
+	fixture := issuingRetryInvoice{Customer: cust.GetID(), Invoice: invoice}
+	for i, line := range invoice.Lines.OrEmpty() {
+		require.NotNil(t, line.ChargeID)
+		fixture.Charges[i] = meta.ChargeID{Namespace: ns, ID: *line.ChargeID}
+		s.RequireFlatFeeChargeStatus(fixture.Charges[i], flatfee.StatusActiveRealizationProcessing)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: float64((i + 1) * 5), Total: float64((i + 1) * 5)}, line.Totals)
+	}
+
+	return fixture
+}
+
+func (s *CreditThenInvoiceTestSuite) setupUsageBasedIssuingRetryInvoice() issuingRetryInvoice {
+	t := s.T()
+	t.Helper()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("usage-based-issuing-retry")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	invoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	s.ProvisionBillingProfile(ctx, ns, invoicing.App.GetID())
+	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+	period := timeutil.ClosedPeriod{From: clock.Now().AddDate(0, -1, 0), To: clock.Now()}
+	s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 5, period.From.Add(15*24*time.Hour))
+	intents := make([]charges.ChargeIntent, 0, 2)
+	for i, unitPrice := range []int64{1, 2} {
+		intents = append(intents, s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+			Customer:          cust.GetID(),
+			Currency:          USD,
+			ServicePeriod:     period,
+			SettlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+			Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(unitPrice)}),
+			ProRating:         productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices},
+			FeatureKey:        feature.Feature.Key,
+			Name:              fmt.Sprintf("charge %d", i),
+			ManagedBy:         billing.SubscriptionManagedLine,
+			UniqueReferenceID: fmt.Sprintf("charge-%d", i),
+		}))
+	}
+
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+	require.NoError(t, err)
+	require.Len(t, created, 2)
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	require.NoError(t, err)
+	require.Len(t, invoices, 1)
+
+	invoice := invoices[0]
+	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+	clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
+	defer clock.UnFreeze()
+	invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
+	require.NoError(t, err)
+	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	require.NotNil(t, invoice.DraftUntil)
+	require.Len(t, invoice.Lines.OrEmpty(), 2)
+	fixture := issuingRetryInvoice{Customer: cust.GetID(), Invoice: invoice}
+	for i, line := range invoice.Lines.OrEmpty() {
+		require.NotNil(t, line.ChargeID)
+		fixture.Charges[i] = meta.ChargeID{Namespace: ns, ID: *line.ChargeID}
+		s.RequireUsageBasedChargeStatus(fixture.Charges[i], usagebased.StatusActiveRealizationProcessing)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: float64((i + 1) * 5), Total: float64((i + 1) * 5)}, line.Totals)
+	}
+
+	return fixture
+}
+
+func (s *CreditThenInvoiceTestSuite) requireCompletedFlatFeeIssuingBooking(fixture issuingRetryInvoice) completedIssuingBooking {
+	t := s.T()
+	t.Helper()
+	charge := s.RequireFlatFeeChargeStatus(fixture.Charges[0], flatfee.StatusActiveAwaitingPaymentSettlement)
+	run := charge.Realizations.CurrentRun
+	require.NotNil(t, run)
+	require.True(t, run.Immutable)
+	require.Nil(t, run.DeletedAt)
+	require.Nil(t, run.Payment)
+	booking := completedIssuingBooking{
+		RunID:        run.ID.ID,
+		LineID:       lo.FromPtr(run.LineID),
+		InvoiceID:    lo.FromPtr(run.InvoiceID),
+		AccruedUsage: run.AccruedUsage,
+	}
+	s.requireCompletedIssuingBooking(fixture, booking)
+
+	return booking
+}
+
+func (s *CreditThenInvoiceTestSuite) requireCompletedUsageBasedIssuingBooking(fixture issuingRetryInvoice) completedIssuingBooking {
+	t := s.T()
+	t.Helper()
+	charge := s.RequireUsageBasedChargeStatus(fixture.Charges[0], usagebased.StatusActiveAwaitingPaymentSettlement)
+	require.Nil(t, charge.State.CurrentRealizationRunID)
+	run, err := charge.Realizations.GetByLineID(fixture.Invoice.Lines.OrEmpty()[0].ID)
+	require.NoError(t, err)
+	require.True(t, run.Immutable)
+	require.Nil(t, run.DeletedAt)
+	require.Nil(t, run.Payment)
+	booking := completedIssuingBooking{
+		RunID:        run.ID.ID,
+		LineID:       lo.FromPtr(run.LineID),
+		InvoiceID:    lo.FromPtr(run.InvoiceID),
+		AccruedUsage: run.InvoiceUsage,
+	}
+	s.requireCompletedIssuingBooking(fixture, booking)
+
+	return booking
+}
+
+func (s *CreditThenInvoiceTestSuite) requireCompletedIssuingBooking(fixture issuingRetryInvoice, booking completedIssuingBooking) {
+	t := s.T()
+	t.Helper()
+	firstLine := fixture.Invoice.Lines.OrEmpty()[0]
+	require.NotEmpty(t, booking.RunID)
+	require.Equal(t, firstLine.ID, booking.LineID)
+	require.Equal(t, fixture.Invoice.ID, booking.InvoiceID)
+	require.NotNil(t, booking.AccruedUsage)
+	require.NotNil(t, booking.AccruedUsage.LedgerTransaction)
+	require.Equal(t, firstLine.Totals.Total.InexactFloat64(), booking.AccruedUsage.Totals.Total.InexactFloat64())
+}
+
+func (s *CreditThenInvoiceTestSuite) failIssuingAfterFirstBooking(invoice billing.StandardInvoice, engine billing.LineEngine) *failOnceIssuingLineEngine {
+	t := s.T()
+	t.Helper()
+	fault := &failOnceIssuingLineEngine{LineEngine: engine, FailLineID: invoice.Lines.OrEmpty()[1].ID}
+	require.NoError(t, s.BillingService.DeregisterLineEngine(engine.GetLineEngineType()))
+	require.NoError(t, s.BillingService.RegisterLineEngine(fault))
+	restoration := issuingLineEngineRestoration{T: t, Billing: s.BillingService, Engine: engine}
+	t.Cleanup(restoration.restore)
+
+	return fault
+}
+
+type issuingLineEngineRestoration struct {
+	T       *testing.T
+	Billing billing.Service
+	Engine  billing.LineEngine
+}
+
+func (r issuingLineEngineRestoration) restore() {
+	require.NoError(r.T, r.Billing.DeregisterLineEngine(r.Engine.GetLineEngineType()))
+	require.NoError(r.T, r.Billing.RegisterLineEngine(r.Engine))
+}
+
+type failOnceIssuingLineEngine struct {
+	billing.LineEngine
+	FailLineID string
+	Failed     bool
+}
+
+func (e *failOnceIssuingLineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {
+	if e.Failed {
+		return e.LineEngine.OnInvoiceIssued(ctx, input)
+	}
+
+	for _, line := range input.Lines {
+		if line.ID == e.FailLineID {
+			e.Failed = true
+
+			return billing.ValidationIssue{
+				Severity: billing.ValidationIssueSeverityCritical,
+				Code:     "test_issuing_callback_failed",
+				Message:  "transient invoice-issued callback failure",
+			}
+		}
+
+		lineInput := input
+		lineInput.Lines = billing.StandardLines{line}
+		if err := e.LineEngine.OnInvoiceIssued(ctx, lineInput); err != nil {
 			return err
 		}
 	}
