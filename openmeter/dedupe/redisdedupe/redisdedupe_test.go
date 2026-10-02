@@ -18,6 +18,7 @@ type lookupHook struct {
 	calls   int
 	err     error
 	latency time.Duration
+	values  map[string]string
 }
 
 func (h *lookupHook) DialHook(next redis.DialHook) redis.DialHook { return next }
@@ -35,6 +36,15 @@ func (h *lookupHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
 			return h.err
 		}
 		switch cmd := cmd.(type) {
+		case *redis.Cmd:
+			args := cmd.Args()
+			key, token := args[len(args)-2].(string), args[len(args)-1].(string)
+			if h.values[key] == token {
+				delete(h.values, key)
+				cmd.SetVal(int64(1))
+			} else {
+				cmd.SetVal(int64(0))
+			}
 		case *redis.SliceCmd:
 			values := make([]any, len(cmd.Args())-1)
 			for i, arg := range cmd.Args()[1:] {
@@ -48,6 +58,10 @@ func (h *lookupHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
 			for _, arg := range cmd.Args()[1:] {
 				if h.keys[arg.(string)] {
 					count++
+
+					if cmd.Name() == "del" {
+						delete(h.keys, arg.(string))
+					}
 				}
 			}
 			cmd.SetVal(count)
@@ -146,4 +160,143 @@ func TestCheckUniqueBatchInvalidMode(t *testing.T) {
 	d := Deduplicator{Redis: client, Mode: DedupeMode("invalid")}
 	_, err := d.CheckUniqueBatch(t.Context(), []dedupe.Item{{ID: "id"}})
 	require.Error(t, err)
+}
+
+func TestRelease(t *testing.T) {
+	for _, mode := range []DedupeMode{DedupeModeRawKey, DedupeModeKeyHash, DedupeModeKeyHashMigration} {
+		t.Run(string(mode), func(t *testing.T) {
+			item := dedupe.Item{Namespace: "ns", Source: "source", ID: "id"}
+			key := item.Key()
+			if mode != DedupeModeRawKey {
+				key = GetKeyHash(key)
+			}
+			hook := &lookupHook{keys: map[string]bool{}, values: map[string]string{key: "current"}}
+			client := redis.NewClient(&redis.Options{})
+			t.Cleanup(func() { require.NoError(t, client.Close()) })
+			client.AddHook(hook)
+			d := Deduplicator{Redis: client, Mode: mode}
+
+			require.NoError(t, d.Release(t.Context(), dedupe.Claim{Item: item, Token: "stale"}))
+			require.Equal(t, "current", hook.values[key])
+			require.NoError(t, d.Release(t.Context(), dedupe.Claim{Item: item, Token: "current"}))
+			require.NotContains(t, hook.values, key)
+
+			hook.err = errors.New("redis unavailable")
+			require.ErrorIs(t, d.Release(t.Context(), dedupe.Claim{Item: item, Token: "current"}), hook.err)
+		})
+	}
+}
+
+type migrationClaimHook struct {
+	values            map[string]string
+	rawExists         bool
+	existsErr         error
+	releaseErr        error
+	cancelAfterExists context.CancelFunc
+	releaseContextErr error
+}
+
+func (h *migrationClaimHook) DialHook(next redis.DialHook) redis.DialHook { return next }
+func (h *migrationClaimHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return next
+}
+func (h *migrationClaimHook) ProcessHook(_ redis.ProcessHook) redis.ProcessHook {
+	return func(ctx context.Context, cmd redis.Cmder) error {
+		switch cmd.Name() {
+		case "set":
+			args := cmd.Args()
+			h.values[args[1].(string)] = args[2].(string)
+			cmd.(*redis.StatusCmd).SetVal("OK")
+			return nil
+		case "exists":
+			if h.cancelAfterExists != nil {
+				h.cancelAfterExists()
+			}
+			if h.existsErr != nil {
+				return h.existsErr
+			}
+			if h.rawExists {
+				cmd.(*redis.IntCmd).SetVal(1)
+			} else {
+				cmd.(*redis.IntCmd).SetVal(0)
+			}
+			return nil
+		case "eval":
+			h.releaseContextErr = ctx.Err()
+			if h.releaseErr != nil {
+				return h.releaseErr
+			}
+			args := cmd.Args()
+			key, token := args[len(args)-2].(string), args[len(args)-1].(string)
+			if h.values[key] == token {
+				delete(h.values, key)
+				cmd.(*redis.Cmd).SetVal(int64(1))
+			} else {
+				cmd.(*redis.Cmd).SetVal(int64(0))
+			}
+			return nil
+		default:
+			return errors.New("unexpected Redis command: " + cmd.Name())
+		}
+	}
+}
+
+func TestClaimMigrationReleasesHashOnRawLookupError(t *testing.T) {
+	item := dedupe.Item{Namespace: "ns", Source: "source", ID: "id"}
+	existsErr := errors.New("raw lookup failed")
+	hook := &migrationClaimHook{values: map[string]string{}, existsErr: existsErr}
+	client := redis.NewClient(&redis.Options{})
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	client.AddHook(hook)
+	d := Deduplicator{Redis: client, Mode: DedupeModeKeyHashMigration}
+
+	_, unique, err := d.Claim(t.Context(), item)
+	require.False(t, unique)
+	require.ErrorIs(t, err, existsErr)
+	require.NotContains(t, hook.values, GetKeyHash(item.Key()))
+	require.NoError(t, hook.releaseContextErr)
+}
+
+func TestClaimMigrationJoinsRawLookupAndReleaseErrors(t *testing.T) {
+	item := dedupe.Item{Namespace: "ns", Source: "source", ID: "id"}
+	existsErr := errors.New("raw lookup failed")
+	releaseErr := errors.New("release failed")
+	hook := &migrationClaimHook{values: map[string]string{}, existsErr: existsErr, releaseErr: releaseErr}
+	client := redis.NewClient(&redis.Options{})
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	client.AddHook(hook)
+	d := Deduplicator{Redis: client, Mode: DedupeModeKeyHashMigration}
+
+	_, unique, err := d.Claim(t.Context(), item)
+	require.False(t, unique)
+	require.ErrorIs(t, err, existsErr)
+	require.ErrorIs(t, err, releaseErr)
+}
+
+func TestClaimMigrationReleasesHashAfterCancellation(t *testing.T) {
+	item := dedupe.Item{Namespace: "ns", Source: "source", ID: "id"}
+	ctx, cancel := context.WithCancel(t.Context())
+	hook := &migrationClaimHook{values: map[string]string{}, rawExists: true, cancelAfterExists: cancel}
+	client := redis.NewClient(&redis.Options{})
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	client.AddHook(hook)
+	d := Deduplicator{Redis: client, Mode: DedupeModeKeyHashMigration}
+
+	_, unique, err := d.Claim(ctx, item)
+	require.NoError(t, err)
+	require.False(t, unique)
+	require.NotContains(t, hook.values, GetKeyHash(item.Key()))
+	require.NoError(t, hook.releaseContextErr)
+}
+
+func TestReleaseRejectsEmptyToken(t *testing.T) {
+	client := redis.NewClient(&redis.Options{})
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	hook := &lookupHook{values: map[string]string{"key": ""}}
+	client.AddHook(hook)
+	d := Deduplicator{Redis: client, Mode: DedupeModeRawKey}
+
+	err := d.Release(t.Context(), dedupe.Claim{Item: dedupe.Item{Namespace: "ns", Source: "source", ID: "id"}})
+	require.EqualError(t, err, "claim token is empty")
+	require.Zero(t, hook.calls)
 }
