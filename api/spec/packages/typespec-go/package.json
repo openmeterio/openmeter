@@ -29,6 +29,6 @@
     "@alloy-js/cli": "0.24.0",
     "@types/node": "26.1.1",
     "typescript": "7.0.2",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }
