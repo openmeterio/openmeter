@@ -487,8 +487,8 @@ jobs:
     name: Test
     runs-on: ubuntu-24.04
     env:
-      COMPOSE_FILE: docker-compose.yaml:docker-compose.postgres-test.yaml:.github/docker-compose.depot-registry.yaml
-      COMPOSE_PROFILES: redis,depot-registry-svix
+      COMPOSE_FILE: docker-compose.yaml:docker-compose.postgres-test.yaml
+      COMPOSE_PROFILES: redis,webhook
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -767,11 +767,14 @@ jobs:
     name: Quickstart
     runs-on: ubuntu-24.04
     env:
-      COMPOSE_PROFILES: depot-registry-svix
+      COMPOSE_PROFILES: webhook
     needs:
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -784,6 +787,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Set up Depot CLI
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Log in to Depot Registry
+        env:
+          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
+        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
 
       - name: Create override files for quickstart
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -846,7 +857,7 @@ jobs:
               build: ..
           EOF
       - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
 
       - name: Set up Go
@@ -879,7 +890,7 @@ jobs:
         run: go test -v -count=1 ./quickstart/
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml down -v
         working-directory: quickstart
         if: always()
 
@@ -891,6 +902,9 @@ jobs:
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -903,6 +917,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Set up Depot CLI
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Log in to Depot Registry
+        env:
+          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
+        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
 
       - name: Create override files for e2e
         env:
@@ -945,7 +967,7 @@ jobs:
 
       - name: Launch Docker Compose infra
         id: launch_e2e
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
         working-directory: e2e
 
       - name: Start Docker Compose log stream for base tests
@@ -953,7 +975,7 @@ jobs:
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/base
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/base/compose-follow.log 2>&1 &
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/base/compose-follow.log 2>&1 &
           echo "$!" > artifacts/logs/docker-compose/base/compose-follow.pid
 
       - name: Set up Go
@@ -997,13 +1019,13 @@ jobs:
             kill "$(cat artifacts/logs/docker-compose/base/compose-follow.pid)" 2>/dev/null || true
             sleep 1
           fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml ps --all > artifacts/logs/docker-compose/base/compose-ps.txt 2>&1 || true
-          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/base/${service}.log" 2>&1 || true
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml ps --all > artifacts/logs/docker-compose/base/compose-ps.txt 2>&1 || true
+          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml config --services); do
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/base/${service}.log" 2>&1 || true
           done
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
         working-directory: e2e
         if: always()
 
@@ -1025,6 +1047,9 @@ jobs:
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -1037,6 +1062,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Set up Depot CLI
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Log in to Depot Registry
+        env:
+          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
+        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
 
       - name: Create override files for e2e
         env:
@@ -1080,7 +1113,7 @@ jobs:
 
       - name: Launch Docker Compose infra with credits disabled
         id: launch_credits_disabled_e2e
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
         working-directory: e2e
 
       - name: Start Docker Compose log stream for credits-disabled tests
@@ -1088,7 +1121,7 @@ jobs:
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/credits-disabled
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
           echo "$!" > artifacts/logs/docker-compose/credits-disabled/compose-follow.pid
 
       - name: Set up Go
@@ -1132,13 +1165,13 @@ jobs:
             kill "$(cat artifacts/logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
             sleep 1
           fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
-          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
+          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml config --services); do
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
           done
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml down -v
         working-directory: e2e
         if: always()
 
