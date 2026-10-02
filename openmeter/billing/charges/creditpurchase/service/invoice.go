@@ -182,6 +182,13 @@ func (s *service) handleInvoiceLifecycleTrigger(ctx context.Context, input Handl
 		return creditpurchase.Charge{}, fmt.Errorf("validate invoice lifecycle trigger: %w", err)
 	}
 
+	if input.Trigger == billing.TriggerAuthorized && input.Charge.Realizations.InvoiceSettlement != nil {
+		return s.realizations.AuthorizeInvoicedPayment(ctx, creditpurchaserealizations.AuthorizeInvoicedPaymentInput{
+			Charge:         input.Charge,
+			LineWithHeader: input.LineWithHeader,
+		})
+	}
+
 	stateMachine, err := NewInvoiceCreditPurchaseStateMachine(StateMachineConfig{
 		Charge:            input.Charge,
 		Adapter:           s.adapter,

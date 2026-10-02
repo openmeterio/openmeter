@@ -211,6 +211,11 @@ invoice validation issue.
   written under the lifecycle transaction. Retry safety comes from persisted
   lifecycle facts checked before handlers run, not from the
   [ledger](../../ledger/README.md#transaction-invariants).
+- Invoice authorization retries for flat-fee, usage-based, and credit-purchase
+  charges acknowledge an existing valid, non-deleted payment only when its
+  namespace, invoice, line, and amount match. Authorized and settled payments
+  retain their original authorization references without another booking.
+  Conflicting or invalid payment facts remain errors.
 - Due `credit_only` flat-fee and usage-based charges are persisted before
   post-create auto-advance, so worker retries do not lose the intent. Credit
   purchases follow their own creation and invoice-event lifecycle.
