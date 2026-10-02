@@ -214,63 +214,25 @@ jobs:
             "${runtime_probe}" -test.run '^$'
           EOF
 
-      - name: Save Nix store cache
-        uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
-        with:
-          primary-key: ${{ needs.nix-changes.outputs.cache-key }}
-          save: "true"
-
-  build:
-    name: Build
-    runs-on: depot-ubuntu-24.04-8
-
-    steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
-          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .go-version
-          cache: false
-
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      - name: Build components in Nix environment
         run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
-
-      - name: Build components
-        run: |
-          # On Depot runners, cgo external linking can spill large temporary linker
-          # files into /run via the default temp dir. Keep Go and system temp files
-          # on the workspace disk for this step to avoid "no space left on device",
-          # while still allowing each parallel go build to get its own temp dir.
           mkdir -p \
             "$GITHUB_WORKSPACE/.tmp/go-work" \
             "$GITHUB_WORKSPACE/.tmp/system"
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            make -j 4 build GO_BUILD_FLAGS=
+            nix develop --impure .#ci -c make -j 4 build GO_BUILD_FLAGS=
+
+      - name: Save Nix store cache
+        uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ needs.nix-changes.outputs.cache-key }}
+          save: "true"
 
   generators-openapi:
     name: Code Generators / OpenAPI
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -288,7 +250,12 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -306,17 +273,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: api/spec/pnpm-lock.yaml
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Verify runner tools
         run: |
@@ -345,7 +303,7 @@ jobs:
 
   generators-javascript-sdk:
     name: Code Generators / JavaScript SDK
-    runs-on: depot-ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -464,7 +422,7 @@ jobs:
 
   go-sdk:
     name: Go SDK
-    runs-on: depot-ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -482,19 +440,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Run Go SDK checks
         run: make test-go-sdk
@@ -572,7 +526,7 @@ jobs:
 
   migrations:
     name: Migration Checks
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     env:
       ATLAS_SHA256_AMD64: d88aae186a55e5893c318f3b11c838a3372adf4dac1e2fd3bc7d2b55944c5797
       ATLAS_SHA256_ARM64: bb8a22a08ccd9a6cb93f0a16205b7bbeb067dd7fec1f60227c687d8de93d6088
@@ -595,19 +549,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Install Atlas
         run: |
@@ -698,7 +648,7 @@ jobs:
 
   lint-other:
     name: Lint / Other
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -795,13 +745,16 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     env:
-      COMPOSE_PROFILES: depot-registry-svix
+      COMPOSE_PROFILES: webhook
     needs:
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -814,6 +767,16 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Set up Depot CLI
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Log in to Depot Registry
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
+        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
 
       - name: Create override files for quickstart
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -876,26 +839,22 @@ jobs:
               build: ..
           EOF
       - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d
         working-directory: quickstart
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -913,7 +872,7 @@ jobs:
         run: go test -v -count=1 ./quickstart/
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
+        run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml down -v
         working-directory: quickstart
         if: always()
 
@@ -1057,12 +1016,15 @@ jobs:
 
   e2e-credits-disabled:
     name: E2E / Credits disabled
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
     # Note: This check is running against the image that is going to be pushed.
     needs:
       - trusted-artifacts
       - untrusted-artifacts
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success') }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -1075,6 +1037,16 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Set up Depot CLI
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Log in to Depot Registry
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
+        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
 
       - name: Create override files for e2e
         env:
@@ -1118,7 +1090,7 @@ jobs:
 
       - name: Launch Docker Compose infra with credits disabled
         id: launch_credits_disabled_e2e
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml up -d
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
         working-directory: e2e
 
       - name: Start Docker Compose log stream for credits-disabled tests
@@ -1126,26 +1098,22 @@ jobs:
         working-directory: e2e
         run: |
           mkdir -p artifacts/logs/docker-compose/credits-disabled
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
           echo "$!" > artifacts/logs/docker-compose/credits-disabled/compose-follow.pid
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -1174,13 +1142,13 @@ jobs:
             kill "$(cat artifacts/logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
             sleep 1
           fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
-          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
+          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml config --services); do
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
           done
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml -f ../.github/docker-compose.depot-registry.yaml down -v
+        run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml down -v
         working-directory: e2e
         if: always()
 
