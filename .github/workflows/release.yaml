@@ -15,19 +15,6 @@ permissions:
   contents: read
 
 jobs:
-  artifacts:
-    name: Artifacts
-    # Artifact publishing (container images, etc.) is tag-only.
-    if: github.ref_type == 'tag'
-    uses: $/.github/workflows/artifacts.yaml
-    with:
-      publish: true
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      security-events: write
-
   helm-release:
     name: Helm Charts
     # Helm chart releases are tag-only.
@@ -268,7 +255,7 @@ jobs:
     # npm's trusted publisher entry is keyed on caller workflow file + environment,
     # so this single caller must serve both channels.
     needs: [ sdk-javascript-meta ]
-    uses: $/.github/workflows/npm-release.yaml
+    uses: $/.github/workflows/release-npm.yaml
     with:
       version: ${{ needs.sdk-javascript-meta.outputs.version }}
       dist-tag: ${{ needs.sdk-javascript-meta.outputs.dist-tag }}
@@ -284,7 +271,7 @@ jobs:
     # publisher entry is keyed on caller workflow file + environment, so this
     # caller must serve both channels.
     needs: [ sdk-javascript-meta ]
-    uses: $/.github/workflows/aip-npm-release.yaml
+    uses: $/.github/workflows/release-aip-npm.yaml
     with:
       version: ${{ needs.sdk-javascript-meta.outputs.version }}
       dist-tag: ${{ needs.sdk-javascript-meta.outputs.dist-tag }}
@@ -294,7 +281,7 @@ jobs:
 
   sdk-python-release:
     name: Python SDK Release
-    # Python SDK releases are tag-only (dev Python releases live in sdk-python-dev-release.yaml).
+    # Python SDK releases are tag-only (dev Python releases live in release-sdk-python-dev.yaml).
     if: github.ref_type == 'tag'
     runs-on: depot-ubuntu-latest-8
     environment: prod

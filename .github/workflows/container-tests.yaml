@@ -1,0 +1,262 @@
+name: Container Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Supersede stale pull request runs without cancelling independent main runs.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  local-container-tests:
+    name: Container tests / Local
+    if: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]') }}
+    runs-on: ubuntu-24.04
+    env:
+      OPENMETER_IMAGE: openmeter-ci:${{ github.sha }}
+    permissions:
+      contents: read
+
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build OpenMeter image
+        run: docker build --tag "${OPENMETER_IMAGE}" .
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
+
+      - name: Quickstart
+        id: quickstart
+        continue-on-error: true
+        run: bash .github/scripts/run-quickstart.sh "${OPENMETER_IMAGE}" never
+
+      - name: Base E2E
+        id: e2e
+        continue-on-error: true
+        run: bash .github/scripts/run-e2e.sh base "${OPENMETER_IMAGE}" never upstream
+
+      - name: Credits-disabled E2E
+        id: e2e-credits-disabled
+        continue-on-error: true
+        run: bash .github/scripts/run-e2e.sh credits-disabled "${OPENMETER_IMAGE}" never upstream
+
+      - name: Upload OpenMeter logs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: "[${{ github.job }}] OpenMeter logs"
+          path: |
+            quickstart/artifacts/logs/**
+            e2e/logs/**
+            e2e/artifacts/logs/**
+          retention-days: 14
+
+      - name: Verify container test results
+        if: always()
+        env:
+          QUICKSTART_RESULT: ${{ steps.quickstart.outcome }}
+          E2E_RESULT: ${{ steps.e2e.outcome }}
+          CREDITS_DISABLED_RESULT: ${{ steps.e2e-credits-disabled.outcome }}
+        run: |
+          failed="false"
+
+          for result in \
+            "Quickstart:${QUICKSTART_RESULT}" \
+            "Base E2E:${E2E_RESULT}" \
+            "Credits-disabled E2E:${CREDITS_DISABLED_RESULT}"
+          do
+            name="${result%%:*}"
+            outcome="${result#*:}"
+            echo "${name}: ${outcome}"
+
+            if [ "${outcome}" != "success" ]; then
+              failed="true"
+            fi
+          done
+
+          if [ "${failed}" = "true" ]; then
+            exit 1
+          fi
+
+  registry-image:
+    name: Container test image
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]') }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image: registry.depot.dev/${{ steps.build.outputs.project-id }}@${{ steps.build.outputs.imageid }}
+
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Depot CLI
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Build OpenMeter image
+        id: build
+        uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
+        with:
+          context: .
+          build-args: VERSION=${{ github.sha }}
+          platforms: linux/amd64
+          tags: openmeter-ci:${{ github.sha }}
+          push: false
+          save: true
+          project: ${{ vars.DEPOT_PROJECT }}
+
+  registry-container-tests:
+    name: Container tests / ${{ matrix.name }}
+    needs: registry-image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Quickstart
+            suite: quickstart
+            runner: ubuntu-24.04
+            go_cache: true
+            verify_depot_cache: false
+          - name: Base E2E
+            suite: base
+            runner: depot-ubuntu-24.04-8
+            go_cache: false
+            verify_depot_cache: true
+          - name: Credits-disabled E2E
+            suite: credits-disabled
+            runner: ubuntu-24.04
+            go_cache: true
+            verify_depot_cache: false
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+          cache: ${{ matrix.go_cache }}
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
+
+      - name: Verify Depot Go cache
+        if: matrix.verify_depot_cache
+        run: |
+          cache_program="$(go env GOCACHEPROG)"
+
+          if [[ "${cache_program}" != *"depot gocache"* ]]; then
+            echo "Depot Go cache is unavailable with upstream Go"
+            exit 1
+          fi
+
+          echo "Using ${cache_program}"
+
+      - name: Set up Depot CLI
+        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+
+      - name: Log in to Depot Registry
+        env:
+          DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
+        run: depot pull-token --project "${DEPOT_PROJECT}" | docker login registry.depot.dev --username x-token --password-stdin
+
+      - name: Run ${{ matrix.name }}
+        env:
+          OPENMETER_IMAGE: ${{ needs.registry-image.outputs.image }}
+        run: |
+          case "${{ matrix.suite }}" in
+            quickstart)
+              bash .github/scripts/run-quickstart.sh "${OPENMETER_IMAGE}" always
+              ;;
+            base|credits-disabled)
+              bash .github/scripts/run-e2e.sh "${{ matrix.suite }}" "${OPENMETER_IMAGE}" always depot
+              ;;
+          esac
+
+      - name: Upload OpenMeter logs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: "[${{ github.job }}-${{ matrix.suite }}] OpenMeter logs"
+          path: |
+            quickstart/artifacts/logs/**
+            e2e/logs/**
+            e2e/artifacts/logs/**
+          retention-days: 14
+
+  # Branch protection needs one stable result even though fork and registry
+  # builds intentionally use different execution graphs.
+  result:
+    name: Result
+    needs:
+      - local-container-tests
+      - registry-image
+      - registry-container-tests
+    if: always()
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Verify container test path
+        env:
+          LOCAL_RESULT: ${{ needs.local-container-tests.result }}
+          REGISTRY_IMAGE_RESULT: ${{ needs.registry-image.result }}
+          REGISTRY_TESTS_RESULT: ${{ needs.registry-container-tests.result }}
+        run: |
+          case "${LOCAL_RESULT}:${REGISTRY_IMAGE_RESULT}:${REGISTRY_TESTS_RESULT}" in
+            success:skipped:skipped|skipped:success:success)
+              exit 0
+              ;;
+            *)
+              echo "Container tests did not complete successfully"
+              exit 1
+              ;;
+          esac
