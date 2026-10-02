@@ -20,6 +20,9 @@ type Meta struct {
 // Actions reports a reconcile task while the app's webhook endpoint was registered with
 // an older event set than LatestWebhookSchemaVersion covers.
 func (m Meta) Actions() []app.AppAction {
+	if m.DeletedAt != nil {
+		return nil
+	}
 	if m.WebhookSchemaVersion < LatestWebhookSchemaVersion {
 		return []app.AppAction{
 			{

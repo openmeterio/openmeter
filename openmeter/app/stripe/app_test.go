@@ -2,7 +2,9 @@ package appstripe
 
 import (
 	"testing"
+	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -38,5 +40,12 @@ func TestMetaActionsReportsOutdatedWebhookSchema(t *testing.T) {
 
 	t.Run("latest version has no actions", func(t *testing.T) {
 		require.Nil(t, Meta{AppData: AppData{WebhookSchemaVersion: LatestWebhookSchemaVersion}}.Actions())
+	})
+
+	t.Run("deleted app has no actions", func(t *testing.T) {
+		deleted := Meta{AppData: AppData{WebhookSchemaVersion: LatestWebhookSchemaVersion - 1}}
+		deleted.DeletedAt = lo.ToPtr(time.Now())
+
+		require.Nil(t, deleted.Actions())
 	})
 }
