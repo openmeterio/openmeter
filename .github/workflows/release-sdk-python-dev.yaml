@@ -36,6 +36,7 @@ jobs:
       - name: Set up Nix
         uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
+          # Authenticate public flake fetches to avoid GitHub API rate limits.
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
@@ -45,12 +46,9 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
-          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          primary-key: ${{ runner.os }}-openmeter-nix-build-v5-main-${{ hashFiles('.github/workflows/nix.yaml', 'flake.lock', '**/*.nix') }}
           restore-prefixes-first-match: |
-            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
-            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
-            ${{ runner.os }}-openmeter-nix-build-main-
-            ${{ runner.os }}-openmeter-nix-build-
+            ${{ runner.os }}-openmeter-nix-build-v5-main-
 
       - name: Publish Python package via Nix make target
         run: |
