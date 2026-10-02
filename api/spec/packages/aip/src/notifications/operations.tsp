@@ -40,8 +40,6 @@ interface NotificationChannelOperations {
   @operationId("list-notification-channels")
   @summary("List notification channels")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   list(
     ...Common.PagePaginationQuery,
 
@@ -77,8 +75,6 @@ interface NotificationChannelOperations {
   @operationId("create-notification-channel")
   @summary("Create notification channel")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   create(
     @body
     channel: Shared.CreateRequest<NotificationChannel>,
@@ -92,8 +88,6 @@ interface NotificationChannelOperations {
   @operationId("get-notification-channel")
   @summary("Get notification channel")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   get(@path notificationChannelId: Shared.ULID):
     | Shared.GetResponse<NotificationChannel>
     | Common.NotFound
@@ -107,8 +101,6 @@ interface NotificationChannelOperations {
   @operationId("update-notification-channel")
   @summary("Update notification channel")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   update(
     @path notificationChannelId: Shared.ULID,
 
@@ -128,8 +120,6 @@ interface NotificationChannelOperations {
   @operationId("delete-notification-channel")
   @summary("Delete notification channel")
   @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.PrivateExtension, true)
   delete(@path notificationChannelId: Shared.ULID):
     | Shared.DeleteResponse
     | Common.NotFound

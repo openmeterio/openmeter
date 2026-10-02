@@ -102,7 +102,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     post:
       operationId: create-addon
       summary: Create add-on
@@ -128,7 +127,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateAddonRequest'
-      x-unstable: true
   /openmeter/addons/{addonId}:
     put:
       operationId: update-addon
@@ -165,7 +163,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertAddonRequest'
-      x-unstable: true
     get:
       operationId: get-addon
       summary: Get add-on
@@ -195,7 +192,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     delete:
       operationId: delete-addon
       summary: Soft delete add-on
@@ -219,7 +215,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
   /openmeter/addons/{addonId}/archive:
     post:
       operationId: archive-addon
@@ -248,7 +243,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/addons/{addonId}/publish:
     post:
       operationId: publish-addon
@@ -277,7 +272,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/app-catalog:
     get:
       operationId: list-app-catalog
@@ -300,8 +295,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/app-catalog/install:
     post:
@@ -330,8 +323,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BillingInstallAppRequest'
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/app-catalog/{appType}:
     get:
@@ -361,8 +352,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/apps:
     get:
@@ -462,8 +451,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
-      x-private: true
-      x-internal: true
       x-unstable: true
     put:
       operationId: update-app
@@ -498,8 +485,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingUpdateAppRequest'
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/billing/invoices:
     get:
@@ -558,9 +543,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing Settings
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}:
     get:
       operationId: get-invoice
@@ -593,9 +575,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
-      x-private: true
-      x-internal: true
-      x-unstable: true
     put:
       operationId: update-invoice
       summary: Update a billing invoice
@@ -636,9 +615,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateInvoiceRequest'
-      x-private: true
-      x-internal: true
-      x-unstable: true
     delete:
       operationId: delete-invoice
       summary: Delete a billing invoice
@@ -666,9 +642,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/advance:
     post:
       operationId: advance-invoice
@@ -703,9 +676,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/approve:
     post:
       operationId: approve-invoice
@@ -746,9 +716,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/retry:
     post:
       operationId: retry-invoice
@@ -784,9 +751,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/billing/invoices/{invoiceId}/snapshot-quantities:
     post:
       operationId: snapshot-quantities-invoice
@@ -825,9 +789,6 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/charges:
     get:
       operationId: list-charges
@@ -913,8 +874,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing Settings
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/currencies:
     get:
@@ -976,7 +935,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Currencies
-      x-internal: true
       x-unstable: true
   /openmeter/currencies/custom:
     post:
@@ -1006,7 +964,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCurrencyCustomRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/currencies/custom/{currencyId}:
     get:
@@ -1034,7 +991,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Currencies
-      x-internal: true
       x-unstable: true
   /openmeter/currencies/custom/{currencyId}/cost-bases:
     get:
@@ -1078,7 +1034,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Currencies
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-cost-basis
@@ -1111,7 +1066,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCostBasisRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/customers:
     post:
@@ -1541,8 +1495,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
-      x-private: true
       x-unstable: true
     post:
       operationId: create-customer-charges
@@ -1575,8 +1527,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateChargeRequest'
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
@@ -1869,8 +1819,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidCreditGrantRequest'
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
@@ -1974,8 +1922,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value:
     get:
@@ -2036,8 +1982,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements:
     post:
@@ -2080,8 +2024,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateEntitlementRequest'
-      x-internal: true
-      x-private: true
       x-unstable: true
     get:
       operationId: list-customer-entitlements
@@ -2142,8 +2084,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}:
     get:
@@ -2182,8 +2122,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
     delete:
       operationId: delete-customer-entitlement
@@ -2222,8 +2160,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/grants:
     post:
@@ -2271,8 +2207,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingEntitlementGrantCreateRequest'
-      x-internal: true
-      x-private: true
       x-unstable: true
     get:
       operationId: list-customer-entitlement-grants
@@ -2339,8 +2273,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/history:
     get:
@@ -2421,8 +2353,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Entitlements
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/override:
     put:
@@ -2473,8 +2403,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateEntitlementRequest'
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/reset:
     post:
@@ -2520,8 +2448,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ResetCustomerEntitlementUsageRequest'
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlements/{entitlementId}/value:
     get:
@@ -2582,8 +2508,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/defaults/tax-codes:
     get:
@@ -2670,9 +2594,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EntitlementAccessQueryRequest'
-      x-private: true
-      x-internal: true
-      x-unstable: true
   /openmeter/entitlements:
     get:
       operationId: list-entitlements
@@ -2724,8 +2645,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/entitlements/{entitlementId}:
     get:
@@ -2757,8 +2676,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/events:
     get:
@@ -3102,8 +3019,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/grants/{grantId}:
     delete:
@@ -3141,8 +3056,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-private: true
       x-unstable: true
   /openmeter/llm-cost/overrides:
     get:
@@ -3576,8 +3489,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Notifications
-      x-private: true
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-notification-channel
@@ -3604,8 +3515,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateNotificationChannelRequest'
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/notification/channels/{notificationChannelId}:
     get:
@@ -3635,8 +3544,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Notifications
-      x-private: true
-      x-internal: true
       x-unstable: true
     put:
       operationId: update-notification-channel
@@ -3673,8 +3580,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateBillingNotificationChannelRequest'
-      x-private: true
-      x-internal: true
       x-unstable: true
     delete:
       operationId: delete-notification-channel
@@ -3699,8 +3604,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Notifications
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/plans:
     get:
@@ -3746,7 +3649,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     post:
       operationId: create-plan
       summary: Create plan
@@ -3772,7 +3674,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePlanRequest'
-      x-unstable: true
   /openmeter/plans/{planId}:
     put:
       operationId: update-plan
@@ -3809,7 +3710,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertPlanRequest'
-      x-unstable: true
     get:
       operationId: get-plan
       summary: Get plan
@@ -3839,7 +3739,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
     delete:
       operationId: delete-plan
       summary: Delete plan
@@ -3863,7 +3762,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
   /openmeter/plans/{planId}/addons:
     get:
       operationId: list-plan-addons
@@ -3916,7 +3814,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-plan-addon
@@ -4082,7 +3979,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/plans/{planId}/publish:
     post:
       operationId: publish-plan
@@ -4111,7 +4008,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
-      x-unstable: true
+      x-rpc-endpoint: true
   /openmeter/profiles:
     get:
       operationId: list-billing-profiles
@@ -4708,7 +4605,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionMigrate'
-      x-internal: true
       x-rpc-endpoint: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/restore:
@@ -4746,8 +4642,6 @@ paths:
       tags:
         - OpenMeter Subscriptions
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule:
     post:
@@ -4779,8 +4673,6 @@ paths:
       tags:
         - OpenMeter Subscriptions
       x-rpc-endpoint: true
-      x-private: true
-      x-internal: true
       x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
@@ -4837,7 +4729,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTaxCodeRequest'
-      x-unstable: true
     get:
       operationId: list-tax-codes
       summary: List tax codes
@@ -4866,7 +4757,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Tax
-      x-unstable: true
   /openmeter/tax-codes/{taxCodeId}:
     get:
       operationId: get-tax-code
@@ -4894,7 +4784,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
-      x-unstable: true
     put:
       operationId: upsert-tax-code
       summary: Upsert tax code
@@ -4929,7 +4818,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertTaxCodeRequest'
-      x-unstable: true
     delete:
       operationId: delete-tax-code
       summary: Delete tax code
@@ -4952,7 +4840,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
-      x-unstable: true
 components:
   parameters:
     CursorPaginationQuery:

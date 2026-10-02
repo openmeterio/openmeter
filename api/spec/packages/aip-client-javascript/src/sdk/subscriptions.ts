@@ -9,7 +9,10 @@ import {
   getSubscription,
   cancelSubscription,
   unscheduleCancelation,
+  unscheduleSubscription,
+  restoreSubscription,
   changeSubscription,
+  migrateSubscription,
   editSubscription,
   listSubscriptionAddons,
   getSubscriptionAddon,
@@ -25,8 +28,14 @@ import type {
   CancelSubscriptionResponse,
   UnscheduleCancelationRequest,
   UnscheduleCancelationResponse,
+  UnscheduleSubscriptionRequest,
+  UnscheduleSubscriptionResponse,
+  RestoreSubscriptionRequest,
+  RestoreSubscriptionResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
+  MigrateSubscriptionRequest,
+  MigrateSubscriptionResponse,
   EditSubscriptionRequest,
   EditSubscriptionResponse,
   ListSubscriptionAddonsRequest,
@@ -123,6 +132,41 @@ export class Subscriptions {
   }
 
   /**
+   * Unschedule subscription
+   *
+   * Deletes a scheduled subscription that has not yet become active, removing it and
+   * resolving any scheduling conflict it was holding. This is distinct from
+   * canceling: cancel ends a running subscription, whereas unscheduling removes a
+   * not-yet-active one. Only scheduled subscriptions can be unscheduled;
+   * unscheduling an active or already-started subscription is rejected.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/unschedule
+   */
+  async unschedule(
+    request: UnscheduleSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<UnscheduleSubscriptionResponse> {
+    return unwrap(await unscheduleSubscription(this._client, request, options))
+  }
+
+  /**
+   * Restore subscription
+   *
+   * Restores the subscription by deleting any later-scheduled successor
+   * subscriptions and continuing this one indefinitely. This is the inverse of a
+   * future-dated change, which schedules a successor. Restore is not available when
+   * multi-subscription is enabled.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/restore
+   */
+  async restore(
+    request: RestoreSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<RestoreSubscriptionResponse> {
+    return unwrap(await restoreSubscription(this._client, request, options))
+  }
+
+  /**
    * Change subscription
    *
    * Closes a running subscription and starts a new one according to the
@@ -135,6 +179,27 @@ export class Subscriptions {
     options?: RequestOptions,
   ): Promise<ChangeSubscriptionResponse> {
     return unwrap(await changeSubscription(this._client, request, options))
+  }
+
+  /**
+   * Migrate subscription
+   *
+   * Migrates to a later version of the current plan. With starting_phase omitted and
+   * billing_anchor omitted or unchanged, migration amends the subscription in place:
+   * unchanged items retain their service periods and both response entries have the
+   * same ID. Existing addons must remain compatible with the target plan.
+   * Incompatible phase timelines or billing settings return an error. Providing
+   * starting_phase or a different billing_anchor explicitly requests replacement,
+   * which resets the phase timeline, may produce billing adjustments, and does not
+   * transfer addons. Custom subscriptions cannot be migrated.
+   *
+   * POST /openmeter/subscriptions/{subscriptionId}/migrate
+   */
+  async migrate(
+    request: MigrateSubscriptionRequest,
+    options?: RequestOptions,
+  ): Promise<MigrateSubscriptionResponse> {
+    return unwrap(await migrateSubscription(this._client, request, options))
   }
 
   /**

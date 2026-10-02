@@ -25,40 +25,53 @@ describe('internal sub-client', () => {
     const sdk = client()
     expect(sdk.internal).toBe(sdk.internal)
     // x-internal operations must not leak onto the public sub-clients.
-    expect('void' in sdk.customers.credits.grants).toBe(false)
-    // Entirely-internal groups have no public getter at all.
-    expect('currencies' in sdk).toBe(false)
+    expect('createAddon' in sdk.subscriptions).toBe(false)
+    expect('updateAddon' in sdk.subscriptions).toBe(false)
   })
 
-  it('routes internal.customers.credits.grants.void() to the credit grant void action', async () => {
+  const addon = {
+    id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+    name: 'Add-on',
+    addon: { id: '01ARZ3NDEKTSV4RRFFQ69G5FAX' },
+    quantity: 1,
+    quantity_at: '2024-01-01T00:00:00Z',
+    active_from: '2024-01-01T00:00:00Z',
+    timeline: [],
+    rate_cards: [],
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  }
+
+  it('routes internal.subscriptions.createAddon() to the subscription addons collection', async () => {
     fetchMock.route('*', {
-      body: {
-        id: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
-        name: 'Grant',
-        funding_method: 'none',
-        currency: 'USD',
-        amount: '100',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      },
+      body: addon,
       headers: { 'Content-Type': 'application/json' },
     })
-    await client().internal.customers.credits.grants.void({
-      customerId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-      creditGrantId: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
-      body: {},
+    await client().internal.subscriptions.createAddon({
+      subscriptionId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      body: {
+        addon: { id: '01ARZ3NDEKTSV4RRFFQ69G5FAX' },
+        quantity: 1,
+        timing: 'immediate',
+      },
     })
     expect(lastUrl()).toBe(
-      'https://eu.api.konghq.com/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/credits/grants/01ARZ3NDEKTSV4RRFFQ69G5FAW/void',
+      'https://eu.api.konghq.com/v3/openmeter/subscriptions/01ARZ3NDEKTSV4RRFFQ69G5FAV/addons',
     )
   })
 
-  it('routes internal.currencies.list() to the currencies resource', async () => {
+  it('routes internal.subscriptions.updateAddon() to the subscription addon resource', async () => {
     fetchMock.route('*', {
-      body: { data: [], meta: { page: { number: 1, size: 10, total: 0 } } },
+      body: addon,
       headers: { 'Content-Type': 'application/json' },
     })
-    await client().internal.currencies.list()
-    expect(lastUrl()).toBe('https://eu.api.konghq.com/v3/openmeter/currencies')
+    await client().internal.subscriptions.updateAddon({
+      subscriptionId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      subscriptionAddonId: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+      body: { quantity: 2, timing: 'immediate' },
+    })
+    expect(lastUrl()).toBe(
+      'https://eu.api.konghq.com/v3/openmeter/subscriptions/01ARZ3NDEKTSV4RRFFQ69G5FAV/addons/01ARZ3NDEKTSV4RRFFQ69G5FAW',
+    )
   })
 })

@@ -2,11 +2,30 @@
 
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import { listCustomerEntitlementAccess } from '../funcs/entitlements.js'
+import { paginatePages } from '../lib/paginate.js'
+import {
+  listCustomerEntitlementAccess,
+  getCustomerEntitlementAccess,
+  getCustomerEntitlementValueByFeatureKey,
+  listEntitlements,
+  getEntitlement,
+  getCustomerEntitlementValue,
+} from '../funcs/entitlements.js'
 import type {
   ListCustomerEntitlementAccessRequest,
   ListCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementAccessRequest,
+  GetCustomerEntitlementAccessResponse,
+  GetCustomerEntitlementValueByFeatureKeyRequest,
+  GetCustomerEntitlementValueByFeatureKeyResponse,
+  ListEntitlementsRequest,
+  ListEntitlementsResponse,
+  GetEntitlementRequest,
+  GetEntitlementResponse,
+  GetCustomerEntitlementValueRequest,
+  GetCustomerEntitlementValueResponse,
 } from '../models/operations/entitlements.js'
+import type { Entitlement } from '../models/types.js'
 
 export class Entitlements {
   constructor(private readonly _client: Client) {}
@@ -22,6 +41,113 @@ export class Entitlements {
   ): Promise<ListCustomerEntitlementAccessResponse> {
     return unwrap(
       await listCustomerEntitlementAccess(this._client, request, options),
+    )
+  }
+
+  /**
+   * Get customer entitlement access
+   *
+   * Get the customer's access to a single feature.
+   *
+   * GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}
+   */
+  async getCustomerAccess(
+    request: GetCustomerEntitlementAccessRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementAccessResponse> {
+    return unwrap(
+      await getCustomerEntitlementAccess(this._client, request, options),
+    )
+  }
+
+  /**
+   * Get customer entitlement value by feature key
+   *
+   * Get the customer's entitlement value for a feature at a point in time. Without
+   * an active entitlement, the result denies access and omits the type.
+   *
+   * GET /openmeter/customers/{customerId}/entitlement-access/features/{featureKey}/value
+   */
+  async getCustomerValueByFeatureKey(
+    request: GetCustomerEntitlementValueByFeatureKeyRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementValueByFeatureKeyResponse> {
+    return unwrap(
+      await getCustomerEntitlementValueByFeatureKey(
+        this._client,
+        request,
+        options,
+      ),
+    )
+  }
+
+  /**
+   * List entitlements
+   *
+   * List the active entitlements of all customers. Intended for administrative use.
+   * To list the entitlements of a single customer, use the customer entitlements
+   * endpoints; to check entitlement access, use the entitlement access endpoints.
+   *
+   * GET /openmeter/entitlements
+   */
+  async list(
+    request?: ListEntitlementsRequest,
+    options?: RequestOptions,
+  ): Promise<ListEntitlementsResponse> {
+    return unwrap(await listEntitlements(this._client, request, options))
+  }
+
+  /**
+   * List entitlements
+   *
+   * List the active entitlements of all customers. Intended for administrative use.
+   * To list the entitlements of a single customer, use the customer entitlements
+   * endpoints; to check entitlement access, use the entitlement access endpoints.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/entitlements
+   */
+  listAll(
+    request?: ListEntitlementsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<Entitlement> {
+    return paginatePages(
+      (req, opts) => listEntitlements(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get entitlement
+   *
+   * Get an entitlement by ID. To check entitlement access, use the entitlement
+   * access endpoints instead.
+   *
+   * GET /openmeter/entitlements/{entitlementId}
+   */
+  async get(
+    request: GetEntitlementRequest,
+    options?: RequestOptions,
+  ): Promise<GetEntitlementResponse> {
+    return unwrap(await getEntitlement(this._client, request, options))
+  }
+
+  /**
+   * Get customer entitlement value
+   *
+   * Get the customer's access through a single entitlement, optionally evaluated at
+   * a point in time.
+   *
+   * GET /openmeter/customers/{customerId}/entitlements/{entitlementId}/value
+   */
+  async getCustomerValue(
+    request: GetCustomerEntitlementValueRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomerEntitlementValueResponse> {
+    return unwrap(
+      await getCustomerEntitlementValue(this._client, request, options),
     )
   }
 }
