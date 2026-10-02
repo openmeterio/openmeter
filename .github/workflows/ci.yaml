@@ -1,5 +1,7 @@
 name: CI
 
+# Runner benchmark trigger; application source is identical across benchmark branches.
+
 on:
   push:
     branches: [main]
@@ -222,7 +224,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -240,26 +242,20 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Build components
         run: |
-          # On Depot runners, cgo external linking can spill large temporary linker
-          # files into /run via the default temp dir. Keep Go and system temp files
-          # on the workspace disk for this step to avoid "no space left on device",
-          # while still allowing each parallel go build to get its own temp dir.
+          # Keep Go and system temp files on the workspace disk so the benchmark
+          # uses the same temporary-file layout across runner types.
           mkdir -p \
             "$GITHUB_WORKSPACE/.tmp/go-work" \
             "$GITHUB_WORKSPACE/.tmp/system"
@@ -270,7 +266,7 @@ jobs:
 
   generators-openapi:
     name: Code Generators / OpenAPI
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -288,7 +284,12 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -306,17 +307,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: api/spec/pnpm-lock.yaml
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Verify runner tools
         run: |
@@ -345,7 +337,7 @@ jobs:
 
   generators-javascript-sdk:
     name: Code Generators / JavaScript SDK
-    runs-on: depot-ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -393,7 +385,7 @@ jobs:
 
   generators-go:
     name: Code Generators / Go
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -411,7 +403,12 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
       - name: Restore Go module cache
         id: go-module-cache
@@ -422,17 +419,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-openmeter-go-modules-
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Ensure code generators are run
         run: |
@@ -464,7 +452,7 @@ jobs:
 
   go-sdk:
     name: Go SDK
-    runs-on: depot-ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -482,26 +470,22 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Run Go SDK checks
         run: make test-go-sdk
 
   test:
     name: Test
-    runs-on: depot-ubuntu-24.04-16
+    runs-on: ubuntu-24.04
     env:
       COMPOSE_FILE: docker-compose.yaml:docker-compose.postgres-test.yaml:.github/docker-compose.depot-registry.yaml
       COMPOSE_PROFILES: redis,depot-registry-svix
@@ -527,19 +511,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Wait for dependencies to be ready
         run: |
@@ -554,9 +534,8 @@ jobs:
           SVIX_JWT_SECRET: DUMMY_JWT_SECRET
         # count=1 is needed to force retest
         run: |
-          # On Depot runners, cgo builds during tests can spill temporary files
-          # into /run via the default temp dir. Keep Go and system temp files on
-          # the workspace disk for this step to avoid "no space left on device".
+          # Keep Go and system temp files on the workspace disk so the benchmark
+          # uses the same temporary-file layout across runner types.
           mkdir -p \
             "$GITHUB_WORKSPACE/.tmp/go-work" \
             "$GITHUB_WORKSPACE/.tmp/system"
@@ -572,7 +551,7 @@ jobs:
 
   migrations:
     name: Migration Checks
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     env:
       ATLAS_SHA256_AMD64: d88aae186a55e5893c318f3b11c838a3372adf4dac1e2fd3bc7d2b55944c5797
       ATLAS_SHA256_ARM64: bb8a22a08ccd9a6cb93f0a16205b7bbeb067dd7fec1f60227c687d8de93d6088
@@ -595,19 +574,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Install Atlas
         run: |
@@ -640,7 +615,7 @@ jobs:
 
   lint-go:
     name: Lint / Go
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -658,7 +633,12 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
       - name: Read GolangCI-Lint version
         id: golangci-lint-version
@@ -671,23 +651,13 @@ jobs:
           install-only: true
           skip-cache: true
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Run Go linters
         run: |
-          # On Depot runners, golangci-lint still uses Go/system temp space for
-          # transient analysis artifacts. Keep those temp files on the workspace
-          # disk so lint does not spill into /run and fail with ENOSPC.
+          # Keep Go and system temp files on the workspace disk so the benchmark
+          # uses the same temporary-file layout across runner types.
           mkdir -p \
             "$GITHUB_WORKSPACE/.tmp/go-work" \
             "$GITHUB_WORKSPACE/.tmp/system"
@@ -698,7 +668,7 @@ jobs:
 
   lint-other:
     name: Lint / Other
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -795,7 +765,7 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     env:
       COMPOSE_PROFILES: depot-registry-svix
     needs:
@@ -883,19 +853,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -919,7 +885,7 @@ jobs:
 
   e2e:
     name: E2E
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
     # Note: This check is running against the image that is going to be pushed.
     needs:
       - trusted-artifacts
@@ -994,19 +960,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
@@ -1057,7 +1019,7 @@ jobs:
 
   e2e-credits-disabled:
     name: E2E / Credits disabled
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
     # Note: This check is running against the image that is going to be pushed.
     needs:
       - trusted-artifacts
@@ -1133,19 +1095,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .go-version
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            collector/go.sum
+            api/v3/client/go.sum
+            e2e/go.sum
 
-      - name: Verify Depot Go cache
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          cache_program="$(go env GOCACHEPROG)"
-
-          if [[ "${cache_program}" != *"depot gocache"* ]]; then
-            echo "Depot Go cache is unavailable with upstream Go"
-            exit 1
-          fi
-
-          echo "Using ${cache_program}"
+      - name: Record Go cache configuration
+        run: go env GOCACHE GOCACHEPROG
 
       - name: Check container health
         run: docker inspect --format "{{json .State.Health }}" $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}')
