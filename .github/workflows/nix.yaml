@@ -107,7 +107,7 @@ jobs:
           runtime_dir="${RUNNER_TEMP}/openmeter-go-runtime"
           mkdir -p "${runtime_dir}/go-tmp"
 
-          GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c bash -euo pipefail <<'EOF'
+          GOTMPDIR="${runtime_dir}/go-tmp" nix develop --impure .#ci -c env GOCACHEPROG= bash -euo pipefail <<'EOF'
             runtime_probe="${RUNNER_TEMP}/openmeter-go-runtime/client.test"
             expected_interpreter="$(cat "${NIX_CC}/nix-support/dynamic-linker")"
             go env -json GOCACHE GOCACHEPROG GOROOT GOTOOLDIR
@@ -147,11 +147,10 @@ jobs:
           env \
             GOTMPDIR="$GITHUB_WORKSPACE/.tmp/go-work" \
             TMPDIR="$GITHUB_WORKSPACE/.tmp/system" \
-            nix develop --impure .#ci -c make -j 4 build GO_BUILD_FLAGS=
+            nix develop --impure .#ci -c env GOCACHEPROG= make -j 4 build GO_BUILD_FLAGS=
 
       - name: Save Nix store cache
         uses: nix-community/cache-nix-action/save@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ steps.cache-key.outputs.value }}
           save: "true"
-
